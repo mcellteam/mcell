@@ -136,11 +136,11 @@ TIME_INFINITY = 1e140
 class ComplexInstance():
     def __init__(
             self,
-            bngl_string : str = None,
+            name : str = None,
             elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
-        self.bngl_string = bngl_string
+        self.name = name
         self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
 
@@ -866,7 +866,7 @@ class Species():
             custom_time_step : float = None,
             custom_space_step : float = None,
             target_only : bool = False,
-            bngl_string : str = None,
+            name : str = None,
             elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
@@ -876,7 +876,7 @@ class Species():
         self.custom_time_step = custom_time_step
         self.custom_space_step = custom_space_step
         self.target_only = target_only
-        self.bngl_string = bngl_string
+        self.name = name
         self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
 

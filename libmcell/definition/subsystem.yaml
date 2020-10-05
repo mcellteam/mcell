@@ -132,11 +132,11 @@ ComplexInstance:
   internal: | 
      Ctor Species(ComplexInstance& cplx_inst) must be updated if if attributes change     
   items:
-  - name: bngl_string
+  - name: name
     type: str
     default: empty
     doc: | 
-       This complex instance is initialized from a BNGL string, 
+       When set, this complex instance is initialized from a BNGL string passed as this argument, 
        the string is parsed during model initialization so the molecule types it uses
        don't have to be defined before initialization.
   

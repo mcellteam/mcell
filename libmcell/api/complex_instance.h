@@ -39,15 +39,15 @@ public:
     // to avoid ComplexInstance semantic check, we need to insert a dummy name
     // when creating the object
     auto res_cplx_inst = std::make_shared<API::ComplexInstance>("TMP_NAME");
-    res_cplx_inst->bngl_string = STR_UNSET;
+    res_cplx_inst->name = STR_UNSET;
     return res_cplx_inst;
   }
 
   void check_semantics() const override {
     GenComplexInstance::check_semantics();
-    if (get_num_set(bngl_string, elementary_molecule_instances) != 1) {
+    if (get_num_set(name, elementary_molecule_instances) != 1) {
       throw ValueError(
-          S("Exactly one of ") + NAME_BNGL_STRING + " or " + NAME_ELEMENTARY_MOLECULE_INSTANCES +
+          S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULE_INSTANCES +
           " must be set for " + NAME_CLASS_COMPLEX_INSTANCE + ".");
     }
   }

@@ -34,12 +34,12 @@ class Species;
 
 #define COMPLEX_INSTANCE_CTOR() \
     ComplexInstance( \
-        const std::string& bngl_string_ = STR_UNSET, \
+        const std::string& name_ = STR_UNSET, \
         const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
         const Orientation orientation_ = Orientation::NONE \
     ) { \
       class_name = "ComplexInstance"; \
-      bngl_string = bngl_string_; \
+      name = name_; \
       elementary_molecule_instances = elementary_molecule_instances_; \
       orientation = orientation_; \
       postprocess_in_ctor();\
@@ -57,18 +57,6 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::string bngl_string;
-  virtual void set_bngl_string(const std::string& new_bngl_string_) {
-    if (initialized) {
-      throw RuntimeError("Value 'bngl_string' of object with name " + name + " (class " + class_name + ")"
-                         "cannot be set after model was initialized.");
-    }
-    bngl_string = new_bngl_string_;
-  }
-  virtual const std::string& get_bngl_string() const {
-    return bngl_string;
-  }
-
   std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances;
   virtual void set_elementary_molecule_instances(const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> new_elementary_molecule_instances_) {
     if (initialized) {

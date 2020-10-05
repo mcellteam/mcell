@@ -42,8 +42,8 @@ bool ComplexInstance::is_surf() const {
 
 
 std::string ComplexInstance::to_bngl_str() {
-  if (is_set(bngl_string)) {
-    return bngl_string;
+  if (is_set(name)) {
+    return name;
   }
   else {
     std::string res;

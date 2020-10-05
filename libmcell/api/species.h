@@ -57,7 +57,7 @@ public:
 
     // set copied value, cannot use GenSpecies ctor because we need to reset the attributes
     // warning: must be updated if ComplexInstance attributes change
-    bngl_string = cplx_inst.bngl_string;
+    name = cplx_inst.name;
     elementary_molecule_instances = cplx_inst.elementary_molecule_instances;
     // should not be really used in Species but copying it as well for consistency
     orientation = cplx_inst.orientation;

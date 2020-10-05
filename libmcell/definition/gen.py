@@ -96,6 +96,7 @@ KEY_PARAMS = 'params'
 KEY_RETURN_TYPE = 'return_type'
 
 KEY_INHERITED = 'inherited' # used only internally, not in input YAML
+KEY_NOT_AS_CTOR_ARG = 'not_as_ctor_arg'
 
 VALUE_CLASS = 'class'
 VALUE_SUBMODULE = 'submodule'
@@ -487,6 +488,10 @@ def write_ctor_decl(f, class_def, class_name, append_backslash, indent, only_inh
         for i in range(num_items):
             attr = items[i]
             
+            if not only_inherited and attr_not_in_ctor(attr):
+                continue
+
+
             assert KEY_NAME in attr
             name = attr[KEY_NAME]
     
@@ -542,6 +547,9 @@ def write_ctor_define(f, class_def, class_name):
     items = class_def[KEY_ITEMS] if KEY_ITEMS in class_def else []    
     num_items = len(items)
     for i in range(num_items):
+        if attr_not_in_ctor(items[i]):
+            continue
+
         assert KEY_NAME in items[i] 
         attr_name = items[i][KEY_NAME]
         if with_args:
@@ -640,6 +648,13 @@ def write_method_declaration(f, method):
 def is_inherited(attr_or_method_def):
     if KEY_INHERITED in attr_or_method_def:
         return attr_or_method_def[KEY_INHERITED]
+    else:
+        return False
+    
+
+def attr_not_in_ctor(attr_or_method_def):
+    if KEY_NOT_AS_CTOR_ARG in attr_or_method_def:
+        return attr_or_method_def[KEY_NOT_AS_CTOR_ARG]
     else:
         return False
     
@@ -1081,6 +1096,8 @@ def write_pybind11_bindings(f, class_name, class_def):
                 # init operands
                 for i in range(num_items):
                     attr = items[i]
+                    if attr_not_in_ctor(attr):
+                        continue
                     const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
                     f.write('            ' + const_spec + get_type_as_ref_param(attr))
                     if i != num_items - 1:
@@ -1099,6 +1116,8 @@ def write_pybind11_bindings(f, class_name, class_def):
             
                 for i in range(num_items):
                     attr = items[i]
+                    if attr_not_in_ctor(attr):
+                        continue
                     name = attr[KEY_NAME]
                     f.write('          py::arg("' + name + '")')
                     if KEY_DEFAULT in attr:
@@ -1219,12 +1238,22 @@ def inherit_from_superclasses(data_classes, class_name, class_def):
                 method_copy = copy(method)
                 method_copy[KEY_INHERITED] = True
                 res[KEY_METHODS].append(method_copy) 
+        
+        class_attr_names = set()
+        if KEY_ITEMS in class_def:
+            for attr in class_def[KEY_ITEMS]:
+                class_attr_names.add(attr[KEY_NAME])
 
         if KEY_ITEMS in superclass_def:
-            for item in superclass_def[KEY_ITEMS]:
-                item_copy = copy(item)
-                item_copy[KEY_INHERITED] = True
-                res[KEY_ITEMS].append(item_copy) 
+            for attr in superclass_def[KEY_ITEMS]:
+                
+                attr_copy = copy(attr)
+                attr_copy[KEY_INHERITED] = True
+                res[KEY_ITEMS].append(attr_copy) 
+                
+                # do not inherit attribute if the attribute with the same name already exists
+                if attr[KEY_NAME] in class_attr_names:
+                    attr_copy[KEY_NOT_AS_CTOR_ARG] = True               
         
     return res
 

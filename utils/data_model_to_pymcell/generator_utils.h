@@ -302,7 +302,7 @@ static void gen_assign(ostream& out, string obj_name, string field_name1, T valu
 
 template<>
 void gen_assign(ostream& out, string obj_name, string field_name1, bool value) {
-  out << obj_name << "." << field_name1 << "." << " = " << (value ? "True" : "False") << "\n";
+  out << obj_name << "." << field_name1 << " = " << (value ? "True" : "False") << "\n";
 }
 
 
