@@ -22,8 +22,10 @@
 
 #include <fstream>
 
-#include "generator_utils.h"
+
 #include "python_generator.h"
+#include "generator_utils.h"
+#include "mcell4_generator.h"
 
 using namespace std;
 using namespace MCell::API;
@@ -290,7 +292,7 @@ void PythonGenerator::generate_surface_classes(
 void PythonGenerator::generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text) {
   // append to the parameters file
   ofstream out;
-  open_and_check_file_w_prefix(output_files_prefix, PARAMETERS, out, true);
+  open_and_check_file_w_prefix(data.output_files_prefix, PARAMETERS, out, true);
 
   out << "\n" << make_section_comment("variable rate");
   out << rate_array_name << " = [\n";
@@ -348,8 +350,8 @@ std::string PythonGenerator::generate_single_reaction_rule(std::ostream& out, Js
     bool ok = convert_reaction_name(reaction_list_item[KEY_NAME].asString(), name);
 
     if (!ok) {
-      name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
-      unnamed_rxn_counter++;
+      name = UNNAMED_REACTION_RULE_PREFIX + to_string(data.unnamed_rxn_counter);
+      data.unnamed_rxn_counter++;
     }
   }
   gen_ctor_call(out, name, NAME_CLASS_REACTION_RULE);
@@ -653,7 +655,7 @@ std::string PythonGenerator::generate_single_molecule_release_info_array(
       out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(";
 
       string species_name = release_site_item[KEY_MOLECULE].asString();
-      if (!bng_mode) {
+      if (!data.bng_mode) {
         gen_param_id(out, NAME_SPECIES, species_name, true);
       }
       else {
@@ -797,7 +799,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     bool is_vol;
     if (shape != VALUE_LIST) {
       string species_name = release_site_item[KEY_MOLECULE].asString();
-      if (!bng_mode) {
+      if (!data.bng_mode) {
         gen_param_id(out, NAME_SPECIES, species_name, true);
       }
       else {
@@ -935,6 +937,352 @@ void PythonGenerator::generate_viz_outputs(
 
   // ignoring KEY_END
   out << CTOR_END;
+}
+
+
+
+static uint get_num_counts_in_mdl_string(const string& mdl_string) {
+  uint res = 0;
+  size_t pos = 0;
+  while ((pos = mdl_string.find(COUNT, pos)) != string::npos) {
+    res++;
+    pos += strlen(COUNT);
+  }
+  return res;
+}
+
+
+static string create_count_name(string what_to_count, string where_to_count) {
+
+  // first remove all cterm_refixes
+  regex pattern_cterm(COUNT_TERM_PREFIX);
+  what_to_count = regex_replace(what_to_count, pattern_cterm, "");
+
+
+  string res = COUNT_PREFIX;
+  for (char c: what_to_count) {
+    if (c == '+') {
+      res += "_plus_";
+    }
+    else if (c == '-') {
+      res += "_minus_";
+    }
+    else if (c == '(') {
+      res += "_pstart_";
+    }
+    else if (c == ')') {
+      res += "_pend_";
+    }
+    else if (c == '.') {
+      res += "_";
+    }
+    else if (c == '_') {
+      res += "_";
+    }
+    else if (isalnum(c)) {
+      res += c;
+    }
+    // ignoring the rest of the characters
+  }
+
+  if (where_to_count != WORLD && where_to_count != "") {
+    res += "_" + where_to_count;
+  }
+
+  return res;
+}
+
+
+void PythonGenerator::process_single_count_term(
+    const string& mdl_string,
+    bool& rxn_not_mol, string& what_to_count, string& where_to_count, string& orientation) {
+
+  // mdl_string is always in the form COUNT[what,where]
+  size_t start_brace = mdl_string.find('[');
+  size_t comma = mdl_string.find(',');
+  size_t comma2 = mdl_string.find(',', comma + 1);
+  if (comma2 != string::npos) {
+    // the first comma is orientation
+    comma = comma2;
+  }
+  size_t end_brace = mdl_string.find(']');
+
+  if (mdl_string.find(COUNT) == string::npos) {
+    ERROR("String 'COUNT' was not found in mdl_string '" + mdl_string + "'.");
+  }
+  if (start_brace == string::npos || comma == string::npos || end_brace == string::npos ||
+      start_brace > comma || start_brace > end_brace || comma > end_brace
+  ) {
+    ERROR("Malformed mdl_string '" + mdl_string + "'.");
+  }
+
+  what_to_count = mdl_string.substr(start_brace + 1, comma - start_brace - 1);
+  what_to_count = trim(what_to_count);
+
+  // process orientation
+  orientation = "";
+  assert(what_to_count != "");
+  char last_c = what_to_count.back();
+  if (last_c == '\'' || last_c == ',' || last_c == ';') {
+    string s;
+    s = last_c;
+    orientation = convert_orientation(s);
+
+    what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
+  }
+
+  if (find(data.all_species_and_mol_type_names.begin(), data.all_species_and_mol_type_names.end(),
+        SpeciesOrMolType(what_to_count))
+      != data.all_species_and_mol_type_names.end()) {
+    rxn_not_mol = false;
+  }
+  else if (find(data.all_reaction_rules_names.begin(), data.all_reaction_rules_names.end(), IdLoc(what_to_count))
+      != data.all_reaction_rules_names.end()) {
+    rxn_not_mol = true;
+  }
+  else {
+    ERROR("Identifier '" + what_to_count + "' is neither species nor reaction, from mdl_string '" + mdl_string + "'.");
+  }
+
+  where_to_count = mdl_string.substr(comma + 1, end_brace - comma - 1);
+  size_t dot_pos = where_to_count.find('.');
+  if (dot_pos !=- string::npos) {
+    where_to_count = where_to_count.substr(dot_pos + 1);
+  }
+  where_to_count = trim(where_to_count);
+  if (where_to_count == WORLD) {
+    where_to_count = "";
+  }
+  // where_to_count can now look like this: "Cube[ALL"
+  size_t brace = where_to_count.find('[');
+  if (brace != string::npos) {
+    if (where_to_count.substr(brace + 1) == REGION_ALL_NAME) {
+      where_to_count = where_to_count.substr(0, brace);
+    }
+    else {
+      where_to_count[brace] = '_';
+    }
+  }
+}
+
+
+static string get_count_multiplier(const string& mdl_string) {
+  // check if there is a multiplier
+  // handling only code generated by mcell4 for now
+  string multiplier_str = "";
+  size_t mult_pos = mdl_string.find("*");
+  if (mult_pos != string::npos) {
+    string substr = mdl_string.substr(0, mult_pos);
+    try {
+      stod(substr);
+      multiplier_str = substr;
+    }
+    catch (const std::exception& e) {
+      ERROR("Could not convert multiplier from " + mdl_string + ".");
+    }
+  }
+  return multiplier_str;
+}
+
+// stores multiplier value into the multiplier argument as a string
+// if present, the expected form is mult*(<counts>)
+string PythonGenerator::generate_count_terms_for_expression(
+    ostream& out, const string& mdl_string) {
+  string res_expr;
+
+  size_t last_end = 0;
+  uint num_counts = get_num_counts_in_mdl_string(mdl_string);
+
+  // the first count term item must be positive
+  for (uint i = 0; i < num_counts; i++) {
+    size_t start = mdl_string.find(COUNT, last_end);
+
+    size_t end = mdl_string.find(']', start);
+    if (end == string::npos) {
+      end = mdl_string.size();
+    }
+
+    bool rxn_not_mol;
+    string what_to_count;
+    string where_to_count;
+    string orientation;
+
+    process_single_count_term(
+        mdl_string.substr(start, end - start + 1),
+        rxn_not_mol, what_to_count, where_to_count, orientation
+    );
+
+    string name = COUNT_TERM_PREFIX + what_to_count + ((where_to_count != "") ? ("_" + where_to_count) : "");
+
+    // generate the count term object definition if we don't already have it
+    if (find(data.all_count_term_names.begin(), data.all_count_term_names.end(), name) == data.all_count_term_names.end()) {
+      data.all_count_term_names.push_back(name);
+      gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
+
+      if (rxn_not_mol) {
+        gen_param_id(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
+      }
+      else {
+        gen_param_id(out, NAME_SPECIES, what_to_count, orientation == "" && where_to_count != "");
+
+        if (orientation != "") {
+          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
+        }
+      }
+
+      if (where_to_count != "") {
+        gen_param_id(out, NAME_REGION, where_to_count, false);
+      }
+
+      out << CTOR_END;
+    }
+
+    // for the res_expr, we cut all the COUNT[..] and replace them with
+    // the ids of the CountTerm objects
+    if (last_end != 0)
+      res_expr += " " + mdl_string.substr(last_end + 1, start - (last_end + 1)) + " " + name;
+    else {
+      res_expr += name;
+    }
+
+    last_end = end;
+  }
+
+  return res_expr;
+}
+
+
+void PythonGenerator::generate_counts(ostream& out, std::vector<std::string>& counts) {
+
+  if (!mcell.isMember(KEY_REACTION_DATA_OUTPUT)) {
+    return;
+  }
+
+  Value& reaction_data_output = get_node(mcell, KEY_REACTION_DATA_OUTPUT);
+  check_version(KEY_DEFINE_MOLECULES, reaction_data_output, VER_DM_2016_03_15_1800);
+
+  string rxn_step = reaction_data_output[KEY_RXN_STEP].asString();
+
+  Value& reaction_output_list = get_node(reaction_data_output, KEY_REACTION_OUTPUT_LIST);
+  for (Value::ArrayIndex i = 0; i < reaction_output_list.size(); i++) {
+    Value& reaction_output_item = reaction_output_list[i];
+
+    string mdl_file_prefix = reaction_output_item[KEY_MDL_FILE_PREFIX].asString();
+
+    bool rxn_not_mol;
+    bool single_term;
+    string what_to_count;
+    string where_to_count; // empty for WORLD
+    string orientation;
+
+    string count_location = reaction_output_item[KEY_COUNT_LOCATION].asString();
+
+    string rxn_or_mol = reaction_output_item[KEY_RXN_OR_MOL].asString();
+    string multiplier_str = "";
+    if (rxn_or_mol == VALUE_MDLSTRING) {
+      // first check whether we need to generate count_terms
+      string mdl_string = reaction_output_item[KEY_MDL_STRING].asString();
+      uint num_counts = get_num_counts_in_mdl_string(mdl_string);
+      if (num_counts == 0) {
+        ERROR("There is no 'COUNT' in mdl_string for output with filename " +  mdl_file_prefix + ".");
+      }
+      else if (num_counts == 1) {
+        single_term = true;
+        process_single_count_term(mdl_string, rxn_not_mol, what_to_count, where_to_count, orientation);
+      }
+      else {
+        single_term = false;
+        what_to_count = generate_count_terms_for_expression(out, mdl_string);
+        where_to_count = "";
+      }
+
+      multiplier_str = get_count_multiplier(mdl_string);
+    }
+    else if (rxn_or_mol == VALUE_REACTION) {
+      single_term = true;
+      rxn_not_mol = true;
+      what_to_count = reaction_output_item[KEY_REACTION_NAME].asString();
+
+      if (count_location == VALUE_COUNT_LOCATION_OBJECT) {
+        where_to_count = reaction_output_item[KEY_OBJECT_NAME].asString();
+      }
+      else if (count_location == VALUE_COUNT_LOCATION_REGION) {
+        where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
+      }
+      else {
+        assert(count_location == VALUE_COUNT_LOCATION_WORLD);
+      }
+    }
+    else if (rxn_or_mol == VALUE_MOLECULE) {
+      single_term = true;
+      rxn_not_mol = false;
+      what_to_count = reaction_output_item[KEY_MOLECULE_NAME].asString();
+
+      if (count_location == VALUE_COUNT_LOCATION_OBJECT) {
+        where_to_count = reaction_output_item[KEY_OBJECT_NAME].asString();
+      }
+      else if (count_location == VALUE_COUNT_LOCATION_REGION) {
+        where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
+      }
+      else {
+        assert(count_location == VALUE_COUNT_LOCATION_WORLD);
+      }
+    }
+    else {
+      ERROR("Invalid rxn_or_mol '" + rxn_or_mol + "' in reaction_output_list for output with filename " +
+          mdl_file_prefix + ".");
+    }
+
+    string name = create_count_name(what_to_count, where_to_count);
+    counts.push_back(name);
+    gen_ctor_call(out, name, NAME_CLASS_COUNT);
+
+    if (single_term) {
+      if (rxn_not_mol) {
+        gen_param_id(out, NAME_REACTION_RULE, what_to_count, true);
+      }
+      else {
+        gen_param_id(out, NAME_SPECIES, what_to_count, true);
+
+        if (orientation != "") {
+          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
+        }
+      }
+    }
+    else {
+      gen_param_id(out, NAME_COUNT_EXPRESSION, what_to_count, true);
+    }
+
+    if (where_to_count != "") {
+      gen_param_id(out, NAME_REGION, where_to_count, true);
+    }
+
+    if (mdl_file_prefix == "") {
+      string where = where_to_count;
+      if (where == "") {
+        where = WORLD_FIRST_UPPER;
+      }
+      mdl_file_prefix = what_to_count + "." + where;
+
+      // TODO: this might need further checks
+      if (mdl_file_prefix.find_first_of(" ,+*/\\") != string::npos) {
+        cout << "Warning: count file prefix '" + mdl_file_prefix + "' is probably invalid.\n";
+      }
+    }
+
+    gen_param(out, NAME_FILE_NAME,
+        DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat", multiplier_str != "" || rxn_step != "");
+
+    if (multiplier_str != "") {
+      gen_param_expr(out, NAME_MULTIPLIER, multiplier_str, rxn_step != "");
+    }
+
+    if (rxn_step != "") {
+      gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
+    }
+
+    out << CTOR_END;
+  }
 }
 
 

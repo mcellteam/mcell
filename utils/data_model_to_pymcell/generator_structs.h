@@ -24,8 +24,10 @@
 #define UTILS_DATA_MODEL_TO_PYMCELL_GENERATOR_STRUCTS_H_
 
 #include <string>
+#include "json/json.h"
 
 namespace MCell {
+
 
 // auxiliary struct used when generating species or molecule types
 struct SpeciesOrMolType {
@@ -60,6 +62,34 @@ struct IdLoc {
   std::string name;
   bool in_python; // BNGL when false
 };
+
+
+
+// data and configuration shared among generators
+struct SharedGenData {
+  void reset() {
+    unnamed_rxn_counter = 0;
+    all_species_and_mol_type_names.clear();
+    all_reaction_rules_names.clear();
+    bngl_reaction_rules_used_in_observables.clear();
+    all_count_term_names.clear();
+  }
+
+  uint unnamed_rxn_counter;
+
+  std::string output_files_prefix;
+  bool bng_mode;
+  bool debug_mode;
+
+  std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
+  std::vector<IdLoc> all_reaction_rules_names;
+  std::vector<std::string> bngl_reaction_rules_used_in_observables;
+  std::vector<std::string> all_count_term_names;
+
+  // mcell node of the loaded JSON file
+  Json::Value mcell;
+};
+
 
 } // namespace MCell
 

@@ -21,6 +21,7 @@
 ******************************************************************************/
 
 #include "generator_utils.h"
+#include "generator_structs.h"
 #include "bngl_generator.h"
 
 using namespace std;
@@ -54,7 +55,7 @@ void BNGLGenerator::generate_parameters(std::ostream& python_out) {
 
   // and generate BNGL parameters and also their Python representations
   bng_out << "begin parameters\n";
-  Value& parameter_system = get_node(mcell, KEY_PARAMETER_SYSTEM);
+  Value& parameter_system = get_node(data.mcell, KEY_PARAMETER_SYSTEM);
   if (parameter_system.isMember(KEY_MODEL_PARAMETERS)) {
     Value& parameter_list = get_node(parameter_system, KEY_MODEL_PARAMETERS);
     for (Value::ArrayIndex i = 0; i < parameter_list.size(); i++) {
@@ -145,7 +146,7 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
       "# elementary molecule types are already in the subsystem or model after they were loaded from BNGL\n"
       "def set_bngl_molecule_types_info(subsystem):\n";
 
-  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
+  Value& define_molecules = get_node(data.mcell, KEY_DEFINE_MOLECULES);
   check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
 
   Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
@@ -173,8 +174,8 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
     bool ok = convert_reaction_name(reaction_list_item[KEY_NAME].asString(), name);
 
     if (!ok) {
-      name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
-      unnamed_rxn_counter++;
+      name = UNNAMED_REACTION_RULE_PREFIX + to_string(data.unnamed_rxn_counter);
+      data.unnamed_rxn_counter++;
     }
   }
 
@@ -201,7 +202,7 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
 void BNGLGenerator::generate_python_decl_bngl_rxn_rule(std::ostream& python_out, const std::string& name) {
   python_out << "# declaration of rxn rule defined in BNGL and used here in Python\n";
   python_out <<
-    name << " == " << get_module_name_w_prefix(output_files_prefix, SUBSYSTEM) << "." <<
+    name << " == " << get_module_name_w_prefix(data.output_files_prefix, SUBSYSTEM) << "." <<
     NAME_FIND_REACTION_RULE << "('" << name << "')\n";
 }
 

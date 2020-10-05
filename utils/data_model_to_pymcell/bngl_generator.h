@@ -35,11 +35,8 @@ public:
   BNGLGenerator(
       const std::string& bngl_filename_,
       std::ostream& bng_out_,
-      Json::Value& mcell_,
-      const std::string& output_files_prefix_,
-      uint& unnamed_rxn_counter_)
-    : bngl_filename(bngl_filename_), bng_out(bng_out_),
-      mcell(mcell_), output_files_prefix(output_files_prefix_), unnamed_rxn_counter(unnamed_rxn_counter_) {
+      SharedGenData& data_)
+    : bngl_filename(bngl_filename_), bng_out(bng_out_), data(data_) {
   }
 
   void generate_parameters(std::ostream& python_out);
@@ -61,9 +58,7 @@ private:
 
   const std::string& bngl_filename;
   std::ostream& bng_out;
-  Json::Value& mcell;
-  const std::string& output_files_prefix;
-  uint& unnamed_rxn_counter; // owned by MCell4Generator
+  SharedGenData& data; // owned by MCell4Generator
 };
 
 } /* namespace MCell */

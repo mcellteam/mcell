@@ -34,7 +34,8 @@
 #include "python_generator.h"
 #include "bngl_generator.h"
 
-// use a different namespace?
+// TODO: use a different namespace, we are not using anything from MCell
+// except for constants
 namespace MCell {
 
 class MCell4Generator {
@@ -62,10 +63,10 @@ private:
 
   void generate_parameters();
 
-  void generate_species_and_mol_types(std::ofstream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
+  void generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
 
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
-  std::vector<IdLoc> generate_reaction_rules(std::ofstream& out);
+  std::vector<IdLoc> generate_reaction_rules(std::ostream& out);
 
   void generate_subsystem();
 
@@ -73,19 +74,12 @@ private:
       std::ofstream& out, const int index, Json::Value& object);
   std::vector<std::string> generate_geometry();
 
-  void generate_surface_classes_assignment(std::ofstream& out);
+  void generate_surface_classes_assignment(std::ostream& out);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
-
-  void process_single_count_term(
-      const std::string& mdl_string,
-      bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count,
-      std::string& orientation);
-  std::string generate_count_terms_for_expression(std::ofstream& out, const std::string& mdl_string);
-  std::vector<std::string> generate_counts(std::ofstream& out);
 
   void generate_observables(const bool cellblender_viz);
 
-  void generate_config(std::ofstream& out);
+  void generate_config(std::ostream& out);
   void generate_model(const bool print_failed_marker);
 
 private:
@@ -94,24 +88,11 @@ private:
 
   PythonGenerator* python_gen;
 
-  uint unnamed_rxn_counter;
-
-  std::string output_files_prefix;
-  bool bng_mode;
-  bool debug_mode;
-
   // parameters, subsystem, and instantiation are always generated
   bool geometry_generated;
   bool observables_generated;
 
-
-  std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
-  std::vector<IdLoc> all_reaction_rules_names;
-  std::vector<std::string> bngl_reaction_rules_used_in_observables;
-  std::vector<std::string> all_count_term_names;
-
-  // mcell node of the loaded JSON file
-  Json::Value mcell;
+  SharedGenData data;
 };
 
 } /* namespace MCell */

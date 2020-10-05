@@ -34,7 +34,7 @@ using Json::Value;
 
 
 string MCell4Generator::get_module_name(const string file_suffix) {
-  return get_module_name_w_prefix(output_files_prefix, file_suffix);
+  return get_module_name_w_prefix(data.output_files_prefix, file_suffix);
 }
 
 
@@ -47,18 +47,14 @@ void MCell4Generator::open_and_check_file(
     const string file_suffix, ofstream& out,
     const bool for_append, const bool bngl) {
 
-  open_and_check_file_w_prefix(output_files_prefix, file_suffix, out, for_append, bngl);
+  open_and_check_file_w_prefix(data.output_files_prefix, file_suffix, out, for_append, bngl);
 }
 
 
 void MCell4Generator::reset() {
-  unnamed_rxn_counter = 0;
+  data.reset();
   geometry_generated = false;
   observables_generated = false;
-  all_species_and_mol_type_names.clear();
-  all_reaction_rules_names.clear();
-  bngl_reaction_rules_used_in_observables.clear();
-  all_count_term_names.clear();
   bng_gen = nullptr;
   python_gen = nullptr;
 }
@@ -76,9 +72,9 @@ bool MCell4Generator::generate(
   reset();
 
   bool failed = false;
-  output_files_prefix = output_files_prefix_;
-  bng_mode = bng_mode_;
-  debug_mode = debug_mode_;
+  data.output_files_prefix = output_files_prefix_;
+  data.bng_mode = bng_mode_;
+  data.debug_mode = debug_mode_;
 
   // load json file
   ifstream file;
@@ -91,16 +87,15 @@ bool MCell4Generator::generate(
   file >> root;
   file.close();
 
-  mcell = get_node(KEY_ROOT, root, KEY_MCELL);
+  data.mcell = get_node(KEY_ROOT, root, KEY_MCELL);
 
   // create generators
-  if (bng_mode) {
+  if (data.bng_mode) {
     open_and_check_file(MODEL, bng_out, false, true);
     bng_gen = new BNGLGenerator(
-        get_filename(output_files_prefix, MODEL, BNGL_EXT), bng_out,
-        mcell, output_files_prefix, unnamed_rxn_counter);
+        get_filename(data.output_files_prefix, MODEL, BNGL_EXT), bng_out, data);
   }
-  python_gen = new PythonGenerator(mcell, output_files_prefix, bng_mode, unnamed_rxn_counter);
+  python_gen = new PythonGenerator(data);
 
   CHECK(check_scripting(), failed);
 
@@ -113,7 +108,7 @@ bool MCell4Generator::generate(
   CHECK(generate_model(failed), failed);
 
   // delete generators
-  if (bng_mode) {
+  if (data.bng_mode) {
     delete bng_gen;
     bng_gen = nullptr;
     bng_out.close();
@@ -125,8 +120,8 @@ bool MCell4Generator::generate(
 }
 
 void MCell4Generator::check_scripting() {
-  if (mcell.isMember(KEY_SCRIPTING)) {
-    Value& scripting = get_node(mcell, KEY_SCRIPTING);
+  if (data.mcell.isMember(KEY_SCRIPTING)) {
+    Value& scripting = get_node(data.mcell, KEY_SCRIPTING);
     if (scripting.isMember(KEY_SCRIPTING_LIST)) {
       Value& scripting_list = get_node(scripting, KEY_SCRIPTING_LIST);
       if (!scripting_list.empty()) {
@@ -146,8 +141,8 @@ void MCell4Generator::generate_parameters() {
 
   out << make_section_comment("model parameters");
 
-  if (mcell.isMember(KEY_PARAMETER_SYSTEM)) {
-    if (bng_mode) {
+  if (data.mcell.isMember(KEY_PARAMETER_SYSTEM)) {
+    if (data.bng_mode) {
       bng_gen->generate_parameters(out);
     }
     else {
@@ -157,9 +152,9 @@ void MCell4Generator::generate_parameters() {
 
   out << make_section_comment("simulation setup");
 
-  out << PARAM_ITERATIONS << " = " << mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
-  out << PARAM_TIME_STEP << " = " << mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
-  out << PARAM_DUMP << " = " << (debug_mode ? "True" : "False") << "\n";
+  out << PARAM_ITERATIONS << " = " << data.mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
+  out << PARAM_TIME_STEP << " = " << data.mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
+  out << PARAM_DUMP << " = " << (data.debug_mode ? "True" : "False") << "\n";
   out << PARAM_EXPORT_DATA_MODEL << " = " << "True\n";
   out << "\n";
 
@@ -181,14 +176,14 @@ void MCell4Generator::generate_parameters() {
 
 
 void MCell4Generator::generate_species_and_mol_types(
-    ofstream& out, vector<SpeciesOrMolType>& species_and_mt_info) {
+    ostream& out, vector<SpeciesOrMolType>& species_and_mt_info) {
 
   // skip if there are no species/mol types
-  if (!mcell.isMember(KEY_DEFINE_MOLECULES)) {
+  if (!data.mcell.isMember(KEY_DEFINE_MOLECULES)) {
     return;
   }
 
-  if (bng_mode) {
+  if (data.bng_mode) {
     // molecule types are optional but they allow for better BNGL semantic checks
 
     // - we also need to generate code that sets diffusion constant,
@@ -265,20 +260,20 @@ static bool is_rxn_used_in_observables(Value& mcell, const string& rxn_name) {
 }
 
 
-vector<IdLoc> MCell4Generator::generate_reaction_rules(ofstream& out) {
+vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out) {
   vector<IdLoc> rxn_names_w_loc;
 
-  if (!mcell.isMember(KEY_DEFINE_REACTIONS)) {
+  if (!data.mcell.isMember(KEY_DEFINE_REACTIONS)) {
     return rxn_names_w_loc;
   }
 
-  if (bng_mode) {
+  if (data.bng_mode) {
     // put into BNG all rxn rules that,
     // 1) don't use MCell orientation or
     // 2) variable rxn rates
     // rest goes into python
 
-    Value& define_reactions = get_node(mcell, KEY_DEFINE_REACTIONS);
+    Value& define_reactions = get_node(data.mcell, KEY_DEFINE_REACTIONS);
     check_version(KEY_DEFINE_REACTIONS, define_reactions, VER_DM_2014_10_24_1638);
 
     bng_gen->open_reaction_rules_section();
@@ -290,10 +285,10 @@ vector<IdLoc> MCell4Generator::generate_reaction_rules(ofstream& out) {
 
       if (!rxn_uses_mcell_orientation(reaction_list_item) && !rxn_has_variable_rate(reaction_list_item)) {
 
-        bool used_in_observables = is_rxn_used_in_observables(mcell, reaction_list_item[KEY_RXN_NAME].asString());
+        bool used_in_observables = is_rxn_used_in_observables(data.mcell, reaction_list_item[KEY_RXN_NAME].asString());
         string name = bng_gen->generate_single_reaction_rule(reaction_list_item, used_in_observables);
         rxn_names_w_loc.push_back(IdLoc(name, false));
-        bngl_reaction_rules_used_in_observables.push_back(name);
+        data.bngl_reaction_rules_used_in_observables.push_back(name);
       }
       else {
         bng_gen->add_comment(
@@ -323,15 +318,15 @@ void MCell4Generator::generate_subsystem() {
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
 
-  generate_species_and_mol_types(out, all_species_and_mol_type_names);
+  generate_species_and_mol_types(out, data.all_species_and_mol_type_names);
 
   vector<string> surface_class_names;
   python_gen->generate_surface_classes(out, surface_class_names);
 
-  all_reaction_rules_names = generate_reaction_rules(out);
+  data.all_reaction_rules_names = generate_reaction_rules(out);
 
   gen_ctor_call(out, SUBSYSTEM, NAME_CLASS_SUBSYSTEM, false);
-  for (SpeciesOrMolType& info: all_species_and_mol_type_names) {
+  for (SpeciesOrMolType& info: data.all_species_and_mol_type_names) {
     if (info.is_species) {
       gen_method_call(out, SUBSYSTEM, NAME_ADD_SPECIES, info.name);
     }
@@ -342,7 +337,7 @@ void MCell4Generator::generate_subsystem() {
   for (string& sc: surface_class_names) {
     gen_method_call(out, SUBSYSTEM, NAME_ADD_SURFACE_CLASS, sc);
   }
-  for (IdLoc& r_loc: all_reaction_rules_names) {
+  for (IdLoc& r_loc: data.all_reaction_rules_names) {
     if (r_loc.in_python) {
       gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r_loc.name);
     }
@@ -358,10 +353,10 @@ vector<string> MCell4Generator::generate_geometry() {
 
   // TODO: check versions
 
-  if (!mcell.isMember(KEY_GEOMETRICAL_OBJECTS)) {
+  if (!data.mcell.isMember(KEY_GEOMETRICAL_OBJECTS)) {
     return geometry_objects;
   }
-  Value& geometrical_objects = get_node(mcell, KEY_GEOMETRICAL_OBJECTS);
+  Value& geometrical_objects = get_node(data.mcell, KEY_GEOMETRICAL_OBJECTS);
   if (!geometrical_objects.isMember(KEY_OBJECT_LIST)) {
     return geometry_objects;
   }
@@ -383,12 +378,12 @@ vector<string> MCell4Generator::generate_geometry() {
 
 
 
-void MCell4Generator::generate_surface_classes_assignment(ofstream& out) {
-  if (!mcell.isMember(KEY_MODIFY_SURFACE_REGIONS)) {
+void MCell4Generator::generate_surface_classes_assignment(ostream& out) {
+  if (!data.mcell.isMember(KEY_MODIFY_SURFACE_REGIONS)) {
     return;
   }
 
-  Value& modify_surface_regions = mcell[KEY_MODIFY_SURFACE_REGIONS];
+  Value& modify_surface_regions = data.mcell[KEY_MODIFY_SURFACE_REGIONS];
   check_version(KEY_MODIFY_SURFACE_REGIONS, modify_surface_regions, VER_DM_2014_10_24_1638);
   Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
   for (Value::ArrayIndex i = 0; i < modify_surface_regions_list.size(); i++) {
@@ -498,352 +493,6 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
 }
 
 
-static uint get_num_counts_in_mdl_string(const string& mdl_string) {
-  uint res = 0;
-  size_t pos = 0;
-  while ((pos = mdl_string.find(COUNT, pos)) != string::npos) {
-    res++;
-    pos += strlen(COUNT);
-  }
-  return res;
-}
-
-
-static string create_count_name(string what_to_count, string where_to_count) {
-
-  // first remove all cterm_refixes
-  regex pattern_cterm(COUNT_TERM_PREFIX);
-  what_to_count = regex_replace(what_to_count, pattern_cterm, "");
-
-
-  string res = COUNT_PREFIX;
-  for (char c: what_to_count) {
-    if (c == '+') {
-      res += "_plus_";
-    }
-    else if (c == '-') {
-      res += "_minus_";
-    }
-    else if (c == '(') {
-      res += "_pstart_";
-    }
-    else if (c == ')') {
-      res += "_pend_";
-    }
-    else if (c == '.') {
-      res += "_";
-    }
-    else if (c == '_') {
-      res += "_";
-    }
-    else if (isalnum(c)) {
-      res += c;
-    }
-    // ignoring the rest of the characters
-  }
-
-  if (where_to_count != WORLD && where_to_count != "") {
-    res += "_" + where_to_count;
-  }
-
-  return res;
-}
-
-
-void MCell4Generator::process_single_count_term(
-    const string& mdl_string,
-    bool& rxn_not_mol, string& what_to_count, string& where_to_count, string& orientation) {
-
-  // mdl_string is always in the form COUNT[what,where]
-  size_t start_brace = mdl_string.find('[');
-  size_t comma = mdl_string.find(',');
-  size_t comma2 = mdl_string.find(',', comma + 1);
-  if (comma2 != string::npos) {
-    // the first comma is orientation
-    comma = comma2;
-  }
-  size_t end_brace = mdl_string.find(']');
-
-  if (mdl_string.find(COUNT) == string::npos) {
-    ERROR("String 'COUNT' was not found in mdl_string '" + mdl_string + "'.");
-  }
-  if (start_brace == string::npos || comma == string::npos || end_brace == string::npos ||
-      start_brace > comma || start_brace > end_brace || comma > end_brace
-  ) {
-    ERROR("Malformed mdl_string '" + mdl_string + "'.");
-  }
-
-  what_to_count = mdl_string.substr(start_brace + 1, comma - start_brace - 1);
-  what_to_count = trim(what_to_count);
-
-  // process orientation
-  orientation = "";
-  assert(what_to_count != "");
-  char last_c = what_to_count.back();
-  if (last_c == '\'' || last_c == ',' || last_c == ';') {
-    string s;
-    s = last_c;
-    orientation = convert_orientation(s);
-
-    what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
-  }
-
-  if (find(all_species_and_mol_type_names.begin(), all_species_and_mol_type_names.end(), SpeciesOrMolType(what_to_count))
-      != all_species_and_mol_type_names.end()) {
-    rxn_not_mol = false;
-  }
-  else if (find(all_reaction_rules_names.begin(), all_reaction_rules_names.end(), IdLoc(what_to_count)) != all_reaction_rules_names.end()) {
-    rxn_not_mol = true;
-  }
-  else {
-    ERROR("Identifier '" + what_to_count + "' is neither species nor reaction, from mdl_string '" + mdl_string + "'.");
-  }
-
-  where_to_count = mdl_string.substr(comma + 1, end_brace - comma - 1);
-  size_t dot_pos = where_to_count.find('.');
-  if (dot_pos !=- string::npos) {
-    where_to_count = where_to_count.substr(dot_pos + 1);
-  }
-  where_to_count = trim(where_to_count);
-  if (where_to_count == WORLD) {
-    where_to_count = "";
-  }
-  // where_to_count can now look like this: "Cube[ALL"
-  size_t brace = where_to_count.find('[');
-  if (brace != string::npos) {
-    if (where_to_count.substr(brace + 1) == REGION_ALL_NAME) {
-      where_to_count = where_to_count.substr(0, brace);
-    }
-    else {
-      where_to_count[brace] = '_';
-    }
-  }
-}
-
-
-static string get_count_multiplier(const string& mdl_string) {
-  // check if there is a multiplier
-  // handling only code generated by mcell4 for now
-  string multiplier_str = "";
-  size_t mult_pos = mdl_string.find("*");
-  if (mult_pos != string::npos) {
-    string substr = mdl_string.substr(0, mult_pos);
-    try {
-      stod(substr);
-      multiplier_str = substr;
-    }
-    catch (const std::exception& e) {
-      ERROR("Could not convert multiplier from " + mdl_string + ".");
-    }
-  }
-  return multiplier_str;
-}
-
-// stores multiplier value into the multiplier argument as a string
-// if present, the expected form is mult*(<counts>)
-string MCell4Generator::generate_count_terms_for_expression(
-    ofstream& out, const string& mdl_string) {
-  string res_expr;
-
-  size_t last_end = 0;
-  uint num_counts = get_num_counts_in_mdl_string(mdl_string);
-
-  // the first count term item must be positive
-  for (uint i = 0; i < num_counts; i++) {
-    size_t start = mdl_string.find(COUNT, last_end);
-
-    size_t end = mdl_string.find(']', start);
-    if (end == string::npos) {
-      end = mdl_string.size();
-    }
-
-    bool rxn_not_mol;
-    string what_to_count;
-    string where_to_count;
-    string orientation;
-
-    process_single_count_term(
-        mdl_string.substr(start, end - start + 1),
-        rxn_not_mol, what_to_count, where_to_count, orientation
-    );
-
-    string name = COUNT_TERM_PREFIX + what_to_count + ((where_to_count != "") ? ("_" + where_to_count) : "");
-
-    // generate the count term object definition if we don't already have it
-    if (find(all_count_term_names.begin(), all_count_term_names.end(), name) == all_count_term_names.end()) {
-      all_count_term_names.push_back(name);
-      gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
-
-      if (rxn_not_mol) {
-        gen_param_id(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
-      }
-      else {
-        gen_param_id(out, NAME_SPECIES, what_to_count, orientation == "" && where_to_count != "");
-
-        if (orientation != "") {
-          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
-        }
-      }
-
-      if (where_to_count != "") {
-        gen_param_id(out, NAME_REGION, where_to_count, false);
-      }
-
-      out << CTOR_END;
-    }
-
-    // for the res_expr, we cut all the COUNT[..] and replace them with
-    // the ids of the CountTerm objects
-    if (last_end != 0)
-      res_expr += " " + mdl_string.substr(last_end + 1, start - (last_end + 1)) + " " + name;
-    else {
-      res_expr += name;
-    }
-
-    last_end = end;
-  }
-
-  return res_expr;
-}
-
-
-vector<string> MCell4Generator::generate_counts(ofstream& out) {
-  vector<string> counts;
-
-  if (!mcell.isMember(KEY_REACTION_DATA_OUTPUT)) {
-    return counts;
-  }
-
-  Value& reaction_data_output = get_node(mcell, KEY_REACTION_DATA_OUTPUT);
-  check_version(KEY_DEFINE_MOLECULES, reaction_data_output, VER_DM_2016_03_15_1800);
-
-  string rxn_step = reaction_data_output[KEY_RXN_STEP].asString();
-
-  Value& reaction_output_list = get_node(reaction_data_output, KEY_REACTION_OUTPUT_LIST);
-  for (Value::ArrayIndex i = 0; i < reaction_output_list.size(); i++) {
-    Value& reaction_output_item = reaction_output_list[i];
-
-    string mdl_file_prefix = reaction_output_item[KEY_MDL_FILE_PREFIX].asString();
-
-    bool rxn_not_mol;
-    bool single_term;
-    string what_to_count;
-    string where_to_count; // empty for WORLD
-    string orientation;
-
-    string count_location = reaction_output_item[KEY_COUNT_LOCATION].asString();
-
-    string rxn_or_mol = reaction_output_item[KEY_RXN_OR_MOL].asString();
-    string multiplier_str = "";
-    if (rxn_or_mol == VALUE_MDLSTRING) {
-      // first check whether we need to generate count_terms
-      string mdl_string = reaction_output_item[KEY_MDL_STRING].asString();
-      uint num_counts = get_num_counts_in_mdl_string(mdl_string);
-      if (num_counts == 0) {
-        ERROR("There is no 'COUNT' in mdl_string for output with filename " +  mdl_file_prefix + ".");
-      }
-      else if (num_counts == 1) {
-        single_term = true;
-        process_single_count_term(mdl_string, rxn_not_mol, what_to_count, where_to_count, orientation);
-      }
-      else {
-        single_term = false;
-        what_to_count = generate_count_terms_for_expression(out, mdl_string);
-        where_to_count = "";
-      }
-
-      multiplier_str = get_count_multiplier(mdl_string);
-    }
-    else if (rxn_or_mol == VALUE_REACTION) {
-      single_term = true;
-      rxn_not_mol = true;
-      what_to_count = reaction_output_item[KEY_REACTION_NAME].asString();
-
-      if (count_location == VALUE_COUNT_LOCATION_OBJECT) {
-        where_to_count = reaction_output_item[KEY_OBJECT_NAME].asString();
-      }
-      else if (count_location == VALUE_COUNT_LOCATION_REGION) {
-        where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
-      }
-      else {
-        assert(count_location == VALUE_COUNT_LOCATION_WORLD);
-      }
-    }
-    else if (rxn_or_mol == VALUE_MOLECULE) {
-      single_term = true;
-      rxn_not_mol = false;
-      what_to_count = reaction_output_item[KEY_MOLECULE_NAME].asString();
-
-      if (count_location == VALUE_COUNT_LOCATION_OBJECT) {
-        where_to_count = reaction_output_item[KEY_OBJECT_NAME].asString();
-      }
-      else if (count_location == VALUE_COUNT_LOCATION_REGION) {
-        where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
-      }
-      else {
-        assert(count_location == VALUE_COUNT_LOCATION_WORLD);
-      }
-    }
-    else {
-      ERROR("Invalid rxn_or_mol '" + rxn_or_mol + "' in reaction_output_list for output with filename " +
-          mdl_file_prefix + ".");
-    }
-
-    string name = create_count_name(what_to_count, where_to_count);
-    counts.push_back(name);
-    gen_ctor_call(out, name, NAME_CLASS_COUNT);
-
-    if (single_term) {
-      if (rxn_not_mol) {
-        gen_param_id(out, NAME_REACTION_RULE, what_to_count, true);
-      }
-      else {
-        gen_param_id(out, NAME_SPECIES, what_to_count, true);
-
-        if (orientation != "") {
-          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
-        }
-      }
-    }
-    else {
-      gen_param_id(out, NAME_COUNT_EXPRESSION, what_to_count, true);
-    }
-
-    if (where_to_count != "") {
-      gen_param_id(out, NAME_REGION, where_to_count, true);
-    }
-
-    if (mdl_file_prefix == "") {
-      string where = where_to_count;
-      if (where == "") {
-        where = WORLD_FIRST_UPPER;
-      }
-      mdl_file_prefix = what_to_count + "." + where;
-
-      // TODO: this might need further checks
-      if (mdl_file_prefix.find_first_of(" ,+*/\\") != string::npos) {
-        cout << "Warning: count file prefix '" + mdl_file_prefix + "' is probably invalid.\n";
-      }
-    }
-
-    gen_param(out, NAME_FILE_NAME,
-        DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat", multiplier_str != "" || rxn_step != "");
-
-    if (multiplier_str != "") {
-      gen_param_expr(out, NAME_MULTIPLIER, multiplier_str, rxn_step != "");
-    }
-
-    if (rxn_step != "") {
-      gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
-    }
-
-    out << CTOR_END;
-  }
-
-  return counts;
-}
-
-
 void MCell4Generator::generate_observables(const bool cellblender_viz) {
 
   ofstream out;
@@ -861,7 +510,8 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
   vector<string> viz_outputs;
   python_gen->generate_viz_outputs(out, cellblender_viz, viz_outputs);
 
-  vector<string> counts = generate_counts(out);
+  vector<string> counts;
+  python_gen->generate_counts(out, counts);
 
   gen_ctor_call(out, OBSERVABLES, NAME_CLASS_OBSERVABLES, false);
   for (const string& s: viz_outputs) {
@@ -877,7 +527,7 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
 }
 
 
-void MCell4Generator::generate_config(ofstream& out) {
+void MCell4Generator::generate_config(ostream& out) {
   out << make_section_comment("configuration");
 
   // using values from generated parameters.py
@@ -886,11 +536,11 @@ void MCell4Generator::generate_config(ofstream& out) {
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, PARAM_ITERATIONS);
   out << "\n";
 
-  if (!mcell.isMember(KEY_INITIALIZATION)) {
+  if (!data.mcell.isMember(KEY_INITIALIZATION)) {
     ERROR(S("Data model does not contain key ") + KEY_INITIALIZATION + ".");
   }
 
-  Value& initialization = mcell[KEY_INITIALIZATION];
+  Value& initialization = data.mcell[KEY_INITIALIZATION];
   Value& partitions = initialization[KEY_PARTITIONS];
 
   // choose the largest value for partition size and the smallest step

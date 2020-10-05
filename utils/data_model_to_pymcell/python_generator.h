@@ -31,13 +31,13 @@
 
 namespace MCell {
 
+class MCell4Generator;
 
 class PythonGenerator {
 public:
-  PythonGenerator(Json::Value& mcell_, const std::string& output_files_prefix_, const bool bng_mode_, uint& unnamed_rxn_counter_)
-    : mcell(mcell_),
-      output_files_prefix(output_files_prefix_), bng_mode(bng_mode_),
-      unnamed_surf_class_counter(0), unnamed_rxn_counter(unnamed_rxn_counter_) {
+  PythonGenerator(SharedGenData& data_)
+    : data(data_), mcell(data_.mcell), unnamed_surf_class_counter(0)
+    {
   }
 
   void generate_parameters(std::ostream& out);
@@ -55,6 +55,7 @@ public:
 
   void generate_viz_outputs(std::ostream& out, const bool cellblender_viz, std::vector<std::string>& viz_output_names);
 
+  void generate_counts(std::ostream& out, std::vector<std::string>& counts);
 
 private:
   void generate_single_parameter(std::ostream& out, Json::Value& parameter);
@@ -93,14 +94,17 @@ private:
 
   std::vector<std::string> get_species_to_visualize();
 
+  void process_single_count_term(
+      const std::string& mdl_string,
+      bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count,
+      std::string& orientation);
+  std::string generate_count_terms_for_expression(std::ostream& out, const std::string& mdl_string);
+
+
 private:
+  SharedGenData& data; // owned by MCell4Generator
   Json::Value& mcell;
-
-  const std::string& output_files_prefix;
-  bool bng_mode;
-
   uint unnamed_surf_class_counter;
-  uint& unnamed_rxn_counter; // owned by MCell4Generator
 };
 
 } /* namespace MCell */
