@@ -172,7 +172,7 @@ std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
     const BNG::BNGData& bng_data,
     const BNG::CplxInstance& bng_inst) {
 
-  auto res_cplx_inst = make_shared<API::ComplexInstance>();
+  auto res_cplx_inst = API::ComplexInstance::make_shared_empty();
 
   // convert each molecule instance
   for (const BNG::MolInstance& bmg_mi: bng_inst.mol_instances) {

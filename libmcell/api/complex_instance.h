@@ -33,6 +33,14 @@ class ComplexInstance: public GenComplexInstance {
 public:
   COMPLEX_INSTANCE_CTOR()
 
+  static std::shared_ptr<API::ComplexInstance> make_shared_empty() {
+    // to avoid ComplexInstance semantic check, we need to insert a dummy name
+    // when creating the object
+    auto res_cplx_inst = std::make_shared<API::ComplexInstance>("TMP_NAME");
+    res_cplx_inst->bngl_string = STR_UNSET;
+    return res_cplx_inst;
+  }
+
   void check_semantics() const override {
     GenComplexInstance::check_semantics();
     if (get_num_set(bngl_string, elementary_molecule_instances) != 1) {
