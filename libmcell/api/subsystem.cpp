@@ -89,11 +89,11 @@ void Subsystem::convert_molecule_type(const BNG::BNGData& bng_data, const BNG::M
   bool found3 = bng_data.get_parameter_value(MCELL_DIFFUSION_CONSTANT_3D_PREFIX + name, D3);
 
   if (found2 && found3) {
-    throw RuntimeError("Molecule type " + name + " has both 2d and 3d diffusion constants specified.");
+    throw RuntimeError("Molecule type '" + name + "' has both 2d and 3d diffusion constants specified.");
   }
-  if (!found2 && !found3) {
-    throw RuntimeError("Molecule type " + name + " does not have its diffusion constant specified.");
-  }
+  // no need to check whether the diffusion constant was set, it may be set later and
+  // model conversion checks that it was set
+
   if (found2) {
     res_mt->diffusion_constant_2d = D2;
   }

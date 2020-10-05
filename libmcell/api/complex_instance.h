@@ -33,6 +33,15 @@ class ComplexInstance: public GenComplexInstance {
 public:
   COMPLEX_INSTANCE_CTOR()
 
+  void check_semantics() const override {
+    GenComplexInstance::check_semantics();
+    if (get_num_set(bngl_string, elementary_molecule_instances) != 1) {
+      throw ValueError(
+          S("Exactly one of ") + NAME_BNGL_STRING + " or " + NAME_ELEMENTARY_MOLECULE_INSTANCES +
+          " must be set for " + NAME_CLASS_COMPLEX_INSTANCE + ".");
+    }
+  }
+
   std::string to_bngl_str() override;
 
   // complex instances can be only either surf or vol, there is no other option

@@ -608,11 +608,24 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   // create a temporary cplx instance that we will use for search
   BNG::CplxInstance cplx_inst(&world->bng_engine.get_data());
 
-  for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.elementary_molecule_instances) {
-    BNG::MolInstance mi = convert_molecule_instance(*m, in_rxn_or_observables);
+  if (is_set(inst.elementary_molecule_instances)) {
+    for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.elementary_molecule_instances) {
+      BNG::MolInstance mi = convert_molecule_instance(*m, in_rxn_or_observables);
 
-    cplx_inst.mol_instances.push_back(mi);
+      cplx_inst.mol_instances.push_back(mi);
+    }
   }
+  else if (is_set(inst.bngl_string)) {
+    // parse BNGL string
+    int num_errors = BNG::parse_single_cplx_instance_string(inst.bngl_string, world->bng_engine.get_data(), cplx_inst);
+    if (num_errors) {
+      throw ValueError("Could not parse BNGL string " + inst.bngl_string + " that defines a " + NAME_CLASS_COMPLEX_INSTANCE + ".");
+    }
+  }
+  else {
+    release_assert(false);
+  }
+
   orientation_t orient = convert_orientation(inst.orientation, true);
   cplx_inst.set_orientation(orient);
   cplx_inst.finalize();
@@ -622,9 +635,6 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
     species_id_t species_id = world->get_all_species().find_full_match(cplx_inst);
 
     if (species_id == SPECIES_ID_INVALID) {
-      // FIXME: can we have just one method to compare the cplx and create
-      // species if needed?
-      // cplx inst should clearly identify the species...
       BNG::Species new_species = BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config());
       species_id = world->get_all_species().find_or_add(new_species);
     }

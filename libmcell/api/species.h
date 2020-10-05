@@ -41,7 +41,8 @@ public:
   SPECIES_CTOR()
 
   // ctor for special ALL_*MOLECULES species
-  Species(const char* name_) {
+  Species(const char* name_)
+    : GenSpecies(name_) {
     set_all_attributes_as_default_or_unset();
     name = name_;
     species_id = SPECIES_ID_INVALID;
@@ -74,10 +75,12 @@ public:
     else {
       // do semantic check
       if (is_set(diffusion_constant_2d)) {
-        throw ValueError("Field diffusion_constant_2d must not be set for simple species.");
+        throw ValueError(S("Field ") + NAME_DIFFUSION_CONSTANT_2D +
+            " must not be set for complex species because it is derived from its elementary molecule types.");
       }
       if (is_set(diffusion_constant_3d)) {
-        throw ValueError("Field diffusion_constant_3d must not be set for simple species.");
+        throw ValueError(S("Field ") + NAME_DIFFUSION_CONSTANT_3D +
+            " must not be set for complex species because it is derived from its elementary molecule types.");
       }
     }
 
