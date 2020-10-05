@@ -26,6 +26,7 @@
 #include "../api/species.h"
 #include "../api/complex_instance.h"
 #include "../api/elementary_molecule_instance.h"
+#include "../api/species.h"
 
 namespace MCell {
 namespace API {

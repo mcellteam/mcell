@@ -9,6 +9,9 @@ VizOutput:
     type: List[Species*]
     default: empty
     doc: When empty and all_species is false, empty files will be generated
+    TODO: | 
+       This should be a list of BNGL patterns to be consistent with Counts, 
+       but this feature is rarely used so for now those must be defined species.  
   
   - name: all_species
     type: bool

@@ -150,6 +150,11 @@ class ComplexInstance():
         ) -> 'str':
         pass
 
+    def as_species(
+            self,
+        ) -> 'Species':
+        pass
+
 class ComponentInstance():
     def __init__(
             self,
@@ -885,6 +890,11 @@ class Species():
     def to_bngl_str(
             self,
         ) -> 'str':
+        pass
+
+    def as_species(
+            self,
+        ) -> 'Species':
         pass
 
 class Subsystem():

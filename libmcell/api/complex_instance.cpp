@@ -21,6 +21,7 @@
 ******************************************************************************/
 
 #include "api/complex_instance.h"
+#include "api/species.h"
 #include "api/elementary_molecule_instance.h"
 #include "api/elementary_molecule_type.h"
 
@@ -41,24 +42,34 @@ bool ComplexInstance::is_surf() const {
 
 
 std::string ComplexInstance::to_bngl_str() {
-  std::string res;
-
-  for (size_t i = 0; i < elementary_molecule_instances.size(); i++) {
-    res += elementary_molecule_instances[i]->to_bngl_str();
-    if (i + 1 != elementary_molecule_instances.size()) {
-      res += ".";
+  if (is_set(bngl_string)) {
+    return bngl_string;
+  }
+  else {
+    std::string res;
+    for (size_t i = 0; i < elementary_molecule_instances.size(); i++) {
+      res += elementary_molecule_instances[i]->to_bngl_str();
+      if (i + 1 != elementary_molecule_instances.size()) {
+        res += ".";
+      }
     }
-  }
 
-  if (orientation == Orientation::UP) {
-    res += "'";
-  }
-  else if (orientation == Orientation::DOWN) {
-    res += ",";
-  }
+    if (orientation == Orientation::UP) {
+      res += "'";
+    }
+    else if (orientation == Orientation::DOWN) {
+      res += ",";
+    }
 
-  return res;
+    return res;
+  }
 }
+
+
+std::shared_ptr<Species> ComplexInstance::as_species() {
+  return std::make_shared<Species>(*this);
+}
+
 
 } // namespace API
 } // namespace MCell

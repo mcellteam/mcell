@@ -129,7 +129,8 @@ ComplexInstance:
      This class represents a complex molecule composed of molecule instances.
      It is either defined using a BNGL string or using a list of elementary molecule instances.
      On top of that, orientation may be defined. 
-     
+  internal: | 
+     Ctor Species(ComplexInstance& cplx_inst) must be updated if if attributes change     
   items:
   - name: bngl_string
     type: str
@@ -153,6 +154,13 @@ ComplexInstance:
   - name: to_bngl_str
     return_type: str
     doc: Creates a string that corresponds to its BNGL representation 
+    
+  - name: as_species
+    return_type: Species*
+    doc: | 
+       Returns a Species object based on this ComplexInstance. All Species-specific 
+       attributes are set to their default values and 'name' is set to value returned by 
+       'to_bngl_str()'.
       
       
 Species:

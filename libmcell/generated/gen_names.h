@@ -76,6 +76,7 @@ const char* const NAME_ADD_VIZ_OUTPUT = "add_viz_output";
 const char* const NAME_AFFECTED_SPECIES = "affected_species";
 const char* const NAME_ALL_SPECIES = "all_species";
 const char* const NAME_APPLY_VERTEX_MOVES = "apply_vertex_moves";
+const char* const NAME_AS_SPECIES = "as_species";
 const char* const NAME_BNG_VERBOSITY_LEVEL = "bng_verbosity_level";
 const char* const NAME_BNGL_SPECIES = "bngl_species";
 const char* const NAME_BNGL_STRING = "bngl_string";

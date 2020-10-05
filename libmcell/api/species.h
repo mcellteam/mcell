@@ -41,11 +41,26 @@ public:
   SPECIES_CTOR()
 
   // ctor for special ALL_*MOLECULES species
+  // overlaps with generated ctor, the only difference is the type of the argument which is
+  // const std::string&
   Species(const char* name_)
     : GenSpecies(name_) {
     set_all_attributes_as_default_or_unset();
     name = name_;
     species_id = SPECIES_ID_INVALID;
+  }
+
+  Species(ComplexInstance& cplx_inst)
+    : GenSpecies(cplx_inst.to_bngl_str()),
+      species_id(SPECIES_ID_INVALID) {
+    set_all_attributes_as_default_or_unset();
+
+    // set copied value, cannot use GenSpecies ctor because we need to reset the attributes
+    // warning: must be updated if ComplexInstance attributes change
+    bngl_string = cplx_inst.bngl_string;
+    elementary_molecule_instances = cplx_inst.elementary_molecule_instances;
+    // should not be really used in Species but copying it as well for consistency
+    orientation = cplx_inst.orientation;
   }
 
   void postprocess_in_ctor() override {

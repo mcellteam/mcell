@@ -25,6 +25,7 @@
 #include "gen_complex_instance.h"
 #include "../api/complex_instance.h"
 #include "../api/elementary_molecule_instance.h"
+#include "../api/species.h"
 
 namespace MCell {
 namespace API {
@@ -76,6 +77,7 @@ py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
       .def("check_semantics", &ComplexInstance::check_semantics)
       .def("__str__", &ComplexInstance::to_str, py::arg("ind") = std::string(""))
       .def("to_bngl_str", &ComplexInstance::to_bngl_str)
+      .def("as_species", &ComplexInstance::as_species)
       .def("dump", &ComplexInstance::dump)
       .def_property("bngl_string", &ComplexInstance::get_bngl_string, &ComplexInstance::set_bngl_string)
       .def_property("elementary_molecule_instances", &ComplexInstance::get_elementary_molecule_instances, &ComplexInstance::set_elementary_molecule_instances)

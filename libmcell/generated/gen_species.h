@@ -33,6 +33,7 @@ namespace API {
 
 class ComplexInstance;
 class ElementaryMoleculeInstance;
+class Species;
 
 #define SPECIES_CTOR() \
     Species( \

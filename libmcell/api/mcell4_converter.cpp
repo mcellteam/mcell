@@ -1292,7 +1292,18 @@ void MCell4Converter::convert_viz_output_events() {
 
     if (is_set(v->species_list)) {
       for (std::shared_ptr<API::Species>& s: v->species_list) {
-        viz_event->species_ids_to_visualize.insert(s->species_id);
+        if (s->species_id != SPECIES_ID_INVALID) {
+          viz_event->species_ids_to_visualize.insert(s->species_id);
+        }
+        else {
+          // we fist need to create a complex instance from our species
+          API::ComplexInstance* c_as_cplx_inst = dynamic_cast<API::ComplexInstance*>(&*s);
+          BNG::CplxInstance cplx_inst = convert_complex_instance(*c_as_cplx_inst, true);
+
+          // get species ID and add it to our species list
+          BNG::Species new_species = BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config());
+          viz_event->species_ids_to_visualize.insert(world->get_all_species().find_or_add(new_species));
+        }
       }
     }
     else if (v->all_species) {

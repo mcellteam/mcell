@@ -148,6 +148,11 @@ static string make_cplx_inst(const string bngl_str) {
 }
 
 
+static string make_cplx_inst_as_species(const string bngl_str) {
+  return S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + bngl_str + "')." + API::NAME_AS_SPECIES + "()";
+}
+
+
 static void check_versions(
     const string node_name, Json::Value& node,
     const char* const version1, const char* const version2) {

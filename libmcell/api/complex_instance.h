@@ -29,6 +29,8 @@
 namespace MCell {
 namespace API {
 
+class Species;
+
 class ComplexInstance: public GenComplexInstance {
 public:
   COMPLEX_INSTANCE_CTOR()
@@ -51,6 +53,8 @@ public:
   }
 
   std::string to_bngl_str() override;
+
+  std::shared_ptr<Species> as_species() override;
 
   // complex instances can be only either surf or vol, there is no other option
   bool is_vol() const {

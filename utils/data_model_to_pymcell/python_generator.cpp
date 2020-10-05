@@ -891,7 +891,12 @@ std::vector<std::string> PythonGenerator::get_species_to_visualize() {
     check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
 
     if (molecule_list_item[KEY_EXPORT_VIZ].asBool()) {
-      res.push_back(molecule_list_item[KEY_MOL_NAME].asString());
+      if (data.bng_mode) {
+        res.push_back(make_cplx_inst_as_species(molecule_list_item[KEY_MOL_NAME].asString()));
+      }
+      else {
+        res.push_back(molecule_list_item[KEY_MOL_NAME].asString());
+      }
     }
   }
 

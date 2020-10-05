@@ -30,6 +30,7 @@ namespace MCell {
 namespace API {
 
 class ElementaryMoleculeInstance;
+class Species;
 
 #define COMPLEX_INSTANCE_CTOR() \
     ComplexInstance( \
@@ -94,6 +95,7 @@ public:
 
   // --- methods ---
   virtual std::string to_bngl_str() = 0;
+  virtual std::shared_ptr<Species> as_species() = 0;
 }; // GenComplexInstance
 
 class ComplexInstance;
