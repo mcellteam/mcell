@@ -73,7 +73,13 @@ private:
 
   void get_surface_class_property_info(
       Json::Value& property,
-      std::string& name, std::string& type_name, std::string& affected_mols, std::string& orientation);
+      std::string& name, std::string& type_name,
+      bool& affected_mols_is_superclass, std::string& affected_mols, std::string& orientation);
+
+  void generate_surface_class_affected_species_and_orientation(
+      std::ostream& out,
+      const bool affected_mols_is_superclass, const std::string& affected_mols,
+      const std::string& orientation_name);
 
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
 

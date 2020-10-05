@@ -183,12 +183,14 @@ void PythonGenerator::generate_species_and_mol_types(
 
 void PythonGenerator::get_surface_class_property_info(
     Value& property,
-    string& name, string& type_name, string& affected_mols, string& orientation
+    string& name, string& type_name,
+    bool& affected_mols_is_superclass, string& affected_mols, string& orientation
 ) {
   check_version(KEY_SURFACE_CLASS_PROP_LIST, property, VER_DM_2015_11_08_1756);
   CHECK_PROPERTY(property[KEY_CLAMP_VALUE] = "0");
 
   affected_mols = property[KEY_AFFECTED_MOLS].asString();
+  affected_mols_is_superclass = true;
   if (affected_mols == ::ALL_MOLECULES) {
     affected_mols = S(MDOT) + NAME_CV_AllMolecules;
   }
@@ -200,6 +202,7 @@ void PythonGenerator::get_surface_class_property_info(
   }
   else if (affected_mols == VALUE_SINGLE) {
     affected_mols = property[KEY_MOLECULE].asString();
+    affected_mols_is_superclass = false;
   }
 
   orientation = convert_orientation(property[KEY_SURF_CLASS_ORIENT].asString());
@@ -228,6 +231,25 @@ void PythonGenerator::get_surface_class_property_info(
   }
 }
 
+void PythonGenerator::generate_surface_class_affected_species_and_orientation(
+    std::ostream& out,
+    const bool affected_mols_is_superclass, const std::string& affected_mols,
+    const std::string& orientation_name) {
+
+  string affected_mols_str;
+  if (data.bng_mode && !affected_mols_is_superclass) {
+    affected_mols_str = make_cplx_inst_as_species(affected_mols);
+  }
+  else {
+    affected_mols_str = affected_mols;
+  }
+  gen_param_id(out, NAME_AFFECTED_SPECIES, affected_mols_str, orientation_name != "");
+
+  if (orientation_name != "") {
+    gen_param_id(out, NAME_ORIENTATION, orientation_name, false);
+  }
+}
+
 
 void PythonGenerator::generate_surface_classes(
     std::ostream& out, std::vector<std::string>& sc_names) {
@@ -251,15 +273,18 @@ void PythonGenerator::generate_surface_classes(
         Value& surface_class_prop_item = surface_class_prop_list[i];
 
         string name, type_name, affected_mols, orientation_name;
-        get_surface_class_property_info(surface_class_prop_item, name, type_name, affected_mols, orientation_name);
+        bool affected_mols_is_superclass;
+        get_surface_class_property_info(
+            surface_class_prop_item, name, type_name,
+            affected_mols_is_superclass, affected_mols, orientation_name);
 
         sc_prop_names.push_back(name);
         gen_ctor_call(out, name, NAME_CLASS_SURFACE_PROPERTY, true);
         gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
-        gen_param_id(out, NAME_AFFECTED_SPECIES, affected_mols, orientation_name != "");
-        if (orientation_name != "") {
-          gen_param_id(out, NAME_ORIENTATION, orientation_name, false);
-        }
+
+        generate_surface_class_affected_species_and_orientation(
+            out, affected_mols_is_superclass, affected_mols, orientation_name);
+
         out << CTOR_END;
       }
     }
@@ -276,13 +301,15 @@ void PythonGenerator::generate_surface_classes(
     else {
       // simplified setup, directly set members
       string name, type_name, affected_mols, orientation_name;
-      get_surface_class_property_info(surface_class_prop_list[0], name, type_name, affected_mols, orientation_name);
+      bool affected_mols_is_superclass;
+      get_surface_class_property_info(
+          surface_class_prop_list[0], name, type_name,
+          affected_mols_is_superclass, affected_mols, orientation_name);
 
       gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
-      gen_param_id(out, NAME_AFFECTED_SPECIES, affected_mols, orientation_name != "");
-      if (orientation_name != "") {
-        gen_param_id(out, NAME_ORIENTATION, orientation_name, false);
-      }
+
+      generate_surface_class_affected_species_and_orientation(
+          out, affected_mols_is_superclass, affected_mols, orientation_name);
     }
     out << CTOR_END;
   }
