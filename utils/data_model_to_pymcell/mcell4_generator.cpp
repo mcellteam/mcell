@@ -498,69 +498,6 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
 }
 
 
-vector<string> MCell4Generator::get_species_to_visualize() {
-  vector<string> res;
-
-  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
-  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
-
-  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
-  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
-    Value& molecule_list_item = molecule_list[i];
-    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
-
-    if (molecule_list_item[KEY_EXPORT_VIZ].asBool()) {
-      res.push_back(molecule_list_item[KEY_MOL_NAME].asString());
-    }
-  }
-
-  return res;
-}
-
-
-vector<string> MCell4Generator::generate_viz_outputs(ofstream& out, const bool cellblender_viz) {
-  vector<string> viz_output_names;
-
-  if (!mcell.isMember(KEY_VIZ_OUTPUT)) {
-    return viz_output_names;
-  }
-
-  Value& viz_output = mcell[KEY_VIZ_OUTPUT];
-  check_version(KEY_VIZ_OUTPUT, viz_output, VER_DM_2014_10_24_1638);
-
-  string name = VIZ_OUTPUT_NAME; // there is only one in datamodel now
-  viz_output_names.push_back(name);
-
-  // CHECK_PROPERTY(viz_output[KEY_ALL_ITERATIONS].asBool()); // don't care
-  CHECK_PROPERTY(viz_output[KEY_START].asString() == "0");
-
-  gen_ctor_call(out, name, NAME_CLASS_VIZ_OUTPUT);
-
-  // mode is ascii by default, this information is not in datamodel
-  const char* mode = (cellblender_viz) ? NAME_EV_CELLBLENDER : NAME_EV_ASCII;
-  gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, mode, true);
-  gen_param(out, NAME_OUTPUT_FILES_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
-
-  // species_list
-
-  if (viz_output[KEY_EXPORT_ALL].asBool()) {
-    gen_param(out, NAME_ALL_SPECIES, true, true);
-  }
-  else {
-    vector<string> viz_species = get_species_to_visualize();
-    gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
-  }
-
-
-  gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
-
-  // ignoring KEY_END
-  out << CTOR_END;
-
-  return viz_output_names;
-}
-
-
 static uint get_num_counts_in_mdl_string(const string& mdl_string) {
   uint res = 0;
   size_t pos = 0;
@@ -921,7 +858,8 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
   out << "\n";
   out << make_section_comment(OBSERVABLES);
 
-  vector<string> viz_outputs = generate_viz_outputs(out, cellblender_viz);
+  vector<string> viz_outputs;
+  python_gen->generate_viz_outputs(out, cellblender_viz, viz_outputs);
 
   vector<string> counts = generate_counts(out);
 

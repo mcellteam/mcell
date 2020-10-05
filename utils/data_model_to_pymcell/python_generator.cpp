@@ -876,4 +876,66 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
   }
 }
 
+
+std::vector<std::string> PythonGenerator::get_species_to_visualize() {
+  vector<string> res;
+
+  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
+
+  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
+  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
+    Value& molecule_list_item = molecule_list[i];
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
+
+    if (molecule_list_item[KEY_EXPORT_VIZ].asBool()) {
+      res.push_back(molecule_list_item[KEY_MOL_NAME].asString());
+    }
+  }
+
+  return res;
+}
+
+
+void PythonGenerator::generate_viz_outputs(
+    std::ostream& out, const bool cellblender_viz,
+    std::vector<std::string>& viz_output_names) {
+
+  if (!mcell.isMember(KEY_VIZ_OUTPUT)) {
+    return;
+  }
+
+  Value& viz_output = mcell[KEY_VIZ_OUTPUT];
+  check_version(KEY_VIZ_OUTPUT, viz_output, VER_DM_2014_10_24_1638);
+
+  string name = VIZ_OUTPUT_NAME; // there is only one in datamodel now
+  viz_output_names.push_back(name);
+
+  // CHECK_PROPERTY(viz_output[KEY_ALL_ITERATIONS].asBool()); // don't care
+  CHECK_PROPERTY(viz_output[KEY_START].asString() == "0");
+
+  gen_ctor_call(out, name, NAME_CLASS_VIZ_OUTPUT);
+
+  // mode is ascii by default, this information is not in datamodel
+  const char* mode = (cellblender_viz) ? NAME_EV_CELLBLENDER : NAME_EV_ASCII;
+  gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, mode, true);
+  gen_param(out, NAME_OUTPUT_FILES_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
+
+  // species_list
+  if (viz_output[KEY_EXPORT_ALL].asBool()) {
+    gen_param(out, NAME_ALL_SPECIES, true, true);
+  }
+  else {
+    vector<string> viz_species = get_species_to_visualize();
+    gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
+  }
+
+
+  gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
+
+  // ignoring KEY_END
+  out << CTOR_END;
+}
+
+
 } /* namespace MCell */

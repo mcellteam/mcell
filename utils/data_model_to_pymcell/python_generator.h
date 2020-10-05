@@ -53,6 +53,9 @@ public:
 
   void generate_release_sites(std::ostream& out, std::vector<std::string>& release_site_names);
 
+  void generate_viz_outputs(std::ostream& out, const bool cellblender_viz, std::vector<std::string>& viz_output_names);
+
+
 private:
   void generate_single_parameter(std::ostream& out, Json::Value& parameter);
 
@@ -88,6 +91,7 @@ private:
 
   void generate_release_pattern(std::ostream& out, const std::string& name, std::string& delay_string);
 
+  std::vector<std::string> get_species_to_visualize();
 
 private:
   Json::Value& mcell;

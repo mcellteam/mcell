@@ -76,9 +76,6 @@ private:
   void generate_surface_classes_assignment(std::ofstream& out);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
-  std::vector<std::string> get_species_to_visualize();
-  std::vector<std::string> generate_viz_outputs(std::ofstream& out, const bool cellblender_viz);
-
   void process_single_count_term(
       const std::string& mdl_string,
       bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count,
