@@ -138,6 +138,40 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 }
 
 
+species_id_t MCell4Converter::get_species_id_for_complex_instance(API::ComplexInstance& ci, const std::string error_msg) {
+  // check that the complex instance if fully qualified
+
+  BNG::CplxInstance bng_ci = convert_complex_instance(ci);
+  if (!bng_ci.is_fully_qualified()) {
+    // TODO: add test
+    throw ValueError(
+        error_msg + ": " + NAME_COMPLEX_INSTANCE + "'" + bng_ci.to_str() + "' must be fully qualified " +
+        "(all components must be present and their state set).");
+  }
+
+  // we need to define species for our complex instance
+  BNG::Species s = BNG::Species(
+      bng_ci,
+      world->bng_engine.get_data(),
+      world->bng_engine.get_config()
+  );
+  return world->bng_engine.get_all_species().find_or_add(s);
+}
+
+
+species_id_t MCell4Converter::get_species_id(
+    API::Species& s, const std::string class_name, const std::string object_name) {
+  if (s.species_id != SPECIES_ID_INVALID) {
+    return s.species_id;
+  }
+  else {
+    // we fist need to create a complex instance from our species
+    API::ComplexInstance* s_as_cplx_inst = dynamic_cast<API::ComplexInstance*>(&s);
+    return get_species_id_for_complex_instance(*s_as_cplx_inst, class_name + " " + object_name);
+  }
+}
+
+
 void MCell4Converter::get_geometry_bounding_box(Vec3& llf, Vec3& urb) {
 
   llf = Vec3(FLT_GIGANTIC);
@@ -469,8 +503,9 @@ void MCell4Converter::convert_species() {
 void MCell4Converter::convert_surface_class_rxn(
     API::SurfaceProperty& sp, const BNG::Species& surface_reactant) {
 
-  assert(sp.affected_species->species_id != SPECIES_ID_INVALID);
-  BNG::Species& affected_species = world->get_all_species().get(sp.affected_species->species_id);
+  BNG::Species& affected_species =
+      world->get_all_species().get(
+          get_species_id(*sp.affected_species, NAME_CLASS_SURFACE_PROPERTY, sp.name));
 
   BNG::RxnRule rxn(&world->bng_engine.get_data());
 
@@ -744,7 +779,9 @@ void MCell4Converter::convert_initial_surface_releases(
     std::vector<MCell::InitialRegionMolecules>& mcell_releases
 ) {
   for (auto api_rel: api_releases) {
-    species_id_t species_id = api_rel->species->species_id;
+    species_id_t species_id =
+        get_species_id(*api_rel->species, NAME_CLASS_INITIAL_SURFACE_RELEASE, NAME_SPECIES);
+
     orientation_t orientation = convert_orientation(api_rel->orientation);
 
     if (is_set(api_rel->number_to_release)) {
@@ -943,26 +980,6 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
   }
 }
 
-
-species_id_t MCell4Converter::get_species_id_for_complex_instance(API::ComplexInstance& ci, const std::string error_msg) {
-  // check that the complex instance if fully qualified
-
-  BNG::CplxInstance bng_ci = convert_complex_instance(ci);
-  if (!bng_ci.is_fully_qualified()) {
-    // TODO: add test
-    throw ValueError(
-        error_msg + ": " + NAME_COMPLEX_INSTANCE + "'" + bng_ci.to_str() + "' must be fully qualified " +
-        "(all components must be present and their state set).");
-  }
-
-  // we need to define species for our complex instance
-  BNG::Species s = BNG::Species(
-      bng_ci,
-      world->bng_engine.get_data(),
-      world->bng_engine.get_config()
-  );
-  return world->bng_engine.get_all_species().find_or_add(s);
-}
 
 
 void MCell4Converter::convert_molecule_list(
@@ -1294,18 +1311,8 @@ void MCell4Converter::convert_viz_output_events() {
 
     if (is_set(v->species_list)) {
       for (std::shared_ptr<API::Species>& s: v->species_list) {
-        if (s->species_id != SPECIES_ID_INVALID) {
-          viz_event->species_ids_to_visualize.insert(s->species_id);
-        }
-        else {
-          // we fist need to create a complex instance from our species
-          API::ComplexInstance* c_as_cplx_inst = dynamic_cast<API::ComplexInstance*>(&*s);
-          BNG::CplxInstance cplx_inst = convert_complex_instance(*c_as_cplx_inst, true);
-
-          // get species ID and add it to our species list
-          BNG::Species new_species = BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config());
-          viz_event->species_ids_to_visualize.insert(world->get_all_species().find_or_add(new_species));
-        }
+        viz_event->species_ids_to_visualize.insert(
+            get_species_id(*s, NAME_CLASS_VIZ_OUTPUT, NAME_SPECIES_LIST));
       }
     }
     else if (v->all_species) {
