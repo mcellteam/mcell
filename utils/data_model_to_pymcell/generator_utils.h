@@ -143,8 +143,13 @@ static string make_enum_value(const string enum_name, const string value) {
 }
 
 
-static string make_cplx_inst(const string bngl_str) {
-  return S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + bngl_str + "')";
+static string make_cplx_inst(const string bngl_str, const string orient = "") {
+  string res = S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + bngl_str + "'";
+  if (orient != "") {
+    res += S(", ") + API::NAME_ORIENTATION + " = " + MDOT + API::NAME_ENUM_ORIENTATION + "." + orient;
+  }
+  res += ")";
+  return res;
 }
 
 
@@ -360,153 +365,6 @@ static string convert_orientation(const string s, const bool return_any_orientat
     ERROR("Invalid orientation '" + s + "'.");
     return "INVALID_ORIENTATION";
   }
-}
-
-
-static void gen_rxn_substance_inst(ostream& out, Json::Value& substances_node) {
-  string str = substances_node.asString();
-
-  // special case for rxns without products
-  if (str == NULL_PRODUCTS) {
-    out << "[ ]";
-    return;
-  }
-
-  vector<string> substances;
-  vector<string> orientations;
-
-  // finite automata to parse the reaction side string, e.g. "a + b"
-  enum state_t {
-    START,
-    ID,
-    AFTER_ID,
-    AFTER_ORIENT,
-    AFTER_PLUS
-  };
-
-  state_t state = START;
-  string current_id;
-  for (size_t i = 0; i < str.size(); i++) {
-    char c = str[i];
-    switch (state) {
-      case START:
-        if (isalnum(c) || c == '_') {
-          state = ID;
-          current_id = c;
-        }
-        else if (c == '.') {
-          state = ID;
-          current_id = '_';
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (START).");
-        }
-        break;
-
-      case ID:
-        if (isalnum(c) || c == '_') {
-          current_id += c;
-        }
-        else if (c == '.') {
-          state = ID;
-          current_id += '_';
-        }
-        else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
-          substances.push_back(current_id);
-          orientations.push_back("");
-          if (c == '\'' || c == ',' || c == ';') {
-            orientations.back() = c;
-          }
-          current_id = "";
-          if (c == '+') {
-            state = AFTER_PLUS;
-          }
-          else {
-            state = AFTER_ID;
-          }
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (ID).");
-        }
-        break;
-
-      case AFTER_ID:
-        if (c == '+') {
-          state = AFTER_PLUS;
-        }
-        else if (c == '\'') {
-          state = AFTER_ORIENT;
-          orientations.back() = c;
-        }
-        else if (c == ',') {
-          state = AFTER_ORIENT;
-          orientations.back() = c;
-        }
-        else if (c == ';') {
-          state = AFTER_ORIENT;
-          orientations.back() = c;
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
-        }
-        break;
-
-      case AFTER_ORIENT:
-        if (c == '+') {
-          state = AFTER_PLUS;
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
-        }
-        break;
-
-      case AFTER_PLUS:
-        if (isalnum(c) || c == '_') {
-          state = ID;
-          current_id = c;
-        }
-        else if (c == '.') {
-          state = ID;
-          current_id = '_';
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_PLUS).");
-        }
-        break;
-      default:
-        assert(false);
-    }
-  }
-  if (current_id != "") {
-    substances.push_back(current_id);
-    orientations.push_back("");
-  }
-
-  out << "[ ";
-  for (size_t i = 0; i < substances.size(); i++) {
-    out << substances[i] << "." << API::NAME_INST << "(";
-
-    string orient = convert_orientation(orientations[i], true);
-    if (orient != "") {
-      out << API::NAME_ORIENTATION << " = " << MDOT << API::NAME_ENUM_ORIENTATION << "." << orient;
-    }
-
-    out << ")";
-    print_comma(out, i, substances);
-  }
-  out << " ]";
 }
 
 

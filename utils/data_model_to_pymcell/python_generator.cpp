@@ -367,6 +367,164 @@ void PythonGenerator::generate_variable_rate(const std::string& rate_array_name,
 }
 
 
+
+void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& substances_node) {
+  string str = substances_node.asString();
+
+  // special case for rxns without products
+  if (str == NULL_PRODUCTS) {
+    out << "[ ]";
+    return;
+  }
+
+  vector<string> substances;
+  vector<string> orientations;
+
+  // finite automata to parse the reaction side string, e.g. "a + b"
+  enum state_t {
+    START,
+    ID,
+    AFTER_ID,
+    AFTER_ORIENT,
+    AFTER_PLUS
+  };
+
+  state_t state = START;
+  string current_id;
+  for (size_t i = 0; i < str.size(); i++) {
+    char c = str[i];
+    switch (state) {
+      case START:
+        if (isalnum(c) || c == '_') {
+          state = ID;
+          current_id = c;
+        }
+        else if (c == '.') {
+          state = ID;
+          current_id = '_';
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (START).");
+        }
+        break;
+
+      case ID:
+        if (isalnum(c) || c == '_') {
+          current_id += c;
+        }
+        else if (c == '.') {
+          state = ID;
+          current_id += '_';
+        }
+        else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
+          substances.push_back(current_id);
+          orientations.push_back("");
+          if (c == '\'' || c == ',' || c == ';') {
+            orientations.back() = c;
+          }
+          current_id = "";
+          if (c == '+') {
+            state = AFTER_PLUS;
+          }
+          else {
+            state = AFTER_ID;
+          }
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (ID).");
+        }
+        break;
+
+      case AFTER_ID:
+        if (c == '+') {
+          state = AFTER_PLUS;
+        }
+        else if (c == '\'') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (c == ',') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (c == ';') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
+        }
+        break;
+
+      case AFTER_ORIENT:
+        if (c == '+') {
+          state = AFTER_PLUS;
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
+        }
+        break;
+
+      case AFTER_PLUS:
+        if (isalnum(c) || c == '_') {
+          state = ID;
+          current_id = c;
+        }
+        else if (c == '.') {
+          state = ID;
+          current_id = '_';
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (AFTER_PLUS).");
+        }
+        break;
+      default:
+        assert(false);
+    }
+  }
+  if (current_id != "") {
+    substances.push_back(current_id);
+    orientations.push_back("");
+  }
+
+  out << "[ ";
+  for (size_t i = 0; i < substances.size(); i++) {
+
+    if (data.bng_mode) {
+      // substances (molecule types) are defined in BNGL file and must be referenced through their name
+      string orient = convert_orientation(orientations[i], true);
+      out << make_cplx_inst(substances[i], orient);
+      print_comma(out, i, substances);
+    }
+    else {
+      // substances are expected to be defined as Python IDs
+      out << substances[i] << "." << API::NAME_INST << "(";
+
+      string orient = convert_orientation(orientations[i], true);
+      if (orient != "") {
+        out << API::NAME_ORIENTATION << " = " << MDOT << API::NAME_ENUM_ORIENTATION << "." << orient;
+      }
+
+      out << ")";
+      print_comma(out, i, substances);
+    }
+  }
+  out << " ]";
+}
+
+
 std::string PythonGenerator::generate_single_reaction_rule(std::ostream& out, Json::Value& reaction_list_item) {
   check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
 
@@ -386,11 +544,11 @@ std::string PythonGenerator::generate_single_reaction_rule(std::ostream& out, Js
 
   // single line for now
   out << IND << NAME_REACTANTS << " = ";
-  gen_rxn_substance_inst(out, reaction_list_item[KEY_REACTANTS]);
+  generate_rxn_rule_side(out, reaction_list_item[KEY_REACTANTS]);
   out << ",\n";
 
   out << IND << NAME_PRODUCTS << " = ";
-  gen_rxn_substance_inst(out, reaction_list_item[KEY_PRODUCTS]);
+  generate_rxn_rule_side(out, reaction_list_item[KEY_PRODUCTS]);
   out << ",\n";
 
   if (reaction_list_item[KEY_VARIABLE_RATE_SWITCH].asBool()) {

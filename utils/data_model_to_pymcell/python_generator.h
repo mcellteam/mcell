@@ -70,6 +70,7 @@ private:
   SpeciesOrMolType generate_single_species_or_mol_type_w_components(
       std::ostream& out, Json::Value& molecule_list_item);
 
+  void generate_rxn_rule_side(std::ostream& out, Json::Value& substances_node);
 
   void get_surface_class_property_info(
       Json::Value& property,
