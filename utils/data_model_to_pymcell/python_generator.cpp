@@ -656,10 +656,10 @@ std::string PythonGenerator::generate_single_molecule_release_info_array(
 
       string species_name = release_site_item[KEY_MOLECULE].asString();
       if (!data.bng_mode) {
-        gen_param_id(out, NAME_SPECIES, species_name, true);
+        gen_param_id(out, NAME_COMPLEX_INSTANCE, species_name, true);
       }
       else {
-        gen_param(out, NAME_BNGL_SPECIES, remove_compartments(species_name), true);
+        gen_param_id(out, NAME_COMPLEX_INSTANCE, make_cplx_inst(remove_compartments(species_name)), true);
       }
 
       Value& point = points_list[i];
@@ -800,10 +800,10 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     if (shape != VALUE_LIST) {
       string species_name = release_site_item[KEY_MOLECULE].asString();
       if (!data.bng_mode) {
-        gen_param_id(out, NAME_SPECIES, species_name, true);
+        gen_param_id(out, NAME_COMPLEX_INSTANCE, species_name, true);
       }
       else {
-        gen_param(out, NAME_BNGL_SPECIES, remove_compartments(species_name), true);
+        gen_param_id(out, NAME_COMPLEX_INSTANCE, make_cplx_inst(remove_compartments(species_name)), true);
       }
 
 
@@ -1031,14 +1031,15 @@ void PythonGenerator::process_single_count_term(
     what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
   }
 
-  if (find(data.all_species_and_mol_type_names.begin(), data.all_species_and_mol_type_names.end(),
-        SpeciesOrMolType(what_to_count))
-      != data.all_species_and_mol_type_names.end()) {
-    rxn_not_mol = false;
+  if (find(data.all_reaction_rules_names.begin(), data.all_reaction_rules_names.end(), IdLoc(what_to_count))
+        != data.all_reaction_rules_names.end()) {
+      rxn_not_mol = true;
   }
-  else if (find(data.all_reaction_rules_names.begin(), data.all_reaction_rules_names.end(), IdLoc(what_to_count))
-      != data.all_reaction_rules_names.end()) {
-    rxn_not_mol = true;
+  else if (data.bng_mode ||
+      find(data.all_species_and_mol_type_names.begin(), data.all_species_and_mol_type_names.end(),
+        SpeciesOrMolType(what_to_count)) != data.all_species_and_mol_type_names.end()) {
+    // if we did not find the name to be a reaction in BNG mode, we assume it is species or pattern
+    rxn_not_mol = false;
   }
   else {
     ERROR("Identifier '" + what_to_count + "' is neither species nor reaction, from mdl_string '" + mdl_string + "'.");
@@ -1123,7 +1124,12 @@ string PythonGenerator::generate_count_terms_for_expression(
         gen_param_id(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
       }
       else {
-        gen_param_id(out, NAME_SPECIES, what_to_count, orientation == "" && where_to_count != "");
+        if (data.bng_mode) {
+          assert(false);
+        }
+        else {
+          gen_param_id(out, NAME_SPECIES, what_to_count, orientation == "" && where_to_count != "");
+        }
 
         if (orientation != "") {
           gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");

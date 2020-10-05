@@ -96,6 +96,9 @@ public:
     : mol_type_id(MOL_TYPE_ID_INVALID) {
   }
 
+  // returns true if all components are present and their is state set
+  bool is_fully_qualified(const BNGData& bng_data) const;
+
   void canonicalize(const BNGData& bng_data);
 
   void finalize_flags_and_sort_components(const BNGData& bng_data);

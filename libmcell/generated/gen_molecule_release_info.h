@@ -29,18 +29,16 @@
 namespace MCell {
 namespace API {
 
-class Species;
+class ComplexInstance;
 
 #define MOLECULE_RELEASE_INFO_CTOR() \
     MoleculeReleaseInfo( \
-        std::shared_ptr<Species> species_ = nullptr, \
-        const std::string& bngl_species_ = STR_UNSET, \
-        const std::vector<float_t> location_ = std::vector<float_t>(), \
+        std::shared_ptr<ComplexInstance> complex_instance_, \
+        const std::vector<float_t> location_, \
         const Orientation orientation_ = Orientation::NONE \
     ) { \
       class_name = "MoleculeReleaseInfo"; \
-      species = species_; \
-      bngl_species = bngl_species_; \
+      complex_instance = complex_instance_; \
       location = location_; \
       orientation = orientation_; \
       postprocess_in_ctor();\
@@ -58,28 +56,16 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::shared_ptr<Species> species;
-  virtual void set_species(std::shared_ptr<Species> new_species_) {
+  std::shared_ptr<ComplexInstance> complex_instance;
+  virtual void set_complex_instance(std::shared_ptr<ComplexInstance> new_complex_instance_) {
     if (initialized) {
-      throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'complex_instance' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    species = new_species_;
+    complex_instance = new_complex_instance_;
   }
-  virtual std::shared_ptr<Species> get_species() const {
-    return species;
-  }
-
-  std::string bngl_species;
-  virtual void set_bngl_species(const std::string& new_bngl_species_) {
-    if (initialized) {
-      throw RuntimeError("Value 'bngl_species' of object with name " + name + " (class " + class_name + ")"
-                         "cannot be set after model was initialized.");
-    }
-    bngl_species = new_bngl_species_;
-  }
-  virtual const std::string& get_bngl_species() const {
-    return bngl_species;
+  virtual std::shared_ptr<ComplexInstance> get_complex_instance() const {
+    return complex_instance;
   }
 
   std::vector<float_t> location;

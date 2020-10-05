@@ -932,13 +932,38 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
 }
 
 
+species_id_t MCell4Converter::get_species_id_for_complex_instance(API::ComplexInstance& ci, const std::string error_msg) {
+  // check that the complex instance if fully qualified
+
+  BNG::CplxInstance bng_ci = convert_complex_instance(ci);
+  if (!bng_ci.is_fully_qualified()) {
+    // TODO: add test
+    throw ValueError(
+        error_msg + ": " + NAME_COMPLEX_INSTANCE + "'" + bng_ci.to_str() + "' must be fully qualified " +
+        "(all components must be present and their state set).");
+  }
+
+  // we need to define species for our complex instance
+  BNG::Species s = BNG::Species(
+      bng_ci,
+      world->bng_engine.get_data(),
+      world->bng_engine.get_config()
+  );
+  return world->bng_engine.get_all_species().find_or_add(s);
+}
+
+
 void MCell4Converter::convert_molecule_list(
     const std::vector<std::shared_ptr<MoleculeReleaseInfo>>& molecule_list,
+    const std::string& rel_site_name,
     MCell::ReleaseEvent* rel_event) {
 
   for (auto& item: molecule_list) {
     MCell::SingleMoleculeReleaseInfo info;
-    info.species_id = item->species->species_id;
+
+    info.species_id = get_species_id_for_complex_instance(
+        *item->complex_instance, S(NAME_CLASS_RELEASE_SITE) + " '" + rel_site_name + "'");
+
     assert(item->location.size() == 3);
     info.pos.x = item->location[0] * world->config.rcp_length_unit;
     info.pos.y = item->location[1] * world->config.rcp_length_unit;
@@ -948,7 +973,7 @@ void MCell4Converter::convert_molecule_list(
     if (world->get_all_species().get(info.species_id).is_vol() &&
         rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
       throw ValueError(
-          S(NAME_CLASS_RELEASE_SITE) + " releases a volume molecule but orientation is set.");
+          S(NAME_CLASS_RELEASE_SITE) + " " + rel_site_name + " releases a volume molecule but orientation is set.");
     }
 
     rel_event->molecule_list.push_back(info);
@@ -966,21 +991,9 @@ void MCell4Converter::convert_release_events() {
 
     if (!is_set(r->molecule_list)) {
 
-      if (is_set(r->species)) {
-        rel_event->species_id = r->species->species_id;
-      }
-      else if (is_set(r->complex_instance)) {
-        // we need to define species for our complex instance
-        BNG::Species s = BNG::Species(
-            convert_complex_instance(*r->complex_instance),
-            world->bng_engine.get_data(),
-            world->bng_engine.get_config()
-        );
-        rel_event->species_id = world->bng_engine.get_all_species().find_or_add(s);
-      }
-      else {
-        assert(false);
-      }
+      assert(is_set(r->complex_instance));
+      rel_event->species_id = get_species_id_for_complex_instance(
+          *r->complex_instance, S(NAME_CLASS_RELEASE_SITE) + " '" + r->name + "'");
 
       rel_event->orientation = convert_orientation(r->orientation);
 
@@ -1026,7 +1039,7 @@ void MCell4Converter::convert_release_events() {
     }
     else if (is_set(r->molecule_list)) {
       rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
-      convert_molecule_list(r->molecule_list, rel_event);
+      convert_molecule_list(r->molecule_list, r->name, rel_event);
     }
     else {
       throw RuntimeError(

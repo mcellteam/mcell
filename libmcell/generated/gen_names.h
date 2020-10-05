@@ -78,6 +78,7 @@ const char* const NAME_ALL_SPECIES = "all_species";
 const char* const NAME_APPLY_VERTEX_MOVES = "apply_vertex_moves";
 const char* const NAME_BNG_VERBOSITY_LEVEL = "bng_verbosity_level";
 const char* const NAME_BNGL_SPECIES = "bngl_species";
+const char* const NAME_BNGL_STRING = "bngl_string";
 const char* const NAME_BOND = "bond";
 const char* const NAME_CENTER_MOLECULES_ON_GRID = "center_molecules_on_grid";
 const char* const NAME_CHECK_OVERLAPPED_WALLS = "check_overlapped_walls";

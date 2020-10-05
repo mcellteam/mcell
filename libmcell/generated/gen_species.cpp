@@ -45,6 +45,7 @@ bool GenSpecies::__eq__(const GenSpecies& other) const {
     custom_time_step == other.custom_time_step &&
     custom_space_step == other.custom_space_step &&
     target_only == other.target_only &&
+    bngl_string == other.bngl_string &&
     vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
     orientation == other.orientation;
 }
@@ -62,6 +63,7 @@ void GenSpecies::set_all_attributes_as_default_or_unset() {
   custom_time_step = FLT_UNSET;
   custom_space_step = FLT_UNSET;
   target_only = false;
+  bngl_string = STR_UNSET;
   elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
   orientation = Orientation::NONE;
 }
@@ -75,6 +77,7 @@ std::string GenSpecies::to_str(const std::string ind) const {
       "custom_time_step=" << custom_time_step << ", " <<
       "custom_space_step=" << custom_space_step << ", " <<
       "target_only=" << target_only << ", " <<
+      "bngl_string=" << bngl_string << ", " <<
       "\n" << ind + "  " << "elementary_molecule_instances=" << vec_ptr_to_str(elementary_molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation;
   return ss.str();
@@ -90,6 +93,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
             const float_t,
             const float_t,
             const bool,
+            const std::string&,
             const std::vector<std::shared_ptr<ElementaryMoleculeInstance>>,
             const Orientation
           >(),
@@ -99,6 +103,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::arg("custom_time_step") = FLT_UNSET,
           py::arg("custom_space_step") = FLT_UNSET,
           py::arg("target_only") = false,
+          py::arg("bngl_string") = STR_UNSET,
           py::arg("elementary_molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
           py::arg("orientation") = Orientation::NONE
       )

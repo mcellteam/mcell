@@ -109,6 +109,8 @@ private:
   );
   void convert_geometry_objects();
 
+  species_id_t get_species_id_for_complex_instance(API::ComplexInstance& ci, const std::string error_msg);
+
   MCell::RegionExprNode* convert_region_expr_recursively(
       const std::shared_ptr<API::Region>& region,
       MCell::ReleaseEvent* rel_event
@@ -116,6 +118,7 @@ private:
   void convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);
   void convert_molecule_list(
       const std::vector<std::shared_ptr<MoleculeReleaseInfo>>& molecule_list,
+      const std::string& rel_site_name,
       MCell::ReleaseEvent* rel_event);
   void convert_release_events();
 

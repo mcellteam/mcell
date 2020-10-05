@@ -74,10 +74,9 @@ public:
           " or " + NAME_MOLECULE_LIST + " must be set.");
     }
 
-    if (get_num_set(species, bngl_species, complex_instance, molecule_list) != 1) {
+    if (get_num_set(complex_instance, molecule_list) != 1) {
       throw ValueError(
-          S("Exactly one of ") + NAME_SPECIES + ", " + NAME_BNGL_SPECIES + ", " + NAME_COMPLEX_INSTANCE + " or " +
-          NAME_MOLECULE_LIST + " must be set.");
+          S("Exactly one of ") + NAME_COMPLEX_INSTANCE + " or " + NAME_MOLECULE_LIST + " must be set.");
     }
   }
 };

@@ -125,8 +125,20 @@ ElementaryMoleculeInstance:
     
 ComplexInstance:    
   superclass: BaseDataClass
-  doc: This class represents a complex molecule composed of molecule instances.
+  doc: | 
+     This class represents a complex molecule composed of molecule instances.
+     It is either defined using a BNGL string or using a list of elementary molecule instances.
+     On top of that, orientation may be defined. 
+     
   items:
+  - name: bngl_string
+    type: str
+    default: empty
+    doc: | 
+       This complex instance is initialized from a BNGL string, 
+       the string is parsed during model initialization so the molecule types it uses
+       don't have to be defined before initialization.
+  
   - name: elementary_molecule_instances
     type: List[ElementaryMoleculeInstance*]
     default: empty
@@ -145,6 +157,10 @@ ComplexInstance:
       
 Species:
   superclass: ComplexInstance
+  TODO: Ignore orientation when comparing species on equality.
+  doc: |
+    Species is defined by its fully qualified complex instance.
+     
   items:
   - name: name
     type: str
@@ -183,7 +199,7 @@ Species:
   methods:
   - name: inst
     return_type: ComplexInstance
-    internal: Where is this used and why the limitation?
+    todo: Where is this used and why the limitation?, remove?
     doc: | 
        Creates a ComplexInstance of this Species. Can be currently used only for simple species, i.e. those that
        have a single molecule instance and no components.

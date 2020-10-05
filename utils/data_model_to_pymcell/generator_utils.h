@@ -143,6 +143,11 @@ static string make_enum_value(const string enum_name, const string value) {
 }
 
 
+static string make_cplx_inst(const string bngl_str) {
+  return S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + bngl_str + "')";
+}
+
+
 static void check_versions(
     const string node_name, Json::Value& node,
     const char* const version1, const char* const version2) {

@@ -31,6 +31,15 @@ namespace BNG {
 
 // ------------------------------------ CplxInstance -------------------------
 
+bool CplxInstance::is_fully_qualified() const {
+  for (const MolInstance& mi: mol_instances) {
+    if (!mi.is_fully_qualified(*bng_data)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void CplxInstance::finalize() {
   if (mol_instances.empty()) {
     return; // empty complex, ignoring finalization

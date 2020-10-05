@@ -136,9 +136,11 @@ TIME_INFINITY = 1e140
 class ComplexInstance():
     def __init__(
             self,
+            bngl_string : str = None,
             elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
+        self.bngl_string = bngl_string
         self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
 
@@ -686,13 +688,11 @@ class Molecule():
 class MoleculeReleaseInfo():
     def __init__(
             self,
-            species : Species = None,
-            bngl_species : str = None,
-            location : List[float] = None,
+            complex_instance : ComplexInstance,
+            location : List[float],
             orientation : Orientation = Orientation.NONE
         ):
-        self.species = species
-        self.bngl_species = bngl_species
+        self.complex_instance = complex_instance
         self.location = location
         self.orientation = orientation
 
@@ -824,9 +824,7 @@ class ReleaseSite():
     def __init__(
             self,
             name : str,
-            species : Species = None,
             complex_instance : ComplexInstance = None,
-            bngl_species : str = None,
             orientation : Orientation = Orientation.NONE,
             molecule_list : List[MoleculeReleaseInfo] = None,
             release_time : float = 0,
@@ -842,9 +840,7 @@ class ReleaseSite():
             release_probability : float = None
         ):
         self.name = name
-        self.species = species
         self.complex_instance = complex_instance
-        self.bngl_species = bngl_species
         self.orientation = orientation
         self.molecule_list = molecule_list
         self.release_time = release_time
@@ -869,6 +865,7 @@ class Species():
             custom_time_step : float = None,
             custom_space_step : float = None,
             target_only : bool = False,
+            bngl_string : str = None,
             elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
@@ -878,6 +875,7 @@ class Species():
         self.custom_time_step = custom_time_step
         self.custom_space_step = custom_space_step
         self.target_only = target_only
+        self.bngl_string = bngl_string
         self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
 

@@ -102,6 +102,28 @@ void ComponentInstance::dump(const BNGData& bng_data, const string& ind) const {
 
 // ------------- MoleculeInstance -------------
 
+bool MolInstance::is_fully_qualified(const BNGData& bng_data) const {
+  multiset<component_type_id_t> this_inst_components;
+  multiset<component_type_id_t> mol_type_components;
+
+  for (const ComponentInstance& ci: component_instances) {
+    component_type_id_t ct_id = ci.component_type_id;
+    this_inst_components.insert(ct_id);
+    // if a component has a state, it must be set
+    if (!bng_data.get_component_type(ct_id).allowed_state_ids.empty() && !ci.state_is_set()) {
+      return false;
+    }
+  }
+
+  for (component_type_id_t ct_id: bng_data.get_molecule_type(mol_type_id).component_type_ids) {
+    mol_type_components.insert(ct_id);
+  }
+
+  // do we have the same components?
+  return this_inst_components == mol_type_components;
+}
+
+
 void MolInstance::canonicalize(const BNGData& bng_data) {
   // we need to sort components first
   CanonicalComponentComparator comp_cmp(bng_data, bng_data.get_molecule_type(mol_type_id));

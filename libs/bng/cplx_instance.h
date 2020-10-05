@@ -92,6 +92,9 @@ public:
     return has_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
   }
 
+  // returns true if all components of all molecules are be present and their is state set
+  bool is_fully_qualified() const;
+
   mol_type_id_t get_simple_species_mol_type_id() const {
     assert(is_simple());
     return mol_instances[0].mol_type_id;
