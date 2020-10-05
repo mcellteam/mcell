@@ -74,7 +74,7 @@ namespace BNG {
 // end reaction rules
 //
 %glr-parser
-%expect 4
+%expect 6
 
 %union {
   const char* str;
@@ -126,6 +126,7 @@ namespace BNG {
 %type <str_node> molecule_compartment
 %type <list_node> molecule_list_maybe_empty
 %type <list_node> molecule_list
+%type <str_node> rxn_rule_name_maybe_empty
 %type <list_node> rxn_rule_side_or_zero
 %type <list_node> rxn_rule_side
 %type <list_node> rates
@@ -339,12 +340,21 @@ rxn_rule_list:
 ;
 
 rxn_rule:
-      rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates {
+      rxn_rule_name_maybe_empty rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates {
          
-        BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4);
+        BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4, $5);
         g_ctx->add_rxn_rule(n);
       }
 ;
+
+rxn_rule_name_maybe_empty:
+      TOK_ID ':' {
+        $$ = g_ctx->new_str_node($1, @1);
+      }
+    | /* empty */ {
+        $$ = g_ctx->new_empty_str_node();
+    }
+;    
 
 rxn_rule_side_or_zero:
       rxn_rule_side

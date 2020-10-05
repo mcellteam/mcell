@@ -375,7 +375,7 @@ public:
 
   std::string generate_name() const;
 
-  std::string name; // generated automatically for now
+  std::string name; // set by user or generated automatically when empty
   ASTListNode* reactants;
   bool reversible;
   ASTListNode* products;
@@ -494,6 +494,7 @@ public:
   );
 
   ASTRxnRuleNode* new_rxn_rule_node(
+      ASTStrNode* name,
       ASTListNode* reactants,
       const bool reversible,
       ASTListNode* products,

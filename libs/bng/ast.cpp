@@ -384,12 +384,14 @@ ASTCompartmentNode* ParserContext::new_compartment_node(
 
 
 ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
+    ASTStrNode* name,
     ASTListNode* reactants,
     const bool reversible,
     ASTListNode* products,
     ASTListNode* rates
 ) {
   ASTRxnRuleNode* n = new ASTRxnRuleNode();
+  n->name = name->str;
   n->reactants = reactants;
   n->reversible = reversible;
   n->products = products;
