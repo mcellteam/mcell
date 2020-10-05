@@ -181,7 +181,7 @@ public:
 
   // true if a molecule of this species cannot initiate a reaction
   bool cant_initiate() const {
-    return has_flag(SPECIES_FLAG_CANT_INITIATE);
+    return has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
   }
 
   bool can_diffuse() const {

@@ -1141,7 +1141,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
   assert(!species.has_flag(SPECIES_FLAG_CAN_SURFSURFSURF) && "Not supported");
   bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
   if (can_surf_surf_react && !species.cant_initiate()) {
-    assert(!species.has_flag(SPECIES_FLAG_CANT_INITIATE) && "Not sure what to do here");
+    assert(!species.has_flag(SPECIES_MOL_FLAG_CANT_INITIATE) && "Not sure what to do here");
     // the time t_steps should tell when the reaction occurred and it is quite weird because
     // it has nothing to do with the time spent diffusing
     sm_still_exists = react_2D_all_neighbors(p, sm, t_steps, diffusion_start_time);

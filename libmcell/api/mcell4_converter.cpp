@@ -359,6 +359,8 @@ BNG::mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
     else if (is_set(api_mt.custom_space_step)) {
       bng_mt.custom_space_step = api_mt.custom_space_step;
     }
+
+    bng_mt.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, api_mt.target_only);
   }
 
   // components
@@ -423,7 +425,7 @@ void MCell4Converter::convert_species() {
       throw ValueError("Neither diffusion_constant_2d nor diffusion_constant_3d was set.");
     }
 	
-    new_species.set_flag(BNG::SPECIES_FLAG_CANT_INITIATE, s->target_only); // default is false
+    new_species.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, s->target_only); // default is false
 
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components

@@ -39,7 +39,8 @@ namespace BNG {
 
 // sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,
 // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
-// flags according to reactions in the system
+// flags according to reactions in the system,
+// also sets SPECIES_MOL_FLAG_CANT_INITIATE
 void Species::update_rxn_and_custom_flags(
     const SpeciesContainer& all_species, RxnContainer& all_rxns,
     const BaseCustomFlagsAnalyzer* flags_analyzer) {
@@ -134,6 +135,15 @@ void Species::update_rxn_and_custom_flags(
       }
     }
   }
+
+  // SPECIES_MOL_FLAG_CANT_INITIATE == target_only
+  const BNGData& bng_data = all_species.get_bng_data();
+  bool all_mols_are_cant_initiate = true;
+  for (const MolInstance& mi: mol_instances) {
+    all_mols_are_cant_initiate = all_mols_are_cant_initiate &&
+        bng_data.get_molecule_type(mi.mol_type_id).has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
+  }
+  set_flag(SPECIES_MOL_FLAG_CANT_INITIATE, all_mols_are_cant_initiate);
 
   rxn_flags_were_updated = true;
 }

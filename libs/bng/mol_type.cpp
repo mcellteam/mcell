@@ -39,6 +39,10 @@ void MolType::dump(const BNGData& bng_data) const {
   }
 
   cout << ")";
+  cout <<
+      ", D=" << D <<
+      ", custom_time_step=" << custom_time_step <<
+      ", custom_space_step=" << custom_space_step;
 }
 
 } /* namespace BNG */
