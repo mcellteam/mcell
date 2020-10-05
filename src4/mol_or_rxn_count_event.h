@@ -107,7 +107,8 @@ public:
 
   SpeciesPatternType species_pattern_type;
 
-  // valid when species_pattern_type is SpeciesId
+  // valid when species_pattern_type is SpeciesId, not used in MCell4
+  // TODO: remove for MCell4 MDL mode and replace with SpeciesPattern/species_molecules_pattern
   species_id_t species_id;
 
   // valid when species_pattern_type is SpeciesPattern or MoleculesPattern

@@ -34,7 +34,6 @@ class ComplexInstance;
 class CountTerm;
 class ReactionRule;
 class Region;
-class Species;
 
 #define COUNT_CTOR() \
     Count( \
@@ -42,7 +41,6 @@ class Species;
         std::shared_ptr<CountTerm> count_expression_ = nullptr, \
         const float_t multiplier_ = 1, \
         const int every_n_timesteps_ = 1, \
-        std::shared_ptr<Species> species_ = nullptr, \
         std::shared_ptr<ComplexInstance> species_pattern_ = nullptr, \
         std::shared_ptr<ComplexInstance> molecules_pattern_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
@@ -51,13 +49,12 @@ class Species;
         const ExprNodeType node_type_ = ExprNodeType::LEAF, \
         std::shared_ptr<CountTerm> left_node_ = nullptr, \
         std::shared_ptr<CountTerm> right_node_ = nullptr \
-    )  : GenCount(species_,species_pattern_,molecules_pattern_,reaction_rule_,region_,orientation_,node_type_,left_node_,right_node_) { \
+    )  : GenCount(species_pattern_,molecules_pattern_,reaction_rule_,region_,orientation_,node_type_,left_node_,right_node_) { \
       class_name = "Count"; \
       file_name = file_name_; \
       count_expression = count_expression_; \
       multiplier = multiplier_; \
       every_n_timesteps = every_n_timesteps_; \
-      species = species_; \
       species_pattern = species_pattern_; \
       molecules_pattern = molecules_pattern_; \
       reaction_rule = reaction_rule_; \
@@ -73,7 +70,6 @@ class Species;
 class GenCount: public CountTerm {
 public:
   GenCount( 
-      std::shared_ptr<Species> species_ = nullptr, 
       std::shared_ptr<ComplexInstance> species_pattern_ = nullptr, 
       std::shared_ptr<ComplexInstance> molecules_pattern_ = nullptr, 
       std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, 
@@ -82,7 +78,7 @@ public:
       const ExprNodeType node_type_ = ExprNodeType::LEAF, 
       std::shared_ptr<CountTerm> left_node_ = nullptr, 
       std::shared_ptr<CountTerm> right_node_ = nullptr 
-  )  : CountTerm(species_,species_pattern_,molecules_pattern_,reaction_rule_,region_,orientation_,node_type_,left_node_,right_node_)  {
+  )  : CountTerm(species_pattern_,molecules_pattern_,reaction_rule_,region_,orientation_,node_type_,left_node_,right_node_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;

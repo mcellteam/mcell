@@ -42,10 +42,10 @@ public:
 
   void check_semantics() const override {
     GenCount::check_semantics();
-    uint num_set = get_num_set(count_expression, species, species_pattern, molecules_pattern, reaction_rule);
+    uint num_set = get_num_set(count_expression, species_pattern, molecules_pattern, reaction_rule);
     if (num_set != 1) {
       throw ValueError(
-          S("Exactly one of ") + NAME_COUNT_EXPRESSION + ", " + NAME_SPECIES + ", " + NAME_SPECIES_PATTERN + ", " +
+          S("Exactly one of ") + NAME_COUNT_EXPRESSION + ", " + NAME_SPECIES_PATTERN + ", " +
           NAME_MOLECULES_PATTERN + " or " + NAME_REACTION_RULE + " must be set for " + NAME_CLASS_COUNT + ".");
     }
 

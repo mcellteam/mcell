@@ -180,6 +180,7 @@ static string make_id(const string& s) {
   return res;
 }
 
+
 // name might be empty
 static void gen_ctor_call(ostream& out, string name, string class_name, bool has_params = true) {
   if (name != "") {

@@ -27,11 +27,6 @@ VizOutput:
 CountTerm:
   superclass: BaseDataClass
   items:
-  - name: species
-    type: Species*
-    default: unset
-    doc: Count the number of molecules of given species.
-    
   - name: species_pattern
     type: ComplexInstance*
     default: unset

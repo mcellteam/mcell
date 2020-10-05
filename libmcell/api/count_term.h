@@ -54,11 +54,11 @@ public:
   void check_that_species_or_reaction_rule_is_set() {
 
     if (node_type == ExprNodeType::LEAF) {
-      uint num_set = get_num_set(species, species_pattern, molecules_pattern, reaction_rule);
+      uint num_set = get_num_set(species_pattern, molecules_pattern, reaction_rule);
       if (num_set != 1) {
         // NOTE: does not give much information on where to search for the error
         throw ValueError(
-            S("Exactly one of ") + NAME_SPECIES + ", " + NAME_SPECIES_PATTERN + ", " +
+            S("Exactly one of ") + NAME_SPECIES_PATTERN + ", " +
             NAME_MOLECULES_PATTERN + " or " + NAME_REACTION_RULE + " must be set for one of the " +
             NAME_CLASS_COUNT_TERM + " used in " + NAME_CLASS_COUNT + ".");
       }

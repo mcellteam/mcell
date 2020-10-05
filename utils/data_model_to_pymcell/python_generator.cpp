@@ -968,15 +968,12 @@ static string create_count_name(string what_to_count, string where_to_count) {
       res += "_minus_";
     }
     else if (c == '(') {
-      res += "_pstart_";
+      res += "_ps_";
     }
     else if (c == ')') {
-      res += "_pend_";
+      res += "_pe_";
     }
-    else if (c == '.') {
-      res += "_";
-    }
-    else if (c == '_') {
+    else if (c == ' ' || c == '.' || c == '_' || c == ',' || c == '!') {
       res += "_";
     }
     else if (isalnum(c)) {
@@ -999,12 +996,7 @@ void PythonGenerator::process_single_count_term(
 
   // mdl_string is always in the form COUNT[what,where]
   size_t start_brace = mdl_string.find('[');
-  size_t comma = mdl_string.find(',');
-  size_t comma2 = mdl_string.find(',', comma + 1);
-  if (comma2 != string::npos) {
-    // the first comma is orientation
-    comma = comma2;
-  }
+  size_t comma = mdl_string.rfind(',');
   size_t end_brace = mdl_string.find(']');
 
   if (mdl_string.find(COUNT) == string::npos) {
@@ -1124,11 +1116,12 @@ string PythonGenerator::generate_count_terms_for_expression(
         gen_param_id(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
       }
       else {
+        bool comma_after_cplx = orientation == "" && where_to_count != "";
         if (data.bng_mode) {
-          assert(false);
+          gen_param_id(out, NAME_SPECIES_PATTERN, make_cplx_inst(what_to_count), comma_after_cplx);
         }
         else {
-          gen_param_id(out, NAME_SPECIES, what_to_count, orientation == "" && where_to_count != "");
+          gen_param_id(out, NAME_SPECIES_PATTERN, what_to_count, comma_after_cplx);
         }
 
         if (orientation != "") {
@@ -1248,7 +1241,12 @@ void PythonGenerator::generate_counts(ostream& out, std::vector<std::string>& co
         gen_param_id(out, NAME_REACTION_RULE, what_to_count, true);
       }
       else {
-        gen_param_id(out, NAME_SPECIES, what_to_count, true);
+        if (data.bng_mode) {
+          gen_param_id(out, NAME_SPECIES_PATTERN, make_cplx_inst(what_to_count), true);
+        }
+        else {
+          gen_param_id(out, NAME_SPECIES_PATTERN, what_to_count, true);
+        }
 
         if (orientation != "") {
           gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");

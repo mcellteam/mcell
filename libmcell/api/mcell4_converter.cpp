@@ -1108,33 +1108,19 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
   }
 
   // what
-  if (is_set(ct->species) || is_set(ct->species_pattern) || is_set(ct->molecules_pattern)) {
+  if (is_set(ct->species_pattern) || is_set(ct->molecules_pattern)) {
 
-    bool is_vol = true; // set to silence compiler warning
-    string name;
-
-    if (is_set(ct->species)) {
-      res.species_pattern_type = SpeciesPatternType::SpeciesId;
-      res.species_id = ct->species->species_id;
-
-      BNG::Species& sp = world->get_all_species().get(res.species_id);
-      is_vol = sp.is_vol();
-      name = sp.name;
-    }
-    else if (is_set(ct->species_pattern)) {
+    if (is_set(ct->species_pattern)) {
       res.species_pattern_type = SpeciesPatternType::SpeciesPattern;
       res.species_molecules_pattern = convert_complex_instance(*ct->species_pattern, true);
     }
     else {
       res.species_pattern_type = SpeciesPatternType::MoleculesPattern;
       res.species_molecules_pattern = convert_complex_instance(*ct->molecules_pattern, true);
-      is_vol = res.species_molecules_pattern.is_vol();
     }
 
-    if (!is_set(ct->species)) {
-      is_vol = res.species_molecules_pattern.is_vol();
-      name = res.species_molecules_pattern.to_str();
-    }
+    bool is_vol = res.species_molecules_pattern.is_vol();
+    string name = res.species_molecules_pattern.to_str();
 
 
     res.orientation = convert_orientation(ct->orientation);

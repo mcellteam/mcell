@@ -28,7 +28,6 @@
 #include "../api/count_term.h"
 #include "../api/reaction_rule.h"
 #include "../api/region.h"
-#include "../api/species.h"
 
 namespace MCell {
 namespace API {
@@ -56,17 +55,6 @@ bool GenCount::__eq__(const GenCount& other) const {
      )  &&
     multiplier == other.multiplier &&
     every_n_timesteps == other.every_n_timesteps &&
-    (
-      (species != nullptr) ?
-        ( (other.species != nullptr) ?
-          (species->__eq__(*other.species)) : 
-          false
-        ) :
-        ( (other.species != nullptr) ?
-          false :
-          true
-        )
-     )  &&
     (
       (species_pattern != nullptr) ?
         ( (other.species_pattern != nullptr) ?
@@ -141,9 +129,6 @@ void GenCount::set_initialized() {
   if (is_set(count_expression)) {
     count_expression->set_initialized();
   }
-  if (is_set(species)) {
-    species->set_initialized();
-  }
   if (is_set(species_pattern)) {
     species_pattern->set_initialized();
   }
@@ -171,7 +156,6 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   count_expression = nullptr;
   multiplier = 1;
   every_n_timesteps = 1;
-  species = nullptr;
   species_pattern = nullptr;
   molecules_pattern = nullptr;
   reaction_rule = nullptr;
@@ -189,8 +173,7 @@ std::string GenCount::to_str(const std::string ind) const {
       "\n" << ind + "  " << "count_expression=" << "(" << ((count_expression != nullptr) ? count_expression->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "multiplier=" << multiplier << ", " <<
       "every_n_timesteps=" << every_n_timesteps << ", " <<
-      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "species_pattern=" << "(" << ((species_pattern != nullptr) ? species_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "species_pattern=" << "(" << ((species_pattern != nullptr) ? species_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "molecules_pattern=" << "(" << ((molecules_pattern != nullptr) ? molecules_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
@@ -209,7 +192,6 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             std::shared_ptr<CountTerm>,
             const float_t,
             const int,
-            std::shared_ptr<Species>,
             std::shared_ptr<ComplexInstance>,
             std::shared_ptr<ComplexInstance>,
             std::shared_ptr<ReactionRule>,
@@ -223,7 +205,6 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
           py::arg("count_expression") = nullptr,
           py::arg("multiplier") = 1,
           py::arg("every_n_timesteps") = 1,
-          py::arg("species") = nullptr,
           py::arg("species_pattern") = nullptr,
           py::arg("molecules_pattern") = nullptr,
           py::arg("reaction_rule") = nullptr,
