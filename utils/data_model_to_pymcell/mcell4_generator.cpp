@@ -440,7 +440,14 @@ void MCell4Generator::generate_surface_classes_assignment(ostream& out) {
         out << "    ";
         gen_ctor_call(out, "", NAME_CLASS_INITIAL_SURFACE_RELEASE, true);
         out << "    ";
-        gen_param_id(out, NAME_SPECIES, item[KEY_MOLECULE], true);
+        string species_str;
+        if (data.bng_mode) {
+          species_str = make_cplx_inst_as_species(item[KEY_MOLECULE].asString());
+        }
+        else {
+          species_str = item[KEY_MOLECULE].asString();
+        }
+        gen_param_id(out, NAME_SPECIES, species_str, true);
         out << "    ";
         gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, convert_orientation(item[KEY_ORIENT].asString()), true);
         out << "    ";
