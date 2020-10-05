@@ -967,13 +967,21 @@ static string create_count_name(string what_to_count, string where_to_count) {
     else if (c == '-') {
       res += "_minus_";
     }
+    else if (c == '?') {
+      res += "_anybond_";
+    }
+    else if (c == '!') {
+      res += "_bond_";
+    }
     else if (c == '(') {
       res += "_ps_";
     }
     else if (c == ')') {
       res += "_pe_";
     }
-    else if (c == ' ' || c == '.' || c == '_' || c == ',' || c == '!') {
+    else if (
+        c == ' ' || c == '.' || c == '_' ||
+        c == ',' || c == '~') {
       res += "_";
     }
     else if (isalnum(c)) {
@@ -1105,7 +1113,7 @@ string PythonGenerator::generate_count_terms_for_expression(
         rxn_not_mol, what_to_count, where_to_count, orientation
     );
 
-    string name = COUNT_TERM_PREFIX + what_to_count + ((where_to_count != "") ? ("_" + where_to_count) : "");
+    string name = COUNT_TERM_PREFIX + create_count_name(what_to_count, where_to_count);
 
     // generate the count term object definition if we don't already have it
     if (find(data.all_count_term_names.begin(), data.all_count_term_names.end(), name) == data.all_count_term_names.end()) {

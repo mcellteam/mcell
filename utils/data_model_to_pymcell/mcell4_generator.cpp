@@ -139,6 +139,7 @@ void MCell4Generator::generate_parameters() {
   ofstream out;
   open_and_check_file(PARAMETERS, out);
 
+  out << MCELL_IMPORT;
   out << make_section_comment("model parameters");
 
   if (data.mcell.isMember(KEY_PARAMETER_SYSTEM)) {
@@ -315,6 +316,9 @@ void MCell4Generator::generate_subsystem() {
 
   out << MCELL_IMPORT;
   out << make_import(PARAMETERS);
+  if (data.bng_mode) {
+    out << make_import(BNGL_MOLECULE_TYPES_INFO);
+  }
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
 
@@ -341,6 +345,20 @@ void MCell4Generator::generate_subsystem() {
     if (r_loc.in_python) {
       gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r_loc.name);
     }
+  }
+
+  if (data.bng_mode) {
+    // each part of the bngl file is loaded separately from specific modules,
+    // there is a single bngl file because later it will contain all the information needed
+    // to run in it BioNetGen
+    out << "\n# load subsystem information from bngl file\n";
+    gen_method_call(
+        out, SUBSYSTEM,
+        NAME_LOAD_BNGL_MOLECULE_TYPES_AND_REACTION_RULES,
+        "'" + get_filename(data.output_files_prefix, MODEL, BNGL_EXT) + "'"
+    );
+    out << "# set additional information such as diffusion constants for loaded elementary molecule types\n";
+    out << "set_bngl_molecule_types_info(" << SUBSYSTEM << ")\n";
   }
 
   out.close();
@@ -640,6 +658,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   }
   out << "\n";
 
+  out << "# create main model object\n";
   gen_ctor_call(out, MODEL, NAME_CLASS_MODEL, false);
   out << "\n";
 

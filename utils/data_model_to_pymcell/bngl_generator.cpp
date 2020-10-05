@@ -108,6 +108,7 @@ void BNGLGenerator::generate_python_mol_type_info(
 
   python_out << IND4 <<
       name << " = subsystem." << NAME_FIND_ELEMENTARY_MOLECULE_TYPE << "('" << name << "')\n";
+  python_out << IND4 << "assert " << name << ", \"Elementary molecule type '" + name + "' was not found\"\n";
 
   string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
   CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
