@@ -34,9 +34,9 @@ namespace MCell {
 
 class PythonGenerator {
 public:
-  PythonGenerator(Json::Value& mcell_, const std::string& output_files_prefix_, uint unnamed_rxn_counter_)
+  PythonGenerator(Json::Value& mcell_, const std::string& output_files_prefix_, const bool bng_mode_, uint& unnamed_rxn_counter_)
     : mcell(mcell_),
-      output_files_prefix(output_files_prefix_),
+      output_files_prefix(output_files_prefix_), bng_mode(bng_mode_),
       unnamed_surf_class_counter(0), unnamed_rxn_counter(unnamed_rxn_counter_) {
   }
 
@@ -51,6 +51,7 @@ public:
 
   void generate_geometry(std::ostream& out, std::vector<std::string>& geometry_objects);
 
+  void generate_release_sites(std::ostream& out, std::vector<std::string>& release_site_names);
 
 private:
   void generate_single_parameter(std::ostream& out, Json::Value& parameter);
@@ -75,11 +76,24 @@ private:
   std::string generate_single_geometry_object(
       std::ostream& out, const int index, Json::Value& object);
 
+  bool is_volume_mol_type(const std::string& mol_type_name);
+  bool is_volume_species(const std::string& species_name);
+
+  std::string generate_single_molecule_release_info_array(
+      std::ostream& out,
+      std::string& rel_site_name,
+      Json::Value& release_site_list,
+      Json::Value::ArrayIndex begin,
+      Json::Value::ArrayIndex end);
+
+  void generate_release_pattern(std::ostream& out, const std::string& name, std::string& delay_string);
+
 
 private:
   Json::Value& mcell;
 
   const std::string& output_files_prefix;
+  bool bng_mode;
 
   uint unnamed_surf_class_counter;
   uint& unnamed_rxn_counter; // owned by MCell4Generator

@@ -30,12 +30,6 @@ namespace MCell {
 namespace API {
 
 void GenInitialSurfaceRelease::check_semantics() const {
-  if (!is_set(species)) {
-    throw ValueError("Parameter 'species' must be set.");
-  }
-  if (!is_set(orientation)) {
-    throw ValueError("Parameter 'orientation' must be set.");
-  }
 }
 
 bool GenInitialSurfaceRelease::__eq__(const GenInitialSurfaceRelease& other) const {
@@ -52,6 +46,7 @@ bool GenInitialSurfaceRelease::__eq__(const GenInitialSurfaceRelease& other) con
           true
         )
      )  &&
+    bngl_species == other.bngl_species &&
     orientation == other.orientation &&
     number_to_release == other.number_to_release &&
     density == other.density;
@@ -67,7 +62,8 @@ void GenInitialSurfaceRelease::set_initialized() {
 void GenInitialSurfaceRelease::set_all_attributes_as_default_or_unset() {
   class_name = "InitialSurfaceRelease";
   species = nullptr;
-  orientation = Orientation::NOT_SET;
+  bngl_species = STR_UNSET;
+  orientation = Orientation::UP;
   number_to_release = INT_UNSET;
   density = FLT_UNSET;
 }
@@ -76,6 +72,7 @@ std::string GenInitialSurfaceRelease::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "bngl_species=" << bngl_species << ", " <<
       "orientation=" << orientation << ", " <<
       "number_to_release=" << number_to_release << ", " <<
       "density=" << density;
@@ -87,12 +84,14 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def(
           py::init<
             std::shared_ptr<Species>,
+            const std::string&,
             const Orientation,
             const int,
             const float_t
           >(),
-          py::arg("species"),
-          py::arg("orientation"),
+          py::arg("species") = nullptr,
+          py::arg("bngl_species") = STR_UNSET,
+          py::arg("orientation") = Orientation::UP,
           py::arg("number_to_release") = INT_UNSET,
           py::arg("density") = FLT_UNSET
       )
@@ -100,6 +99,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def("__str__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
       .def("dump", &InitialSurfaceRelease::dump)
       .def_property("species", &InitialSurfaceRelease::get_species, &InitialSurfaceRelease::set_species)
+      .def_property("bngl_species", &InitialSurfaceRelease::get_bngl_species, &InitialSurfaceRelease::set_bngl_species)
       .def_property("orientation", &InitialSurfaceRelease::get_orientation, &InitialSurfaceRelease::set_orientation)
       .def_property("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release)
       .def_property("density", &InitialSurfaceRelease::get_density, &InitialSurfaceRelease::set_density)

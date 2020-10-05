@@ -507,8 +507,6 @@ string PythonGenerator::generate_single_geometry_object(
 }
 
 
-
-
 void PythonGenerator::generate_geometry(std::ostream& out, std::vector<std::string>& geometry_objects) {
 
   Value& geometrical_objects = get_node(mcell, KEY_GEOMETRICAL_OBJECTS);
@@ -520,6 +518,361 @@ void PythonGenerator::generate_geometry(std::ostream& out, std::vector<std::stri
     Value& object = object_list[i];
     string name = generate_single_geometry_object(out, i, object);
     geometry_objects.push_back(name);
+  }
+}
+
+
+bool PythonGenerator::is_volume_mol_type(const std::string& mol_type_name) {
+
+  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
+
+  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
+  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
+    Value& molecule_list_item = molecule_list[i];
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
+
+    string name = molecule_list_item[KEY_MOL_NAME].asString();
+    if (name != mol_type_name) {
+      continue;
+    }
+
+    string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
+    CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
+    return mol_type == VALUE_MOL_TYPE_3D;
+  }
+
+  ERROR("Could not find species or molecule type " + mol_type_name + ".");
+}
+
+
+static bool is_simple_species(const std::string& species_name) {
+  return species_name.find('(') == string::npos;
+}
+
+
+static void get_mol_types_in_species(const std::string& species_name, vector<string>& mol_types) {
+  mol_types.clear();
+
+  size_t i = 0;
+  string current_name;
+  bool in_name = true;
+  while (i < species_name.size()) {
+    char c = species_name[i];
+    if (c == '(') {
+      in_name = false;
+      assert(current_name != "");
+      mol_types.push_back(current_name);
+      current_name = "";
+    }
+    else if (c == '.') {
+      in_name = true;
+    }
+    else if (in_name && !isspace(c)) {
+      current_name += c;
+    }
+    i++;
+  }
+
+  if (current_name != "") {
+    mol_types.push_back(current_name);
+  }
+}
+
+
+bool PythonGenerator::is_volume_species(const std::string& species_name) {
+  if (is_simple_species(species_name)) {
+    return is_volume_mol_type(species_name);
+  }
+  else {
+    vector<string> mol_types;
+    get_mol_types_in_species(species_name, mol_types);
+    for (string& mt: mol_types) {
+      if (!is_volume_mol_type(mt)) {
+        // surface
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+
+string remove_compartments(const std::string& species_name) {
+  size_t i = 0;
+  string res;
+  bool in_compartment = false;
+  while (i < species_name.size()) {
+    char c = species_name[i];
+    if (c == '@') {
+      assert(!in_compartment);
+      in_compartment = true;
+    }
+    else if (in_compartment && (!isalnum(c) && c != '_')) {
+      in_compartment = false;
+    }
+    else if (!in_compartment) {
+      res += c;
+    }
+    i++;
+  }
+  return res;
+}
+
+
+// returns true if the two release sites can be merged into a single one
+static bool can_be_in_same_list_release_site(Value& rs1, Value& rs2) {
+  return
+      rs1[KEY_SHAPE].asString() == VALUE_LIST &&
+      rs2[KEY_SHAPE].asString() == VALUE_LIST &&
+      rs1[KEY_PATTERN].asString() == rs2[KEY_PATTERN].asString() &&
+      rs1[KEY_QUANTITY].asString() == rs2[KEY_QUANTITY].asString() &&
+      rs1[KEY_QUANTITY_TYPE].asString() == rs2[KEY_QUANTITY_TYPE].asString() &&
+      rs1[KEY_RELEASE_PROBABILITY].asString() == rs2[KEY_RELEASE_PROBABILITY].asString() &&
+      rs1[KEY_SITE_DIAMETER].asString() == rs2[KEY_SITE_DIAMETER].asString() &&
+      rs1[KEY_STDDEV].asString() == rs2[KEY_STDDEV].asString();
+}
+
+
+std::string PythonGenerator::generate_single_molecule_release_info_array(
+    std::ostream& out,
+    std::string& rel_site_name,
+    Json::Value& release_site_list,
+    Json::Value::ArrayIndex begin,
+    Json::Value::ArrayIndex end) {
+
+  string name = MOLECULE_LIST_PREFIX + rel_site_name;
+
+  out << name << " = [\n";
+  for (Value::ArrayIndex rs_index = begin; rs_index < end; rs_index++) {
+    Value& release_site_item = release_site_list[rs_index];
+
+    Value& points_list = release_site_item[KEY_POINTS_LIST];
+
+    for (Value::ArrayIndex i = 0; i < points_list.size(); i++) {
+      out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(";
+
+      string species_name = release_site_item[KEY_MOLECULE].asString();
+      if (!bng_mode) {
+        gen_param_id(out, NAME_SPECIES, species_name, true);
+      }
+      else {
+        gen_param(out, NAME_BNGL_SPECIES, remove_compartments(species_name), true);
+      }
+
+      Value& point = points_list[i];
+      if (point.size() != 3) {
+        ERROR("Release site " + rel_site_name + ": points_list item does not have three values.");
+      }
+      out << NAME_LOCATION << " = [" << point[0].asDouble() << ", " << point[1].asDouble() << ", " << point[2].asDouble() << "]";
+
+      string orient = convert_orientation(release_site_item[KEY_ORIENT].asString());
+      if (orient != "") {
+        out << ", " << NAME_ORIENTATION << " = " << MDOT << NAME_ENUM_ORIENTATION << "." << orient;
+      }
+
+      out << ")";
+      if (i + 1 != points_list.size()) {
+        out << ", ";
+      }
+    }
+
+    if (rs_index + 1 != end) {
+      out << ", ";
+    }
+    out << "\n";
+  }
+  out << "] # " << name << "\n\n";
+
+  return name;
+}
+
+
+static void gen_region_expr_assignment_for_rel_site(ostream& out, string region_expr) {
+  // we don't really need to parse the expression, just dump it in a right way
+  // example: Cell[ALL] - (Organelle_1[ALL] + Organelle_2[ALL])
+  // remove [ALL]
+  // replace [text] with _text
+
+  regex pattern_all("\\[ALL\\]");
+  region_expr = regex_replace(region_expr, pattern_all, "");
+
+  regex pattern_surf_region("\\[([^\\]]*)\\]");
+  region_expr = regex_replace(region_expr, pattern_surf_region, "_$1");
+
+  gen_param_id(out, NAME_REGION, region_expr, true);
+}
+
+
+static void error_release_pattern(const string& name) {
+  ERROR("Requested release pattern " + name + " not found in data model.");
+}
+
+
+void PythonGenerator::generate_release_pattern(std::ostream& out, const std::string& name, std::string& delay_string) {
+
+  if (!mcell.isMember(KEY_DEFINE_RELEASE_PATTERNS)) {
+    error_release_pattern(name);
+  }
+  Value& define_release_patterns = get_node(mcell, KEY_DEFINE_RELEASE_PATTERNS);
+  Value& release_pattern_list = get_node(define_release_patterns, KEY_RELEASE_PATTERN_LIST);
+
+  for (Value::ArrayIndex i = 0; i < release_pattern_list.size(); i++) {
+    Value& release_pattern_item = release_pattern_list[i];
+    if (release_pattern_item[KEY_NAME].asString() != name) {
+      continue;
+    }
+
+    // we found the release pattern
+    check_version(KEY_RELEASE_PATTERN_LIST, release_pattern_item, VER_DM_2018_01_11_1330);
+
+    gen_ctor_call(out, name, NAME_CLASS_RELEASE_PATTERN);
+    gen_param(out, NAME_NAME, name, true);
+    gen_param_expr(out, NAME_RELEASE_INTERVAL, release_pattern_item[KEY_RELEASE_INTERVAL], true);
+    gen_param_expr(out, NAME_TRAIN_DURATION, release_pattern_item[KEY_TRAIN_DURATION], true);
+    gen_param_expr(out, NAME_TRAIN_INTERVAL, release_pattern_item[KEY_TRAIN_INTERVAL], true);
+    gen_param_expr(out, NAME_NUMBER_OF_TRAINS, release_pattern_item[KEY_NUMBER_OF_TRAINS], false);
+    out << CTOR_END;
+
+    delay_string = release_pattern_item[KEY_DELAY].asString();
+    return;
+  }
+
+  error_release_pattern(name);
+}
+
+
+void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std::string>& release_site_names) {
+
+  if (!mcell.isMember(KEY_RELEASE_SITES)) {
+    return;
+  }
+
+  Value& release_sites = mcell[KEY_RELEASE_SITES];
+  check_version(KEY_RELEASE_SITES, release_sites, VER_DM_2014_10_24_1638);
+  Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
+
+  Value::ArrayIndex i = 0;
+  while (i < release_site_list.size()) {
+    Value& release_site_item = release_site_list[i];
+    check_version(KEY_RELEASE_SITE_LIST, release_site_item, VER_DM_2018_01_11_1330);
+
+    string name = make_id(release_site_item[KEY_NAME].asString());
+    string shape = release_site_item[KEY_SHAPE].asString();
+    string molecule_list_name = "";
+    if (shape == VALUE_LIST) {
+      // 1) try to find the largest number of subsequent
+      // release sites that can be represented by a single ReleaseSite
+      Value::ArrayIndex matching_end = i + 1;
+      while (matching_end < release_site_list.size() &&
+          can_be_in_same_list_release_site(release_site_item, release_site_list[matching_end])) {
+        matching_end++;
+      }
+
+      // remove suffix from release name
+      if (i < matching_end - 1 && name.substr(name.size() - 2) == "_0") {
+        name = name.substr(0, name.size() - 2);
+      }
+
+      // 2) generate an array of SingleMoleculeReleaseInfo objects
+      molecule_list_name =
+          generate_single_molecule_release_info_array(out, name, release_site_list, i, matching_end);
+
+      // skip all release sites we handled here
+      i = matching_end - 1;
+    }
+
+    // generate release pattern if needed
+    string rel_pat_name = release_site_item[KEY_PATTERN].asString();
+    string delay_string = "";
+    if (rel_pat_name != "") {
+      generate_release_pattern(out, rel_pat_name, delay_string);
+    }
+
+    release_site_names.push_back(name);
+
+    gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
+    gen_param(out, NAME_NAME, name, true);
+
+    bool is_vol;
+    if (shape != VALUE_LIST) {
+      string species_name = release_site_item[KEY_MOLECULE].asString();
+      if (!bng_mode) {
+        gen_param_id(out, NAME_SPECIES, species_name, true);
+      }
+      else {
+        gen_param(out, NAME_BNGL_SPECIES, remove_compartments(species_name), true);
+      }
+
+
+      string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
+      if (orientation != "") {
+        // check that this is not a volume molecule
+        is_vol = is_volume_species(species_name);
+        if (is_vol) {
+          cout <<
+              "Ignoring orientation set for release site " << name << " with species " << species_name <<
+              ", this species represent volume molecules.\n";
+        }
+        else {
+          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, true);
+        }
+      }
+    }
+
+    if (delay_string != "" && delay_string != "0") {
+      gen_param_expr(out, NAME_RELEASE_TIME, delay_string, true);
+    }
+
+    if (rel_pat_name != "") {
+      gen_param_id(out, NAME_RELEASE_PATTERN, rel_pat_name, true);
+    }
+
+    if (shape == VALUE_SPHERICAL) {
+      gen_param_enum(out, NAME_SHAPE, NAME_ENUM_SHAPE, NAME_EV_SPHERICAL, true);
+      gen_param_vec3(
+          out, NAME_LOCATION,
+          release_site_item[KEY_LOCATION_X], release_site_item[KEY_LOCATION_Y], release_site_item[KEY_LOCATION_Z],
+          true
+      );
+      gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], true);
+    }
+    else if (shape == VALUE_OBJECT) {
+      gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());
+    }
+    else if (shape == VALUE_LIST) {
+      assert(molecule_list_name != "");
+      bool diam_is_zero = release_site_item[KEY_SITE_DIAMETER] == "0";
+      gen_param_id(out, NAME_MOLECULE_LIST, molecule_list_name, !diam_is_zero);
+      if (!diam_is_zero) {
+        gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], false);
+      }
+    }
+    else {
+      ERROR("Shape " + shape + " is not supported yet");
+    }
+
+    if (shape != VALUE_LIST) {
+      string quantity_type = release_site_item[KEY_QUANTITY_TYPE].asString();
+      if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
+        gen_param_expr(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
+      }
+      else if (quantity_type == VALUE_DENSITY) {
+        string species_name = release_site_item[KEY_MOLECULE].asString();
+        if (is_volume_species(species_name)) {
+          gen_param_expr(out, NAME_CONCENTRATION, release_site_item[KEY_QUANTITY], false);
+        }
+        else {
+          gen_param_expr(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
+        }
+      }
+      else {
+        ERROR("Quantity type " + quantity_type + " is not supported yet");
+      }
+    }
+
+    out << CTOR_END;
+    i++;
   }
 }
 

@@ -376,12 +376,14 @@ class GeometryObject():
 class InitialSurfaceRelease():
     def __init__(
             self,
-            species : Species,
-            orientation : Orientation,
+            species : Species = None,
+            bngl_species : str = None,
+            orientation : Orientation = Orientation.UP,
             number_to_release : int = None,
             density : float = None
         ):
         self.species = species
+        self.bngl_species = bngl_species
         self.orientation = orientation
         self.number_to_release = number_to_release
         self.density = density
@@ -684,11 +686,13 @@ class Molecule():
 class MoleculeReleaseInfo():
     def __init__(
             self,
-            species : Species,
-            location : List[float],
+            species : Species = None,
+            bngl_species : str = None,
+            location : List[float] = None,
             orientation : Orientation = Orientation.NONE
         ):
         self.species = species
+        self.bngl_species = bngl_species
         self.location = location
         self.orientation = orientation
 
@@ -822,6 +826,7 @@ class ReleaseSite():
             name : str,
             species : Species = None,
             complex_instance : ComplexInstance = None,
+            bngl_species : str = None,
             orientation : Orientation = Orientation.NONE,
             molecule_list : List[MoleculeReleaseInfo] = None,
             release_time : float = 0,
@@ -839,6 +844,7 @@ class ReleaseSite():
         self.name = name
         self.species = species
         self.complex_instance = complex_instance
+        self.bngl_species = bngl_species
         self.orientation = orientation
         self.molecule_list = molecule_list
         self.release_time = release_time

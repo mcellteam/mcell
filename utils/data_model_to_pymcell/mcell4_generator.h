@@ -20,6 +20,9 @@
  *
 ******************************************************************************/
 
+// TODO: add assert after every find_* call or add a call that checks that
+//       the thing we are searching for exists
+
 #ifndef SRC4_MCELL4_GENERATOR_H_
 #define SRC4_MCELL4_GENERATOR_H_
 
@@ -70,9 +73,6 @@ private:
       std::ofstream& out, const int index, Json::Value& object);
   std::vector<std::string> generate_geometry();
 
-  void generate_release_pattern(std::ofstream& out, const std::string& name, std::string& delay_string);
-  bool is_volume_species(const std::string& species_name);
-  std::vector<std::string> generate_release_sites(std::ofstream& out);
   void generate_surface_classes_assignment(std::ofstream& out);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 

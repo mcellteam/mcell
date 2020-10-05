@@ -37,6 +37,10 @@ public:
     if (location.size() != 3) {
       throw ValueError(S("Value of ") + NAME_LOCATION + " must be a triplet of floats.");
     }
+
+    if (get_num_set(species, bngl_species) != 1) {
+      throw ValueError(S("Exactly one of ") + NAME_SPECIES + " or " + NAME_BNGL_SPECIES + " must be set.");
+    }
   }
 };
 

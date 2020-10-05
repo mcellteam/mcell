@@ -30,12 +30,6 @@ namespace MCell {
 namespace API {
 
 void GenMoleculeReleaseInfo::check_semantics() const {
-  if (!is_set(species)) {
-    throw ValueError("Parameter 'species' must be set.");
-  }
-  if (!is_set(location)) {
-    throw ValueError("Parameter 'location' must be set.");
-  }
 }
 
 bool GenMoleculeReleaseInfo::__eq__(const GenMoleculeReleaseInfo& other) const {
@@ -52,6 +46,7 @@ bool GenMoleculeReleaseInfo::__eq__(const GenMoleculeReleaseInfo& other) const {
           true
         )
      )  &&
+    bngl_species == other.bngl_species &&
     location == other.location &&
     orientation == other.orientation;
 }
@@ -66,6 +61,7 @@ void GenMoleculeReleaseInfo::set_initialized() {
 void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
   class_name = "MoleculeReleaseInfo";
   species = nullptr;
+  bngl_species = STR_UNSET;
   location = std::vector<float_t>();
   orientation = Orientation::NONE;
 }
@@ -74,6 +70,7 @@ std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "bngl_species=" << bngl_species << ", " <<
       "location=" << vec_nonptr_to_str(location, ind + "  ") << ", " <<
       "orientation=" << orientation;
   return ss.str();
@@ -84,17 +81,20 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def(
           py::init<
             std::shared_ptr<Species>,
+            const std::string&,
             const std::vector<float_t>,
             const Orientation
           >(),
-          py::arg("species"),
-          py::arg("location"),
+          py::arg("species") = nullptr,
+          py::arg("bngl_species") = STR_UNSET,
+          py::arg("location") = std::vector<float_t>(),
           py::arg("orientation") = Orientation::NONE
       )
       .def("check_semantics", &MoleculeReleaseInfo::check_semantics)
       .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
       .def("dump", &MoleculeReleaseInfo::dump)
       .def_property("species", &MoleculeReleaseInfo::get_species, &MoleculeReleaseInfo::set_species)
+      .def_property("bngl_species", &MoleculeReleaseInfo::get_bngl_species, &MoleculeReleaseInfo::set_bngl_species)
       .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location)
       .def_property("orientation", &MoleculeReleaseInfo::get_orientation, &MoleculeReleaseInfo::set_orientation)
     ;

@@ -33,13 +33,15 @@ class Species;
 
 #define INITIAL_SURFACE_RELEASE_CTOR() \
     InitialSurfaceRelease( \
-        std::shared_ptr<Species> species_, \
-        const Orientation orientation_, \
+        std::shared_ptr<Species> species_ = nullptr, \
+        const std::string& bngl_species_ = STR_UNSET, \
+        const Orientation orientation_ = Orientation::UP, \
         const int number_to_release_ = INT_UNSET, \
         const float_t density_ = FLT_UNSET \
     ) { \
       class_name = "InitialSurfaceRelease"; \
       species = species_; \
+      bngl_species = bngl_species_; \
       orientation = orientation_; \
       number_to_release = number_to_release_; \
       density = density_; \
@@ -68,6 +70,18 @@ public:
   }
   virtual std::shared_ptr<Species> get_species() const {
     return species;
+  }
+
+  std::string bngl_species;
+  virtual void set_bngl_species(const std::string& new_bngl_species_) {
+    if (initialized) {
+      throw RuntimeError("Value 'bngl_species' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    bngl_species = new_bngl_species_;
+  }
+  virtual const std::string& get_bngl_species() const {
+    return bngl_species;
   }
 
   Orientation orientation;

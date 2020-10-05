@@ -37,7 +37,7 @@ public:
       std::ostream& bng_out_,
       Json::Value& mcell_,
       const std::string& output_files_prefix_,
-      uint unnamed_rxn_counter_)
+      uint& unnamed_rxn_counter_)
     : bngl_filename(bngl_filename_), bng_out(bng_out_),
       mcell(mcell_), output_files_prefix(output_files_prefix_), unnamed_rxn_counter(unnamed_rxn_counter_) {
   }

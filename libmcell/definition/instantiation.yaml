@@ -42,12 +42,22 @@ MoleculeReleaseInfo:
   items:
   - name: species
     type: Species*
+    default: unset
     TODO: this should be ComplexInstance*
     doc: | 
       The species of the molecule that will be released.
+      One of species or bngl_species must be specified.
 
+  - name: bngl_species
+    type: str
+    default: unset
+    doc: | 
+      The species of the molecule that will be released represented as BNGL string.
+      One of species or bngl_species must be specified.
+      
   - name: location
     type: List[float]
+    default: empty
     doc: | 
       3D position where the molecule will be released. 
       If a molecule has a 2D diffusion constant, it will be
@@ -79,11 +89,19 @@ ReleaseSite:
   - name: complex_instance
     type: ComplexInstance*
     default: unset
-    internal: maybe remove the species argument? 
+    TODO: maybe remove the species argument? 
     doc: | 
       Defines the species of the molecule that will be released. Not used for the LIST shape. 
       You must specify an orientation if the molecule is a surface molecule.
       Must be set when molecule_list is empty and unset when molecule_list is not empty.
+      One of species or bngl_species must be specified.
+
+  - name: bngl_species
+    type: str
+    default: unset
+    doc: | 
+      The species of the molecule that will be released represented as BNGL string.
+      One of species/complex_instance/bngl_species must be specified.
 
   - name: orientation
     type: Orientation
@@ -170,9 +188,18 @@ InitialSurfaceRelease:
   items:
   - name: species
     type: Species*
+    default: unset
   
+  - name: bngl_species
+    type: str
+    default: unset
+    doc: | 
+      The species of the molecule that will be released represented as BNGL string.
+      One of species or bngl_species must be specified.
+        
   - name: orientation
     type: Orientation
+    default: Orientation.UP
   
   - name: number_to_release
     type: int

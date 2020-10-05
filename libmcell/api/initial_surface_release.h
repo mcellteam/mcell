@@ -37,7 +37,12 @@ public:
     if (get_num_set(number_to_release, density) != 1) {
       throw ValueError(S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + " and " + NAME_DENSITY + " must be set.");
     }
+
+    if (get_num_set(species, bngl_species) != 1) {
+      throw ValueError(S("Exactly one of ") + NAME_SPECIES + " or " + NAME_BNGL_SPECIES + " must be set.");
+    }
   }
+
 };
 
 } // namespace API
