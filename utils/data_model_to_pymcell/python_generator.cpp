@@ -1036,13 +1036,10 @@ void PythonGenerator::process_single_count_term(
     what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
   }
 
-  if (find(data.all_reaction_rules_names.begin(), data.all_reaction_rules_names.end(), IdLoc(what_to_count))
-        != data.all_reaction_rules_names.end()) {
-      rxn_not_mol = true;
+  if (data.find_reaction_rule_info(what_to_count) != nullptr) {
+    rxn_not_mol = true;
   }
-  else if (data.bng_mode ||
-      find(data.all_species_and_mol_type_names.begin(), data.all_species_and_mol_type_names.end(),
-        SpeciesOrMolType(what_to_count)) != data.all_species_and_mol_type_names.end()) {
+  else if (data.bng_mode || data.find_species_or_mol_type_info(what_to_count) != nullptr) {
     // if we did not find the name to be a reaction in BNG mode, we assume it is species or pattern
     rxn_not_mol = false;
   }
@@ -1164,10 +1161,28 @@ string PythonGenerator::generate_count_terms_for_expression(
 }
 
 
-void PythonGenerator::generate_counts(ostream& out, std::vector<std::string>& counts) {
+void PythonGenerator::generate_all_bngl_reaction_rules_used_in_observables(std::ostream& out) {
+
+  // bngl_reaction_rules_used_in_observables are initialized in MCell4Generator::generate_reaction_rules
+  out << "# declaration of rxn rules defined in BNGL and used in counts\n";
+  for (string& name: data.bngl_reaction_rules_used_in_observables) {
+    out <<
+      name << " = " << get_module_name_w_prefix(data.output_files_prefix, SUBSYSTEM) << "." <<
+      NAME_FIND_REACTION_RULE << "('" << name << "')\n";
+    out << "assert " << name << ", \"Reaction rule '" + name + "' was not found\"\n";
+  }
+  out << "\n";
+}
+
+
+void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string>& counts) {
 
   if (!mcell.isMember(KEY_REACTION_DATA_OUTPUT)) {
     return;
+  }
+
+  if (data.bng_mode) {
+    generate_all_bngl_reaction_rules_used_in_observables(out);
   }
 
   Value& reaction_data_output = get_node(mcell, KEY_REACTION_DATA_OUTPUT);

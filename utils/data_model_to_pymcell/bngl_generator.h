@@ -45,7 +45,6 @@ public:
   void open_reaction_rules_section() { bng_out << "begin reaction rules\n"; }
   std::string generate_single_reaction_rule(Json::Value& reaction_list_item, const bool generate_name);
   void close_reaction_rules_section() { bng_out << "end reaction rules\n"; }
-  void generate_python_decl_bngl_rxn_rule(std::ostream& python_out, const std::string& name);
 
   void add_comment(const std::string& text) { bng_out << "# " << text << "\n"; }
 

@@ -199,13 +199,4 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
   return name;
 }
 
-
-void BNGLGenerator::generate_python_decl_bngl_rxn_rule(std::ostream& python_out, const std::string& name) {
-  python_out << "# declaration of rxn rule defined in BNGL and used here in Python\n";
-  python_out <<
-    name << " == " << get_module_name_w_prefix(data.output_files_prefix, SUBSYSTEM) << "." <<
-    NAME_FIND_REACTION_RULE << "('" << name << "')\n";
-}
-
-
 } /* namespace MCell */

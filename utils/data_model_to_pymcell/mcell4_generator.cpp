@@ -289,7 +289,9 @@ vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out) {
         bool used_in_observables = is_rxn_used_in_observables(data.mcell, reaction_list_item[KEY_RXN_NAME].asString());
         string name = bng_gen->generate_single_reaction_rule(reaction_list_item, used_in_observables);
         rxn_names_w_loc.push_back(IdLoc(name, false));
-        data.bngl_reaction_rules_used_in_observables.push_back(name);
+        if (used_in_observables) {
+          data.bngl_reaction_rules_used_in_observables.push_back(name);
+        }
       }
       else {
         bng_gen->add_comment(

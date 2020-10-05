@@ -24,6 +24,7 @@
 #define UTILS_DATA_MODEL_TO_PYMCELL_GENERATOR_STRUCTS_H_
 
 #include <string>
+#include <algorithm>
 #include "json/json.h"
 
 namespace MCell {
@@ -85,6 +86,29 @@ struct SharedGenData {
   std::vector<IdLoc> all_reaction_rules_names;
   std::vector<std::string> bngl_reaction_rules_used_in_observables;
   std::vector<std::string> all_count_term_names;
+
+
+  const SpeciesOrMolType* find_species_or_mol_type_info(const std::string& name) const {
+    auto it = std::find(
+        all_species_and_mol_type_names.begin(), all_species_and_mol_type_names.end(),
+        SpeciesOrMolType(name));
+    if (it != all_species_and_mol_type_names.end()) {
+      return &*it;
+    }
+    else {
+      return nullptr;
+    }
+  }
+
+  const IdLoc* find_reaction_rule_info(const std::string& rxn_name) const {
+    auto it = std::find(all_reaction_rules_names.begin(), all_reaction_rules_names.end(), IdLoc(rxn_name));
+    if (it != all_reaction_rules_names.end()) {
+      return &*it;
+    }
+    else {
+      return nullptr;
+    }
+  }
 
   // mcell node of the loaded JSON file
   Json::Value mcell;

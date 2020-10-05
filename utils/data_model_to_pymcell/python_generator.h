@@ -94,6 +94,7 @@ private:
 
   std::vector<std::string> get_species_to_visualize();
 
+  void generate_all_bngl_reaction_rules_used_in_observables(std::ostream& out);
   void process_single_count_term(
       const std::string& mdl_string,
       bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count,
