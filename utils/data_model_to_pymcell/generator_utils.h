@@ -153,8 +153,8 @@ static string make_cplx_inst(const string bngl_str, const string orient = "") {
 }
 
 
-static string make_cplx_inst_as_species(const string bngl_str) {
-  return S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + bngl_str + "')." + API::NAME_AS_SPECIES + "()";
+static string make_species(const string bngl_str) {
+  return S(MDOT) + API::NAME_CLASS_SPECIES + "('" + bngl_str + "')";
 }
 
 

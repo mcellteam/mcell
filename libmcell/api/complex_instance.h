@@ -23,8 +23,9 @@
 #ifndef API_COMPLEX_INSTANCE_H
 #define API_COMPLEX_INSTANCE_H
 
-#include "../generated/gen_complex_instance.h"
-#include "../api/common.h"
+#include "generated/gen_complex_instance.h"
+#include "api/common.h"
+
 
 namespace MCell {
 namespace API {
@@ -44,6 +45,10 @@ public:
   }
 
   void check_semantics() const override {
+    if (is_species_object()) {
+      // all semantic checks will be done in Species
+      return;
+    }
     GenComplexInstance::check_semantics();
     if (get_num_set(name, elementary_molecule_instances) != 1) {
       throw ValueError(
@@ -61,6 +66,9 @@ public:
     return !is_surf();
   }
   bool is_surf() const;
+
+private:
+  bool is_species_object() const;
 };
 
 } // namespace API

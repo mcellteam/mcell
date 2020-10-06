@@ -28,7 +28,8 @@
 #include "generated/gen_species.h"
 #include "generated/gen_constants.h"
 #include "api/common.h"
-#include "complex_instance.h"
+#include "api/api_utils.h"
+#include "api/complex_instance.h"
 #include "elementary_molecule_type.h"
 
 #include "include/datamodel_defines.h"
@@ -63,17 +64,48 @@ public:
     orientation = cplx_inst.orientation;
   }
 
+  void check_no_extra_fields_are_set() const {
+    std::string msg =
+        " must not be set for complex species because it is derived from its elementary molecule types.";
+    if (is_set(diffusion_constant_2d)) {
+      throw ValueError(S("Field ") + NAME_DIFFUSION_CONSTANT_2D + msg);
+    }
+    if (is_set(diffusion_constant_3d)) {
+      throw ValueError(S("Field ") + NAME_DIFFUSION_CONSTANT_3D + msg);
+    }
+    if (is_set(custom_time_step)) {
+      throw ValueError(S("Field ") + NAME_CUSTOM_TIME_STEP + msg);
+    }
+    if (is_set(custom_space_step)) {
+      throw ValueError(S("Field ") + NAME_CUSTOM_SPACE_STEP + msg);
+    }
+    if (is_set(target_only)) {
+      throw ValueError(S("Field ") + NAME_TARGET_ONLY + msg);
+    }
+  }
+
+
+  // we are making changes, so semantic checks are here instead of in const check_semantics
   void postprocess_in_ctor() override {
     // initialization
     species_id = SPECIES_ID_INVALID;
 
-    // we can do semantic checks also in postprocess_in_ctor
-    if (elementary_molecule_instances.empty()) {
-      if (!is_set(diffusion_constant_2d) && !is_set(diffusion_constant_3d)) {
-        throw ValueError("Field diffusion_constant_2d or diffusion_constant_3d must be set for simple species.");
-      }
+    // not calling derived check semantics
+    if (get_num_set(name, elementary_molecule_instances) != 1) {
+      throw ValueError(
+          S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULE_INSTANCES +
+          " must be set for " + NAME_CLASS_SPECIES + ".");
+    }
+
+    // 1) simple species defined by name
+    if (is_set(name) && is_simple_species(name) && !is_set(elementary_molecule_instances)) {
       if (is_set(diffusion_constant_2d) && is_set(diffusion_constant_3d)) {
         throw ValueError("Only one of fields diffusion_constant_2d or diffusion_constant_3d can be set for simple species.");
+      }
+
+      if (get_num_set(custom_time_step, custom_space_step) > 1) {
+        throw ValueError(S("Only one of ") + NAME_CUSTOM_TIME_STEP + " or " + NAME_CUSTOM_SPACE_STEP +
+            " may be set at the same time.");
       }
 
       // create a single ElementaryMoleculeType
@@ -87,21 +119,15 @@ public:
           std::make_shared<ElementaryMoleculeInstance>(mt)
       );
     }
-    else {
+    // 2) complex species defined through elementary_molecule_instances
+    else if (!elementary_molecule_instances.empty()) {
       // do semantic check
-      if (is_set(diffusion_constant_2d)) {
-        throw ValueError(S("Field ") + NAME_DIFFUSION_CONSTANT_2D +
-            " must not be set for complex species because it is derived from its elementary molecule types.");
-      }
-      if (is_set(diffusion_constant_3d)) {
-        throw ValueError(S("Field ") + NAME_DIFFUSION_CONSTANT_3D +
-            " must not be set for complex species because it is derived from its elementary molecule types.");
-      }
+      check_no_extra_fields_are_set();
     }
-
-    if (get_num_set(custom_time_step, custom_space_step) > 1) {
-      throw ValueError(S("Only one of ") + NAME_CUSTOM_TIME_STEP + " or " + NAME_CUSTOM_SPACE_STEP +
-          " may be set at the same time.");
+    // 3) declaration
+    else {
+      // TODO: we can check that the BNGL string is correct here
+      check_no_extra_fields_are_set();
     }
   }
 

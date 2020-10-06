@@ -238,7 +238,7 @@ void PythonGenerator::generate_surface_class_affected_species_and_orientation(
 
   string affected_mols_str;
   if (data.bng_mode && !affected_mols_is_superclass) {
-    affected_mols_str = make_cplx_inst_as_species(affected_mols);
+    affected_mols_str = make_species(affected_mols);
   }
   else {
     affected_mols_str = affected_mols;
@@ -1077,7 +1077,7 @@ std::vector<std::string> PythonGenerator::get_species_to_visualize() {
 
     if (molecule_list_item[KEY_EXPORT_VIZ].asBool()) {
       if (data.bng_mode) {
-        res.push_back(make_cplx_inst_as_species(molecule_list_item[KEY_MOL_NAME].asString()));
+        res.push_back(make_species(molecule_list_item[KEY_MOL_NAME].asString()));
       }
       else {
         res.push_back(molecule_list_item[KEY_MOL_NAME].asString());

@@ -128,7 +128,9 @@ ComplexInstance:
   doc: | 
      This class represents a complex molecule composed of molecule instances.
      It is either defined using a BNGL string or using a list of elementary molecule instances.
-     On top of that, orientation may be defined. 
+     On top of that, orientation may be defined.
+     This class is used as argument in cases where either a fully qualified instance or a pattern 
+     can be provided such as in observable Count.  
   internal: | 
      Ctor Species(ComplexInstance& cplx_inst) must be updated if if attributes change     
   items:
@@ -165,14 +167,45 @@ ComplexInstance:
       
 Species:
   superclass: ComplexInstance
-  TODO: Ignore orientation when comparing species on equality.
+  TODO: | 
+     Ignore orientation when comparing species on equality.
   doc: |
-    Species is defined by its fully qualified complex instance.
-     
+    There are three ways how to use this class\:
+    1) definition of simple species - in this case 'name' is 
+    a single identifier and at least 'diffusion_constant_2d' or 
+    'diffusion_constant_3d' must be provided.
+    Example\: m.Species('A', diffusion_constant_3d=1e-6). 
+    Such a definition must be added to subsystem or model so that  
+    during model initialization this species is transformed to MCell 
+    representation and an ElementaryMoleculeType 'A' with a given 
+    diffusion constant is created as well.
+    2) full definition of complex species - in this case the 
+    inherited attribute 'elementary_molecule_instances' from ComplexInstance
+    is used as a definition of the complex and this gives information 
+    on diffusion constants of the used elementary molecules.
+    Example\: m.Species(elementary_molecule_instances=[ei1, ei2]). 
+    Such a definition must be added to subsystem or model.   
+    3) declaration of species - in this case only 'name' in the form of 
+    an BNGL string is provided. The complex instance specified by the name 
+    must be fully qualified (i.e. all components are present and those 
+    components that have a state have their state set).
+    No information on diffusion constants and other properties of 
+    used elementary molecules is provided, it must be provided elsewhere.
+    Example\: m.Species('A(b!1).B(a!1)').
+    This is a common form of usage when reaction rules are provided in a BNGL file.
+    Such declaration does no need to be added to subsystem or model.
+    This form is used as argument in cases where a fully qualified instance  
+    must be provided such as in molecule releases. 
+    
   items:
   - name: name
     type: str
-    doc: Name of the species
+    default: unset
+    doc: | 
+       Name of the species in the BNGL format. 
+       One must either specify 'name' or 'elementary_molecule_instances' 
+       (inherited from ComplexInstance). This argument 'name' is parsed during model 
+       initialization.    
 
   - name: diffusion_constant_2d
     type: float

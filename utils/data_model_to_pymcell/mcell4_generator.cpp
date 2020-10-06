@@ -442,7 +442,7 @@ void MCell4Generator::generate_surface_classes_assignment(ostream& out) {
         out << "    ";
         string species_str;
         if (data.bng_mode) {
-          species_str = make_cplx_inst_as_species(item[KEY_MOLECULE].asString());
+          species_str = make_species(item[KEY_MOLECULE].asString());
         }
         else {
           species_str = item[KEY_MOLECULE].asString();

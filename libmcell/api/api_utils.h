@@ -86,6 +86,10 @@ static Orientation convert_orientation(const orientation_t o) {
   }
 }
 
+static bool is_simple_species(const std::string& name) {
+  // complex species always contain a parenthesis in their name
+  return name.find('(') == std::string::npos;
+}
 
 } /* namespace API */
 } /* namespace MCell */

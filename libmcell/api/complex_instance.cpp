@@ -66,6 +66,11 @@ std::string ComplexInstance::to_bngl_str() {
 }
 
 
+bool ComplexInstance::is_species_object() const {
+  return dynamic_cast<const Species*>(this) != nullptr;
+}
+
+
 std::shared_ptr<Species> ComplexInstance::as_species() {
   return std::make_shared<Species>(*this);
 }

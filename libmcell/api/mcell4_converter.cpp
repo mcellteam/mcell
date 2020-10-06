@@ -141,7 +141,7 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 species_id_t MCell4Converter::get_species_id_for_complex_instance(API::ComplexInstance& ci, const std::string error_msg) {
   // check that the complex instance if fully qualified
 
-  BNG::CplxInstance bng_ci = convert_complex_instance(ci);
+  BNG::CplxInstance bng_ci = convert_complex_instance(ci, true);
   if (!bng_ci.is_fully_qualified()) {
     // TODO: add test
     throw ValueError(
@@ -385,7 +385,7 @@ BNG::mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
     }
     else {
       throw RuntimeError(S("Diffusion constant for ") + NAME_CLASS_ELEMENTARY_MOLECULE_TYPE +
-          " " + bng_mt.name + " was not set.");
+          " '" + bng_mt.name + "' was not set.");
     }
 
     if (is_set(api_mt.custom_time_step)) {
