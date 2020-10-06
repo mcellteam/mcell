@@ -115,7 +115,7 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   location = VEC3_UNSET;
   site_diameter = 0;
   site_radius = FLT_UNSET;
-  number_to_release = INT_UNSET;
+  number_to_release = FLT_UNSET;
   density = FLT_UNSET;
   concentration = FLT_UNSET;
   release_probability = FLT_UNSET;
@@ -157,7 +157,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const Vec3&,
             const float_t,
             const float_t,
-            const int,
+            const float_t,
             const float_t,
             const float_t,
             const float_t
@@ -173,7 +173,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("location") = VEC3_UNSET,
           py::arg("site_diameter") = 0,
           py::arg("site_radius") = FLT_UNSET,
-          py::arg("number_to_release") = INT_UNSET,
+          py::arg("number_to_release") = FLT_UNSET,
           py::arg("density") = FLT_UNSET,
           py::arg("concentration") = FLT_UNSET,
           py::arg("release_probability") = FLT_UNSET

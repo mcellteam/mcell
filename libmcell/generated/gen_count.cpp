@@ -191,7 +191,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             const std::string&,
             std::shared_ptr<CountTerm>,
             const float_t,
-            const int,
+            const float_t,
             std::shared_ptr<ComplexInstance>,
             std::shared_ptr<ComplexInstance>,
             std::shared_ptr<ReactionRule>,

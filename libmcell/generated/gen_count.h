@@ -40,7 +40,7 @@ class Region;
         const std::string& file_name_, \
         std::shared_ptr<CountTerm> count_expression_ = nullptr, \
         const float_t multiplier_ = 1, \
-        const int every_n_timesteps_ = 1, \
+        const float_t every_n_timesteps_ = 1, \
         std::shared_ptr<ComplexInstance> species_pattern_ = nullptr, \
         std::shared_ptr<ComplexInstance> molecules_pattern_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
@@ -125,15 +125,15 @@ public:
     return multiplier;
   }
 
-  int every_n_timesteps;
-  virtual void set_every_n_timesteps(const int new_every_n_timesteps_) {
+  float_t every_n_timesteps;
+  virtual void set_every_n_timesteps(const float_t new_every_n_timesteps_) {
     if (initialized) {
       throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     every_n_timesteps = new_every_n_timesteps_;
   }
-  virtual int get_every_n_timesteps() const {
+  virtual float_t get_every_n_timesteps() const {
     return every_n_timesteps;
   }
 

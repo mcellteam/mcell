@@ -47,7 +47,7 @@ class ReleasePattern;
         const Vec3& location_ = VEC3_UNSET, \
         const float_t site_diameter_ = 0, \
         const float_t site_radius_ = FLT_UNSET, \
-        const int number_to_release_ = INT_UNSET, \
+        const float_t number_to_release_ = FLT_UNSET, \
         const float_t density_ = FLT_UNSET, \
         const float_t concentration_ = FLT_UNSET, \
         const float_t release_probability_ = FLT_UNSET \
@@ -203,15 +203,15 @@ public:
     return site_radius;
   }
 
-  int number_to_release;
-  virtual void set_number_to_release(const int new_number_to_release_) {
+  float_t number_to_release;
+  virtual void set_number_to_release(const float_t new_number_to_release_) {
     if (initialized) {
       throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     number_to_release = new_number_to_release_;
   }
-  virtual int get_number_to_release() const {
+  virtual float_t get_number_to_release() const {
     return number_to_release;
   }
 

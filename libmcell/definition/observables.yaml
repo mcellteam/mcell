@@ -23,8 +23,10 @@ VizOutput:
     default: VizMode.ASCII
     
   - name: every_n_timesteps
-    type: int
+    type: float
     default: 1
+    doc: |
+      Value is truncated (floored) to an integer.
     
 
 CountTerm:
@@ -114,8 +116,10 @@ Count:
       and such multiplication can be done through this attribute.  
       
   - name: every_n_timesteps
-    type: int
+    type: float
     default: 1
+    doc: |
+      Value is truncated (floored) to an integer.
       
  
 Observables:

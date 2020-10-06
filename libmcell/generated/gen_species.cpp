@@ -32,9 +32,6 @@ namespace MCell {
 namespace API {
 
 void GenSpecies::check_semantics() const {
-  if (!is_set(name)) {
-    throw ValueError("Parameter 'name' must be set.");
-  }
 }
 
 bool GenSpecies::__eq__(const GenSpecies& other) const {
@@ -97,7 +94,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
             const std::vector<std::shared_ptr<ElementaryMoleculeInstance>>,
             const Orientation
           >(),
-          py::arg("name"),
+          py::arg("name") = STR_UNSET,
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET,
           py::arg("custom_time_step") = FLT_UNSET,

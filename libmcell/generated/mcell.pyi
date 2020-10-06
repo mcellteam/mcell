@@ -223,7 +223,7 @@ class Count():
             file_name : str,
             count_expression : CountTerm = None,
             multiplier : float = 1,
-            every_n_timesteps : int = 1,
+            every_n_timesteps : float = 1,
             species_pattern : ComplexInstance = None,
             molecules_pattern : ComplexInstance = None,
             reaction_rule : ReactionRule = None,
@@ -835,7 +835,7 @@ class ReleaseSite():
             location : Vec3 = None,
             site_diameter : float = 0,
             site_radius : float = None,
-            number_to_release : int = None,
+            number_to_release : float = None,
             density : float = None,
             concentration : float = None,
             release_probability : float = None
@@ -860,7 +860,7 @@ class ReleaseSite():
 class Species():
     def __init__(
             self,
-            name : str,
+            name : str = None,
             diffusion_constant_2d : float = None,
             diffusion_constant_3d : float = None,
             custom_time_step : float = None,
@@ -1039,7 +1039,7 @@ class VizOutput():
             species_list : List[Species] = None,
             all_species : bool = False,
             mode : VizMode = VizMode.ASCII,
-            every_n_timesteps : int = 1
+            every_n_timesteps : float = 1
         ):
         self.output_files_prefix = output_files_prefix
         self.species_list = species_list

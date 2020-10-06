@@ -37,7 +37,7 @@ class Species;
         const std::vector<std::shared_ptr<Species>> species_list_ = std::vector<std::shared_ptr<Species>>(), \
         const bool all_species_ = false, \
         const VizMode mode_ = VizMode::ASCII, \
-        const int every_n_timesteps_ = 1 \
+        const float_t every_n_timesteps_ = 1 \
     ) { \
       class_name = "VizOutput"; \
       output_files_prefix = output_files_prefix_; \
@@ -108,15 +108,15 @@ public:
     return mode;
   }
 
-  int every_n_timesteps;
-  virtual void set_every_n_timesteps(const int new_every_n_timesteps_) {
+  float_t every_n_timesteps;
+  virtual void set_every_n_timesteps(const float_t new_every_n_timesteps_) {
     if (initialized) {
       throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     every_n_timesteps = new_every_n_timesteps_;
   }
-  virtual int get_every_n_timesteps() const {
+  virtual float_t get_every_n_timesteps() const {
     return every_n_timesteps;
   }
 

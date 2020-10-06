@@ -136,9 +136,11 @@ ReleaseSite:
       a radius r. Not used for releases on regions.
 
   - name: number_to_release
-    type: int
+    type: float
     default: unset
-    doc: Only one of number_to_release, density, concentration or molecule_list can be set.
+    doc: | 
+      Only one of number_to_release, density, concentration or molecule_list can be set.
+      Value is truncated (floored) to an integer.
 
   - name: density
     type: float
