@@ -23,6 +23,7 @@
 #include "generator_utils.h"
 #include "generator_structs.h"
 #include "bngl_generator.h"
+#include "libmcell/api/api_utils.h"
 
 using namespace std;
 
@@ -166,6 +167,22 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
 }
 
 
+void static fix_dots_in_simple_substances(vector<string>& substances) {
+  for (string& s: substances) {
+    if (API::is_simple_species(s)) {
+      replace(s.begin(), s.end(), '.', '_');
+    }
+  }
+}
+
+
+void static check_that_orientations_are_not_set(vector<string>& orientations) {
+  for (string& s: orientations) {
+    release_assert(s == "" && "Orientation in BNGL is not supported, should have been checked before");
+  }
+}
+
+
 std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_list_item, const bool generate_name) {
   string rxn_type = reaction_list_item[KEY_RXN_TYPE].asString();
   CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
@@ -187,12 +204,38 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
     // printing out name all the time would make the BNGL file hard to read
     bng_out << name << ": ";
   }
-  bng_out <<
-      reaction_list_item[KEY_REACTANTS].asString() << " " <<
-      ((is_reversible) ? "<->" : "->") << " " <<
-      reaction_list_item[KEY_PRODUCTS].asString() << " " <<
-      reaction_list_item[KEY_FWD_RATE].asString();
 
+  vector<string> substances;
+  vector<string> orientations;
+
+  // reactants
+  parse_rxn_rule_side(reaction_list_item[KEY_REACTANTS], substances, orientations);
+  fix_dots_in_simple_substances(substances);
+  check_that_orientations_are_not_set(orientations);
+  for (size_t i = 0; i < substances.size(); i++) {
+    bng_out << substances[i];
+    if (i != substances.size() - 1) {
+      bng_out << " + ";
+    }
+  }
+  bng_out << " ";
+
+  bng_out << ((is_reversible) ? "<->" : "->") << " ";
+
+  // products
+  parse_rxn_rule_side(reaction_list_item[KEY_PRODUCTS], substances, orientations);
+  fix_dots_in_simple_substances(substances);
+  check_that_orientations_are_not_set(orientations);
+  for (size_t i = 0; i < substances.size(); i++) {
+    bng_out << substances[i];
+    if (i != substances.size() - 1) {
+      bng_out << " + ";
+    }
+  }
+  bng_out << " ";
+
+  // rates
+  bng_out << reaction_list_item[KEY_FWD_RATE].asString();
   if (is_reversible) {
     bng_out << ", " << reaction_list_item[KEY_BKWD_RATE].asString();
   }

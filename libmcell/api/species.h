@@ -104,6 +104,11 @@ public:
         throw ValueError("Only simple species can be fully defined by setting name and diffusion constant.");
       }
 
+      if (name.find('.') != std::string::npos) {
+        throw ValueError("Simple species name must not contain '.', this is incompatible with BNGL definition"
+            ", error for " + name + ".");
+      }
+
       if (is_set(diffusion_constant_2d) && is_set(diffusion_constant_3d)) {
         throw ValueError("Only one of fields diffusion_constant_2d or diffusion_constant_3d can be set for simple species.");
       }

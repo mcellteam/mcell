@@ -22,6 +22,7 @@
 
 #include <fstream>
 
+#include "libmcell/api/api_utils.h"
 
 #include "python_generator.h"
 #include "generator_utils.h"
@@ -83,11 +84,18 @@ std::string PythonGenerator::generate_single_species_or_mol_type(
 
   assert(generate_species == component_names.empty());
 
-  string name = make_id(molecule_list_item[KEY_MOL_NAME].asString());
+  string orig_name = molecule_list_item[KEY_MOL_NAME].asString();
+  string name = make_id(orig_name);
 
   gen_ctor_call(out, name, (generate_species) ? NAME_CLASS_SPECIES : NAME_CLASS_ELEMENTARY_MOLECULE_TYPE);
 
-  gen_param(out, NAME_NAME, molecule_list_item[KEY_MOL_NAME].asString(), true); // using original name
+  string name_to_generate = orig_name;
+  if (API::is_simple_species(orig_name)) {
+    // simple species must not contain dots in their name
+    name_to_generate = name;
+  }
+
+  gen_param(out, NAME_NAME, name_to_generate, true); // using original name
 
   if (!generate_species) {
     gen_param_list(out, NAME_COMPONENTS, component_names, true);
@@ -369,6 +377,7 @@ void PythonGenerator::generate_variable_rate(const std::string& rate_array_name,
 
 
 void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& substances_node) {
+
   string str = substances_node.asString();
 
   // special case for rxns without products
@@ -379,125 +388,7 @@ void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& sub
 
   vector<string> substances;
   vector<string> orientations;
-
-  // finite automata to parse the reaction side string, e.g. "a + b"
-  enum state_t {
-    START,
-    ID,
-    AFTER_ID,
-    AFTER_ORIENT,
-    AFTER_PLUS
-  };
-
-  state_t state = START;
-  string current_id;
-  for (size_t i = 0; i < str.size(); i++) {
-    char c = str[i];
-    switch (state) {
-      case START:
-        if (isalnum(c) || c == '_') {
-          state = ID;
-          current_id = c;
-        }
-        else if (c == '.') {
-          state = ID;
-          current_id = '_';
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (START).");
-        }
-        break;
-
-      case ID:
-        if (isalnum(c) || c == '_') {
-          current_id += c;
-        }
-        else if (c == '.') {
-          state = ID;
-          current_id += '_';
-        }
-        else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
-          substances.push_back(current_id);
-          orientations.push_back("");
-          if (c == '\'' || c == ',' || c == ';') {
-            orientations.back() = c;
-          }
-          current_id = "";
-          if (c == '+') {
-            state = AFTER_PLUS;
-          }
-          else {
-            state = AFTER_ID;
-          }
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (ID).");
-        }
-        break;
-
-      case AFTER_ID:
-        if (c == '+') {
-          state = AFTER_PLUS;
-        }
-        else if (c == '\'') {
-          state = AFTER_ORIENT;
-          orientations.back() = c;
-        }
-        else if (c == ',') {
-          state = AFTER_ORIENT;
-          orientations.back() = c;
-        }
-        else if (c == ';') {
-          state = AFTER_ORIENT;
-          orientations.back() = c;
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
-        }
-        break;
-
-      case AFTER_ORIENT:
-        if (c == '+') {
-          state = AFTER_PLUS;
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
-        }
-        break;
-
-      case AFTER_PLUS:
-        if (isalnum(c) || c == '_') {
-          state = ID;
-          current_id = c;
-        }
-        else if (c == '.') {
-          state = ID;
-          current_id = '_';
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_PLUS).");
-        }
-        break;
-      default:
-        assert(false);
-    }
-  }
-  if (current_id != "") {
-    substances.push_back(current_id);
-    orientations.push_back("");
-  }
+  parse_rxn_rule_side(substances_node, substances, orientations);
 
   out << "[ ";
   for (size_t i = 0; i < substances.size(); i++) {

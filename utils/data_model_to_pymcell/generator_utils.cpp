@@ -74,4 +74,135 @@ std::string get_module_name_w_prefix(const std::string& output_files_prefix, con
   }
 }
 
+
+void parse_rxn_rule_side(
+    Json::Value& substances_node,
+    std::vector<std::string>& substances,
+    std::vector<std::string>& orientations) {
+
+  substances.clear();
+  orientations.clear();
+
+  string str = substances_node.asString();
+
+  // finite automata to parse the reaction side string, e.g. "a + b"
+  enum state_t {
+    START,
+    ID,
+    AFTER_ID,
+    AFTER_ORIENT,
+    AFTER_PLUS
+  };
+
+  state_t state = START;
+  string current_id;
+  for (size_t i = 0; i < str.size(); i++) {
+    char c = str[i];
+    switch (state) {
+      case START:
+        if (isalnum(c) || c == '_') {
+          state = ID;
+          current_id = c;
+        }
+        else if (c == '.') {
+          state = ID;
+          current_id = '_';
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (START).");
+        }
+        break;
+
+      case ID:
+        if (isalnum(c) || c == '_') {
+          current_id += c;
+        }
+        else if (c == '.') {
+          state = ID;
+          current_id += '_';
+        }
+        else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
+          substances.push_back(current_id);
+          orientations.push_back("");
+          if (c == '\'' || c == ',' || c == ';') {
+            orientations.back() = c;
+          }
+          current_id = "";
+          if (c == '+') {
+            state = AFTER_PLUS;
+          }
+          else {
+            state = AFTER_ID;
+          }
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (ID).");
+        }
+        break;
+
+      case AFTER_ID:
+        if (c == '+') {
+          state = AFTER_PLUS;
+        }
+        else if (c == '\'') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (c == ',') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (c == ';') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
+        }
+        break;
+
+      case AFTER_ORIENT:
+        if (c == '+') {
+          state = AFTER_PLUS;
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
+        }
+        break;
+
+      case AFTER_PLUS:
+        if (isalnum(c) || c == '_') {
+          state = ID;
+          current_id = c;
+        }
+        else if (c == '.') {
+          state = ID;
+          current_id = '_';
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (AFTER_PLUS).");
+        }
+        break;
+      default:
+        assert(false);
+    }
+  }
+  if (current_id != "") {
+    substances.push_back(current_id);
+    orientations.push_back("");
+  }
+}
+
 } // namespace MCell
