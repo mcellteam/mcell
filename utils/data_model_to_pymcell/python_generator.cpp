@@ -1388,7 +1388,9 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
     }
 
     if (rxn_step != "") {
-      gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
+      // rxn_step is specified in seconds, need to convert to seconds
+      const string& time_step = mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString();
+      gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, rxn_step + "/" + time_step, false);
     }
 
     out << CTOR_END;

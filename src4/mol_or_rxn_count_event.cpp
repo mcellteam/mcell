@@ -577,6 +577,23 @@ void MolOrRxnCountEvent::to_data_model(Json::Value& mcell_node) const {
   }
 
   Json::Value& reaction_data_output = mcell_node[KEY_REACTION_DATA_OUTPUT];
+
+  // assuming that there is a single rxn_step value for all
+  // (period in second on how often to dump the counted data)
+  // at least this is the only supported option in data model right now
+  const string& orig_rxn_step = reaction_data_output[KEY_RXN_STEP].asString();
+  string new_rxn_step = DMUtil::f_to_string(periodicity_interval * world->config.time_unit);
+
+  if (orig_rxn_step != "" && orig_rxn_step != new_rxn_step) {
+    mcell_log(
+        "Warning: count events use multiple different time steps, this is not supported "
+        "by data model, keeping only value %s (seconds).\n", orig_rxn_step.c_str()
+    );
+  }
+  else {
+    reaction_data_output[KEY_RXN_STEP] = new_rxn_step;
+  }
+
   Json::Value& reaction_output_list = reaction_data_output[KEY_REACTION_OUTPUT_LIST];
 
   for (const MolOrRxnCountItem& info: mol_count_items) {
