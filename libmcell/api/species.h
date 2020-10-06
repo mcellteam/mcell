@@ -79,7 +79,7 @@ public:
     if (is_set(custom_space_step)) {
       throw ValueError(S("Field ") + NAME_CUSTOM_SPACE_STEP + msg);
     }
-    if (is_set(target_only)) {
+    if (target_only) {
       throw ValueError(S("Field ") + NAME_TARGET_ONLY + msg);
     }
   }
@@ -98,7 +98,12 @@ public:
     }
 
     // 1) simple species defined by name
-    if (is_set(name) && is_simple_species(name) && !is_set(elementary_molecule_instances)) {
+    if (is_set(name) && !is_set(elementary_molecule_instances) && (is_set(diffusion_constant_2d) || is_set(diffusion_constant_3d))) {
+
+      if (!is_simple_species(name)) {
+        throw ValueError("Only simple species can be fully defined by setting name and diffusion constant.");
+      }
+
       if (is_set(diffusion_constant_2d) && is_set(diffusion_constant_3d)) {
         throw ValueError("Only one of fields diffusion_constant_2d or diffusion_constant_3d can be set for simple species.");
       }
