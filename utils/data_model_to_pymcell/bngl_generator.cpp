@@ -33,7 +33,9 @@ using Json::Value;
 using namespace API;
 
 void BNGLGenerator::generate_single_bngl_parameter(Value& parameter) {
-  bng_out << IND << "# " << parameter[KEY_PAR_DESCRIPTION].asString() << "\n";
+  if (parameter[KEY_PAR_DESCRIPTION].asString() != "") {
+    bng_out << IND << "# " << parameter[KEY_PAR_DESCRIPTION].asString() << "\n";
+  }
   bng_out << IND << parameter[KEY_PAR_NAME].asString() << " " << parameter[KEY_PAR_EXPRESSION].asString();
   string units = parameter[KEY_PAR_UNITS].asString();
   if (units != "") {

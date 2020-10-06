@@ -80,6 +80,8 @@ void parse_rxn_rule_side(
     std::vector<std::string>& substances,
     std::vector<std::string>& orientations) {
 
+  // cannot use BNGL parser because reactions may contain orientations
+
   substances.clear();
   orientations.clear();
 
@@ -88,8 +90,9 @@ void parse_rxn_rule_side(
   // finite automata to parse the reaction side string, e.g. "a + b"
   enum state_t {
     START,
-    ID,
-    AFTER_ID,
+    CPLX,
+    IN_PAREN,
+    AFTER_MOL,
     AFTER_ORIENT,
     AFTER_PLUS
   };
@@ -101,11 +104,11 @@ void parse_rxn_rule_side(
     switch (state) {
       case START:
         if (isalnum(c) || c == '_') {
-          state = ID;
+          state = CPLX;
           current_id = c;
         }
         else if (c == '.') {
-          state = ID;
+          state = CPLX;
           current_id = '_';
         }
         else if (isblank(c)) {
@@ -116,13 +119,17 @@ void parse_rxn_rule_side(
         }
         break;
 
-      case ID:
-        if (isalnum(c) || c == '_') {
+      case CPLX:
+        if (isalnum(c) || c == '_' || c == '.') {
           current_id += c;
         }
         else if (c == '.') {
-          state = ID;
+          state = CPLX;
           current_id += '_';
+        }
+        else if (c == '(') {
+          state = IN_PAREN;
+          current_id += '(';
         }
         else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
           substances.push_back(current_id);
@@ -135,15 +142,28 @@ void parse_rxn_rule_side(
             state = AFTER_PLUS;
           }
           else {
-            state = AFTER_ID;
+            state = AFTER_MOL;
           }
         }
         else {
-          ERROR("Could not parse reaction side " + str + " (ID).");
+          ERROR("Could not parse reaction side " + str + " (MOL_ID).");
         }
         break;
 
-      case AFTER_ID:
+      case IN_PAREN:
+        if (isalnum(c) || c == '_' || c == ',' || c == '~' || c == '!' || c == '+' || c == '?') {
+          current_id += c;
+        }
+        else if (c == ')') {
+          state = CPLX;
+          current_id += ')';
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (IN_PAREN).");
+        }
+        break;
+
+      case AFTER_MOL:
         if (c == '+') {
           state = AFTER_PLUS;
         }
@@ -163,7 +183,7 @@ void parse_rxn_rule_side(
           // ok
         }
         else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
+          ERROR("Could not parse reaction side " + str + " (AFTER_MOL).");
         }
         break;
 
@@ -175,17 +195,17 @@ void parse_rxn_rule_side(
           // ok
         }
         else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
+          ERROR("Could not parse reaction side " + str + " (AFTER_ORIENT).");
         }
         break;
 
       case AFTER_PLUS:
         if (isalnum(c) || c == '_') {
-          state = ID;
+          state = CPLX;
           current_id = c;
         }
         else if (c == '.') {
-          state = ID;
+          state = CPLX;
           current_id = '_';
         }
         else if (isblank(c)) {

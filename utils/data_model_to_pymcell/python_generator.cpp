@@ -401,7 +401,7 @@ void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& sub
     }
     else {
       // substances are expected to be defined as Python IDs
-      out << substances[i] << "." << API::NAME_INST << "(";
+      out << make_id(substances[i]) << "." << API::NAME_INST << "(";
 
       string orient = convert_orientation(orientations[i], true);
       if (orient != "") {
@@ -600,7 +600,31 @@ void PythonGenerator::generate_geometry(std::ostream& out, std::vector<std::stri
 }
 
 
+string remove_compartments(const std::string& species_name) {
+  size_t i = 0;
+  string res;
+  bool in_compartment = false;
+  while (i < species_name.size()) {
+    char c = species_name[i];
+    if (c == '@') {
+      assert(!in_compartment);
+      in_compartment = true;
+    }
+    else if (in_compartment && (!isalnum(c) && c != '_')) {
+      in_compartment = false;
+    }
+    else if (!in_compartment) {
+      res += c;
+    }
+    i++;
+  }
+  return res;
+}
+
+
 bool PythonGenerator::is_volume_mol_type(const std::string& mol_type_name) {
+
+  string mol_type_name_no_comp = remove_compartments(mol_type_name);
 
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
   check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
@@ -611,7 +635,7 @@ bool PythonGenerator::is_volume_mol_type(const std::string& mol_type_name) {
     check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
 
     string name = molecule_list_item[KEY_MOL_NAME].asString();
-    if (name != mol_type_name) {
+    if (name != mol_type_name_no_comp) {
       continue;
     }
 
@@ -620,7 +644,7 @@ bool PythonGenerator::is_volume_mol_type(const std::string& mol_type_name) {
     return mol_type == VALUE_MOL_TYPE_3D;
   }
 
-  ERROR("Could not find species or molecule type " + mol_type_name + ".");
+  ERROR("Could not find species or molecule type " + mol_type_name_no_comp + ".");
 }
 
 
@@ -673,28 +697,6 @@ bool PythonGenerator::is_volume_species(const std::string& species_name) {
     }
     return true;
   }
-}
-
-
-string remove_compartments(const std::string& species_name) {
-  size_t i = 0;
-  string res;
-  bool in_compartment = false;
-  while (i < species_name.size()) {
-    char c = species_name[i];
-    if (c == '@') {
-      assert(!in_compartment);
-      in_compartment = true;
-    }
-    else if (in_compartment && (!isalnum(c) && c != '_')) {
-      in_compartment = false;
-    }
-    else if (!in_compartment) {
-      res += c;
-    }
-    i++;
-  }
-  return res;
 }
 
 
@@ -1245,7 +1247,7 @@ void PythonGenerator::generate_all_bngl_reaction_rules_used_in_observables(std::
     out <<
       name << " = " << get_module_name_w_prefix(data.output_files_prefix, SUBSYSTEM) << "." <<
       NAME_FIND_REACTION_RULE << "('" << name << "')\n";
-    out << "assert " << name << ", \"Reaction rule '" + name + "' was not found\"\n";
+    out << "assert " << name << ", \"Reaction rule '" + name + "' was not found\"\n\n";
   }
   out << "\n";
 }

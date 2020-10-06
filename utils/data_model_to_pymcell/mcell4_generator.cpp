@@ -245,6 +245,9 @@ static bool rxn_has_variable_rate(Value& reaction_list_item) {
 
 // returns true if the rxn name might be referenced by counts
 static bool is_rxn_used_in_observables(Value& mcell, const string& rxn_name) {
+  if (rxn_name == "") {
+    return false;
+  }
   Value& reaction_data_output = get_node(mcell, KEY_REACTION_DATA_OUTPUT);
   Value& reaction_output_list = get_node(reaction_data_output, KEY_REACTION_OUTPUT_LIST);
   for (Value::ArrayIndex i = 0; i < reaction_output_list.size(); i++) {
