@@ -294,10 +294,10 @@ vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out) {
         }
       }
       else {
-        bng_gen->add_comment(
-            S(IND) + "reaction " + reaction_list_item[KEY_MOL_NAME].asString() +
-            " was generated as Python code because it contains features not supported by BNGL");
         string name = python_gen->generate_single_reaction_rule(out, reaction_list_item);
+        bng_gen->add_comment(
+            S(IND) + "reaction '" + reaction_list_item[KEY_RXN_NAME].asString() +
+            "' was generated as Python code because it contains features not supported by BNGL");
         rxn_names_w_loc.push_back(IdLoc(name, true));
       }
     }

@@ -25,7 +25,7 @@
 
 #include "generated/gen_complex_instance.h"
 #include "api/common.h"
-
+#include "api/api_utils.h"
 
 namespace MCell {
 namespace API {
@@ -55,6 +55,15 @@ public:
           S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULE_INSTANCES +
           " must be set for " + NAME_CLASS_COMPLEX_INSTANCE + ".");
     }
+
+    if (is_set(name)) {
+      if (is_simple_species(name) && name.find('.') != std::string::npos) {
+        throw ValueError("Simple species name must not contain '.', this is incompatible with BNGL definition"
+            ", error for " + name + ".");
+      }
+    }
+
+    // TODO: how can we check that the used molecule types were defined?
   }
 
   std::string to_bngl_str() override;

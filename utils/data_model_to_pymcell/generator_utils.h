@@ -36,6 +36,7 @@
 
 #include "libmcell/generated/gen_names.h"
 #include "libmcell/api/common.h"
+#include "libmcell/api/api_utils.h"
 #include "include/datamodel_defines.h"
 
 #include "generator_constants.h"
@@ -144,8 +145,17 @@ static string make_enum_value(const string enum_name, const string value) {
 }
 
 
+static string fix_dots_in_simple_species(const string& s) {
+  string res = s;
+  if (API::is_simple_species(s)) {
+    replace(res.begin(), res.end(), '.', '_');
+  }
+  return res;
+}
+
+
 static string make_cplx_inst(const string bngl_str, const string orient = "") {
-  string res = S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + bngl_str + "'";
+  string res = S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + fix_dots_in_simple_species(bngl_str) + "'";
   if (orient != "") {
     res += S(", ") + API::NAME_ORIENTATION + " = " + MDOT + API::NAME_ENUM_ORIENTATION + "." + orient;
   }
@@ -155,7 +165,7 @@ static string make_cplx_inst(const string bngl_str, const string orient = "") {
 
 
 static string make_species(const string bngl_str) {
-  return S(MDOT) + API::NAME_CLASS_SPECIES + "('" + bngl_str + "')";
+  return S(MDOT) + API::NAME_CLASS_SPECIES + "('" + fix_dots_in_simple_species(bngl_str) + "')";
 }
 
 

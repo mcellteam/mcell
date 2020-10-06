@@ -169,9 +169,7 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
 
 void static fix_dots_in_simple_substances(vector<string>& substances) {
   for (string& s: substances) {
-    if (API::is_simple_species(s)) {
-      replace(s.begin(), s.end(), '.', '_');
-    }
+    s = fix_dots_in_simple_species(s);
   }
 }
 
