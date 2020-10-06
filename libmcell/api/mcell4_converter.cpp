@@ -384,7 +384,8 @@ BNG::mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
       bng_mt.D = api_mt.diffusion_constant_3d;
     }
     else {
-      throw RuntimeError(S("Diffusion constant for ") + NAME_CLASS_ELEMENTARY_MOLECULE_TYPE + " was not set.");
+      throw RuntimeError(S("Diffusion constant for ") + NAME_CLASS_ELEMENTARY_MOLECULE_TYPE +
+          " " + bng_mt.name + " was not set.");
     }
 
     if (is_set(api_mt.custom_time_step)) {

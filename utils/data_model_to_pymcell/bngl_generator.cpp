@@ -136,6 +136,8 @@ void BNGLGenerator::generate_python_mol_type_info(
     python_out << IND4;
     gen_assign(python_out, name, NAME_TARGET_ONLY, true);
   }
+
+  python_out << "\n";
 }
 
 
