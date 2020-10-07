@@ -156,6 +156,10 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
   check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
 
   Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
+  if (molecule_list.empty()) {
+    python_out << IND4 << "pass # no molecule types are defined\n";
+  }
+
   for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
     Value& molecule_list_item = molecule_list[i];
     check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
