@@ -99,7 +99,7 @@ void BngDataToDatamodelConverter::to_data_model(const World* world_, Value& mcel
 
   // similarly as in pymcell converter, maximum effort is given to conversion and
   // if some parts won't go through, we are trying to generate
-  CHECK(convert_species(mcell_node));
+  CHECK(convert_molecules(mcell_node));
 
   if (!only_for_viz) {
     CHECK(convert_rxns(mcell_node));
@@ -119,35 +119,39 @@ Vec3 BngDataToDatamodelConverter::get_next_color() {
 }
 
 
-void BngDataToDatamodelConverter::convert_species(Value& mcell_node) {
+void BngDataToDatamodelConverter::convert_molecules(Value& mcell_node) {
   Value& define_molecules = mcell_node[KEY_DEFINE_MOLECULES];
   add_version(define_molecules, VER_DM_2014_10_24_1638);
   Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
 
-  for (const BNG::Species& s: bng_engine->get_all_species().get_species_vector()) {
-    // ALL_* species re ignored and reactive surfaces are converted as surface classes
-    if (is_species_superclass(s.name) || s.is_reactive_surface()) {
+  // we are converting molecule types because that's the information we need in
+  // the datamodel, we do not care about species
+  for (const BNG::MolType& mt: bng_engine->get_data().get_molecule_types()) {
+    // - ALL_* species are ignored
+    // - reactive surfaces are converted as surface classes
+    // -
+    if (is_species_superclass(mt.name) || mt.is_reactive_surface()) {
       continue;
     }
-    Value species_node;
-    CHECK(convert_single_species(s, species_node));
-    molecule_list.append(species_node);
+    Value molecule_node;
+    CHECK(convert_single_mol_type(mt, molecule_node));
+    molecule_list.append(molecule_node);
   }
 }
 
 
-void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, Value& species_node) {
+void BngDataToDatamodelConverter::convert_single_mol_type(const BNG::MolType& mt, Value& molecule_node) {
 
-  add_version(species_node, VER_DM_2018_10_16_1632);
+  add_version(molecule_node, VER_DM_2018_10_16_1632);
 
-  Value& display = species_node[KEY_DISPLAY];
+  Value& display = molecule_node[KEY_DISPLAY];
   display[KEY_EMIT] = 0.0;
   Value& color_value = display[KEY_COLOR];
 
-  if (s.color_set) {
-    color_value.append(s.color_r);
-    color_value.append(s.color_g);
-    color_value.append(s.color_b);
+  if (mt.color_set) {
+    color_value.append(mt.color_r);
+    color_value.append(mt.color_g);
+    color_value.append(mt.color_b);
   }
   else {
     // automatic color
@@ -157,42 +161,45 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
     color_value.append(c.b);
   }
   display[KEY_GLYPH] = VALUE_GLYPH_SPHERE_1;
-  display[KEY_SCALE] = s.scale;
+  display[KEY_SCALE] = mt.scale;
 
-  species_node[KEY_BNGL_COMPONENT_LIST] = Value(Json::arrayValue); // empty array;
-  species_node[KEY_MOL_BNGL_LABEL] = "";
-  species_node[KEY_DESCRIPTION] = "";
-  species_node[KEY_MOL_TYPE] = s.is_vol() ? VALUE_MOL_TYPE_3D : VALUE_MOL_TYPE_2D;
+  molecule_node[KEY_BNGL_COMPONENT_LIST] = Value(Json::arrayValue); // empty array;
+  molecule_node[KEY_MOL_BNGL_LABEL] = "";
+  molecule_node[KEY_DESCRIPTION] = "";
+  molecule_node[KEY_MOL_TYPE] = mt.is_vol() ? VALUE_MOL_TYPE_3D : VALUE_MOL_TYPE_2D;
 
   const VizOutputEvent* viz =
       dynamic_cast<const VizOutputEvent*>(world->scheduler.find_next_event_with_type_index(EVENT_TYPE_INDEX_VIZ_OUTPUT));
   if (viz == nullptr || viz->should_visualize_all_species()) {
     // no visualization/or enabled globally
-    species_node[KEY_EXPORT_VIZ] = false;
+    molecule_node[KEY_EXPORT_VIZ] = false;
   }
   else {
-    species_node[KEY_EXPORT_VIZ] = viz->species_ids_to_visualize.count(s.id) == 1;
+    // simple species based on this molecule type set to be visualized?
+    // the simple species have always the same name
+    species_id_t species_id = bng_engine->get_all_species().find_by_name(mt.name);
+    molecule_node[KEY_EXPORT_VIZ] = viz->species_ids_to_visualize.count(species_id) == 1;
   }
 
-  if (s.custom_space_step != 0) {
-    species_node[KEY_CUSTOM_SPACE_STEP] = DMUtil::f_to_string(s.custom_space_step);
+  if (mt.custom_space_step != 0) {
+    molecule_node[KEY_CUSTOM_SPACE_STEP] = DMUtil::f_to_string(mt.custom_space_step);
   }
   else {
-    species_node[KEY_CUSTOM_SPACE_STEP] = "";
+    molecule_node[KEY_CUSTOM_SPACE_STEP] = "";
   }
 
-  if (s.custom_time_step != 0) {
-    species_node[KEY_CUSTOM_TIME_STEP] = DMUtil::f_to_string(s.custom_time_step);
+  if (mt.custom_time_step != 0) {
+    molecule_node[KEY_CUSTOM_TIME_STEP] = DMUtil::f_to_string(mt.custom_time_step);
   }
   else {
-    species_node[KEY_CUSTOM_TIME_STEP] = "";
+    molecule_node[KEY_CUSTOM_TIME_STEP] = "";
   }
 
-  species_node[KEY_MAXIMUM_STEP_LENGTH] = "";
-  species_node[KEY_TARGET_ONLY] = s.cant_initiate();
-  species_node[KEY_DIFFUSION_CONSTANT] = DMUtil::f_to_string(s.D);
-  species_node[KEY_SPATIAL_STRUCTURE] = "None";
-  species_node[KEY_MOL_NAME] = s.name;
+  molecule_node[KEY_MAXIMUM_STEP_LENGTH] = "";
+  molecule_node[KEY_TARGET_ONLY] = mt.cant_initiate();
+  molecule_node[KEY_DIFFUSION_CONSTANT] = DMUtil::f_to_string(mt.D);
+  molecule_node[KEY_SPATIAL_STRUCTURE] = "None";
+  molecule_node[KEY_MOL_NAME] = mt.name;
 }
 
 

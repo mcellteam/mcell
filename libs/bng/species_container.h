@@ -69,17 +69,6 @@ public:
 
   void remove(const species_id_t id);
 
-  /*bool species_exist(const species_id_t id) const {
-    assert(id < species_id_to_index_mapping.size());
-    species_index_t index = species_id_to_index_mapping[id];
-    if (index == SPECIES_INDEX_INVALID) {
-      // removed
-      return false;
-    }
-    assert(index < species.size());
-    return !species[id].is_defunct();
-  }*/
-
   // searches for identical species
   // returns SPECIES_ID_INVALID if not found
   species_id_t find(const Species& species_to_find) {
@@ -93,7 +82,7 @@ public:
     return SPECIES_ID_INVALID;
   }
 
-  species_id_t find_full_match(const CplxInstance& cplx_inst) {
+  species_id_t find_full_match(const CplxInstance& cplx_inst) const {
     // simple equality comparison for now, some hashing will be needed
     for (const Species& s: species) {
       if (s.cplx_matches_fully_ignore_orientation_and_flags(cplx_inst)) {
@@ -104,7 +93,7 @@ public:
   }
 
 
-  species_id_t find_by_name(const std::string& name) {
+  species_id_t find_by_name(const std::string& name) const {
     // TODO: use canonical_species_map
     for (const Species& s: species) {
       if (s.name == name) {
@@ -115,7 +104,7 @@ public:
   }
 
   // used from pymcell3_4
-  Species* find_species_by_name(const char* name) {
+  Species* find_species_by_name(const char* name) const {
     species_id_t id = find_by_name(name);
     if (id != SPECIES_ID_INVALID) {
       return &get(id);

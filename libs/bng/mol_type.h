@@ -85,11 +85,15 @@ public:
   std::string name;
   small_vector<component_type_id_t> component_type_ids;
 
+  bool cant_initiate() const {
+    return has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
+  }
 
   bool operator ==(const MolType& mt2) const {
     // ordering of components in a molecule is important
     // two component types must have the same id, this is ensured in find_or_add_component_type
-    // diffusion constant and custom time/space steps are ignored
+    // diffusion constant and custom time/space steps are ignored,
+    // flags are ignored as well
     return name == mt2.name && component_type_ids == mt2.component_type_ids;
   }
 
