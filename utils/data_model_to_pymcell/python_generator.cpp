@@ -1042,36 +1042,7 @@ static string create_count_name(string what_to_count, string where_to_count) {
   regex pattern_cterm(COUNT_TERM_PREFIX);
   what_to_count = regex_replace(what_to_count, pattern_cterm, "");
 
-  string res = COUNT_PREFIX;
-  for (char c: what_to_count) {
-    if (c == '+') {
-      res += "_plus_";
-    }
-    else if (c == '-') {
-      res += "_minus_";
-    }
-    else if (c == '?') {
-      res += "_anybond_";
-    }
-    else if (c == '!') {
-      res += "_bond_";
-    }
-    else if (c == '(') {
-      res += "_ps_";
-    }
-    else if (c == ')') {
-      res += "_pe_";
-    }
-    else if (
-        c == ' ' || c == '.' || c == '_' ||
-        c == ',' || c == '~') {
-      res += "_";
-    }
-    else if (isalnum(c)) {
-      res += c;
-    }
-    // ignoring the rest of the characters
-  }
+  string res = COUNT_PREFIX + fix_id(what_to_count);
 
   if (where_to_count != WORLD && where_to_count != "") {
     res += "_" + where_to_count;

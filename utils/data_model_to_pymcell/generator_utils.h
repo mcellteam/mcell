@@ -190,14 +190,48 @@ static void check_version(const string node_name, Json::Value& node, const char*
 }
 
 
+static string fix_id(const std::string& str) {
+  string res;
+  for (char c: str) {
+    if (c == '+') {
+      res += "_plus_";
+    }
+    else if (c == '-') {
+      res += "_minus_";
+    }
+    else if (c == '?') {
+      res += "_anybond_";
+    }
+    else if (c == '!') {
+      res += "_bond_";
+    }
+    else if (c == '(') {
+      res += "_ps_";
+    }
+    else if (c == ')') {
+      res += "_pe_";
+    }
+    else if (
+        c == ' ' || c == '.' || c == '_' ||
+        c == ',' || c == '~') {
+      res += "_";
+    }
+    else if (isalnum(c)) {
+      res += c;
+    }
+    // ignoring the rest of the characters
+  }
+  return res;
+}
+
+
 // replaces '.' with '_' and does potentially other conversions
 static string make_id(const string& s) {
   string res = s;
   // do not do changes if the ID starts with 'm.' -> constant from
   // the mcell module ID that cannot have dots that we need to replace in it anyway
   if (res.size() <= 2 || (res.size() > 2 && res.substr(0, strlen(MDOT)) != MDOT)) {
-    replace(res.begin(), res.end(), '.', '_');
-    replace(res.begin(), res.end(), ' ', '_');
+    res = fix_id(res);
   }
   return res;
 }
