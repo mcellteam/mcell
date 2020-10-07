@@ -34,6 +34,7 @@
 
 using namespace std;
 using namespace DMUtil;
+using namespace BNG;
 using Json::Value;
 
 namespace MCell {
@@ -126,7 +127,7 @@ void BngDataToDatamodelConverter::convert_molecules(Value& mcell_node) {
 
   // we are converting molecule types because that's the information we need in
   // the datamodel, we do not care about species
-  for (const BNG::MolType& mt: bng_engine->get_data().get_molecule_types()) {
+  for (const MolType& mt: bng_engine->get_data().get_molecule_types()) {
     // - ALL_* species are ignored
     // - reactive surfaces are converted as surface classes
     // -
@@ -200,11 +201,32 @@ void BngDataToDatamodelConverter::convert_single_mol_type(const BNG::MolType& mt
   molecule_node[KEY_DIFFUSION_CONSTANT] = DMUtil::f_to_string(mt.D);
   molecule_node[KEY_SPATIAL_STRUCTURE] = "None";
   molecule_node[KEY_MOL_NAME] = mt.name;
+
+  if (!mt.component_type_ids.empty()) {
+    // generate info on components
+    Value& bngl_component_list = molecule_node[KEY_BNGL_COMPONENT_LIST];
+    bngl_component_list = Value(Json::arrayValue);
+
+    for (component_type_id_t ct_id: mt.component_type_ids) {
+      Value bngl_component;
+
+      const ComponentType& ct = bng_engine->get_data().get_component_type(ct_id);
+      bngl_component[KEY_CNAME] = ct.name;
+
+      Value& cstates = bngl_component[KEY_CSTATES];
+      cstates = Value(Json::arrayValue);
+      for (state_id_t s_id: ct.allowed_state_ids) {
+        const string& state_name = bng_engine->get_data().get_state_name(s_id);
+        cstates.append(state_name);
+      }
+      bngl_component_list.append(bngl_component);
+    }
+  }
 }
 
 
 void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r, Value& rxn_node) {
-  assert(r.type == BNG::RxnType::Standard);
+  assert(r.type == RxnType::Standard);
   add_version(rxn_node, VER_DM_2018_01_11_1330);
 
   // name is put into rnx_name and name is the string of the reaction
@@ -246,7 +268,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
     stringstream text;
     // initial value for time 0
     text << 0.0 << "\t" << r.base_rate_constant << "\n";
-    for (const BNG::RxnRateInfo& ri: r.base_variable_rates) {
+    for (const RxnRateInfo& ri: r.base_variable_rates) {
       text << ri.time * world->config.time_unit  << "\t" << ri.rate_constant << "\n";
     }
     rxn_node[KEY_VARIABLE_RATE_TEXT] = text.str();
@@ -272,15 +294,15 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
   Value& surface_class_prop_list = surface_class[KEY_SURFACE_CLASS_PROP_LIST];
 
   // find all rxn rules with the same name
-  vector<const BNG::RxnRule*> rxns_belonging_to_surf_class;
-  for (const BNG::RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
+  vector<const RxnRule*> rxns_belonging_to_surf_class;
+  for (const RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
     if (get_surface_class_name(*rxn_rule) == name) {
       rxns_belonging_to_surf_class.push_back(rxn_rule);
     }
   }
 
   // and convert them all as properties of this surface class
-  for (const BNG::RxnRule* rxn_rule: rxns_belonging_to_surf_class) {
+  for (const RxnRule* rxn_rule: rxns_belonging_to_surf_class) {
     Value sc_item;
     add_version(sc_item, VER_DM_2015_11_08_1756);
     CONVERSION_CHECK(rxn_rule->reactants[0].is_simple(), "Surface class reactant must be simple for now.");
@@ -298,13 +320,13 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
     sc_item[KEY_SURF_CLASS_ORIENT] = DMUtil::orientation_to_str(rxn_rule->reactants[0].get_orientation());
 
     switch (rxn_rule->type) {
-      case BNG::RxnType::Transparent:
+      case RxnType::Transparent:
         sc_item[KEY_SURF_CLASS_TYPE] = VALUE_TRANSPARENT;
         break;
-      case BNG::RxnType::Reflect:
+      case RxnType::Reflect:
         sc_item[KEY_SURF_CLASS_TYPE] = VALUE_REFLECTIVE;
         break;
-      case BNG::RxnType::Standard:
+      case RxnType::Standard:
         if (rxn_rule->is_absorptive_region_rxn()) {
           sc_item[KEY_SURF_CLASS_TYPE] = VALUE_ABSORPTIVE;
         }
@@ -338,8 +360,8 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
   Value& surface_class_list = define_surface_classes[KEY_SURFACE_CLASS_LIST];
   surface_class_list = Value(Json::arrayValue);
 
-  for (const BNG::RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
-    if (rxn_rule->type == BNG::RxnType::Standard) {
+  for (const RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
+    if (rxn_rule->type == RxnType::Standard) {
       // this might be a special case of absorptive reaction
       if (!rxn_rule->is_absorptive_region_rxn()) {
         Value rxn_node;
@@ -354,7 +376,7 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
         }
       }
     }
-    else if (rxn_rule->type == BNG::RxnType::Transparent || rxn_rule->type == BNG::RxnType::Reflect) {
+    else if (rxn_rule->type == RxnType::Transparent || rxn_rule->type == RxnType::Reflect) {
       // this rxn rule defines a surface class
       if (processed_surface_classes.count(get_surface_class_name(*rxn_rule)) == 0) {
         Value surface_class;
@@ -362,7 +384,7 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
         surface_class_list.append(surface_class);
       }
     }
-    else if (rxn_rule->type == BNG::RxnType::AbsorbRegionBorder) {
+    else if (rxn_rule->type == RxnType::AbsorbRegionBorder) {
       CONVERSION_UNSUPPORTED("AbsorbRegionBorder surf classes are not supported yet.");
     }
     else {
