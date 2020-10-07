@@ -197,6 +197,7 @@ static string make_id(const string& s) {
   // the mcell module ID that cannot have dots that we need to replace in it anyway
   if (res.size() <= 2 || (res.size() > 2 && res.substr(0, strlen(MDOT)) != MDOT)) {
     replace(res.begin(), res.end(), '.', '_');
+    replace(res.begin(), res.end(), ' ', '_');
   }
   return res;
 }
