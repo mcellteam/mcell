@@ -96,7 +96,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const std::vector<float_t>,
             const float_t,
             const float_t,
-            const long,
+            const float_t,
             const bool
           >(),
           py::arg("seed") = 1,

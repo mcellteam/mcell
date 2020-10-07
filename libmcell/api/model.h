@@ -53,7 +53,7 @@ public:
 
   // from generated template
   void initialize() override;
-  void run_iterations(const long iterations) override;
+  void run_iterations(const float_t iterations) override;
   void end_simulation(const bool print_final_report = true) override;
 
   void add_subsystem(std::shared_ptr<Subsystem> subsystem) override;

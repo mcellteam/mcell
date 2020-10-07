@@ -101,7 +101,7 @@ void Model::initialize() {
 }
 
 
-void Model::run_iterations(const long iterations) {
+void Model::run_iterations(const float_t iterations) {
   if (world == nullptr) {
     throw RuntimeError("Model was not initialized, call Model.initialize() first");
   }

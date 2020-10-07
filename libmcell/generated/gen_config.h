@@ -40,7 +40,7 @@ namespace API {
         const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
         const float_t partition_dimension_ = 10, \
         const float_t subpartition_dimension_ = 0.5, \
-        const long total_iterations_hint_ = 1000000, \
+        const float_t total_iterations_hint_ = 1000000, \
         const bool check_overlapped_walls_ = true \
     ) { \
       class_name = "Config"; \
@@ -178,15 +178,15 @@ public:
     return subpartition_dimension;
   }
 
-  long total_iterations_hint;
-  virtual void set_total_iterations_hint(const long new_total_iterations_hint_) {
+  float_t total_iterations_hint;
+  virtual void set_total_iterations_hint(const float_t new_total_iterations_hint_) {
     if (initialized) {
       throw RuntimeError("Value 'total_iterations_hint' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     total_iterations_hint = new_total_iterations_hint_;
   }
-  virtual long get_total_iterations_hint() const {
+  virtual float_t get_total_iterations_hint() const {
     return total_iterations_hint;
   }
 

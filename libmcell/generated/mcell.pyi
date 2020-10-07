@@ -201,7 +201,7 @@ class Config():
             initial_partition_origin : List[float] = None,
             partition_dimension : float = 10,
             subpartition_dimension : float = 0.5,
-            total_iterations_hint : int = 1000000,
+            total_iterations_hint : float = 1000000,
             check_overlapped_walls : bool = True
         ):
         self.seed = seed
@@ -470,7 +470,7 @@ class Model():
 
     def run_iterations(
             self,
-            iterations : int
+            iterations : float
         ) -> None:
         pass
 

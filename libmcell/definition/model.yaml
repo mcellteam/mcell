@@ -20,7 +20,8 @@ Model:
   - name: run_iterations
     params:
     - name: iterations
-      type: long
+      type: float
+      doc: Number of iterations to run. Value is truncated to an integer.
 
   - name: end_simulation
     doc: |

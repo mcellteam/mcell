@@ -80,12 +80,12 @@ Config:
     min: 1e-6
     
   - name: total_iterations_hint
-    type: long
+    type: float
     default: 1000000
     min: 9
     doc: |
       Estimated value of total iterations, used when generating visualization data 
-      files and also for other reporting uses.
+      files and also for other reporting uses. Value is truncated to an integer.
     
   - name: check_overlapped_walls
     type: bool
