@@ -356,7 +356,7 @@ static inline void add_version(Json::Value& node, const char* ver) {
 }
 
 
-static inline void append_triplet(Json::Value& list, const float x, const float y, const float z) {
+static inline void append_triplet(Json::Value& list, const float_t x, const float_t y, const float_t z) {
   Json::Value list_triplet;
   list_triplet.append(Json::Value(x));
   list_triplet.append(Json::Value(y));
