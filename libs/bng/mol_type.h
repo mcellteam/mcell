@@ -34,17 +34,22 @@ public:
 };
 
 
-// Molecule type determines all allowed components and states of these components.
-// It is only used to check that reactions and instantiations (releases) follow the
-// allowed components and states.
-class MolType: public BaseSpeciesCplxMolFlag {
+// Information common both to MolType and Species
+class MolTypeSpeciesCommonData {
 public:
-  MolType()
-    : D(FLT_INVALID), custom_time_step(0), custom_space_step(0) {
+  MolTypeSpeciesCommonData()
+    : D(FLT_INVALID), custom_time_step(0), custom_space_step(0),
+      color_set(false), color_r(1), color_g(0), color_b(0), scale(1) {
   }
 
-  std::string name;
-  small_vector<component_type_id_t> component_type_ids;
+  MolTypeSpeciesCommonData(const MolTypeSpeciesCommonData& other)
+    : D(other.D),
+      custom_time_step(other.custom_time_step),
+      custom_space_step(other.custom_space_step),
+      color_set(other.color_set),
+      color_r(other.color_r), color_g(other.color_g), color_b(other.color_b),
+      scale(other.scale) {
+  }
 
   float_t D; // diffusion constant
 
@@ -52,6 +57,34 @@ public:
   // is set to non-zero value, max one of them can be set to a non-zero value
   float_t custom_time_step;
   float_t custom_space_step;
+
+
+  // visualization
+  void set_color(float_t r, float_t g, float_t b) {
+    color_r = r;
+    color_g = g;
+    color_b = b;
+    color_set = true;
+  }
+  void set_scale(float_t s) {
+    scale = s;
+  }
+
+  bool color_set;
+  float_t color_r, color_g, color_b ;  // mol color default is red
+  float_t scale; // scale = 1 by default
+
+};
+
+
+// Molecule type determines all allowed components and states of these components.
+// It is only used to check that reactions and instantiations (releases) follow the
+// allowed components and states.
+class MolType: public BaseSpeciesCplxMolFlag, public MolTypeSpeciesCommonData {
+public:
+  std::string name;
+  small_vector<component_type_id_t> component_type_ids;
+
 
   bool operator ==(const MolType& mt2) const {
     // ordering of components in a molecule is important

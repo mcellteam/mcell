@@ -8,6 +8,7 @@
 #ifndef LIBS_BNG_SPECIES_H_
 #define LIBS_BNG_SPECIES_H_
 
+#include "bng/mol_type.h"
 #include "bng/cplx_instance.h"
 #include "bng/defines_shared.h"
 
@@ -19,14 +20,12 @@ class RxnContainer;
 
 typedef std::vector<Species> SpeciesVector;
 
-class Species: public CplxInstance {
+class Species: public CplxInstance, public MolTypeSpeciesCommonData {
 public:
   Species(const BNGData& data)
     : CplxInstance(&data),
-      id(SPECIES_ID_INVALID), D(FLT_INVALID),
-      custom_time_step(0), custom_space_step(0),
+      id(SPECIES_ID_INVALID),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
-      color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
       rxn_flags_were_updated(false), num_instantiations(0) {
   }
 
@@ -36,10 +35,8 @@ public:
       const CplxInstance& cplx_inst, const BNGData& data, const BNGConfig& config,
       const bool do_update_diffusion_constant = true)
     : CplxInstance(&data),
-      id(SPECIES_ID_INVALID), D(FLT_INVALID),
-      custom_time_step(0), custom_space_step(0),
+      id(SPECIES_ID_INVALID),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
-      color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
       rxn_flags_were_updated(false), num_instantiations(0) {
 
     mol_instances = cplx_inst.mol_instances;
@@ -56,11 +53,9 @@ public:
 
   // we need explicit copy ctor to call CplxInstance's copy ctor
   Species(const Species& other)
-    : CplxInstance(other),
-      id(other.id), name(other.name), D(other.D),
-      custom_time_step(other.custom_time_step), custom_space_step(other.custom_space_step),
+    : CplxInstance(other), MolTypeSpeciesCommonData(other),
+      id(other.id), name(other.name),
       space_step(other.space_step), time_step(other.time_step),
-      color_set(other.color_set), color_r(other.color_r), color_g(other.color_g), color_b(other.color_b), scale(other.scale),
       rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(other.num_instantiations) {
   }
 
@@ -85,13 +80,6 @@ public:
   species_id_t id;
 
   std::string name; // string representation of the complex instance
-
-  float_t D; // diffusion constant, entered by user in MCell3 mode, computed in MCell4 BNG model
-
-  // when the user supplied a custom step, the attribute
-  // is set to non-zero value, max one of them can be set to a non-zero value
-  float_t custom_time_step;
-  float_t custom_space_step;
 
   // ----------- MCell-specific -----------
 
@@ -256,21 +244,6 @@ public:
 
 
   // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
-
-  // visualization
-  void set_color(float_t r, float_t g, float_t b) {
-    color_r = r;
-    color_g = g;
-    color_b = b;
-    color_set = true;
-  }
-  void set_scale(float_t s) {
-    scale = s;
-  }
-
-  bool color_set;
-  float_t color_r, color_g, color_b ;  // mol color default is red
-  float_t scale; // scale = 1 by default
 
 private:
   // rxn flags are updated when a molecule of this species is added to world
