@@ -781,7 +781,7 @@ static void gen_region_expr_assignment_for_rel_site(ostream& out, string region_
   regex pattern_surf_region("\\[([^\\]]*)\\]");
   region_expr = regex_replace(region_expr, pattern_surf_region, "_$1");
 
-  gen_param_id(out, NAME_REGION, region_expr, true);
+  gen_param_expr(out, NAME_REGION, region_expr, true);
 }
 
 
@@ -1212,15 +1212,15 @@ string PythonGenerator::generate_count_terms_for_expression(
       gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
 
       if (rxn_not_mol) {
-        gen_param_id(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
+        gen_param_expr(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
       }
       else {
         bool comma_after_cplx = orientation == "" && where_to_count != "";
         if (data.bng_mode) {
-          gen_param_id(out, NAME_SPECIES_PATTERN, make_cplx_inst(what_to_count), comma_after_cplx);
+          gen_param_expr(out, NAME_SPECIES_PATTERN, make_cplx_inst(what_to_count), comma_after_cplx);
         }
         else {
-          gen_param_id(out, NAME_SPECIES_PATTERN, what_to_count, comma_after_cplx);
+          gen_param_expr(out, NAME_SPECIES_PATTERN, what_to_count, comma_after_cplx);
         }
 
         if (orientation != "") {
@@ -1229,7 +1229,7 @@ string PythonGenerator::generate_count_terms_for_expression(
       }
 
       if (where_to_count != "") {
-        gen_param_id(out, NAME_REGION, where_to_count, false);
+        gen_param_expr(out, NAME_REGION, where_to_count, false);
       }
 
       out << CTOR_END;
@@ -1355,14 +1355,14 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
 
     if (single_term) {
       if (rxn_not_mol) {
-        gen_param_id(out, NAME_REACTION_RULE, what_to_count, true);
+        gen_param_expr(out, NAME_REACTION_RULE, what_to_count, true);
       }
       else {
         if (data.bng_mode) {
-          gen_param_id(out, NAME_SPECIES_PATTERN, make_cplx_inst(what_to_count), true);
+          gen_param_expr(out, NAME_SPECIES_PATTERN, make_cplx_inst(what_to_count), true);
         }
         else {
-          gen_param_id(out, NAME_SPECIES_PATTERN, what_to_count, true);
+          gen_param_expr(out, NAME_SPECIES_PATTERN, what_to_count, true);
         }
 
         if (orientation != "") {
@@ -1371,11 +1371,11 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
       }
     }
     else {
-      gen_param_id(out, NAME_COUNT_EXPRESSION, what_to_count, true);
+      gen_param_expr(out, NAME_COUNT_EXPRESSION, what_to_count, true);
     }
 
     if (where_to_count != "") {
-      gen_param_id(out, NAME_REGION, where_to_count, true);
+      gen_param_expr(out, NAME_REGION, where_to_count, true);
     }
 
     if (mdl_file_prefix == "") {
