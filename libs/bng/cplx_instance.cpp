@@ -16,6 +16,7 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/vf2_sub_graph_iso.hpp>
+#include <boost/graph/connected_components.hpp>
 
 #include "nauty/traces.h"
 #include "nauty/nausparse.h"
@@ -39,6 +40,24 @@ bool CplxInstance::is_fully_qualified() const {
   }
   return true;
 }
+
+
+bool CplxInstance::is_connected() const {
+  assert(is_finalized());
+
+  // simply count connected components
+  size_t num_vertices = boost::num_vertices(graph);
+  vector<int> component_per_vertex(num_vertices);
+  int num_components = boost::connected_components(
+      graph,
+      boost::make_iterator_property_map(
+          component_per_vertex.begin(), boost::get(boost::vertex_index, graph), component_per_vertex[0]
+      )
+  );
+  assert(num_components > 0);
+  return num_components == 1;
+}
+
 
 void CplxInstance::finalize() {
   if (mol_instances.empty()) {

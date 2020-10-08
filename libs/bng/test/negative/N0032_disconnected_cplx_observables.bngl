@@ -1,0 +1,11 @@
+# FAIL
+# OUTPUT: error: All complexes must be currently fully connected, error for 'A.D'.
+
+begin molecule types
+  A
+  D
+end molecule types
+
+begin observables
+  Molecules X A.D
+end observables

@@ -11,5 +11,5 @@ begin molecule types
 end molecule types
 
 begin reaction rules
-  A(a, a) + A(a, q) <-> A(a!1).A(a!1) kp, km
+  A(a) + A(a, q) <-> A(a!1).A(a!1) kp, km
 end reaction rules

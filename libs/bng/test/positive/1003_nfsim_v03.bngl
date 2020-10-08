@@ -16,7 +16,7 @@ begin reaction rules
 	X(p~1)             ->  X(p~0)               dephos
 	X(y,p~0) + Y(x)    ->  X(y!1,p~0).Y(x!1)    kon
 	X(y!1,p~0).Y(x!1)  ->  X(y,p~0) + Y(x)      koff
-	X(p~0).Y()         ->  X(p~1).Y()           kcat
+	X(y!1,p~0).Y(x!1)  ->  X(y!1,p~1).Y(x!1)    kcat
 end reaction rules
 begin observables
     Molecules Xp X(p~1)

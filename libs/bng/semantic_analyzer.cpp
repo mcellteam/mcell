@@ -625,6 +625,12 @@ void SemanticAnalyzer::convert_complex_pattern(
   }
 
   pattern.finalize();
+  if (!pattern.is_connected()) {
+    errs_loc(complex_nodes[0]) <<
+        "All complexes must be currently fully connected, error for '" << pattern.to_str() << "'.\n"; // test XXX
+    ctx->inc_error_count();
+    return;
+  }
 }
 
 
@@ -678,6 +684,9 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
 
         CplxInstance pattern(bng_data);
         convert_complex_pattern(current_complex_nodes, pattern, allow_compartments);
+        if (ctx->get_error_count() > 0) {
+          return;
+        }
         patterns.push_back(pattern);
 
         // start a new complex pattern

@@ -95,6 +95,10 @@ public:
   // returns true if all components of all molecules are be present and their is state set
   bool is_fully_qualified() const;
 
+  // returns true if all molecules are connected through bonds,
+  // this is the only currently supported mode and it is checked in semantics analyzer
+  bool is_connected() const;
+
   mol_type_id_t get_simple_species_mol_type_id() const {
     assert(is_simple());
     return mol_instances[0].mol_type_id;

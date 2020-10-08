@@ -1,0 +1,6 @@
+# FAIL
+# OUTPUT: error: All complexes must be currently fully connected, error for 'A.B'.
+
+begin seed species
+  A.B 1
+end seed species
