@@ -1067,8 +1067,10 @@ void PythonGenerator::process_single_count_term(
   if (data.find_reaction_rule_info(what_to_count) != nullptr) {
     rxn_not_mol = true;
   }
-  else if (data.bng_mode || data.find_species_or_mol_type_info(what_to_count) != nullptr) {
-    // if we did not find the name to be a reaction in BNG mode, we assume it is species or pattern
+  else if (data.bng_mode ||
+      data.find_species_or_mol_type_info(what_to_count) != nullptr ||
+      !API::is_simple_species(what_to_count)) {
+    // if we did not find the name to be a reaction, we assume it is simple species or complex pattern
     rxn_not_mol = false;
   }
   else {
