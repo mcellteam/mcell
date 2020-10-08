@@ -40,6 +40,7 @@
 #include "include/datamodel_defines.h"
 
 #include "generator_constants.h"
+#include "generator_structs.h"
 
 using namespace std;
 
@@ -154,14 +155,28 @@ static string fix_dots_in_simple_species(const string& s) {
 }
 
 
-static string make_cplx_inst(const string bngl_str, const string orient = "") {
-  string res = S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + fix_dots_in_simple_species(bngl_str) + "'";
-  if (orient != "") {
-    res += S(", ") + API::NAME_ORIENTATION + " = " + MDOT + API::NAME_ENUM_ORIENTATION + "." + orient;
+string fix_id(const std::string& str);
+
+
+// replaces '.' with '_' and does potentially other conversions
+static string make_id(const string& s) {
+  string res = s;
+  // do not do changes if the ID starts with 'm.' -> constant from
+  // the mcell module ID that cannot have dots that we need to replace in it anyway
+  if (res.size() <= 2 || (res.size() > 2 && res.substr(0, strlen(MDOT)) != MDOT)) {
+    res = fix_id(res);
   }
-  res += ")";
   return res;
 }
+
+
+string remove_compartments(const std::string& species_name);
+
+
+string make_species_or_cplx_inst(
+    const SharedGenData& data,
+    const std::string& name,
+    const std::string& orient = "");
 
 
 static string make_species(const string bngl_str) {
@@ -187,53 +202,6 @@ static void check_version(const string node_name, Json::Value& node, const char*
         "Error: version for " + node_name + " is " + node[KEY_DATA_MODEL_VERSION].asString() +
         ", expected " + version + ".");
   }
-}
-
-
-static string fix_id(const std::string& str) {
-  string res;
-  for (char c: str) {
-    if (c == '+') {
-      res += "_plus_";
-    }
-    else if (c == '-') {
-      res += "_minus_";
-    }
-    else if (c == '?') {
-      res += "_anybond_";
-    }
-    else if (c == '!') {
-      res += "_bond_";
-    }
-    else if (c == '(') {
-      res += "_ps_";
-    }
-    else if (c == ')') {
-      res += "_pe_";
-    }
-    else if (
-        c == ' ' || c == '.' || c == '_' ||
-        c == ',' || c == '~') {
-      res += "_";
-    }
-    else if (isalnum(c)) {
-      res += c;
-    }
-    // ignoring the rest of the characters
-  }
-  return res;
-}
-
-
-// replaces '.' with '_' and does potentially other conversions
-static string make_id(const string& s) {
-  string res = s;
-  // do not do changes if the ID starts with 'm.' -> constant from
-  // the mcell module ID that cannot have dots that we need to replace in it anyway
-  if (res.size() <= 2 || (res.size() > 2 && res.substr(0, strlen(MDOT)) != MDOT)) {
-    res = fix_id(res);
-  }
-  return res;
 }
 
 
@@ -414,36 +382,7 @@ static string convert_orientation(const string s, const bool return_any_orientat
 }
 
 
-static string reaction_name_to_id(const string& json_name) {
-  string res_name = json_name;
-  replace(res_name.begin(), res_name.end(), ' ', '_');
-  replace(res_name.begin(), res_name.end(), '.', '_');
-  replace(res_name.begin(), res_name.end(), ')', '_');
-  replace(res_name.begin(), res_name.end(), '(', '_');
-  replace(res_name.begin(), res_name.end(), '!', '_');
-
-  res_name = regex_replace(res_name, regex("<->"), "revto");
-  res_name = regex_replace(res_name, regex("->"), "to");
-  res_name = regex_replace(res_name, regex("\\+"), "plus");
-  res_name = regex_replace(res_name, regex("'"), "_up");
-  res_name = regex_replace(res_name, regex(","), "_down");
-  res_name = regex_replace(res_name, regex(";"), "_any");
-
-  return res_name;
-}
-
-
-static string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter) {
-  string name = reaction_list_item[KEY_RXN_NAME].asString();
-  if (name == "") {
-    name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
-    unnamed_rxn_counter++;
-  }
-  else {
-    name = reaction_name_to_id(name);
-  }
-  return name;
-}
+string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter);
 
 
 // NOTE: the same code is in mcell3_world_converter.cpp

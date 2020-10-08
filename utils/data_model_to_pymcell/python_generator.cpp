@@ -62,17 +62,24 @@ void PythonGenerator::generate_parameters(std::ostream& out) {
 std::string PythonGenerator::generate_component_type(
     std::ostream& out, Json::Value& bngl_component_item, const std::string& mol_type_name) {
 
-  string name = mol_type_name + '_' + make_id(bngl_component_item[KEY_CNAME].asString());
+  const string& cname = bngl_component_item[KEY_CNAME].asString();
+
+  bool has_states =
+      bngl_component_item.isMember(KEY_CSTATES) &&
+      !bngl_component_item[KEY_CSTATES].empty();
+
+  string name = mol_type_name + '_' + make_id(cname);
   gen_ctor_call(out, name, NAME_CLASS_COMPONENT_TYPE);
+  gen_param(out, NAME_NAME, cname, has_states);
 
   vector<string> state_names;
-  if (bngl_component_item.isMember(KEY_CSTATES)) {
+  if (has_states) {
     Value& cstates = bngl_component_item[KEY_CSTATES];
     for (Value::ArrayIndex i = 0; i < cstates.size(); i++) {
       state_names.push_back(cstates[i].asString());
     }
+    gen_param_list(out, NAME_STATES, state_names, false, true);
   }
-  gen_param_list(out, NAME_STATES, state_names, false, true);
   out << CTOR_END;
 
   return name;
@@ -394,24 +401,9 @@ void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& sub
   out << "[ ";
   for (size_t i = 0; i < substances.size(); i++) {
 
-    if (data.bng_mode) {
-      // substances (molecule types) are defined in BNGL file and must be referenced through their name
-      string orient = convert_orientation(orientations[i], true);
-      out << make_cplx_inst(substances[i], orient);
-      print_comma(out, i, substances);
-    }
-    else {
-      // substances are expected to be defined as Python IDs
-      out << make_id(substances[i]) << "." << API::NAME_INST << "(";
-
-      string orient = convert_orientation(orientations[i], true);
-      if (orient != "") {
-        out << API::NAME_ORIENTATION << " = " << MDOT << API::NAME_ENUM_ORIENTATION << "." << orient;
-      }
-
-      out << ")";
-      print_comma(out, i, substances);
-    }
+    string orient = convert_orientation(orientations[i], true);
+    out << make_species_or_cplx_inst(data, substances[i], orient);
+    print_comma(out, i, substances);
   }
   out << " ]";
 }
@@ -419,8 +411,6 @@ void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& sub
 
 std::string PythonGenerator::generate_single_reaction_rule(std::ostream& out, Json::Value& reaction_list_item) {
   check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
-
-  // TODO: BNG rules support
 
   string name = get_rxn_id(reaction_list_item, data.unnamed_rxn_counter);
 
@@ -594,28 +584,6 @@ void PythonGenerator::generate_geometry(std::ostream& out, std::vector<std::stri
 }
 
 
-string remove_compartments(const std::string& species_name) {
-  size_t i = 0;
-  string res;
-  bool in_compartment = false;
-  while (i < species_name.size()) {
-    char c = species_name[i];
-    if (c == '@') {
-      assert(!in_compartment);
-      in_compartment = true;
-    }
-    else if (in_compartment && (!isalnum(c) && c != '_')) {
-      in_compartment = false;
-    }
-    else if (!in_compartment) {
-      res += c;
-    }
-    i++;
-  }
-  return res;
-}
-
-
 bool PythonGenerator::is_volume_mol_type(const std::string& mol_type_name) {
 
   string mol_type_name_no_comp = remove_compartments(mol_type_name);
@@ -726,13 +694,10 @@ std::string PythonGenerator::generate_single_molecule_release_info_array(
     for (Value::ArrayIndex i = 0; i < points_list.size(); i++) {
       out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(";
 
-      string species_name = release_site_item[KEY_MOLECULE].asString();
-      if (!data.bng_mode) {
-        gen_param_id(out, NAME_COMPLEX_INSTANCE, species_name, true);
-      }
-      else {
-        gen_param_id(out, NAME_COMPLEX_INSTANCE, make_cplx_inst(remove_compartments(species_name)), true);
-      }
+      string cplx = release_site_item[KEY_MOLECULE].asString();
+      gen_param_expr(out, NAME_COMPLEX_INSTANCE,
+          make_species_or_cplx_inst(data, cplx),
+          true);
 
       Value& point = points_list[i];
       if (point.size() != 3) {
@@ -870,22 +835,16 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
 
     bool is_vol;
     if (shape != VALUE_LIST) {
-      string species_name = release_site_item[KEY_MOLECULE].asString();
-      if (!data.bng_mode) {
-        gen_param_id(out, NAME_COMPLEX_INSTANCE, species_name, true);
-      }
-      else {
-        gen_param_id(out, NAME_COMPLEX_INSTANCE, make_cplx_inst(remove_compartments(species_name)), true);
-      }
-
+      string cplx = release_site_item[KEY_MOLECULE].asString();
+      gen_param_expr(out, NAME_COMPLEX_INSTANCE, make_species_or_cplx_inst(data, cplx), true);
 
       string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
       if (orientation != "") {
         // check that this is not a volume molecule
-        is_vol = is_volume_species(species_name);
+        is_vol = is_volume_species(cplx);
         if (is_vol) {
           cout <<
-              "Ignoring orientation set for release site " << name << " with species " << species_name <<
+              "Ignoring orientation set for release site " << name << " with species " << cplx <<
               ", this species represent volume molecules.\n";
         }
         else {
@@ -1200,12 +1159,9 @@ string PythonGenerator::generate_count_terms_for_expression(
       }
       else {
         bool comma_after_cplx = orientation == "" && where_to_count != "";
-        if (data.bng_mode) {
-          gen_param_expr(out, NAME_SPECIES_PATTERN, make_cplx_inst(what_to_count), comma_after_cplx);
-        }
-        else {
-          gen_param_expr(out, NAME_SPECIES_PATTERN, what_to_count, comma_after_cplx);
-        }
+        gen_param_expr(
+            out, NAME_SPECIES_PATTERN,
+            make_species_or_cplx_inst(data, what_to_count), comma_after_cplx);
 
         if (orientation != "") {
           gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
@@ -1348,12 +1304,7 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
         const char* count_type =
             (molecules_not_species) ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN;
 
-        if (data.bng_mode) {
-          gen_param_expr(out, count_type, make_cplx_inst(what_to_count), true);
-        }
-        else {
-          gen_param_expr(out, count_type, what_to_count, true);
-        }
+        gen_param_expr(out, count_type, make_species_or_cplx_inst(data, what_to_count), true);
 
         if (orientation != "") {
           gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
