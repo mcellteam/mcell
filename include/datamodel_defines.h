@@ -219,6 +219,9 @@ const char* const VALUE_COUNT_LOCATION_REGION = "Region";
 const char* const KEY_MDL_STRING = "mdl_string";
 const char* const KEY_REGION_NAME = "region_name";
 
+const char* const MARKER_SPECIES_COMMENT = "/*Species*/";
+const char* const MARKER_MOLECULES_COMMENT = "/*Molecules*/";
+
 
 const char* const KEY_DEFINE_SURFACE_CLASSES = "define_surface_classes";
 const char* const KEY_SURFACE_CLASS_LIST = "surface_class_list";

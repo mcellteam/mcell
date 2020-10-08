@@ -1287,7 +1287,7 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
     MCell::MolOrRxnCountEvent* count_event = new MCell::MolOrRxnCountEvent(world);
 
     count_event->event_time = 0;
-    count_event->periodicity_interval = c->every_n_timesteps;
+    count_event->periodicity_interval = round_f(c->every_n_timesteps + EPS);
 
     // create buffer
     count_buffer_id_t buffer_id =
@@ -1318,7 +1318,7 @@ void MCell4Converter::convert_viz_output_events() {
     MCell::VizOutputEvent* viz_event = new VizOutputEvent(world);
 
     viz_event->event_time = 0.0;
-    viz_event->periodicity_interval = v->every_n_timesteps;
+    viz_event->periodicity_interval = round_f(v->every_n_timesteps + EPS);
     viz_event->viz_mode = convert_viz_mode(v->mode);
     viz_event->file_prefix_name = v->output_files_prefix;
 

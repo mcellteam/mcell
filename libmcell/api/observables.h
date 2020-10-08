@@ -39,6 +39,7 @@ namespace API {
 
 class Observables: public GenObservables {
 public:
+  // TODO: add checks that each observable writes to a different file
 
   void add_viz_output(std::shared_ptr<VizOutput> viz_output) override {
     append_to_vec(viz_outputs, viz_output, true);

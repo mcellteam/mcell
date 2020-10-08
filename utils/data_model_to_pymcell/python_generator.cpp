@@ -1029,13 +1029,18 @@ static uint get_num_counts_in_mdl_string(const string& mdl_string) {
 }
 
 
-static string create_count_name(string what_to_count, string where_to_count) {
+static string create_count_name(
+    const string& what_to_count, const string& where_to_count,
+    const bool molecules_not_species) {
 
   // first remove all cterm_refixes
   regex pattern_cterm(COUNT_TERM_PREFIX);
-  what_to_count = regex_replace(what_to_count, pattern_cterm, "");
+  string what_to_count_no_cterm = regex_replace(what_to_count, pattern_cterm, "");
+  string res = COUNT_PREFIX + fix_id(what_to_count_no_cterm);
 
-  string res = COUNT_PREFIX + fix_id(what_to_count);
+  if (!molecules_not_species) {
+    res += "_species";
+  }
 
   if (where_to_count != WORLD && where_to_count != "") {
     res += "_" + where_to_count;
@@ -1054,7 +1059,11 @@ static string remove_c_comment(const string& str) {
 
 void PythonGenerator::process_single_count_term(
     const string& mdl_string,
-    bool& rxn_not_mol, string& what_to_count, string& where_to_count, string& orientation) {
+    bool& rxn_not_mol,
+    bool& molecules_not_species,
+    string& what_to_count,
+    string& where_to_count,
+    string& orientation) {
 
   // mdl_string is always in the form COUNT[what,where]
   size_t start_brace = mdl_string.find('[');
@@ -1072,6 +1081,16 @@ void PythonGenerator::process_single_count_term(
 
   what_to_count = mdl_string.substr(start_brace + 1, comma - start_brace - 1);
   what_to_count = trim(what_to_count);
+
+  // default is 'molecules_pattern', for now we are storing the
+  // as a comment because the counting type belongs to the count term,
+  // not to the whole 'reaction_output_list'
+  // TODO: this should resolved in a better way
+  molecules_not_species = true;
+  if (what_to_count.find(MARKER_SPECIES_COMMENT) != string::npos) {
+    molecules_not_species = false;
+  }
+
   what_to_count = remove_c_comment(what_to_count);
 
   // process orientation
@@ -1159,16 +1178,17 @@ string PythonGenerator::generate_count_terms_for_expression(
     }
 
     bool rxn_not_mol;
+    bool molecules_not_species;
     string what_to_count;
     string where_to_count;
     string orientation;
 
     process_single_count_term(
         mdl_string.substr(start, end - start + 1),
-        rxn_not_mol, what_to_count, where_to_count, orientation
+        rxn_not_mol, molecules_not_species, what_to_count, where_to_count, orientation
     );
 
-    string name = COUNT_TERM_PREFIX + create_count_name(what_to_count, where_to_count);
+    string name = COUNT_TERM_PREFIX + create_count_name(what_to_count, where_to_count, molecules_not_species);
 
     // generate the count term object definition if we don't already have it
     if (find(data.all_count_term_names.begin(), data.all_count_term_names.end(), name) == data.all_count_term_names.end()) {
@@ -1250,6 +1270,7 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
     string mdl_file_prefix = reaction_output_item[KEY_MDL_FILE_PREFIX].asString();
 
     bool rxn_not_mol;
+    bool molecules_not_species;
     bool single_term;
     string what_to_count;
     string where_to_count; // empty for WORLD
@@ -1268,7 +1289,9 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
       }
       else if (num_counts == 1) {
         single_term = true;
-        process_single_count_term(mdl_string, rxn_not_mol, what_to_count, where_to_count, orientation);
+        process_single_count_term(
+            mdl_string, rxn_not_mol, molecules_not_species,
+            what_to_count, where_to_count, orientation);
       }
       else {
         single_term = false;
@@ -1313,7 +1336,7 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
           mdl_file_prefix + ".");
     }
 
-    string name = create_count_name(what_to_count, where_to_count);
+    string name = create_count_name(what_to_count, where_to_count, molecules_not_species);
     counts.push_back(name);
     gen_ctor_call(out, name, NAME_CLASS_COUNT);
 
@@ -1322,11 +1345,14 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
         gen_param_expr(out, NAME_REACTION_RULE, what_to_count, true);
       }
       else {
+        const char* count_type =
+            (molecules_not_species) ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN;
+
         if (data.bng_mode) {
-          gen_param_expr(out, NAME_SPECIES_PATTERN, make_cplx_inst(what_to_count), true);
+          gen_param_expr(out, count_type, make_cplx_inst(what_to_count), true);
         }
         else {
-          gen_param_expr(out, NAME_SPECIES_PATTERN, what_to_count, true);
+          gen_param_expr(out, count_type, what_to_count, true);
         }
 
         if (orientation != "") {

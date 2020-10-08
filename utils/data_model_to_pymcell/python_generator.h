@@ -104,7 +104,10 @@ private:
   void generate_all_bngl_reaction_rules_used_in_observables(std::ostream& out);
   void process_single_count_term(
       const std::string& mdl_string,
-      bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count,
+      bool& rxn_not_mol,
+      bool& molecules_not_species,
+      std::string& what_to_count,
+      std::string& where_to_count,
       std::string& orientation);
   std::string generate_count_terms_for_expression(std::ostream& out, const std::string& mdl_string);
 
