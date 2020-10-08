@@ -723,17 +723,6 @@ void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnR
     ctx->inc_error_count();
   }
 
-  // set name if it is not set, also errors could have left the rxn in invalid state
-  if (r.name == "" && ctx->get_error_count() == 0) {
-    string n = r.to_str();
-    if (!forward_direction) {
-      r.name = "rev " + n;
-    }
-    else {
-      r.name = n;
-    }
-  }
-
   bng_data->find_or_add_rxn_rule(r);
 }
 

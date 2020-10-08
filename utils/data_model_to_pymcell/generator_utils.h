@@ -414,25 +414,35 @@ static string convert_orientation(const string s, const bool return_any_orientat
 }
 
 
-static bool convert_reaction_name(const string& json_name, string& res_name) {
-  res_name = json_name;
+static string reaction_name_to_id(const string& json_name) {
+  string res_name = json_name;
   replace(res_name.begin(), res_name.end(), ' ', '_');
   replace(res_name.begin(), res_name.end(), '.', '_');
   replace(res_name.begin(), res_name.end(), ')', '_');
   replace(res_name.begin(), res_name.end(), '(', '_');
   replace(res_name.begin(), res_name.end(), '!', '_');
 
-  res_name = regex_replace(res_name, regex("<->"), "to");
+  res_name = regex_replace(res_name, regex("<->"), "revto");
   res_name = regex_replace(res_name, regex("->"), "to");
   res_name = regex_replace(res_name, regex("\\+"), "plus");
   res_name = regex_replace(res_name, regex("'"), "_up");
   res_name = regex_replace(res_name, regex(","), "_down");
   res_name = regex_replace(res_name, regex(";"), "_any");
 
-  // TODO: check for invalid cases
-  // return false in that case
+  return res_name;
+}
 
-  return true; // ok
+
+static string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter) {
+  string name = reaction_list_item[KEY_RXN_NAME].asString();
+  if (name == "") {
+    name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
+    unnamed_rxn_counter++;
+  }
+  else {
+    name = reaction_name_to_id(name);
+  }
+  return name;
 }
 
 

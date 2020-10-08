@@ -1859,7 +1859,7 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 }
 
 
-std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name) const {
+std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name, const bool with_id) const {
   stringstream ss;
   if (with_name) {
     ss << name << ": ";
@@ -1873,9 +1873,11 @@ std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name)
     ss << " " << base_rate_constant;
   }
 
-  ss << " (";
-  ss << "id: " << id;
-  ss << ")";
+  if (with_id) {
+    ss << " (";
+    ss << "id: " << id;
+    ss << ")";
+  }
 
   return ss.str();
 }

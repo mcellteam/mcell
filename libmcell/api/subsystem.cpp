@@ -127,7 +127,9 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   }
 
   auto res_rr = make_shared<API::ReactionRule>();
-  res_rr->name = bng_rr.name;
+  if (bng_rr.name != "") {
+    res_rr->name = bng_rr.name;
+  }
 
   // RxnRule
   res_rr->fwd_rate = bng_rr.base_rate_constant;
@@ -144,7 +146,8 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
         convert_cplx_instance_w_orientation(bng_data, inst, Orientation::UP));
   }
 
-  append_to_vec(reaction_rules, res_rr);
+  // allow reactions with identical names
+  append_to_vec(reaction_rules, res_rr, false, true);
 }
 
 

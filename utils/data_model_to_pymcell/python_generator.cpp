@@ -422,15 +422,8 @@ std::string PythonGenerator::generate_single_reaction_rule(std::ostream& out, Js
 
   // TODO: BNG rules support
 
-  string name = reaction_list_item[KEY_RXN_NAME].asString();
-  if (name == "") {
-    bool ok = convert_reaction_name(reaction_list_item[KEY_NAME].asString(), name);
+  string name = get_rxn_id(reaction_list_item, data.unnamed_rxn_counter);
 
-    if (!ok) {
-      name = UNNAMED_REACTION_RULE_PREFIX + to_string(data.unnamed_rxn_counter);
-      data.unnamed_rxn_counter++;
-    }
-  }
   gen_ctor_call(out, name, NAME_CLASS_REACTION_RULE);
   gen_param(out, NAME_NAME, name, true);
 

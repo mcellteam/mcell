@@ -188,6 +188,13 @@ public:
 
   void finalize();
 
+  // NOTE: must be called only after molecule types are fully known, i.e.
+  // whether they are surface or volume reactants otherwise MCell
+  // orientation won't be printed
+  void set_automatic_name(const bool reverse) {
+    name = ((reverse)?"rev ":"") + to_str(false, false, false);
+  }
+
   std::string name;
   rxn_rule_id_t id;
 
@@ -417,7 +424,8 @@ public:
     }
   }
 
-  std::string to_str(const bool with_rate_constant = true, const bool with_name = true) const;
+  std::string to_str(
+      const bool with_rate_constant = true, const bool with_name = true, const bool with_id = true) const;
   std::string reactants_to_str() const;
   std::string products_to_str() const;
   void dump(const bool for_diff = false, const std::string ind = "") const;

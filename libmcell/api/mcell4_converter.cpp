@@ -695,9 +695,6 @@ void MCell4Converter::convert_rxns() {
 
     BNG::RxnRule rxn(&world->bng_engine.get_data());
 
-    if (is_set(r->name)) {
-      rxn.name = r->name;
-    }
     rxn.type = BNG::RxnType::Standard;
 
     if (is_set(r->fwd_rate)) {
@@ -729,12 +726,24 @@ void MCell4Converter::convert_rxns() {
       rxn.append_product(product);
     }
 
+
+    if (is_set(r->name)) {
+      rxn.name = r->name;
+    }
+    else {
+      // must be called after conversion
+      rxn.set_automatic_name(false);
+    }
+
     // reverse reaction
     BNG::RxnRule rxn_rev(&world->bng_engine.get_data());
     if (is_reversible) {
       rxn_rev.type = BNG::RxnType::Standard;
       if (is_set(r->rev_name)) {
         rxn.name = r->rev_name;
+      }
+      else {
+        rxn.set_automatic_name(false);
       }
       rxn_rev.base_rate_constant = r->rev_rate;
       rxn_rev.reactants = rxn.products;

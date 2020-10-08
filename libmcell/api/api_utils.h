@@ -37,9 +37,13 @@ template<class T>
 void append_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
     const std::shared_ptr<T>& item,
-    const bool allow_same_name_different_contents = false) {
+    const bool allow_same_name_different_contents = false,
+    const bool allow_unnamed_different_contents = false) {
 
-  if (!allow_same_name_different_contents) {
+
+  if (!allow_same_name_different_contents &&
+      !(allow_unnamed_different_contents && (item->name == "" || item->name == STR_UNSET))) {
+
     // check if item with this name already exists
     for (std::shared_ptr<T>& existing: dst) {
       if (item->name == existing->name) {
@@ -62,10 +66,13 @@ template<class T>
 void append_vec_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
     const std::vector<std::shared_ptr<T>>& src,
-    const bool allow_same_name_different_contents = false) {
+    const bool allow_same_name_different_contents = false,
+    const bool allow_unnamed_different_contents = false
+) {
 
   for (const std::shared_ptr<T>& item: src) {
-    append_to_vec(dst, item, allow_same_name_different_contents);
+    append_to_vec(
+        dst, item, allow_same_name_different_contents, allow_unnamed_different_contents);
   }
 }
 

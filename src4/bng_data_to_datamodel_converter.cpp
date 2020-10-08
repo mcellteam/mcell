@@ -230,7 +230,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   add_version(rxn_node, VER_DM_2018_01_11_1330);
 
   // name is put into rnx_name and name is the string of the reaction
-  rxn_node[KEY_RXN_NAME] = (r.name != NAME_NOT_SET) ? r.name : "";
+  rxn_node[KEY_RXN_NAME] = r.name;
   rxn_node[KEY_DESCRIPTION] = "";
 
   // LATER: maybe find an opposite reaction and generate it as reversible
@@ -243,6 +243,8 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
     products = VALUE_NULL;
   }
   rxn_node[KEY_PRODUCTS] = products;
+  // generated directly by data_model_to_mdl converter, 
+  // reversible rxns were cloned
   rxn_node[KEY_NAME] = reactants + " -> " + products;
 
   if (r.base_variable_rates.empty()) {

@@ -55,7 +55,9 @@ public:
   }
 
   void add_reaction_rule(std::shared_ptr<ReactionRule> r) override {
-    append_to_vec(reaction_rules, r);
+    // reactions don't have to have name,
+    // not checking whether same unnamed rule already exists
+    append_to_vec(reaction_rules, r, false, true);
   }
 
   std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) override {

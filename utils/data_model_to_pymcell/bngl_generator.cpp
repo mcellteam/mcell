@@ -192,16 +192,7 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
   CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
   bool is_reversible = rxn_type == VALUE_REVERSIBLE;
 
-  // generate name only when needed
-  string name = reaction_list_item[KEY_RXN_NAME].asString();
-  if (name == "") {
-    bool ok = convert_reaction_name(reaction_list_item[KEY_NAME].asString(), name);
-
-    if (!ok) {
-      name = UNNAMED_REACTION_RULE_PREFIX + to_string(data.unnamed_rxn_counter);
-      data.unnamed_rxn_counter++;
-    }
-  }
+  string name = get_rxn_id(reaction_list_item, data.unnamed_rxn_counter);
 
   bng_out << IND;
   if (generate_name) {
