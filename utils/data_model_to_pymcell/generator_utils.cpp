@@ -327,10 +327,12 @@ string reaction_name_to_id(const string& json_name) {
   replace(res_name.begin(), res_name.end(), ')', '_');
   replace(res_name.begin(), res_name.end(), '(', '_');
   replace(res_name.begin(), res_name.end(), '!', '_');
+  replace(res_name.begin(), res_name.end(), '~', '_');
 
   res_name = regex_replace(res_name, regex("<->"), "revto");
   res_name = regex_replace(res_name, regex("->"), "to");
   res_name = regex_replace(res_name, regex("\\+"), "plus");
+  res_name = regex_replace(res_name, regex("\\?"), "any_bond");
   res_name = regex_replace(res_name, regex("'"), "_up");
   res_name = regex_replace(res_name, regex(","), "_down");
   res_name = regex_replace(res_name, regex(";"), "_any");
