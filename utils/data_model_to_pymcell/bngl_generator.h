@@ -55,7 +55,7 @@ private:
   void generate_bngl_mol_type(Json::Value& molecule_list_item);
   void generate_python_mol_type_info(std::ostream& python_out, Json::Value& molecule_list_item);
 
-  const std::string& bngl_filename;
+  const std::string bngl_filename;
   std::ostream& bng_out;
   SharedGenData& data; // owned by MCell4Generator
 };
