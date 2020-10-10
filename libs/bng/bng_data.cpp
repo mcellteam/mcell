@@ -102,9 +102,10 @@ mol_type_id_t BNGData::find_molecule_type_id(const std::string& name) const {
 // asserts if compartment with the same name already exists
 compartment_id_t BNGData::add_compartment(const Compartment& c) {
   assert(find_compartment_id(c.name) == COMPARTMENT_ID_INVALID);
-  compartment_id_t res = compartments.size();
+  compartment_id_t id = compartments.size();
   compartments.push_back(c);
-  return res;
+  compartments.back().id = id;
+  return id;
 }
 
 
@@ -118,6 +119,16 @@ compartment_id_t BNGData::find_compartment_id(const std::string& name) const {
   return COMPARTMENT_ID_INVALID;
 }
 
+
+Compartment* BNGData::find_compartment(const std::string& name) {
+  compartment_id_t id = find_compartment_id(name);
+  if (id == COMPARTMENT_ID_INVALID) {
+    return nullptr;
+  }
+  else {
+    return &get_compartment(id);
+  }
+}
 
 const Compartment* BNGData::find_compartment(const std::string& name) const {
   compartment_id_t id = find_compartment_id(name);

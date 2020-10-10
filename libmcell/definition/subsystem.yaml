@@ -397,6 +397,7 @@ Subsystem:
       reaction rules sections, e.g. ignores observables. 
       Parameter values are evaluated and the result value 
       is directly used.  
+      Compartments names are stored in rxn rules as strings.
     params:
     - name: file_name
       type: str      

@@ -88,6 +88,13 @@ public:
     has_loc = true;
   }
 
+  void set_loc(const ASTBaseNode* node) {
+    assert(node->has_loc);
+    line = node->line;
+    file = node->file;
+    has_loc = true;
+  }
+
   bool is_expr() const {
     return node_type == NodeType::Expr;
   }
@@ -327,9 +334,10 @@ public:
 
 class ASTCplxNode: public ASTBaseNode {
 public:
-  ASTCplxNode()
+  ASTCplxNode(ASTMolNode* first_mol)
     : compartment(nullptr) {
     node_type = NodeType::Cplx;
+    mols.push_back(first_mol);
   }
   void dump(const std::string ind) const override;
 
@@ -478,7 +486,7 @@ public:
   );
 
   // location is given by the first added molecule node
-  ASTCplxNode* new_cplx_node();
+  ASTCplxNode* new_cplx_node(ASTMolNode* first_mol);
 
   ASTRxnRuleNode* new_rxn_rule_node(
       ASTStrNode* name,

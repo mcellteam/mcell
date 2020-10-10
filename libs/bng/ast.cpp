@@ -372,8 +372,10 @@ ASTCompartmentNode* ParserContext::new_compartment_node(
 }
 
 
-ASTCplxNode* ParserContext::new_cplx_node() {
-  ASTCplxNode* n = new ASTCplxNode();
+ASTCplxNode* ParserContext::new_cplx_node(ASTMolNode* first_mol) {
+  ASTCplxNode* n = new ASTCplxNode(first_mol);
+  n->set_loc(first_mol);
+
   remember_node(n);
   return n;
 }
@@ -396,10 +398,7 @@ ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
   // use the first reactant as the location
   assert(reactants->items.size() >= 1);
   ASTCplxNode* cplx = to_cplx_node(reactants->items[0]);
-  assert(cplx->mols[0]->has_loc);
-  BNGLLTYPE loc;
-  loc.first_line = cplx->mols[0]->line;
-  n->set_loc(current_file, loc);
+  n->set_loc(cplx->mols[0]);
 
   remember_node(n);
   return n;
@@ -415,12 +414,7 @@ ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
   n->count = count;
 
   // use the first molecule of the complex as the location
-  assert(cplx->mols.size() >= 1);
-  assert(cplx->mols[0]->node_type == NodeType::Mol);
-  assert(cplx->mols[0]->has_loc);
-  BNGLLTYPE loc;
-  loc.first_line = cplx->mols[0]->line;
-  n->set_loc(current_file, loc);
+  n->set_loc(cplx);
 
   remember_node(n);
   return n;

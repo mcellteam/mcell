@@ -79,6 +79,8 @@ static void trigger_bimolecular(
   }
   assert(rxn_class->is_bimol() && "We already checked that there must be 2 reactants");
 
+  // TODO_COMPARTMENTS check compartments
+
   /* Check to see if orientation classes are zero/different */
   int test_wall = 0;
   orientation_t geomA = rxn_class->get_reactant_orientation(0);
@@ -797,11 +799,14 @@ which_unimolecular:
   In: the reaction we're testing
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
-static rxn_class_pathway_index_t which_unimolecular(BNG::RxnClass *rxn_class, rng_state& rng) {
+static rxn_class_pathway_index_t which_unimolecular(const Molecule& m, BNG::RxnClass *rxn_class, rng_state& rng) {
   assert(rxn_class != nullptr);
   if (rxn_class->get_num_reactions() == 1) {
     return 0;
   }
+
+  // TODO_COMPARTMENTS check compartments & pass to which_unimolecular only
+  // those that match compartments
 
   float_t match = rng_dbl(&rng);
   match = match * rxn_class->get_max_fixed_p();

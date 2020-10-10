@@ -45,7 +45,7 @@ private:
 public:
   Cplx(const BNGData* bng_data_)
     : orientation(ORIENTATION_NONE),
-      compartment_id(COMPARTMENT_ID_DONT_CARE),
+      compartment_id(COMPARTMENT_ID_NONE),
       bng_data(bng_data_)
       {
   }
@@ -57,6 +57,7 @@ public:
   Cplx& operator =(const Cplx& other) {
     mol_instances = other.mol_instances;
     orientation = other.orientation;
+    compartment_id = other.compartment_id;
     bng_data = other.bng_data;
 
     set_flags(other.get_flags());
@@ -111,6 +112,11 @@ public:
 
   void set_orientation(const orientation_t o) {
     orientation = o;
+  }
+
+  bool has_compartment() const {
+    assert(compartment_id != COMPARTMENT_ID_INVALID);
+    return compartment_id != COMPARTMENT_ID_NONE;
   }
 
   compartment_id_t get_compartment_id() const {

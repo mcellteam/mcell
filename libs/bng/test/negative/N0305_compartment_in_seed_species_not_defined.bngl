@@ -1,5 +1,5 @@
 # FAIL
-# OUTPUT: error: Compartment 'C' used in seed species was not defined.
+# OUTPUT: error: Compartment 'C' was not defined.
 
 
 begin compartments

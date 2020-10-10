@@ -442,7 +442,7 @@ cplx_no_compartment:
         $$ = $1;
       }
     | mol {
-        $$ = g_ctx->new_cplx_node()->append($1);
+        $$ = g_ctx->new_cplx_node($1);
       }
 ;
       

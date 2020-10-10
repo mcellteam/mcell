@@ -1524,7 +1524,7 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
 
   float_t scheduled_time = current_time + time_from_now;
 
-  // we need to store the end time to the molecule because oit is needed in diffusion to
+  // we need to store the end time to the molecule because it is needed in diffusion to
   // figure out whether we should do the whole time step
   m.unimol_rx_time = scheduled_time;
 }
@@ -1564,7 +1564,11 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
 
     unimol_rxn_class->update_rxn_rates_if_needed(scheduled_time);
 
-    rxn_class_pathway_index_t pi = RxnUtil::which_unimolecular(unimol_rxn_class, world->rng);
+    // FIXME: unimol rxn time is not recomputed when a volume molecule changes compartments
+    // in theory, we could do this the same way as for surface molecules but
+    // event that solution does not look correct because it simply assigns new time and ignores the history
+    // out assumption is that most unimol rxns for volume reactants won't be dependent on compartment
+    rxn_class_pathway_index_t pi = RxnUtil::which_unimolecular(m, unimol_rxn_class, world->rng);
 
     return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class, pi);
   }
@@ -2332,7 +2336,7 @@ int DiffuseReactEvent::outcome_products_random(
 
 // ---------------------------------- unimolecular reactions ----------------------------------
 
-// !! might invalidate references (we might reorder defuncting and outcome call later)
+// !! might invalidate molecule and species references
 // returns true if molecule survived
 bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
@@ -2343,53 +2347,57 @@ bool DiffuseReactEvent::outcome_unimolecular(
 ) {
   molecule_id_t id = m.id;
 
+  // a PATHWAY_INDEX_NO_RXN pathway might have been selected
+  // when no unimol rxn matched compartments
+  if (pathway_index >= PATHWAY_INDEX_LEAST_VALID) {
 
-  Vec3 pos;
-  if (m.is_vol()) {
-    pos = m.v.pos;
+    Vec3 pos;
+    if (m.is_vol()) {
+      pos = m.v.pos;
+    }
+    else if (m.is_surf()) {
+      Wall& w = p.get_wall(m.s.wall_index);
+      const Vec3& wall_vert0 = p.get_geometry_vertex(w.vertex_indices[0]);
+      pos = GeometryUtil::uv2xyz(m.s.pos, w, wall_vert0);
+    }
+    else {
+      pos = Vec3(POS_INVALID);
+      assert(false);
+    }
+
+    Collision collision(
+        CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, pos, rxn_class);
+
+    bool ignoredA, ignoredB;
+    // creates new molecule(s) as output of the unimolecular reaction
+    // !! might invalidate references (we might reorder defuncting and outcome call later)
+    int outcome_res = outcome_products_random(p, collision, scheduled_time, pathway_index, ignoredA, ignoredB);
+    assert(outcome_res == RX_A_OK);
+
+    Molecule& m_new_ref = p.get_m(id);
+
+    const RxnRule* unimol_rx = rxn_class->get_rxn_for_pathway(pathway_index);
+
+    // and defunct this molecule if it was not kept
+    assert(unimol_rx->reactants.size() == 1);
+    if (!unimol_rx->is_cplx_reactant_on_both_sides_of_rxn(0)) {
+    #ifdef DEBUG_RXNS
+      DUMP_CONDITION4(
+        m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);
+      );
+    #endif
+      p.set_molecule_as_defunct(m_new_ref);
+      return false;
+    }
   }
-  else if (m.is_surf()) {
-    Wall& w = p.get_wall(m.s.wall_index);
-    const Vec3& wall_vert0 = p.get_geometry_vertex(w.vertex_indices[0]);
-    pos = GeometryUtil::uv2xyz(m.s.pos, w, wall_vert0);
-  }
-  else {
-    pos = Vec3(POS_INVALID);
-    assert(false);
-  }
 
-  Collision collision(
-      CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, pos, rxn_class);
-
-  bool ignoredA, ignoredB;
-  // creates new molecule(s) as output of the unimolecular reaction
-  // !! might invalidate references (we might reorder defuncting and outcome call later)
-  int outcome_res = outcome_products_random(p, collision, scheduled_time, pathway_index, ignoredA, ignoredB);
-  assert(outcome_res == RX_A_OK);
-
+  // molecule survived
+  // we must reschedule the molecule's unimol rxn, this will happen right away
+  // during the molecule's diffusion
   Molecule& m_new_ref = p.get_m(id);
+  m_new_ref.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
-  const RxnRule* unimol_rx = rxn_class->get_rxn_for_pathway(pathway_index);
-
-  // and defunct this molecule if it was not kept
-  assert(unimol_rx->reactants.size() == 1);
-  if (!unimol_rx->is_cplx_reactant_on_both_sides_of_rxn(0)) {
-  #ifdef DEBUG_RXNS
-    DUMP_CONDITION4(
-      m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);
-    );
-  #endif
-    p.set_molecule_as_defunct(m_new_ref);
-    return false;
-  }
-  else {
-    // we must reschedule the molecule's unimol rxn, this will happen right away 
-    // during the molecule's diffusion
-    m_new_ref.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
-    
-    // molecule survived
-    return true;
-  }
+  return true;
 }
 
 

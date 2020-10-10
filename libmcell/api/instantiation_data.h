@@ -27,7 +27,7 @@
 #include "api/common.h"
 #include "api/api_utils.h"
 #include "api/release_site.h"
-#include "api/geometry_object.h"
+#include "bng/bng_defines.h"
 
 namespace BNG {
 class BNGData;
@@ -43,7 +43,7 @@ class Subsystem;
 class InstantiationData: public GenInstantiationData {
 public:
 
-  typedef std::map<std::string, std::shared_ptr<Region>> CompartmentRegionMap;
+  typedef std::map<BNG::component_type_id_t, std::shared_ptr<Region>> CompartmentRegionMap;
 
   // from generated template
   void add_release_site(std::shared_ptr<ReleaseSite> s) override {

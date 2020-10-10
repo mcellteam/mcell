@@ -26,6 +26,7 @@ ostream& errs_loc() {
 ostream& errs_loc(const ASTBaseNode* loc) {
   assert(loc != nullptr);
   assert(loc->has_loc);
+  assert(loc->file != nullptr);
   cerr <<
       loc->file << ":" << loc->line <<
       ": error: ";

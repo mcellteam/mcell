@@ -297,6 +297,7 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
 
 
 void SemanticAnalyzer::convert_and_store_compartments() {
+  // first define all compartments without their parents and children
   for (size_t i = 0; i < ctx->compartments.items.size(); i++) {
     const ASTCompartmentNode* n = to_compartment_node(ctx->compartments.items[i]);
     Compartment c;
@@ -331,9 +332,6 @@ void SemanticAnalyzer::convert_and_store_compartments() {
     }
     c.volume = volume;
 
-    // parent_name
-    c.parent_name = n->parent_name;
-
     bng_data->add_compartment(c);
   }
 
@@ -341,14 +339,54 @@ void SemanticAnalyzer::convert_and_store_compartments() {
     return;
   }
 
-  // check that all parents were defined
+  // now define their parents
   for (size_t i = 0; i < ctx->compartments.items.size(); i++) {
     const ASTCompartmentNode* n = to_compartment_node(ctx->compartments.items[i]);
-    if (n->parent_name != "" && bng_data->find_compartment_id(n->parent_name) == COMPARTMENT_ID_INVALID) {
-      errs_loc(n) <<
-          "Compartment's '" << n->name << "' parent '" << n->parent_name << "' was not defined.\n"; // test N0303
+
+    Compartment* c = bng_data->find_compartment(n->name);
+    assert(c != nullptr);
+    if (n->parent_name != "") {
+
+      compartment_id_t parent_compartment_id = bng_data->find_compartment_id(n->parent_name);
+      if (parent_compartment_id == COMPARTMENT_ID_INVALID) {
+        errs_loc(n) <<
+            "Compartment's '" << n->name << "' parent '" << n->parent_name << "' was not defined.\n"; // test N0303
+        ctx->inc_error_count();
+        continue;
+      }
+      // set parent
+      c->parent_compartment_id = parent_compartment_id;
+
+      Compartment& parent = bng_data->get_compartment(parent_compartment_id);
+
+      // check
+      if (c->is_3d == parent.is_3d) {
+        errs_loc(n) <<
+            "Parent compartment " + parent.name +
+            " must be of different dimensionality than its child '" + c->name + "'."; // test TODO
+        ctx->inc_error_count();
+        continue;
+      }
+
+      // set 'c' as a child of its parent
+      parent.children_compartments.insert(c->id);
+    }
+  }
+
+  if (ctx->get_error_count()) {
+    return;
+  }
+
+  for (size_t i = 0; i < ctx->compartments.items.size(); i++) {
+    const ASTCompartmentNode* n = to_compartment_node(ctx->compartments.items[i]);
+
+    // check that the lowest level children is 3d
+    const Compartment* c = bng_data->find_compartment(n->name);
+    if (!c->has_children() && !c->is_3d) {
+      errs() <<
+          "Compartment without sub-compartments '" + c->name + "' must be a 3D compartment."; // test TODO
+          " must be of different dimensionality than its child '" + c->name + "'.";
       ctx->inc_error_count();
-      continue;
     }
   }
 }
@@ -583,6 +621,19 @@ void SemanticAnalyzer::convert_cplx(
     Cplx& bng_cplx
 ) {
 
+  // determine compartment
+  string compartment_name = get_compartment_name(cplx_node);
+  if (compartment_name != "") {
+    compartment_id_t cid =
+        bng_data->find_compartment_id(compartment_name);
+    if (cid == COMPARTMENT_ID_INVALID) {
+        errs_loc(cplx_node) <<
+            "Compartment '" << compartment_name << "' was not defined.\n"; // tests N0305, N0306
+        ctx->inc_error_count();
+    }
+    bng_cplx.set_compartment_id(cid);
+  }
+
   for (const ASTMolNode* m: cplx_node->mols) {
 
     // molecule ids are based on their name
@@ -768,20 +819,6 @@ void SemanticAnalyzer::convert_seed_species() {
       return;
     }
 
-    // determine compartment
-    string compartment_name = get_compartment_name(ss_node->cplx);
-    if (compartment_name != "") {
-      compartment_id_t cid =
-          bng_data->find_compartment_id(compartment_name);
-      if (cid == COMPARTMENT_ID_INVALID) {
-          errs_loc(n) <<
-              "Compartment '" << compartment_name << "' used in seed species was not defined.\n"; // tests N0305, N0306
-          ctx->inc_error_count();
-          continue;
-      }
-      ss.compartment_id = cid;
-    }
-
     ASTExprNode* orig_expr = to_expr_node(ss_node->count);
     ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);
     ss.count = new_expr->get_dbl();
@@ -842,6 +879,9 @@ bool SemanticAnalyzer::check_and_convert_parsed_file(
 
   // the following conversions do not use the bng_data.parameters map
   convert_and_evaluate_parameters(parameter_overrides);
+  if (ctx->get_error_count() != 0) {
+    return false;
+  }
 
   // first compute all reaction rates
   resolve_rxn_rates();

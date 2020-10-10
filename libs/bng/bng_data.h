@@ -20,13 +20,11 @@ class SeedSpecies {
 public:
   SeedSpecies(const BNGData* bng_data)
     : cplx(bng_data),
-      count(0),
-      compartment_id(COMPARTMENT_ID_INVALID) {
+      count(0) {
   }
 
-  Cplx cplx;
+  Cplx cplx; // may also contain compartment where molecules should be released
   float_t count; // count of molecules to be released (exact value from the BNGL file)
-  compartment_id_t compartment_id; // compartment where molecules should be released
 };
 
 
@@ -52,12 +50,24 @@ public:
 class Compartment {
 public:
   Compartment()
-    : is_3d(true), volume(FLT_INVALID) {
+    : id(COMPARTMENT_ID_INVALID), is_3d(true), volume(FLT_INVALID),
+      parent_compartment_id(COMPARTMENT_ID_INVALID)
+      {
   }
+  compartment_id_t id;
   std::string name;
   bool is_3d; // 2d if this member is false
   float_t volume;
-  std::string parent_name;
+  compartment_id_t parent_compartment_id; // COMPARTMENT_ID_INVALID if the compartment has no parents
+  std::set<compartment_id_t> children_compartments; // those are direct children
+
+  bool has_parent() const {
+    return parent_compartment_id != COMPARTMENT_ID_INVALID;
+  }
+
+  bool has_children() const {
+    return !children_compartments.empty();
+  }
 };
 
 
@@ -160,7 +170,13 @@ public:
   compartment_id_t find_compartment_id(const std::string& name) const;
 
   // returns nullptr if compartment with this name was not found
+  Compartment* find_compartment(const std::string& name);
   const Compartment* find_compartment(const std::string& name) const;
+
+  Compartment& get_compartment(const compartment_id_t id) {
+    assert(id < compartments.size());
+    return compartments[id];
+  }
 
   const Compartment& get_compartment(const compartment_id_t id) const {
     assert(id < compartments.size());
