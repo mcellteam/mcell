@@ -39,11 +39,11 @@ enum class NodeType {
   Component,
   Molecule,
   Compartment,
+  CplxInstance,
   RxnRule,
   SeedSpecies,
   Observable,
-  Str,
-  Separator
+  Str
 };
 
 
@@ -61,13 +61,6 @@ enum class ExprType {
   Mul,
   Div,
   Pow
-};
-
-
-enum class SeparatorType {
-  Invalid,
-  Plus,
-  Dot
 };
 
 
@@ -119,6 +112,10 @@ public:
     return node_type == NodeType::Compartment;
   }
 
+  bool is_cplx_instance() const {
+    return node_type == NodeType::CplxInstance;
+  }
+
   bool is_rxn_rule() const {
     return node_type == NodeType::RxnRule;
   }
@@ -129,10 +126,6 @@ public:
 
   bool is_observable() const {
     return node_type == NodeType::Observable;
-  }
-
-  bool is_separator() const {
-    return node_type == NodeType::Separator;
   }
 
   NodeType node_type;
@@ -257,39 +250,9 @@ public:
 };
 
 
-// separators represent:
-//  '+' - adding a reactant or a product to a side of a reaction)
-//  '.' - creating a complex with another molecule
-class ASTSeparatorNode: public ASTBaseNode {
-public:
-  ASTSeparatorNode()
-    : separator_type(SeparatorType::Invalid) {
-    node_type = NodeType::Separator;
-  }
-
-  bool is_dot() const {
-    return separator_type == SeparatorType::Dot;
-  }
-
-  bool is_plus() const {
-    return separator_type == SeparatorType::Plus;
-  }
-
-  void dump(const std::string ind) const override;
-
-  char to_char() const {
-    assert(separator_type != SeparatorType::Invalid);
-    return (separator_type == SeparatorType::Dot) ? '.' : '+';
-  }
-
-  SeparatorType separator_type;
-};
-
-
 class ASTListNode: public ASTBaseNode {
 public:
-  ASTListNode()
-    : compartment_for_cplx_instance(nullptr) {
+  ASTListNode() {
     node_type = NodeType::List;
   }
   void dump(const std::string ind) const override;
@@ -300,15 +263,11 @@ public:
     return this;
   }
 
-  size_t size() {
+  size_t size() const {
     return items.size();
   }
 
   std::vector<ASTBaseNode*> items;
-
-  // list node is also used for complexes and we need to put a complexes
-  // compartment somewhere
-  ASTStrNode* compartment_for_cplx_instance;
 };
 
 
@@ -331,6 +290,7 @@ public:
 // into the symbol table
 // when used in reaction rule, it is referenced from the
 // reaction itself
+// TODO: rename to ASTMolNode
 class ASTMoleculeNode: public ASTBaseNode {
 public:
   ASTMoleculeNode()
@@ -365,6 +325,32 @@ public:
 };
 
 
+class ASTCplxInstanceNode: public ASTBaseNode {
+public:
+  ASTCplxInstanceNode()
+    : compartment(nullptr) {
+    node_type = NodeType::CplxInstance;
+  }
+  void dump(const std::string ind) const override;
+
+  ASTCplxInstanceNode* append(ASTMoleculeNode* n) {
+    assert(n != nullptr);
+    mols.push_back(n);
+    return this;
+  }
+
+  size_t size() const {
+    return mols.size();
+  }
+
+  std::vector<ASTMoleculeNode*> mols;
+
+  // list node is also used for complexes and we need to put a complexes
+  // compartment somewhere
+  ASTStrNode* compartment;
+};
+
+
 class ASTRxnRuleNode: public ASTBaseNode {
 public:
   ASTRxnRuleNode()
@@ -391,7 +377,7 @@ public:
   }
   void dump(const std::string ind) const override;
 
-  ASTListNode* cplx_instance;
+  ASTCplxInstanceNode* cplx_instance; // cplx to be released
   ASTExprNode* count;
 };
 
@@ -469,8 +455,6 @@ public:
 
   ASTListNode* new_list_node();
 
-  ASTSeparatorNode* new_separator_node(const SeparatorType type, const BNGLLTYPE& loc);
-
   ASTComponentNode* new_component_node(
       const std::string& name,
       ASTListNode* states,
@@ -493,6 +477,9 @@ public:
       const BNGLLTYPE& loc
   );
 
+  // location is given by the first added molecule node
+  ASTCplxInstanceNode* new_cplx_instance_node();
+
   ASTRxnRuleNode* new_rxn_rule_node(
       ASTStrNode* name,
       ASTListNode* reactants,
@@ -502,7 +489,7 @@ public:
   );
 
   ASTSeedSpeciesNode* new_seed_species_node(
-      ASTListNode* cplx_instance,
+      ASTCplxInstanceNode* cplx_instance,
       ASTExprNode* count
   );
 
@@ -549,7 +536,7 @@ public:
   // single_cplx_instance is set for mode when the parse parses a
   // single complex string with parse_cplx_instance_file(),
   // no need to delete it because deletion is handled by vector 'all_nodes'
-  ASTListNode* single_cplx_instance;
+  ASTCplxInstanceNode* single_cplx_instance;
 
   // ------------- other parsing utilities -----------------
 
@@ -652,6 +639,12 @@ static inline const ASTCompartmentNode* to_compartment_node(const ASTBaseNode* n
   return dynamic_cast<const ASTCompartmentNode*>(n);
 }
 
+static inline ASTCplxInstanceNode* to_cplx_instance_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_cplx_instance());
+  return dynamic_cast<const ASTCplxInstanceNode*>(n);
+}
+
 static inline ASTRxnRuleNode* to_rxn_rule_node(ASTBaseNode* n) {
   assert(n != nullptr);
   assert(n->is_rxn_rule());
@@ -677,12 +670,6 @@ static inline const ASTObservableNode* to_observable_node(const ASTBaseNode* n) 
   return dynamic_cast<const ASTObservableNode*>(n);
 }
 
-
-static inline const ASTSeparatorNode* to_separator(const ASTBaseNode* n) {
-  assert(n != nullptr);
-  assert(n->is_separator());
-  return dynamic_cast<const ASTSeparatorNode*>(n);
-}
 
 // returns bond index, BOND_VALUE_BOUND, BOND_VALUE_ANY or BOND_VALUE_UNBOUND
 bond_value_t str_to_bond_value(const std::string& s);

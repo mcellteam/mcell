@@ -86,6 +86,7 @@ namespace BNG {
   BNG::ASTStrNode* str_node;
   BNG::ASTComponentNode* component_node;
   BNG::ASTMoleculeNode* molecule_node;
+  BNG::ASTCplxInstanceNode* cplx_node;
 }
 
 %token TOK_BEGIN "begin"
@@ -131,9 +132,9 @@ namespace BNG {
 %type <list_node> rxn_rule_side
 %type <list_node> rates
 %type <boolean> rxn_rule_direction
-%type <list_node> cplx_instance
 %type <list_node> cplx_instance_list
-%type <list_node> cplx_instance_w_compartment
+%type <cplx_node> cplx_instance
+%type <cplx_node> cplx_instance_no_compartment
 %type <str_node> cplx_compartment
 
 // operator associativities and precendences
@@ -370,17 +371,11 @@ rxn_rule_side_or_zero:
 ;
 
 rxn_rule_side:
-      rxn_rule_side '+' molecule {
-        $1->append(g_ctx->new_separator_node(BNG::SeparatorType::Plus, @2));
+      rxn_rule_side '+' cplx_instance {
         $1->append($3);
         $$ = $1;
       }
-    | rxn_rule_side '.' molecule {
-        $1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot, @2));
-        $1->append($3);
-        $$ = $1;
-      }
-    | molecule {
+    | cplx_instance {
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
@@ -417,7 +412,7 @@ seed_species_list:
 ;
 
 seed_species_item:
-      cplx_instance_w_compartment expr {
+      cplx_instance expr {
 
         BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($1, $2); 
         g_ctx->add_seed_species(n);
@@ -426,9 +421,9 @@ seed_species_item:
 
 
 // similar to rxn_rule_side only contains one complex instance
-cplx_instance_w_compartment: 
-      cplx_compartment cplx_instance {
-        $2->compartment_for_cplx_instance = $1;
+cplx_instance: 
+      cplx_compartment cplx_instance_no_compartment {
+        $2->compartment = $1;
         $$ = $2;
       }
 
@@ -441,14 +436,13 @@ cplx_compartment:
       }
 ;
 
-cplx_instance:
-      cplx_instance '.' molecule {
-        $1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot, @2));
+cplx_instance_no_compartment:
+      cplx_instance_no_compartment '.' molecule {
         $1->append($3);
         $$ = $1;
       }
     | molecule {
-        $$ = g_ctx->new_list_node()->append($1);
+        $$ = g_ctx->new_cplx_instance_node()->append($1);
       }
 ;
       

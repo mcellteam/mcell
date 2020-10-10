@@ -57,6 +57,7 @@ const mol_type_id_t MOL_TYPE_ID_INVALID = ID_INVALID;
 
 typedef uint compartment_id_t;
 const compartment_id_t COMPARTMENT_ID_INVALID = ID_INVALID;
+const compartment_id_t COMPARTMENT_ID_DONT_CARE = ID_INVALID2;
 
 // rxn rules are always global and presumed to be constant
 typedef uint rxn_rule_id_t;

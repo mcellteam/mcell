@@ -51,31 +51,8 @@ void ASTStrNode::dump(const std::string ind) const {
 }
 
 
-// ------------------------------- ASTStrNode ------------------------
-void ASTSeparatorNode::dump(const std::string ind) const {
-  string s;
-  switch (separator_type) {
-    case SeparatorType::Dot:
-      s = ".";
-      break;
-    case SeparatorType::Plus:
-      s = "+";
-      break;
-    default:
-      assert(false);
-      s = "error";
-  }
-  cout << ind << "separator: '" << s << "'\n";
-  ASTBaseNode::dump(ind);
-}
-
-
 // ------------------------------- ASTListNode ------------------------
 void ASTListNode::dump(const std::string ind) const {
-  if (compartment_for_cplx_instance != nullptr) {
-    cout << ind << "  compartment_for_cplx_instance:\n";
-    compartment_for_cplx_instance->dump(ind + IND4);
-  }
   if (items.empty()) {
     cout << ind << "(empty)\n";
   }
@@ -131,7 +108,28 @@ void ASTCompartmentNode::dump(const std::string ind) const {
 }
 
 
-// ------------------------------- ASTMoleculeNode ------------------------
+// ------------------------------- ASTCplxInstanceNode ------------------------
+void ASTCplxInstanceNode::dump(const std::string ind) const {
+  if (compartment != nullptr) {
+    cout << ind << "  compartment:\n";
+    compartment->dump(ind + IND4);
+  }
+  if (mols.empty()) {
+    cout << ind << "(empty)\n";
+  }
+  else {
+    for (size_t i = 0; i < mols.size(); i++) {
+      assert(mols[i] != nullptr);
+      cout << ind << i << ": \n";
+      mols[i]->dump(ind + IND2);
+    }
+    cout << "\n";
+  }
+  ASTBaseNode::dump(ind);
+}
+
+
+// ------------------------------- ASTRxnRuleNode ------------------------
 void ASTRxnRuleNode::dump(const std::string ind) const {
   cout << ind << "reaction rule: name='" << name << "', reversible: " << (reversible?"true":"false") << "\n";
   cout << ind << "  reactants:\n";
@@ -324,15 +322,6 @@ ASTListNode* ParserContext::new_list_node() {
 }
 
 
-ASTSeparatorNode* ParserContext::new_separator_node(const SeparatorType type, const BNGLLTYPE& loc) {
-  ASTSeparatorNode* n = new ASTSeparatorNode();
-  n->separator_type = type;
-  n->set_loc(current_file, loc);
-  remember_node(n);
-  return n;
-}
-
-
 ASTComponentNode* ParserContext::new_component_node(
     const std::string& name,
     ASTListNode* state_list,
@@ -383,6 +372,13 @@ ASTCompartmentNode* ParserContext::new_compartment_node(
 }
 
 
+ASTCplxInstanceNode* ParserContext::new_cplx_instance_node() {
+  ASTCplxInstanceNode* n = new ASTCplxInstanceNode();
+  remember_node(n);
+  return n;
+}
+
+
 ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
     ASTStrNode* name,
     ASTListNode* reactants,
@@ -398,11 +394,11 @@ ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
   n->rates = rates;
 
   // use the first reactant as the location
-  assert(products->items.size() >= 1);
-  assert(products->items[0]->node_type == NodeType::Molecule);
-  assert(products->items[0]->has_loc);
+  assert(reactants->items.size() >= 1);
+  ASTCplxInstanceNode* cplx = to_cplx_instance_node(reactants->items[0]);
+  assert(cplx->mols[0]->has_loc);
   BNGLLTYPE loc;
-  loc.first_line = products->items[0]->line;
+  loc.first_line = cplx->mols[0]->line;
   n->set_loc(current_file, loc);
 
   remember_node(n);
@@ -411,7 +407,7 @@ ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
 
 
 ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
-    ASTListNode* cplx_instance,
+    ASTCplxInstanceNode* cplx_instance,
     ASTExprNode* count
 ) {
   ASTSeedSpeciesNode* n = new ASTSeedSpeciesNode();
@@ -419,11 +415,11 @@ ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
   n->count = count;
 
   // use the complex instance as the location
-  assert(cplx_instance->items.size() >= 1);
-  assert(cplx_instance->items[0]->node_type == NodeType::Molecule);
-  assert(cplx_instance->items[0]->has_loc);
+  assert(cplx_instance->mols.size() >= 1);
+  assert(cplx_instance->mols[0]->node_type == NodeType::Molecule);
+  assert(cplx_instance->mols[0]->has_loc);
   BNGLLTYPE loc;
-  loc.first_line = cplx_instance->items[0]->line;
+  loc.first_line = cplx_instance->mols[0]->line;
   n->set_loc(current_file, loc);
 
   remember_node(n);

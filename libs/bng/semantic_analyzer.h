@@ -58,27 +58,25 @@ private:
 
 
   MolInstance convert_molecule_pattern(const ASTMoleculeNode* m);
-  void convert_complex_pattern(
-      const small_vector<const ASTMoleculeNode*>& complex_nodes,
-      CplxInstance& pattern,
-      const bool allow_compartments = false
+  void convert_cplx(
+      const ASTCplxInstanceNode* cplx_node,
+      CplxInstance& pattern
   );
-  void convert_cplx_inst_or_rxn_rule_side(
+  void convert_rxn_rule_side(
       const ASTListNode* rule_side,
-      const bool convert_single_cplx_inst,
-      CplxInstanceVector& pattern,
-      const bool allow_compartments = false
+      const bool reactants_side,
+      CplxInstanceVector& patterns
   );
 
   void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction);
   void convert_and_store_rxn_rules();
 
-  std::string get_compartment_name(const ASTListNode* cplx_instance);
+  std::string get_compartment_name(const ASTCplxInstanceNode* cplx_node);
 
   void convert_seed_species();
   void convert_observables();
 
-  void extend_molecule_type_definitions(const ASTListNode* cplx_node);
+  void extend_molecule_type_definitions(const ASTCplxInstanceNode* cplx_node);
 
   // local copies so that we don't have to pass everything
   // as arguments
