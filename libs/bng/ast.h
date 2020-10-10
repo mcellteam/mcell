@@ -372,12 +372,12 @@ public:
 class ASTSeedSpeciesNode: public ASTBaseNode {
 public:
   ASTSeedSpeciesNode()
-    : cplx_instance(nullptr), count(nullptr) {
+    : cplx(nullptr), count(nullptr) {
     node_type = NodeType::SeedSpecies;
   }
   void dump(const std::string ind) const override;
 
-  ASTCplxNode* cplx_instance; // cplx to be released
+  ASTCplxNode* cplx; // cplx to be released
   ASTExprNode* count;
 };
 
@@ -489,14 +489,14 @@ public:
   );
 
   ASTSeedSpeciesNode* new_seed_species_node(
-      ASTCplxNode* cplx_instance,
+      ASTCplxNode* cplx,
       ASTExprNode* count
   );
 
   ASTObservableNode* new_observable_node(
       const std::string& type,
       const std::string& name,
-      ASTListNode* cplx_instances,
+      ASTListNode* cplx_patterns,
       const BNGLLTYPE& loc // location may be used to report wrong observable type
   );
 
@@ -533,8 +533,8 @@ public:
 
   ASTListNode observables;
 
-  // single_cplx_instance is set for mode when the parse parses a
-  // single complex string with parse_cplx_instance_file(),
+  // single_cplx is set for mode when the parse parses a
+  // single complex string with parse_single_cplx_string(),
   // no need to delete it because deletion is handled by vector 'all_nodes'
   ASTCplxNode* single_cplx;
 

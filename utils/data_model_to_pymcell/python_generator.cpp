@@ -562,7 +562,7 @@ void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& sub
   for (size_t i = 0; i < substances.size(); i++) {
 
     string orient = convert_orientation(orientations[i], true);
-    out << make_species_or_cplx_inst(data, substances[i], orient);
+    out << make_species_or_cplx(data, substances[i], orient);
     print_comma(out, i, substances);
   }
   out << " ]";
@@ -856,7 +856,7 @@ std::string PythonGenerator::generate_single_molecule_release_info_array(
 
       string cplx = release_site_item[KEY_MOLECULE].asString();
       gen_param_expr(out, NAME_COMPLEX_INSTANCE,
-          make_species_or_cplx_inst(data, cplx),
+          make_species_or_cplx(data, cplx),
           true);
 
       Value& point = points_list[i];
@@ -996,7 +996,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     bool is_vol;
     if (shape != VALUE_LIST) {
       string cplx = release_site_item[KEY_MOLECULE].asString();
-      gen_param_expr(out, NAME_COMPLEX_INSTANCE, make_species_or_cplx_inst(data, cplx), true);
+      gen_param_expr(out, NAME_COMPLEX_INSTANCE, make_species_or_cplx(data, cplx), true);
 
       string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
       if (orientation != "") {
@@ -1323,7 +1323,7 @@ string PythonGenerator::generate_count_terms_for_expression(
         bool comma_after_cplx = orientation == "" && where_to_count != "";
         gen_param_expr(
             out, NAME_SPECIES_PATTERN,
-            make_species_or_cplx_inst(data, what_to_count), comma_after_cplx);
+            make_species_or_cplx(data, what_to_count), comma_after_cplx);
 
         if (orientation != "") {
           gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
@@ -1466,7 +1466,7 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
         const char* count_type =
             (molecules_not_species) ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN;
 
-        gen_param_expr(out, count_type, make_species_or_cplx_inst(data, what_to_count), true);
+        gen_param_expr(out, count_type, make_species_or_cplx(data, what_to_count), true);
 
         if (orientation != "") {
           gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");

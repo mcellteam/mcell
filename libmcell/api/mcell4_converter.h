@@ -32,7 +32,7 @@ class ComponentType;
 class ComponentInstance;
 class MolType;
 class MolInstance;
-class CplxInstance;
+class Cplx;
 class Species;
 }
 
@@ -91,7 +91,7 @@ private:
 
   BNG::ComponentInstance convert_component_instance(API::ComponentInstance& api_ci);
   BNG::MolInstance convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn_or_observables = false);
-  BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn_or_observables = false);
+  BNG::Cplx convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn_or_observables = false);
 
   void convert_rxns();
 

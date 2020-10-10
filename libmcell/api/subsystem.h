@@ -35,7 +35,7 @@
 namespace BNG {
 class MolType;
 class RxnRule;
-class CplxInstance;
+class Cplx;
 }
 
 namespace MCell {
@@ -92,11 +92,11 @@ public:
   // auxiliary methods used also from InstantiationData
   std::shared_ptr<API::ComplexInstance> convert_cplx_instance(
       const BNG::BNGData& bng_data,
-      const BNG::CplxInstance& bng_inst);
+      const BNG::Cplx& bng_inst);
 
   std::shared_ptr<API::ComplexInstance> convert_cplx_instance_w_orientation(
       const BNG::BNGData& bng_data,
-      const BNG::CplxInstance& bng_inst,
+      const BNG::Cplx& bng_inst,
       const Orientation orientation);
 
 protected:

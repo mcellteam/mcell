@@ -59,7 +59,7 @@ int parse_bngl_file(
 // complexes gradually
 int parse_single_cplx_string(
     const std::string& cplx_string, BNGData& bng_data,
-    CplxInstance& res_cplx
+    Cplx& res_cplx
 ) {
 
   create_parser_context();
@@ -87,7 +87,7 @@ int parse_single_cplx_string(
 
   BNG::SemanticAnalyzer sema;
 
-  CplxInstanceVector cplx_vec;
+  CplxVector cplx_vec;
 
   sema.check_and_convert_single_cplx(ctx, &bng_data, res_cplx);
 

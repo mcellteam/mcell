@@ -134,13 +134,13 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   // RxnRule
   res_rr->fwd_rate = bng_rr.base_rate_constant;
 
-  for (const BNG::CplxInstance& inst: bng_rr.reactants) {
+  for (const BNG::Cplx& inst: bng_rr.reactants) {
     // MCell3R accepts reactants with any orientation
     res_rr->reactants.push_back(
         convert_cplx_instance_w_orientation(bng_data, inst, Orientation::ANY));
   }
 
-  for (const BNG::CplxInstance& inst: bng_rr.products) {
+  for (const BNG::Cplx& inst: bng_rr.products) {
     // MCell3R always creates products with the orientation up
     res_rr->products.push_back(
         convert_cplx_instance_w_orientation(bng_data, inst, Orientation::UP));
@@ -173,7 +173,7 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 
 std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
     const BNG::BNGData& bng_data,
-    const BNG::CplxInstance& bng_inst) {
+    const BNG::Cplx& bng_inst) {
 
   auto res_cplx_inst = API::ComplexInstance::make_shared_empty();
 
@@ -214,7 +214,7 @@ std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
 // sets orientation if the resulting cplx is a surface cplx
 std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance_w_orientation(
     const BNG::BNGData& bng_data,
-    const BNG::CplxInstance& bng_inst,
+    const BNG::Cplx& bng_inst,
     const Orientation orientation) {
   shared_ptr<API::ComplexInstance> res =
       Subsystem::convert_cplx_instance(bng_data, bng_inst);

@@ -82,10 +82,10 @@ public:
     return SPECIES_ID_INVALID;
   }
 
-  species_id_t find_full_match(const CplxInstance& cplx_inst) const {
+  species_id_t find_full_match(const Cplx& cplx) const {
     // simple equality comparison for now, some hashing will be needed
     for (const Species& s: species) {
-      if (s.cplx_matches_fully_ignore_orientation_and_flags(cplx_inst)) {
+      if (s.cplx_matches_fully_ignore_orientation_and_flags(cplx)) {
         return s.id;
       }
     }
@@ -143,7 +143,7 @@ public:
         species_id_to_index_mapping[id] < species.size();
   }
 
-  const CplxInstance& get_as_cplx_instance(const species_id_t id) const {
+  const Cplx& get_as_cplx(const species_id_t id) const {
     return get(id);
   }
 

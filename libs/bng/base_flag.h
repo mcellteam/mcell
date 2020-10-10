@@ -5,8 +5,7 @@
 
 namespace BNG {
 
-// this single enum defines flags for species, complex instances and molecule instances
-// TODO: rename to something shorter
+// this single enum defines flags for species, complexes and molecule instances
 enum species_cplx_mol_rxn_flag_t {
 
   // maintaining the same values as in MCell

@@ -33,7 +33,7 @@ namespace BNG {
 
 // ------------------------------------ CplxInstance -------------------------
 
-bool CplxInstance::is_fully_qualified() const {
+bool Cplx::is_fully_qualified() const {
   for (const MolInstance& mi: mol_instances) {
     if (!mi.is_fully_qualified(*bng_data)) {
       return false;
@@ -43,7 +43,7 @@ bool CplxInstance::is_fully_qualified() const {
 }
 
 
-bool CplxInstance::is_connected() const {
+bool Cplx::is_connected() const {
   assert(is_finalized());
 
   // simply count connected components
@@ -60,7 +60,7 @@ bool CplxInstance::is_connected() const {
 }
 
 
-void CplxInstance::finalize() {
+void Cplx::finalize() {
   if (mol_instances.empty()) {
     return; // empty complex, ignoring finalization
   }
@@ -112,7 +112,7 @@ void CplxInstance::finalize() {
 }
 
 
-void CplxInstance::create_graph() {
+void Cplx::create_graph() {
   graph.clear();
 
   // convert molecule instances and their bonds into the boost graph representation
@@ -146,7 +146,7 @@ void CplxInstance::create_graph() {
 }
 
 
-bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const {
+bool Cplx::matches_complex_pattern_ignore_orientation(const Cplx& pattern) const {
 
 #ifdef DEBUG_CPLX_MATCHING
   cout << "** matches_complex_pattern_ignore_orientation:\n";
@@ -174,7 +174,7 @@ bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance
 }
 
 
-uint CplxInstance::get_pattern_num_matches(const CplxInstance& pattern) const {
+uint Cplx::get_pattern_num_matches(const Cplx& pattern) const {
   assert(is_finalized() && pattern.is_finalized());
   VertexMappingVector mappings;
   get_subgraph_isomorphism_mappings(pattern.graph, graph, false, mappings);
@@ -182,7 +182,7 @@ uint CplxInstance::get_pattern_num_matches(const CplxInstance& pattern) const {
 }
 
 
-bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& pattern) const {
+bool Cplx::matches_complex_fully_ignore_orientation(const Cplx& pattern) const {
   if (graph.m_vertices.size() != pattern.graph.m_vertices.size()) {
     // we need full match
     return false;
@@ -196,7 +196,7 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
 }
 
 
-void CplxInstance::renumber_bonds() {
+void Cplx::renumber_bonds() {
   map<bond_value_t, bond_value_t> new_bond_values;
 
   for (MolInstance& mi: mol_instances) {
@@ -223,7 +223,7 @@ void CplxInstance::renumber_bonds() {
 // even the usage in nfsim seems to be wrong?
 // TODO: split into multiple functions
 // https://computationalcombinatorics.wordpress.com/2012/09/20/canonical-labelings-with-nauty/
-void CplxInstance::canonicalize() {
+void Cplx::canonicalize() {
   if (mol_instances.size() == 1) {
     // sort components in molecules back to their prescribed form
     // and in a way that the state name is ascending (wee have no bonds here)
@@ -465,7 +465,7 @@ void CplxInstance::canonicalize() {
 }
 
 
-std::string CplxInstance::to_str(bool in_surf_reaction) const {
+std::string Cplx::to_str(bool in_surf_reaction) const {
   stringstream ss;
   for (size_t i = 0; i < mol_instances.size(); i++) {
     ss << mol_instances[i].to_str(*bng_data);
@@ -487,7 +487,7 @@ std::string CplxInstance::to_str(bool in_surf_reaction) const {
 }
 
 
-void CplxInstance::dump(const bool for_diff, const std::string ind) const {
+void Cplx::dump(const bool for_diff, const std::string ind) const {
   if (!for_diff) {
     cout << ind << to_str();
   }

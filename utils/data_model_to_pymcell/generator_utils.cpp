@@ -247,7 +247,7 @@ string remove_compartments(const std::string& species_name) {
 }
 
 
-static string make_cplx_inst(const string bngl_str, const string orient = "") {
+static string make_cplx(const string bngl_str, const string orient = "") {
   string res = S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + fix_dots_in_simple_species(bngl_str) + "'";
   if (orient != "") {
     res += S(", ") + API::NAME_ORIENTATION + " = " + MDOT + API::NAME_ENUM_ORIENTATION + "." + orient;
@@ -257,7 +257,7 @@ static string make_cplx_inst(const string bngl_str, const string orient = "") {
 }
 
 
-string make_species_or_cplx_inst(
+string make_species_or_cplx(
     const SharedGenData& data, const std::string& name, const std::string& orient) {
 
   if (!data.bng_mode) {
@@ -280,7 +280,7 @@ string make_species_or_cplx_inst(
   }
 
   // otherwise we will generate a BNGL string
-  return make_cplx_inst(remove_compartments(name), orient);
+  return make_cplx(remove_compartments(name), orient);
 }
 
 

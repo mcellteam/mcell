@@ -381,7 +381,7 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
   for (const ASTBaseNode* n: ctx->seed_species.items) {
     const ASTSeedSpeciesNode* ss = to_seed_species_node(n);
     found_mol_nodes.insert(found_mol_nodes.end(),
-        ss->cplx_instance->mols.begin(), ss->cplx_instance->mols.end());
+        ss->cplx->mols.begin(), ss->cplx->mols.end());
   }
 
   // sort by name and skip those that are already known
@@ -580,7 +580,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
 // for a pattern it is ok to not to list all components
 void SemanticAnalyzer::convert_cplx(
     const ASTCplxNode* cplx_node,
-    CplxInstance& bng_cplx
+    Cplx& bng_cplx
 ) {
 
   for (const ASTMolNode* m: cplx_node->mols) {
@@ -630,7 +630,7 @@ void SemanticAnalyzer::convert_cplx(
 void SemanticAnalyzer::convert_rxn_rule_side(
     const ASTListNode* rule_side,
     const bool reactants_side,
-    CplxInstanceVector& patterns) {
+    CplxVector& patterns) {
 
   // we need to check each molecule type from each complex
   std::vector<const ASTMolNode*> current_complex_nodes;
@@ -653,7 +653,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(
       }
     }
 
-    CplxInstance pattern(bng_data);
+    Cplx pattern(bng_data);
     convert_cplx(cplx, pattern);
     if (ctx->get_error_count() > 0) {
       return;
@@ -687,10 +687,10 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
   for (const ASTBaseNode* n: ctx->rxn_rules.items) {
     const ASTRxnRuleNode* r = to_rxn_rule_node(n);
 
-    CplxInstanceVector reactants;
+    CplxVector reactants;
     convert_rxn_rule_side(r->reactants, true, reactants);
 
-    CplxInstanceVector products;
+    CplxVector products;
     convert_rxn_rule_side(r->products, false, products);
 
     if (ctx->get_error_count() > 0) {
@@ -745,7 +745,7 @@ string SemanticAnalyzer::get_compartment_name(const ASTCplxNode* cplx) {
       string new_name = mol_node->compartment->str;
       if (res != "" && new_name != res) {
         errs_loc(mol_node) <<
-            "Compartment mismatch, complex instance cannot be in two different compartments '" <<
+            "Compartment mismatch, complex cannot be in two different compartments '" <<
             res << "' and '" << new_name << "'.\n"; // test N0307
         ctx->inc_error_count();
         return "";
@@ -763,13 +763,13 @@ void SemanticAnalyzer::convert_seed_species() {
 
     SeedSpecies ss(bng_data);
 
-    convert_cplx(ss_node->cplx_instance, ss.cplx_instance);
+    convert_cplx(ss_node->cplx, ss.cplx);
     if (ctx->get_error_count() != 0) {
       return;
     }
 
     // determine compartment
-    string compartment_name = get_compartment_name(ss_node->cplx_instance);
+    string compartment_name = get_compartment_name(ss_node->cplx);
     if (compartment_name != "") {
       compartment_id_t cid =
           bng_data->find_compartment_id(compartment_name);
@@ -815,7 +815,7 @@ void SemanticAnalyzer::convert_observables() {
 
     for (const ASTBaseNode* base_pat: o_node->cplx_patterns->items) {
       const ASTCplxNode* cplx_pat = to_cplx_node(base_pat);
-      CplxInstance cplx(bng_data);
+      Cplx cplx(bng_data);
       convert_cplx(cplx_pat, cplx);
       if (ctx->get_error_count() != 0) {
         return;
@@ -942,9 +942,9 @@ void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxNode* cplx_
 
 
 // returns true if conversion and semantic checks passed,
-// resulting complex inst is stored into res
+// resulting complex is stored into res
 bool SemanticAnalyzer::check_and_convert_single_cplx(
-    ParserContext* ctx_, BNGData* res_bng, CplxInstance& res) {
+    ParserContext* ctx_, BNGData* res_bng, Cplx& res) {
   assert(ctx_ != nullptr);
   assert(res_bng != nullptr);
 

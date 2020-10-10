@@ -103,7 +103,7 @@ namespace BNG {
 %token TOK_OBSERVABLES "observables"
 %token TOK_ACTIONS "actions"
 
-// special token to switch parser to mode where it parses a single complex instance
+// special token to switch parser to mode where it parses a single complex
 %token TOK_SINGLE_CPLX "!CPLX"
 
 %token <str> TOK_ID "identifier"

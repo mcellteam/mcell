@@ -27,7 +27,7 @@ public:
   );
 
   bool check_and_convert_single_cplx(
-      ParserContext* ctx_, BNGData* res_bng, CplxInstance& res);
+      ParserContext* ctx_, BNGData* res_bng, Cplx& res);
 
 private:
   ASTExprNode* evaluate_to_dbl(ASTExprNode* root, std::set<std::string> used_ids={});
@@ -60,12 +60,12 @@ private:
   MolInstance convert_molecule_pattern(const ASTMolNode* m);
   void convert_cplx(
       const ASTCplxNode* cplx_node,
-      CplxInstance& pattern
+      Cplx& pattern
   );
   void convert_rxn_rule_side(
       const ASTListNode* rule_side,
       const bool reactants_side,
-      CplxInstanceVector& patterns
+      CplxVector& patterns
   );
 
   void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction);

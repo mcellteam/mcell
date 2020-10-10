@@ -185,7 +185,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
 
   // we need to create API representation for the cplx instance we got
   rel_site->complex_instance =
-      subsystem.convert_cplx_instance(bng_data, bng_ss.cplx_instance);
+      subsystem.convert_cplx_instance(bng_data, bng_ss.cplx);
 
   bool surf_release = rel_site->complex_instance->is_surf();
   if (surf_release) {

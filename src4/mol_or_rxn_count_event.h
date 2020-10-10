@@ -112,7 +112,7 @@ public:
   species_id_t species_id;
 
   // valid when species_pattern_type is SpeciesPattern or MoleculesPattern
-  BNG::CplxInstance species_molecules_pattern;
+  BNG::Cplx species_molecules_pattern;
 
   // set in compute_count_species_info based on species_molecules_pattern
   // presence is tested when species_pattern_type is SpeciesPattern

@@ -19,12 +19,12 @@ namespace BNG {
 class SeedSpecies {
 public:
   SeedSpecies(const BNGData* bng_data)
-    : cplx_instance(bng_data),
+    : cplx(bng_data),
       count(0),
       compartment_id(COMPARTMENT_ID_INVALID) {
   }
 
-  CplxInstance cplx_instance;
+  Cplx cplx;
   float_t count; // count of molecules to be released (exact value from the BNGL file)
   compartment_id_t compartment_id; // compartment where molecules should be released
 };
@@ -45,7 +45,7 @@ public:
 
   ObservableType type;
   std::string name;
-  std::vector<CplxInstance> patterns;
+  std::vector<Cplx> patterns;
 };
 
 

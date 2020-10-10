@@ -1,25 +1,3 @@
-/******************************************************************************
- *
- * Copyright (C) 2019 by
- * The Salk Institute for Biological Studies and
- * Pittsburgh Supercomputing Center, Carnegie Mellon University
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
- *
-******************************************************************************/
 
 #include <iostream>
 #include <sstream>
@@ -105,32 +83,32 @@ void Species::update_rxn_and_custom_flags(
 
     // second reactant - we must not define new species for reactant here
     // because adding it to the species array might invalidate *this,
-    // we must analyze the cplx instance
+    // we must analyze the cplx
     int my_index = rxn->get_reactant_index(*this, all_species);
     assert(my_index == 0 || my_index == 1);
     int second_index = (my_index + 1) % 2;
 
-    const CplxInstance& second_reactant_inst = rxn->reactants[second_index];
+    const Cplx& second_reactant = rxn->reactants[second_index];
 
     // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
     if (is_vol()) {
-      if (second_reactant_inst.is_vol()) {
+      if (second_reactant.is_vol()) {
         set_flag(SPECIES_FLAG_CAN_VOLVOL);
       }
-      if (second_reactant_inst.is_surf()) {
+      if (second_reactant.is_surf()) {
         set_flag(SPECIES_FLAG_CAN_VOLSURF);
       }
-      if (second_reactant_inst.is_reactive_surface()) {
+      if (second_reactant.is_reactive_surface()) {
         set_flag(SPECIES_FLAG_CAN_VOLWALL);
       }
     }
 
     if (is_surf()) {
-      if (second_reactant_inst.is_surf()) {
+      if (second_reactant.is_surf()) {
         set_flag(SPECIES_FLAG_CAN_SURFSURF);
       }
 
-      if (second_reactant_inst.is_reactive_surface()) {
+      if (second_reactant.is_reactive_surface()) {
         set_flag(SPECIES_FLAG_CAN_REGION_BORDER);
       }
     }
@@ -359,7 +337,7 @@ void Species::dump(const BNGData& bng_data, const string ind) const {
   cout << ind << "time_step: \t\t" << time_step << " [float_t] \t\t/* Minimum (maximum?) sensible timestep */\n";
   cout << ind << "flags: \t\t" << BaseSpeciesCplxMolFlag::to_str() << "\n";
   cout << ind << "CplxInstance:\n";
-  CplxInstance::dump(true, ind + "  ");
+  Cplx::dump(true, ind + "  ");
   cout << "\n";
 }
 

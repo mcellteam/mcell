@@ -20,10 +20,10 @@ class RxnContainer;
 
 typedef std::vector<Species> SpeciesVector;
 
-class Species: public CplxInstance, public MolTypeSpeciesCommonData {
+class Species: public Cplx, public MolTypeSpeciesCommonData {
 public:
   Species(const BNGData& data)
-    : CplxInstance(&data),
+    : Cplx(&data),
       id(SPECIES_ID_INVALID),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       rxn_flags_were_updated(false), num_instantiations(0) {
@@ -32,17 +32,17 @@ public:
   // create species from a complex instance
   // id is not set and name is determined automatically
   Species(
-      const CplxInstance& cplx_inst, const BNGData& data, const BNGConfig& config,
+      const Cplx& cplx_inst, const BNGData& data, const BNGConfig& config,
       const bool do_update_diffusion_constant = true)
-    : CplxInstance(&data),
+    : Cplx(&data),
       id(SPECIES_ID_INVALID),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       rxn_flags_were_updated(false), num_instantiations(0) {
 
     mol_instances = cplx_inst.mol_instances;
     // the only finalize method, but showing that we are finalizing
-    // just the CplxInstance part of the Species
-    CplxInstance::finalize();
+    // just the Cplx part of the Species
+    Cplx::finalize();
     if (do_update_diffusion_constant) {
       update_diffusion_constant(data, config);
     }
@@ -53,7 +53,7 @@ public:
 
   // we need explicit copy ctor to call CplxInstance's copy ctor
   Species(const Species& other)
-    : CplxInstance(other), MolTypeSpeciesCommonData(other),
+    : Cplx(other), MolTypeSpeciesCommonData(other),
       id(other.id), name(other.name),
       space_step(other.space_step), time_step(other.time_step),
       rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(other.num_instantiations) {
@@ -64,7 +64,7 @@ public:
 
   // TODO: why is this called from the Species ctor, can we remove it?
   void finalize() {
-    CplxInstance::finalize();
+    Cplx::finalize();
     set_flag(SPECIES_FLAG_CAN_DIFFUSE, D != 0);
     if (is_reactive_surface()) {
       // surfaces are always assumed to be instantiated
@@ -73,7 +73,7 @@ public:
   }
 
   void canonicalize() {
-    CplxInstance::canonicalize(); // calls also CplxInstance::finalize
+    Cplx::canonicalize(); // calls also CplxInstance::finalize
     name = to_str();
   }
 
@@ -225,14 +225,14 @@ public:
     // we do not want to compare by name because name is defined
     // by the complex and depends on ordering of molecules and components
     return
-        CplxInstance::matches_fully(s2) &&
+        Cplx::matches_fully(s2) &&
         cmp_eq(D, s2.D) &&
         cmp_eq(space_step, s2.space_step) &&
         cmp_eq(time_step, s2.time_step);
   }
 
-  bool cplx_matches_fully_ignore_orientation_and_flags(const CplxInstance& cplx_inst) const {
-    return CplxInstance::matches_fully(cplx_inst, true);
+  bool cplx_matches_fully_ignore_orientation_and_flags(const Cplx& cplx) const {
+    return Cplx::matches_fully(cplx, true);
   }
 
   // for initialization

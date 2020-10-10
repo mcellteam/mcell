@@ -1,5 +1,5 @@
 # FAIL
-# OUTPUT: error: Compartment mismatch, complex instance cannot be in two different compartments 'C' and 'B'.
+# OUTPUT: error: Compartment mismatch, complex cannot be in two different compartments 'C' and 'B'.
 
 begin compartments
    B 3 1

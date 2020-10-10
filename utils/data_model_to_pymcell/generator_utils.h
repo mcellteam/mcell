@@ -173,7 +173,7 @@ static string make_id(const string& s) {
 string remove_compartments(const std::string& species_name);
 
 
-string make_species_or_cplx_inst(
+string make_species_or_cplx(
     const SharedGenData& data,
     const std::string& name,
     const std::string& orient = "");

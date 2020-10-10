@@ -63,13 +63,13 @@ typedef std::vector<ProductSpeciesWIndices> RxnProductsVector;
 class ProductCplxWIndices {
 public:
   ProductCplxWIndices(
-      const CplxInstance& product_cplx_,
+      const Cplx& product_cplx_,
       const std::set<uint>& rule_product_indices_)
     : product_cplx(product_cplx_),
       rule_product_indices(rule_product_indices_) {
   }
 
-  CplxInstance product_cplx;
+  Cplx product_cplx;
   // must use container with guaranteed order
   std::set<uint> rule_product_indices;
 };
@@ -200,8 +200,8 @@ public:
   RxnType type;
 
   // the complex species of reactants are patterns
-  CplxInstanceVector reactants;
-  CplxInstanceVector products;
+  CplxVector reactants;
+  CplxVector products;
 
   // base rate constant for this reaction as obtained from the BNGL or other input
   float_t base_rate_constant;
@@ -259,12 +259,12 @@ public:
     return base_rate_constant;
   }
 
-  const CplxInstance& get_cplx_reactant(const uint index) const {
+  const Cplx& get_cplx_reactant(const uint index) const {
     assert(index <= reactants.size());
     return reactants[index];
   }
 
-  const CplxInstance& get_cplx_product(const uint index) const {
+  const Cplx& get_cplx_product(const uint index) const {
     assert(index <= products.size());
     return products[index];
   }
@@ -286,12 +286,12 @@ public:
   // used in semantic check
   bool check_reactants_products_mapping(std::ostream& out);
 
-  void append_reactant(const CplxInstance& inst) {
-    reactants.push_back(inst);
+  void append_reactant(const Cplx& pattern) {
+    reactants.push_back(pattern);
   }
 
-  void append_product(const CplxInstance& inst) {
-    products.push_back(inst);
+  void append_product(const Cplx& cplx) {
+    products.push_back(cplx);
   }
 
   bool is_unimol() const {
@@ -346,11 +346,11 @@ public:
   }
 
   // returns reactant index, -1 if inst cannot be a reactant
-  int get_reactant_index(const CplxInstance& inst, const SpeciesContainer& all_species);
+  int get_reactant_index(const Cplx& cplx, const SpeciesContainer& all_species);
 
   void get_bimol_reactant_indices(
-      const CplxInstance& reac0,
-      const CplxInstance& reac1,
+      const Cplx& reac0,
+      const Cplx& reac1,
       std::vector<std::pair<uint, uint>>& reac_indices) const;
 
   // returns true if species 'id' matches one of the reactants
@@ -455,9 +455,9 @@ private:
   bool may_modify_more_than_one_identical_component() const;
   bool matching_may_produce_multiple_identical_results() const;
 
-  std::string complex_instance_vector_to_str(const CplxInstanceVector& complexes) const;
-  void dump_complex_instance_vector(
-      const CplxInstanceVector& complexes,
+  std::string cplx_vector_to_str(const CplxVector& complexes) const;
+  void dump_cplx_vector(
+      const CplxVector& complexes,
       const std::string ind) const;
 
 

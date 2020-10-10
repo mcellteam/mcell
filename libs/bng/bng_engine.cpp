@@ -33,9 +33,10 @@ string BNGEngine::get_stats_report() const {
   return res.str();
 }
 
-CplxInstance BNGEngine::create_cplx_instance_for_species(const species_id_t id, const orientation_t o) const {
-  const CplxInstance& ref = all_species.get(id);
-  CplxInstance copy = ref;
+
+Cplx BNGEngine::create_cplx_from_species(const species_id_t id, const orientation_t o) const {
+  const Cplx& ref = all_species.get(id);
+  Cplx copy = ref;
   copy.set_orientation(o);
   return copy;
 }

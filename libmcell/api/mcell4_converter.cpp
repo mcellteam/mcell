@@ -141,7 +141,7 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 species_id_t MCell4Converter::get_species_id_for_complex_instance(API::ComplexInstance& ci, const std::string error_msg) {
   // check that the complex instance if fully qualified
 
-  BNG::CplxInstance bng_ci = convert_complex_instance(ci, true);
+  BNG::Cplx bng_ci = convert_complex_instance(ci, true);
   if (!bng_ci.is_fully_qualified()) {
     // TODO: add test
     throw ValueError(
@@ -645,9 +645,9 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
 }
 
 
-BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn_or_observables) {
+BNG::Cplx MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn_or_observables) {
   // create a temporary cplx instance that we will use for search
-  BNG::CplxInstance cplx_inst(&world->bng_engine.get_data());
+  BNG::Cplx cplx_inst(&world->bng_engine.get_data());
 
   if (is_set(inst.elementary_molecule_instances)) {
     for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.elementary_molecule_instances) {
@@ -680,7 +680,7 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
       species_id = world->get_all_species().find_or_add(new_species);
     }
     assert(species_id != SPECIES_ID_INVALID);
-    return world->bng_engine.create_cplx_instance_for_species(species_id, orient);
+    return world->bng_engine.create_cplx_from_species(species_id, orient);
   }
   else {
     return cplx_inst;
@@ -715,14 +715,14 @@ void MCell4Converter::convert_rxns() {
     for (std::shared_ptr<API::ComplexInstance>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
 
-      BNG::CplxInstance reactant = convert_complex_instance(*rinst, true);
+      BNG::Cplx reactant = convert_complex_instance(*rinst, true);
       rxn.append_reactant(reactant);
     }
 
     for (std::shared_ptr<API::ComplexInstance>& pinst: r->products) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
 
-      BNG::CplxInstance product = convert_complex_instance(*pinst, true);
+      BNG::Cplx product = convert_complex_instance(*pinst, true);
       rxn.append_product(product);
     }
 

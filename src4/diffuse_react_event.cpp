@@ -2115,7 +2115,7 @@ int DiffuseReactEvent::outcome_products_random(
   vector<orientation_t> product_orientations;
   if (is_orientable) {
     for (uint product_index = 0; product_index < rxn->products.size(); product_index++) {
-      const BNG::CplxInstance& product = rxn->products[product_index];
+      const BNG::Cplx& product = rxn->products[product_index];
       if (product.get_orientation() == ORIENTATION_NONE) {
         product_orientations.push_back( (rng_uint(&world->rng) & 1) ? ORIENTATION_UP : ORIENTATION_DOWN);
       }
@@ -2142,7 +2142,7 @@ int DiffuseReactEvent::outcome_products_random(
 
     orientation_t product_orientation = ORIENTATION_NOT_SET;
     for (uint rule_product_index: actual_product.rule_product_indices) {
-      const BNG::CplxInstance& rule_product = rxn->products[rule_product_index];
+      const BNG::Cplx& rule_product = rxn->products[rule_product_index];
       release_assert(
           (product_orientation == ORIENTATION_NOT_SET ||
            product_orientation == product_orientations[rule_product_index]) &&

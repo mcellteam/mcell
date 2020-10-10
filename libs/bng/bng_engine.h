@@ -48,12 +48,11 @@ public:
   std::string get_stats_report() const;
 
   bool matches_ignore_orientation(
-      const CplxInstance& cplx_pattern,
+      const Cplx& cplx_pattern,
       const species_id_t species_id
   ) {
-    // NOTE: probably some caching will be needed
-    const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
-    return cplx_inst.matches_pattern(cplx_pattern, true);
+    const Cplx& cplx = all_species.get_as_cplx(species_id);
+    return cplx.matches_pattern(cplx_pattern, true);
   }
 
   species_id_t get_rxn_product_species_id(
@@ -72,7 +71,7 @@ public:
 
   const BNGConfig& get_config() const { return bng_config; }
 
-  CplxInstance create_cplx_instance_for_species(const species_id_t id, const orientation_t o) const;
+  Cplx create_cplx_from_species(const species_id_t id, const orientation_t o) const;
 };
 
 

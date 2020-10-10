@@ -98,7 +98,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
   if (is_simple()) {
     RxnProductsVector product_species;
     for (size_t i = 0; i < products.size(); i++) {
-      const CplxInstance& product = products[i];
+      const Cplx& product = products[i];
 
       // simple product is deterministic
       // simple species are defined mcell3 mode but in BNG mode they
@@ -205,12 +205,12 @@ void RxnRule::finalize() {
   bool simple = true;
 
   // finalize all reactants and products
-  for (CplxInstance& ci: reactants) {
+  for (Cplx& ci: reactants) {
     ci.finalize();
     simple = simple && ci.is_simple();
   }
 
-  for (CplxInstance& ci: products) {
+  for (Cplx& ci: products) {
     ci.finalize();
     simple = simple && ci.is_simple();
   }
@@ -263,7 +263,7 @@ bool RxnRule::matching_may_produce_multiple_identical_results() const {
 
 bool RxnRule::may_modify_more_than_one_identical_component() const {
 
-  for (const CplxInstance& reactant: reactants) {
+  for (const Cplx& reactant: reactants) {
     for (const MolInstance& mi: reactant.mol_instances) {
       const MolType& mt = bng_data->get_molecule_type(mi.mol_type_id);
 
@@ -900,7 +900,7 @@ static bool convert_graph_component_to_product_cplx_inst(
     Graph& graph,
     const vector<int>& graph_components,
     const int graph_component_index,
-    CplxInstance& cplx,
+    Cplx& cplx,
     std::set<uint>& product_indices
 ) {
   product_indices.clear();
@@ -1000,7 +1000,7 @@ static void create_products_from_reactants_graph(
   );
 
   for (int i = 0; i < num_graph_components; i++) {
-    CplxInstance product_cplx(bng_data);
+    Cplx product_cplx(bng_data);
 
     // some reactants may have been removed,
     // also, products still may be connected even though thet are disconnected on the right-hand side of the
@@ -1107,11 +1107,11 @@ void RxnRule::create_products_for_complex_rxn(
 
   // input reactants are always created from canonicalized species therefore the next time we recreate
   // them they will be the same
-  vector<const CplxInstance*> input_reactants;
-  // downcast, CplxInstance is sufficient for product computation
-  input_reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_species[0])));
+  vector<const Cplx*> input_reactants;
+  // downcast, Cplx is sufficient for product computation
+  input_reactants.push_back(dynamic_cast<const Cplx*>(&all_species.get(reactant_species[0])));
   if (is_bimol()) {
-    input_reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_species[1])));
+    input_reactants.push_back(dynamic_cast<const Cplx*>(&all_species.get(reactant_species[1])));
   }
 
   if (bng_config.bng_verbosity_level >= 1) {
@@ -1226,7 +1226,7 @@ void RxnRule::create_products_for_complex_rxn(
     return;
   }
 
-  vector<vector<CplxInstance>> input_reactants_copies;
+  vector<vector<Cplx>> input_reactants_copies;
   vector<Graph> distinct_product_graphs;
 #ifndef NDEBUG
   vector<Graph> debug_distinct_product_graphs;
@@ -1243,9 +1243,9 @@ void RxnRule::create_products_for_complex_rxn(
 
     // we need to make a copy of the reactants because we will be modifying them
     // a new graph will have its ordering indices cleared
-    input_reactants_copies.push_back(vector<CplxInstance>());
-    vector<CplxInstance>& input_reactants_copy = input_reactants_copies.back();
-    for (const CplxInstance* ci: input_reactants) {
+    input_reactants_copies.push_back(vector<Cplx>());
+    vector<Cplx>& input_reactants_copy = input_reactants_copies.back();
+    for (const Cplx* ci: input_reactants) {
       input_reactants_copy.push_back(*ci);
     }
     Graph reactants_graph_copy = input_reactants_copy[0].get_graph();
@@ -1304,7 +1304,7 @@ void RxnRule::create_products_for_complex_rxn(
   ProductSetsVector created_product_sets;
   for (Graph& product_graph: distinct_product_graphs) {
     // and finally create products, each disconnected graph in the result is a
-    // separate complex instance
+    // separate complex
 
     created_product_sets.push_back(ProductCplxWIndicesVector());
     create_products_from_reactants_graph(bng_data, product_graph, created_product_sets.back());
@@ -1360,7 +1360,7 @@ void RxnRule::define_rxn_pathway_using_mapping(
 
   // we need to make a copy of the reactants because we will be modifying them
   // a new graph will have its ordering indices cleared
-  vector<CplxInstance> input_reactants_copy;
+  vector<Cplx> input_reactants_copy;
   for (species_id_t sid: reactant_species) {
     input_reactants_copy.push_back(all_species.get(sid));
   }
@@ -1447,9 +1447,9 @@ bool RxnRule::get_assigned_simple_cplx_reactant_for_product(const uint product_i
 }
 
 
-static size_t find_mol_instance_with_address(const CplxInstanceVector& cplx_vex, const MolInstance* mi_addr) {
+static size_t find_mol_instance_with_address(const CplxVector& cplx_vex, const MolInstance* mi_addr) {
   for (size_t i = 0; i < cplx_vex.size(); i++) {
-    const CplxInstance& ci = cplx_vex[i];
+    const Cplx& ci = cplx_vex[i];
     for (size_t k = 0; k < ci.mol_instances.size(); k++) {
       if (mi_addr == &ci.mol_instances[k]) {
         return i;
@@ -1657,7 +1657,7 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
 #elif defined(MCELL4_SORT_RXN_PRODUCTS_BY_LENGTH_DESC)
     if (name0.size() < name1.size()) {
 #endif
-      CplxInstance tmp = products[0];
+      Cplx tmp = products[0];
       products[0] = products[1];
       products[1] = tmp;
     }
@@ -1678,7 +1678,7 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
 
     if (found) {
       // move product to the front
-      CplxInstance prod = products[pi];
+      Cplx prod = products[pi];
       products.erase(products.begin() + pi);
       products.insert(products.begin(), prod);
 
@@ -1702,10 +1702,10 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
 // returns 1 if this is the second reactant of a bimol reaction
 // FIXME: may return 0 for both bimol reactants, check all places where this may be important
 //   preferably remove this function
-int RxnRule::get_reactant_index(const CplxInstance& inst, const SpeciesContainer& all_species) {
+int RxnRule::get_reactant_index(const Cplx& cplx, const SpeciesContainer& all_species) {
   for (size_t i = 0; i < reactants.size(); i++) {
-    const CplxInstance& reactant = reactants[i];
-    if (inst.matches_pattern(reactant, true)) { // reactant is the pattern to be matched
+    const Cplx& reactant = reactants[i];
+    if (cplx.matches_pattern(reactant, true)) { // reactant is the pattern to be matched
       return i;
     }
   }
@@ -1715,8 +1715,8 @@ int RxnRule::get_reactant_index(const CplxInstance& inst, const SpeciesContainer
 
 // returns the possible mappings using which patterns can be matched onto a reactant
 void RxnRule::get_bimol_reactant_indices(
-    const CplxInstance& reac0,
-    const CplxInstance& reac1,
+    const Cplx& reac0,
+    const Cplx& reac1,
     std::vector<std::pair<uint, uint>>& reac_indices) const {
   assert(is_bimol());
 
@@ -1748,7 +1748,7 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
   }
 
   // need to check whether the complex instance can be a reactant
-  const CplxInstance& inst = all_species.get_as_cplx_instance(id);
+  const Cplx& inst = all_species.get_as_cplx(id);
 
   int index = get_reactant_index(inst, all_species);
   assert(index >= -1 && index <= 1);
@@ -1779,8 +1779,8 @@ bool RxnRule::species_can_be_bimol_reactants(
   }
 
   // need to find out whether both can be used at the same time
-  const CplxInstance& inst1 = all_species.get_as_cplx_instance(id1);
-  const CplxInstance& inst2 = all_species.get_as_cplx_instance(id2);
+  const Cplx& inst1 = all_species.get_as_cplx(id1);
+  const Cplx& inst2 = all_species.get_as_cplx(id2);
 
   // which reactants match id1?
   bool id1_matches[2] = {false, false};
@@ -1808,10 +1808,10 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
     return false;
   }
 
-  const CplxInstance& inst = all_species.get_as_cplx_instance(id);
+  const Cplx& cplx = all_species.get_as_cplx(id);
   return
-      inst.matches_pattern(reactants[0], true) &&
-      inst.matches_pattern(reactants[1], true);
+      cplx.matches_pattern(reactants[0], true) &&
+      cplx.matches_pattern(reactants[1], true);
 }
 
 
@@ -1865,9 +1865,9 @@ std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name,
     ss << name << ": ";
   }
 
-  ss << complex_instance_vector_to_str(reactants);
+  ss << cplx_vector_to_str(reactants);
   ss << " -> ";
-  ss << complex_instance_vector_to_str(products);
+  ss << cplx_vector_to_str(products);
 
   if (with_rate_constant) {
     ss << " " << base_rate_constant;
@@ -1883,7 +1883,7 @@ std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name,
 }
 
 
-std::string RxnRule::complex_instance_vector_to_str(const CplxInstanceVector& complexes) const {
+std::string RxnRule::cplx_vector_to_str(const CplxVector& complexes) const {
   stringstream ss;
   for (size_t i = 0; i < complexes.size(); i++) {
     ss << complexes[i].to_str(is_surf_rxn());
@@ -1897,21 +1897,21 @@ std::string RxnRule::complex_instance_vector_to_str(const CplxInstanceVector& co
 
 
 std::string RxnRule::reactants_to_str() const {
-  return complex_instance_vector_to_str(reactants);
+  return cplx_vector_to_str(reactants);
 }
 
 
 std::string RxnRule::products_to_str() const {
-  return complex_instance_vector_to_str(products);
+  return cplx_vector_to_str(products);
 }
 
 
-void RxnRule::dump_complex_instance_vector(
-    const CplxInstanceVector& complexes,
+void RxnRule::dump_cplx_vector(
+    const CplxVector& complexes,
     const std::string ind) const {
 
   for (size_t i = 0; i < complexes.size(); i++) {
-    cout << ind << "CplxInstance " << i << ":\n";
+    cout << ind << "Cplx " << i << ":\n";
     complexes[i].dump(true, ind + "  ");
 
     if (!is_simple()) {
@@ -1962,9 +1962,9 @@ void RxnRule::dump(const bool for_diff, const std::string ind) const {
     cout << ind << "mol_instances_are_fully_maintained: " << mol_instances_are_fully_maintained << "\n";
 
     cout << ind << "reactants:\n";
-    dump_complex_instance_vector(reactants, ind);
+    dump_cplx_vector(reactants, ind);
     cout << ind << "products:\n";
-    dump_complex_instance_vector(products, ind);
+    dump_cplx_vector(products, ind);
   }
 }
 

@@ -108,7 +108,7 @@ void ASTCompartmentNode::dump(const std::string ind) const {
 }
 
 
-// ------------------------------- ASTCplxInstanceNode ------------------------
+// ------------------------------- ASTCplxNode ------------------------
 void ASTCplxNode::dump(const std::string ind) const {
   if (compartment != nullptr) {
     cout << ind << "  compartment:\n";
@@ -148,9 +148,9 @@ void ASTRxnRuleNode::dump(const std::string ind) const {
 // ------------------------------- ASTSeedSpeciesNode ------------------------
 void ASTSeedSpeciesNode::dump(const std::string ind) const {
   cout << ind << "seed species item:\n";
-  cout << ind << "  complex_inst:\n";
-  assert(cplx_instance != nullptr);
-  cplx_instance->dump(ind + IND4);
+  cout << ind << "  cplx:\n";
+  assert(cplx != nullptr);
+  cplx->dump(ind + IND4);
   cout << ind << "  count:\n";
   assert(count != nullptr);
   count->dump(ind + IND4);
@@ -163,7 +163,7 @@ void ASTObservableNode::dump(const std::string ind) const {
   cout << ind << "observable item:\n";
   cout << ind << "  type:" << type << "\n";
   cout << ind << "  name:" << name << "\n";
-  cout << ind << "  cplx_instances:\n";
+  cout << ind << "  cplx_patterns:\n";
   for (ASTBaseNode* n: cplx_patterns->items) {
     const ASTListNode* l = to_list_node(n);
     l->dump(ind + IND4);
@@ -407,19 +407,19 @@ ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
 
 
 ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
-    ASTCplxNode* cplx_instance,
+    ASTCplxNode* cplx,
     ASTExprNode* count
 ) {
   ASTSeedSpeciesNode* n = new ASTSeedSpeciesNode();
-  n->cplx_instance = cplx_instance;
+  n->cplx = cplx;
   n->count = count;
 
-  // use the complex instance as the location
-  assert(cplx_instance->mols.size() >= 1);
-  assert(cplx_instance->mols[0]->node_type == NodeType::Mol);
-  assert(cplx_instance->mols[0]->has_loc);
+  // use the first molecule of the complex as the location
+  assert(cplx->mols.size() >= 1);
+  assert(cplx->mols[0]->node_type == NodeType::Mol);
+  assert(cplx->mols[0]->has_loc);
   BNGLLTYPE loc;
-  loc.first_line = cplx_instance->mols[0]->line;
+  loc.first_line = cplx->mols[0]->line;
   n->set_loc(current_file, loc);
 
   remember_node(n);
@@ -430,13 +430,13 @@ ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
 ASTObservableNode* ParserContext::new_observable_node(
     const std::string& type,
     const std::string& name,
-    ASTListNode* cplx_instances,
+    ASTListNode* cplx_patterns,
     const BNGLLTYPE& loc
 ) {
   ASTObservableNode* n = new ASTObservableNode();
   n->type = type;
   n->name = name;
-  n->cplx_patterns = cplx_instances;
+  n->cplx_patterns = cplx_patterns;
   n->set_loc(current_file, loc);
 
   remember_node(n);

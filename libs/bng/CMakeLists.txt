@@ -23,7 +23,6 @@ set(SOURCE_FILES
 	bng_engine.cpp
 	bng_config.cpp
 	cplx.cpp
-	molecule_instance.cpp
 	mol_instance.cpp
 	mol_type.cpp
 	parser_utils.cpp

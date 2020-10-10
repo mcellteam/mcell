@@ -31,7 +31,7 @@ class BNGData;
  * Contains information on orientation, so two identical complexes but
  * with different orientation are different species.
  */
-class CplxInstance: public BaseSpeciesCplxMolFlag {
+class Cplx: public BaseSpeciesCplxMolFlag {
 public:
   MolInstanceVector mol_instances;
 
@@ -43,18 +43,18 @@ private:
   compartment_id_t compartment_id;
 
 public:
-  CplxInstance(const BNGData* bng_data_)
+  Cplx(const BNGData* bng_data_)
     : orientation(ORIENTATION_NONE),
       compartment_id(COMPARTMENT_ID_DONT_CARE),
       bng_data(bng_data_)
       {
   }
 
-  CplxInstance(const CplxInstance& other) {
+  Cplx(const Cplx& other) {
     *this = other;
   }
 
-  CplxInstance& operator =(const CplxInstance& other) {
+  Cplx& operator =(const Cplx& other) {
     mol_instances = other.mol_instances;
     orientation = other.orientation;
     bng_data = other.bng_data;
@@ -122,7 +122,7 @@ public:
   }
 
   // returns true if this object as a pattern matches second instance
-  bool matches_pattern(const CplxInstance& pattern, const bool ignore_orientation = false) const {
+  bool matches_pattern(const Cplx& pattern, const bool ignore_orientation = false) const {
     assert(is_finalized() && pattern.is_finalized());
     if (is_simple() && pattern.is_simple()) {
       return matches_simple(pattern, ignore_orientation);
@@ -139,10 +139,10 @@ public:
 
   // returns how many times a pattern matches this cplx instance,
    // used for counting of molecule pattern type observables
-  uint get_pattern_num_matches(const CplxInstance& pattern) const;
+  uint get_pattern_num_matches(const Cplx& pattern) const;
 
   // returns true if this complex is equivalent
-  bool matches_fully(const CplxInstance& other, const bool ignore_orientation = false) const {
+  bool matches_fully(const Cplx& other, const bool ignore_orientation = false) const {
 #ifdef DEBUG_CPLX_MATCHING_EXTRA_COMPARE
       std::cout << "Comparing: ";
       dump(false);
@@ -162,7 +162,7 @@ public:
   }
 
   // full match & all other members must me equal
-  bool operator == (const CplxInstance& other) const {
+  bool operator == (const Cplx& other) const {
     assert(is_finalized() && other.is_finalized());
 
     // ordering of components in a molecule is not important
@@ -180,7 +180,7 @@ public:
   void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:
-  bool matches_simple(const CplxInstance& other, const bool ignore_orientation = false) const {
+  bool matches_simple(const Cplx& other, const bool ignore_orientation = false) const {
     assert(is_simple() && other.is_simple());
     assert(mol_instances.size() == 1 && other.mol_instances.size() == 1);
 
@@ -190,8 +190,8 @@ private:
     return mol_instances[0].matches_simple(other.mol_instances[0]);
   }
 
-  bool matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const;
-  bool matches_complex_fully_ignore_orientation(const CplxInstance& pattern) const;
+  bool matches_complex_pattern_ignore_orientation(const Cplx& pattern) const;
+  bool matches_complex_fully_ignore_orientation(const Cplx& pattern) const;
 
   void sort_components_and_mols();
   void renumber_bonds();
@@ -204,7 +204,7 @@ private:
   const BNGData* bng_data; // needed mainly for dumps and debugging
 };
 
-typedef small_vector<CplxInstance> CplxInstanceVector;
+typedef small_vector<Cplx> CplxVector;
 
 } /* namespace BNG */
 

@@ -66,7 +66,7 @@ bool NFSimSpeciesUnifier::read_species_file(const std::string& input_file) {
     string count_string = line.substr(cplx_end);
 
     // parse cplx string
-    BNG::CplxInstance cplx_inst(&bng_engine.get_data());
+    BNG::Cplx cplx_inst(&bng_engine.get_data());
     int num_errors = BNG::parse_single_cplx_string(
         cplx_string, bng_engine.get_data(),
         cplx_inst
