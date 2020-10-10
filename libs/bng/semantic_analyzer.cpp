@@ -232,7 +232,7 @@ component_type_id_t SemanticAnalyzer::convert_component_type(
 
 
 MolType SemanticAnalyzer::convert_molecule_type(
-    const ASTMoleculeNode* n,
+    const ASTMolNode* n,
     const bool allow_same_component_different_state,
     const bool allow_components_to_have_bonds
 ) {
@@ -279,8 +279,8 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
   const ASTSymbolTable::IdToNodeMap& table = ctx->symtab.get_as_map();
   for (const auto& it: table) {
     assert(it.second != nullptr);
-    if (it.second->is_molecule()) {
-      const ASTMoleculeNode* n = to_molecule_node(it.second);
+    if (it.second->is_mol()) {
+      const ASTMolNode* n = to_molecule_node(it.second);
 
       if (n->has_compartment()) {
         errs_loc(n) <<
@@ -356,10 +356,10 @@ void SemanticAnalyzer::convert_and_store_compartments() {
 
 void SemanticAnalyzer::collect_molecule_types_molecule_list(
     const ASTListNode* cplx_list,
-    vector<const ASTMoleculeNode*>& molecule_nodes
+    vector<const ASTMolNode*>& molecule_nodes
 ) {
   for (size_t i = 0; i < cplx_list->items.size(); i++) {
-    const ASTCplxInstanceNode* cplx = to_cplx_instance_node(cplx_list->items[i]);
+    const ASTCplxNode* cplx = to_cplx_node(cplx_list->items[i]);
 
     molecule_nodes.insert(molecule_nodes.end(), cplx->mols.begin(), cplx->mols.end());
   }
@@ -371,7 +371,7 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
 
   // first collect all molecule nodes
   // for each rxn rule
-  vector<const ASTMoleculeNode*> found_mol_nodes;
+  vector<const ASTMolNode*> found_mol_nodes;
   for (const ASTBaseNode* n: ctx->rxn_rules.items) {
     const ASTRxnRuleNode* r = to_rxn_rule_node(n);
     collect_molecule_types_molecule_list(r->reactants, found_mol_nodes);
@@ -385,8 +385,8 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
   }
 
   // sort by name and skip those that are already known
-  map<string, vector<const ASTMoleculeNode*>> mol_uses_with_same_name;
-  for (const ASTMoleculeNode* n: found_mol_nodes) {
+  map<string, vector<const ASTMolNode*>> mol_uses_with_same_name;
+  for (const ASTMolNode* n: found_mol_nodes) {
     mol_type_id_t mt_id = bng_data->find_molecule_type_id(n->name);
     if (mt_id == MOL_TYPE_ID_INVALID) {
       mol_uses_with_same_name[n->name].push_back(n);
@@ -401,7 +401,7 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
     map<string, set<string>> component_state_names;
     // also count the maximum number of components
     map<string, uint> max_component_count_per_all_mts;
-    for (const ASTMoleculeNode* mn: same_name_it.second) {
+    for (const ASTMolNode* mn: same_name_it.second) {
 
       map<string, uint> max_component_count_per_single_mt;
       for (const ASTBaseNode* cnb: mn->components->items) {
@@ -468,7 +468,7 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
 }
 
 
-MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m) {
+MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
 
   MolInstance mi;
   // there is no support for surface molecules in BNGL yet, so everything must be volume molecule
@@ -579,11 +579,11 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
 
 // for a pattern it is ok to not to list all components
 void SemanticAnalyzer::convert_cplx(
-    const ASTCplxInstanceNode* cplx_node,
+    const ASTCplxNode* cplx_node,
     CplxInstance& bng_cplx
 ) {
 
-  for (const ASTMoleculeNode* m: cplx_node->mols) {
+  for (const ASTMolNode* m: cplx_node->mols) {
 
     // molecule ids are based on their name
     bng_cplx.mol_instances.push_back( convert_molecule_pattern(m) );
@@ -633,12 +633,12 @@ void SemanticAnalyzer::convert_rxn_rule_side(
     CplxInstanceVector& patterns) {
 
   // we need to check each molecule type from each complex
-  std::vector<const ASTMoleculeNode*> current_complex_nodes;
+  std::vector<const ASTMolNode*> current_complex_nodes;
   for (size_t i = 0; i < rule_side->items.size(); i++) {
-    const ASTCplxInstanceNode* cplx = to_cplx_instance_node(rule_side->items[i]);
+    const ASTCplxNode* cplx = to_cplx_node(rule_side->items[i]);
 
     if (cplx->size() == 1) {
-      const ASTMoleculeNode* m = to_molecule_node(cplx->mols[0]);
+      const ASTMolNode* m = to_molecule_node(cplx->mols[0]);
       if (is_thrash_or_null(m->name)) {
         if (reactants_side) {
           errs_loc(m) <<
@@ -730,7 +730,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
 }
 
 
-string SemanticAnalyzer::get_compartment_name(const ASTCplxInstanceNode* cplx) {
+string SemanticAnalyzer::get_compartment_name(const ASTCplxNode* cplx) {
   string res = "";
 
   if (cplx->compartment != nullptr) {
@@ -739,7 +739,7 @@ string SemanticAnalyzer::get_compartment_name(const ASTCplxInstanceNode* cplx) {
 
   // check also each molecule
   for (size_t i = 0; i < cplx->size(); i++) {
-    const ASTMoleculeNode* mol_node = cplx->mols[i];
+    const ASTMolNode* mol_node = cplx->mols[i];
 
     if (mol_node->compartment != nullptr) {
       string new_name = mol_node->compartment->str;
@@ -813,8 +813,8 @@ void SemanticAnalyzer::convert_observables() {
 
     o.name = o_node->name;
 
-    for (const ASTBaseNode* base_pat: o_node->cplx_instances->items) {
-      const ASTCplxInstanceNode* cplx_pat = to_cplx_instance_node(base_pat);
+    for (const ASTBaseNode* base_pat: o_node->cplx_patterns->items) {
+      const ASTCplxNode* cplx_pat = to_cplx_node(base_pat);
       CplxInstance cplx(bng_data);
       convert_cplx(cplx_pat, cplx);
       if (ctx->get_error_count() != 0) {
@@ -891,9 +891,9 @@ bool SemanticAnalyzer::check_and_convert_parsed_file(
 
 
 // analyze AST for a single complex and extend molecule type definitions by what it contains
-void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxInstanceNode* cplx_node) {
+void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxNode* cplx_node) {
 
-  for (const ASTMoleculeNode* mol: cplx_node->mols) {
+  for (const ASTMolNode* mol: cplx_node->mols) {
     // was this molecule type already defined?
     mol_type_id_t mt_id = bng_data->find_molecule_type_id(mol->name);
     if (mt_id == MOL_TYPE_ID_INVALID) {
@@ -943,7 +943,7 @@ void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxInstanceNod
 
 // returns true if conversion and semantic checks passed,
 // resulting complex inst is stored into res
-bool SemanticAnalyzer::check_and_convert_single_cplx_instance(
+bool SemanticAnalyzer::check_and_convert_single_cplx(
     ParserContext* ctx_, BNGData* res_bng, CplxInstance& res) {
   assert(ctx_ != nullptr);
   assert(res_bng != nullptr);
@@ -952,12 +952,12 @@ bool SemanticAnalyzer::check_and_convert_single_cplx_instance(
   bng_data = res_bng;
 
   // define molecule types first
-  extend_molecule_type_definitions(ctx->single_cplx_instance);
+  extend_molecule_type_definitions(ctx->single_cplx);
   if (ctx->get_error_count() != 0) {
     return false;
   }
 
-  convert_cplx(ctx->single_cplx_instance, res);
+  convert_cplx(ctx->single_cplx, res);
   if (ctx->get_error_count() != 0) {
     return false;
   }

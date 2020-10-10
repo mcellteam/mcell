@@ -37,9 +37,9 @@ enum class NodeType {
   Expr,
   List,
   Component,
-  Molecule,
+  Mol,
   Compartment,
-  CplxInstance,
+  Cplx,
   RxnRule,
   SeedSpecies,
   Observable,
@@ -104,16 +104,16 @@ public:
     return node_type == NodeType::Component;
   }
 
-  bool is_molecule() const {
-    return node_type == NodeType::Molecule;
+  bool is_mol() const {
+    return node_type == NodeType::Mol;
   }
 
   bool is_compartment() const {
     return node_type == NodeType::Compartment;
   }
 
-  bool is_cplx_instance() const {
-    return node_type == NodeType::CplxInstance;
+  bool is_cplx() const {
+    return node_type == NodeType::Cplx;
   }
 
   bool is_rxn_rule() const {
@@ -291,11 +291,11 @@ public:
 // when used in reaction rule, it is referenced from the
 // reaction itself
 // TODO: rename to ASTMolNode
-class ASTMoleculeNode: public ASTBaseNode {
+class ASTMolNode: public ASTBaseNode {
 public:
-  ASTMoleculeNode()
+  ASTMolNode()
     : components(nullptr), compartment(nullptr) {
-    node_type = NodeType::Molecule;
+    node_type = NodeType::Mol;
   }
   void dump(const std::string ind) const override;
 
@@ -325,15 +325,15 @@ public:
 };
 
 
-class ASTCplxInstanceNode: public ASTBaseNode {
+class ASTCplxNode: public ASTBaseNode {
 public:
-  ASTCplxInstanceNode()
+  ASTCplxNode()
     : compartment(nullptr) {
-    node_type = NodeType::CplxInstance;
+    node_type = NodeType::Cplx;
   }
   void dump(const std::string ind) const override;
 
-  ASTCplxInstanceNode* append(ASTMoleculeNode* n) {
+  ASTCplxNode* append(ASTMolNode* n) {
     assert(n != nullptr);
     mols.push_back(n);
     return this;
@@ -343,7 +343,7 @@ public:
     return mols.size();
   }
 
-  std::vector<ASTMoleculeNode*> mols;
+  std::vector<ASTMolNode*> mols;
 
   // list node is also used for complexes and we need to put a complexes
   // compartment somewhere
@@ -377,7 +377,7 @@ public:
   }
   void dump(const std::string ind) const override;
 
-  ASTCplxInstanceNode* cplx_instance; // cplx to be released
+  ASTCplxNode* cplx_instance; // cplx to be released
   ASTExprNode* count;
 };
 
@@ -385,7 +385,7 @@ public:
 class ASTObservableNode: public ASTBaseNode {
 public:
   ASTObservableNode()
-    : cplx_instances(nullptr) {
+    : cplx_patterns(nullptr) {
     node_type = NodeType::Observable;
   }
   void dump(const std::string ind) const override;
@@ -393,7 +393,7 @@ public:
   std::string type;
   std::string name;
   // list of complexes that are represented by ASTListNode as well
-  ASTListNode* cplx_instances;
+  ASTListNode* cplx_patterns;
 };
 
 
@@ -428,7 +428,7 @@ private:
 class ParserContext {
 public:
   ParserContext()
-    : single_cplx_instance(nullptr), errors(0), current_file(nullptr) {
+    : single_cplx(nullptr), errors(0), current_file(nullptr) {
   }
 
   // frees all owned nodes
@@ -462,7 +462,7 @@ public:
       const BNGLLTYPE& loc
   );
 
-  ASTMoleculeNode* new_molecule_node(
+  ASTMolNode* new_molecule_node(
       const std::string& name,
       ASTListNode* components,
       ASTStrNode* compartment,
@@ -478,7 +478,7 @@ public:
   );
 
   // location is given by the first added molecule node
-  ASTCplxInstanceNode* new_cplx_instance_node();
+  ASTCplxNode* new_cplx_node();
 
   ASTRxnRuleNode* new_rxn_rule_node(
       ASTStrNode* name,
@@ -489,7 +489,7 @@ public:
   );
 
   ASTSeedSpeciesNode* new_seed_species_node(
-      ASTCplxInstanceNode* cplx_instance,
+      ASTCplxNode* cplx_instance,
       ASTExprNode* count
   );
 
@@ -536,7 +536,7 @@ public:
   // single_cplx_instance is set for mode when the parse parses a
   // single complex string with parse_cplx_instance_file(),
   // no need to delete it because deletion is handled by vector 'all_nodes'
-  ASTCplxInstanceNode* single_cplx_instance;
+  ASTCplxNode* single_cplx;
 
   // ------------- other parsing utilities -----------------
 
@@ -615,10 +615,10 @@ static inline const ASTListNode* to_list_node(const ASTBaseNode* n) {
   return dynamic_cast<const ASTListNode*>(n);
 }
 
-static inline ASTMoleculeNode* to_molecule_node(ASTBaseNode* n) {
+static inline ASTMolNode* to_molecule_node(ASTBaseNode* n) {
   assert(n != nullptr);
-  assert(n->is_molecule());
-  return dynamic_cast<ASTMoleculeNode*>(n);
+  assert(n->is_mol());
+  return dynamic_cast<ASTMolNode*>(n);
 }
 
 static inline const ASTComponentNode* to_component_node(const ASTBaseNode* n) {
@@ -627,10 +627,10 @@ static inline const ASTComponentNode* to_component_node(const ASTBaseNode* n) {
   return dynamic_cast<const ASTComponentNode*>(n);
 }
 
-static inline const ASTMoleculeNode* to_molecule_node(const ASTBaseNode* n) {
+static inline const ASTMolNode* to_mol_node(const ASTBaseNode* n) {
   assert(n != nullptr);
-  assert(n->is_molecule());
-  return dynamic_cast<const ASTMoleculeNode*>(n);
+  assert(n->is_mol());
+  return dynamic_cast<const ASTMolNode*>(n);
 }
 
 static inline const ASTCompartmentNode* to_compartment_node(const ASTBaseNode* n) {
@@ -639,10 +639,10 @@ static inline const ASTCompartmentNode* to_compartment_node(const ASTBaseNode* n
   return dynamic_cast<const ASTCompartmentNode*>(n);
 }
 
-static inline ASTCplxInstanceNode* to_cplx_instance_node(const ASTBaseNode* n) {
+static inline ASTCplxNode* to_cplx_node(const ASTBaseNode* n) {
   assert(n != nullptr);
-  assert(n->is_cplx_instance());
-  return dynamic_cast<const ASTCplxInstanceNode*>(n);
+  assert(n->is_cplx());
+  return dynamic_cast<const ASTCplxNode*>(n);
 }
 
 static inline ASTRxnRuleNode* to_rxn_rule_node(ASTBaseNode* n) {

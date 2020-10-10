@@ -85,8 +85,8 @@ namespace BNG {
   BNG::ASTListNode* list_node;
   BNG::ASTStrNode* str_node;
   BNG::ASTComponentNode* component_node;
-  BNG::ASTMoleculeNode* molecule_node;
-  BNG::ASTCplxInstanceNode* cplx_node;
+  BNG::ASTMolNode* mol_node;
+  BNG::ASTCplxNode* cplx_node;
 }
 
 %token TOK_BEGIN "begin"
@@ -123,18 +123,18 @@ namespace BNG {
 %type <list_node> component_state_list
 %type <list_node> component_list_maybe_empty
 %type <list_node> component_list
-%type <molecule_node> molecule
+%type <mol_node> mol
 %type <str_node> molecule_compartment
 %type <list_node> molecule_list_maybe_empty
-%type <list_node> molecule_list
+%type <list_node> mol_list
 %type <str_node> rxn_rule_name_maybe_empty
 %type <list_node> rxn_rule_side_or_zero
 %type <list_node> rxn_rule_side
 %type <list_node> rates
 %type <boolean> rxn_rule_direction
-%type <list_node> cplx_instance_list
-%type <cplx_node> cplx_instance
-%type <cplx_node> cplx_instance_no_compartment
+%type <list_node> cplx_list
+%type <cplx_node> cplx
+%type <cplx_node> cplx_no_compartment
 %type <str_node> cplx_compartment
 
 // operator associativities and precendences
@@ -150,8 +150,8 @@ namespace BNG {
 start_bngl:
       model_sections action_section  // default mode to parse BNGL file
       
-    | TOK_SINGLE_CPLX cplx_instance {  // single complex to be parsed, prefixed by a unique string
-    	g_ctx->single_cplx_instance = $2;
+    | TOK_SINGLE_CPLX cplx {  // single complex to be parsed, prefixed by a unique string
+    	g_ctx->single_cplx = $2;
     }
     // empty file
     | 
@@ -204,25 +204,25 @@ parameter:
       
 // ---------------- molecules -------------------     
 molecule_list_maybe_empty:
-      molecule_list
+      mol_list
     | /* empty */ {
         $$ = g_ctx->new_list_node();
       }
 ;
 
 // left recursion is preferred 
-molecule_list:
-      molecule_list molecule {
+mol_list:
+      mol_list mol {
         $1->append($2);
         $$ = $1;
       }
-    | molecule {
+    | mol {
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
 // fully general specification, might contain information on bonds, checked later in semantic checks 
-molecule:
+mol:
       TOK_ID '(' component_list_maybe_empty ')' molecule_compartment {
         $$ = g_ctx->new_molecule_node($1, $3, $5, @1);    
       }
@@ -371,11 +371,11 @@ rxn_rule_side_or_zero:
 ;
 
 rxn_rule_side:
-      rxn_rule_side '+' cplx_instance {
+      rxn_rule_side '+' cplx {
         $1->append($3);
         $$ = $1;
       }
-    | cplx_instance {
+    | cplx {
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
@@ -412,7 +412,7 @@ seed_species_list:
 ;
 
 seed_species_item:
-      cplx_instance expr {
+      cplx expr {
 
         BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($1, $2); 
         g_ctx->add_seed_species(n);
@@ -420,9 +420,9 @@ seed_species_item:
 ;
 
 
-// similar to rxn_rule_side only contains one complex instance
-cplx_instance: 
-      cplx_compartment cplx_instance_no_compartment {
+// similar to rxn_rule_side only contains one complex
+cplx: 
+      cplx_compartment cplx_no_compartment {
         $2->compartment = $1;
         $$ = $2;
       }
@@ -436,13 +436,13 @@ cplx_compartment:
       }
 ;
 
-cplx_instance_no_compartment:
-      cplx_instance_no_compartment '.' molecule {
+cplx_no_compartment:
+      cplx_no_compartment '.' mol {
         $1->append($3);
         $$ = $1;
       }
-    | molecule {
-        $$ = g_ctx->new_cplx_instance_node()->append($1);
+    | mol {
+        $$ = g_ctx->new_cplx_node()->append($1);
       }
 ;
       
@@ -459,17 +459,17 @@ observables_list:
 ;
       
 observables_item:
-      TOK_ID TOK_ID cplx_instance_list {
+      TOK_ID TOK_ID cplx_list {
         BNG::ASTObservableNode* n = g_ctx->new_observable_node($1, $2, $3, @1); 
         g_ctx->add_observable(n);
       }
 ;
 
-cplx_instance_list:
-      cplx_instance_list ',' cplx_instance {
+cplx_list:
+      cplx_list ',' cplx {
         $1->append($3);
       }
-    | cplx_instance {
+    | cplx {
     	$$ = g_ctx->new_list_node()->append($1);
       }
       

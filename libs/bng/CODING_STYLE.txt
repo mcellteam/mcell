@@ -6,5 +6,13 @@ These terms repeat very often:
  - reaction - Rxn/rxn
  - context  - Ctx/ctx
  
- - component - Component
+These cannot be made much shorter:
+ - component - Component/component
+ - compartment - Compartment/compartment
  
+ 
+Complexes:
+ - use Cplx/cplx where possible, 
+   - adding 'instance' such as in cplx_instance does not add any information and is discouraged
+   - adding 'pattern' cplx_pattern specifies that the cplx is used as pattern and should be used in such cases 
+   

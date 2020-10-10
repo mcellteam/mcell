@@ -36,8 +36,8 @@ int parse_bngl_file(
 // complexes gradually
 // prints errors and warnings directly to the error output
 // resulting complex is stored into the res_cplx
-int parse_single_cplx_instance_string(
-    const std::string& cplx_instance_string, BNGData& bng_data,
+int parse_single_cplx_string(
+    const std::string& cplx_string, BNGData& bng_data,
     CplxInstance& res_cplx
 );
 

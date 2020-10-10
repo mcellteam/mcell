@@ -83,7 +83,7 @@ void ASTComponentNode::dump(const std::string ind) const {
 
 
 // ------------------------------- ASTMoleculeNode ------------------------
-void ASTMoleculeNode::dump(const std::string ind) const {
+void ASTMolNode::dump(const std::string ind) const {
   cout << ind << "molecule: name='" << name << "'\n";
   cout << ind << "  components:\n";
   assert(components != nullptr);
@@ -109,7 +109,7 @@ void ASTCompartmentNode::dump(const std::string ind) const {
 
 
 // ------------------------------- ASTCplxInstanceNode ------------------------
-void ASTCplxInstanceNode::dump(const std::string ind) const {
+void ASTCplxNode::dump(const std::string ind) const {
   if (compartment != nullptr) {
     cout << ind << "  compartment:\n";
     compartment->dump(ind + IND4);
@@ -164,7 +164,7 @@ void ASTObservableNode::dump(const std::string ind) const {
   cout << ind << "  type:" << type << "\n";
   cout << ind << "  name:" << name << "\n";
   cout << ind << "  cplx_instances:\n";
-  for (ASTBaseNode* n: cplx_instances->items) {
+  for (ASTBaseNode* n: cplx_patterns->items) {
     const ASTListNode* l = to_list_node(n);
     l->dump(ind + IND4);
   }
@@ -206,8 +206,8 @@ ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, Parser
 
 void ASTSymbolTable::insert_molecule_declarations(const ASTListNode* molecule_node_list, ParserContext* ctx) {
   for (ASTBaseNode* n: molecule_node_list->items) {
-    assert(n->is_molecule());
-    ASTMoleculeNode* mn = to_molecule_node(n);
+    assert(n->is_mol());
+    ASTMolNode* mn = to_molecule_node(n);
     insert(mn->name, mn, ctx);
   }
 }
@@ -338,13 +338,13 @@ ASTComponentNode* ParserContext::new_component_node(
 }
 
 
-ASTMoleculeNode* ParserContext::new_molecule_node(
+ASTMolNode* ParserContext::new_molecule_node(
     const std::string& name,
     ASTListNode* component_list,
     ASTStrNode* compartment,
     const BNGLLTYPE& loc
 ) {
-  ASTMoleculeNode* n = new ASTMoleculeNode();
+  ASTMolNode* n = new ASTMolNode();
   n->name = name;
   n->components = component_list;
   n->compartment = compartment;
@@ -372,8 +372,8 @@ ASTCompartmentNode* ParserContext::new_compartment_node(
 }
 
 
-ASTCplxInstanceNode* ParserContext::new_cplx_instance_node() {
-  ASTCplxInstanceNode* n = new ASTCplxInstanceNode();
+ASTCplxNode* ParserContext::new_cplx_node() {
+  ASTCplxNode* n = new ASTCplxNode();
   remember_node(n);
   return n;
 }
@@ -395,7 +395,7 @@ ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
 
   // use the first reactant as the location
   assert(reactants->items.size() >= 1);
-  ASTCplxInstanceNode* cplx = to_cplx_instance_node(reactants->items[0]);
+  ASTCplxNode* cplx = to_cplx_node(reactants->items[0]);
   assert(cplx->mols[0]->has_loc);
   BNGLLTYPE loc;
   loc.first_line = cplx->mols[0]->line;
@@ -407,7 +407,7 @@ ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
 
 
 ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
-    ASTCplxInstanceNode* cplx_instance,
+    ASTCplxNode* cplx_instance,
     ASTExprNode* count
 ) {
   ASTSeedSpeciesNode* n = new ASTSeedSpeciesNode();
@@ -416,7 +416,7 @@ ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
 
   // use the complex instance as the location
   assert(cplx_instance->mols.size() >= 1);
-  assert(cplx_instance->mols[0]->node_type == NodeType::Molecule);
+  assert(cplx_instance->mols[0]->node_type == NodeType::Mol);
   assert(cplx_instance->mols[0]->has_loc);
   BNGLLTYPE loc;
   loc.first_line = cplx_instance->mols[0]->line;
@@ -436,7 +436,7 @@ ASTObservableNode* ParserContext::new_observable_node(
   ASTObservableNode* n = new ASTObservableNode();
   n->type = type;
   n->name = name;
-  n->cplx_instances = cplx_instances;
+  n->cplx_patterns = cplx_instances;
   n->set_loc(current_file, loc);
 
   remember_node(n);

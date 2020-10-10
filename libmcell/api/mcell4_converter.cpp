@@ -658,7 +658,7 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   }
   else if (is_set(inst.name)) {
     // parse BNGL string
-    int num_errors = BNG::parse_single_cplx_instance_string(inst.name, world->bng_engine.get_data(), cplx_inst);
+    int num_errors = BNG::parse_single_cplx_string(inst.name, world->bng_engine.get_data(), cplx_inst);
     if (num_errors) {
       throw ValueError("Could not parse BNGL string " + inst.name + " that defines a " + NAME_CLASS_COMPLEX_INSTANCE + ".");
     }

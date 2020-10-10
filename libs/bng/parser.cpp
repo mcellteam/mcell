@@ -57,8 +57,8 @@ int parse_bngl_file(
 
 // bng_data are not cleared and one can continue with adding
 // complexes gradually
-int parse_single_cplx_instance_string(
-    const std::string& cplx_instance_string, BNGData& bng_data,
+int parse_single_cplx_string(
+    const std::string& cplx_string, BNGData& bng_data,
     CplxInstance& res_cplx
 ) {
 
@@ -67,13 +67,13 @@ int parse_single_cplx_instance_string(
 
 
   // form input for parser, the !CPLX switches it to a mode where it parses a single string
-  char* input = new char[cplx_instance_string.size() + 32];
+  char* input = new char[cplx_string.size() + 32];
   strcpy(input, "!CPLX ");
-  strcat(input, cplx_instance_string.c_str());
+  strcat(input, cplx_string.c_str());
 
   bngl_scan_string(input);
 
-  ctx->set_current_file_name(cplx_instance_string.c_str());
+  ctx->set_current_file_name(cplx_string.c_str());
 
   // run bison parser
   int res = bnglparse();
@@ -89,7 +89,7 @@ int parse_single_cplx_instance_string(
 
   CplxInstanceVector cplx_vec;
 
-  sema.check_and_convert_single_cplx_instance(ctx, &bng_data, res_cplx);
+  sema.check_and_convert_single_cplx(ctx, &bng_data, res_cplx);
 
   ctx->print_error_report();
 

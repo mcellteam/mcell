@@ -26,7 +26,7 @@ public:
       const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
   );
 
-  bool check_and_convert_single_cplx_instance(
+  bool check_and_convert_single_cplx(
       ParserContext* ctx_, BNGData* res_bng, CplxInstance& res);
 
 private:
@@ -41,7 +41,7 @@ private:
       const bool allow_components_to_have_bonds = false
   );
   MolType convert_molecule_type(
-      const ASTMoleculeNode* n,
+      const ASTMolNode* n,
       const bool allow_same_component_different_state = false,
       const bool allow_components_to_have_bonds = false
   );
@@ -52,14 +52,14 @@ private:
   void merge_molecule_type_definition(MolType& dstsrc, const MolType& src);
   void collect_molecule_types_molecule_list(
       const ASTListNode* molecule_list,
-      std::vector<const ASTMoleculeNode*>& molecule_nodes
+      std::vector<const ASTMolNode*>& molecule_nodes
   );
   void collect_and_store_implicit_molecule_types();
 
 
-  MolInstance convert_molecule_pattern(const ASTMoleculeNode* m);
+  MolInstance convert_molecule_pattern(const ASTMolNode* m);
   void convert_cplx(
-      const ASTCplxInstanceNode* cplx_node,
+      const ASTCplxNode* cplx_node,
       CplxInstance& pattern
   );
   void convert_rxn_rule_side(
@@ -71,12 +71,12 @@ private:
   void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction);
   void convert_and_store_rxn_rules();
 
-  std::string get_compartment_name(const ASTCplxInstanceNode* cplx_node);
+  std::string get_compartment_name(const ASTCplxNode* cplx_node);
 
   void convert_seed_species();
   void convert_observables();
 
-  void extend_molecule_type_definitions(const ASTCplxInstanceNode* cplx_node);
+  void extend_molecule_type_definitions(const ASTCplxNode* cplx_node);
 
   // local copies so that we don't have to pass everything
   // as arguments
