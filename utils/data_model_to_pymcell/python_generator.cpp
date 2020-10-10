@@ -22,6 +22,7 @@
 
 #include <fstream>
 #include <regex>
+#include <ctype.h>
 
 #include "libmcell/api/api_utils.h"
 
@@ -37,8 +38,13 @@ namespace MCell {
 using Json::Value;
 
 void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& parameter) {
-  out << "# " << parameter[KEY_PAR_DESCRIPTION].asString() << "\n";
-  out << parameter[KEY_PAR_NAME].asString() << " = " << parameter[KEY_PAR_EXPRESSION].asString();
+  if (parameter[KEY_PAR_DESCRIPTION].asString() != "") {
+    out << "# " << parameter[KEY_PAR_DESCRIPTION].asString() << "\n";
+  }
+  string python_expr;
+  // replace operator ^ with operator **
+  python_expr = regex_replace(parameter[KEY_PAR_EXPRESSION].asString(), regex("\\^"), "**");
+  out << parameter[KEY_PAR_NAME].asString() << " = " << python_expr;
   string units = parameter[KEY_PAR_UNITS].asString();
   if (units != "") {
     out << " # units: " << units;
@@ -47,11 +53,165 @@ void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& 
 }
 
 
+static void get_used_ids(const string& expr, vector<string>& used_ids) {
+  used_ids.clear();
+
+  enum state_t {
+    START,
+    IN_ID,
+    IN_NUM
+  };
+  state_t state = START;
+  string curr_id;
+  for (char c: expr) {
+    switch (state) {
+      case START:
+        if (isalpha(c) || c == '_') {
+          state = IN_ID;
+          curr_id += c;
+        }
+        else if (isdigit(c)) {
+          state = IN_NUM;
+        }
+        break;
+      case IN_ID:
+        if (isalnum(c) || c == '_') {
+          curr_id += c;
+        }
+        else {
+          used_ids.push_back(curr_id);
+          curr_id = "";
+          state = START;
+        }
+        break;
+      case IN_NUM:
+        if (isdigit(c) || c == '.' || c == 'e' || c == '+' || c == '-') {
+          // ok
+        }
+        else {
+          state = START;
+        }
+    }
+  }
+  if (state == IN_ID) {
+    used_ids.push_back(curr_id);
+  }
+}
+
+
+struct ExprDepNode {
+  size_t index;
+  vector<ExprDepNode*> parents;
+  vector<ExprDepNode*> children;
+};
+
+
+// simple class used mainly to delete all created nodes
+class ExprDepNodeContainer {
+public:
+  ~ExprDepNodeContainer() {
+    for (ExprDepNode* n: nodes) {
+      delete n;
+    }
+    nodes.clear();
+  }
+
+  ExprDepNode* create_node(const size_t index) {
+    ExprDepNode* res = new ExprDepNode();
+    res->index = index;
+    return res;
+  }
+
+  vector<ExprDepNode*> nodes;
+};
+
+
+static void traverse_given_level(
+    const ExprDepNode* n, const uint level, vector<size_t>& level_ordering) {
+
+  if (level == 0) {
+    level_ordering.push_back(n->index);
+  }
+  else {
+    // recursion stops if there are no children
+    for (ExprDepNode* child: n->children) {
+      traverse_given_level(child, level-1, level_ordering);
+    }
+  }
+}
+
+
+static void level_order_traversal(
+    ExprDepNode* root, vector<size_t>& ordering) {
+
+  vector<size_t> level_ordering;
+
+  uint level = 1; // we are not counting the root node
+  do {
+    level_ordering.clear();
+    traverse_given_level(root, level, level_ordering);
+
+    ordering.insert(ordering.end(), level_ordering.begin(), level_ordering.end());
+
+    level++;
+  } while (!level_ordering.empty());
+}
+
+
+static void define_parameter_ordering(Value& parameter_list, vector<size_t>& ordering) {
+  ExprDepNodeContainer nodes;
+  map<string, ExprDepNode*> defines;
+
+  // first create all nodes
+  for (Value::ArrayIndex i = 0; i < parameter_list.size(); i++) {
+    const string& name = parameter_list[i][KEY_PAR_NAME].asString();
+    defines[name] = nodes.create_node(i);
+  }
+
+  // then define dependencies
+  for (Value::ArrayIndex i = 0; i < parameter_list.size(); i++) {
+    const string& name = parameter_list[i][KEY_PAR_NAME].asString();
+    const string& expr = parameter_list[i][KEY_PAR_EXPRESSION].asString();
+
+    ExprDepNode* n = defines[name];
+    vector<string> used_ids;
+
+    // e.g. our parameter is a = b + c
+    // parents of a are b and c (since
+    // and child of b, resp. c, is a
+    get_used_ids(expr, used_ids);
+    for (const string& id: used_ids) {
+      ExprDepNode* used_node = defines[id];
+      // make a bidirectional link
+      n->parents.push_back(used_node);
+      used_node->children.push_back(n);
+    }
+  }
+
+  // now we might have multiple roots (nodes without uses), create just one
+  ExprDepNode* root = nodes.create_node(INDEX_INVALID);
+  for (auto node_it: defines) {
+    if (node_it.second->parents.empty()) {
+      root->children.push_back(node_it.second);
+      node_it.second->parents.push_back(root);
+    }
+  }
+
+  // finally do a level-order traversal of the created dependency graph
+  level_order_traversal(root, ordering);
+}
+
+
 void PythonGenerator::generate_parameters(std::ostream& out) {
   Value& parameter_system = get_node(mcell, KEY_PARAMETER_SYSTEM);
   if (parameter_system.isMember(KEY_MODEL_PARAMETERS)) {
     Value& parameter_list = get_node(parameter_system, KEY_MODEL_PARAMETERS);
-    for (Value::ArrayIndex i = 0; i < parameter_list.size(); i++) {
+
+    vector<size_t> ordering;
+    // sort parameters by their dependence
+    define_parameter_ordering(parameter_list, ordering);
+
+    for (Value::ArrayIndex i: ordering) {
       generate_single_parameter(out, parameter_list[i]);
     }
   }
@@ -1350,6 +1510,5 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
     out << CTOR_END;
   }
 }
-
 
 } /* namespace MCell */
