@@ -10,11 +10,11 @@
 
 #include "bng/bng_defines.h"
 #include "bng/bng_data.h"
-#include "bng/cplx_instance.h"
 #include "bng/species_container.h"
 #include "bng/rxn_container.h"
 #include "bng/mol_type.h"
 #include "bng/rxn_rule.h"
+#include "bng/cplx.h"
 
 namespace BNG {
 

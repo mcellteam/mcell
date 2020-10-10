@@ -10,8 +10,8 @@
 
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
-#include "bng/cplx_instance.h"
 #include "bng/mol_type.h"
+#include "bng/cplx.h"
 
 using namespace std;
 

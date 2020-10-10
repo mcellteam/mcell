@@ -9,8 +9,8 @@
 #define LIBS_BNG_SPECIES_H_
 
 #include "bng/mol_type.h"
-#include "bng/cplx_instance.h"
 #include "bng/defines_shared.h"
+#include "bng/cplx.h"
 
 namespace BNG {
 

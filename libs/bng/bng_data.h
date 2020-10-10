@@ -9,10 +9,9 @@
 #define LIBS_BNG_BNG_DATA_H_
 
 #include "bng/bng_defines.h"
-#include "bng/cplx_instance.h"
-
 #include "bng/mol_type.h"
 #include "bng/rxn_rule.h"
+#include "bng/cplx.h"
 
 namespace BNG {
 

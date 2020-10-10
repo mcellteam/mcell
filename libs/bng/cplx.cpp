@@ -10,7 +10,6 @@
 
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
-#include "bng/cplx_instance.h"
 #include "bng/mol_type.h"
 #include "bng/mol_instance.h"
 
@@ -22,6 +21,8 @@
 #include "nauty/nausparse.h"
 
 #include "debug_config.h"
+
+#include "bng/cplx.h"
 
 //#define DEBUG_CANONICALIZATION
 

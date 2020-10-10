@@ -5,8 +5,8 @@
  *      Author: ahusar
  */
 
-#ifndef LIBS_BNG_CPLX_INSTANCE_H_
-#define LIBS_BNG_CPLX_INSTANCE_H_
+#ifndef LIBS_BNG_CPLX_H_
+#define LIBS_BNG_CPLX_H_
 
 #include <iostream>
 
@@ -208,4 +208,4 @@ typedef small_vector<CplxInstance> CplxInstanceVector;
 
 } /* namespace BNG */
 
-#endif /* LIBS_BNG_CPLX_INSTANCE_H_ */
+#endif /* LIBS_BNG_CPLX_H_ */
