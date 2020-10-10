@@ -157,10 +157,6 @@ const float_t SQRT2 = 1.41421356238;
 const float_t RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
 
 const uint INT_INVALID = INT32_MAX;
-const uint ID_INVALID = UINT32_MAX; // general invalid id, should not be used when a definition for a specific type is available
-const uint ID_INVALID2 = UINT32_MAX - 1; // second general invalid id, might be used for special values
-const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
-const uint INDEX_INVALID2 = UINT32_MAX - 2; // second general invalid index, might be used for special values
 
 // molecule id is a unique identifier of a molecule,
 // no 2 molecules may have the same ID in the course of a simulation (at least for now)

@@ -35,16 +35,17 @@ class CplxInstance: public BaseSpeciesCplxMolFlag {
 public:
   MolInstanceVector mol_instances;
 
-  // NOTE: Some higher-level bond information will be needed here
-
 private:
   // not read from BNG yet, but proposal is on its way
   // used in reactions, not in species
   orientation_t orientation;
 
+  compartment_id_t compartment_id;
+
 public:
   CplxInstance(const BNGData* bng_data_)
     : orientation(ORIENTATION_NONE),
+      compartment_id(COMPARTMENT_ID_DONT_CARE),
       bng_data(bng_data_)
       {
   }
@@ -110,6 +111,14 @@ public:
 
   void set_orientation(const orientation_t o) {
     orientation = o;
+  }
+
+  compartment_id_t get_compartment_id() const {
+    return compartment_id;
+  }
+
+  void set_compartment_id(const compartment_id_t cid) {
+    compartment_id = cid;
   }
 
   // returns true if this object as a pattern matches second instance
