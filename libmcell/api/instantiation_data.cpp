@@ -87,6 +87,11 @@ void InstantiationData::convert_compartments(const BNG::BNGData& bng_data) {
 
   // create objects and assign 2d release regions
   for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
+    if (bng_comp.children_compartments.size() > 2) {
+      throw RuntimeError("Automatic creation of compartments with more than one child compartment "
+          "is not supported yet, error for '" + bng_comp.name + ".");
+    }
+
     if (bng_comp.is_3d) {
       float_t side = pow_f(bng_comp.volume, 1.0/3.0);
 
