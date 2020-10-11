@@ -54,6 +54,8 @@ class SurfaceRegion():
     pass
 class VizOutput():
     pass
+class VolumeCompartment():
+    pass
 class WallHitInfo():
     pass
 class Warnings():
@@ -396,10 +398,12 @@ class InstantiationData():
     def __init__(
             self,
             release_sites : List[ReleaseSite] = None,
-            geometry_objects : List[GeometryObject] = None
+            geometry_objects : List[GeometryObject] = None,
+            volume_compartments : List[VolumeCompartment] = None
         ):
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
+        self.volume_compartments = volume_compartments
 
 
     def add_release_site(
@@ -426,6 +430,24 @@ class InstantiationData():
         ) -> 'GeometryObject':
         pass
 
+    def add_volume_compartment(
+            self,
+            compartment : VolumeCompartment
+        ) -> None:
+        pass
+
+    def find_volume_compartment(
+            self,
+            name : str
+        ) -> 'VolumeCompartment':
+        pass
+
+    def find_surface_compartment(
+            self,
+            name : str
+        ) -> 'VolumeCompartment':
+        pass
+
     def load_bngl_seed_species(
             self,
             file_name : str,
@@ -447,6 +469,7 @@ class Model():
             elementary_molecule_types : List[ElementaryMoleculeType] = None,
             release_sites : List[ReleaseSite] = None,
             geometry_objects : List[GeometryObject] = None,
+            volume_compartments : List[VolumeCompartment] = None,
             viz_outputs : List[VizOutput] = None,
             counts : List[Count] = None
         ):
@@ -459,6 +482,7 @@ class Model():
         self.elementary_molecule_types = elementary_molecule_types
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
+        self.volume_compartments = volume_compartments
         self.viz_outputs = viz_outputs
         self.counts = counts
 
@@ -635,6 +659,24 @@ class Model():
             self,
             name : str
         ) -> 'GeometryObject':
+        pass
+
+    def add_volume_compartment(
+            self,
+            compartment : VolumeCompartment
+        ) -> None:
+        pass
+
+    def find_volume_compartment(
+            self,
+            name : str
+        ) -> 'VolumeCompartment':
+        pass
+
+    def find_surface_compartment(
+            self,
+            name : str
+        ) -> 'VolumeCompartment':
         pass
 
     def load_bngl_seed_species(
@@ -1047,6 +1089,25 @@ class VizOutput():
         self.mode = mode
         self.every_n_timesteps = every_n_timesteps
 
+
+class VolumeCompartment():
+    def __init__(
+            self,
+            name : str,
+            geometry_object : GeometryObject,
+            child_compartments : List[VolumeCompartment] = None,
+            surface_compartment_name : str = None
+        ):
+        self.name = name
+        self.geometry_object = geometry_object
+        self.child_compartments = child_compartments
+        self.surface_compartment_name = surface_compartment_name
+
+
+    def get_volume_compartment_region(
+            self,
+        ) -> 'Region':
+        pass
 
 class WallHitInfo():
     def __init__(

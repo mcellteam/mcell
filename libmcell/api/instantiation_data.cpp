@@ -22,12 +22,14 @@
 
 #include "api/instantiation_data.h"
 
+#include <algorithm>
 #include "bng/bng.h"
 
 #include "api/subsystem.h"
 #include "api/geometry_object.h"
 #include "api/surface_region.h"
 #include "api/region.h"
+#include "api/volume_compartment.h"
 #include "api/complex_instance.h"
 
 #include "generated/gen_geometry_utils.h"
@@ -69,42 +71,19 @@ void InstantiationData::convert_bng_data_to_instantiation_data(
     Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
 
-  CompartmentRegionMap compartment_region_map;
-  convert_compartments(bng_data, compartment_region_map);
+  convert_compartments(bng_data);
 
   for (const BNG::SeedSpecies& bng_ss: bng_data.get_seed_species()) {
-    convert_single_seed_species_to_release_site(
-        bng_data, bng_ss, subsystem, default_release_region, compartment_region_map);
+    convert_single_seed_species_to_release_site(bng_data, bng_ss, subsystem, default_release_region);
   }
 }
 
 
-void InstantiationData::convert_compartments(
-    const BNG::BNGData& bng_data,
-    CompartmentRegionMap& compartment_region_map) {
+void InstantiationData::convert_compartments(const BNG::BNGData& bng_data) {
 
   if (bng_data.get_compartments().empty()) {
     return;
   }
-
-  // find the single compartment that has no children
-  // (max one child per compartment is allowed for now)
-  BNG::compartment_id_t leaf_compartment_id = BNG::COMPARTMENT_ID_INVALID;
-  for (const BNG::Compartment& c: bng_data.get_compartments()) {
-    if (!c.has_children()) {
-      if (leaf_compartment_id == BNG::COMPARTMENT_ID_INVALID) {
-        leaf_compartment_id = c.id;
-      }
-      else {
-        throw RuntimeError("Compartments may have currently max one child.");
-      }
-    }
-  }
-  release_assert(leaf_compartment_id != BNG::COMPARTMENT_ID_INVALID);
-
-
-  // whole regions for volume releases, will need to subtract the immediate child
-  CompartmentRegionMap full_3d_release_regions;
 
   // create objects and assign 2d release regions
   for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
@@ -113,37 +92,42 @@ void InstantiationData::convert_compartments(
 
       // create box for the given compartment
       shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
-      geometry_objects.push_back(box);
 
-      // set this regions as release for its 2d parent
+      // create compartment object
+      shared_ptr<VolumeCompartment> comp = make_shared<VolumeCompartment>(bng_comp.name, box);
+
+      // set its 2d name
       if (bng_comp.has_parent()) {
-        compartment_region_map[bng_comp.parent_compartment_id] = box;
+        comp->surface_compartment_name = bng_data.get_compartment(bng_comp.parent_compartment_id).name;
       }
 
-      full_3d_release_regions[bng_comp.id] = box;
+      add_geometry_object(box);
+      add_volume_compartment(comp);
     }
   }
 
-  // and 3d release regions
+  // set all children after all VolumeCompartments were created
   for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
     if (bng_comp.is_3d) {
-      if (!bng_comp.has_children()) {
-        // no child, we can release in the whole region
-        compartment_region_map[bng_comp.id] = full_3d_release_regions[bng_comp.id];
-      }
-      else {
-        assert(full_3d_release_regions.count(bng_comp.id) == 1);
-        assert(bng_comp.children_compartments.size() == 1);
+
+      shared_ptr<VolumeCompartment> comp = find_volume_compartment(bng_comp.name);
+      assert(is_set(comp));
+
+      // and all children
+      for (auto& child_2d_id: bng_comp.children_compartments) {
+
         // first child is 2D compartment
-        const BNG::Compartment first_2d_child = bng_data.get_compartment(*bng_comp.children_compartments.begin());
-        assert(bng_comp.children_compartments.size() == 1);
-        // the next one is the 3d compartment we need
-        assert(full_3d_release_regions.count(*first_2d_child.children_compartments.begin()) == 1);
-        // create and set new region created by subtracting 3d child from its 3d parent
-        compartment_region_map[bng_comp.id] =
-            full_3d_release_regions[bng_comp.id]->__sub__(
-                full_3d_release_regions[*first_2d_child.children_compartments.begin()]
-            );
+        const BNG::Compartment& child_2d = bng_data.get_compartment(child_2d_id);
+        assert(child_2d.children_compartments.size() == 1 && "2D compartments should have just one child normally");
+
+        for (auto& child_3d_id: child_2d.children_compartments) {
+          // the next one is the 3d compartment we need
+          const BNG::Compartment& first_3d_child = bng_data.get_compartment(child_3d_id);
+
+          shared_ptr<VolumeCompartment> child_comp = find_volume_compartment(first_3d_child.name);
+          assert(is_set(child_comp));
+          comp->child_compartments.push_back(child_comp);
+        }
       }
     }
   }
@@ -154,8 +138,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
     const BNG::BNGData& bng_data,
     const BNG::SeedSpecies& bng_ss,
     Subsystem& subsystem,
-    std::shared_ptr<Region> default_release_region,
-    const CompartmentRegionMap& compartment_region_map) {
+    std::shared_ptr<Region> default_release_region) {
 
   auto rel_site = make_shared<API::ReleaseSite>();
 
@@ -185,9 +168,26 @@ void InstantiationData::convert_single_seed_species_to_release_site(
       );
     }
 
-    auto it = compartment_region_map.find(c.id);
-    assert(it != compartment_region_map.end());
-    rel_site->region = it->second;
+    if (c.is_3d) {
+      shared_ptr<VolumeCompartment> api_comp = find_volume_compartment(c.name);
+      if (!is_set(api_comp)) {
+        throw ValueError("Did not find volume compartment '" + c.name + "' for release of " +
+            rel_site->complex_instance->name + "."
+        );
+      }
+
+      rel_site->region = api_comp->get_volume_compartment_region();
+    }
+    else {
+      shared_ptr<VolumeCompartment> api_comp = find_surface_compartment(c.name);
+      if (!is_set(api_comp)) {
+        throw ValueError("Did not find surface compartment '" + c.name + "' for release of " +
+            rel_site->complex_instance->name + "."
+        );
+      }
+
+      rel_site->region = api_comp->geometry_object;
+    }
   }
   else {
     if (!is_set(default_release_region)) {

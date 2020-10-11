@@ -70,9 +70,10 @@ SurfaceRegion:
       regions when simulation starts. 
     
 
-
-# TODO: due to issues with shared pointer casts, it was not possible to make a shared pointer out of this     
+# TODO: should be accessible from SurfaceRegion, add it 
+# due to issues with shared pointer casts, it was not possible to make a shared pointer out of this     
 # any cast resulted into bad_weak_ptr exception
+# 
 #  - name: parent
 #    type: GeometryObject*
 #    default: unset
@@ -84,7 +85,8 @@ GeometryObject:
   items:
   - name: name
     type: str
-    doc: Name of the object
+    doc: | 
+       Name of the object. 
 
   - name: vertex_list
     type: List[List[float]]
@@ -99,7 +101,7 @@ GeometryObject:
     doc: | 
       List of [a,b,c] triplets specifying each wall, individual values are indices into the vertex list.
       Equivalent to List[IVec3]. 
-        
+
   - name: surface_regions
     type: List[SurfaceRegion*]
     default: empty
@@ -120,4 +122,44 @@ GeometryObject:
       each item defines either density or number of molecules to be released on this surface 
       regions when simulation starts.
     internal: Shouldn't we be inheriting this from Region?
+    
+       
+VolumeCompartment:
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    doc: | 
+       Name of 3D BNGL compartment.
 
+  - name: geometry_object
+    type: GeometryObject*
+    doc: | 
+       Full geometry object associated with this compartment.
+       Volume of this compartment is this object without contained BNGL compartments.
+       Example\: let's say that this is a 3D compartment with volume_compartment_name 
+       EC that contains 3D compartments CP1 and CP2. The BNGL compartment EC represents the volume 
+       that is inside of EC but not in CP1 neither in CP2.
+       
+  - name: child_compartments
+    type: List[VolumeCompartment*]
+    default: empty
+    doc: | 
+       All child compartments must be explicitly specified.
+    internal: |
+       This might be optional later and also this diverges from the BNGL specification where 
+       only parent is specified, however we alreadydoiverged because we merged 2d and 3d compartments 
+       into this class.  
+       
+  - name: surface_compartment_name
+    type: str
+    default: unset
+    doc: | 
+       If set, name of 2D BNGL compartment name where the whole surface of this object represents
+       this compartment.
+
+  methods:
+  - name: get_volume_compartment_region
+    doc: |
+       Returns Region corresponding to the BNGL volume compartment.  
+    return_type: Region*

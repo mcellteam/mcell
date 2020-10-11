@@ -397,7 +397,11 @@ Subsystem:
       reaction rules sections, e.g. ignores observables. 
       Parameter values are evaluated and the result value 
       is directly used.  
-      Compartments names are stored in rxn rules as strings.
+      Compartments names are stored in rxn rules as strings because
+      compartments belong to geometry objects and the subsystem is independent
+      on specific geometry.
+      However they must be defined on initialization.
+       
     params:
     - name: file_name
       type: str      

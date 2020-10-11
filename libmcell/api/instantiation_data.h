@@ -27,7 +27,7 @@
 #include "api/common.h"
 #include "api/api_utils.h"
 #include "api/release_site.h"
-#include "bng/bng_defines.h"
+#include "api/volume_compartment.h"
 
 namespace BNG {
 class BNGData;
@@ -43,8 +43,6 @@ class Subsystem;
 class InstantiationData: public GenInstantiationData {
 public:
 
-  typedef std::map<BNG::component_type_id_t, std::shared_ptr<Region>> CompartmentRegionMap;
-
   // from generated template
   void add_release_site(std::shared_ptr<ReleaseSite> s) override {
     append_to_vec(release_sites, s);
@@ -57,9 +55,26 @@ public:
   void add_geometry_object(std::shared_ptr<GeometryObject> o) override {
     append_to_vec(geometry_objects, o);
   }
-
+  
   std::shared_ptr<GeometryObject> find_geometry_object(const std::string& name) override {
     return vec_find_by_name(geometry_objects, name);
+  }
+
+  void add_volume_compartment(std::shared_ptr<VolumeCompartment> compartment) override {
+    append_to_vec(volume_compartments, compartment);
+  }
+
+  std::shared_ptr<VolumeCompartment> find_volume_compartment(const std::string& name) override {
+    return vec_find_by_name(volume_compartments, name);
+  }
+
+  std::shared_ptr<VolumeCompartment> find_surface_compartment(const std::string& name) override {
+    for (auto& item: volume_compartments) {
+      if (is_set(item->surface_compartment_name) && item->surface_compartment_name == name) {
+        return item;
+      }
+    }
+    return std::shared_ptr<VolumeCompartment>(nullptr);
   }
 
   void load_bngl_seed_species(
@@ -80,15 +95,13 @@ protected:
 
 private:
   void convert_compartments(
-      const BNG::BNGData& bng_data,
-      CompartmentRegionMap& compartment_region_map);
+      const BNG::BNGData& bng_data);
 
   void convert_single_seed_species_to_release_site(
       const BNG::BNGData& bng_data,
       const BNG::SeedSpecies& bng_ss,
       Subsystem& subsystem,
-      std::shared_ptr<Region> default_release_region,
-      const CompartmentRegionMap& compartment_region_map);
+      std::shared_ptr<Region> default_release_region);
 };
 
 } // namespace API

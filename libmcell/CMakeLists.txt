@@ -56,6 +56,7 @@ set(SOURCE_FILES
     generated/gen_initial_surface_release.cpp
     generated/gen_surface_region.cpp
     generated/gen_geometry_object.cpp
+    generated/gen_volume_compartment.cpp
     generated/gen_release_pattern.cpp
     generated/gen_molecule_release_info.cpp
     generated/gen_release_site.cpp

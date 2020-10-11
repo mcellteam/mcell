@@ -384,8 +384,7 @@ void SemanticAnalyzer::convert_and_store_compartments() {
     const Compartment* c = bng_data->find_compartment(n->name);
     if (!c->has_children() && !c->is_3d) {
       errs() <<
-          "Compartment without sub-compartments '" + c->name + "' must be a 3D compartment."; // test TODO
-          " must be of different dimensionality than its child '" + c->name + "'.";
+          "Compartment without sub-compartments '" + c->name + "' must be a 3D compartment.\n"; // test TODO
       ctx->inc_error_count();
     }
   }

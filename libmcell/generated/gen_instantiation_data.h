@@ -32,6 +32,7 @@ class GeometryObject;
 class Region;
 class ReleaseSite;
 class Subsystem;
+class VolumeCompartment;
 
 class GenInstantiationData {
 public:
@@ -55,11 +56,22 @@ public:
     return geometry_objects;
   }
 
+  std::vector<std::shared_ptr<VolumeCompartment>> volume_compartments;
+  virtual void set_volume_compartments(const std::vector<std::shared_ptr<VolumeCompartment>> new_volume_compartments_) {
+    volume_compartments = new_volume_compartments_;
+  }
+  virtual std::vector<std::shared_ptr<VolumeCompartment>> get_volume_compartments() const {
+    return volume_compartments;
+  }
+
   // --- methods ---
   virtual void add_release_site(std::shared_ptr<ReleaseSite> s) = 0;
   virtual std::shared_ptr<ReleaseSite> find_release_site(const std::string& name) = 0;
   virtual void add_geometry_object(std::shared_ptr<GeometryObject> o) = 0;
   virtual std::shared_ptr<GeometryObject> find_geometry_object(const std::string& name) = 0;
+  virtual void add_volume_compartment(std::shared_ptr<VolumeCompartment> compartment) = 0;
+  virtual std::shared_ptr<VolumeCompartment> find_volume_compartment(const std::string& name) = 0;
+  virtual std::shared_ptr<VolumeCompartment> find_surface_compartment(const std::string& name) = 0;
   virtual void load_bngl_seed_species(const std::string& file_name, std::shared_ptr<Subsystem> subsystem, std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
 }; // GenInstantiationData
 
