@@ -40,8 +40,8 @@ ReleasePattern:
 MoleculeReleaseInfo:
   superclass: BaseDataClass
   items:
-  - name: complex_instance
-    type: ComplexInstance*
+  - name: complex
+    type: Complex*
     doc: | 
       Complex instance defining the molecule that will be released.
       Orientation of the complex instance is ignored, parameter 'orientation' is used instead.
@@ -68,8 +68,8 @@ ReleaseSite:
     type: str
     doc: Name of the release site
       
-  - name: complex_instance
-    type: ComplexInstance*
+  - name: complex
+    type: Complex*
     default: unset 
     doc: | 
       Defines the species of the molecule that will be released. Not used for the LIST shape. 

@@ -34,7 +34,6 @@
 #include "api/component_instance.h"
 #include "api/elementary_molecule_type.h"
 #include "api/elementary_molecule_instance.h"
-#include "api/complex_instance.h"
 #include "api/species.h"
 #include "api/surface_property.h"
 #include "api/surface_class.h"
@@ -69,5 +68,6 @@
 #include "generated/gen_bngl_utils.h"
 
 #include "api/shared_structs.h"
+#include "complex.h"
 
 #endif // API_MCELL_H

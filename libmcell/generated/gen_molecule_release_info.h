@@ -29,16 +29,16 @@
 namespace MCell {
 namespace API {
 
-class ComplexInstance;
+class Complex;
 
 #define MOLECULE_RELEASE_INFO_CTOR() \
     MoleculeReleaseInfo( \
-        std::shared_ptr<ComplexInstance> complex_instance_, \
+        std::shared_ptr<Complex> complex_, \
         const std::vector<float_t> location_, \
         const Orientation orientation_ = Orientation::NONE \
     ) { \
       class_name = "MoleculeReleaseInfo"; \
-      complex_instance = complex_instance_; \
+      complex = complex_; \
       location = location_; \
       orientation = orientation_; \
       postprocess_in_ctor();\
@@ -56,16 +56,16 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::shared_ptr<ComplexInstance> complex_instance;
-  virtual void set_complex_instance(std::shared_ptr<ComplexInstance> new_complex_instance_) {
+  std::shared_ptr<Complex> complex;
+  virtual void set_complex(std::shared_ptr<Complex> new_complex_) {
     if (initialized) {
-      throw RuntimeError("Value 'complex_instance' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    complex_instance = new_complex_instance_;
+    complex = new_complex_;
   }
-  virtual std::shared_ptr<ComplexInstance> get_complex_instance() const {
-    return complex_instance;
+  virtual std::shared_ptr<Complex> get_complex() const {
+    return complex;
   }
 
   std::vector<float_t> location;

@@ -30,7 +30,7 @@
 #include "api/surface_region.h"
 #include "api/region.h"
 #include "api/volume_compartment.h"
-#include "api/complex_instance.h"
+#include "api/complex.h"
 
 #include "generated/gen_geometry_utils.h"
 
@@ -148,10 +148,10 @@ void InstantiationData::convert_single_seed_species_to_release_site(
   auto rel_site = make_shared<API::ReleaseSite>();
 
   // we need to create API representation for the cplx instance we got
-  rel_site->complex_instance =
+  rel_site->complex =
       subsystem.convert_cplx_instance(bng_data, bng_ss.cplx);
 
-  bool surf_release = rel_site->complex_instance->is_surf();
+  bool surf_release = rel_site->complex->is_surf();
   if (surf_release) {
     // the default orientation of released molecules is 'up'
     rel_site->orientation = Orientation::UP;
@@ -162,13 +162,13 @@ void InstantiationData::convert_single_seed_species_to_release_site(
     // check that dimensionality of compartment matches the released molecule
     if (surf_release && c.is_3d) {
       throw ValueError(S("Seed species specification for complex instance ") +
-          rel_site->complex_instance->name + ": cannot release surface molecules " +
+          rel_site->complex->name + ": cannot release surface molecules " +
           "into a 3d compartment " + c.name + ".\n"
       );
     }
     else if (!surf_release && !c.is_3d) {
       throw ValueError(S("Seed species specification for complex instance ") +
-          rel_site->complex_instance->name + ": cannot release volume molecules " +
+          rel_site->complex->name + ": cannot release volume molecules " +
           "onto a 2d compartment " + c.name + ".\n"
       );
     }
@@ -177,7 +177,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
       shared_ptr<VolumeCompartment> api_comp = find_volume_compartment(c.name);
       if (!is_set(api_comp)) {
         throw ValueError("Did not find volume compartment '" + c.name + "' for release of " +
-            rel_site->complex_instance->name + "."
+            rel_site->complex->name + "."
         );
       }
 
@@ -187,7 +187,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
       shared_ptr<VolumeCompartment> api_comp = find_surface_compartment(c.name);
       if (!is_set(api_comp)) {
         throw ValueError("Did not find surface compartment '" + c.name + "' for release of " +
-            rel_site->complex_instance->name + "."
+            rel_site->complex->name + "."
         );
       }
 
@@ -197,7 +197,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
   else {
     if (!is_set(default_release_region)) {
       throw ValueError(S("Seed species specification for complex instance ") +
-          rel_site->complex_instance->name + " does not have a compartment and neither " +
+          rel_site->complex->name + " does not have a compartment and neither " +
           NAME_DEFAULT_RELEASE_REGION + " was set, don't know where to release.\n"
       );
     }
@@ -206,7 +206,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
   }
 
   rel_site->name =
-      "Release of " + rel_site->complex_instance->to_bngl_str() +
+      "Release of " + rel_site->complex->to_bngl_str() +
       " at " + rel_site->region->name;
 
   uint truncated_count = BNG::floor_f(bng_ss.count);

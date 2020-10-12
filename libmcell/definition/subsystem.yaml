@@ -123,7 +123,7 @@ ElementaryMoleculeInstance:
     doc: Creates a string that corresponds to its BNGL representation 
     
     
-ComplexInstance:    
+Complex:    
   superclass: BaseDataClass
   doc: | 
      This class represents a complex molecule composed of molecule instances.
@@ -132,7 +132,7 @@ ComplexInstance:
      This class is used as argument in cases where either a fully qualified instance or a pattern 
      can be provided such as in observable Count.  
   internal: | 
-     Ctor Species(ComplexInstance& cplx_inst) must be updated if if attributes change     
+     Ctor Species(Complex& cplx_inst) must be updated if if attributes change     
   items:
   - name: name
     type: str
@@ -161,7 +161,7 @@ ComplexInstance:
     type: str
     default: unset
     doc: | 
-       Specifies compartment name of this ComplexInstance. 
+       Specifies compartment name of this Complex. 
        Only one of 'orientation' and 'compartment_name' can be set. 
        If a 2D/surface compartment is specified, the complex must be a surface complex and 
        orientation is set to Orientation.UP.
@@ -177,13 +177,13 @@ ComplexInstance:
   - name: as_species
     return_type: Species*
     doc: | 
-       Returns a Species object based on this ComplexInstance. All Species-specific 
+       Returns a Species object based on this Complex. All Species-specific 
        attributes are set to their default values and 'name' is set to value returned by 
        'to_bngl_str()'.
       
       
 Species:
-  superclass: ComplexInstance
+  superclass: Complex
   TODO: | 
      Ignore orientation when comparing species on equality.
   doc: |
@@ -197,7 +197,7 @@ Species:
     representation and an ElementaryMoleculeType 'A' with a given 
     diffusion constant is created as well.
     2) full definition of complex species - in this case the 
-    inherited attribute 'elementary_molecule_instances' from ComplexInstance
+    inherited attribute 'elementary_molecule_instances' from Complex
     is used as a definition of the complex and this gives information 
     on diffusion constants of the used elementary molecules.
     Example\: m.Species(elementary_molecule_instances=[ei1, ei2]). 
@@ -221,7 +221,7 @@ Species:
     doc: | 
        Name of the species in the BNGL format. 
        One must either specify 'name' or 'elementary_molecule_instances' 
-       (inherited from ComplexInstance). This argument 'name' is parsed during model 
+       (inherited from Complex). This argument 'name' is parsed during model 
        initialization.    
 
   - name: diffusion_constant_2d
@@ -256,10 +256,10 @@ Species:
       
   methods:
   - name: inst
-    return_type: ComplexInstance
+    return_type: Complex
     todo: Where is this used and why the limitation?, remove?
     doc: | 
-       Creates a ComplexInstance of this Species. Can be currently used only for simple species, i.e. those that
+       Creates a Complex of this Species. Can be currently used only for simple species, i.e. those that
        have a single molecule instance and no components.
     params:
     - name: orientation
@@ -313,11 +313,11 @@ ReactionRule:
       reaction in forward direction.
     
   - name: reactants
-    type: List[ComplexInstance*]
+    type: List[Complex*]
     default: empty # must be set, but C++ ordering of arguments requires that all defaults are at the end
     
   - name: products
-    type: List[ComplexInstance*]
+    type: List[Complex*]
     default: empty
     
   - name: fwd_rate

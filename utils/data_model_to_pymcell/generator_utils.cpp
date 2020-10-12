@@ -248,7 +248,7 @@ string remove_compartments(const std::string& species_name) {
 
 
 static string make_cplx(const string bngl_str, const string orient = "") {
-  string res = S(MDOT) + API::NAME_CLASS_COMPLEX_INSTANCE + "('" + fix_dots_in_simple_species(bngl_str) + "'";
+  string res = S(MDOT) + API::NAME_CLASS_COMPLEX + "('" + fix_dots_in_simple_species(bngl_str) + "'";
   if (orient != "") {
     res += S(", ") + API::NAME_ORIENTATION + " = " + MDOT + API::NAME_ENUM_ORIENTATION + "." + orient;
   }

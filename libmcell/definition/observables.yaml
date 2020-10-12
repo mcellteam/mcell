@@ -33,7 +33,7 @@ CountTerm:
   superclass: BaseDataClass
   items:
   - name: species_pattern
-    type: ComplexInstance*
+    type: Complex*
     default: unset
     doc: |
       Count the number of molecules that match the given complex instance pattern.
@@ -41,7 +41,7 @@ CountTerm:
       If the pattern has a compartment set, this specifies the counted region.  
     
   - name: molecules_pattern
-    type: ComplexInstance*
+    type: Complex*
     default: unset
     doc: |
      Count the number of matches of the given pattern on molecules.

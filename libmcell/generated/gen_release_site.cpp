@@ -24,7 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_release_site.h"
 #include "../api/release_site.h"
-#include "../api/complex_instance.h"
+#include "../api/complex.h"
 #include "../api/molecule_release_info.h"
 #include "../api/region.h"
 #include "../api/release_pattern.h"
@@ -43,12 +43,12 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
     name == other.name &&
     name == other.name &&
     (
-      (complex_instance != nullptr) ?
-        ( (other.complex_instance != nullptr) ?
-          (complex_instance->__eq__(*other.complex_instance)) : 
+      (complex != nullptr) ?
+        ( (other.complex != nullptr) ?
+          (complex->__eq__(*other.complex)) : 
           false
         ) :
-        ( (other.complex_instance != nullptr) ?
+        ( (other.complex != nullptr) ?
           false :
           true
         )
@@ -89,8 +89,8 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
 }
 
 void GenReleaseSite::set_initialized() {
-  if (is_set(complex_instance)) {
-    complex_instance->set_initialized();
+  if (is_set(complex)) {
+    complex->set_initialized();
   }
   vec_set_initialized(molecule_list);
   if (is_set(release_pattern)) {
@@ -105,7 +105,7 @@ void GenReleaseSite::set_initialized() {
 void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   class_name = "ReleaseSite";
   name = STR_UNSET;
-  complex_instance = nullptr;
+  complex = nullptr;
   orientation = Orientation::NONE;
   molecule_list = std::vector<std::shared_ptr<MoleculeReleaseInfo>>();
   release_time = 0;
@@ -125,7 +125,7 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "complex_instance=" << "(" << ((complex_instance != nullptr) ? complex_instance->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
       "\n" << ind + "  " << "molecule_list=" << vec_ptr_to_str(molecule_list, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_time=" << release_time << ", " <<
@@ -147,7 +147,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            std::shared_ptr<ComplexInstance>,
+            std::shared_ptr<Complex>,
             const Orientation,
             const std::vector<std::shared_ptr<MoleculeReleaseInfo>>,
             const float_t,
@@ -163,7 +163,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const float_t
           >(),
           py::arg("name"),
-          py::arg("complex_instance") = nullptr,
+          py::arg("complex") = nullptr,
           py::arg("orientation") = Orientation::NONE,
           py::arg("molecule_list") = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(),
           py::arg("release_time") = 0,
@@ -182,7 +182,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
-      .def_property("complex_instance", &ReleaseSite::get_complex_instance, &ReleaseSite::set_complex_instance)
+      .def_property("complex", &ReleaseSite::get_complex, &ReleaseSite::set_complex)
       .def_property("orientation", &ReleaseSite::get_orientation, &ReleaseSite::set_orientation)
       .def_property("molecule_list", &ReleaseSite::get_molecule_list, &ReleaseSite::set_molecule_list)
       .def_property("release_time", &ReleaseSite::get_release_time, &ReleaseSite::set_release_time)

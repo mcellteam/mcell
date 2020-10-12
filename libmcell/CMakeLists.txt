@@ -26,7 +26,7 @@ set(SOURCE_FILES
     
     api/component_instance.cpp
     api/elementary_molecule_instance.cpp
-    api/complex_instance.cpp
+    api/complex.cpp
     
     api/subsystem.cpp
     api/instantiation_data.cpp
@@ -45,7 +45,7 @@ set(SOURCE_FILES
     generated/gen_component_instance.cpp
     generated/gen_elementary_molecule_type.cpp
     generated/gen_elementary_molecule_instance.cpp
-    generated/gen_complex_instance.cpp
+    generated/gen_complex.cpp
     generated/gen_species.cpp
     generated/gen_surface_property.cpp
     generated/gen_surface_class.cpp

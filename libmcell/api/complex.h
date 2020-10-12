@@ -20,10 +20,10 @@
  *
 ******************************************************************************/
 
-#ifndef API_COMPLEX_INSTANCE_H
-#define API_COMPLEX_INSTANCE_H
+#ifndef API_COMPLEX_H
+#define API_COMPLEX_H
 
-#include "generated/gen_complex_instance.h"
+#include "generated/gen_complex.h"
 #include "api/common.h"
 #include "api/api_utils.h"
 
@@ -32,14 +32,14 @@ namespace API {
 
 class Species;
 
-class ComplexInstance: public GenComplexInstance {
+class Complex: public GenComplex {
 public:
-  COMPLEX_INSTANCE_CTOR()
+  COMPLEX_CTOR()
 
-  static std::shared_ptr<API::ComplexInstance> make_shared_empty() {
+  static std::shared_ptr<API::Complex> make_shared_empty() {
     // to avoid ComplexInstance semantic check, we need to insert a dummy name
     // when creating the object
-    auto res_cplx_inst = std::make_shared<API::ComplexInstance>("TMP_NAME");
+    auto res_cplx_inst = std::make_shared<API::Complex>("TMP_NAME");
     res_cplx_inst->name = STR_UNSET;
     return res_cplx_inst;
   }
@@ -49,11 +49,11 @@ public:
       // all semantic checks will be done in Species
       return;
     }
-    GenComplexInstance::check_semantics();
+    GenComplex::check_semantics();
     if (get_num_set(name, elementary_molecule_instances) != 1) {
       throw ValueError(
           S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULE_INSTANCES +
-          " must be set for " + NAME_CLASS_COMPLEX_INSTANCE + ".");
+          " must be set for " + NAME_CLASS_COMPLEX + ".");
     }
 
     if (is_set(name)) {
@@ -88,4 +88,4 @@ private:
 } // namespace API
 } // namespace MCell
 
-#endif // API_COMPLEX_INSTANCE_H
+#endif // API_COMPLEX_H

@@ -30,7 +30,7 @@
 namespace MCell {
 namespace API {
 
-class ComplexInstance;
+class Complex;
 class CountTerm;
 class ReactionRule;
 class Region;
@@ -41,8 +41,8 @@ class Region;
         std::shared_ptr<CountTerm> count_expression_ = nullptr, \
         const float_t multiplier_ = 1, \
         const float_t every_n_timesteps_ = 1, \
-        std::shared_ptr<ComplexInstance> species_pattern_ = nullptr, \
-        std::shared_ptr<ComplexInstance> molecules_pattern_ = nullptr, \
+        std::shared_ptr<Complex> species_pattern_ = nullptr, \
+        std::shared_ptr<Complex> molecules_pattern_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
         std::shared_ptr<Region> region_ = nullptr, \
         const ExprNodeType node_type_ = ExprNodeType::LEAF, \
@@ -68,8 +68,8 @@ class Region;
 class GenCount: public CountTerm {
 public:
   GenCount( 
-      std::shared_ptr<ComplexInstance> species_pattern_ = nullptr, 
-      std::shared_ptr<ComplexInstance> molecules_pattern_ = nullptr, 
+      std::shared_ptr<Complex> species_pattern_ = nullptr, 
+      std::shared_ptr<Complex> molecules_pattern_ = nullptr, 
       std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, 
       std::shared_ptr<Region> region_ = nullptr, 
       const ExprNodeType node_type_ = ExprNodeType::LEAF, 

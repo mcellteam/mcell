@@ -146,14 +146,14 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 }
 
 
-species_id_t MCell4Converter::get_species_id_for_complex_instance(API::ComplexInstance& ci, const std::string error_msg) {
+species_id_t MCell4Converter::get_species_id_for_complex(API::Complex& ci, const std::string error_msg) {
   // check that the complex instance if fully qualified
 
-  BNG::Cplx bng_ci = convert_complex_instance(ci, true);
+  BNG::Cplx bng_ci = convert_complex(ci, true);
   if (!bng_ci.is_fully_qualified()) {
     // TODO: add test
     throw ValueError(
-        error_msg + ": " + NAME_COMPLEX_INSTANCE + "'" + bng_ci.to_str() + "' must be fully qualified " +
+        error_msg + ": " + NAME_COMPLEX + "'" + bng_ci.to_str() + "' must be fully qualified " +
         "(all components must be present and their state set).");
   }
 
@@ -174,8 +174,8 @@ species_id_t MCell4Converter::get_species_id(
   }
   else {
     // we fist need to create a complex instance from our species
-    API::ComplexInstance* s_as_cplx_inst = dynamic_cast<API::ComplexInstance*>(&s);
-    return get_species_id_for_complex_instance(*s_as_cplx_inst, class_name + " " + object_name);
+    API::Complex* s_as_cplx_inst = dynamic_cast<API::Complex*>(&s);
+    return get_species_id_for_complex(*s_as_cplx_inst, class_name + " " + object_name);
   }
 }
 
@@ -653,7 +653,7 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
 }
 
 
-BNG::Cplx MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_observables, const bool in_rxn) {
+BNG::Cplx MCell4Converter::convert_complex(API::Complex& inst, const bool in_observables, const bool in_rxn) {
   // create a temporary cplx instance that we will use for search
   BNG::Cplx cplx_inst(&world->bng_engine.get_data());
 
@@ -668,7 +668,7 @@ BNG::Cplx MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, 
     // parse BNGL string
     int num_errors = BNG::parse_single_cplx_string(inst.name, world->bng_engine.get_data(), cplx_inst);
     if (num_errors) {
-      throw ValueError("Could not parse BNGL string " + inst.name + " that defines a " + NAME_CLASS_COMPLEX_INSTANCE + ".");
+      throw ValueError("Could not parse BNGL string " + inst.name + " that defines a " + NAME_CLASS_COMPLEX + ".");
     }
   }
   else {
@@ -754,17 +754,17 @@ void MCell4Converter::convert_rxns() {
       rxn.update_variable_rxn_rate(0, nullptr);
     }
 
-    for (std::shared_ptr<API::ComplexInstance>& rinst: r->reactants) {
+    for (std::shared_ptr<API::Complex>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
 
-      BNG::Cplx reactant = convert_complex_instance(*rinst, false, true);
+      BNG::Cplx reactant = convert_complex(*rinst, false, true);
       rxn.append_reactant(reactant);
     }
 
-    for (std::shared_ptr<API::ComplexInstance>& pinst: r->products) {
+    for (std::shared_ptr<API::Complex>& pinst: r->products) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
 
-      BNG::Cplx product = convert_complex_instance(*pinst, false, true);
+      BNG::Cplx product = convert_complex(*pinst, false, true);
       rxn.append_product(product);
     }
 
@@ -1116,8 +1116,8 @@ void MCell4Converter::convert_molecule_list(
   for (auto& item: molecule_list) {
     MCell::SingleMoleculeReleaseInfo info;
 
-    info.species_id = get_species_id_for_complex_instance(
-        *item->complex_instance, S(NAME_CLASS_RELEASE_SITE) + " '" + rel_site_name + "'");
+    info.species_id = get_species_id_for_complex(
+        *item->complex, S(NAME_CLASS_RELEASE_SITE) + " '" + rel_site_name + "'");
 
     assert(item->location.size() == 3);
     info.pos.x = item->location[0] * world->config.rcp_length_unit;
@@ -1146,9 +1146,9 @@ void MCell4Converter::convert_release_events() {
 
     if (!is_set(r->molecule_list)) {
 
-      assert(is_set(r->complex_instance));
-      rel_event->species_id = get_species_id_for_complex_instance(
-          *r->complex_instance, S(NAME_CLASS_RELEASE_SITE) + " '" + r->name + "'");
+      assert(is_set(r->complex));
+      rel_event->species_id = get_species_id_for_complex(
+          *r->complex, S(NAME_CLASS_RELEASE_SITE) + " '" + r->name + "'");
 
       rel_event->orientation = convert_orientation(r->orientation);
 
@@ -1266,7 +1266,7 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   std::vector<std::shared_ptr<VolumeCompartment>> child_compartments;
 
   // handle compartments
-  const shared_ptr<ComplexInstance> pattern = ct->get_pattern();
+  const shared_ptr<Complex> pattern = ct->get_pattern();
   if (is_set(pattern) && is_set(pattern->compartment_name)) {
     const string& compartment_name = pattern->compartment_name;
     // only one region or compartment may be set
@@ -1322,11 +1322,11 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
 
     if (is_set(ct->species_pattern)) {
       res.species_pattern_type = SpeciesPatternType::SpeciesPattern;
-      res.species_molecules_pattern = convert_complex_instance(*ct->species_pattern, true);
+      res.species_molecules_pattern = convert_complex(*ct->species_pattern, true);
     }
     else {
       res.species_pattern_type = SpeciesPatternType::MoleculesPattern;
-      res.species_molecules_pattern = convert_complex_instance(*ct->molecules_pattern, true);
+      res.species_molecules_pattern = convert_complex(*ct->molecules_pattern, true);
     }
 
     // we must throw away the compartment because it was already handled

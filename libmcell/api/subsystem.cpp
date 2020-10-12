@@ -28,7 +28,7 @@
 #include "api/component_instance.h"
 #include "api/elementary_molecule_type.h"
 #include "api/elementary_molecule_instance.h"
-#include "api/complex_instance.h"
+#include "api/complex.h"
 
 #include "api/api_utils.h"
 
@@ -171,11 +171,11 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 
 
 
-std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
+std::shared_ptr<API::Complex> Subsystem::convert_cplx_instance(
     const BNG::BNGData& bng_data,
     const BNG::Cplx& bng_cplx) {
 
-  auto res_cplx_inst = API::ComplexInstance::make_shared_empty();
+  auto res_cplx_inst = API::Complex::make_shared_empty();
 
   // convert each molecule instance
   for (const BNG::MolInstance& bmg_mi: bng_cplx.mol_instances) {
@@ -217,11 +217,11 @@ std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
 
 
 // sets orientation if the resulting cplx is a surface cplx
-std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance_w_orientation(
+std::shared_ptr<API::Complex> Subsystem::convert_cplx_instance_w_orientation(
     const BNG::BNGData& bng_data,
     const BNG::Cplx& bng_inst,
     const Orientation orientation) {
-  shared_ptr<API::ComplexInstance> res =
+  shared_ptr<API::Complex> res =
       Subsystem::convert_cplx_instance(bng_data, bng_inst);
 
   // only after conversion we can know whether a molecule is of surface volume type,

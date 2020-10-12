@@ -29,13 +29,13 @@
 namespace MCell {
 namespace API {
 
-class ComplexInstance;
+class Complex;
 
 #define REACTION_RULE_CTOR() \
     ReactionRule( \
         const std::string& name_ = STR_UNSET, \
-        const std::vector<std::shared_ptr<ComplexInstance>> reactants_ = std::vector<std::shared_ptr<ComplexInstance>>(), \
-        const std::vector<std::shared_ptr<ComplexInstance>> products_ = std::vector<std::shared_ptr<ComplexInstance>>(), \
+        const std::vector<std::shared_ptr<Complex>> reactants_ = std::vector<std::shared_ptr<Complex>>(), \
+        const std::vector<std::shared_ptr<Complex>> products_ = std::vector<std::shared_ptr<Complex>>(), \
         const float_t fwd_rate_ = FLT_UNSET, \
         const std::string& rev_name_ = STR_UNSET, \
         const float_t rev_rate_ = FLT_UNSET, \
@@ -64,27 +64,27 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<std::shared_ptr<ComplexInstance>> reactants;
-  virtual void set_reactants(const std::vector<std::shared_ptr<ComplexInstance>> new_reactants_) {
+  std::vector<std::shared_ptr<Complex>> reactants;
+  virtual void set_reactants(const std::vector<std::shared_ptr<Complex>> new_reactants_) {
     if (initialized) {
       throw RuntimeError("Value 'reactants' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     reactants = new_reactants_;
   }
-  virtual std::vector<std::shared_ptr<ComplexInstance>> get_reactants() const {
+  virtual std::vector<std::shared_ptr<Complex>> get_reactants() const {
     return reactants;
   }
 
-  std::vector<std::shared_ptr<ComplexInstance>> products;
-  virtual void set_products(const std::vector<std::shared_ptr<ComplexInstance>> new_products_) {
+  std::vector<std::shared_ptr<Complex>> products;
+  virtual void set_products(const std::vector<std::shared_ptr<Complex>> new_products_) {
     if (initialized) {
       throw RuntimeError("Value 'products' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     products = new_products_;
   }
-  virtual std::vector<std::shared_ptr<ComplexInstance>> get_products() const {
+  virtual std::vector<std::shared_ptr<Complex>> get_products() const {
     return products;
   }
 

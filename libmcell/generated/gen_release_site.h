@@ -29,7 +29,7 @@
 namespace MCell {
 namespace API {
 
-class ComplexInstance;
+class Complex;
 class MoleculeReleaseInfo;
 class Region;
 class ReleasePattern;
@@ -37,7 +37,7 @@ class ReleasePattern;
 #define RELEASE_SITE_CTOR() \
     ReleaseSite( \
         const std::string& name_, \
-        std::shared_ptr<ComplexInstance> complex_instance_ = nullptr, \
+        std::shared_ptr<Complex> complex_ = nullptr, \
         const Orientation orientation_ = Orientation::NONE, \
         const std::vector<std::shared_ptr<MoleculeReleaseInfo>> molecule_list_ = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(), \
         const float_t release_time_ = 0, \
@@ -54,7 +54,7 @@ class ReleasePattern;
     ) { \
       class_name = "ReleaseSite"; \
       name = name_; \
-      complex_instance = complex_instance_; \
+      complex = complex_; \
       orientation = orientation_; \
       molecule_list = molecule_list_; \
       release_time = release_time_; \
@@ -83,16 +83,16 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::shared_ptr<ComplexInstance> complex_instance;
-  virtual void set_complex_instance(std::shared_ptr<ComplexInstance> new_complex_instance_) {
+  std::shared_ptr<Complex> complex;
+  virtual void set_complex(std::shared_ptr<Complex> new_complex_) {
     if (initialized) {
-      throw RuntimeError("Value 'complex_instance' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    complex_instance = new_complex_instance_;
+    complex = new_complex_;
   }
-  virtual std::shared_ptr<ComplexInstance> get_complex_instance() const {
-    return complex_instance;
+  virtual std::shared_ptr<Complex> get_complex() const {
+    return complex;
   }
 
   Orientation orientation;

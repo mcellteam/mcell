@@ -31,6 +31,8 @@
 namespace MCell {
 namespace API {
 
+class Complex;
+
 class CountTerm: public GenCountTerm, public std::enable_shared_from_this<CountTerm> {
 public:
   COUNT_TERM_CTOR()
@@ -88,7 +90,7 @@ public:
 
   // manually added, may return empty shared_ptr if reaction_rule
   // is counted
-  std::shared_ptr<ComplexInstance> get_pattern() const {
+  std::shared_ptr<Complex> get_pattern() const {
     if (is_set(species_pattern)) {
       return species_pattern;
     }
@@ -97,7 +99,7 @@ public:
     }
     else {
       assert(is_set(reaction_rule));
-      return std::shared_ptr<ComplexInstance>(nullptr);
+      return std::shared_ptr<Complex>(nullptr);
     }
   }
 };

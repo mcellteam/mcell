@@ -855,7 +855,7 @@ std::string PythonGenerator::generate_single_molecule_release_info_array(
       out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(";
 
       string cplx = release_site_item[KEY_MOLECULE].asString();
-      gen_param_expr(out, NAME_COMPLEX_INSTANCE,
+      gen_param_expr(out, NAME_COMPLEX,
           make_species_or_cplx(data, cplx),
           true);
 
@@ -996,7 +996,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     bool is_vol;
     if (shape != VALUE_LIST) {
       string cplx = release_site_item[KEY_MOLECULE].asString();
-      gen_param_expr(out, NAME_COMPLEX_INSTANCE, make_species_or_cplx(data, cplx), true);
+      gen_param_expr(out, NAME_COMPLEX, make_species_or_cplx(data, cplx), true);
 
       string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
       if (orientation != "") {

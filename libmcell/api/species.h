@@ -29,7 +29,7 @@
 #include "generated/gen_constants.h"
 #include "api/common.h"
 #include "api/api_utils.h"
-#include "api/complex_instance.h"
+#include "api/complex.h"
 #include "elementary_molecule_type.h"
 
 #include "include/datamodel_defines.h"
@@ -51,7 +51,7 @@ public:
     species_id = SPECIES_ID_INVALID;
   }
 
-  Species(ComplexInstance& cplx_inst)
+  Species(Complex& cplx_inst)
     : GenSpecies(cplx_inst.to_bngl_str()),
       species_id(SPECIES_ID_INVALID) {
     set_all_attributes_as_default_or_unset();
@@ -141,11 +141,11 @@ public:
     }
   }
 
-  ComplexInstance inst(const Orientation orientation) override {
+  Complex inst(const Orientation orientation) override {
     // simply downcast because the possible definition of an underlying
     // ComplexInstance was done in postprocess_in_ctor
     // TODO: store orientation (?)
-    ComplexInstance res = *dynamic_cast<ComplexInstance*>(this);
+    Complex res = *dynamic_cast<Complex*>(this);
     res.orientation = orientation;
     return res;
   }

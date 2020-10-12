@@ -24,7 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_count.h"
 #include "../api/count.h"
-#include "../api/complex_instance.h"
+#include "../api/complex.h"
 #include "../api/count_term.h"
 #include "../api/reaction_rule.h"
 #include "../api/region.h"
@@ -189,8 +189,8 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             std::shared_ptr<CountTerm>,
             const float_t,
             const float_t,
-            std::shared_ptr<ComplexInstance>,
-            std::shared_ptr<ComplexInstance>,
+            std::shared_ptr<Complex>,
+            std::shared_ptr<Complex>,
             std::shared_ptr<ReactionRule>,
             std::shared_ptr<Region>,
             const ExprNodeType,

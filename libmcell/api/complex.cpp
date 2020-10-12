@@ -20,7 +20,7 @@
  *
 ******************************************************************************/
 
-#include "api/complex_instance.h"
+#include <api/complex.h>
 #include "api/species.h"
 #include "api/elementary_molecule_instance.h"
 #include "api/elementary_molecule_type.h"
@@ -31,7 +31,7 @@ namespace MCell {
 namespace API {
 
 
-bool ComplexInstance::is_surf() const {
+bool Complex::is_surf() const {
   for (auto em: elementary_molecule_instances) {
     if (is_set(em->elementary_molecule_type->diffusion_constant_2d)) {
       return true;
@@ -41,7 +41,7 @@ bool ComplexInstance::is_surf() const {
 }
 
 
-std::string ComplexInstance::to_bngl_str() {
+std::string Complex::to_bngl_str() {
   if (is_set(name)) {
     return name;
   }
@@ -66,12 +66,12 @@ std::string ComplexInstance::to_bngl_str() {
 }
 
 
-bool ComplexInstance::is_species_object() const {
+bool Complex::is_species_object() const {
   return dynamic_cast<const Species*>(this) != nullptr;
 }
 
 
-std::shared_ptr<Species> ComplexInstance::as_species() {
+std::shared_ptr<Species> Complex::as_species() {
   return std::make_shared<Species>(*this);
 }
 

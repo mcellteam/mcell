@@ -24,14 +24,14 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_molecule_release_info.h"
 #include "../api/molecule_release_info.h"
-#include "../api/complex_instance.h"
+#include "../api/complex.h"
 
 namespace MCell {
 namespace API {
 
 void GenMoleculeReleaseInfo::check_semantics() const {
-  if (!is_set(complex_instance)) {
-    throw ValueError("Parameter 'complex_instance' must be set.");
+  if (!is_set(complex)) {
+    throw ValueError("Parameter 'complex' must be set.");
   }
   if (!is_set(location)) {
     throw ValueError("Parameter 'location' must be set.");
@@ -42,12 +42,12 @@ bool GenMoleculeReleaseInfo::__eq__(const GenMoleculeReleaseInfo& other) const {
   return
     name == other.name &&
     (
-      (complex_instance != nullptr) ?
-        ( (other.complex_instance != nullptr) ?
-          (complex_instance->__eq__(*other.complex_instance)) : 
+      (complex != nullptr) ?
+        ( (other.complex != nullptr) ?
+          (complex->__eq__(*other.complex)) : 
           false
         ) :
-        ( (other.complex_instance != nullptr) ?
+        ( (other.complex != nullptr) ?
           false :
           true
         )
@@ -57,15 +57,15 @@ bool GenMoleculeReleaseInfo::__eq__(const GenMoleculeReleaseInfo& other) const {
 }
 
 void GenMoleculeReleaseInfo::set_initialized() {
-  if (is_set(complex_instance)) {
-    complex_instance->set_initialized();
+  if (is_set(complex)) {
+    complex->set_initialized();
   }
   initialized = true;
 }
 
 void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
   class_name = "MoleculeReleaseInfo";
-  complex_instance = nullptr;
+  complex = nullptr;
   location = std::vector<float_t>();
   orientation = Orientation::NONE;
 }
@@ -73,7 +73,7 @@ void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
 std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "complex_instance=" << "(" << ((complex_instance != nullptr) ? complex_instance->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "location=" << vec_nonptr_to_str(location, ind + "  ") << ", " <<
       "orientation=" << orientation;
   return ss.str();
@@ -83,18 +83,18 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
   return py::class_<MoleculeReleaseInfo, std::shared_ptr<MoleculeReleaseInfo>>(m, "MoleculeReleaseInfo")
       .def(
           py::init<
-            std::shared_ptr<ComplexInstance>,
+            std::shared_ptr<Complex>,
             const std::vector<float_t>,
             const Orientation
           >(),
-          py::arg("complex_instance"),
+          py::arg("complex"),
           py::arg("location"),
           py::arg("orientation") = Orientation::NONE
       )
       .def("check_semantics", &MoleculeReleaseInfo::check_semantics)
       .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
       .def("dump", &MoleculeReleaseInfo::dump)
-      .def_property("complex_instance", &MoleculeReleaseInfo::get_complex_instance, &MoleculeReleaseInfo::set_complex_instance)
+      .def_property("complex", &MoleculeReleaseInfo::get_complex, &MoleculeReleaseInfo::set_complex)
       .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location)
       .def_property("orientation", &MoleculeReleaseInfo::get_orientation, &MoleculeReleaseInfo::set_orientation)
     ;

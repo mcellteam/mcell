@@ -29,15 +29,15 @@
 namespace MCell {
 namespace API {
 
-class ComplexInstance;
+class Complex;
 class CountTerm;
 class ReactionRule;
 class Region;
 
 #define COUNT_TERM_CTOR() \
     CountTerm( \
-        std::shared_ptr<ComplexInstance> species_pattern_ = nullptr, \
-        std::shared_ptr<ComplexInstance> molecules_pattern_ = nullptr, \
+        std::shared_ptr<Complex> species_pattern_ = nullptr, \
+        std::shared_ptr<Complex> molecules_pattern_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
         std::shared_ptr<Region> region_ = nullptr, \
         const ExprNodeType node_type_ = ExprNodeType::LEAF, \
@@ -67,27 +67,27 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::shared_ptr<ComplexInstance> species_pattern;
-  virtual void set_species_pattern(std::shared_ptr<ComplexInstance> new_species_pattern_) {
+  std::shared_ptr<Complex> species_pattern;
+  virtual void set_species_pattern(std::shared_ptr<Complex> new_species_pattern_) {
     if (initialized) {
       throw RuntimeError("Value 'species_pattern' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     species_pattern = new_species_pattern_;
   }
-  virtual std::shared_ptr<ComplexInstance> get_species_pattern() const {
+  virtual std::shared_ptr<Complex> get_species_pattern() const {
     return species_pattern;
   }
 
-  std::shared_ptr<ComplexInstance> molecules_pattern;
-  virtual void set_molecules_pattern(std::shared_ptr<ComplexInstance> new_molecules_pattern_) {
+  std::shared_ptr<Complex> molecules_pattern;
+  virtual void set_molecules_pattern(std::shared_ptr<Complex> new_molecules_pattern_) {
     if (initialized) {
       throw RuntimeError("Value 'molecules_pattern' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     molecules_pattern = new_molecules_pattern_;
   }
-  virtual std::shared_ptr<ComplexInstance> get_molecules_pattern() const {
+  virtual std::shared_ptr<Complex> get_molecules_pattern() const {
     return molecules_pattern;
   }
 

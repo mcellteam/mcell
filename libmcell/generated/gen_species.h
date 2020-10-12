@@ -24,14 +24,14 @@
 #define API_GEN_SPECIES_H
 
 #include "../api/common.h"
-#include "../api/complex_instance.h"
+#include "../api/complex.h"
 
-#include "../api/complex_instance.h"
+#include "../api/complex.h"
 
 namespace MCell {
 namespace API {
 
-class ComplexInstance;
+class Complex;
 class ElementaryMoleculeInstance;
 class Species;
 
@@ -61,14 +61,14 @@ class Species;
       check_semantics();\
     }
 
-class GenSpecies: public ComplexInstance {
+class GenSpecies: public Complex {
 public:
   GenSpecies( 
       const std::string& name_ = STR_UNSET, 
       const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), 
       const Orientation orientation_ = Orientation::DEFAULT, 
       const std::string& compartment_name_ = STR_UNSET 
-  )  : ComplexInstance(name_,elementary_molecule_instances_,orientation_,compartment_name_)  {
+  )  : Complex(name_,elementary_molecule_instances_,orientation_,compartment_name_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
@@ -140,7 +140,7 @@ public:
   }
 
   // --- methods ---
-  virtual ComplexInstance inst(const Orientation orientation = Orientation::DEFAULT) = 0;
+  virtual Complex inst(const Orientation orientation = Orientation::DEFAULT) = 0;
 }; // GenSpecies
 
 class Species;

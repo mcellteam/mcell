@@ -28,7 +28,7 @@ namespace MCell {
 namespace API {
 
 const char* const NAME_CLASS_BNGL_UTILS = "bngl_utils";
-const char* const NAME_CLASS_COMPLEX_INSTANCE = "ComplexInstance";
+const char* const NAME_CLASS_COMPLEX = "Complex";
 const char* const NAME_CLASS_COMPONENT_INSTANCE = "ComponentInstance";
 const char* const NAME_CLASS_COMPONENT_TYPE = "ComponentType";
 const char* const NAME_CLASS_CONFIG = "Config";
@@ -87,7 +87,7 @@ const char* const NAME_CHECK_OVERLAPPED_WALLS = "check_overlapped_walls";
 const char* const NAME_CHILD_COMPARTMENTS = "child_compartments";
 const char* const NAME_COMPARTMENT = "compartment";
 const char* const NAME_COMPARTMENT_NAME = "compartment_name";
-const char* const NAME_COMPLEX_INSTANCE = "complex_instance";
+const char* const NAME_COMPLEX = "complex";
 const char* const NAME_COMPONENT_TYPE = "component_type";
 const char* const NAME_COMPONENTS = "components";
 const char* const NAME_CONCENTRATION = "concentration";

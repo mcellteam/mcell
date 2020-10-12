@@ -41,7 +41,7 @@ class Cplx;
 namespace MCell {
 namespace API {
 
-class ComplexInstance;
+class Complex;
 
 class Subsystem: public GenSubsystem, public std::enable_shared_from_this<Subsystem> {
 public:
@@ -90,11 +90,11 @@ public:
   void dump() const;
 
   // auxiliary methods used also from InstantiationData
-  std::shared_ptr<API::ComplexInstance> convert_cplx_instance(
+  std::shared_ptr<API::Complex> convert_cplx_instance(
       const BNG::BNGData& bng_data,
       const BNG::Cplx& bng_inst);
 
-  std::shared_ptr<API::ComplexInstance> convert_cplx_instance_w_orientation(
+  std::shared_ptr<API::Complex> convert_cplx_instance_w_orientation(
       const BNG::BNGData& bng_data,
       const BNG::Cplx& bng_inst,
       const Orientation orientation);

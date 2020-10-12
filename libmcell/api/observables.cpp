@@ -29,7 +29,7 @@
 #include "api/component_instance.h"
 #include "api/elementary_molecule_type.h"
 #include "api/elementary_molecule_instance.h"
-#include "api/complex_instance.h"
+#include "api/complex.h"
 
 #include "api/api_utils.h"
 
@@ -111,7 +111,7 @@ void Observables::convert_observable(
   shared_ptr<API::Count> count = make_shared<Count>();
   count->file_name = output_files_prefix + o.name + ".dat";
 
-  std::shared_ptr<API::ComplexInstance> pattern =
+  std::shared_ptr<API::Complex> pattern =
       subsystem.convert_cplx_instance(bng_data, o.patterns[0]);
 
   if (o.type == ObservableType::Molecules) {

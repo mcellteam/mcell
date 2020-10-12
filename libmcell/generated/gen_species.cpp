@@ -24,7 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_species.h"
 #include "../api/species.h"
-#include "../api/complex_instance.h"
+#include "../api/complex.h"
 #include "../api/elementary_molecule_instance.h"
 #include "../api/species.h"
 
@@ -85,7 +85,7 @@ std::string GenSpecies::to_str(const std::string ind) const {
 }
 
 py::class_<Species> define_pybinding_Species(py::module& m) {
-  return py::class_<Species, ComplexInstance, std::shared_ptr<Species>>(m, "Species")
+  return py::class_<Species, Complex, std::shared_ptr<Species>>(m, "Species")
       .def(
           py::init<
             const std::string&,

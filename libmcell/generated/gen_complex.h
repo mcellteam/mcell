@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_COMPLEX_INSTANCE_H
-#define API_GEN_COMPLEX_INSTANCE_H
+#ifndef API_GEN_COMPLEX_H
+#define API_GEN_COMPLEX_H
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
@@ -32,14 +32,14 @@ namespace API {
 class ElementaryMoleculeInstance;
 class Species;
 
-#define COMPLEX_INSTANCE_CTOR() \
-    ComplexInstance( \
+#define COMPLEX_CTOR() \
+    Complex( \
         const std::string& name_ = STR_UNSET, \
         const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
         const Orientation orientation_ = Orientation::DEFAULT, \
         const std::string& compartment_name_ = STR_UNSET \
     ) { \
-      class_name = "ComplexInstance"; \
+      class_name = "Complex"; \
       name = name_; \
       elementary_molecule_instances = elementary_molecule_instances_; \
       orientation = orientation_; \
@@ -48,12 +48,12 @@ class Species;
       check_semantics();\
     }
 
-class GenComplexInstance: public BaseDataClass {
+class GenComplex: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenComplexInstance& other) const;
+  bool __eq__(const GenComplex& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
   std::string to_str(const std::string ind="") const override;
@@ -98,11 +98,11 @@ public:
   // --- methods ---
   virtual std::string to_bngl_str() = 0;
   virtual std::shared_ptr<Species> as_species() = 0;
-}; // GenComplexInstance
+}; // GenComplex
 
-class ComplexInstance;
-py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m);
+class Complex;
+py::class_<Complex> define_pybinding_Complex(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_COMPLEX_INSTANCE_H
+#endif // API_GEN_COMPLEX_H

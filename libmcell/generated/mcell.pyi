@@ -2,7 +2,7 @@ from typing import List
 from enum import Enum
 
 # "forward" declarations to make the type hints valid
-class ComplexInstance():
+class Complex():
     pass
 class ComponentInstance():
     pass
@@ -136,7 +136,7 @@ NUMBER_OF_TRAINS_UNLIMITED = -1
 TIME_INFINITY = 1e140
 
 
-class ComplexInstance():
+class Complex():
     def __init__(
             self,
             name : str = None,
@@ -229,8 +229,8 @@ class Count():
             count_expression : CountTerm = None,
             multiplier : float = 1,
             every_n_timesteps : float = 1,
-            species_pattern : ComplexInstance = None,
-            molecules_pattern : ComplexInstance = None,
+            species_pattern : Complex = None,
+            molecules_pattern : Complex = None,
             reaction_rule : ReactionRule = None,
             region : Region = None,
             node_type : ExprNodeType = ExprNodeType.LEAF,
@@ -265,8 +265,8 @@ class Count():
 class CountTerm():
     def __init__(
             self,
-            species_pattern : ComplexInstance = None,
-            molecules_pattern : ComplexInstance = None,
+            species_pattern : Complex = None,
+            molecules_pattern : Complex = None,
             reaction_rule : ReactionRule = None,
             region : Region = None,
             node_type : ExprNodeType = ExprNodeType.LEAF,
@@ -730,11 +730,11 @@ class Molecule():
 class MoleculeReleaseInfo():
     def __init__(
             self,
-            complex_instance : ComplexInstance,
+            complex : Complex,
             location : List[float],
             orientation : Orientation = Orientation.NONE
         ):
-        self.complex_instance = complex_instance
+        self.complex = complex
         self.location = location
         self.orientation = orientation
 
@@ -800,8 +800,8 @@ class ReactionRule():
     def __init__(
             self,
             name : str = None,
-            reactants : List[ComplexInstance] = None,
-            products : List[ComplexInstance] = None,
+            reactants : List[Complex] = None,
+            products : List[Complex] = None,
             fwd_rate : float = None,
             rev_name : str = None,
             rev_rate : float = None,
@@ -866,7 +866,7 @@ class ReleaseSite():
     def __init__(
             self,
             name : str,
-            complex_instance : ComplexInstance = None,
+            complex : Complex = None,
             orientation : Orientation = Orientation.NONE,
             molecule_list : List[MoleculeReleaseInfo] = None,
             release_time : float = 0,
@@ -882,7 +882,7 @@ class ReleaseSite():
             release_probability : float = None
         ):
         self.name = name
-        self.complex_instance = complex_instance
+        self.complex = complex
         self.orientation = orientation
         self.molecule_list = molecule_list
         self.release_time = release_time
@@ -927,7 +927,7 @@ class Species():
     def inst(
             self,
             orientation : Orientation = Orientation.DEFAULT
-        ) -> 'ComplexInstance':
+        ) -> 'Complex':
         pass
 
     def to_bngl_str(

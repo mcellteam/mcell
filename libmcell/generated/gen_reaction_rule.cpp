@@ -24,7 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_reaction_rule.h"
 #include "../api/reaction_rule.h"
-#include "../api/complex_instance.h"
+#include "../api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -53,8 +53,8 @@ void GenReactionRule::set_initialized() {
 void GenReactionRule::set_all_attributes_as_default_or_unset() {
   class_name = "ReactionRule";
   name = STR_UNSET;
-  reactants = std::vector<std::shared_ptr<ComplexInstance>>();
-  products = std::vector<std::shared_ptr<ComplexInstance>>();
+  reactants = std::vector<std::shared_ptr<Complex>>();
+  products = std::vector<std::shared_ptr<Complex>>();
   fwd_rate = FLT_UNSET;
   rev_name = STR_UNSET;
   rev_rate = FLT_UNSET;
@@ -79,16 +79,16 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const std::vector<std::shared_ptr<ComplexInstance>>,
-            const std::vector<std::shared_ptr<ComplexInstance>>,
+            const std::vector<std::shared_ptr<Complex>>,
+            const std::vector<std::shared_ptr<Complex>>,
             const float_t,
             const std::string&,
             const float_t,
             const std::vector<std::vector<float_t>>
           >(),
           py::arg("name") = STR_UNSET,
-          py::arg("reactants") = std::vector<std::shared_ptr<ComplexInstance>>(),
-          py::arg("products") = std::vector<std::shared_ptr<ComplexInstance>>(),
+          py::arg("reactants") = std::vector<std::shared_ptr<Complex>>(),
+          py::arg("products") = std::vector<std::shared_ptr<Complex>>(),
           py::arg("fwd_rate") = FLT_UNSET,
           py::arg("rev_name") = STR_UNSET,
           py::arg("rev_rate") = FLT_UNSET,
