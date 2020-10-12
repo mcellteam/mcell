@@ -77,6 +77,7 @@ class Orientation(Enum):
     UP = 1
     NOT_SET = 2
     ANY = 3
+    DEFAULT = 4
 
 class Notification(Enum):
     NONE = 0
@@ -140,11 +141,13 @@ class ComplexInstance():
             self,
             name : str = None,
             elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
-            orientation : Orientation = Orientation.NONE
+            orientation : Orientation = Orientation.DEFAULT,
+            compartment_name : str = None
         ):
         self.name = name
         self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
+        self.compartment_name = compartment_name
 
 
     def to_bngl_str(
@@ -230,7 +233,6 @@ class Count():
             molecules_pattern : ComplexInstance = None,
             reaction_rule : ReactionRule = None,
             region : Region = None,
-            orientation : Orientation = Orientation.NOT_SET,
             node_type : ExprNodeType = ExprNodeType.LEAF,
             left_node : CountTerm = None,
             right_node : CountTerm = None
@@ -243,7 +245,6 @@ class Count():
         self.molecules_pattern = molecules_pattern
         self.reaction_rule = reaction_rule
         self.region = region
-        self.orientation = orientation
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
@@ -268,7 +269,6 @@ class CountTerm():
             molecules_pattern : ComplexInstance = None,
             reaction_rule : ReactionRule = None,
             region : Region = None,
-            orientation : Orientation = Orientation.NOT_SET,
             node_type : ExprNodeType = ExprNodeType.LEAF,
             left_node : 'CountTerm' = None,
             right_node : 'CountTerm' = None
@@ -277,7 +277,6 @@ class CountTerm():
         self.molecules_pattern = molecules_pattern
         self.reaction_rule = reaction_rule
         self.region = region
-        self.orientation = orientation
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
@@ -910,7 +909,8 @@ class Species():
             target_only : bool = False,
             name : str = None,
             elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
-            orientation : Orientation = Orientation.NONE
+            orientation : Orientation = Orientation.DEFAULT,
+            compartment_name : str = None
         ):
         self.name = name
         self.diffusion_constant_2d = diffusion_constant_2d
@@ -921,11 +921,12 @@ class Species():
         self.name = name
         self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
+        self.compartment_name = compartment_name
 
 
     def inst(
             self,
-            orientation : Orientation = Orientation.NOT_SET
+            orientation : Orientation = Orientation.DEFAULT
         ) -> 'ComplexInstance':
         pass
 

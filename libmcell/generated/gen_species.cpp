@@ -45,7 +45,8 @@ bool GenSpecies::__eq__(const GenSpecies& other) const {
     target_only == other.target_only &&
     name == other.name &&
     vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
-    orientation == other.orientation;
+    orientation == other.orientation &&
+    compartment_name == other.compartment_name;
 }
 
 void GenSpecies::set_initialized() {
@@ -63,7 +64,8 @@ void GenSpecies::set_all_attributes_as_default_or_unset() {
   target_only = false;
   name = STR_UNSET;
   elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
-  orientation = Orientation::NONE;
+  orientation = Orientation::DEFAULT;
+  compartment_name = STR_UNSET;
 }
 
 std::string GenSpecies::to_str(const std::string ind) const {
@@ -77,7 +79,8 @@ std::string GenSpecies::to_str(const std::string ind) const {
       "target_only=" << target_only << ", " <<
       "name=" << name << ", " <<
       "\n" << ind + "  " << "elementary_molecule_instances=" << vec_ptr_to_str(elementary_molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "orientation=" << orientation;
+      "orientation=" << orientation << ", " <<
+      "compartment_name=" << compartment_name;
   return ss.str();
 }
 
@@ -92,7 +95,8 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
             const float_t,
             const bool,
             const std::vector<std::shared_ptr<ElementaryMoleculeInstance>>,
-            const Orientation
+            const Orientation,
+            const std::string&
           >(),
           py::arg("name") = STR_UNSET,
           py::arg("diffusion_constant_2d") = FLT_UNSET,
@@ -101,11 +105,12 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::arg("custom_space_step") = FLT_UNSET,
           py::arg("target_only") = false,
           py::arg("elementary_molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
-          py::arg("orientation") = Orientation::NONE
+          py::arg("orientation") = Orientation::DEFAULT,
+          py::arg("compartment_name") = STR_UNSET
       )
       .def("check_semantics", &Species::check_semantics)
       .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
-      .def("inst", &Species::inst, py::arg("orientation") = Orientation::NOT_SET)
+      .def("inst", &Species::inst, py::arg("orientation") = Orientation::DEFAULT)
       .def("dump", &Species::dump)
       .def_property("name", &Species::get_name, &Species::set_name)
       .def_property("diffusion_constant_2d", &Species::get_diffusion_constant_2d, &Species::set_diffusion_constant_2d)

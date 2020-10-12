@@ -44,8 +44,9 @@ class Species;
         const float_t custom_space_step_ = FLT_UNSET, \
         const bool target_only_ = false, \
         const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
-        const Orientation orientation_ = Orientation::NONE \
-    )  : GenSpecies(name_,elementary_molecule_instances_,orientation_) { \
+        const Orientation orientation_ = Orientation::DEFAULT, \
+        const std::string& compartment_name_ = STR_UNSET \
+    )  : GenSpecies(name_,elementary_molecule_instances_,orientation_,compartment_name_) { \
       class_name = "Species"; \
       name = name_; \
       diffusion_constant_2d = diffusion_constant_2d_; \
@@ -55,6 +56,7 @@ class Species;
       target_only = target_only_; \
       elementary_molecule_instances = elementary_molecule_instances_; \
       orientation = orientation_; \
+      compartment_name = compartment_name_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -64,8 +66,9 @@ public:
   GenSpecies( 
       const std::string& name_ = STR_UNSET, 
       const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), 
-      const Orientation orientation_ = Orientation::NONE 
-  )  : ComplexInstance(name_,elementary_molecule_instances_,orientation_)  {
+      const Orientation orientation_ = Orientation::DEFAULT, 
+      const std::string& compartment_name_ = STR_UNSET 
+  )  : ComplexInstance(name_,elementary_molecule_instances_,orientation_,compartment_name_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
@@ -137,7 +140,7 @@ public:
   }
 
   // --- methods ---
-  virtual ComplexInstance inst(const Orientation orientation = Orientation::NOT_SET) = 0;
+  virtual ComplexInstance inst(const Orientation orientation = Orientation::DEFAULT) = 0;
 }; // GenSpecies
 
 class Species;

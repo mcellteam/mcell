@@ -63,6 +63,11 @@ public:
       }
     }
 
+    if (orientation != Orientation::NONE && is_set(compartment_name)) {
+      throw ValueError(S(NAME_COMPARTMENT_NAME) + " must not be set when " + NAME_ORIENTATION +
+          " is set to a value other than " + NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE + ".");
+    }
+
     // TODO: how can we check that the used molecule types were defined?
   }
 

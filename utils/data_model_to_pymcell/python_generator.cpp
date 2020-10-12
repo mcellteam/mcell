@@ -1323,11 +1323,7 @@ string PythonGenerator::generate_count_terms_for_expression(
         bool comma_after_cplx = orientation == "" && where_to_count != "";
         gen_param_expr(
             out, NAME_SPECIES_PATTERN,
-            make_species_or_cplx(data, what_to_count), comma_after_cplx);
-
-        if (orientation != "") {
-          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
-        }
+            make_species_or_cplx(data, what_to_count, orientation), comma_after_cplx);
       }
 
       if (where_to_count != "") {
@@ -1466,11 +1462,7 @@ void PythonGenerator::generate_counts(std::ostream& out, std::vector<std::string
         const char* count_type =
             (molecules_not_species) ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN;
 
-        gen_param_expr(out, count_type, make_species_or_cplx(data, what_to_count), true);
-
-        if (orientation != "") {
-          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
-        }
+        gen_param_expr(out, count_type, make_species_or_cplx(data, what_to_count, orientation), true);
       }
     }
     else {

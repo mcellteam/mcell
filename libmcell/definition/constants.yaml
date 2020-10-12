@@ -80,6 +80,9 @@ enums:
       value: 2
     - name: ANY
       value: 3    
+    - name: DEFAULT
+      value: 4
+      doc: DEFAULT means NONE for volume complexes and UP for surface complexes.
       
   - name: Notification
     values:

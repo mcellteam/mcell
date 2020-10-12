@@ -48,7 +48,8 @@ enum class Orientation {
   NONE = 0,
   UP = 1,
   NOT_SET = 2,
-  ANY = 3
+  ANY = 3,
+  DEFAULT = 4
 };
 
 
@@ -59,6 +60,7 @@ static inline  std::ostream& operator << (std::ostream& out, const Orientation v
     case Orientation::UP: out << "Orientation.UP (1)"; break;
     case Orientation::NOT_SET: out << "Orientation.NOT_SET (2)"; break;
     case Orientation::ANY: out << "Orientation.ANY (3)"; break;
+    case Orientation::DEFAULT: out << "Orientation.DEFAULT (4)"; break;
   }
   return out;
 };

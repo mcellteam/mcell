@@ -60,10 +60,6 @@ CountTerm:
       Only a GeometryObject or SurfaceRegion can be passed as the region argument, 
       compound regions (created with +, -, *) are not supproted yet.   
     
-  - name: orientation
-    type: Orientation
-    default: Orientation.NOT_SET
-  
   - name: node_type
     type: ExprNodeType
     default: ExprNodeType.LEAF

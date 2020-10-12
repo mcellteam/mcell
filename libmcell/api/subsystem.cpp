@@ -173,12 +173,12 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 
 std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
     const BNG::BNGData& bng_data,
-    const BNG::Cplx& bng_inst) {
+    const BNG::Cplx& bng_cplx) {
 
   auto res_cplx_inst = API::ComplexInstance::make_shared_empty();
 
   // convert each molecule instance
-  for (const BNG::MolInstance& bmg_mi: bng_inst.mol_instances) {
+  for (const BNG::MolInstance& bmg_mi: bng_cplx.mol_instances) {
 
     // find molecule type and create an instance
     const string& mt_name = bng_data.get_molecule_type(bmg_mi.mol_type_id).name;
@@ -205,6 +205,11 @@ std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
 
     // and append instantiated elementary molecule type
     res_cplx_inst->elementary_molecule_instances.push_back(api_emt->inst(api_comp_instances));
+  }
+
+  // set compartment
+  if (bng_cplx.has_compartment()) {
+    res_cplx_inst->compartment_name = bng_data.get_compartment(bng_cplx.get_compartment_id()).name;
   }
 
   return res_cplx_inst;

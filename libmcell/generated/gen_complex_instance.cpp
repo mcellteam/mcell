@@ -38,7 +38,8 @@ bool GenComplexInstance::__eq__(const GenComplexInstance& other) const {
     name == other.name &&
     name == other.name &&
     vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
-    orientation == other.orientation;
+    orientation == other.orientation &&
+    compartment_name == other.compartment_name;
 }
 
 void GenComplexInstance::set_initialized() {
@@ -50,7 +51,8 @@ void GenComplexInstance::set_all_attributes_as_default_or_unset() {
   class_name = "ComplexInstance";
   name = STR_UNSET;
   elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
-  orientation = Orientation::NONE;
+  orientation = Orientation::DEFAULT;
+  compartment_name = STR_UNSET;
 }
 
 std::string GenComplexInstance::to_str(const std::string ind) const {
@@ -58,7 +60,8 @@ std::string GenComplexInstance::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
       "\n" << ind + "  " << "elementary_molecule_instances=" << vec_ptr_to_str(elementary_molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "orientation=" << orientation;
+      "orientation=" << orientation << ", " <<
+      "compartment_name=" << compartment_name;
   return ss.str();
 }
 
@@ -68,11 +71,13 @@ py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
           py::init<
             const std::string&,
             const std::vector<std::shared_ptr<ElementaryMoleculeInstance>>,
-            const Orientation
+            const Orientation,
+            const std::string&
           >(),
           py::arg("name") = STR_UNSET,
           py::arg("elementary_molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
-          py::arg("orientation") = Orientation::NONE
+          py::arg("orientation") = Orientation::DEFAULT,
+          py::arg("compartment_name") = STR_UNSET
       )
       .def("check_semantics", &ComplexInstance::check_semantics)
       .def("__str__", &ComplexInstance::to_str, py::arg("ind") = std::string(""))
@@ -82,6 +87,7 @@ py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
       .def_property("name", &ComplexInstance::get_name, &ComplexInstance::set_name)
       .def_property("elementary_molecule_instances", &ComplexInstance::get_elementary_molecule_instances, &ComplexInstance::set_elementary_molecule_instances)
       .def_property("orientation", &ComplexInstance::get_orientation, &ComplexInstance::set_orientation)
+      .def_property("compartment_name", &ComplexInstance::get_compartment_name, &ComplexInstance::set_compartment_name)
     ;
 }
 

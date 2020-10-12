@@ -36,12 +36,14 @@ class Species;
     ComplexInstance( \
         const std::string& name_ = STR_UNSET, \
         const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
-        const Orientation orientation_ = Orientation::NONE \
+        const Orientation orientation_ = Orientation::DEFAULT, \
+        const std::string& compartment_name_ = STR_UNSET \
     ) { \
       class_name = "ComplexInstance"; \
       name = name_; \
       elementary_molecule_instances = elementary_molecule_instances_; \
       orientation = orientation_; \
+      compartment_name = compartment_name_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -79,6 +81,18 @@ public:
   }
   virtual Orientation get_orientation() const {
     return orientation;
+  }
+
+  std::string compartment_name;
+  virtual void set_compartment_name(const std::string& new_compartment_name_) {
+    if (initialized) {
+      throw RuntimeError("Value 'compartment_name' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    compartment_name = new_compartment_name_;
+  }
+  virtual const std::string& get_compartment_name() const {
+    return compartment_name;
   }
 
   // --- methods ---

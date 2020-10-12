@@ -149,9 +149,26 @@ ComplexInstance:
 
   - name: orientation
     type: Orientation 
-    default: Orientation.NONE
-    doc: Specifies orientation of a surface molecule, always Orientation.NONE for volume molecules.
+    default: Orientation.DEFAULT
+    doc: | 
+       Specifies orientation of a molecule. 
+       When Orientation.DEFAULT if kept then during model initialization is
+       'orientation' set to Orientation.NONE for volume complexes and to 
+       Orientation.UP for surface complexes.
+       Ignored by derived class Species.
     
+  - name: compartment_name
+    type: str
+    default: unset
+    doc: | 
+       Specifies compartment name of this ComplexInstance. 
+       Only one of 'orientation' and 'compartment_name' can be set. 
+       If a 2D/surface compartment is specified, the complex must be a surface complex and 
+       orientation is set to Orientation.UP.
+       If a 3D/volume compartment is specified, the complex must be a volume complex and
+       orientation is set to Orientation.NONE. 
+       Ignored by derived class Species.
+      
   methods:
   - name: to_bngl_str
     return_type: str
@@ -247,7 +264,7 @@ Species:
     params:
     - name: orientation
       type: Orientation 
-      default: Orientation.NOT_SET
+      default: Orientation.DEFAULT
   
     
 SurfaceProperty:

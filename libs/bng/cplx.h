@@ -111,6 +111,7 @@ public:
   }
 
   void set_orientation(const orientation_t o) {
+    // TODO: here could be some extra checks related to compartments
     orientation = o;
   }
 
@@ -124,6 +125,7 @@ public:
   }
 
   void set_compartment_id(const compartment_id_t cid) {
+    // TODO: here could be some extra checks related to orientation
     compartment_id = cid;
   }
 

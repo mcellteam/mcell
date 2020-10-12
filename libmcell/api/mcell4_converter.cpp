@@ -41,8 +41,18 @@ using namespace std;
 namespace MCell {
 namespace API {
 
-static orientation_t convert_orientation(const Orientation o, const bool not_set_is_none = false) {
+static orientation_t convert_orientation(const Orientation o, const bool allow_default = false, const bool is_vol = true) {
   switch (o) {
+    case Orientation::DEFAULT:
+      if (!allow_default) {
+        throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
+      }
+      if (is_vol) {
+        return ORIENTATION_NONE;
+      }
+      else {
+        return ORIENTATION_UP;
+      }
     case Orientation::DOWN:
       return ORIENTATION_DOWN;
     case Orientation::NONE:
@@ -50,12 +60,7 @@ static orientation_t convert_orientation(const Orientation o, const bool not_set
     case Orientation::UP:
       return ORIENTATION_UP;
     case Orientation::NOT_SET:
-      if (not_set_is_none) {
-        return ORIENTATION_NONE;
-      }
-      else {
-        return ORIENTATION_NOT_SET;
-      }
+      throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
     case Orientation::ANY:
       return ORIENTATION_NONE;
     default:
@@ -82,6 +87,9 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_simulation_setup();
 
+  // mapping of geometry objects to compartments is done in convert_geometry_objects
+  convert_volume_compartments();
+
   convert_elementary_molecule_types();
 
   convert_species();
@@ -107,8 +115,6 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   assert(index == PARTITION_ID_INITIAL);
 
   convert_geometry_objects();
-
-  convert_volume_compartments();
 
   // uses random generator state
   if (world->config.check_overlapped_walls) {
@@ -647,13 +653,13 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
 }
 
 
-BNG::Cplx MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn_or_observables) {
+BNG::Cplx MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_observables, const bool in_rxn) {
   // create a temporary cplx instance that we will use for search
   BNG::Cplx cplx_inst(&world->bng_engine.get_data());
 
   if (is_set(inst.elementary_molecule_instances)) {
     for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.elementary_molecule_instances) {
-      BNG::MolInstance mi = convert_molecule_instance(*m, in_rxn_or_observables);
+      BNG::MolInstance mi = convert_molecule_instance(*m, in_observables || in_rxn);
 
       cplx_inst.mol_instances.push_back(mi);
     }
@@ -669,24 +675,58 @@ BNG::Cplx MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, 
     release_assert(false);
   }
 
-  orientation_t orient = convert_orientation(inst.orientation, true);
-  cplx_inst.set_orientation(orient);
+  // orientation or compartment does not have to be set for finalization,
+  // this sets whether this is a surf or vol cplx
   cplx_inst.finalize();
 
-  if (!in_rxn_or_observables) {
-    // we need to find or add existing species that we match
-    species_id_t species_id = world->get_all_species().find_full_match(cplx_inst);
+  if (is_set(inst.compartment_name)) {
+    std::shared_ptr<VolumeCompartment> comp;
+    if (cplx_inst.is_vol()) {
+      comp = model->find_volume_compartment(inst.compartment_name);
+      if (!is_set(comp)) {
+        throw ValueError("Did not find volume compartment " + inst.compartment_name +
+            " for a volume complex " + cplx_inst.to_str() + ".");
+      }
+      cplx_inst.set_compartment_id(comp->vol_compartment_id);
+    }
+    else {
+      comp = model->find_surface_compartment(inst.compartment_name);
+      if (!is_set(comp)) {
+        throw ValueError("Did not find surface compartment " + inst.compartment_name +
+            " for a surface complex " + cplx_inst.to_str() + ".");
+      }
+      cplx_inst.set_compartment_id(comp->surf_compartment_id);
+    }
 
+  }
+  else {
+    if (!in_rxn && cplx_inst.is_vol() && inst.orientation != Orientation::NONE && inst.orientation != Orientation::DEFAULT) {
+      throw ValueError("Orientation for a volume complex " + cplx_inst.to_str() +
+          " must be set either to " + NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE + " or " +
+          NAME_ENUM_ORIENTATION + "." + NAME_EV_DEFAULT + ".");
+    }
+    else if (cplx_inst.is_surf() && inst.orientation == Orientation::NONE) {
+      throw ValueError("Orientation for a surface complex " + cplx_inst.to_str() +
+          " must be set to a value other than " +  NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE +
+          " when " + NAME_COMPARTMENT_NAME + " is not specified.");
+    }
+
+    orientation_t orient = convert_orientation(inst.orientation, true, cplx_inst.is_vol());
+    cplx_inst.set_orientation(orient);
+  }
+
+
+  if (!in_observables && !in_rxn) {
+    // register complex as new species
+    species_id_t species_id = world->get_all_species().find_full_match(cplx_inst);
     if (species_id == SPECIES_ID_INVALID) {
       BNG::Species new_species = BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config());
       species_id = world->get_all_species().find_or_add(new_species);
     }
     assert(species_id != SPECIES_ID_INVALID);
-    return world->bng_engine.create_cplx_from_species(species_id, orient);
   }
-  else {
-    return cplx_inst;
-  }
+
+  return cplx_inst;
 }
 
 
@@ -717,14 +757,14 @@ void MCell4Converter::convert_rxns() {
     for (std::shared_ptr<API::ComplexInstance>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
 
-      BNG::Cplx reactant = convert_complex_instance(*rinst, true);
+      BNG::Cplx reactant = convert_complex_instance(*rinst, false, true);
       rxn.append_reactant(reactant);
     }
 
     for (std::shared_ptr<API::ComplexInstance>& pinst: r->products) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
 
-      BNG::Cplx product = convert_complex_instance(*pinst, true);
+      BNG::Cplx product = convert_complex_instance(*pinst, false, true);
       rxn.append_product(product);
     }
 
@@ -923,6 +963,20 @@ void MCell4Converter::convert_geometry_objects() {
       }
     }
   }
+
+
+  // set GeometryObject compartment ids
+  for (std::shared_ptr<API::VolumeCompartment>& c: model->volume_compartments) {
+
+    // link geometry object to its compartment
+    if (c->geometry_object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
+      throw ValueError(S(NAME_CLASS_VOLUME_COMPARTMENT) + " '" + c->name + "' references uninitialized "
+          "geometry object '" + c->geometry_object->name + "'.");
+    }
+    MCell::GeometryObject& obj = world->get_geometry_object(c->geometry_object->geometry_object_id);
+    assert(c->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID && c->vol_compartment_id != BNG::COMPARTMENT_ID_NONE);
+    obj.compartment_id = c->vol_compartment_id;
+  }
 }
 
 
@@ -937,6 +991,7 @@ void MCell4Converter::convert_volume_compartments() {
     bng_comp3d.name = c->name;
     bng_comp3d.is_3d = true;
     BNG::compartment_id_t comp3d_id = bng_data.add_compartment(bng_comp3d);
+    c->vol_compartment_id = comp3d_id;
 
     // unlike as in BNG, we do not require that the only child of a 3d compartment is 2d compartment,
     // 2d compartments can be skipped completely
@@ -949,18 +1004,11 @@ void MCell4Converter::convert_volume_compartments() {
       bng_comp2d.children_compartments.insert(comp3d_id);
 
       BNG::compartment_id_t comp2d_id = bng_data.add_compartment(bng_comp2d);
+      c->surf_compartment_id = comp2d_id;
 
       // if a 2d compartment is defined, it is the parent of the 3D compartment
       bng_data.get_compartment(comp3d_id).parent_compartment_id = comp2d_id;
     }
-
-    // link geometry object to its compartment
-    if (c->geometry_object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
-      throw ValueError(S(NAME_CLASS_VOLUME_COMPARTMENT) + " '" + c->name + "' references uninitialized "
-          "geometry object '" + c->geometry_object->name + "'.");
-    }
-    MCell::GeometryObject& obj = world->get_geometry_object(c->geometry_object->geometry_object_id);
-    obj.compartment_id = comp3d_id;
   }
 
   // now define their parents and children
@@ -1230,7 +1278,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     string name = res.species_molecules_pattern.to_str();
 
 
-    res.orientation = convert_orientation(ct->orientation);
+    res.orientation = res.species_molecules_pattern.get_orientation();
 
     if (is_set(ct->region)) {
       if (is_vol) {

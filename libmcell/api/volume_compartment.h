@@ -26,6 +26,7 @@
 #include "generated/gen_volume_compartment.h"
 #include "api/common.h"
 #include "api/region.h"
+#include "bng/bng_defines.h"
 
 namespace MCell {
 namespace API {
@@ -33,6 +34,11 @@ namespace API {
 class VolumeCompartment: public GenVolumeCompartment {
 public:
   VOLUME_COMPARTMENT_CTOR()
+
+  void postprocess_in_ctor() override {
+    vol_compartment_id = BNG::COMPARTMENT_ID_INVALID;
+    surf_compartment_id = BNG::COMPARTMENT_ID_INVALID;
+  }
 
   // simply subtracts all children from this geometry object
   std::shared_ptr<Region> get_volume_compartment_region() override {
@@ -45,6 +51,10 @@ public:
 
     return res;
   }
+
+  // simulation engine mapping
+  BNG::compartment_id_t vol_compartment_id;
+  BNG::compartment_id_t surf_compartment_id;
 };
 
 } // namespace API
