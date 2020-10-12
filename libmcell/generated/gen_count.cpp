@@ -99,7 +99,6 @@ bool GenCount::__eq__(const GenCount& other) const {
           true
         )
      )  &&
-    orientation == other.orientation &&
     node_type == other.node_type &&
     (
       (left_node != nullptr) ?
@@ -160,7 +159,6 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   molecules_pattern = nullptr;
   reaction_rule = nullptr;
   region = nullptr;
-  orientation = Orientation::NOT_SET;
   node_type = ExprNodeType::LEAF;
   left_node = nullptr;
   right_node = nullptr;
@@ -177,7 +175,6 @@ std::string GenCount::to_str(const std::string ind) const {
       "molecules_pattern=" << "(" << ((molecules_pattern != nullptr) ? molecules_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "orientation=" << orientation << ", " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
@@ -196,7 +193,6 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             std::shared_ptr<ComplexInstance>,
             std::shared_ptr<ReactionRule>,
             std::shared_ptr<Region>,
-            const Orientation,
             const ExprNodeType,
             std::shared_ptr<CountTerm>,
             std::shared_ptr<CountTerm>
@@ -209,7 +205,6 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
           py::arg("molecules_pattern") = nullptr,
           py::arg("reaction_rule") = nullptr,
           py::arg("region") = nullptr,
-          py::arg("orientation") = Orientation::NOT_SET,
           py::arg("node_type") = ExprNodeType::LEAF,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
