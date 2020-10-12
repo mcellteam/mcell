@@ -86,6 +86,20 @@ public:
     return create_expr_term(ExprNodeType::SUB, op2);
   }
 
+  // manually added, may return empty shared_ptr if reaction_rule
+  // is counted
+  std::shared_ptr<ComplexInstance> get_pattern() const {
+    if (is_set(species_pattern)) {
+      return species_pattern;
+    }
+    else if (is_set(molecules_pattern)) {
+      return molecules_pattern;
+    }
+    else {
+      assert(is_set(reaction_rule));
+      return std::shared_ptr<ComplexInstance>(nullptr);
+    }
+  }
 };
 
 } // namespace API

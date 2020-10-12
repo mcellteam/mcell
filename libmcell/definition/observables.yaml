@@ -38,6 +38,7 @@ CountTerm:
     doc: |
       Count the number of molecules that match the given complex instance pattern.
       Counts each molecule exactly once. 
+      If the pattern has a compartment set, this specifies the counted region.  
     
   - name: molecules_pattern
     type: ComplexInstance*
@@ -48,6 +49,7 @@ CountTerm:
      When the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a 
      molecule A(a!1).A(a!1,b!2).B(a!2) will be counted twice because the 
      pattern may match in two different ways. 
+     If the pattern has a compartment set, this specifies the counted region.  
     
   - name: reaction_rule
     type: ReactionRule*
@@ -59,6 +61,10 @@ CountTerm:
     doc: | 
       Only a GeometryObject or SurfaceRegion can be passed as the region argument, 
       compound regions (created with +, -, *) are not supproted yet.   
+      Cannot be set when 'species_pattern' or 'molecules_pattern' has a  
+      compartment specified.
+      If pattern compartment is not specified and 'region' is left 'unset', 
+      counting is done in the whole world.
     
   - name: node_type
     type: ExprNodeType

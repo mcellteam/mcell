@@ -125,8 +125,9 @@ private:
       MCell::ReleaseEvent* rel_event);
   void convert_release_events();
 
-  MCell::MolOrRxnCountTerm convert_count_term_leaf_and_init_counting_flags(
-      const std::shared_ptr<API::CountTerm> ct, const int sign
+  void convert_count_term_leaf_and_init_counting_flags(
+      const std::shared_ptr<API::CountTerm> ct, const int sign,
+      std::vector<MolOrRxnCountTerm>& terms
   );
   void convert_count_terms_recursively(
       const std::shared_ptr<API::CountTerm> ct,

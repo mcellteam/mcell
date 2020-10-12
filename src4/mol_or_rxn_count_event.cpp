@@ -124,7 +124,7 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
   cout << "\n";
 
   cout << ind << "species_id: " << species_id << " [species_id_t]\n";
-  cout << ind << "species_molecules_pattern: " << "(not dumped yet)" << " [CplxInstance]\n";
+  cout << ind << "species_molecules_pattern: " << species_molecules_pattern.to_str() << " [CplxInstance]\n";
   cout << ind << "rxn_rule_id: " << rxn_rule_id << " [rxn_rule_id_t]\n";
   cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t]\n";
 }
@@ -555,7 +555,7 @@ const CountSpeciesInfo& MolOrRxnCountEvent::get_or_compute_count_species_info(co
 
 
 void MolOrRxnCountEvent::dump(const std::string ind) const {
-  cout << ind << "Mol count event:\n";
+  cout << ind << "MolOrRxnCountEvent:\n";
   std::string ind2 = ind + "  ";
   std::string ind4 = ind2 + "  ";
   BaseEvent::dump(ind2);

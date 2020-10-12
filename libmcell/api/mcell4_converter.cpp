@@ -1233,9 +1233,28 @@ void MCell4Converter::convert_release_events() {
 }
 
 
-MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
+static void append_subtracted_volume_compartments(
+    MCell::MolOrRxnCountTerm top_count_term,
+    const std::vector<std::shared_ptr<VolumeCompartment>>& child_compartments,
+    std::vector<MolOrRxnCountTerm>& terms
+) {
+  assert(top_count_term.type == MCell::CountType::EnclosedInVolumeRegion);
+
+  for (const std::shared_ptr<VolumeCompartment>& child: child_compartments) {
+    MCell::MolOrRxnCountTerm term = top_count_term;
+    term.sign_in_expression = -top_count_term.sign_in_expression;
+    assert(child->geometry_object->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+    term.geometry_object_id = child->geometry_object->geometry_object_id;
+    terms.push_back(term);
+  }
+}
+
+
+// appends new term to the vector terms, does not clear it
+void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
     const std::shared_ptr<API::CountTerm> ct,
-    const int sign
+    const int sign,
+    std::vector<MolOrRxnCountTerm>& terms
 ) {
   MCell::MolOrRxnCountTerm res;
   res.sign_in_expression = sign;
@@ -1243,7 +1262,43 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
   assert(is_set(ct));
   assert(ct->node_type == API::ExprNodeType::LEAF);
 
-  // where
+  // set when this is a volume compartment what has children
+  std::vector<std::shared_ptr<VolumeCompartment>> child_compartments;
+
+  // handle compartments
+  const shared_ptr<ComplexInstance> pattern = ct->get_pattern();
+  if (is_set(pattern) && is_set(pattern->compartment_name)) {
+    const string& compartment_name = pattern->compartment_name;
+    // only one region or compartment may be set
+    if (is_set(ct->region) && is_set(compartment_name)) {
+      throw ValueError(S("Only one of ") + NAME_REGION + " or compartment may be set for " +
+          NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
+    }
+
+    // if compartment is set, set region
+    shared_ptr<VolumeCompartment> comp;
+    comp = model->find_volume_compartment(compartment_name);
+    if (is_set(comp)) {
+      // 3d
+      if (is_set(comp->child_compartments)) {
+        // we must create multiple MolOrRxnCountTerms where we subtract all children
+        child_compartments = comp->child_compartments;
+      }
+      ct->region = comp->geometry_object;
+    }
+    else {
+      comp = model->find_surface_compartment(compartment_name);
+      if (!is_set(comp)) {
+        throw ValueError("Did not find compartment '" + compartment_name + " for " +
+            NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
+      }
+
+      // 2d
+      ct->region = comp->geometry_object;
+    }
+  }
+
+  // check region to determine where to count
   bool is_obj_not_surf_reg = false; // to silence compiler warning
   geometry_object_id_t obj_id = GEOMETRY_OBJECT_ID_INVALID;
   region_id_t reg_id = REGION_ID_INVALID;
@@ -1273,6 +1328,10 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
       res.species_pattern_type = SpeciesPatternType::MoleculesPattern;
       res.species_molecules_pattern = convert_complex_instance(*ct->molecules_pattern, true);
     }
+
+    // we must throw away the compartment because it was already handled
+    // and export to data model would keep the compartment name there
+    res.species_molecules_pattern.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
 
     bool is_vol = res.species_molecules_pattern.is_vol();
     string name = res.species_molecules_pattern.to_str();
@@ -1360,7 +1419,12 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     assert(false);
   }
 
-  return res;
+  terms.push_back(res);
+
+  // handle child volume compartments
+  if (!child_compartments.empty()) {
+    append_subtracted_volume_compartments(res, child_compartments, terms);
+  }
 }
 
 
@@ -1372,8 +1436,7 @@ void MCell4Converter::convert_count_terms_recursively(
   assert(is_set(ct));
 
   if (ct->node_type == API::ExprNodeType::LEAF) {
-    MCell::MolOrRxnCountTerm term = convert_count_term_leaf_and_init_counting_flags(ct, sign);
-    info.terms.push_back(term);
+    convert_count_term_leaf_and_init_counting_flags(ct, sign, info.terms);
   }
   else if (ct->node_type == API::ExprNodeType::ADD || ct->node_type == API::ExprNodeType::SUB) {
     convert_count_terms_recursively(ct->left_node, sign, info);

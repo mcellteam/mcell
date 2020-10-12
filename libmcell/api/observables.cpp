@@ -124,6 +124,10 @@ void Observables::convert_observable(
     release_assert(false);
   }
 
+  // region that represents this compartment handled in initialization
+  // because compartments are referenced by their name and
+  // we might not know them yet
+
   counts.push_back(count);
 }
 
