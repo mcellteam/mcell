@@ -366,7 +366,8 @@ void GeometryObject::initialize_neighboring_walls_and_their_edges(Partition& p) 
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind <<
       "GeometryObject: id:" << id << ", name:" << name <<
-      ", is_counted_volume " << is_counted_volume << "\n";
+      ", compartment_id " << compartment_id <<
+      ", is_used_in_mol_rxn_counts " << is_used_in_mol_rxn_counts << "\n";
 
   for (wall_index_t i: wall_indices) {
     cout << ind << "  " << i << ": \n";

@@ -108,6 +108,8 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_geometry_objects();
 
+  convert_volume_compartments();
+
   // uses random generator state
   if (world->config.check_overlapped_walls) {
     bool ok = world->check_for_overlapped_walls();
@@ -920,8 +922,71 @@ void MCell4Converter::convert_geometry_objects() {
         }
       }
     }
+  }
+}
 
-    // and assign surface class species to regions
+
+void MCell4Converter::convert_volume_compartments() {
+  // volume of compartments is not set
+
+  BNG::BNGData& bng_data = world->bng_engine.get_data();
+
+  // first create compartments and also link them with geometry objects
+  for (std::shared_ptr<API::VolumeCompartment>& c: model->volume_compartments) {
+    BNG::Compartment bng_comp3d;
+    bng_comp3d.name = c->name;
+    bng_comp3d.is_3d = true;
+    BNG::compartment_id_t comp3d_id = bng_data.add_compartment(bng_comp3d);
+
+    // unlike as in BNG, we do not require that the only child of a 3d compartment is 2d compartment,
+    // 2d compartments can be skipped completely
+    if (is_set(c->surface_compartment_name)) {
+      BNG::Compartment bng_comp2d;
+      bng_comp2d.name = c->surface_compartment_name;
+      bng_comp2d.is_3d = false;
+
+      // the only child of a 2D compartment is the 3D compartment it encompasses
+      bng_comp2d.children_compartments.insert(comp3d_id);
+
+      BNG::compartment_id_t comp2d_id = bng_data.add_compartment(bng_comp2d);
+
+      // if a 2d compartment is defined, it is the parent of the 3D compartment
+      bng_data.get_compartment(comp3d_id).parent_compartment_id = comp2d_id;
+    }
+
+    // link geometry object to its compartment
+    if (c->geometry_object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
+      throw ValueError(S(NAME_CLASS_VOLUME_COMPARTMENT) + " '" + c->name + "' references uninitialized "
+          "geometry object '" + c->geometry_object->name + "'.");
+    }
+    MCell::GeometryObject& obj = world->get_geometry_object(c->geometry_object->geometry_object_id);
+    obj.compartment_id = comp3d_id;
+  }
+
+  // now define their parents and children
+  for (std::shared_ptr<API::VolumeCompartment>& c: model->volume_compartments) {
+
+    BNG::Compartment* bng_comp3d;
+
+    bng_comp3d = bng_data.find_compartment(c->name);
+    release_assert(bng_comp3d != nullptr);
+
+    for (std::shared_ptr<API::VolumeCompartment>& child: c->child_compartments) {
+      BNG::Compartment* bng_comp_child;
+
+      // the direct child is the 2d compartment if defined, 3d compartment otherwise
+      if (is_set(child->surface_compartment_name)) {
+        bng_comp_child = bng_data.find_compartment(child->surface_compartment_name);
+        release_assert(bng_comp_child != nullptr);
+      }
+      else {
+        bng_comp_child = bng_data.find_compartment(child->name);
+        release_assert(bng_comp_child != nullptr);
+      }
+
+      bng_comp3d->children_compartments.insert(bng_comp_child->id);
+      bng_comp_child->parent_compartment_id = bng_comp3d->id;
+    }
   }
 }
 
@@ -1177,7 +1242,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
         res.geometry_object_id = obj_id;
 
         // and also mark the object that we are counting molecules inside
-        world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
+        world->get_geometry_object(res.geometry_object_id).set_is_used_in_mol_rxn_counts();
       }
       else {
         // surf mols
@@ -1214,7 +1279,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
           rxn->set_is_counted_in_volume_regions();
 
           res.geometry_object_id = obj_id;
-          world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
+          world->get_geometry_object(res.geometry_object_id).set_is_used_in_mol_rxn_counts();
         }
         else {
           throw RuntimeError("Cannot count volume reaction " + rxn->name + " on surface " +

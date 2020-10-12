@@ -57,9 +57,24 @@ public:
   compartment_id_t id;
   std::string name;
   bool is_3d; // 2d if this member is false
+private:
   float_t volume;
+public:
   compartment_id_t parent_compartment_id; // COMPARTMENT_ID_INVALID if the compartment has no parents
   std::set<compartment_id_t> children_compartments; // those are direct children
+
+  bool is_volume_set() const {
+    return volume != FLT_INVALID;
+  }
+
+  float_t get_volume() const {
+    assert(is_volume_set());
+    return volume;
+  }
+
+  void set_volume(const float_t volume_) {
+    volume = volume_;
+  }
 
   bool has_parent() const {
     return parent_compartment_id != COMPARTMENT_ID_INVALID;

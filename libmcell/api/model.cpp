@@ -64,6 +64,7 @@ void Model::add_instantiation_data(std::shared_ptr<InstantiationData> instantiat
 
   append_vec_to_vec(release_sites, instantiation_data->release_sites);
   append_vec_to_vec(geometry_objects, instantiation_data->geometry_objects);
+  append_vec_to_vec(volume_compartments, instantiation_data->volume_compartments);
 }
 
 

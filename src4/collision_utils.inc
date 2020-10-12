@@ -1404,7 +1404,7 @@ static void get_num_crossed_walls_per_object(
 
       // do we count only counted objects and is this a counted oblect?
       const Wall& w = p.get_wall(wall_index);
-      if (only_counted_objects && !p.get_geometry_object(w.object_index).is_counted_volume) {
+      if (only_counted_objects && !p.get_geometry_object(w.object_index).is_counted_volume()) {
         continue;
       }
 
@@ -1526,7 +1526,7 @@ static counted_volume_index_t compute_counted_volume_for_pos(
 
   cv.contained_in_objects.clear();
   for (GeometryObject& obj: p.get_geometry_objects()) {
-    if (obj.is_counted_volume) {
+    if (obj.is_counted_volume()) {
       if (CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
         cv.contained_in_objects.insert(obj.index);
       }
@@ -1565,7 +1565,7 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
       const Wall& w = p.get_wall(wall_index);
 
       // do we care about this object?
-      if (!p.get_geometry_object(w.object_index).is_counted_volume) {
+      if (!p.get_geometry_object(w.object_index).is_counted_volume()) {
         continue;
       }
 
@@ -1616,7 +1616,7 @@ static void update_counted_volume_id_when_crossing_wall(
   assert(vm.is_vol());
 
   const GeometryObject& obj = p.get_geometry_object(w.object_id);
-  if (obj.is_counted_volume) {
+  if (obj.is_counted_volume()) {
     
     assert(obj.counted_volume_index_inside != COUNTED_VOLUME_INDEX_INVALID);
     assert(obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INVALID);

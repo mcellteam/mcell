@@ -1745,7 +1745,7 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
           GeometryObject& obj = world->get_partition(0).get_geometry_object(term.geometry_object_id);
 
           // set flag that we should include this object in counted volumes
-          obj.is_counted_volume = true;
+          obj.set_is_used_in_mol_rxn_counts();
         }
         else {
           if (req->count_location == nullptr) {

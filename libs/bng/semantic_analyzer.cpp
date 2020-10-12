@@ -330,7 +330,7 @@ void SemanticAnalyzer::convert_and_store_compartments() {
       ctx->inc_error_count();
       continue;
     }
-    c.volume = volume;
+    c.set_volume(volume);
 
     bng_data->add_compartment(c);
   }
@@ -339,7 +339,7 @@ void SemanticAnalyzer::convert_and_store_compartments() {
     return;
   }
 
-  // now define their parents
+  // now define their parents and children
   for (size_t i = 0; i < ctx->compartments.items.size(); i++) {
     const ASTCompartmentNode* n = to_compartment_node(ctx->compartments.items[i]);
 

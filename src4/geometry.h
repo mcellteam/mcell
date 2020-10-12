@@ -76,9 +76,11 @@ public:
   GeometryObject()
     : id(GEOMETRY_OBJECT_ID_INVALID), index(GEOMETRY_OBJECT_INDEX_INVALID),
       encompassing_region_id(REGION_ID_INVALID),
-      is_counted_volume(false),
+      compartment_id(BNG::COMPARTMENT_ID_NONE),
       counted_volume_index_inside(COUNTED_VOLUME_INDEX_INVALID),
-      counted_volume_index_outside(COUNTED_VOLUME_INDEX_INVALID) {
+      counted_volume_index_outside(COUNTED_VOLUME_INDEX_INVALID),
+      is_used_in_mol_rxn_counts(false)
+    {
   }
 
   geometry_object_id_t id; // world-unique geometry object ID
@@ -86,15 +88,19 @@ public:
 
   region_id_t encompassing_region_id; // ID of Region that represents this whole object, used only in pymcell4 for now
 
+  BNG::compartment_id_t compartment_id; // ID of compartment, none by default
+
   std::string name;
   std::string parent_name;
 
   // all walls (triangles) that form this object
   std::vector<wall_index_t> wall_indices;
 
-  // for now, intersections of counted objects are not allowed,
-  // so we do not need to create new objects for volumes
-  bool is_counted_volume;
+
+  bool is_counted_volume() const {
+    assert(compartment_id != BNG::COMPARTMENT_ID_INVALID);
+    return is_used_in_mol_rxn_counts || compartment_id != BNG::COMPARTMENT_ID_NONE;
+  }
 
   // counted volume to be set when a molecule goes inside of this object
   // might be set to COUNTED_VOLUME_INDEX_INTERSECTS if this object intersects
@@ -111,10 +117,20 @@ public:
 
   void initialize_neighboring_walls_and_their_edges(Partition& p);
 
+  void set_is_used_in_mol_rxn_counts(const bool value = true) {
+    is_used_in_mol_rxn_counts = value;
+  }
+
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
   void to_data_model(const Partition& p, const SimulationConfig& config, Json::Value& object) const;
+
+private:
+  // true if there are MolOrRxnCountEvents that use this geometry object,
+  // made private to make sure that is_counted_volume() is used when checking
+  // whether crossing this objects' walls should be taken into account
+  bool is_used_in_mol_rxn_counts;
 };
 
 typedef std::map<subpart_index_t, small_vector<wall_index_t>> WallsPerSubpartMap;

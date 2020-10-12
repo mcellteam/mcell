@@ -112,6 +112,8 @@ private:
   );
   void convert_geometry_objects();
 
+  void convert_volume_compartments();
+
   MCell::RegionExprNode* convert_region_expr_recursively(
       const std::shared_ptr<API::Region>& region,
       MCell::ReleaseEvent* rel_event

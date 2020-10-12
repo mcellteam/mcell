@@ -93,7 +93,7 @@ void InstantiationData::convert_compartments(const BNG::BNGData& bng_data) {
     }
 
     if (bng_comp.is_3d) {
-      float_t side = pow_f(bng_comp.volume, 1.0/3.0);
+      float_t side = pow_f(bng_comp.get_volume(), 1.0/3.0);
 
       // create box for the given compartment
       shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
