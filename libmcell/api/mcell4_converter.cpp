@@ -143,6 +143,8 @@ void MCell4Converter::convert(Model* model_, World* world_) {
     throw ValueError(S("Reaction radius ") + to_string(world->config.rx_radius_3d * world->config.length_unit) +
         " is larger than subpartition edge length " + to_string(world->config.subpartition_edge_length * world->config.length_unit) + ".");
   }
+
+  check_all_mol_types_have_diffusion_const();
 }
 
 
@@ -1523,6 +1525,15 @@ void MCell4Converter::add_ctrl_c_termination_event() {
   event->function_ptr = check_ctrl_c;
 
   world->scheduler.schedule_event(event);
+}
+
+
+void MCell4Converter::check_all_mol_types_have_diffusion_const() {
+  for (const BNG::MolType& mt: world->bng_engine.get_data().get_molecule_types()) {
+    if (!mt.is_reactive_surface() && mt.D == FLT_INVALID) {
+      throw RuntimeError("Molecule type " + mt.name + " does not have its diffusion constant specified.");
+    }
+  }
 }
 
 } // namespace API

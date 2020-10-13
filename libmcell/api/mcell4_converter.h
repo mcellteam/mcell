@@ -141,6 +141,8 @@ private:
 
   void add_ctrl_c_termination_event();
 
+  void check_all_mol_types_have_diffusion_const();
+
   Model* model;
   World* world;
 };
