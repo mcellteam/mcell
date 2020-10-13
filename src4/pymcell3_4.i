@@ -88,7 +88,7 @@ namespace BNG {
   typedef double float_t;
 
   class SpeciesContainer { 
-    Species* find_species_by_name(const char* name);
+    const Species* find_species_by_name(const char* name);
   };
       
   %extend SpeciesContainer {      
@@ -210,7 +210,7 @@ public:
   }
    
     // only in Python API
-    BNG::Species* find_species_by_name(const char* name) {
+    const BNG::Species* find_species_by_name(const char* name) {
      	return self->get_all_species().find_species_by_name(name);
     }
 }
