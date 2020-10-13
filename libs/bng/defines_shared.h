@@ -46,6 +46,8 @@ __assert_fail_bng (const char *assertion, const char *file, unsigned int line,
   abort();
 }
 
+//#define ENABLE_PERF_OUTPUT
+
 // ---------------------------------- float types ----------------------------------
 
 #define FLOAT_T_BYTES 8
@@ -252,12 +254,24 @@ static inline std::ostream& notifys() {
   return std::cout;
 }
 
+class NullBuffer: public std::streambuf
+{
+public:
+  int overflow(int c) { return c; }
+};
+
 static inline std::ostream& perf() {
+#ifdef ENABLE_PERF_OUTPUT
   std::time_t now = std::time(nullptr);
   char time_str[64];
   std::strftime(time_str, sizeof(time_str), "%M:%S", std::localtime(&now));
   std::cout << "perf: (" << time_str << ") ";
   return std::cout;
+#else
+  static NullBuffer null_buffer;
+  static std::ostream null_stream(&null_buffer);
+  return null_stream;
+#endif
 }
 
 /**
