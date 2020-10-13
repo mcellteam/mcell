@@ -647,10 +647,16 @@ static inline const ASTCompartmentNode* to_compartment_node(const ASTBaseNode* n
   return dynamic_cast<const ASTCompartmentNode*>(n);
 }
 
-static inline ASTCplxNode* to_cplx_node(const ASTBaseNode* n) {
+static inline const ASTCplxNode* to_cplx_node(const ASTBaseNode* n) {
   assert(n != nullptr);
   assert(n->is_cplx());
   return dynamic_cast<const ASTCplxNode*>(n);
+}
+
+static inline ASTCplxNode* to_cplx_node(ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_cplx());
+  return dynamic_cast<ASTCplxNode*>(n);
 }
 
 static inline ASTRxnRuleNode* to_rxn_rule_node(ASTBaseNode* n) {

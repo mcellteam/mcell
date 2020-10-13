@@ -104,7 +104,7 @@ public:
   }
 
   // used from pymcell3_4
-  Species* find_species_by_name(const char* name) const {
+  const Species* find_species_by_name(const char* name) const {
     species_id_t id = find_by_name(name);
     if (id != SPECIES_ID_INVALID) {
       return &get(id);
