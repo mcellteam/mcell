@@ -47,7 +47,7 @@
 using namespace std;
 
 // TODO: allow to enable/disable this from API, may make performance worse
-#define ENABLE_SAFE_DIFFUSION_STEP
+//#define ENABLE_SAFE_DIFFUSION_STEP
 
 namespace MCell {
 
