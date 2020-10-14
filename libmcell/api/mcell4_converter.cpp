@@ -116,6 +116,12 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_geometry_objects();
 
+  // - update flags that tell whether we have reactions for all volume/surface species
+  //   and also update molecule type compartment flag
+  // - must be done after geometry object conversions because
+  //   surface classes might have been defined
+  world->get_all_rxns().update_all_mols_and_mol_types_flags();
+
   // uses random generator state
   if (world->config.check_overlapped_walls) {
     bool ok = world->check_for_overlapped_walls();
@@ -132,9 +138,6 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_mol_or_rxn_count_events_and_init_counting_flags();
 
   convert_viz_output_events();
-
-  // update flags that tell whether we have reactions for all volume/surface species
-  world->get_all_rxns().update_all_mols_flags();
 
   add_ctrl_c_termination_event();
 
@@ -549,7 +552,7 @@ void MCell4Converter::convert_surface_class_rxn(
   rxn.reactants[1].set_orientation(ORIENTATION_UP);
 
   // add reaction and remember mapping
-  sp.rxn_rule_id = world->get_all_rxns().add_finalized_no_update(rxn);
+  sp.rxn_rule_id = world->get_all_rxns().add_and_finalize(rxn);
 }
 
 
@@ -795,10 +798,10 @@ void MCell4Converter::convert_rxns() {
     }
 
     // add reaction(s) and remember mapping
-    r->fwd_rxn_rule_id = world->get_all_rxns().add_finalized_no_update(rxn);
+    r->fwd_rxn_rule_id = world->get_all_rxns().add_and_finalize(rxn);
 
     if (is_reversible) {
-      r->rev_rxn_rule_id = world->get_all_rxns().add_finalized_no_update(rxn_rev);
+      r->rev_rxn_rule_id = world->get_all_rxns().add_and_finalize(rxn_rev);
     }
   }
 }
@@ -937,7 +940,6 @@ void MCell4Converter::convert_geometry_objects() {
       convert_initial_surface_releases(o->initial_surface_releases, reg_all.initial_region_molecules);
     }
 
-
     region_index_t ri_all = p.add_region_and_set_its_index(reg_all);
     region_indices.push_back(ri_all);
 
@@ -965,7 +967,6 @@ void MCell4Converter::convert_geometry_objects() {
       }
     }
   }
-
 
   // set GeometryObject compartment ids
   for (std::shared_ptr<API::VolumeCompartment>& c: model->volume_compartments) {

@@ -1154,7 +1154,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     pathway_index++;
 
     // add our reaction, reaction classes are created on-the-fly
-    world->get_all_rxns().add_finalized_no_update(rxn);
+    world->get_all_rxns().add_and_finalize(rxn);
   }
 
 
@@ -1176,7 +1176,9 @@ bool MCell3WorldConverter::convert_rxns(volume* s) {
     }
   }
 
-  world->get_all_rxns().update_all_mols_flags();
+  // we can do this update with conversion from MCell3 here
+  // because all surface classes were defined when species were converted
+  world->get_all_rxns().update_all_mols_and_mol_types_flags();
 
   return true;
 }

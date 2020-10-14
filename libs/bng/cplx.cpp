@@ -95,8 +95,8 @@ void Cplx::finalize() {
     is_simple = false;
   }
   if (is_simple) {
-    for (MolInstance& mp: mol_instances) {
-      if (!mp.component_instances.empty()) {
+    for (MolInstance& mi: mol_instances) {
+      if (!mi.component_instances.empty()) {
         is_simple = false;
         break;
       }
@@ -104,11 +104,26 @@ void Cplx::finalize() {
   }
   set_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
 
+  update_flag_compartment_used_in_rxns();
+
   // we need graphs even for simple complexes because they can be used in reaction patterns
   graph.clear();
   create_graph();
 
   set_finalized();
+}
+
+
+void Cplx::update_flag_compartment_used_in_rxns() {
+  bool is_used_with_compartment_in_rxn = true;
+  for (MolInstance& mi: mol_instances) {
+    if (bng_data->get_molecule_type(mi.mol_type_id).
+          has_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS)) {
+
+      set_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
+      break;
+    }
+  }
 }
 
 

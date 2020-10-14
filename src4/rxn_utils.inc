@@ -82,6 +82,8 @@ static void trigger_bimolecular(
   // TODO_COMPARTMENTS check compartments
 
   /* Check to see if orientation classes are zero/different */
+  // !! THIS is wrong, we are not creating rxn classes based on their orientation,
+  // every rxn in the class may have different orientation requirements
   int test_wall = 0;
   orientation_t geomA = rxn_class->get_reactant_orientation(0);
   orientation_t geomB = rxn_class->get_reactant_orientation(1);

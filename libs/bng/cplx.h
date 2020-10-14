@@ -74,6 +74,9 @@ public:
   // also creates graphs for non-simple complexes
   void finalize();
 
+  // called automatically from finalize
+  void update_flag_compartment_used_in_rxns();
+
   void create_graph();
 
   const Graph& get_graph() const {

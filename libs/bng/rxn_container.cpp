@@ -39,7 +39,7 @@ void RxnContainer::reset_caches() {
 }
 
 
-void RxnContainer::update_all_mols_flags() {
+void RxnContainer::update_all_mols_and_mol_types_flags() {
 
   species_id_t all_mols_id = all_species.get_all_molecules_species_id();
   species_id_t all_vol_mols_id = all_species.get_all_volume_molecules_species_id();
@@ -88,6 +88,30 @@ void RxnContainer::update_all_mols_flags() {
       }
     }
   }
+
+  // set flag to all MolTypes that use compartments
+  // this does not update already existing complexes,
+  for (RxnRule* rxn: rxn_rules) {
+    if (rxn->reactants_use_compartments()) {
+      for (Cplx& reac: rxn->reactants) {
+        if (reac.has_compartment()) {
+          // update molecule types
+          for (const MolInstance& mi: reac.mol_instances) {
+            bng_data.get_molecule_type(mi.mol_type_id).
+                set_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
+          }
+          // and also complexes used as reactants
+          reac.set_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
+        }
+      }
+    }
+  }
+
+  // update this flag in rxn products as well
+  for (const RxnRule* rxn: rxn_rules) {
+
+  }
+
 }
 
 

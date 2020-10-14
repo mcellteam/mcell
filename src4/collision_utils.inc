@@ -1629,7 +1629,7 @@ static void update_counted_volume_id_when_crossing_wall(
 
       if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
         // no intersect - it is clear what is outside
-        vm.v.counted_volume_index = obj.counted_volume_index_outside;
+        vm.set_counted_volume_and_compartment(p, obj.counted_volume_index_outside);
       }
       else {
 
@@ -1637,8 +1637,8 @@ static void update_counted_volume_id_when_crossing_wall(
         Vec3 displacement = Vec3(2 * bump) * w.normal;
 
         // intersect - need to check waypoints or simply recompute the counted volumes
-        vm.v.counted_volume_index =
-            compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
+        vm.set_counted_volume_and_compartment(
+            p, compute_counted_volume_using_waypoints(p, vm.v.pos + displacement));
       }
     }
     else if (collision.type == CollisionType::WALL_FRONT) {
@@ -1648,14 +1648,14 @@ static void update_counted_volume_id_when_crossing_wall(
 
       if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
         // no intersect - it is clear what is inside
-        vm.v.counted_volume_index = obj.counted_volume_index_inside;
+        vm.set_counted_volume_and_compartment(p, obj.counted_volume_index_inside);
       }
       else {
         float_t bump = -EPS; // hit from front - we go against the direction of the normal
         Vec3 displacement = Vec3(2 * bump) * w.normal;
 
-        vm.v.counted_volume_index =
-            compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
+        vm.set_counted_volume_and_compartment(
+            p, compute_counted_volume_using_waypoints(p, vm.v.pos + displacement));
       }
     }
     else {
@@ -1687,7 +1687,7 @@ static void cross_transparent_wall(
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
 
   const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
-  if (sp.needs_counted_colume()) {
+  if (sp.needs_counted_volume()) {
     update_counted_volume_id_when_crossing_wall(p, w, collision, remaining_displacement, vm);
   }
 

@@ -430,6 +430,70 @@ counted_volume_index_t Partition::find_or_add_counted_volume(const CountedVolume
 }
 
 
+BNG::compartment_id_t Partition::get_compartment_id_for_counted_volume(
+    const counted_volume_index_t counted_volume_index) {
+
+  // TODO: caching
+
+  const CountedVolume& cv = get_counted_volume(counted_volume_index);
+
+  // first collect all compartments we are in
+  set<BNG::compartment_id_t> inside_of_compartments;
+  for (geometry_object_index_t obj_index: cv.contained_in_objects) {
+    const GeometryObject& obj = get_geometry_object(obj_index);
+    if (obj.represents_compartment()) {
+      inside_of_compartments.insert(obj.compartment_id);
+    }
+  }
+
+  if (inside_of_compartments.empty()) {
+    // we are outside of any defined compartment
+    return BNG::COMPARTMENT_ID_NONE;
+  }
+
+  if (inside_of_compartments.size() == 1) {
+    // we are outside of any defined compartment
+    return *inside_of_compartments.begin();;
+  }
+
+  // which of the compartments we are in is the smallest of those?
+  // we should be able to pick one at random and descend because
+  // the compartments are hierarchical
+  BNG::compartment_id_t current = *inside_of_compartments.begin();
+  bool child_found;
+  do {
+    const BNG::Compartment& comp = bng_engine.get_data().get_compartment(current);
+    assert(comp.is_3d);
+
+    // which child are we possibly in?
+    child_found = false;
+    for (BNG::compartment_id_t child: comp.children_compartments) {
+      const BNG::Compartment& child_comp = bng_engine.get_data().get_compartment(child);
+      if (!child_comp.is_3d) {
+        // go through children of the 2d compartment (should be just one usually)
+        for (BNG::compartment_id_t child3d: child_comp.children_compartments) {
+          if (inside_of_compartments.count(child3d) == 1) {
+            child_found = true;
+            current = child3d;
+            break;
+          }
+        }
+      }
+      else {
+        if (inside_of_compartments.count(child) == 1) {
+          child_found = true;
+          current = child;
+          break;
+        }
+      }
+    }
+  } while (child_found);
+
+  return current;
+}
+
+
+
 void Partition::remove_from_known_vol_species(const species_id_t species_id) {
   if (known_vol_species.count(species_id) == 0) {
     return;

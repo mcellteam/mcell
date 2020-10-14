@@ -138,10 +138,6 @@ public:
 typedef std::vector<RxnClassPathway> RxnClassPathwayVector;
 
 
-/*class UnresolvedRxnClassPathway {
-
-};*/
-
 struct CplxIndexPair {
   CplxIndexPair(const uint reactant_index_, const uint product_index_)
     : reactant_index(reactant_index_), product_index(product_index_) {
@@ -338,6 +334,19 @@ public:
     }
     else if (is_bimol()) {
       return reactants[0].is_reactive_surface() || reactants[1].is_reactive_surface();
+    }
+    else {
+      assert(false);
+      return false;
+    }
+  }
+
+  bool reactants_use_compartments() const {
+    if (is_unimol()) {
+      return reactants[0].has_compartment();
+    }
+    else if (is_bimol()) {
+      return reactants[0].has_compartment() || reactants[1].has_compartment();
     }
     else {
       assert(false);

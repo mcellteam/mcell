@@ -89,6 +89,7 @@ class Molecule {
 public:
   Molecule()
     : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
+      compartment_id(BNG::COMPARTMENT_ID_NONE),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_FOREVER),
       birthday(TIME_INVALID) {
   }
@@ -103,6 +104,7 @@ public:
       const Vec3& pos_, const float_t birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
+      compartment_id(BNG::COMPARTMENT_ID_NONE),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
       birthday(birthday_) {
     v.pos = pos_;
@@ -117,6 +119,7 @@ public:
       const Vec2& pos2d, const float_t birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
+      compartment_id(BNG::COMPARTMENT_ID_NONE),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
       birthday(birthday_) {
     s.pos = pos2d;
@@ -135,6 +138,7 @@ public:
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
   species_id_t species_id;
   uint flags;
+  BNG::compartment_id_t compartment_id;
 
   // time for which it was scheduled, based on this value Partition creates 'ready list'
   // for DiffuseAndReactEvent
@@ -159,7 +163,8 @@ public:
       // during diffusion the molecules' subpart index might change but the reactant_subpart_index
       // stays the same until its moved in the Partition's volume_molecule_reactants_per_subpart[] array
       subpart_index_t reactant_subpart_index;
-      geometry_object_id_t counted_volume_index;
+      // do not assign directly, use set_counted_volume_and_compartment istead
+      counted_volume_index_t counted_volume_index;
     } v;
 
     // surface molecule data
@@ -223,6 +228,12 @@ public:
       return ORIENTATION_NONE; // or not set?
     }
   }
+
+  // only for vol mols
+  void set_counted_volume_and_compartment(
+      Partition& p,
+      const counted_volume_index_t counted_volume_index_
+  );
 
   void dump(const std::string ind) const;
   void dump(

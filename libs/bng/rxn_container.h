@@ -27,13 +27,12 @@ typedef std::vector<RxnRule*> RxnRuleVector;
  */
 class RxnContainer {
 public:
-  RxnContainer(SpeciesContainer& all_species_, const BNGData& bng_data_, const BNGConfig& bng_config_)
+  RxnContainer(SpeciesContainer& all_species_, BNGData& bng_data_, const BNGConfig& bng_config_)
     : all_vol_mols_can_react_with_surface(false),
       all_surf_mols_can_react_with_surface(false),
       all_species(all_species_),
       bng_data(bng_data_),
-      bng_config(bng_config_)
-      {
+      bng_config(bng_config_) {
   }
 
   ~RxnContainer();
@@ -46,10 +45,10 @@ public:
   }
 
   // must be called once all reactions were added or were updated
-  void update_all_mols_flags();
+  void update_all_mols_and_mol_types_flags();
 
   // this method is supposed to be used only during initialization
-  rxn_rule_id_t add_finalized_no_update(const RxnRule& r) {
+  rxn_rule_id_t add_and_finalize(const RxnRule& r) {
     // TODO LATER: check that we don't have this rule already
 
     // store a copy
@@ -221,7 +220,7 @@ public:
 private:
   // owned by BNGEngine
   SpeciesContainer& all_species;
-  const BNGData& bng_data;
+  BNGData& bng_data;
   const BNGConfig& bng_config;
 };
 

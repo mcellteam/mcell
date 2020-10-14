@@ -479,10 +479,9 @@ public:
     // we must refresh the species reference
     BNG::Species& sp_new_ref = get_all_species().get(vm_copy.species_id);
     // compute counted volume id for a new molecule, may define a new counted volume
-    if (sp_new_ref.needs_counted_colume() && new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
-      new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
+    if (sp_new_ref.needs_counted_volume() && new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
+      new_vm.set_counted_volume_and_compartment(*this, compute_counted_volume_using_waypoints(new_vm.v.pos));
     }
-
     return new_vm;
   }
 
@@ -787,6 +786,10 @@ public:
     assert(vertex_index < walls_using_vertex_mapping.size());
     return walls_using_vertex_mapping[vertex_index];
   }
+
+
+  BNG::compartment_id_t get_compartment_id_for_counted_volume(
+      const counted_volume_index_t counted_volume_index);
 
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex

@@ -96,10 +96,13 @@ public:
   // all walls (triangles) that form this object
   std::vector<wall_index_t> wall_indices;
 
+  bool represents_compartment() const {
+    return compartment_id != BNG::COMPARTMENT_ID_NONE;
+  }
 
   bool is_counted_volume() const {
     assert(compartment_id != BNG::COMPARTMENT_ID_INVALID);
-    return is_used_in_mol_rxn_counts || compartment_id != BNG::COMPARTMENT_ID_NONE;
+    return is_used_in_mol_rxn_counts || represents_compartment();
   }
 
   // counted volume to be set when a molecule goes inside of this object
