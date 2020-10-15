@@ -1361,8 +1361,8 @@ void RxnRule::define_rxn_pathway_using_mapping(
   // we need to make a copy of the reactants because we will be modifying them
   // a new graph will have its ordering indices cleared
   vector<Cplx> input_reactants_copy;
-  for (species_id_t sid: reactant_species) {
-    input_reactants_copy.push_back(all_species.get(sid));
+  for (species_id_t s_id: reactant_species) {
+    input_reactants_copy.push_back(all_species.get(s_id));
   }
 
   // and create a graph from them
@@ -1392,6 +1392,7 @@ void RxnRule::define_rxn_pathway_using_mapping(
   sort(product_cplxs.begin(), product_cplxs.end(), less_product_cplxs_by_rxn_rule_index);
 
   // and cplx instances into species
+  // we are not setting the resulting compartment, neither orientation
   for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
     // need to transform cplx into species id, the possibly new species will be removable
     Species new_species = Species(product_w_indices.product_cplx, *bng_data, bng_config);
@@ -1766,7 +1767,8 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
 
 
 bool RxnRule::species_can_be_bimol_reactants(
-    const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species
+    const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species,
+    uint* assigned_index1, uint* assigned_index2
 ) {
   assert(is_bimol());
 
@@ -1793,7 +1795,28 @@ bool RxnRule::species_can_be_bimol_reactants(
   // there must be direct or crossed covering of the reactants, i.e.
   // id1 -> patA && id2 -> patB or
   // id1 -> patB && id2 -> patA
-  return (id1_matches[0] && id2_matches[1]) || (id1_matches[1] && id2_matches[0]);
+  bool res = (id1_matches[0] && id2_matches[1]) || (id1_matches[1] && id2_matches[0]);
+
+  if (res && (assigned_index1 != nullptr || assigned_index2 != nullptr)) {
+    uint index1;
+    uint index2;
+    if ((id1_matches[0] && id2_matches[1])) {
+      index1 = 0;
+      index2 = 1;
+    }
+    else {
+      index1 = 1;
+      index2 = 0;
+    }
+    if (assigned_index1 != nullptr) {
+      *assigned_index1 = index1;
+    }
+    if (assigned_index2 != nullptr) {
+      *assigned_index2 = index2;
+    }
+  }
+
+  return res;
 }
 
 // returns true when the species matches both reactants

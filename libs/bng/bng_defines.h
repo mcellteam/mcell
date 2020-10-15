@@ -57,7 +57,21 @@ const mol_type_id_t MOL_TYPE_ID_INVALID = ID_INVALID;
 
 typedef uint compartment_id_t;
 const compartment_id_t COMPARTMENT_ID_INVALID = ID_INVALID;
-const compartment_id_t COMPARTMENT_ID_NONE = ID_INVALID2; // same as don't care
+// - used for molecules, means that the molecule isn't in any of the named compartments
+// - or we are not tracking compartments for this molecule because there are no reactions
+//   for this molecule that use a compartment
+const compartment_id_t COMPARTMENT_ID_NONE = ID_INVALID2;
+// same as don't care, used in rxn classes
+const compartment_id_t COMPARTMENT_ID_ANY = ID_INVALID3;
+
+static std::string compartment_id_to_str(const compartment_id_t id) {
+  switch (id) {
+    case COMPARTMENT_ID_INVALID: return "INVALID";
+    case COMPARTMENT_ID_NONE: return "NONE";
+    case COMPARTMENT_ID_ANY: return "ANY";
+    default: return std::to_string(id);
+  }
+}
 
 // rxn rules are always global and presumed to be constant
 typedef uint rxn_rule_id_t;

@@ -279,14 +279,26 @@ public:
         base_rate_constant == rr2.base_rate_constant;
   }
 
+  bool reactant_compatment_matches(const uint index, const compartment_id_t compartment_id) {
+    assert(index < reactants.size());
+    if (compartment_id == COMPARTMENT_ID_ANY || reactants[index].get_compartment_id() == COMPARTMENT_ID_ANY) {
+      return true;
+    }
+    else {
+      return reactants[index].get_compartment_id() == compartment_id;
+    }
+  }
+
   // used in semantic check
   bool check_reactants_products_mapping(std::ostream& out);
 
   void append_reactant(const Cplx& pattern) {
+    assert(pattern.get_compartment_id() != COMPARTMENT_ID_INVALID);
     reactants.push_back(pattern);
   }
 
   void append_product(const Cplx& cplx) {
+    assert(cplx.get_compartment_id() != COMPARTMENT_ID_INVALID);
     products.push_back(cplx);
   }
 
@@ -366,8 +378,10 @@ public:
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
 
   // returns true if both species can be used as separate reactants for a bimol rxn
+  // sets assigned indices if assigned_indexN are not nullptr
   bool species_can_be_bimol_reactants(
-      const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species
+      const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species,
+      uint* assigned_index1 = nullptr, uint* assigned_index2 = nullptr
   );
 
   // returns true if two reactants match each other and species 'id' matches one of the reactants

@@ -34,10 +34,12 @@ string BNGEngine::get_stats_report() const {
 }
 
 
-Cplx BNGEngine::create_cplx_from_species(const species_id_t id, const orientation_t o) const {
+Cplx BNGEngine::create_cplx_from_species(
+    const species_id_t id, const orientation_t o, const compartment_id_t compartment_id) const {
   const Cplx& ref = all_species.get(id);
   Cplx copy = ref;
   copy.set_orientation(o);
+  copy.set_compartment_id(compartment_id);
   return copy;
 }
 

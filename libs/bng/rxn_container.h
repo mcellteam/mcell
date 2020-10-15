@@ -9,13 +9,45 @@
 
 namespace BNG {
 
-typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
+// searching for a unimol rxn class:
+// 1) search by species id of reactant
+// 2) search by compartment of reactant (one of the precomputed options are 'any' and 'none' compartments)
 
-typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolRxnClassesMap;
-typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
+typedef std::map<compartment_id_t, RxnClass*> CompartmentRxnClassesMap;
+typedef CompartmentRxnClassesMap::iterator ReactantCompartmentIt;
+typedef std::pair<const compartment_id_t, RxnClass*> ReactantCompartmentPair;
+
+typedef std::map<species_id_t, CompartmentRxnClassesMap> ReactantRxnClassesMap;
+typedef ReactantRxnClassesMap::iterator ReactantSpeciesIt;
+typedef std::pair<const species_id_t, CompartmentRxnClassesMap> ReactantSpeciesPair;
+
+typedef ReactantRxnClassesMap UnimolRxnClassesMap;
+
+// searching for a bimol rxn class:
+// 1) search by species id of reactant A
+// 2) search by compartment of reactant A (one of the precomputed options are 'any' and 'none' compartments)
+// 3) search by species id of reactant B
+// 4) search by compartment of reactant B
+
+typedef std::map<compartment_id_t, ReactantRxnClassesMap> BimolCompartmentRxnClassesMap;
+typedef BimolCompartmentRxnClassesMap::iterator BimolCompartmentIt;
+typedef std::pair<const compartment_id_t, ReactantRxnClassesMap> BimolCompartmentPair;
+
+typedef std::map<species_id_t, BimolCompartmentRxnClassesMap> BimolRxnClassesMap;
+typedef BimolRxnClassesMap::iterator BimolSpeciesIt;
+
 
 typedef std::set<RxnClass*> RxnClassPtrSet;
 typedef std::vector<RxnRule*> RxnRuleVector;
+
+typedef std::set<species_id_t> SpeciesIdSet;
+
+static inline BNG::RxnClass* get_rxn_class_for_any_compartment(
+    const BNG::CompartmentRxnClassesMap& compartment_rxn_classes_map) {
+  auto it = compartment_rxn_classes_map.find(BNG::COMPARTMENT_ID_ANY);
+  assert(it != compartment_rxn_classes_map.end());
+  return it->second;
+}
 
 /**
  * Owns information on reactions and species,
@@ -45,7 +77,7 @@ public:
   }
 
   // must be called once all reactions were added or were updated
-  void update_all_mols_and_mol_types_flags();
+  void update_all_mols_and_mol_type_compartments();
 
   // this method is supposed to be used only during initialization
   rxn_rule_id_t add_and_finalize(const RxnRule& r) {
@@ -60,21 +92,26 @@ public:
   }
 
   // - might invalidate Species reference
-  RxnClass* get_unimol_rxn_class(const species_id_t id) {
-    auto it = unimol_rxn_class_map.find(id);
+  RxnClass* get_unimol_rxn_class(const Reactant& reac) {
+    auto it = unimol_rxn_class_map.find(reac.species_id);
 
     // reaction maps get updated only when needed, it is not associated with addition of a new species
     // the assumption is that, after some simulation time elapsed, this will be fairly stable
-    if (species_processed_for_unimol_rxn_classes.count(id) == 0) {
-      create_unimol_rxn_classes_for_new_species(id);
-      it = unimol_rxn_class_map.find(id);
+    if (species_processed_for_unimol_rxn_classes.count(reac.species_id) == 0) {
+      create_unimol_rxn_classes_for_new_species(reac.species_id);
+      species_processed_for_unimol_rxn_classes.insert(reac.species_id);
+
+      it = unimol_rxn_class_map.find(reac.species_id);
     }
 
     if (it != unimol_rxn_class_map.end()) {
-      assert(it->second != nullptr);
-      assert(it->second->get_num_reactions() != 0);
+      auto it_rxn_class = it->second.find(reac.compartment_id);
+      assert(it_rxn_class != it->second.end());
 
-      return it->second;
+      assert(it_rxn_class->second != nullptr);
+      assert(it_rxn_class->second->get_num_reactions() != 0);
+
+      return it_rxn_class->second;
     }
     else {
       // no reactions for this species
@@ -83,63 +120,75 @@ public:
   }
 
   // frees up memory taken up by the species' rxn class that is no longer needed
-  void remove_unimol_rxn_class(const species_id_t id);
+  void remove_unimol_rxn_classes(const species_id_t id);
 
   // - simply looks up a reaction between 'a' and 'b',
   // - this reaction must exist, asserts if not,
   // - does not take species superclasses such as ALL_MOLECULES into account
   // - order of species ids does not matter
   // - might invalidate Species reference
-  RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
+  RxnClass* get_bimol_rxn_class(const Reactant& reac1, const Reactant& reac2) {
     // species must exist
-    assert(all_species.is_valid_id(id1));
-    assert(all_species.is_valid_id(id2));
+    assert(all_species.is_valid_id(reac1.species_id));
+    assert(all_species.is_valid_id(reac2.species_id));
 
-    BNG::SpeciesRxnClassesMap* rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(id1);
+    BNG::ReactantRxnClassesMap* rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(reac1);
     if (rxn_class_map_for_id1 == nullptr) {
       // no reactions for this species at all
       return nullptr;
     }
 
-    const auto it_res = rxn_class_map_for_id1->find(id2);
+    auto it_compartment_map = rxn_class_map_for_id1->find(reac2.species_id);
 
-    if (it_res != rxn_class_map_for_id1->end()) {
-      assert(it_res->second != nullptr);
-      assert(it_res->second->get_num_reactions() != 0);
+    if (it_compartment_map != rxn_class_map_for_id1->end()) {
 
-      return it_res->second;
+      auto it_class = it_compartment_map->second.find(reac2.compartment_id);
+      if (it_class == it_compartment_map->second.end()) {
+        // no reactions for first species+compartment & second species+compartment
+        return nullptr;
+      }
+      assert(it_class->second != nullptr);
+      assert(it_class->second->get_num_reactions() != 0);
+
+      return it_class->second;
     }
     else {
-      // no reactions for this pair os species
+      // no reactions for first species+compartment & second species
       return nullptr;
     }
+  }
+
+  BNG::ReactantRxnClassesMap* get_bimol_rxns_for_reactant_any_compartment(const species_id_t species_id) {
+    return get_bimol_rxns_for_reactant(Reactant(species_id, COMPARTMENT_ID_ANY));
   }
 
   // - returns null if there is no reaction for this species
   // - when there is no entry in the map, this means that reactions for this reactant
   //   were not determined yet and updates creates new rxn classes
   // - might invalidate Species reference
-  BNG::SpeciesRxnClassesMap* get_bimol_rxns_for_reactant(const species_id_t id, const bool for_all_known_species = false) {
+  // - if for_all_known_species is false, on rxn classes are created only for species that have 'instantiated' flag
+  BNG::ReactantRxnClassesMap* get_bimol_rxns_for_reactant(const Reactant& reac, const bool for_all_known_species = false) {
 
-    auto it = bimol_rxn_class_map.find(id);
+    auto it = bimol_rxn_class_map.find(reac.species_id);
 
-    // reaction maps get updated only when needed, it is not associated with addition of a new species
-    // the assumption is that, after some simulation time elapsed, this will be fairly stable
-    // we must use a separate set to know whether this ID is a new one or not because
-    // reaction A + B with species A also creates reaction class for B (although not a full one
-    // since only reactions of B with A were considered (not B + C or or similar)
-    // ??? comment may not be up to date anymore
-    /// TODO add   it != bimol_rxn_class_map.end() &&
-    if (species_processed_for_bimol_rxn_classes.count(id) == 0) {
-      create_bimol_rxn_classes_for_new_species(id, for_all_known_species);
-      species_processed_for_bimol_rxn_classes.insert(id);
+    // did we already process this reactant?
+    if (species_processed_for_bimol_rxn_classes.count(reac.species_id) == 0) {
+      create_bimol_rxn_classes_for_new_species(reac.species_id, for_all_known_species);
+      species_processed_for_bimol_rxn_classes.insert(reac.species_id);
 
       // try to find it again, maybe we did not create any rxn classes
-      it = bimol_rxn_class_map.find(id);
+      it = bimol_rxn_class_map.find(reac.species_id);
     }
 
     if (it != bimol_rxn_class_map.end()) {
-      return &it->second;
+      // get rxn classes for our given compartment
+      auto it_class = it->second.find(reac.compartment_id);
+      if (it_class == it->second.end()) {
+        // no reactions for this species+compartment
+        return nullptr;
+      }
+
+      return &it_class->second;
     }
     else {
       // no reactions for this species at all
@@ -148,7 +197,7 @@ public:
   }
 
   // frees up memory taken up by the species' rxn classes that is no longer needed
-  void remove_bimol_rxn_classes(const species_id_t id);
+  void remove_bimol_rxn_classes(const species_id_t reac1_species_id);
 
   // returns nullptr if reaction rule was not found
   RxnRule* find_rxn_rule_by_name(const std::string& name) {
@@ -183,11 +232,11 @@ public:
   void dump(const bool including_rxn_rules = false) const;
 
 private:
-  RxnClass* get_or_create_empty_unimol_rxn_class(const species_id_t id);
-  RxnClass* get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2);
+  RxnClass* get_or_create_empty_unimol_rxn_class(const Reactant& reac);
+  RxnClass* get_or_create_empty_bimol_rxn_class(const Reactant& reac1, const Reactant& reac2);
 
-  void create_unimol_rxn_classes_for_new_species(const species_id_t id);
-  void create_bimol_rxn_classes_for_new_species(const species_id_t id, const bool for_all_known_species);
+  void create_unimol_rxn_classes_for_new_species(const species_id_t species_id);
+  void create_bimol_rxn_classes_for_new_species(const species_id_t species_id, const bool for_all_known_species);
 
   void delete_rxn_class(RxnClass* rxn_class);
 
@@ -204,12 +253,17 @@ private:
   RxnRuleVector rxn_rules;
 
   // sets that remember which species were processed for rxn class generation
-  uint_dense_hash_set<species_id_t> species_processed_for_bimol_rxn_classes;
-  uint_dense_hash_set<species_id_t> species_processed_for_unimol_rxn_classes;
+  SpeciesIdSet species_processed_for_bimol_rxn_classes;
+  SpeciesIdSet species_processed_for_unimol_rxn_classes;
 
+  // these two maps use reaction_hash_t keys with full orientation and
+  // compartment specification
   UnimolRxnClassesMap unimol_rxn_class_map;
-
   BimolRxnClassesMap bimol_rxn_class_map;
+
+  // this map allows to search for reaction classes with ignoring
+  // orientation and compartment
+  BimolRxnClassesMap bimol_rxn_class_any_orient_compartment_map;
 
 public:
   // TODO: make private

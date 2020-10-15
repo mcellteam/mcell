@@ -72,7 +72,8 @@ static void trigger_bimolecular(
     orientation_t orientA, orientation_t orientB,
     BNG::RxnClassesVector& matching_rxn_classes // items are appended
 ) {
-  BNG::RxnClass* rxn_class = bng_engine.get_all_rxns().get_bimol_rxn_class(reacA.species_id, reacB.species_id);
+  BNG::RxnClass* rxn_class =
+      bng_engine.get_all_rxns().get_bimol_rxn_class(reacA.as_reactant(), reacB.as_reactant());
   if (rxn_class == nullptr) {
     // no reaction
     return;
@@ -134,17 +135,19 @@ static void find_reactions_with_surf_classes_for_rxn_class_map(
     const Partition& p,
     const Molecule& reacA,
     const Region& reg,
-    const BNG::SpeciesRxnClassesMap& potential_reactions,
+    const BNG::ReactantRxnClassesMap& potential_reactions,
     BNG::RxnClassesVector& matching_rxn_classes
 ) {
 
-  BNG::SpeciesRxnClassesMap::const_iterator reactions_reacA_and_surface_it = potential_reactions.find(reg.species_id);
+  auto reactions_reacA_and_surface_it = potential_reactions.find(reg.species_id);
   if (reactions_reacA_and_surface_it == potential_reactions.end()) {
     // no reactions for this type of region
     return;
   }
 
-  BNG::RxnClass* rxn_class = reactions_reacA_and_surface_it->second;
+  BNG::RxnClass* rxn_class =
+      BNG::get_rxn_class_for_any_compartment(reactions_reacA_and_surface_it->second);
+
   assert(rxn_class->is_bimol());
   if (rxn_class->get_num_reactions() == 0) {
     return;
@@ -192,9 +195,12 @@ static void find_volume_mol_reactions_with_surf_classes(
   assert(reacA.is_vol());
 
   // for all reactions applicable to reacA and and wall
-  const BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
-  const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
-  const BNG::SpeciesRxnClassesMap* all_vol_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_volume_molecules_species_id());
+  const BNG::ReactantRxnClassesMap* species_rxns =
+      p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.as_reactant());
+  const BNG::ReactantRxnClassesMap* all_molecules_rxns =
+      p.get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(p.get_all_species().get_all_molecules_species_id());
+  const BNG::ReactantRxnClassesMap* all_vol_rxns =
+      p.get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(p.get_all_species().get_all_volume_molecules_species_id());
 
   if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_vol_rxns == nullptr) {
     // no reactions at all for reacA
@@ -262,10 +268,12 @@ static void find_surface_mol_reactions_with_surf_classes(
 
   assert(reacA.is_surf());
 
-  // for all reactions applicable to reacA and and wall
-  const BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
-  const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
-  const BNG::SpeciesRxnClassesMap* all_surf_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_surface_molecules_species_id());
+  const BNG::ReactantRxnClassesMap* species_rxns =
+      p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.as_reactant());
+  const BNG::ReactantRxnClassesMap* all_molecules_rxns =
+      p.get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(p.get_all_species().get_all_molecules_species_id());
+  const BNG::ReactantRxnClassesMap* all_surf_rxns =
+      p.get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(p.get_all_species().get_all_surface_molecules_species_id());
 
   if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_surf_rxns == nullptr) {
     // no reactions at all for reacA
@@ -737,10 +745,10 @@ static rxn_class_pathway_index_t test_many_intersect(
 // TODO: remove this function
 static BNG::RxnClass* pick_unimol_rxn_class(
     World* world,
-    const species_id_t species_id,
+    const Molecule& m,
     const float_t current_time
 ) {
-  BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(species_id);
+  BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(m.as_reactant());
   if (rxn_class != nullptr) {
     rxn_class->update_rxn_rates_if_needed(current_time);
   }

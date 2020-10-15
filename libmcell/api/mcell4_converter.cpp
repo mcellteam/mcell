@@ -120,7 +120,7 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   //   and also update molecule type compartment flag
   // - must be done after geometry object conversions because
   //   surface classes might have been defined
-  world->get_all_rxns().update_all_mols_and_mol_types_flags();
+  world->get_all_rxns().update_all_mols_and_mol_type_compartments();
 
   // uses random generator state
   if (world->config.check_overlapped_walls) {
@@ -545,7 +545,9 @@ void MCell4Converter::convert_surface_class_rxn(
   // all these reactions happen always
   rxn.base_rate_constant = FLT_GIGANTIC;
 
+  affected_species.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
   rxn.append_reactant(affected_species);
+
   rxn.append_reactant(surface_reactant); // copies the input reactant
 
   // this is the default orientation used for surfaces in a reaction
@@ -561,6 +563,9 @@ void MCell4Converter::convert_surface_classes() {
     // each surface class is represented by a species
     BNG::Species sc_species(world->bng_engine.get_data());
     sc_species.name = sc->name;
+
+    // we do not care about compartments for surface classes
+    sc_species.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
 
     sc_species.set_is_reactive_surface();
     // sets steps to 0
@@ -702,9 +707,10 @@ BNG::Cplx MCell4Converter::convert_complex(API::Complex& inst, const bool in_obs
       }
       cplx_inst.set_compartment_id(comp->surf_compartment_id);
     }
-
   }
   else {
+    cplx_inst.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
+
     if (!in_rxn && cplx_inst.is_vol() && inst.orientation != Orientation::NONE && inst.orientation != Orientation::DEFAULT) {
       throw ValueError("Orientation for a volume complex " + cplx_inst.to_str() +
           " must be set either to " + NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE + " or " +
@@ -761,8 +767,11 @@ void MCell4Converter::convert_rxns() {
 
     for (std::shared_ptr<API::Complex>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
-
       BNG::Cplx reactant = convert_complex(*rinst, false, true);
+      // set ANY compartment if it was not specified
+      if (reactant.get_compartment_id() == BNG::COMPARTMENT_ID_NONE) {
+        reactant.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
+      }
       rxn.append_reactant(reactant);
     }
 

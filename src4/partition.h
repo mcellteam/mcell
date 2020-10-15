@@ -281,8 +281,10 @@ public:
     }
     assert(initiator_reactant_species.is_vol());
 
-    const BNG::SpeciesRxnClassesMap* reactions_map = get_all_rxns().get_bimol_rxns_for_reactant(new_species_id);
-    if (reactions_map == nullptr) {
+    // TODO: get just vol reactants, have a separate cache in rxn container for it
+    const BNG::ReactantRxnClassesMap* rxns_classes_map =
+        get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(new_species_id);
+    if (rxns_classes_map == nullptr) {
       // nothing to do
       return;
     }
@@ -296,8 +298,10 @@ public:
       assert(m.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
       SpeciesReactantsMap& subpart_reactants_sp = volume_molecule_reactants_per_subpart[m.v.reactant_subpart_index];
 
-      for (const auto& second_reactant_info: *reactions_map) {
-        if (second_reactant_info.second->get_num_reactions() == 0) {
+      for (const auto& second_reactant_info: *rxns_classes_map) {
+        const BNG::RxnClass* rxn_class =
+            BNG::get_rxn_class_for_any_compartment(second_reactant_info.second);
+        if (rxn_class->get_num_reactions() == 0) {
           // there is a reaction class, but it has no reactions
           continue;
         }
@@ -330,10 +334,11 @@ public:
 
     // and these are indices of possible reactants with our reactant_species_id,
     // this might trigger creation of a new rxn class if the species were not seen before
-    // TODO: we can optimize this by taking just volume reactants into account
-    //       - simply reject if the second reactant is surf mol
-    const BNG::SpeciesRxnClassesMap* reactions_map = get_all_rxns().get_bimol_rxns_for_reactant(vm.species_id);
-    if (reactions_map == nullptr) {
+    // TODO: get just vol reactants, have a separate cache in rxn container for it
+    //      by this we can possibly remove handling of ANY compartment in rxn container
+    const BNG::ReactantRxnClassesMap* rxns_classes_map =
+        get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(vm.species_id);
+    if (rxns_classes_map == nullptr) {
       // nothing to do
       return;
     }
@@ -343,11 +348,14 @@ public:
     SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
-    for (const auto& second_reactant_info: *reactions_map) {
+    for (const auto& second_reactant_info: *rxns_classes_map) {
       species_id_t second_species_id = second_reactant_info.first;
 
-      if (second_reactant_info.second->get_num_reactions() == 0 ||
-          !second_reactant_info.second->is_bimol_vol_rxn_class()) {
+      const BNG::RxnClass* rxn_class =
+          BNG::get_rxn_class_for_any_compartment(second_reactant_info.second);
+
+      if (rxn_class->get_num_reactions() == 0 ||
+          !rxn_class->is_bimol_vol_rxn_class()) {
         // there is a reaction class, but it has no reactions
         continue;
       }
@@ -449,7 +457,7 @@ private:
     if (!sp.was_instantiated()) {
       // update rxn classes for this new species, may create new species and
       // invalidate Species reference
-      get_all_rxns().get_bimol_rxns_for_reactant(sp.id);
+      get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(sp.id);
     }
     // we must get a new reference
     get_all_species().get(m.species_id).inc_num_instantiations();

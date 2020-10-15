@@ -136,6 +136,10 @@ void Molecule::dump(
   }
 #endif
 
+#ifdef DEBUG_COMPARTMENTS
+  cout << ", compartment id: " << compartment_id;
+#endif
+
   cout
       << ", time: " << time
       << "\n";

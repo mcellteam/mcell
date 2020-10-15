@@ -71,7 +71,7 @@ public:
 
   const BNGConfig& get_config() const { return bng_config; }
 
-  Cplx create_cplx_from_species(const species_id_t id, const orientation_t o) const;
+  Cplx create_cplx_from_species(const species_id_t id, const orientation_t o, const compartment_id_t compartment_id) const;
 };
 
 

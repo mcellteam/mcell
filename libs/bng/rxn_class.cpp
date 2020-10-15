@@ -24,7 +24,7 @@ namespace BNG {
 float_t RxnClass::get_reactant_space_step(const uint reactant_index) const {
   assert(reactant_index < specific_reactants.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index]);
+  const Species& s = all_species.get(specific_reactants[reactant_index].species_id);
   return s.space_step;
 }
 
@@ -32,7 +32,7 @@ float_t RxnClass::get_reactant_space_step(const uint reactant_index) const {
 float_t RxnClass::get_reactant_time_step(const uint reactant_index) const {
   assert(reactant_index < specific_reactants.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index]);
+  const Species& s = all_species.get(specific_reactants[reactant_index].species_id);
   return s.time_step;
 }
 
@@ -40,7 +40,7 @@ float_t RxnClass::get_reactant_time_step(const uint reactant_index) const {
 float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
   assert(reactant_index < specific_reactants.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index]);
+  const Species& s = all_species.get(specific_reactants[reactant_index].species_id);
   return s.D;
 }
 
@@ -112,8 +112,14 @@ float_t RxnClass::get_next_time_of_rxn_rate_update() const {
 
 void RxnClass::define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index) {
   release_assert(pathways_and_rates_initialized);
+
+  vector<species_id_t> reactant_species;
+  for (auto& r: specific_reactants) {
+    reactant_species.push_back(r.species_id);
+  }
+
   const RxnRule* rxn = all_rxns.get(pathways[pathway_index].rxn_rule_id);
-  rxn->define_rxn_pathway_using_mapping(all_species, bng_config, specific_reactants, pathways[pathway_index]);
+  rxn->define_rxn_pathway_using_mapping(all_species, bng_config, reactant_species, pathways[pathway_index]);
 }
 
 
@@ -185,7 +191,7 @@ float_t RxnClass::compute_pb_factor() const {
 
   small_vector<const Species*> reactant_species;
   for (uint n_reactant = 0; n_reactant < specific_reactants.size(); n_reactant++) {
-    const Species& s = all_species.get(specific_reactants[n_reactant]);
+    const Species& s = all_species.get(specific_reactants[n_reactant].species_id);
     reactant_species.push_back(&s);
     if (s.is_surf()) {
       num_surf_reactants++;
@@ -414,8 +420,8 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
     rxn->define_rxn_pathways_for_specific_reactants(
         all_species,
         bng_config,
-        specific_reactants[0],
-        (is_bimol() ? specific_reactants[1] : SPECIES_ID_INVALID),
+        specific_reactants[0].species_id,
+        (is_bimol() ? specific_reactants[1].species_id : SPECIES_ID_INVALID),
         pb_factor,
         pathways
     );
@@ -507,9 +513,9 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
 
 std::string RxnClass::reactants_to_str() const {
   stringstream ss;
-  ss << all_species.get(specific_reactants[0]).name << " (" << specific_reactants[0] << ")";
+  ss << all_species.get(specific_reactants[0].species_id).name << " (" << specific_reactants[0].to_str() << ")";
   if (specific_reactants.size() == 2) {
-    ss << " + " << all_species.get(specific_reactants[1]).name << " (" << specific_reactants[1] << ")";
+    ss << " + " << all_species.get(specific_reactants[1].species_id).name << " (" << specific_reactants[1].to_str() << ")";
   }
   return ss.str();
 }

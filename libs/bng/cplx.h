@@ -45,7 +45,7 @@ private:
 public:
   Cplx(const BNGData* bng_data_)
     : orientation(ORIENTATION_NONE),
-      compartment_id(COMPARTMENT_ID_NONE),
+      compartment_id(COMPARTMENT_ID_INVALID),
       bng_data(bng_data_)
       {
   }
@@ -120,7 +120,7 @@ public:
 
   bool has_compartment() const {
     assert(compartment_id != COMPARTMENT_ID_INVALID);
-    return compartment_id != COMPARTMENT_ID_NONE;
+    return compartment_id != COMPARTMENT_ID_NONE && compartment_id != COMPARTMENT_ID_ANY;
   }
 
   compartment_id_t get_compartment_id() const {

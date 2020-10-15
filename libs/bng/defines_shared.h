@@ -174,6 +174,7 @@ const int INT_INVALID = INT32_MAX;
 
 const uint ID_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
 const uint ID_INVALID2 = UINT32_MAX - 1; // second general invalid id, might be used for special values
+const uint ID_INVALID3 = UINT32_MAX - 2;
 const uint INDEX_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID2 = UINT32_MAX - 2; // second general invalid index, might be used for special values
 
@@ -201,6 +202,16 @@ const orientation_t ORIENTATION_DOWN = -1;
 const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 const orientation_t ORIENTATION_NOT_SET = 2;
+
+static char orientation_to_char(const orientation_t o) {
+  switch (o) {
+    case ORIENTATION_DOWN: return ',';
+    case ORIENTATION_NONE: return ';';
+    case ORIENTATION_UP: return '\'';
+    case ORIENTATION_NOT_SET: return 'u';
+    default: return 'x';
+  }
+}
 
 // index of reaction with products in a reaction class
 typedef int rxn_class_pathway_index_t;

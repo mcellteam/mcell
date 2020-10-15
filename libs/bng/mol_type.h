@@ -82,8 +82,18 @@ public:
 // allowed components and states.
 class MolType: public BaseSpeciesCplxMolFlag, public MolTypeSpeciesCommonData {
 public:
+  MolType() {
+    compartments_used_in_rxns.insert(COMPARTMENT_ID_ANY);
+    compartments_used_in_rxns.insert(COMPARTMENT_ID_NONE);
+  }
+
   std::string name;
-  small_vector<component_type_id_t> component_type_ids;
+  std::vector<component_type_id_t> component_type_ids;
+
+  // initialized to contain ANY and NONE compartments,
+  // additional compartments are added in
+  // RxnContainer::update_all_mols_and_mol_type_compartments
+  std::set<compartment_id_t> compartments_used_in_rxns;
 
   bool cant_initiate() const {
     return has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);

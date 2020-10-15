@@ -160,6 +160,11 @@ public:
   SpeciesVector& get_species_vector() {
     return species;
   }
+
+  void get_applicable_compartments(
+      const species_id_t species_id,
+      std::set<compartment_id_t>& applicable_compartments) const;
+
 private:
   void initalize_superspecies(species_id_t id) {
     Species& sp = get(id);

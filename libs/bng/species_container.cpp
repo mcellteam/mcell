@@ -135,6 +135,23 @@ void SpeciesContainer::defragment() {
 }
 
 
+void SpeciesContainer::get_applicable_compartments(
+    const species_id_t species_id,
+    std::set<compartment_id_t>& applicable_compartments) const {
+
+  // make union from all molecule types used in this species
+  applicable_compartments.clear();
+  const Species& s = get(species_id);
+  for (const MolInstance& mi: s.mol_instances) {
+    const MolType& mt = bng_data.get_molecule_type(mi.mol_type_id);
+    applicable_compartments.insert(
+        mt.compartments_used_in_rxns.begin(),
+        mt.compartments_used_in_rxns.end()
+    );
+  }
+}
+
+
 void SpeciesContainer::dump() const {
   Species::dump_array(bng_data, species);
 }

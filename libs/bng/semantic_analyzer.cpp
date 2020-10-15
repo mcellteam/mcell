@@ -632,6 +632,9 @@ void SemanticAnalyzer::convert_cplx(
     }
     bng_cplx.set_compartment_id(cid);
   }
+  else {
+    bng_cplx.set_compartment_id(COMPARTMENT_ID_NONE);
+  }
 
   for (const ASTMolNode* m: cplx_node->mols) {
 
@@ -705,6 +708,10 @@ void SemanticAnalyzer::convert_rxn_rule_side(
 
     Cplx pattern(bng_data);
     convert_cplx(cplx, pattern);
+    // for reactants, set ANY compartment if it was not specified
+    if (reactants_side && pattern.get_compartment_id() == COMPARTMENT_ID_NONE) {
+      pattern.set_compartment_id(COMPARTMENT_ID_ANY);
+    }
     if (ctx->get_error_count() > 0) {
       return;
     }
