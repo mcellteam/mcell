@@ -298,9 +298,11 @@ public:
       assert(m.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
       SpeciesReactantsMap& subpart_reactants_sp = volume_molecule_reactants_per_subpart[m.v.reactant_subpart_index];
 
-      for (const auto& second_reactant_info: *rxns_classes_map) {
+      // check if any rxn matches the molecule that we are checking
+      for (const auto& second_reactant_info: *rxns_classes_map) { 
+      // TODO: filter first by species id
         const BNG::RxnClass* rxn_class =
-            BNG::get_rxn_class_for_any_compartment(second_reactant_info.second);
+            BNG::get_rxn_class_for_any_compartment(second_reactant_info.second); 
         if (rxn_class->get_num_reactions() == 0) {
           // there is a reaction class, but it has no reactions
           continue;
@@ -326,7 +328,7 @@ public:
     assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
-
+    // TODO: check !(vm.v.reactant_subpart_index == vm.v.reactant_subpart_index && adding && removing)
     const BNG::Species& vm_species = get_all_species().get(vm.species_id);
     if (!vm_species.has_bimol_vol_rxn()) {
       return;
@@ -338,8 +340,9 @@ public:
     //      by this we can possibly remove handling of ANY compartment in rxn container
     const BNG::ReactantRxnClassesMap* rxns_classes_map =
         get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(vm.species_id);
-    if (rxns_classes_map == nullptr) {
-      // nothing to do
+    if (rxns_classes_map == nullptr || rxns_classes_map->empty()) {
+      // nothing to do, just update the index
+      vm.v.reactant_subpart_index = vm.v.subpart_index;
       return;
     }
 
