@@ -40,7 +40,7 @@ void SpeciesFlagsAnalyzer::initialize(std::vector<BaseEvent*>& base_count_events
 
 
 uint SpeciesFlagsAnalyzer::get_custom_species_flags_to_set(const BNG::Species& species) const {
-  bool needs_counted_volume;
+  bool needs_counted_volume = false;
   for (MolOrRxnCountEvent* count_event: count_events) {
     if (count_event->species_needs_counted_volume(species.id)) {
       needs_counted_volume = true;
