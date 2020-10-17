@@ -190,7 +190,7 @@ public:
   }
 
   bool needs_compartment() const {
-      return has_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
+      return has_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
   }
 
   bool has_unimol_rxn() const {

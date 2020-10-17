@@ -93,6 +93,8 @@ public:
 
   // - might invalidate Species reference
   RxnClass* get_unimol_rxn_class(const Reactant& reac) {
+    assert(all_species.is_valid_reactant(reac));
+
     auto it = unimol_rxn_class_map.find(reac.species_id);
 
     // reaction maps get updated only when needed, it is not associated with addition of a new species
@@ -129,8 +131,8 @@ public:
   // - might invalidate Species reference
   RxnClass* get_bimol_rxn_class(const Reactant& reac1, const Reactant& reac2) {
     // species must exist
-    assert(all_species.is_valid_id(reac1.species_id));
-    assert(all_species.is_valid_id(reac2.species_id));
+    assert(all_species.is_valid_reactant(reac1));
+    assert(all_species.is_valid_reactant(reac2));
 
     BNG::ReactantRxnClassesMap* rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(reac1);
     if (rxn_class_map_for_id1 == nullptr) {
@@ -168,6 +170,7 @@ public:
   // - might invalidate Species reference
   // - if for_all_known_species is false, on rxn classes are created only for species that have 'instantiated' flag
   BNG::ReactantRxnClassesMap* get_bimol_rxns_for_reactant(const Reactant& reac, const bool for_all_known_species = false) {
+    assert(all_species.is_valid_reactant(reac));
 
     auto it = bimol_rxn_class_map.find(reac.species_id);
 

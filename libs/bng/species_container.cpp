@@ -3,6 +3,7 @@
 #include <iomanip>
 
 #include "bng/species_container.h"
+#include "bng/rxn_class.h"
 
 using namespace std;
 
@@ -55,7 +56,9 @@ species_id_t SpeciesContainer::add(const Species& new_species, const bool remova
     stringstream ss;
     ss <<
         res << ": " << species_copy.to_str() <<
-        ", D=" << std::setprecision(17) << species_copy.D << "\n";
+        ", D=" << std::setprecision(17) << species_copy.D <<
+        ", flags: " << dynamic_cast<BaseSpeciesCplxMolFlag*>(&species_copy)->to_str() << "\n";
+
     append_to_report(bng_config.get_species_report_file_name(), ss.str());
   }
 
@@ -132,6 +135,18 @@ void SpeciesContainer::defragment() {
     // correct index because the molecule could have been moved
     species_id_to_index_mapping[s.id] = i;
   }
+}
+
+
+bool SpeciesContainer::is_valid_reactant(const Reactant& reac) const {
+  if (!is_valid_id(reac.species_id)) {
+    return false;
+  }
+
+  set<compartment_id_t> applicable_compartments;
+  get_applicable_compartments(reac.species_id, applicable_compartments);
+
+  return applicable_compartments.count(reac.compartment_id) != 0;
 }
 
 

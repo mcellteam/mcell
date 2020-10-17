@@ -16,6 +16,8 @@
 
 namespace BNG {
 
+class Reactant;
+
 // using templates instead of virtual methods? -> rather a template
 // with virtual methods, this container would not be able to create new
 // objects by its own
@@ -143,6 +145,8 @@ public:
         species_id_to_index_mapping[id] < species.size();
   }
 
+  bool is_valid_reactant(const Reactant& reac) const;
+
   const Cplx& get_as_cplx(const species_id_t id) const {
     return get(id);
   }
@@ -165,16 +169,6 @@ public:
       const species_id_t species_id,
       std::set<compartment_id_t>& applicable_compartments) const;
 
-private:
-  void initalize_superspecies(species_id_t id) {
-    Species& sp = get(id);
-    sp.set_was_instantiated(true);
-    if (sp.get_num_instantiations() == 0) {
-      // we want to keep the superspecies as instantiated
-      sp.inc_num_instantiations();
-    }
-  }
-public:
   void set_all_molecules_species_id(species_id_t id) {
     // superspecies are always considered to be instantiated
     all_molecules_species_id = id;
@@ -223,6 +217,16 @@ public:
   void defragment();
 
   void dump() const;
+
+private:
+  void initalize_superspecies(species_id_t id) {
+    Species& sp = get(id);
+    sp.set_was_instantiated(true);
+    if (sp.get_num_instantiations() == 0) {
+      // we want to keep the superspecies as instantiated
+      sp.inc_num_instantiations();
+    }
+  }
 
 public:
   const BNGData& bng_data;
