@@ -83,8 +83,8 @@ public:
 class MolType: public BaseSpeciesCplxMolFlag, public MolTypeSpeciesCommonData {
 public:
   MolType() {
-    compartments_used_in_rxns.insert(COMPARTMENT_ID_ANY);
-    compartments_used_in_rxns.insert(COMPARTMENT_ID_NONE);
+    reactant_compartments.insert(COMPARTMENT_ID_ANY);
+    reactant_compartments.insert(COMPARTMENT_ID_NONE);
   }
 
   std::string name;
@@ -93,7 +93,7 @@ public:
   // initialized to contain ANY and NONE compartments,
   // additional compartments are added in
   // RxnContainer::update_all_mols_and_mol_type_compartments
-  std::set<compartment_id_t> compartments_used_in_rxns;
+  CompartmentIdSet reactant_compartments;
 
   bool cant_initiate() const {
     return has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);

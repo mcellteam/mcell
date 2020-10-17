@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <set>
 #include <iostream>
 
 #include "bng/defines_shared.h"
@@ -72,6 +73,8 @@ static std::string compartment_id_to_str(const compartment_id_t id) {
     default: return std::to_string(id);
   }
 }
+
+typedef std::set<compartment_id_t> CompartmentIdSet;
 
 // rxn rules are always global and presumed to be constant
 typedef uint rxn_rule_id_t;

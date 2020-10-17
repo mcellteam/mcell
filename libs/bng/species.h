@@ -22,6 +22,14 @@ typedef std::vector<Species> SpeciesVector;
 
 class Species: public Cplx, public MolTypeSpeciesCommonData {
 public:
+  species_id_t id;
+  std::string name; // string representation of the complex
+
+  // ----------- MCell-specific -----------
+  float_t space_step;
+  float_t time_step; // in standard time
+
+
   Species(const BNGData& data)
     : Cplx(&data),
       id(SPECIES_ID_INVALID),
@@ -76,15 +84,6 @@ public:
     Cplx::canonicalize(); // calls also CplxInstance::finalize
     name = to_str();
   }
-
-  species_id_t id;
-
-  std::string name; // string representation of the complex instance
-
-  // ----------- MCell-specific -----------
-
-  float_t space_step;
-  float_t time_step; // in standard time
 
   // sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,
   // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
@@ -246,9 +245,6 @@ public:
   // use information from contained molecule types to compute diffusion constant
   // calls update_space_and_time_step
   void update_diffusion_constant(const BNGData& data, const BNGConfig& config);
-
-
-  // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
 
 private:
   // rxn flags are updated when a molecule of this species is added to world

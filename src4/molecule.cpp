@@ -74,8 +74,9 @@ void Molecule::set_counted_volume_and_compartment(
   assert(is_vol());
   v.counted_volume_index = counted_volume_index_;
 
-  if (p.get_all_species().get(species_id).needs_compartment()) {
-    compartment_id = p.get_compartment_id_for_counted_volume(counted_volume_index_);
+  const BNG::Species& species = p.get_all_species().get(species_id);
+  if (species.needs_compartment()) {
+    reactant_compartment_id = p.get_reactant_compartment_id_for_counted_volume(species, counted_volume_index_);
   }
 }
 
@@ -137,7 +138,7 @@ void Molecule::dump(
 #endif
 
 #ifdef DEBUG_COMPARTMENTS
-  cout << ", compartment id: " << compartment_id;
+  cout << ", compartment id: " << reactant_compartment_id;
 #endif
 
   cout

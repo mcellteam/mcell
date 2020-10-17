@@ -799,8 +799,8 @@ public:
   }
 
 
-  BNG::compartment_id_t get_compartment_id_for_counted_volume(
-      const counted_volume_index_t counted_volume_index);
+  BNG::compartment_id_t get_reactant_compartment_id_for_counted_volume(
+      const BNG::Species& species, const counted_volume_index_t counted_volume_index);
 
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex

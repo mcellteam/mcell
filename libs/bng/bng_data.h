@@ -61,7 +61,7 @@ private:
   float_t volume;
 public:
   compartment_id_t parent_compartment_id; // COMPARTMENT_ID_INVALID if the compartment has no parents
-  std::set<compartment_id_t> children_compartments; // those are direct children
+  CompartmentIdSet children_compartments; // those are direct children
 
   bool is_volume_set() const {
     return volume != FLT_INVALID;

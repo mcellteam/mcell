@@ -143,27 +143,7 @@ bool SpeciesContainer::is_valid_reactant(const Reactant& reac) const {
     return false;
   }
 
-  set<compartment_id_t> applicable_compartments;
-  get_applicable_compartments(reac.species_id, applicable_compartments);
-
-  return applicable_compartments.count(reac.compartment_id) != 0;
-}
-
-
-void SpeciesContainer::get_applicable_compartments(
-    const species_id_t species_id,
-    std::set<compartment_id_t>& applicable_compartments) const {
-
-  // make union from all molecule types used in this species
-  applicable_compartments.clear();
-  const Species& s = get(species_id);
-  for (const MolInstance& mi: s.mol_instances) {
-    const MolType& mt = bng_data.get_molecule_type(mi.mol_type_id);
-    applicable_compartments.insert(
-        mt.compartments_used_in_rxns.begin(),
-        mt.compartments_used_in_rxns.end()
-    );
-  }
+  return get(reac.species_id).is_reactant_compartment(reac.compartment_id);
 }
 
 

@@ -165,10 +165,6 @@ public:
     return species;
   }
 
-  void get_applicable_compartments(
-      const species_id_t species_id,
-      std::set<compartment_id_t>& applicable_compartments) const;
-
   void set_all_molecules_species_id(species_id_t id) {
     // superspecies are always considered to be instantiated
     all_molecules_species_id = id;

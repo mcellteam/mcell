@@ -557,7 +557,13 @@ static void collide_mol_loop_body(
     BNG::RxnClass* rxn_class =
         p.get_all_rxns().get_bimol_rxn_class(vm.as_reactant(), colliding_vm.as_reactant());
 
-    assert(rxn_class != nullptr && "If a collision of two molecules was detected, there must be a reaction for them.");
+    if (rxn_class == nullptr) {
+      // reactants are not in compartments that match
+      assert(!p.bng_engine.get_data().get_compartments().empty() &&
+          "If no compartments are defined, collide_mol_loop_body must always find a reaction"
+      );
+      return;
+    }
 
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rxn_class)

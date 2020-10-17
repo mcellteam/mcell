@@ -42,6 +42,9 @@ private:
 
   compartment_id_t compartment_id;
 
+  // all possible compartments where this cplx might be used in reactions
+  CompartmentIdSet reactant_compartments;
+
 public:
   Cplx(const BNGData* bng_data_)
     : orientation(ORIENTATION_NONE),
@@ -75,7 +78,7 @@ public:
   void finalize();
 
   // called automatically from finalize
-  void update_flag_compartment_used_in_rxns();
+  void update_flag_and_compartments_used_in_rxns();
 
   void create_graph();
 
@@ -186,6 +189,30 @@ public:
   // sort molecule instances so that all identical complexes use
   // the same ordering
   void canonicalize();
+
+  const CompartmentIdSet& get_reactant_compartments() const {
+    assert(!reactant_compartments.empty() && "Not initialized");
+    return reactant_compartments;
+  }
+
+  bool is_reactant_compartment(const compartment_id_t compartment_id) const {
+    assert(!reactant_compartments.empty() && "Not initialized");
+    return reactant_compartments.count(compartment_id) != 0;
+  }
+
+  // if the compartment passed as argument is in a set of applicable compartments then
+  // returns its value, otherwise returns COMPARTMENT_ID_NONE because we must not
+  // set a compartment ID that is not applicable, e.g. the RxnContaines counts on it
+  compartment_id_t get_as_reactant_compartment(const compartment_id_t compartment_id) const {
+    assert(!reactant_compartments.empty() && "Not initialized");
+    if (is_reactant_compartment(compartment_id)) {
+      return compartment_id;
+    }
+    else {
+      // outside of any compartment important for this species
+      return COMPARTMENT_ID_NONE;
+    }
+  }
 
   std::string to_str(bool in_surf_reaction = false) const;
   void dump(const bool for_diff = false, const std::string ind = "") const;
