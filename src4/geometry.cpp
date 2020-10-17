@@ -385,6 +385,7 @@ void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryOb
   }
 }
 
+
 void GeometryObject::to_data_model(
     const Partition& p, const SimulationConfig& config, Json::Value& object) const {
 
@@ -480,6 +481,55 @@ void GeometryObject::to_data_model(
       define_surface_regions.append(surface_region);
     }
   }
+}
+
+
+void GeometryObject::to_data_model_as_model_object(
+    const Partition& p, Json::Value& model_object) const {
+  model_object[KEY_DESCRIPTION] = "";
+  model_object[KEY_OBJECT_SOURCE] = VALUE_BLENDER;
+  model_object[KEY_DYNAMIC_DISPLAY_SOURCE] = "script";
+  model_object[KEY_SCRIPT_NAME] = "";
+
+  string obj_name = DMUtil::remove_obj_name_prefix(parent_name, name);
+  model_object[KEY_NAME] = obj_name;
+
+  // set defaults that may be overwritten
+  model_object[KEY_COMPARTMENT_NAME] = ""; // not set if this is not a compartment
+  model_object[KEY_MEMBRANE_NAME] = "";
+  model_object[KEY_PARENT_OBJECT] = "";
+
+  const BNG::BNGData& bng_data = p.get_all_species().get_bng_data();
+
+  if (represents_compartment()) {
+    const BNG::Compartment& comp3d = bng_data.get_compartment(compartment_id);
+    assert(comp3d.is_3d);
+    if (comp3d.name != obj_name) {
+      mcell_warn(
+          "For data model export, name of object %s should be the same as its compartment name %s, "
+          "import to CellBlender may give wrong result.",
+          obj_name.c_str(), comp3d.name.c_str());
+      assert(false); // only for internal debug checking, can happen
+    }
+    model_object[KEY_COMPARTMENT_NAME] = comp3d.name;
+
+    if (comp3d.has_parent()) {
+      const BNG::Compartment& comp2d = bng_data.get_compartment(comp3d.parent_compartment_id);
+      assert(!comp2d.is_3d);
+      // parent of this 3d object is its membrane
+      model_object[KEY_MEMBRANE_NAME] = comp2d.name;
+
+      if (comp2d.has_parent()) {
+        const BNG::Compartment& comp3d_parent =
+            bng_data.get_compartment(comp2d.parent_compartment_id);
+        assert(comp3d_parent.is_3d);
+        // parent of this 3d object is its membrane
+        model_object[KEY_PARENT_OBJECT] = comp3d_parent.name;
+      }
+    }
+  }
+
+  model_object[KEY_DYNAMIC] = false;
 }
 
 

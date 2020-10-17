@@ -503,6 +503,12 @@ std::string Cplx::to_str(bool in_surf_reaction) const {
   else if (in_surf_reaction && orientation == ORIENTATION_NONE) {
     ss << ";";
   }
+
+  if (compartment_id != COMPARTMENT_ID_INVALID &&
+      compartment_id != COMPARTMENT_ID_ANY &&
+      compartment_id != COMPARTMENT_ID_NONE) {
+    ss << '@' << bng_data->get_compartment(compartment_id).name;
+  }
   return ss.str();
 }
 

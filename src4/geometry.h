@@ -128,7 +128,7 @@ public:
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
   void to_data_model(const Partition& p, const SimulationConfig& config, Json::Value& object) const;
-
+  void to_data_model_as_model_object(const Partition& p, Json::Value& model_object) const;
 private:
   // true if there are MolOrRxnCountEvents that use this geometry object,
   // made private to make sure that is_counted_volume() is used when checking

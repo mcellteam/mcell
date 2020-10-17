@@ -512,6 +512,9 @@ void Partition::remove_from_known_vol_species(const species_id_t species_id) {
 
 void Partition::to_data_model(Json::Value& mcell) const {
 
+  // there are two placen in data model where geometry objects are
+  // defined - in KEY_GEOMETRICAL_OBJECTS and KEY_MODEL_OBJECTS
+
   Json::Value& geometrical_objects = mcell[KEY_GEOMETRICAL_OBJECTS];
   Json::Value& object_list = geometrical_objects[KEY_OBJECT_LIST];
   if (object_list.isNull()) {
@@ -522,6 +525,17 @@ void Partition::to_data_model(Json::Value& mcell) const {
     Json::Value object;
     g.to_data_model(*this, config, object);
     object_list.append(object);
+  }
+
+  Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
+  DMUtil::add_version(model_objects, VER_DM_2018_01_11_1330);
+  Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
+  model_object_list = Json::Value(Json::arrayValue);
+
+  for (const GeometryObject& g: geometry_objects) {
+    Json::Value model_object;
+    g.to_data_model_as_model_object(*this, model_object);
+    model_object_list.append(model_object);
   }
 
   // mod_surf_regions

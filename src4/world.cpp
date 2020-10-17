@@ -483,6 +483,15 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   initialization_to_data_model(mcell);
 
   // generate geometry information
+
+  // first create empty model_objects section (may be filled-in by
+  // GeometryObject::to_data_model_as_model_object
+  Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
+  DMUtil::add_version(model_objects, VER_DM_2018_01_11_1330);
+  Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
+  model_object_list = Json::Value(Json::arrayValue);
+
+  // then dump all partition data
   bool first = true;
   for (const Partition& p: partitions) {
     p.to_data_model(mcell);
@@ -520,27 +529,6 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   diffuse_color[KEY_G] = DEFAULT_OBJECT_COLOR_COMPONENT;
   diffuse_color[KEY_B] = DEFAULT_OBJECT_COLOR_COMPONENT;
   diffuse_color[KEY_A] = DEFAULT_OBJECT_ALPHA;
-
-  Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
-  DMUtil::add_version(model_objects, VER_DM_2018_01_11_1330);
-  Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
-  model_object_list = Json::Value(Json::arrayValue);
-
-  // names of geometry objects need to be listed for the second time
-  for (const Partition& p: partitions) {
-    for (const GeometryObject& obj: p.get_geometry_objects()) {
-      Json::Value model_object;
-      model_object[KEY_PARENT_OBJECT] = "";
-      model_object[KEY_DESCRIPTION] = "";
-      model_object[KEY_OBJECT_SOURCE] = VALUE_BLENDER;
-      model_object[KEY_DYNAMIC_DISPLAY_SOURCE] = "script";
-      model_object[KEY_SCRIPT_NAME] = "";
-      model_object[KEY_MEMBRANE_NAME] = "";
-      model_object[KEY_DYNAMIC] = false;
-      model_object[KEY_NAME] = DMUtil::remove_obj_name_prefix(obj.parent_name, obj.name);
-      model_object_list.append(model_object);
-    }
-  }
 
   // diverse settings not read from the mcell4 state
 
