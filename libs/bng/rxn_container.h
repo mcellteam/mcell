@@ -95,7 +95,7 @@ public:
   RxnClass* get_unimol_rxn_class(const Reactant& reac) {
     assert(all_species.is_valid_reactant(reac));
 
-    auto it = unimol_rxn_class_map.find(reac.species_id);
+    ReactantSpeciesIt it_species = unimol_rxn_class_map.find(reac.species_id);
 
     // reaction maps get updated only when needed, it is not associated with addition of a new species
     // the assumption is that, after some simulation time elapsed, this will be fairly stable
@@ -103,17 +103,16 @@ public:
       create_unimol_rxn_classes_for_new_species(reac.species_id);
       species_processed_for_unimol_rxn_classes.insert(reac.species_id);
 
-      it = unimol_rxn_class_map.find(reac.species_id);
+      it_species = unimol_rxn_class_map.find(reac.species_id);
     }
 
-    if (it != unimol_rxn_class_map.end()) {
-      auto it_rxn_class = it->second.find(reac.compartment_id);
-      assert(it_rxn_class != it->second.end());
+    if (it_species != unimol_rxn_class_map.end()) {
+      ReactantCompartmentIt it_species_comp = it_species->second.find(reac.compartment_id);
+      assert(it_species_comp != it_species->second.end());
 
-      assert(it_rxn_class->second != nullptr);
-      assert(it_rxn_class->second->get_num_reactions() != 0);
-
-      return it_rxn_class->second;
+      RxnClass* res = it_species_comp->second;
+      assert(res != nullptr && res->get_num_reactions() != 0);
+      return res;
     }
     else {
       // no reactions for this species
@@ -134,25 +133,29 @@ public:
     assert(all_species.is_valid_reactant(reac1));
     assert(all_species.is_valid_reactant(reac2));
 
-    BNG::ReactantRxnClassesMap* rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(reac1);
-    if (rxn_class_map_for_id1 == nullptr) {
+    BNG::ReactantRxnClassesMap* ptr_species1_comp1 = get_bimol_rxns_for_reactant(reac1);
+    if (ptr_species1_comp1 == nullptr) {
       // no reactions for this species at all
       return nullptr;
     }
 
-    auto it_compartment_map = rxn_class_map_for_id1->find(reac2.species_id);
+    ReactantSpeciesIt it_species1_comp1_species2 = ptr_species1_comp1->find(reac2.species_id);
 
-    if (it_compartment_map != rxn_class_map_for_id1->end()) {
+    if (it_species1_comp1_species2 != ptr_species1_comp1->end()) {
 
-      auto it_class = it_compartment_map->second.find(reac2.compartment_id);
-      if (it_class == it_compartment_map->second.end()) {
+      ReactantCompartmentIt it_species1_comp1_species2_comp2 =
+          it_species1_comp1_species2->second.find(reac2.compartment_id);
+
+      if (it_species1_comp1_species2_comp2 == it_species1_comp1_species2->second.end()) {
         // no reactions for first species+compartment & second species+compartment
         return nullptr;
       }
-      assert(it_class->second != nullptr);
-      assert(it_class->second->get_num_reactions() != 0);
+      assert(it_species1_comp1_species2_comp2->second != nullptr);
+      assert(it_species1_comp1_species2_comp2->second->get_num_reactions() != 0);
 
-      return it_class->second;
+      RxnClass* res = it_species1_comp1_species2_comp2->second;
+      assert(res != nullptr && res->get_num_reactions() != 0);
+      return res;
     }
     else {
       // no reactions for first species+compartment & second species
@@ -172,7 +175,7 @@ public:
   BNG::ReactantRxnClassesMap* get_bimol_rxns_for_reactant(const Reactant& reac, const bool for_all_known_species = false) {
     assert(all_species.is_valid_reactant(reac));
 
-    auto it = bimol_rxn_class_map.find(reac.species_id);
+    BimolSpeciesIt it_species = bimol_rxn_class_map.find(reac.species_id);
 
     // did we already process this reactant?
     if (species_processed_for_bimol_rxn_classes.count(reac.species_id) == 0) {
@@ -180,18 +183,18 @@ public:
       species_processed_for_bimol_rxn_classes.insert(reac.species_id);
 
       // try to find it again, maybe we did not create any rxn classes
-      it = bimol_rxn_class_map.find(reac.species_id);
+      it_species = bimol_rxn_class_map.find(reac.species_id);
     }
 
-    if (it != bimol_rxn_class_map.end()) {
+    if (it_species != bimol_rxn_class_map.end()) {
       // get rxn classes for our given compartment
-      auto it_class = it->second.find(reac.compartment_id);
-      if (it_class == it->second.end()) {
+      auto it_species_comp = it_species->second.find(reac.compartment_id);
+      if (it_species_comp == it_species->second.end()) {
         // no reactions for this species+compartment
         return nullptr;
       }
 
-      return &it_class->second;
+      return &it_species_comp->second;
     }
     else {
       // no reactions for this species at all
