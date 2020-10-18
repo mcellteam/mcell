@@ -24,6 +24,14 @@
 #ifndef SRC4_COUNTED_VOLUME_UTIL_H_
 #define SRC4_COUNTED_VOLUME_UTIL_H_
 
+#include <vector>
+#include <map>
+
+#include <vtkSmartPointer.h>
+#include <vtkPolyData.h>
+
+#include "defines.h"
+
 namespace MCell {
 
 class World;
@@ -31,10 +39,50 @@ class GeometryObject;
 
 namespace CountedVolumesUtil {
 
+
+struct GeomObjectInfo {
+
+  GeomObjectInfo(const partition_id_t partition_id_, const geometry_object_id_t geometry_object_id_)
+    : partition_id(partition_id_), geometry_object_id(geometry_object_id_) {
+  }
+
+  // we are using IDs because in the future we might need to create new
+  // geometry objects and pointers would become invalidated
+  partition_id_t partition_id;
+  geometry_object_id_t geometry_object_id;
+
+  vtkSmartPointer<vtkPolyData> polydata;
+
+  GeometryObject& get_geometry_object_noconst(World* world) const;
+  const GeometryObject& get_geometry_object(const World* world) const;
+
+  // comparison uses geometry_object_id only, used in maps
+  bool operator < (const GeomObjectInfo& second) const {
+    return geometry_object_id < second.geometry_object_id;
+  }
+
+  bool operator == (const GeomObjectInfo& second) const {
+    return geometry_object_id == second.geometry_object_id;
+  }
+};
+
+
+typedef std::vector<GeomObjectInfo> GeomObjectInfoVector;
+
+// containment mapping of counted geometry objects
+typedef std::map<GeomObjectInfo, uint_set<GeomObjectInfo>> ContainmentMap;
+typedef uint_set<geometry_object_id_t> IntersectingSet;
+
+
 // return true if counted volumes were correctly set up
 bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_objects);
 
 bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point);
+
+bool compute_containement_mapping(
+    const GeomObjectInfoVector& counted_objects,
+    ContainmentMap& contained_in_mapping,
+    IntersectingSet& intersecting_objects);
 
 };
 

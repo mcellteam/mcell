@@ -40,7 +40,7 @@ public:
   RELEASE_SITE_CTOR()
 
   void postprocess_in_ctor() override {
-    if (is_set(region)) {
+    if (is_set(region) && shape != Shape::REGION_EXPR) {
       if (shape != Shape::UNSET) {
         throw ValueError(S("When ") + NAME_REGION + " is set, "
             "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_REGION_EXPR + ".");
@@ -48,17 +48,33 @@ public:
       shape = Shape::REGION_EXPR;
     }
 
-    if (is_set(molecule_list)) {
+    if (is_set(compartment_name) && shape != Shape::COMPARTMENT) {
+      if (shape != Shape::UNSET) {
+        throw ValueError(S("When ") + NAME_COMPARTMENT_NAME + " is set, "
+            "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_COMPARTMENT + ".");
+      }
+      shape = Shape::COMPARTMENT;
+    }
+
+    if (is_set(molecule_list) && shape != Shape::LIST) {
       if (shape != Shape::UNSET) {
         throw ValueError(S("When ") + NAME_MOLECULE_LIST + " is set, "
             "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_LIST + ".");
       }
       shape = Shape::LIST;
     }
+
+    if (is_set(location) && shape != Shape::SPHERICAL) {
+      if (shape != Shape::UNSET) {
+        throw ValueError(S("When ") + NAME_LOCATION + " is set, "
+            "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_SPHERICAL + ".");
+      }
+      shape = Shape::LIST;
+    }
   }
 
-  // actual manual implementation of a semantic check
   void check_semantics() const override {
+    // TODO: add additional checks, e.g. that site_diameter must can be set only for SPHERICAL, etc.
     GenReleaseSite::check_semantics();
     if (release_time < 0) {
       throw ValueError(S("Value of ") + NAME_RELEASE_TIME + " must not be smaller than 0.");
@@ -77,6 +93,12 @@ public:
     if (get_num_set(complex, molecule_list) != 1) {
       throw ValueError(
           S("Exactly one of ") + NAME_COMPLEX + " or " + NAME_MOLECULE_LIST + " must be set.");
+    }
+
+    if (get_num_set(region, compartment_name, molecule_list, location) != 1) {
+      throw ValueError(
+          S("Exactly one of ") + NAME_REGION + ", " + NAME_COMPARTMENT_NAME + ", " + NAME_MOLECULE_LIST +
+          " or " + NAME_LOCATION + " must be set.");
     }
   }
 };

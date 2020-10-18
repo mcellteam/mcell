@@ -73,6 +73,7 @@ void define_pybinding_enums(py::module& m) {
     .value("SPHERICAL", Shape::SPHERICAL)
     .value("REGION_EXPR", Shape::REGION_EXPR)
     .value("LIST", Shape::LIST)
+    .value("COMPARTMENT", Shape::COMPARTMENT)
     .export_values();
   py::enum_<SurfacePropertyType>(m, "SurfacePropertyType", py::arithmetic())
     .value("UNSET", SurfacePropertyType::UNSET)

@@ -115,6 +115,11 @@ ReleaseSite:
     default: unset
     doc: Sets shape to Shape.REGION_EXPR. 
 
+  - name: compartment_name
+    type: str
+    default: unset
+    doc: Sets shape to Shape.COMPARTMENT. 
+
   - name: location
     type: Vec3 # Vec3 and Vec2 are built-in data types
     default: unset # null is equivalent to None in YAML
@@ -201,10 +206,6 @@ InstantiationData:
     type: List[GeometryObject*]
     default: empty
 
-  - name: volume_compartments
-    type: List[VolumeCompartment*]
-    default: empty
-
   methods:
   - name: add_release_site
     doc: Makes a copy of the release site
@@ -229,30 +230,19 @@ InstantiationData:
     params:
     - name: name
       type: str          
-      
-  - name: add_volume_compartment
-    internal: Fix doc after objects are added automatically.
-    doc: |
-       Adds compartment definition into instantiation data, the GeometryObjects it depends on
-       must be added as well through add_geometry_object.
-       If the VolumeCompartment's 'surface_compartment_name' is set, it can be found using 
-       'find_surface_compartment'.
-    params:
-    - name: compartment
-      type: VolumeCompartment*
-      
+        
   - name: find_volume_compartment
-    return_type: VolumeCompartment*
+    return_type: GeometryObject*
     params:
     - name: name
       type: str   
 
   - name: find_surface_compartment
-    return_type: VolumeCompartment*
+    return_type: GeometryObject*
     params:
     - name: name
       type: str   
-            
+    
   - name: load_bngl_seed_species
     doc: | 
       Loads section seed species from a BNGL file and creates release sites according to it.

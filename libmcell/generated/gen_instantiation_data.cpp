@@ -28,7 +28,6 @@
 #include "../api/region.h"
 #include "../api/release_site.h"
 #include "../api/subsystem.h"
-#include "../api/volume_compartment.h"
 
 namespace MCell {
 namespace API {
@@ -37,8 +36,7 @@ std::string GenInstantiationData::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "InstantiationData" << ": " <<
       "\n" << ind + "  " << "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "volume_compartments=" << vec_ptr_to_str(volume_compartments, ind + "  ");
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
   return ss.str();
 }
 
@@ -53,14 +51,12 @@ py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m) 
       .def("find_release_site", &InstantiationData::find_release_site, py::arg("name"))
       .def("add_geometry_object", &InstantiationData::add_geometry_object, py::arg("o"))
       .def("find_geometry_object", &InstantiationData::find_geometry_object, py::arg("name"))
-      .def("add_volume_compartment", &InstantiationData::add_volume_compartment, py::arg("compartment"))
       .def("find_volume_compartment", &InstantiationData::find_volume_compartment, py::arg("name"))
       .def("find_surface_compartment", &InstantiationData::find_surface_compartment, py::arg("name"))
       .def("load_bngl_seed_species", &InstantiationData::load_bngl_seed_species, py::arg("file_name"), py::arg("subsystem"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("dump", &InstantiationData::dump)
       .def_property("release_sites", &InstantiationData::get_release_sites, &InstantiationData::set_release_sites)
       .def_property("geometry_objects", &InstantiationData::get_geometry_objects, &InstantiationData::set_geometry_objects)
-      .def_property("volume_compartments", &InstantiationData::get_volume_compartments, &InstantiationData::set_volume_compartments)
     ;
 }
 

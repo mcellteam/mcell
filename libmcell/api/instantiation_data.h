@@ -27,7 +27,6 @@
 #include "api/common.h"
 #include "api/api_utils.h"
 #include "api/release_site.h"
-#include "api/volume_compartment.h"
 
 namespace BNG {
 class BNGData;
@@ -60,23 +59,6 @@ public:
     return vec_find_by_name(geometry_objects, name);
   }
 
-  void add_volume_compartment(std::shared_ptr<VolumeCompartment> compartment) override {
-    append_to_vec(volume_compartments, compartment);
-  }
-
-  std::shared_ptr<VolumeCompartment> find_volume_compartment(const std::string& name) override {
-    return vec_find_by_name(volume_compartments, name);
-  }
-
-  std::shared_ptr<VolumeCompartment> find_surface_compartment(const std::string& name) override {
-    for (auto& item: volume_compartments) {
-      if (is_set(item->surface_compartment_name) && item->surface_compartment_name == name) {
-        return item;
-      }
-    }
-    return std::shared_ptr<VolumeCompartment>(nullptr);
-  }
-
   void load_bngl_seed_species(
       const std::string& file_name,
       std::shared_ptr<Subsystem> subsystem,
@@ -84,8 +66,16 @@ public:
       const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
   ) override;
 
+  // not accessible from API yet, may be useful but compartment children are not
+  // set until in initialization
+  std::shared_ptr<GeometryObject> find_volume_compartment(const std::string& name) override;
+  std::shared_ptr<GeometryObject> find_surface_compartment(const std::string& name) override;
+
   // added manually
   void dump() const;
+
+  // returns empty shared ptr if compartment was not found
+  std::shared_ptr<Region> get_compartment_region(const std::string& name);
 
 protected:
   void convert_bng_data_to_instantiation_data(

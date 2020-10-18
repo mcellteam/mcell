@@ -50,6 +50,8 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
     name == other.name &&
     vertex_list == other.vertex_list &&
     element_connections == other.element_connections &&
+    is_bngl_compartment == other.is_bngl_compartment &&
+    surface_compartment_name == other.surface_compartment_name &&
     vec_ptr_eq(surface_regions, other.surface_regions) &&
     (
       (surface_class != nullptr) ?
@@ -108,6 +110,8 @@ void GenGeometryObject::set_all_attributes_as_default_or_unset() {
   name = STR_UNSET;
   vertex_list = std::vector<std::vector<float_t>>();
   element_connections = std::vector<std::vector<int>>();
+  is_bngl_compartment = false;
+  surface_compartment_name = STR_UNSET;
   surface_regions = std::vector<std::shared_ptr<SurfaceRegion>>();
   surface_class = nullptr;
   initial_surface_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
@@ -122,6 +126,8 @@ std::string GenGeometryObject::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
       "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
+      "is_bngl_compartment=" << is_bngl_compartment << ", " <<
+      "surface_compartment_name=" << surface_compartment_name << ", " <<
       "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ") << ", " << "\n" << ind + "  " <<
       "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "initial_surface_releases=" << vec_ptr_to_str(initial_surface_releases, ind + "  ") << ", " << "\n" << ind + "  " <<
@@ -138,6 +144,8 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
             const std::string&,
             const std::vector<std::vector<float_t>>,
             const std::vector<std::vector<int>>,
+            const bool,
+            const std::string&,
             const std::vector<std::shared_ptr<SurfaceRegion>>,
             std::shared_ptr<SurfaceClass>,
             const std::vector<std::shared_ptr<InitialSurfaceRelease>>,
@@ -148,6 +156,8 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
           py::arg("name"),
           py::arg("vertex_list"),
           py::arg("element_connections"),
+          py::arg("is_bngl_compartment") = false,
+          py::arg("surface_compartment_name") = STR_UNSET,
           py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>(),
           py::arg("surface_class") = nullptr,
           py::arg("initial_surface_releases") = std::vector<std::shared_ptr<InitialSurfaceRelease>>(),
@@ -161,6 +171,8 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
       .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list)
       .def_property("element_connections", &GeometryObject::get_element_connections, &GeometryObject::set_element_connections)
+      .def_property("is_bngl_compartment", &GeometryObject::get_is_bngl_compartment, &GeometryObject::set_is_bngl_compartment)
+      .def_property("surface_compartment_name", &GeometryObject::get_surface_compartment_name, &GeometryObject::set_surface_compartment_name)
       .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions)
       .def_property("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class)
       .def_property("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases)

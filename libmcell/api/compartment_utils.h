@@ -20,44 +20,26 @@
  *
 ******************************************************************************/
 
-#ifndef API_VOLUME_COMPARTMENT_H
-#define API_VOLUME_COMPARTMENT_H
+#ifndef API_COMPARTMENT_UTIL_H
+#define API_COMPARTMENT_UTIL_H
 
-#include "generated/gen_volume_compartment.h"
-#include "api/common.h"
-#include "api/region.h"
-#include "bng/bng_defines.h"
+#include <string>
+#include <map>
+#include <vector>
+
+#include "api/geometry_object.h"
 
 namespace MCell {
 namespace API {
 
-class VolumeCompartment: public GenVolumeCompartment {
-public:
-  VOLUME_COMPARTMENT_CTOR()
 
-  void postprocess_in_ctor() override {
-    vol_compartment_id = BNG::COMPARTMENT_ID_INVALID;
-    surf_compartment_id = BNG::COMPARTMENT_ID_INVALID;
-  }
+typedef std::vector<GeometryObjectSet> GeometryObjectSetVector;
 
-  // simply subtracts all children from this geometry object
-  std::shared_ptr<Region> get_volume_compartment_region() override {
-
-    std::shared_ptr<Region> res = std::dynamic_pointer_cast<Region>(geometry_object);
-
-    for (auto child: child_compartments) {
-      res = res->__sub__(std::dynamic_pointer_cast<Region>(child->geometry_object));
-    }
-
-    return res;
-  }
-
-  // simulation engine mapping
-  BNG::compartment_id_t vol_compartment_id;
-  BNG::compartment_id_t surf_compartment_id;
-};
+bool set_parent_and_children_compartments(
+    const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
+    GeometryObjectSetVector& intersecting_objects);
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_VOLUME_COMPARTMENT_H
+#endif // API_COMPARTMENT_UTIL_H

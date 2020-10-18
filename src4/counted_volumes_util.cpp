@@ -21,11 +21,8 @@
  *
 ******************************************************************************/
 
-#include <vector>
-#include <map>
 
 #include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
 #include <vtkTriangle.h>
 #include <vtkCleanPolyData.h>
 #include <vtkTriangleFilter.h>
@@ -36,7 +33,6 @@
 
 #include "logging.h"
 
-#include "defines.h"
 #include "world.h"
 #include "geometry.h"
 
@@ -45,49 +41,6 @@ using namespace std;
 namespace MCell {
 
 namespace CountedVolumesUtil {
-
-// FIXME: use directly GeometryObject where it will have the partition ID
-struct GeomObjectInfo {
-
-  GeomObjectInfo(const partition_id_t partition_id_, const geometry_object_id_t geometry_object_id_)
-    : partition_id(partition_id_), geometry_object_id(geometry_object_id_) {
-  }
-
-  // we are using IDs because in the future we might need to create new
-  // geometry objects and pointers would become invalidated
-  partition_id_t partition_id;
-  geometry_object_id_t geometry_object_id;
-
-  vtkSmartPointer<vtkPolyData> polydata;
-
-
-  GeometryObject& get_geometry_object_noconst(World* world) const {
-    Partition& p = world->get_partition(partition_id);
-    return p.get_geometry_object(geometry_object_id);
-  }
-
-  const GeometryObject& get_geometry_object(const World* world) const {
-    const Partition& p = world->get_partition(partition_id);
-    return p.get_geometry_object(geometry_object_id);
-  }
-
-  // comparison uses geometry_object_id only, used in maps
-  bool operator < (const GeomObjectInfo& second) const {
-    return geometry_object_id < second.geometry_object_id;
-  }
-
-  bool operator == (const GeomObjectInfo& second) const {
-    return geometry_object_id == second.geometry_object_id;
-  }
-
-};
-
-
-typedef vector<GeomObjectInfo> GeomObjectInfoVector;
-
-// containment mapping of counted geometry objects
-typedef std::map<GeomObjectInfo, uint_set<GeomObjectInfo>> ContainmentMap;
-typedef uint_set<geometry_object_id_t> IntersectingSet;
 
 enum class ContainmentResult {
   Error,
@@ -98,6 +51,17 @@ enum class ContainmentResult {
   Obj2InObj1
 };
 
+
+GeometryObject& GeomObjectInfo::get_geometry_object_noconst(World* world) const {
+  Partition& p = world->get_partition(partition_id);
+  return p.get_geometry_object(geometry_object_id);
+}
+
+
+const GeometryObject& GeomObjectInfo::get_geometry_object(const World* world) const {
+  const Partition& p = world->get_partition(partition_id);
+  return p.get_geometry_object(geometry_object_id);
+}
 
 
 static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector& counted_objects) {

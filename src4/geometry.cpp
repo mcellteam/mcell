@@ -386,14 +386,13 @@ void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryOb
 }
 
 
-void GeometryObject::to_data_model(
+void GeometryObject::to_data_model_as_geometrical_object(
     const Partition& p, const SimulationConfig& config, Json::Value& object) const {
 
   vector<uint> vertex_order;
 
   object[KEY_NAME] = DMUtil::remove_obj_name_prefix(parent_name, name);
   object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
-
 
   bool first = true; // to indicate when to use a comma
 

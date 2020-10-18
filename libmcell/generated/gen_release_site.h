@@ -44,6 +44,7 @@ class ReleasePattern;
         std::shared_ptr<ReleasePattern> release_pattern_ = nullptr, \
         const Shape shape_ = Shape::UNSET, \
         std::shared_ptr<Region> region_ = nullptr, \
+        const std::string& compartment_name_ = STR_UNSET, \
         const Vec3& location_ = VEC3_UNSET, \
         const float_t site_diameter_ = 0, \
         const float_t site_radius_ = FLT_UNSET, \
@@ -61,6 +62,7 @@ class ReleasePattern;
       release_pattern = release_pattern_; \
       shape = shape_; \
       region = region_; \
+      compartment_name = compartment_name_; \
       location = location_; \
       site_diameter = site_diameter_; \
       site_radius = site_radius_; \
@@ -165,6 +167,18 @@ public:
   }
   virtual std::shared_ptr<Region> get_region() const {
     return region;
+  }
+
+  std::string compartment_name;
+  virtual void set_compartment_name(const std::string& new_compartment_name_) {
+    if (initialized) {
+      throw RuntimeError("Value 'compartment_name' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    compartment_name = new_compartment_name_;
+  }
+  virtual const std::string& get_compartment_name() const {
+    return compartment_name;
   }
 
   Vec3 location;

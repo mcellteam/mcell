@@ -40,6 +40,8 @@ class SurfaceRegion;
         const std::string& name_, \
         const std::vector<std::vector<float_t>> vertex_list_, \
         const std::vector<std::vector<int>> element_connections_, \
+        const bool is_bngl_compartment_ = false, \
+        const std::string& surface_compartment_name_ = STR_UNSET, \
         const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions_ = std::vector<std::shared_ptr<SurfaceRegion>>(), \
         std::shared_ptr<SurfaceClass> surface_class_ = nullptr, \
         const std::vector<std::shared_ptr<InitialSurfaceRelease>> initial_surface_releases_ = std::vector<std::shared_ptr<InitialSurfaceRelease>>(), \
@@ -51,6 +53,8 @@ class SurfaceRegion;
       name = name_; \
       vertex_list = vertex_list_; \
       element_connections = element_connections_; \
+      is_bngl_compartment = is_bngl_compartment_; \
+      surface_compartment_name = surface_compartment_name_; \
       surface_regions = surface_regions_; \
       surface_class = surface_class_; \
       initial_surface_releases = initial_surface_releases_; \
@@ -100,6 +104,30 @@ public:
   }
   virtual std::vector<std::vector<int>> get_element_connections() const {
     return element_connections;
+  }
+
+  bool is_bngl_compartment;
+  virtual void set_is_bngl_compartment(const bool new_is_bngl_compartment_) {
+    if (initialized) {
+      throw RuntimeError("Value 'is_bngl_compartment' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    is_bngl_compartment = new_is_bngl_compartment_;
+  }
+  virtual bool get_is_bngl_compartment() const {
+    return is_bngl_compartment;
+  }
+
+  std::string surface_compartment_name;
+  virtual void set_surface_compartment_name(const std::string& new_surface_compartment_name_) {
+    if (initialized) {
+      throw RuntimeError("Value 'surface_compartment_name' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    surface_compartment_name = new_surface_compartment_name_;
+  }
+  virtual const std::string& get_surface_compartment_name() const {
+    return surface_compartment_name;
   }
 
   std::vector<std::shared_ptr<SurfaceRegion>> surface_regions;

@@ -39,7 +39,6 @@
 #include "../api/subsystem.h"
 #include "../api/surface_class.h"
 #include "../api/viz_output.h"
-#include "../api/volume_compartment.h"
 #include "../api/wall_hit_info.h"
 #include "../api/warnings.h"
 
@@ -59,7 +58,6 @@ std::string GenModel::to_str(const std::string ind) const {
       "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
       "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "volume_compartments=" << vec_ptr_to_str(volume_compartments, ind + "  ") << ", " << "\n" << ind + "  " <<
       "viz_outputs=" << vec_ptr_to_str(viz_outputs, ind + "  ") << ", " << "\n" << ind + "  " <<
       "counts=" << vec_ptr_to_str(counts, ind + "  ");
   return ss.str();
@@ -103,7 +101,6 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("find_release_site", &Model::find_release_site, py::arg("name"))
       .def("add_geometry_object", &Model::add_geometry_object, py::arg("o"))
       .def("find_geometry_object", &Model::find_geometry_object, py::arg("name"))
-      .def("add_volume_compartment", &Model::add_volume_compartment, py::arg("compartment"))
       .def("find_volume_compartment", &Model::find_volume_compartment, py::arg("name"))
       .def("find_surface_compartment", &Model::find_surface_compartment, py::arg("name"))
       .def("load_bngl_seed_species", &Model::load_bngl_seed_species, py::arg("file_name"), py::arg("subsystem"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
@@ -120,7 +117,6 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def_property("elementary_molecule_types", &Model::get_elementary_molecule_types, &Model::set_elementary_molecule_types)
       .def_property("release_sites", &Model::get_release_sites, &Model::set_release_sites)
       .def_property("geometry_objects", &Model::get_geometry_objects, &Model::set_geometry_objects)
-      .def_property("volume_compartments", &Model::get_volume_compartments, &Model::set_volume_compartments)
       .def_property("viz_outputs", &Model::get_viz_outputs, &Model::set_viz_outputs)
       .def_property("counts", &Model::get_counts, &Model::set_counts)
     ;

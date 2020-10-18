@@ -29,7 +29,6 @@
 #include "api/geometry_object.h"
 #include "api/surface_region.h"
 #include "api/region.h"
-#include "api/volume_compartment.h"
 #include "api/complex.h"
 
 #include "generated/gen_geometry_utils.h"
@@ -44,6 +43,30 @@ const char* const RELEASE_SITE_PREFIX = "rel_";
 
 void InstantiationData::dump() const {
   std::cout << to_str() << "\n";
+}
+
+
+std::shared_ptr<GeometryObject> InstantiationData::find_volume_compartment(const std::string& name) {
+  for (auto o: geometry_objects) {
+    if (o->is_bngl_compartment) {
+      if (o->name == name) {
+        return o;
+      }
+    }
+  }
+  return std::shared_ptr<GeometryObject>(nullptr);
+}
+
+
+std::shared_ptr<GeometryObject> InstantiationData::find_surface_compartment(const std::string& name) {
+  for (auto o: geometry_objects) {
+    if (o->is_bngl_compartment) {
+      if (is_set(o->surface_compartment_name) && o->surface_compartment_name == name) {
+        return o;
+      }
+    }
+  }
+  return std::shared_ptr<GeometryObject>(nullptr);
 }
 
 
@@ -98,42 +121,14 @@ void InstantiationData::convert_compartments(const BNG::BNGData& bng_data) {
       // create box for the given compartment
       shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
 
-      // create compartment object
-      shared_ptr<VolumeCompartment> comp = make_shared<VolumeCompartment>(bng_comp.name, box);
+      box->is_bngl_compartment = true;
 
       // set its 2d name
       if (bng_comp.has_parent()) {
-        comp->surface_compartment_name = bng_data.get_compartment(bng_comp.parent_compartment_id).name;
+        box->surface_compartment_name = bng_data.get_compartment(bng_comp.parent_compartment_id).name;
       }
 
       add_geometry_object(box);
-      add_volume_compartment(comp);
-    }
-  }
-
-  // set all children after all VolumeCompartments were created
-  for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
-    if (bng_comp.is_3d) {
-
-      shared_ptr<VolumeCompartment> comp = find_volume_compartment(bng_comp.name);
-      assert(is_set(comp));
-
-      // and all children
-      for (auto& child_2d_id: bng_comp.children_compartments) {
-
-        // first child is 2D compartment
-        const BNG::Compartment& child_2d = bng_data.get_compartment(child_2d_id);
-        assert(child_2d.children_compartments.size() == 1 && "2D compartments should have just one child normally");
-
-        for (auto& child_3d_id: child_2d.children_compartments) {
-          // the next one is the 3d compartment we need
-          const BNG::Compartment& first_3d_child = bng_data.get_compartment(child_3d_id);
-
-          shared_ptr<VolumeCompartment> child_comp = find_volume_compartment(first_3d_child.name);
-          assert(is_set(child_comp));
-          comp->child_compartments.push_back(child_comp);
-        }
-      }
     }
   }
 }
@@ -173,26 +168,11 @@ void InstantiationData::convert_single_seed_species_to_release_site(
       );
     }
 
-    if (c.is_3d) {
-      shared_ptr<VolumeCompartment> api_comp = find_volume_compartment(c.name);
-      if (!is_set(api_comp)) {
-        throw ValueError("Did not find volume compartment '" + c.name + "' for release of " +
-            rel_site->complex->name + "."
-        );
-      }
-
-      rel_site->region = api_comp->get_volume_compartment_region();
-    }
-    else {
-      shared_ptr<VolumeCompartment> api_comp = find_surface_compartment(c.name);
-      if (!is_set(api_comp)) {
-        throw ValueError("Did not find surface compartment '" + c.name + "' for release of " +
-            rel_site->complex->name + "."
-        );
-      }
-
-      rel_site->region = api_comp->geometry_object;
-    }
+    rel_site->compartment_name = c.name;
+    rel_site->shape = Shape::COMPARTMENT;
+    rel_site->name =
+          "Release of " + rel_site->complex->to_bngl_str() +
+          " at " + rel_site->compartment_name;
   }
   else {
     if (!is_set(default_release_region)) {
@@ -203,11 +183,12 @@ void InstantiationData::convert_single_seed_species_to_release_site(
     }
 
     rel_site->region = default_release_region;
+    rel_site->shape = Shape::REGION_EXPR;
+    rel_site->name =
+          "Release of " + rel_site->complex->to_bngl_str() +
+          " at " + rel_site->region->name;
   }
 
-  rel_site->name =
-      "Release of " + rel_site->complex->to_bngl_str() +
-      " at " + rel_site->region->name;
 
   uint truncated_count = BNG::floor_f(bng_ss.count);
   if (bng_ss.count != truncated_count) {
@@ -220,6 +201,32 @@ void InstantiationData::convert_single_seed_species_to_release_site(
   rel_site->postprocess_in_ctor(); // sets shape
 
   release_sites.push_back(rel_site);
+}
+
+
+std::shared_ptr<Region> InstantiationData::get_compartment_region(const std::string& name) {
+  std::shared_ptr<GeometryObject> obj;
+
+  // first try if it is a volume compartment
+  obj = find_volume_compartment(name);
+  if (is_set(obj)) {
+
+    std::shared_ptr<Region> res = std::dynamic_pointer_cast<Region>(obj);
+
+    for (auto child: obj->child_compartments) {
+      res = res->__sub__(std::dynamic_pointer_cast<Region>(child));
+    }
+    return res;
+  }
+
+  // then a surface compartment
+  obj = find_surface_compartment(name);
+  if (is_set(obj)) {
+    return std::dynamic_pointer_cast<Region>(obj);
+  }
+
+  // no compartment found
+  return std::shared_ptr<Region>(nullptr);
 }
 
 }

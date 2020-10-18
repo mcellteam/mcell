@@ -35,7 +35,6 @@
 #include "generated/gen_initial_surface_release.cpp"
 #include "generated/gen_surface_region.h"
 #include "generated/gen_geometry_object.h"
-#include "generated/gen_volume_compartment.h"
 #include "generated/gen_release_pattern.h"
 #include "generated/gen_molecule_release_info.h"
 #include "generated/gen_release_site.h"
@@ -160,7 +159,6 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_InitialSurfaceRelease(m);
   define_pybinding_SurfaceRegion(m);
   define_pybinding_GeometryObject(m);
-  define_pybinding_VolumeCompartment(m);
   define_pybinding_InstantiationData(m);
 
   define_pybinding_CountTerm(m);

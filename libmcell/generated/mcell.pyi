@@ -54,8 +54,6 @@ class SurfaceRegion():
     pass
 class VizOutput():
     pass
-class VolumeCompartment():
-    pass
 class WallHitInfo():
     pass
 class Warnings():
@@ -98,6 +96,7 @@ class Shape(Enum):
     SPHERICAL = 1
     REGION_EXPR = 2
     LIST = 3
+    COMPARTMENT = 4
 
 class SurfacePropertyType(Enum):
     UNSET = 0
@@ -341,6 +340,8 @@ class GeometryObject():
             name : str,
             vertex_list : List[List[float]],
             element_connections : List[List[int]],
+            is_bngl_compartment : bool = False,
+            surface_compartment_name : str = None,
             surface_regions : List[SurfaceRegion] = None,
             surface_class : SurfaceClass = None,
             initial_surface_releases : List[InitialSurfaceRelease] = None,
@@ -351,6 +352,8 @@ class GeometryObject():
         self.name = name
         self.vertex_list = vertex_list
         self.element_connections = element_connections
+        self.is_bngl_compartment = is_bngl_compartment
+        self.surface_compartment_name = surface_compartment_name
         self.surface_regions = surface_regions
         self.surface_class = surface_class
         self.initial_surface_releases = initial_surface_releases
@@ -397,12 +400,10 @@ class InstantiationData():
     def __init__(
             self,
             release_sites : List[ReleaseSite] = None,
-            geometry_objects : List[GeometryObject] = None,
-            volume_compartments : List[VolumeCompartment] = None
+            geometry_objects : List[GeometryObject] = None
         ):
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
-        self.volume_compartments = volume_compartments
 
 
     def add_release_site(
@@ -429,22 +430,16 @@ class InstantiationData():
         ) -> 'GeometryObject':
         pass
 
-    def add_volume_compartment(
-            self,
-            compartment : VolumeCompartment
-        ) -> None:
-        pass
-
     def find_volume_compartment(
             self,
             name : str
-        ) -> 'VolumeCompartment':
+        ) -> 'GeometryObject':
         pass
 
     def find_surface_compartment(
             self,
             name : str
-        ) -> 'VolumeCompartment':
+        ) -> 'GeometryObject':
         pass
 
     def load_bngl_seed_species(
@@ -468,7 +463,6 @@ class Model():
             elementary_molecule_types : List[ElementaryMoleculeType] = None,
             release_sites : List[ReleaseSite] = None,
             geometry_objects : List[GeometryObject] = None,
-            volume_compartments : List[VolumeCompartment] = None,
             viz_outputs : List[VizOutput] = None,
             counts : List[Count] = None
         ):
@@ -481,7 +475,6 @@ class Model():
         self.elementary_molecule_types = elementary_molecule_types
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
-        self.volume_compartments = volume_compartments
         self.viz_outputs = viz_outputs
         self.counts = counts
 
@@ -660,22 +653,16 @@ class Model():
         ) -> 'GeometryObject':
         pass
 
-    def add_volume_compartment(
-            self,
-            compartment : VolumeCompartment
-        ) -> None:
-        pass
-
     def find_volume_compartment(
             self,
             name : str
-        ) -> 'VolumeCompartment':
+        ) -> 'GeometryObject':
         pass
 
     def find_surface_compartment(
             self,
             name : str
-        ) -> 'VolumeCompartment':
+        ) -> 'GeometryObject':
         pass
 
     def load_bngl_seed_species(
@@ -873,6 +860,7 @@ class ReleaseSite():
             release_pattern : ReleasePattern = None,
             shape : Shape = Shape.UNSET,
             region : Region = None,
+            compartment_name : str = None,
             location : Vec3 = None,
             site_diameter : float = 0,
             site_radius : float = None,
@@ -889,6 +877,7 @@ class ReleaseSite():
         self.release_pattern = release_pattern
         self.shape = shape
         self.region = region
+        self.compartment_name = compartment_name
         self.location = location
         self.site_diameter = site_diameter
         self.site_radius = site_radius
@@ -1090,25 +1079,6 @@ class VizOutput():
         self.mode = mode
         self.every_n_timesteps = every_n_timesteps
 
-
-class VolumeCompartment():
-    def __init__(
-            self,
-            name : str,
-            geometry_object : GeometryObject,
-            child_compartments : List[VolumeCompartment] = None,
-            surface_compartment_name : str = None
-        ):
-        self.name = name
-        self.geometry_object = geometry_object
-        self.child_compartments = child_compartments
-        self.surface_compartment_name = surface_compartment_name
-
-
-    def get_volume_compartment_region(
-            self,
-        ) -> 'Region':
-        pass
 
 class WallHitInfo():
     def __init__(

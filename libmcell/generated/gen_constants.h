@@ -119,7 +119,8 @@ enum class Shape {
   UNSET = 0,
   SPHERICAL = 1,
   REGION_EXPR = 2,
-  LIST = 3
+  LIST = 3,
+  COMPARTMENT = 4
 };
 
 
@@ -129,6 +130,7 @@ static inline  std::ostream& operator << (std::ostream& out, const Shape v) {
     case Shape::SPHERICAL: out << "Shape.SPHERICAL (1)"; break;
     case Shape::REGION_EXPR: out << "Shape.REGION_EXPR (2)"; break;
     case Shape::LIST: out << "Shape.LIST (3)"; break;
+    case Shape::COMPARTMENT: out << "Shape.COMPARTMENT (4)"; break;
   }
   return out;
 };

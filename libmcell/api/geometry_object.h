@@ -23,6 +23,8 @@
 #ifndef API_GEOMETRY_OBJECT_H
 #define API_GEOMETRY_OBJECT_H
 
+#include "bng/bng_defines.h"
+
 #include "generated/gen_geometry_object.h"
 #include "api/common.h"
 #include "api/surface_region.h"
@@ -30,6 +32,9 @@
 
 namespace MCell {
 namespace API {
+
+class GeometryObject;
+typedef std::set<std::shared_ptr<API::GeometryObject>> GeometryObjectSet;
 
 class GeometryObject: public GenGeometryObject {
 public:
@@ -41,6 +46,9 @@ public:
     partition_id = PARTITION_ID_INVALID;
     geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;
     first_vertex_index = VERTEX_INDEX_INVALID;
+    parent_compartment = nullptr;
+    vol_compartment_id = BNG::COMPARTMENT_ID_INVALID;
+    surf_compartment_id = BNG::COMPARTMENT_ID_INVALID;
 
     for (auto& sr: surface_regions) {
       // not using shared pointers here, any attempt so far resulted in bad_weak_ptr exception
@@ -86,12 +94,21 @@ public:
     }
   }
 
+  // extra information used in MCell4 converter
+  // if this is a compartment, its parent and children are set
+  // in API::set_children_compartments
+  std::shared_ptr<API::GeometryObject> parent_compartment;
+  GeometryObjectSet child_compartments;
+
   // simulation engine mapping
   partition_id_t partition_id;
   geometry_object_id_t geometry_object_id;
   vertex_index_t first_vertex_index; // index of the first vertex created in partition for this object
   std::vector<vertex_index_t> vertex_indices; // vertex_list[i] has vertex index vertex_indices[i]
   std::vector<wall_index_t> wall_indices; // element_connections[i] has wall index wall_indices[i]
+
+  BNG::compartment_id_t vol_compartment_id;
+  BNG::compartment_id_t surf_compartment_id;
 };
 
 } // namespace API

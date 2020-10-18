@@ -35,6 +35,7 @@
 
 #include "api/mcell.h"
 #include "api/bindings.h"
+#include "api/compartment_utils.h"
 
 using namespace std;
 
@@ -87,8 +88,7 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_simulation_setup();
 
-  // mapping of geometry objects to compartments is done in convert_geometry_objects
-  convert_volume_compartments();
+  convert_compartments();
 
   convert_elementary_molecule_types();
 
@@ -663,22 +663,22 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
 }
 
 
-BNG::Cplx MCell4Converter::convert_complex(API::Complex& inst, const bool in_observables, const bool in_rxn) {
+BNG::Cplx MCell4Converter::convert_complex(API::Complex& api_cplx, const bool in_observables, const bool in_rxn) {
   // create a temporary cplx instance that we will use for search
-  BNG::Cplx cplx_inst(&world->bng_engine.get_data());
+  BNG::Cplx bng_cplx(&world->bng_engine.get_data());
 
-  if (is_set(inst.elementary_molecule_instances)) {
-    for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.elementary_molecule_instances) {
+  if (is_set(api_cplx.elementary_molecule_instances)) {
+    for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: api_cplx.elementary_molecule_instances) {
       BNG::MolInstance mi = convert_molecule_instance(*m, in_observables || in_rxn);
 
-      cplx_inst.mol_instances.push_back(mi);
+      bng_cplx.mol_instances.push_back(mi);
     }
   }
-  else if (is_set(inst.name)) {
+  else if (is_set(api_cplx.name)) {
     // parse BNGL string
-    int num_errors = BNG::parse_single_cplx_string(inst.name, world->bng_engine.get_data(), cplx_inst);
+    int num_errors = BNG::parse_single_cplx_string(api_cplx.name, world->bng_engine.get_data(), bng_cplx);
     if (num_errors) {
-      throw ValueError("Could not parse BNGL string " + inst.name + " that defines a " + NAME_CLASS_COMPLEX + ".");
+      throw ValueError("Could not parse BNGL string " + api_cplx.name + " that defines a " + NAME_CLASS_COMPLEX + ".");
     }
   }
   else {
@@ -687,57 +687,54 @@ BNG::Cplx MCell4Converter::convert_complex(API::Complex& inst, const bool in_obs
 
   // orientation or compartment does not have to be set for finalization,
   // this sets whether this is a surf or vol cplx
-  cplx_inst.finalize();
+  bng_cplx.finalize();
 
-  if (is_set(inst.compartment_name)) {
-    std::shared_ptr<VolumeCompartment> comp;
-    if (cplx_inst.is_vol()) {
-      comp = model->find_volume_compartment(inst.compartment_name);
-      if (!is_set(comp)) {
-        throw ValueError("Did not find volume compartment " + inst.compartment_name +
-            " for a volume complex " + cplx_inst.to_str() + ".");
-      }
-      cplx_inst.set_compartment_id(comp->vol_compartment_id);
+  // BNG compartments were already created
+  const BNG::BNGData& bng_data = world->bng_engine.get_data();
+  if (is_set(api_cplx.compartment_name)) {
+    const BNG::Compartment* bng_comp = bng_data.find_compartment(api_cplx.compartment_name);
+    if (bng_cplx.is_vol() && (bng_comp == nullptr || !bng_comp->is_3d)) {
+      throw ValueError("Did not find volume compartment " + api_cplx.compartment_name +
+          " for a volume complex " + bng_cplx.to_str() + ".");
     }
-    else {
-      comp = model->find_surface_compartment(inst.compartment_name);
-      if (!is_set(comp)) {
-        throw ValueError("Did not find surface compartment " + inst.compartment_name +
-            " for a surface complex " + cplx_inst.to_str() + ".");
-      }
-      cplx_inst.set_compartment_id(comp->surf_compartment_id);
+
+    if (bng_cplx.is_surf() && (bng_comp == nullptr || bng_comp->is_3d)) {
+      throw ValueError("Did not find surface compartment " + api_cplx.compartment_name +
+          " for a surface complex " + bng_cplx.to_str() + ".");
     }
+
+    bng_cplx.set_compartment_id(bng_comp->id);
   }
   else {
-    cplx_inst.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
+    bng_cplx.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
 
-    if (!in_rxn && cplx_inst.is_vol() && inst.orientation != Orientation::NONE && inst.orientation != Orientation::DEFAULT) {
-      throw ValueError("Orientation for a volume complex " + cplx_inst.to_str() +
+    if (!in_rxn && bng_cplx.is_vol() && api_cplx.orientation != Orientation::NONE && api_cplx.orientation != Orientation::DEFAULT) {
+      throw ValueError("Orientation for a volume complex " + bng_cplx.to_str() +
           " must be set either to " + NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE + " or " +
           NAME_ENUM_ORIENTATION + "." + NAME_EV_DEFAULT + ".");
     }
-    else if (cplx_inst.is_surf() && inst.orientation == Orientation::NONE) {
-      throw ValueError("Orientation for a surface complex " + cplx_inst.to_str() +
+    else if (bng_cplx.is_surf() && api_cplx.orientation == Orientation::NONE) {
+      throw ValueError("Orientation for a surface complex " + bng_cplx.to_str() +
           " must be set to a value other than " +  NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE +
           " when " + NAME_COMPARTMENT_NAME + " is not specified.");
     }
 
-    orientation_t orient = convert_orientation(inst.orientation, true, cplx_inst.is_vol());
-    cplx_inst.set_orientation(orient);
+    orientation_t orient = convert_orientation(api_cplx.orientation, true, bng_cplx.is_vol());
+    bng_cplx.set_orientation(orient);
   }
 
 
   if (!in_observables && !in_rxn) {
     // register complex as new species
-    species_id_t species_id = world->get_all_species().find_full_match(cplx_inst);
+    species_id_t species_id = world->get_all_species().find_full_match(bng_cplx);
     if (species_id == SPECIES_ID_INVALID) {
-      BNG::Species new_species = BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config());
+      BNG::Species new_species = BNG::Species(bng_cplx, world->bng_engine.get_data(), world->bng_engine.get_config());
       species_id = world->get_all_species().find_or_add(new_species);
     }
     assert(species_id != SPECIES_ID_INVALID);
   }
 
-  return cplx_inst;
+  return bng_cplx;
 }
 
 
@@ -975,48 +972,64 @@ void MCell4Converter::convert_geometry_objects() {
         }
       }
     }
-  }
 
-  // set GeometryObject compartment ids
-  for (std::shared_ptr<API::VolumeCompartment>& c: model->volume_compartments) {
+    // set MCell:GeometryObject compartment ids
+    if (o->is_bngl_compartment) {
+      assert(o->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
+          o->vol_compartment_id != BNG::COMPARTMENT_ID_NONE &&
+          o->vol_compartment_id != BNG::COMPARTMENT_ID_ANY
+      );
 
-    // link geometry object to its compartment
-    if (c->geometry_object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
-      throw ValueError(S(NAME_CLASS_VOLUME_COMPARTMENT) + " '" + c->name + "' references uninitialized "
-          "geometry object '" + c->geometry_object->name + "'.");
+      obj.compartment_id = o->vol_compartment_id;
     }
-    MCell::GeometryObject& obj = world->get_geometry_object(c->geometry_object->geometry_object_id);
-    assert(c->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID && c->vol_compartment_id != BNG::COMPARTMENT_ID_NONE);
-    obj.compartment_id = c->vol_compartment_id;
   }
 }
 
 
-void MCell4Converter::convert_volume_compartments() {
-  // volume of compartments is not set
+void MCell4Converter::convert_compartments() {
+  // we determine the hierarchy of compartments here since all
+  // we have are geometry objects
 
+  // volume of compartments is not set
   BNG::BNGData& bng_data = world->bng_engine.get_data();
 
-  // first create compartments and also link them with geometry objects
-  for (std::shared_ptr<API::VolumeCompartment>& c: model->volume_compartments) {
+  vector<std::shared_ptr<API::GeometryObject>> compartment_objects;
+  for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
+    if (o->is_bngl_compartment) {
+      compartment_objects.push_back(o);
+    }
+  }
+
+  // get hierarchy
+  // for now let's just deal with names EC, PM, CP
+  GeometryObjectSetVector intersecting_objects;
+  set_parent_and_children_compartments(compartment_objects, intersecting_objects);
+
+  if (!intersecting_objects.empty()) {
+    // TODO: improve error message and add test
+    throw RuntimeError("Compartments intersect, this is not allowed.");
+  }
+
+  for (std::shared_ptr<API::GeometryObject>& o: compartment_objects) {
+
     BNG::Compartment bng_comp3d;
-    bng_comp3d.name = c->name;
+    bng_comp3d.name = o->name;
     bng_comp3d.is_3d = true;
     BNG::compartment_id_t comp3d_id = bng_data.add_compartment(bng_comp3d);
-    c->vol_compartment_id = comp3d_id;
+    o->vol_compartment_id = comp3d_id;
 
     // unlike as in BNG, we do not require that the only child of a 3d compartment is 2d compartment,
     // 2d compartments can be skipped completely
-    if (is_set(c->surface_compartment_name)) {
+    if (is_set(o-> surface_compartment_name)) {
       BNG::Compartment bng_comp2d;
-      bng_comp2d.name = c->surface_compartment_name;
+      bng_comp2d.name = o->surface_compartment_name;
       bng_comp2d.is_3d = false;
 
       // the only child of a 2D compartment is the 3D compartment it encompasses
       bng_comp2d.children_compartments.insert(comp3d_id);
 
       BNG::compartment_id_t comp2d_id = bng_data.add_compartment(bng_comp2d);
-      c->surf_compartment_id = comp2d_id;
+      o->surf_compartment_id = comp2d_id;
 
       // if a 2d compartment is defined, it is the parent of the 3D compartment
       bng_data.get_compartment(comp3d_id).parent_compartment_id = comp2d_id;
@@ -1024,14 +1037,14 @@ void MCell4Converter::convert_volume_compartments() {
   }
 
   // now define their parents and children
-  for (std::shared_ptr<API::VolumeCompartment>& c: model->volume_compartments) {
+  for (std::shared_ptr<API::GeometryObject>& o: compartment_objects) {
 
     BNG::Compartment* bng_comp3d;
 
-    bng_comp3d = bng_data.find_compartment(c->name);
+    bng_comp3d = bng_data.find_compartment(o->name);
     release_assert(bng_comp3d != nullptr);
 
-    for (std::shared_ptr<API::VolumeCompartment>& child: c->child_compartments) {
+    for (const std::shared_ptr<API::GeometryObject>& child: o->child_compartments) {
       BNG::Compartment* bng_comp_child;
 
       // the direct child is the 2d compartment if defined, 3d compartment otherwise
@@ -1104,11 +1117,30 @@ RegionExprNode* MCell4Converter::convert_region_expr_recursively(
 
 void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event) {
 
-  if (!is_set(rel_site.region)) {
-    throw RuntimeError("Region for release site " + rel_site.name + " was not set.");
+  if (rel_site.shape == Shape::COMPARTMENT && !is_set(rel_site.compartment_name)) {
+    throw RuntimeError("Compartment for release site " + rel_site.name + " was not set.");
   }
 
-  rel_event->region_expr_root = convert_region_expr_recursively(rel_site.region, rel_event);
+  if (rel_site.shape == Shape::REGION_EXPR) {
+    if (!is_set(rel_site.region)) {
+      throw RuntimeError("Region for release site " + rel_site.name + " was not set.");
+    }
+    rel_event->region_expr_root = convert_region_expr_recursively(rel_site.region, rel_event);
+  }
+  else if (rel_site.shape == Shape::COMPARTMENT) {
+    if (!is_set(rel_site.compartment_name)) {
+      throw RuntimeError("Compartment for release site " + rel_site.name + " was not set.");
+    }
+
+    // make region that represents the compartment
+    auto region = model->get_compartment_region(rel_site.compartment_name);
+    if (!is_set(region)) {
+      throw RuntimeError("Compartment " + rel_site.compartment_name + " for " + rel_site.name + " was not found.");
+    }
+
+    rel_event->region_expr_root = convert_region_expr_recursively(region, rel_event);
+  }
+
 
   // also set llf and urb
   // TODO: this does not check anything yet
@@ -1221,7 +1253,8 @@ void MCell4Converter::convert_release_events() {
         rel_event->location = r->location * world->config.rcp_length_unit;
         rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
         break;
-      case Shape::REGION_EXPR: {
+      case Shape::REGION_EXPR:
+      case Shape::COMPARTMENT: {
           rel_event->release_shape = ReleaseShape::REGION;
           convert_region_expr(*r, rel_event);
           bool ok = rel_event->initialize_walls_for_release();
@@ -1234,9 +1267,12 @@ void MCell4Converter::convert_release_events() {
         rel_event->release_shape = ReleaseShape::LIST;
         rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
         break;
+        rel_event->release_shape = ReleaseShape::REGION;
+        break;
       default:
         // should be caught earlier
-        throw RuntimeError("The only supported shape now is Spherical.");
+        // TODO: use constant names
+        throw RuntimeError("The only supported shape now is Spherical, Region ot List.");
     }
 
     rel_event->update_event_time_for_next_scheduled_time();
@@ -1247,16 +1283,16 @@ void MCell4Converter::convert_release_events() {
 
 static void append_subtracted_volume_compartments(
     MCell::MolOrRxnCountTerm top_count_term,
-    const std::vector<std::shared_ptr<VolumeCompartment>>& child_compartments,
+    const GeometryObjectSet& child_compartments,
     std::vector<MolOrRxnCountTerm>& terms
 ) {
   assert(top_count_term.type == MCell::CountType::EnclosedInVolumeRegion);
 
-  for (const std::shared_ptr<VolumeCompartment>& child: child_compartments) {
+  for (auto& child: child_compartments) {
     MCell::MolOrRxnCountTerm term = top_count_term;
     term.sign_in_expression = -top_count_term.sign_in_expression;
-    assert(child->geometry_object->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
-    term.geometry_object_id = child->geometry_object->geometry_object_id;
+    assert(child->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+    term.geometry_object_id = child->geometry_object_id;
     terms.push_back(term);
   }
 }
@@ -1274,8 +1310,8 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   assert(is_set(ct));
   assert(ct->node_type == API::ExprNodeType::LEAF);
 
-  // set when this is a volume compartment what has children
-  std::vector<std::shared_ptr<VolumeCompartment>> child_compartments;
+  // set when this is a volume compartment that has children
+  GeometryObjectSet child_compartments;
 
   // handle compartments
   const shared_ptr<Complex> pattern = ct->get_pattern();
@@ -1288,25 +1324,25 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
     }
 
     // if compartment is set, set region
-    shared_ptr<VolumeCompartment> comp;
-    comp = model->find_volume_compartment(compartment_name);
-    if (is_set(comp)) {
+    shared_ptr<GeometryObject> comp_obj;
+    comp_obj = model->find_volume_compartment(compartment_name);
+    if (is_set(comp_obj)) {
       // 3d
-      if (is_set(comp->child_compartments)) {
+      if (!comp_obj->child_compartments.empty()) {
         // we must create multiple MolOrRxnCountTerms where we subtract all children
-        child_compartments = comp->child_compartments;
+        child_compartments = comp_obj->child_compartments;
       }
-      ct->region = comp->geometry_object;
+      ct->region = comp_obj;
     }
     else {
-      comp = model->find_surface_compartment(compartment_name);
-      if (!is_set(comp)) {
+      comp_obj = model->find_surface_compartment(compartment_name);
+      if (!is_set(comp_obj)) {
         throw ValueError("Did not find compartment '" + compartment_name + " for " +
             NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
       }
 
       // 2d
-      ct->region = comp->geometry_object;
+      ct->region = comp_obj;
     }
   }
 

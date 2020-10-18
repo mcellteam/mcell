@@ -47,7 +47,6 @@ class Species;
 class Subsystem;
 class SurfaceClass;
 class VizOutput;
-class VolumeCompartment;
 class WallHitInfo;
 class Warnings;
 

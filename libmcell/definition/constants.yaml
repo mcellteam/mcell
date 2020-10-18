@@ -123,6 +123,8 @@ enums:
       value: 2
     - name: LIST
       value: 3
+    - name: COMPARTMENT
+      value: 4
       
   - name: SurfacePropertyType
     values:
