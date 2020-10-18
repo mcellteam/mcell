@@ -492,6 +492,11 @@ void PythonGenerator::generate_surface_classes(
 }
 
 
+void PythonGenerator::generate_compartments(std::ostream& out) {
+  // TODO
+}
+
+
 void PythonGenerator::generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text) {
   // append to the parameters file
   ofstream out;

@@ -42,6 +42,11 @@ public:
   void generate_parameters(std::ostream& python_out);
   void generate_mol_types(std::ostream& python_out);
 
+  void open_compartments_section();
+  void generate_compartments();
+  void generate_single_compartment(Json::Value& model_object);
+  void close_compartments_section() { bng_out << "end compartments\n"; }
+
   void open_reaction_rules_section() { bng_out << "begin reaction rules\n"; }
   std::string generate_single_reaction_rule(Json::Value& reaction_list_item, const bool generate_name);
   void close_reaction_rules_section() { bng_out << "end reaction rules\n"; }

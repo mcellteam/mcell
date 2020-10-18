@@ -315,6 +315,20 @@ vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out) {
 }
 
 
+void MCell4Generator::generate_compartments(std::ostream& out) {
+
+  // 1) figure out whether what compartments we need
+
+  // 2) read all information on compartments and sort them by dependency
+  python_gen->generate_compartments(out);
+
+  // 3) add to BNGL file if needed
+  if (data.bng_mode) {
+    bng_gen->generate_compartments();
+  }
+}
+
+
 void MCell4Generator::generate_subsystem() {
   ofstream out;
   open_and_check_file(SUBSYSTEM, out);
@@ -328,6 +342,8 @@ void MCell4Generator::generate_subsystem() {
   out << make_section_comment(SUBSYSTEM);
 
   generate_species_and_mol_types(out, data.all_species_and_mol_type_names);
+
+  generate_compartments(out);
 
   vector<string> surface_class_names;
   python_gen->generate_surface_classes(out, surface_class_names);

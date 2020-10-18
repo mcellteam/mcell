@@ -45,6 +45,8 @@ public:
   void generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
   void generate_surface_classes(std::ostream& out, std::vector<std::string>& sc_names);
 
+  void generate_compartments(std::ostream& out);
+
   // the parameters file must be closed because we might append some code to it
   std::string generate_single_reaction_rule(std::ostream& out, Json::Value& reaction_list_item);
   void generate_reaction_rules(std::ostream& out, std::vector<IdLoc>& rxn_names);

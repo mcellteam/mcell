@@ -68,6 +68,7 @@ private:
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
   std::vector<IdLoc> generate_reaction_rules(std::ostream& out);
 
+  void generate_compartments(std::ostream& out);
   void generate_subsystem();
 
   std::string generate_single_geometry_object(
