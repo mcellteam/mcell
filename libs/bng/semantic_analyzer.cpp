@@ -324,7 +324,7 @@ void SemanticAnalyzer::convert_and_store_compartments() {
     // volume
     ASTExprNode* evaluated_volume = evaluate_to_dbl(n->volume);
     float_t volume = evaluated_volume->get_dbl();
-    if (volume <= 0) {
+    if (volume < 0) {
       errs_loc(n) <<
           "Compartment '" << n->name << "' has negative volume " << volume << ".\n"; // test N0301
       ctx->inc_error_count();
