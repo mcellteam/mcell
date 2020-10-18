@@ -80,7 +80,7 @@ void parse_rxn_rule_side(
     std::vector<std::string>& substances,
     std::vector<std::string>& orientations) {
 
-  // cannot use BNGL parser because reactions may contain orientations
+  // cannot use BNGL parser directly because reactions may contain orientations
 
   substances.clear();
   orientations.clear();
@@ -103,13 +103,9 @@ void parse_rxn_rule_side(
     char c = str[i];
     switch (state) {
       case START:
-        if (isalnum(c) || c == '_') {
+        if (isalnum(c) || c == '_' || c == '.' || c == '@') {
           state = CPLX;
           current_id = c;
-        }
-        else if (c == '.') {
-          state = CPLX;
-          current_id = '_';
         }
         else if (isblank(c)) {
           // ok
@@ -120,12 +116,8 @@ void parse_rxn_rule_side(
         break;
 
       case CPLX:
-        if (isalnum(c) || c == '_' || c == '.') {
+        if (isalnum(c) || c == '_' || c == '.' || c == '@' || c == ':') {
           current_id += c;
-        }
-        else if (c == '.') {
-          state = CPLX;
-          current_id += '_';
         }
         else if (c == '(') {
           state = IN_PAREN;
@@ -200,13 +192,9 @@ void parse_rxn_rule_side(
         break;
 
       case AFTER_PLUS:
-        if (isalnum(c) || c == '_') {
+        if (isalnum(c) || c == '_' || c == '@') {
           state = CPLX;
           current_id = c;
-        }
-        else if (c == '.') {
-          state = CPLX;
-          current_id = '_';
         }
         else if (isblank(c)) {
           // ok
@@ -336,6 +324,7 @@ string reaction_name_to_id(const string& json_name) {
   res_name = regex_replace(res_name, regex("'"), "_up");
   res_name = regex_replace(res_name, regex(","), "_down");
   res_name = regex_replace(res_name, regex(";"), "_any");
+  res_name = regex_replace(res_name, regex("@"), "_at_");
 
   return res_name;
 }
