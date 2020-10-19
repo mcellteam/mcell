@@ -915,7 +915,8 @@ class Species():
 
     def inst(
             self,
-            orientation : Orientation = Orientation.DEFAULT
+            orientation : Orientation = Orientation.DEFAULT,
+            compartment_name : str = 
         ) -> 'Complex':
         pass
 

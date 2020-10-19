@@ -213,6 +213,7 @@ void parse_rxn_rule_side(
   }
 }
 
+
 string remove_compartments(const std::string& species_name) {
   size_t i = 0;
   string res;
@@ -235,6 +236,20 @@ string remove_compartments(const std::string& species_name) {
 }
 
 
+string get_single_compartment(const std::string& name) {
+  size_t pos_at = name.find('@');
+  if (pos_at != string::npos) {
+    size_t pos_colon = name.find(':');
+    if (pos_colon != string::npos) {
+      return name.substr(pos_at + 1, pos_colon - pos_at);
+    }
+    else {
+      return name.substr(pos_at + 1);
+    }
+  }
+  return "";
+}
+
 static string make_cplx(const string bngl_str, const string orient = "") {
   string res = S(MDOT) + API::NAME_CLASS_COMPLEX + "('" + fix_dots_in_simple_species(bngl_str) + "'";
   if (orient != "") {
@@ -246,7 +261,10 @@ static string make_cplx(const string bngl_str, const string orient = "") {
 
 
 string make_species_or_cplx(
-    const SharedGenData& data, const std::string& name, const std::string& orient) {
+    const SharedGenData& data,
+    const std::string& name,
+    const std::string& orient,
+    const std::string& compartment) {
 
   if (!data.bng_mode) {
     stringstream ss;
@@ -257,9 +275,16 @@ string make_species_or_cplx(
       ss << make_id(name) << "." << API::NAME_INST << "(";
 
       if (orient != "") {
+        assert(compartment == "");
         ss <<
             API::NAME_ORIENTATION << " = " <<
             MDOT << API::NAME_ENUM_ORIENTATION << "." << orient;
+      }
+
+      if (compartment != "") {
+        assert(orient == "");
+        ss <<
+            API::NAME_COMPARTMENT_NAME << " = '" << compartment << "'";
       }
 
       ss << ")";

@@ -68,14 +68,14 @@ private:
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
   std::vector<IdLoc> generate_reaction_rules(std::ostream& out);
 
-  void generate_compartments(std::ostream& out);
+  void find_required_compartments(std::set<std::string>& compartments);
+  void analyze_and_generate_bngl_compartments(std::ostream& out);
   void generate_subsystem();
 
   std::string generate_single_geometry_object(
       std::ofstream& out, const int index, Json::Value& object);
   std::vector<std::string> generate_geometry();
 
-  void generate_surface_classes_assignment(std::ostream& out);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
   void generate_observables(const bool cellblender_viz);

@@ -118,6 +118,10 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
     }
   }
 
+  // and also update all existing species
+  for (Species& s: all_species.get_species_vector()) {
+    s.update_flag_and_compartments_used_in_rxns();
+  }
 }
 
 

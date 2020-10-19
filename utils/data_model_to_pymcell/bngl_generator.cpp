@@ -173,26 +173,14 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
 }
 
 
-void BNGLGenerator::open_compartments_section() {
-  bng_out << "begin compartments\n";
-  bng_out <<
-      IND << "# - volumes of compartments do not use values from the model yet \n" <<
-      IND << "# - this file is loaded through Subsystem.load_bngl_molecule_types_and_reaction_rules and\n" <<
-      IND << "#   so compartments here are declared only so that the BNGL file can be parsed\n" <<
-      IND << "# - compartments themselves are defined in the Python code\n";
-}
-
-
 void BNGLGenerator::generate_single_compartment(Json::Value& model_object) {
   const string& name = model_object[KEY_NAME].asString();
-  const string& compartment_name = model_object[KEY_COMPARTMENT_NAME].asString();
   const string& membrane_name = model_object[KEY_MEMBRANE_NAME].asString();
   const string& parent_object = model_object[KEY_PARENT_OBJECT].asString();
 
   // 3d compartment first
   bng_out << IND <<
-      // compartment name has priority
-      ((compartment_name != "") ? compartment_name : name) << " " <<
+      name << " " <<
       "3" << " " <<
       // volume does not have a correct value yet
       "1" << " " <<
@@ -221,18 +209,24 @@ void BNGLGenerator::generate_compartments() {
     return;
   }
 
-  // FIXME: how to find out whether I need compartments?
-  // - see whether compartment_name is set?
-  // -> probably only from rxns !!!
+  bng_out << "begin compartments\n";
+  bng_out <<
+      IND << "# - volumes of compartments do not have correct values \n" <<
+      IND << "# - this file is loaded through Subsystem.load_bngl_molecule_types_and_reaction_rules and\n" <<
+      IND << "#   so compartments here are declared only so that the BNGL file can be parsed\n" <<
+      IND << "# - compartments themselves are defined in the Python code using attributes of the GeometryObject\n";
 
-  open_compartments_section();
   for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
     Value& model_object = model_object_list[i];
 
-    generate_single_compartment(model_object);
+    const string& comp = model_object[KEY_NAME].asString();
+    // generate only the compartments that we need for rxns
+    if (data.rxn_compartments.count(comp) != 0) {
+      generate_single_compartment(model_object);
+    }
   }
-  close_compartments_section();
 
+  bng_out << "end compartments\n\n";
 }
 
 

@@ -1271,8 +1271,8 @@ void MCell4Converter::convert_release_events() {
         break;
       default:
         // should be caught earlier
-        // TODO: use constant names
-        throw RuntimeError("The only supported shape now is Spherical, Region ot List.");
+        throw RuntimeError(S("The only supported shapes now are ") +
+            NAME_EV_SPHERICAL + ", " + NAME_EV_REGION_EXPR + ", " + NAME_EV_COMPARTMENT + " and " + NAME_EV_LIST + ".");
     }
 
     rel_event->update_event_time_for_next_scheduled_time();

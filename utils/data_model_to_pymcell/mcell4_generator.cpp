@@ -315,14 +315,60 @@ vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out) {
 }
 
 
-void MCell4Generator::generate_compartments(std::ostream& out) {
+static void insert_compartments_in_string(const std::string& str_w_compartments, std::set<std::string>& compartments) {
+
+  regex exp("@([0-9a-zA-Z_]+)");
+  smatch res;
+  string str = str_w_compartments;
+
+  while (regex_search(str, res, exp)) {
+    // not sure how else to cut off the leading '@'
+    compartments.insert(string(res[0]).substr(1));
+    str = res.suffix();
+  }
+}
+
+
+void MCell4Generator::find_required_compartments(std::set<std::string>& compartments) {
+  // only rxns in data model may use compartments,
+  // releases and observables use directly objects
+
+  if (data.mcell.isMember(KEY_DEFINE_REACTIONS)) {
+    Value& define_reactions = get_node(data.mcell, KEY_DEFINE_REACTIONS);
+    Value& reaction_list = get_node(define_reactions, KEY_REACTION_LIST);
+    for (Value::ArrayIndex i = 0; i < reaction_list.size(); i++) {
+      Value& reaction_list_item = reaction_list[i];
+
+      insert_compartments_in_string(reaction_list_item[KEY_REACTANTS].asString(), compartments);
+      insert_compartments_in_string(reaction_list_item[KEY_PRODUCTS].asString(), compartments);
+    }
+  }
+
+  // and add all compartments used as parents & membranes
+  Value& model_objects = get_node(data.mcell, KEY_MODEL_OBJECTS);
+  Value& model_object_list = get_node(model_objects, KEY_MODEL_OBJECT_LIST);
+  for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
+    Value& model_object = model_object_list[i];
+
+    const string& name = model_object[KEY_NAME].asString();
+    const string& membrane_name = model_object[KEY_MEMBRANE_NAME].asString();
+    const string& parent_object = model_object[KEY_PARENT_OBJECT].asString();
+
+    if (compartments.count(name) != 0) {
+      compartments.insert(membrane_name);
+      compartments.insert(parent_object);
+    }
+  }
+}
+
+
+void MCell4Generator::analyze_and_generate_bngl_compartments(std::ostream& out) {
 
   // 1) figure out whether what compartments we need
+  // not every named object must be a compartment
+  find_required_compartments(data.rxn_compartments);
 
-  // 2) read all information on compartments and sort them by dependency
-  python_gen->generate_compartments(out);
-
-  // 3) add to BNGL file if needed
+  // 2) add to BNGL file if needed
   if (data.bng_mode) {
     bng_gen->generate_compartments();
   }
@@ -343,7 +389,7 @@ void MCell4Generator::generate_subsystem() {
 
   generate_species_and_mol_types(out, data.all_species_and_mol_type_names);
 
-  generate_compartments(out);
+  analyze_and_generate_bngl_compartments(out);
 
   vector<string> surface_class_names;
   python_gen->generate_surface_classes(out, surface_class_names);
@@ -416,92 +462,6 @@ vector<string> MCell4Generator::generate_geometry() {
 }
 
 
-
-void MCell4Generator::generate_surface_classes_assignment(ostream& out) {
-  if (!data.mcell.isMember(KEY_MODIFY_SURFACE_REGIONS)) {
-    return;
-  }
-
-  Value& modify_surface_regions = data.mcell[KEY_MODIFY_SURFACE_REGIONS];
-  check_version(KEY_MODIFY_SURFACE_REGIONS, modify_surface_regions, VER_DM_2014_10_24_1638);
-  Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
-  for (Value::ArrayIndex i = 0; i < modify_surface_regions_list.size(); i++) {
-    Value& modify_surface_regions_item = modify_surface_regions_list[i];
-    check_versions(
-        KEY_MODIFY_SURFACE_REGIONS_LIST, modify_surface_regions_item,
-        VER_DM_2018_01_11_1330, VER_DM_2020_07_12_1600
-    );
-
-    string object_name = modify_surface_regions_item[KEY_OBJECT_NAME].asString();
-    CHECK_PROPERTY(object_name != "");
-
-    string region_selection = modify_surface_regions_item[KEY_REGION_SELECTION].asString();
-
-    string obj_or_region_name;
-    if (region_selection == VALUE_ALL) {
-      obj_or_region_name = object_name;
-    }
-    else if (region_selection == VALUE_SEL) {
-      obj_or_region_name = object_name + "_" + modify_surface_regions_item[KEY_REGION_NAME].asString();
-    }
-    else {
-      ERROR("Unexpected value " + region_selection + " of " + KEY_REGION_SELECTION + ".");
-    }
-
-    // handle initial_region_molecules_list if present
-    if (modify_surface_regions_item.isMember(KEY_INITIAL_REGION_MOLECULES_LIST)) {
-      string initial_region_molecules_name = obj_or_region_name + "_" + NAME_INITIAL_SURFACE_RELEASES;
-      out << initial_region_molecules_name << " = [\n";
-
-      Value& initial_region_molecules_list = modify_surface_regions_item[KEY_INITIAL_REGION_MOLECULES_LIST];
-      for (Value::ArrayIndex rel_i = 0; rel_i < initial_region_molecules_list.size(); rel_i++) {
-        Value& item = initial_region_molecules_list[rel_i];
-        out << "    ";
-        gen_ctor_call(out, "", NAME_CLASS_INITIAL_SURFACE_RELEASE, true);
-        out << "    ";
-        string species_str;
-        if (data.bng_mode) {
-          species_str = make_species(item[KEY_MOLECULE].asString());
-        }
-        else {
-          species_str = item[KEY_MOLECULE].asString();
-        }
-        gen_param_id(out, NAME_SPECIES, species_str, true);
-        out << "    ";
-        gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, convert_orientation(item[KEY_ORIENT].asString()), true);
-        out << "    ";
-        if (item.isMember(KEY_MOLECULE_NUMBER)) {
-          gen_param_expr(out, NAME_NUMBER_TO_RELEASE, item[KEY_MOLECULE_NUMBER], false);
-        }
-        else if (item.isMember(KEY_MOLECULE_DENSITY)) {
-          gen_param_expr(out, NAME_DENSITY, item[KEY_MOLECULE_DENSITY], false);
-        }
-        else {
-          ERROR(
-              S("Missing ") + KEY_MOLECULE_NUMBER + " or " + KEY_MOLECULE_DENSITY +
-              " in " + KEY_INITIAL_REGION_MOLECULES_LIST + "."
-          );
-        }
-        out << "    )";
-        gen_comma(out, rel_i, initial_region_molecules_list);
-        out << "\n";
-      }
-      out << "]\n\n";
-
-      out << obj_or_region_name << "." << NAME_INITIAL_SURFACE_RELEASES << " = " << initial_region_molecules_name << "\n";
-    }
-
-    // and also surface class name
-    if (modify_surface_regions_item.isMember(KEY_SURF_CLASS_NAME)) {
-      string surf_class_name = modify_surface_regions_item[KEY_SURF_CLASS_NAME].asString();
-      out << obj_or_region_name << "." << NAME_SURFACE_CLASS << " = " << surf_class_name << "\n";
-    }
-
-  }
-  out << "\n";
-}
-
-
 void MCell4Generator::generate_instantiation(const vector<string>& geometry_objects) {
 
   ofstream out;
@@ -523,7 +483,10 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
   python_gen->generate_release_sites(out, release_sites);
 
   out << make_section_comment("surface classes assignment");
-  generate_surface_classes_assignment(out);
+  python_gen->generate_surface_classes_assignments(out);
+
+  out << make_section_comment("compartments assignment");
+  python_gen->generate_compartment_assignments(out);
 
   out << make_section_comment("instantiation data");
 

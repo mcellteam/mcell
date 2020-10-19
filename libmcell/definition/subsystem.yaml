@@ -265,6 +265,12 @@ Species:
     - name: orientation
       type: Orientation 
       default: Orientation.DEFAULT
+      doc: Maximum one of orientation or compartment_name can be set, not both.
+      
+    - name: compartment_name
+      type: str
+      default: unset
+      doc: Maximum one of orientation or compartment_name can be set, not both.
   
     
 SurfaceProperty:

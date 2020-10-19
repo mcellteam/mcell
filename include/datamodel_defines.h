@@ -106,8 +106,6 @@ const char* const KEY_DESCRIPTION = "description";
 const char* const KEY_OBJECT_SOURCE = "object_source";
 const char* const KEY_DYNAMIC_DISPLAY_SOURCE = "dynamic_display_source";
 const char* const KEY_SCRIPT_NAME = "script_name";
-// added for case when object name may differ from compartment name
-const char* const KEY_COMPARTMENT_NAME = "compartment_name";
 const char* const KEY_MEMBRANE_NAME = "membrane_name";
 const char* const KEY_DYNAMIC = "dynamic";
 

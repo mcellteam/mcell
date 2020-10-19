@@ -519,6 +519,16 @@ void Cplx::dump(const bool for_diff, const std::string ind) const {
   }
   else {
     cout << ind << "orientation: " << orientation << "\n";
+    cout << ind << "compartment: ";
+    if (compartment_id != COMPARTMENT_ID_NONE &&
+        compartment_id != COMPARTMENT_ID_ANY &&
+        compartment_id != COMPARTMENT_ID_INVALID) {
+      cout << bng_data->get_compartment(compartment_id).name << "\n";
+    }
+    else {
+      cout << compartment_id_to_str(compartment_id) << "\n";
+    }
+
     cout << ind << "mol_instances:\n";
     for (size_t i = 0; i < mol_instances.size(); i++) {
       cout << ind << i << ":\n";

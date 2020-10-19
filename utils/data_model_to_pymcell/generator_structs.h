@@ -25,6 +25,7 @@
 
 #include <string>
 #include <algorithm>
+#include <set>
 #include "json/json.h"
 
 namespace MCell {
@@ -87,6 +88,8 @@ struct SharedGenData {
   std::vector<std::string> bngl_reaction_rules_used_in_observables;
   std::vector<std::string> all_count_term_names;
 
+  // set in MCell4Generator::analyze_and_generate_bngl_compartments
+  std::set<std::string> rxn_compartments;
 
   const SpeciesOrMolType* find_species_or_mol_type_info(const std::string& name) const {
     auto it = std::find(

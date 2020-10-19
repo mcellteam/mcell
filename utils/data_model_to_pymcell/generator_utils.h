@@ -172,11 +172,13 @@ static string make_id(const string& s) {
 
 string remove_compartments(const std::string& species_name);
 
+string get_single_compartment(const std::string& name);
 
 string make_species_or_cplx(
     const SharedGenData& data,
     const std::string& name,
-    const std::string& orient = "");
+    const std::string& orient = "",
+    const std::string& compartment = "");
 
 
 static string make_species(const string bngl_str) {
@@ -325,6 +327,11 @@ void gen_assign(ostream& out, string obj_name, string field_name1, bool value) {
 }
 
 
+static void gen_assign_str(ostream& out, string obj_name, string field_name1, string value) {
+  out << obj_name << "." << field_name1 << " = '" << value << "'\n";
+}
+
+
 template<typename T>
 static void gen_assign(ostream& out, string obj_name, string field_name1, string field_name2, T value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
@@ -348,7 +355,6 @@ template<>
 void gen_assign(ostream& out, string obj_name, string field_name1, string field_name2, bool value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << (value ? "True" : "False") << "\n";
 }
-
 
 static void gen_assign_vec3(ostream& out, string obj_name, string field_name1, string field_name2, double x, double y, double z) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = [" << x << ", " << y << ", " << z  << "]\n";
