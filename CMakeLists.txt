@@ -353,9 +353,7 @@ endif()
 configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_helpers.py COPYONLY)
 
 # copy tools for MDLr to MDL
-# TODO: list all files using configure_file
 SET(MCELL_RULES_DIR ${CMAKE_SOURCE_DIR}/src/rules_py)
-
 configure_file(${MCELL_RULES_DIR}/grammar_definition.py ${CMAKE_CURRENT_BINARY_DIR}/grammar_definition.py COPYONLY)
 configure_file(${MCELL_RULES_DIR}/mcell3r.py ${CMAKE_CURRENT_BINARY_DIR}/mcell3r.py COPYONLY)
 configure_file(${MCELL_RULES_DIR}/mdlr2mdl.py ${CMAKE_CURRENT_BINARY_DIR}/mdlr2mdl.py COPYONLY)
@@ -368,7 +366,13 @@ configure_file(${MCELL_RULES_DIR}/split_bngxml.py ${CMAKE_CURRENT_BINARY_DIR}/sp
 configure_file(${MCELL_RULES_DIR}/write_bngxmle.py ${CMAKE_CURRENT_BINARY_DIR}/write_bngxmle.py COPYONLY)
 configure_file(${MCELL_RULES_DIR}/write_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/write_mdl.py COPYONLY)
 
+SET(MCELL_UTILS_DIR ${CMAKE_SOURCE_DIR}/utils)
+SET(BUILD_UTILS_DIR ${CMAKE_CURRENT_BINARY_DIR}/utils)
+configure_file(${MCELL_UTILS_DIR}/mcell4_runner/mcell4_runner.py ${BUILD_UTILS_DIR}/mcell4_runner.py COPYONLY)
+configure_file(${MCELL_UTILS_DIR}/plotter/plotter.py ${BUILD_UTILS_DIR}/plotter.py COPYONLY)
+
 # copy tools for MDLr to MDL
+# TODO: list all files using configure_file
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
 pybind11_add_module(mcell4_so MODULE  
