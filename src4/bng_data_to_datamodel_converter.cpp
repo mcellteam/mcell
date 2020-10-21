@@ -127,6 +127,7 @@ void BngDataToDatamodelConverter::convert_molecules(Value& mcell_node) {
   Value& define_molecules = mcell_node[KEY_DEFINE_MOLECULES];
   add_version(define_molecules, VER_DM_2014_10_24_1638);
   Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
+  molecule_list = Value(Json::arrayValue); // empty array
 
   // we are converting molecule types because that's the information we need in
   // the datamodel, we do not care about species
@@ -167,7 +168,7 @@ void BngDataToDatamodelConverter::convert_single_mol_type(const BNG::MolType& mt
   display[KEY_GLYPH] = VALUE_GLYPH_SPHERE_1;
   display[KEY_SCALE] = mt.scale;
 
-  molecule_node[KEY_BNGL_COMPONENT_LIST] = Value(Json::arrayValue); // empty array;
+  molecule_node[KEY_BNGL_COMPONENT_LIST] = Value(Json::arrayValue); // empty array
   molecule_node[KEY_MOL_BNGL_LABEL] = "";
   molecule_node[KEY_DESCRIPTION] = "";
   molecule_node[KEY_MOL_TYPE] = mt.is_vol() ? VALUE_MOL_TYPE_3D : VALUE_MOL_TYPE_2D;

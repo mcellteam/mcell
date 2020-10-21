@@ -131,3 +131,10 @@ GeometryObject:
       regions when simulation starts.
     internal: Shouldn't we be inheriting this from Region?
     
+  methods:
+  - name: translate
+    doc: Move object by a specified vector, must be done before model initialization.
+    params:
+    - name: move
+      type: Vec3
+    

@@ -94,6 +94,18 @@ public:
     }
   }
 
+  void translate(const Vec3& move) override {
+    if (geometry_object_id != GEOMETRY_OBJECT_ID_INVALID) {
+      throw RuntimeError(S("Method ") + NAME_TRANSLATE + " may be called only before model initialization.");
+    }
+    for (auto& v: vertex_list) {
+      v[0] += move.x;
+      v[1] += move.y;
+      v[2] += move.z;
+    }
+  }
+
+  // --- added manually ---
   void check_is_initialized() {
     if (geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
       throw RuntimeError("Geometry object " + name + " is not present in model (or model was not initialized).");
@@ -110,6 +122,11 @@ public:
     return first_wall_index + wall_index;
   }
 
+  int get_object_wall_index(const wall_index_t wall_index) {
+    int res = wall_index - first_wall_index;
+    assert(res >= 0 && res < (int)element_connections.size());
+    return res;
+  }
 
 private:
   void check_vertex_index(const int vertex_index) {

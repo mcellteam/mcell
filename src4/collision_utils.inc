@@ -1383,12 +1383,22 @@ static uint get_num_crossed_region_walls(
 }
 
 
-static void get_num_crossed_walls_per_object(
+// returns the closest time of any collision
+static float_t get_num_crossed_walls_per_object(
     const Partition& p, const Vec3& pos, const Vec3& dst,
     const bool only_counted_objects,
     map<geometry_object_index_t, uint>& num_crossed_walls_per_object,
-    bool& must_redo_test
+    bool& must_redo_test,
+    geometry_object_id_t ignored_object_id = GEOMETRY_OBJECT_ID_INVALID,
+    wall_index_t* closest_hit_wall_index = nullptr
+
 ) {
+  float_t min_collision_time = 1; // 1 - no collision
+
+  if (closest_hit_wall_index != nullptr) {
+    *closest_hit_wall_index = WALL_INDEX_INVALID;
+  }
+
   must_redo_test = false;
   num_crossed_walls_per_object.clear();
 
@@ -1414,24 +1424,28 @@ static void get_num_crossed_walls_per_object(
         continue;
       }
 
+      if (w.object_id == ignored_object_id) {
+        continue;
+      }
+
       if (already_checked_walls.count(wall_index) != 0) {
         // we already checked this wall - the same wall can be in multiple subparts
         continue;
       }
       already_checked_walls.insert(wall_index);
 
-      float_t collision_time_ignored;
+      float_t collision_time;
       Vec3 collision_pos_ignored;
 
       CollisionType collision_type;
 
       collision_type = collide_wall(
             p, pos, wall_index, p.aux_rng, true, displacement,
-            collision_time_ignored, collision_pos_ignored);
+            collision_time, collision_pos_ignored);
 
       if (collision_type == CollisionType::WALL_REDO) {
         must_redo_test = true;
-        return;
+        return min_collision_time;
       }
       else if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
         auto it = num_crossed_walls_per_object.find(w.object_index);
@@ -1441,9 +1455,17 @@ static void get_num_crossed_walls_per_object(
         else {
           it->second++;
         }
+
+        if (collision_time < min_collision_time) {
+          min_collision_time = collision_time;
+          if (closest_hit_wall_index != nullptr) {
+            *closest_hit_wall_index = wall_index;
+          }
+        }
       }
     }
   }
+  return min_collision_time;
 }
 
 

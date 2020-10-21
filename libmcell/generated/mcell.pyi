@@ -366,6 +366,12 @@ class GeometryObject():
         self.right_node = right_node
 
 
+    def translate(
+            self,
+            move : Vec3
+        ) -> None:
+        pass
+
     def __add__(
             self,
             other : Region
@@ -547,6 +553,13 @@ class Model():
         ) -> 'Molecule':
         pass
 
+    def get_vertex(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
     def get_wall(
             self,
             object : GeometryObject,
@@ -578,9 +591,8 @@ class Model():
 
     def apply_vertex_moves(
             self,
-            collect_wall_wall_hits : bool = False,
-            wall_wall_hits : List[WallWallHitInfo] = None
-        ) -> None:
+            collect_wall_wall_hits : bool = False
+        ) -> 'List[WallWallHitInfo]':
         pass
 
     def register_mol_wall_hit_callback(

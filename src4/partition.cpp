@@ -92,12 +92,54 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 }
 
 
-void Partition::apply_vertex_moves(const std::vector<VertexMoveInfo>& vertex_moves) {
+void Partition::apply_vertex_moves(
+    std::vector<VertexMoveInfo>& vertex_moves,
+    std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
+
+  // due to wall-wall collision detection, we must move vertices of each object separately
+
+  // is there a single object that we are moving?
+  geometry_object_id_t object_id = GEOMETRY_OBJECT_ID_INVALID;
+  bool single_object = true;
+  for (const VertexMoveInfo& vertex_move_info: vertex_moves) {
+    if (object_id == GEOMETRY_OBJECT_ID_INVALID || object_id == vertex_move_info.geometry_object_id) {
+      object_id = vertex_move_info.geometry_object_id;
+    }
+    else {
+      single_object = false;
+      break;
+    }
+  }
+
+  if (single_object) {
+    apply_vertex_moves_per_object(vertex_moves, colliding_walls);
+  }
+  else {
+    // we must make a separate vector for each
+    map<geometry_object_id_t, vector<VertexMoveInfo>> vertex_moves_per_object;
+    for (const VertexMoveInfo& vertex_move_info: vertex_moves) {
+      vertex_moves_per_object[vertex_move_info.geometry_object_id].push_back(vertex_move_info);
+    }
+
+    // and process objects one by one
+    for (auto& pair_id_moves: vertex_moves_per_object) {
+      apply_vertex_moves_per_object(pair_id_moves.second, colliding_walls);
+    }
+  }
+}
+
+
+void Partition::apply_vertex_moves_per_object(
+    std::vector<VertexMoveInfo>& vertex_moves,
+    std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
+
+  // 0) clamp maximum movement
+  clamp_vertex_moves_to_wall_wall_collisions(vertex_moves, colliding_walls);
+
   // 1) create a set of all affected walls with information on how much each wall moves,
   uint_set<vertex_index_t> moved_vertices_set;
   WallsWithTheirMovesMap walls_with_their_moves;
   for (const VertexMoveInfo& vertex_move_info: vertex_moves) {
-    assert(vertex_move_info.partition_id == id);
 
     // expecting that there we are not moving a single vertex twice
     if (moved_vertices_set.count(vertex_move_info.vertex_index) != 0) {
@@ -118,6 +160,7 @@ void Partition::apply_vertex_moves(const std::vector<VertexMoveInfo>& vertex_mov
       it->second.push_back(vertex_move_info);
     }
   }
+
 
   // 2) for each wall, detect what molecules will be moved and move them right away
   //    In some cases, moving one wall might place a molecule into a path of another moved wall,
@@ -182,6 +225,97 @@ void Partition::apply_vertex_moves(const std::vector<VertexMoveInfo>& vertex_mov
     DynVertexUtil::move_surface_molecule_to_closest_wall_point(*this, move_info);
   }
 }
+
+
+void Partition::clamp_vertex_moves_to_wall_wall_collisions(
+    std::vector<VertexMoveInfo>& vertex_moves,
+    std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
+
+  // FIXME: the test does not handle cases when there is a sharp edge or the colliding triangle is smaller,
+  // than the triangle we are moving, but for now let's keep it as it is...
+
+  // this is a first test that checks whether our wall wont simply collide
+  // if we send a ray from each of the moved
+  for (VertexMoveInfo& vertex_move_info: vertex_moves) {
+    assert(vertex_move_info.partition_id == id);
+
+    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info.vertex_index);
+    Vec3& displacement = vertex_move_info.displacement;
+    // check that object id is consistent
+    assert(!wall_indices.empty());
+    assert(get_wall(wall_indices[0]).object_id == vertex_move_info.geometry_object_id);
+
+    const Vec3& pos = get_geometry_vertex(vertex_move_info.vertex_index);
+    map<geometry_object_index_t, uint> num_crossed_walls_per_object_ignored;
+    bool must_redo_test;
+    wall_index_t closest_hit_wall_index;
+
+    Vec3 dir(
+        (cmp_eq(displacement.x, 0) ? 0 : ((displacement.x > 0) ? 1 : -1)),
+        (cmp_eq(displacement.y, 0) ? 0 : ((displacement.y > 0) ? 1 : -1)),
+        (cmp_eq(displacement.z, 0) ? 0 : ((displacement.z > 0) ? 1 : -1))
+    );
+    // extra displacement to make sure that we will end up in front of a wall,
+    // not on it
+    Vec3 wall_gap_displacement = dir * Vec3(MIN_WALL_GAP);
+
+    // TODO: preferably use some function that does not collect what we hit,
+    // but we do not have such
+    float_t collision_time = CollisionUtil::get_num_crossed_walls_per_object(
+        *this, pos, pos + displacement + wall_gap_displacement, false,
+        num_crossed_walls_per_object_ignored, must_redo_test,
+        vertex_move_info.geometry_object_id,
+        &closest_hit_wall_index
+    );
+
+    bool ignore_hit = false;
+    if (must_redo_test) {
+      mcell_log(
+          "Internal warning: wall collision redo in clamp_vertex_moves_to_wall_wall_collisions is not handled yet, "
+          "the vertex move that caused it won't be applied."
+      );
+      ignore_hit = true;
+      collision_time = 0;
+    }
+
+    assert(collision_time >= 0.0 && collision_time <= 1.0);
+    if (collision_time != 1.0) {
+
+      if (collision_time < SQRT_EPS) {
+        collision_time = 0.0;
+      }
+      else {
+        collision_time -= SQRT_EPS;
+      }
+
+      // clamp the displacement (it is a reference)
+      displacement = displacement * Vec3(collision_time);
+
+      // decrement by MIN_WALL_GAP because we hit a wall and would like to stay a bit in front of it
+      displacement = displacement - wall_gap_displacement;
+
+      // and zero-out parts of displacement that are smaller than MIN_WALL_GAP
+
+      if (!ignore_hit) {
+        assert(closest_hit_wall_index != WALL_INDEX_INVALID);
+
+        // and remember collisions for each of the walls that are moved by this single vertex
+        const Wall& hit_wall = get_wall(closest_hit_wall_index);
+        for (wall_index_t wi: wall_indices) {
+          colliding_walls.insert(
+              GeometryObjectWallUnorderedPair(
+                  vertex_move_info.geometry_object_id,
+                  wi,
+                  hit_wall.object_id,
+                  hit_wall.index
+              )
+          );
+        }
+      }
+    }
+  }
+}
+
 
 void Partition::dump() {
   GeometryObject::dump_array(*this, geometry_objects);

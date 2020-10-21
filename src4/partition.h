@@ -803,21 +803,12 @@ public:
       const BNG::Species& species, const counted_volume_index_t counted_volume_index);
 
   // ---------------------------------- dynamic vertices ----------------------------------
-  // add information about a change of a specific vertex
-  // order of calls is important (at least for now)
-  // legacy implementation for pymcell 3_4
-  void add_vertex_move(const vertex_index_t vertex_index, const Vec3& translation_vec) {
-    scheduled_vertex_moves.push_back(VertexMoveInfo(id, vertex_index, translation_vec));
-  }
 
-  // do the actual changes of vertices
-  // legacy implementation for pymcell 3_4
-  void apply_vertex_moves() {
-    apply_vertex_moves(scheduled_vertex_moves);
-    scheduled_vertex_moves.clear();
-  }
+  // may change the displacements in vertex_moves in some cases, do not use it afterwards
+  void apply_vertex_moves(
+      std::vector<VertexMoveInfo>& vertex_moves,
+      std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
 
-  void apply_vertex_moves(const std::vector<VertexMoveInfo>& vertex_moves);
 
   void move_waypoint_because_positioned_on_wall(
       const IVec3& waypoint_index, const bool reinitialize = true
@@ -827,6 +818,15 @@ public:
   bool check_for_overlapped_walls(const Vec3& rand_vec) const;
 
 private:
+
+  void clamp_vertex_moves_to_wall_wall_collisions(
+      std::vector<VertexMoveInfo>& vertex_moves,
+      std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
+
+  void apply_vertex_moves_per_object(
+      std::vector<VertexMoveInfo>& vertex_moves,
+      std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
+
   void update_walls_per_subpart(
       const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert
   );

@@ -35,6 +35,7 @@
 #include "api/viz_output.h"
 #include "api/count.h"
 #include "api/wall.h"
+#include "api/wall_wall_hit_info.h"
 
 #include "world.h"
 
@@ -187,6 +188,14 @@ std::shared_ptr<API::Molecule> Model::get_molecule(const int id) {
 }
 
 
+Vec3 Model::get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) {
+  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  return
+      p.get_geometry_vertex(object->get_partition_vertex_index(vertex_index)) *
+      Vec3(world->config.length_unit);
+}
+
+
 std::shared_ptr<Wall> Model::get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) {
   object->check_is_initialized();
 
@@ -254,6 +263,7 @@ void Model::add_vertex_move(
   vertex_moves.push_back(
       VertexMoveInfo(
           PARTITION_ID_INITIAL,
+          object->geometry_object_id,
           object->get_partition_vertex_index(vertex_index),
           displacement * Vec3(world->config.rcp_length_unit) // convert to internal units
       )
@@ -261,14 +271,33 @@ void Model::add_vertex_move(
 }
 
 
-void Model::apply_vertex_moves(
-    const bool collect_wall_wall_hits,
-    const std::vector<std::shared_ptr<WallWallHitInfo>> wall_wall_hits) {
-  // TODO: handle collect_wall_wall_hits
+std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
+    const bool collect_wall_wall_hits) {
 
   // run the actual vertex update
-  world->get_partition(PARTITION_ID_INITIAL).apply_vertex_moves(vertex_moves);
+  std::set<GeometryObjectWallUnorderedPair> colliding_walls;
+  world->get_partition(PARTITION_ID_INITIAL).apply_vertex_moves(vertex_moves, colliding_walls);
   vertex_moves.clear();
+
+  std::vector<std::shared_ptr<WallWallHitInfo>> res;
+
+  // convert information on processed hits
+  if (collect_wall_wall_hits) {
+    for (const auto& wall_pair: colliding_walls) {
+      auto obj1 = get_geometry_object_with_id(wall_pair.geometry_object_id1);
+      int obj_wall_index1 = obj1->get_object_wall_index(wall_pair.wall_index1);
+      auto obj2 = get_geometry_object_with_id(wall_pair.geometry_object_id2);
+      int obj_wall_index2 = obj1->get_object_wall_index(wall_pair.wall_index1);
+
+      auto pair = make_shared<WallWallHitInfo>();
+      pair->wall1 = get_wall(obj1, obj_wall_index1);
+      pair->wall2 = get_wall(obj2, obj_wall_index2);
+
+      res.push_back(pair);
+    }
+  }
+
+  return res;
 }
 
 

@@ -167,6 +167,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       )
       .def("check_semantics", &GeometryObject::check_semantics)
       .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
+      .def("translate", &GeometryObject::translate, py::arg("move"))
       .def("dump", &GeometryObject::dump)
       .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
       .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list)

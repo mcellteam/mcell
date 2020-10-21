@@ -95,6 +95,16 @@ Model:
       type: int
   
   # --- geometry ---
+  - name: get_vertex
+    doc: Returns coordinates of a vertex.
+    return_type: Vec3 
+    params:
+    - name: object
+      type: GeometryObject*
+    - name: vertex_index
+      type: int 
+      doc: This is the index of the vertex in object's walls (element_connections).
+      
   - name: get_wall
     doc: Returns information about a wall belonging to a given object.
     return_type: Wall* 
@@ -103,7 +113,7 @@ Model:
       type: GeometryObject*
     - name: wall_index
       type: int 
-      doc: This is the index of the vertex in object's walls (element_connections).
+      doc: This is the index of the wall in object's walls (element_connections).
       
   - name: get_vertex_unit_normal
     doc: | 
@@ -143,21 +153,20 @@ Model:
       doc: Change of vertex coordinates (in um), will be added to the current coordinates of the vertex 
       
   - name: apply_vertex_moves
-    doc: Applies all the vertex moves specified with add_vertex_move call
+    doc: | 
+       Applies all the vertex moves specified with add_vertex_move call.
+       Walls of different objects are checked against collisions and move the maximal way so that they do not 
+       overlap. (the current pllementation is a bit basic and may not work 100% correctly) 
+       When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
+       when collect_wall_wall_hits is False, and empty list is returned.
+    return_type: List[WallWallHitInfo*]
     params:
     - name: collect_wall_wall_hits
       type: bool
       default: false
       doc: |
-        When set to True, the wall_wall_hits array will contain wall pairs that collided with 
-        each other. 
-      
-    - name: wall_wall_hits
-      type: List[WallWallHitInfo*]
-      default: empty
-      doc: | 
-        When collect_wall_wall_hits is True, a list of wall pairs that 
-        collided is stored into this list.
+        When set to True, a list of wall pairs that collided is returned,
+	otherwise an empty list is returned.
   
   # --- callbacks ---
   

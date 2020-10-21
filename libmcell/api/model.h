@@ -77,6 +77,7 @@ public:
   std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
   std::shared_ptr<Molecule> get_molecule(const int id) override;
 
+  Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
   std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) override;
   Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
   Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) override;
@@ -86,10 +87,7 @@ public:
       std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement
   ) override;
 
-  void apply_vertex_moves(
-      const bool collect_wall_wall_hits = false,
-      const std::vector<std::shared_ptr<WallWallHitInfo>> wall_wall_hits = std::vector<std::shared_ptr<WallWallHitInfo>>()
-  ) override;
+  std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) override;
 
   void register_mol_wall_hit_callback(
       const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function,

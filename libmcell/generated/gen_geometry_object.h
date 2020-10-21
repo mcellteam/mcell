@@ -167,6 +167,7 @@ public:
   }
 
   // --- methods ---
+  virtual void translate(const Vec3& move) = 0;
 }; // GenGeometryObject
 
 class GeometryObject;

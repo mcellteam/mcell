@@ -110,6 +110,8 @@ using BNGCommon::pow_f;
 using BNGCommon::floor_f;
 using BNGCommon::round_f;
 
+const float_t MIN_WALL_GAP = 1e-4; // 1 angstrom
+
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
 #error "Macros 'likely' or 'unlikely' are already defined"
