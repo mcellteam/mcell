@@ -53,7 +53,9 @@
 #include "generated/gen_region.h"
 
 #include "generated/gen_molecule.h"
-#include "generated/gen_wall_hit_info.h"
+#include "generated/gen_wall.h"
+#include "generated/gen_mol_wall_hit_info.h"
+#include "generated/gen_wall_wall_hit_info.h"
 
 #include "generated/gen_geometry_utils.h"
 
@@ -91,6 +93,9 @@ void define_pybinding_Vec3(py::module& m) {
       .def("__mul__", [](const Vec3& a, const Vec3& b) { return Vec3(a * b); } )
       .def("__truediv__", [](const Vec3& a, const Vec3& b) { return Vec3(a / b); } )
       .def("__eq__",  [](const Vec3& a, const Vec3& b) { return a == b; } )
+      .def("__str__",  [](const Vec3& a)
+          { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + ")"; } )
+      .def("tolist",  [](const Vec3& a) { return std::vector<float_t>{a.x, a.y, a.z}; } )
       .def_readwrite("x", &Vec3::x)
       .def_readwrite("y", &Vec3::y)
       .def_readwrite("z", &Vec3::z)
@@ -172,8 +177,10 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_Model(m);
 
   define_pybinding_Molecule(m);
+  define_pybinding_Wall(m);
+  define_pybinding_WallWallHitInfo(m);
 
-  define_pybinding_WallHitInfo(m);
+  define_pybinding_MolWallHitInfo(m);
 
   // constants may reference existing types, must be "bound" later
   define_pybinding_constants(m);

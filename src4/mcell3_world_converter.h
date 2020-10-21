@@ -24,6 +24,7 @@
 #ifndef SRC4_MCELL3_WORLD_CONVERTER_H_
 #define SRC4_MCELL3_WORLD_CONVERTER_H_
 
+#include "api/callbacks.h"
 #include "mcell_structs.h"
 
 #include "world.h"
@@ -44,7 +45,7 @@ class RegionExprNode;
 class MCell3WorldConverter {
 public:
   MCell3WorldConverter() :
-    world(nullptr) {
+    world(nullptr), callbacks(nullptr) {
   }
 
   ~MCell3WorldConverter() {
@@ -83,6 +84,8 @@ private:
 public:
   // contained world object
   World* world;
+
+  API::Callbacks callbacks;
 
 private:
   species_id_t get_mcell4_species_id(u_int mcell3_id) {

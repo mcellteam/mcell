@@ -39,3 +39,45 @@ Molecule:
     doc: | 
       Removes this molecule from simulation. Any subsequent modifications
       of this object won't have any effect.  
+
+Wall:
+  superclass: BaseIntrospectionClass 
+  doc: |
+    This is a Python representation of a molecule obtained from Model 
+    during simulation.
+  items:
+  - name: geometry_object
+    type: GeometryObject*
+    doc: Object to which this wall belongs.
+  
+  - name: wall_index
+    type: int
+    doc: Index of this wall in the object to which this wall belongs.
+    
+  - name: vertices
+    type: List[Vec3]
+    doc: Vertices of the triangle that represents this wall.
+    
+  - name: area
+    type: float
+    
+  - name: normal
+    type: Vec3
+    doc: Normal of this wall, no guarantees on the length of this vector are given. 
+
+  - name: is_movable
+    type: bool
+    default: true
+    doc: | 
+       If True, whis wall can be moved through Model.apply_vertex_moves,
+       if False, wall moves are ignored. 
+    
+    
+WallWallHitInfo:
+  superclass: BaseIntrospectionClass 
+  items:
+  - name: wall1
+    type: Wall*
+           
+  - name: wall2
+    type: Wall*           

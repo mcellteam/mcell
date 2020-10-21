@@ -26,6 +26,8 @@ class InstantiationData():
     pass
 class Model():
     pass
+class MolWallHitInfo():
+    pass
 class Molecule():
     pass
 class MoleculeReleaseInfo():
@@ -54,7 +56,9 @@ class SurfaceRegion():
     pass
 class VizOutput():
     pass
-class WallHitInfo():
+class Wall():
+    pass
+class WallWallHitInfo():
     pass
 class Warnings():
     pass
@@ -543,22 +547,45 @@ class Model():
         ) -> 'Molecule':
         pass
 
+    def get_wall(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Wall':
+        pass
+
+    def get_vertex_unit_normal(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall_unit_normal(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Vec3':
+        pass
+
     def add_vertex_move(
             self,
             object : GeometryObject,
-            index : int,
+            vertex_index : int,
             displacement : Vec3
         ) -> None:
         pass
 
     def apply_vertex_moves(
             self,
+            collect_wall_wall_hits : bool = False,
+            wall_wall_hits : List[WallWallHitInfo] = None
         ) -> None:
         pass
 
-    def register_wall_hit_callback(
+    def register_mol_wall_hit_callback(
             self,
-            function : std::function<void(std::shared_ptr<WallHitInfo>, py::object)>,
+            function : std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>,
             context : py::object,
             object : GeometryObject = None,
             species : Species = None
@@ -694,6 +721,26 @@ class Model():
             parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
+
+class MolWallHitInfo():
+    def __init__(
+            self,
+            molecule_id : int,
+            geometry_object : GeometryObject,
+            wall_index : int,
+            time : float,
+            pos : Vec3,
+            time_before_hit : float,
+            pos_before_hit : Vec3
+        ):
+        self.molecule_id = molecule_id
+        self.geometry_object = geometry_object
+        self.wall_index = wall_index
+        self.time = time
+        self.pos = pos
+        self.time_before_hit = time_before_hit
+        self.pos_before_hit = pos_before_hit
+
 
 class Molecule():
     def __init__(
@@ -916,7 +963,7 @@ class Species():
     def inst(
             self,
             orientation : Orientation = Orientation.DEFAULT,
-            compartment_name : str = 
+            compartment_name : str = None
         ) -> 'Complex':
         pass
 
@@ -1081,24 +1128,32 @@ class VizOutput():
         self.every_n_timesteps = every_n_timesteps
 
 
-class WallHitInfo():
+class Wall():
     def __init__(
             self,
-            molecule_id : int,
-            geometry_object_id : int,
-            wall_id : int,
-            time : float,
-            pos : Vec3,
-            time_before_hit : float,
-            pos_before_hit : Vec3
+            geometry_object : GeometryObject,
+            wall_index : int,
+            vertices : List[Vec3],
+            area : float,
+            normal : Vec3,
+            is_movable : bool = True
         ):
-        self.molecule_id = molecule_id
-        self.geometry_object_id = geometry_object_id
-        self.wall_id = wall_id
-        self.time = time
-        self.pos = pos
-        self.time_before_hit = time_before_hit
-        self.pos_before_hit = pos_before_hit
+        self.geometry_object = geometry_object
+        self.wall_index = wall_index
+        self.vertices = vertices
+        self.area = area
+        self.normal = normal
+        self.is_movable = is_movable
+
+
+class WallWallHitInfo():
+    def __init__(
+            self,
+            wall1 : Wall,
+            wall2 : Wall
+        ):
+        self.wall1 = wall1
+        self.wall2 = wall2
 
 
 class Warnings():

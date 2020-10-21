@@ -20,23 +20,32 @@
  *
 ******************************************************************************/
 
-#ifndef API_WALL_HIT_INFO_H
-#define API_WALL_HIT_INFO_H
+#include "api/callbacks.h"
 
-#include "generated/gen_wall_hit_info.h"
-#include "api/common.h"
+#include "api/model.h"
+#include "api/geometry_object.h"
 
 namespace MCell {
 namespace API {
 
-class WallHitInfo: public GenWallHitInfo {
-public:
-  void dump() {
-    std::cout << to_str();
-  }
-};
+Callbacks::Callbacks(Model* model_)
+  : model(model_),
+    mol_wall_hit_callback_function(nullptr),
+    mol_wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID),
+    mol_wall_hit_species_id(SPECIES_ID_INVALID)
+  {
+  assert(model != nullptr);
+}
 
-} // namespace API
-} // namespace MCell
 
-#endif // API_WALL_HIT_INFO_H
+void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo> info) {
+  info->geometry_object = model->get_geometry_object_with_id(info->geometry_object_id);
+  assert(is_set(info->geometry_object));
+  assert(info->partition_wall_index >= info->geometry_object->first_wall_index);
+  info->wall_index = info->partition_wall_index - info->geometry_object->first_wall_index;
+  // call the actual callback
+  mol_wall_hit_callback_function(info, mol_wall_hit_context);
+}
+
+} /* namespace API */
+} /* namespace MCell */

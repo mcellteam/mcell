@@ -48,8 +48,6 @@
 
 #include "logging.h"
 
-#include "api/wall_hit_info.h"
-#include "pybind11/include/pybind11/pybind11.h"
 
 namespace Json {
 class Value;
@@ -57,12 +55,16 @@ class Value;
 
 namespace MCell {
 
-typedef std::function<void(std::shared_ptr<API::WallHitInfo>, pybind11::object)> wall_hit_callback_function_t;
+namespace API {
+class Model;
+class Callbacks;
+}
+
 
 class World {
 
 public:
-  World();
+  World(API::Callbacks& callbacks_);
   ~World();
   void init_simulation();
   void run_simulation(const bool dump_initial_state = false);
@@ -86,6 +88,10 @@ public:
 
   uint64_t get_current_iteration() const {
     return stats.get_current_iteration();
+  }
+
+  API::Callbacks& get_callbacks() {
+    return callbacks;
   }
 
   // -------------- partition manipulation methods --------------
@@ -198,19 +204,6 @@ public:
   }
 #endif
 
-  void register_wall_hit_callback(
-      const wall_hit_callback_function_t func,
-      py::object context,
-      const geometry_object_id_t geometry_object_id,
-      const species_id_t species_id
-  ) {
-    wall_hit_callback_function = func;
-    wall_hit_context = context;
-    wall_hit_object_id = geometry_object_id;
-    wall_hit_species_id = species_id;
-  }
-
-
   // ------------- counting ---------------------------------------
 #ifdef ENABLE_LEGACY_CALLBACKS
   // ?? why is it slower???
@@ -288,6 +281,7 @@ private:
   void flush_buffers();
 
   void export_data_layout() const;
+
 public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation
@@ -296,6 +290,9 @@ public:
   BNG::BNGEngine bng_engine;
 
   SimulationStats stats;
+
+  // owned by API::Model or references a global instance in case of MDL mode
+  API::Callbacks& callbacks;
 
   SpeciesFlagsAnalyzer species_flags_analyzer;
 
@@ -334,15 +331,13 @@ private:
 
 public:
 
-  // new pymcell4 implementation of callbacks
-  wall_hit_callback_function_t wall_hit_callback_function;
-  py::object wall_hit_context;
-  geometry_object_id_t wall_hit_object_id;
-  species_id_t wall_hit_species_id;
-
-
 #ifdef ENABLE_LEGACY_CALLBACKS
   // legacy implementation (to be removed)
+  
+  // new pymcell4 implementation of callbacks
+  geometry_object_id_t wall_hit_object_id;
+  species_id_t wall_hit_species_id;
+  
   // callbacks
   wall_hit_callback_func legacy_wall_hit_callback;
   // clientdata hold information on what Python function we should call

@@ -41,6 +41,11 @@
 #include "bng_data_to_datamodel_converter.h"
 #include "diffuse_react_event.h"
 
+#include "api/mol_wall_hit_info.h"
+#include "api/geometry_object.h"
+#include "api/model.h"
+
+
 using namespace std;
 
 const double USEC_IN_SEC = 1000000.0;
@@ -57,8 +62,9 @@ static double tosecs(timeval& t) {
 }
 
 
-World::World()
+World::World(API::Callbacks& callbacks_)
   : bng_engine(config),
+    callbacks(callbacks_),
     total_iterations(0),
     next_wall_id(0),
     next_region_id(0),
@@ -67,13 +73,12 @@ World::World()
     simulation_ended(false),
     buffers_flushed(false),
     previous_progress_report_time({0, 0}),
-    previous_iteration(0),
+    previous_iteration(0)
 
-    wall_hit_callback_function(nullptr),
-    wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID),
-    wall_hit_species_id(SPECIES_ID_INVALID)
 #ifdef ENABLE_LEGACY_CALLBACKS
     ,
+    wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID),
+    wall_hit_species_id(SPECIES_ID_INVALID),
     legacy_wall_hit_callback(nullptr),
     legacy_wall_hit_callback_clientdata(nullptr)
 #endif

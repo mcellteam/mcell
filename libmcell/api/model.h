@@ -28,11 +28,13 @@
 #include "api/globals.h"
 #include "api/subsystem.h"
 #include "api/instantiation_data.h"
+#include "api/instantiation_data.h"
 #include "api/observables.h"
 #include "api/config.h"
 #include "api/warnings.h"
 #include "api/notifications.h"
 #include "api/shared_structs.h"
+#include "api/callbacks.h"
 
 namespace MCell {
 
@@ -40,10 +42,13 @@ class World;
 
 namespace API {
 
+class MolWallHitInfo;
+class WallWallHitInfo;
+
 class Model: public GenModel, public Subsystem, public InstantiationData, public Observables {
 public:
 
-  Model() : initialized(false), world(nullptr) {
+  Model() : initialized(false), world(nullptr), callbacks(this) {
     // add species superclasses
     species.push_back(AllMolecules);
     species.push_back(AllVolumeMolecules);
@@ -70,17 +75,24 @@ public:
   }
 
   std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
-
   std::shared_ptr<Molecule> get_molecule(const int id) override;
 
+  std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) override;
+  Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
+  Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) override;
+
+
   void add_vertex_move(
-      std::shared_ptr<GeometryObject> object, const int index, const Vec3& displacement
+      std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement
   ) override;
 
-  void apply_vertex_moves() override;
+  void apply_vertex_moves(
+      const bool collect_wall_wall_hits = false,
+      const std::vector<std::shared_ptr<WallWallHitInfo>> wall_wall_hits = std::vector<std::shared_ptr<WallWallHitInfo>>()
+  ) override;
 
-  void register_wall_hit_callback(
-      const std::function<void(std::shared_ptr<WallHitInfo>, py::object)> function,
+  void register_mol_wall_hit_callback(
+      const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function,
       py::object context,
       std::shared_ptr<GeometryObject> object = nullptr,
       std::shared_ptr<Species> species = nullptr
@@ -101,44 +113,21 @@ public:
   }
 
   // overrides from derived classes Subsystem, InstantiationData, and Observables
-  void add_species(std::shared_ptr<Species> s) override {
-    error_if_initialized(NAME_CLASS_SPECIES);
-    Subsystem::add_species(s);
-  }
+  void add_species(std::shared_ptr<Species> s) override;
+  void add_reaction_rule(std::shared_ptr<ReactionRule> r) override;
 
-  void add_reaction_rule(std::shared_ptr<ReactionRule> r) override {
-    error_if_initialized(NAME_CLASS_REACTION_RULE);
-    Subsystem::add_reaction_rule(r);
-  }
+  void add_surface_class(std::shared_ptr<SurfaceClass> sc) override;
+  void add_release_site(std::shared_ptr<ReleaseSite> s) override;
+  void add_geometry_object(std::shared_ptr<GeometryObject> o) override;
 
-  void add_surface_class(std::shared_ptr<SurfaceClass> sc) override {
-    error_if_initialized(NAME_CLASS_SURFACE_CLASS);
-    Subsystem::add_surface_class(sc);
-  }
-
-  void add_release_site(std::shared_ptr<ReleaseSite> s) override {
-    error_if_initialized(NAME_CLASS_RELEASE_SITE);
-    InstantiationData::add_release_site(s);
-  }
-
-  void add_geometry_object(std::shared_ptr<GeometryObject> o) override {
-    error_if_initialized(NAME_CLASS_GEOMETRY_OBJECT);
-    InstantiationData::add_geometry_object(o);
-  }
-
-  void add_viz_output(std::shared_ptr<VizOutput> viz_output) override {
-    error_if_initialized(NAME_CLASS_VIZ_OUTPUT);
-    Observables::add_viz_output(viz_output);
-  };
-
-  void add_count(std::shared_ptr<Count> count) override {
-    error_if_initialized(NAME_CLASS_OBSERVABLES);
-    Observables::add_count(count);
-  };
+  void add_viz_output(std::shared_ptr<VizOutput> viz_output) override;
+  void add_count(std::shared_ptr<Count> count) override;
 
   // added manually
   // shadows all inherited non-virtual to_str methods
   std::string to_str(const std::string ind="") const;
+
+  std::shared_ptr<GeometryObject> get_geometry_object_with_id(const geometry_object_id_t id);
 
   void dump() const;
 
@@ -151,6 +140,8 @@ private:
 
   bool initialized;
   World* world;
+
+  Callbacks callbacks;
 
   std::vector<VertexMoveInfo> vertex_moves;
 };

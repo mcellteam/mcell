@@ -34,6 +34,7 @@
 #include "api/geometry_object.h"
 #include "api/viz_output.h"
 #include "api/count.h"
+#include "api/wall.h"
 
 #include "world.h"
 
@@ -80,7 +81,7 @@ void Model::initialize() {
     throw RuntimeError("Model.initialize() can be called only once");
   }
 
-  world = new World();
+  world = new World(callbacks);
 
   // semantic checks are done during conversion
   MCell4Converter converter;
@@ -186,44 +187,93 @@ std::shared_ptr<API::Molecule> Model::get_molecule(const int id) {
 }
 
 
+std::shared_ptr<Wall> Model::get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) {
+  object->check_is_initialized();
+
+  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
+
+  auto res = make_shared<Wall>();
+  res->geometry_object = object;
+  res->wall_index = wall_index;
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    res->vertices.push_back(p.get_geometry_vertex(w.vertex_indices[i]) * Vec3(world->config.length_unit));
+  }
+  res->area = w.area * world->config.length_unit * world->config.length_unit;
+  res->normal = w.normal; // no need to convert units here
+  res->is_movable = w.is_movable;
+  return res;
+}
+
+
+Vec3 Model::get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) {
+  object->check_is_initialized();
+
+  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  const std::vector<wall_index_t>& walls = p.get_walls_using_vertex(object->get_partition_vertex_index(vertex_index));
+
+  if (walls.empty()) {
+    throw RuntimeError("Internal error: there are no walls that use vertex with index " +
+        to_string(vertex_index) + " of object " + object->name + ".");
+  }
+
+  Vec3 normals_sum = Vec3(0);
+  for (wall_index_t wi: walls) {
+    const MCell::Wall& w = p.get_wall(wi);
+    normals_sum = normals_sum + w.normal;
+  }
+
+  return normals_sum / Vec3(len3(normals_sum));
+}
+
+
+Vec3 Model::get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) {
+  object->check_is_initialized();
+
+  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
+
+  return w.normal / Vec3(len3(w.normal));
+}
+
+
 void Model::add_vertex_move(
-    std::shared_ptr<GeometryObject> object, const int index, const Vec3& displacement
+    std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement
 ) {
-  // currently, it is not expected that the user will have access to the scheduled vertex moves
-  if (object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
-    throw RuntimeError("Geometry object " + object->name + " is not present in model (or model was not initialized).");
-  }
+  // - currently, it is not expected that the user will have access to the scheduled vertex moves
+  // - later we can use the object id to determine the partition
 
-  if (index < 0 || index >= (int)object->vertex_list.size()) {
-    throw RuntimeError(
-        "Vertex index " + to_string(index) + " is out of range for " + NAME_VERTEX_LIST + " of " + object->name + ".");
-  }
+  object->check_is_initialized();
 
-  // later we can use the object id to determine the partition
   release_assert(
-      object->first_vertex_index + index <
+      object->first_vertex_index + vertex_index <
       world->get_partition(PARTITION_ID_INITIAL).get_geometry_vertex_count()
   );
 
   vertex_moves.push_back(
       VertexMoveInfo(
           PARTITION_ID_INITIAL,
-          object->first_vertex_index + index,
-          displacement * Vec3(world->config.rcp_length_unit) // convert units
+          object->get_partition_vertex_index(vertex_index),
+          displacement * Vec3(world->config.rcp_length_unit) // convert to internal units
       )
   );
 }
 
 
-void Model::apply_vertex_moves() {
+void Model::apply_vertex_moves(
+    const bool collect_wall_wall_hits,
+    const std::vector<std::shared_ptr<WallWallHitInfo>> wall_wall_hits) {
+  // TODO: handle collect_wall_wall_hits
+
   // run the actual vertex update
   world->get_partition(PARTITION_ID_INITIAL).apply_vertex_moves(vertex_moves);
   vertex_moves.clear();
 }
 
 
-void Model::register_wall_hit_callback(
-    const std::function<void(std::shared_ptr<WallHitInfo>, py::object)> function,
+void Model::register_mol_wall_hit_callback(
+    const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function,
     py::object context,
     std::shared_ptr<GeometryObject> object,
     std::shared_ptr<Species> species
@@ -248,7 +298,7 @@ void Model::register_wall_hit_callback(
     species_id = species->species_id;
   }
 
-  world->register_wall_hit_callback(function, context, geometry_object_id, species_id);
+  callbacks.register_mol_wall_hit_callback(function, context, geometry_object_id, species_id);
 }
 
 
@@ -276,6 +326,44 @@ void Model::load_bngl(
 }
 
 
+
+// overrides from derived classes Subsystem, InstantiationData, and Observables,
+// in .cpp because implementation in .h file would need too many headers to be included
+void Model::add_species(std::shared_ptr<Species> s) {
+  error_if_initialized(NAME_CLASS_SPECIES);
+  Subsystem::add_species(s);
+}
+
+void Model::add_reaction_rule(std::shared_ptr<ReactionRule> r) {
+  error_if_initialized(NAME_CLASS_REACTION_RULE);
+  Subsystem::add_reaction_rule(r);
+}
+
+void Model::add_surface_class(std::shared_ptr<SurfaceClass> sc) {
+  error_if_initialized(NAME_CLASS_SURFACE_CLASS);
+  Subsystem::add_surface_class(sc);
+}
+
+void Model::add_release_site(std::shared_ptr<ReleaseSite> s) {
+  error_if_initialized(NAME_CLASS_RELEASE_SITE);
+  InstantiationData::add_release_site(s);
+}
+
+void Model::add_geometry_object(std::shared_ptr<GeometryObject> o) {
+  error_if_initialized(NAME_CLASS_GEOMETRY_OBJECT);
+  InstantiationData::add_geometry_object(o);
+}
+
+void Model::add_viz_output(std::shared_ptr<VizOutput> viz_output) {
+  error_if_initialized(NAME_CLASS_VIZ_OUTPUT);
+  Observables::add_viz_output(viz_output);
+};
+
+void Model::add_count(std::shared_ptr<Count> count) {
+  error_if_initialized(NAME_CLASS_OBSERVABLES);
+  Observables::add_count(count);
+};
+
 std::string Model::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "Model" << ": " <<
@@ -290,6 +378,16 @@ std::string Model::to_str(const std::string ind) const {
       "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
       "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
   return ss.str();
+}
+
+std::shared_ptr<GeometryObject> Model::get_geometry_object_with_id(const geometry_object_id_t id) {
+  // not very efficient, we may need some caching/map later
+  for (auto o: geometry_objects) {
+    if (o->geometry_object_id == id) {
+      return o;
+    }
+  }
+  return std::shared_ptr<GeometryObject>(nullptr);
 }
 
 

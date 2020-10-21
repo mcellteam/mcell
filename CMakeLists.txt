@@ -74,7 +74,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also PyMCell" ON) 
+option(PYMCELL "Build also PyMCell" OFF) # pymcell3_4 is not supported anymore, cannot be built and will be removed soon, however pymcell3 will be kept
 
 
 if (ENABLE_LTO)
@@ -412,7 +412,7 @@ add_executable(mcell
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
-target_link_libraries(mcell mcell4 bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
+target_link_libraries(mcell mcell4 libmcell_callbacks_empty bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     add_dependencies(pymcell mcell4 version_h bng nfsim_c NFsim jsoncpp_lib)

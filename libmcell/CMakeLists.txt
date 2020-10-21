@@ -39,6 +39,7 @@ set(SOURCE_FILES
     
     api/globals.cpp
     api/mcell4_converter.cpp
+    api/callbacks.cpp
     
     api/molecule.cpp
 
@@ -73,8 +74,10 @@ set(SOURCE_FILES
     generated/gen_model.cpp
     
     generated/gen_molecule.cpp
+    generated/gen_wall.cpp
+    generated/gen_wall_wall_hit_info.cpp
     
-    generated/gen_wall_hit_info.cpp
+    generated/gen_mol_wall_hit_info.cpp
 
     generated/gen_constants.cpp
 
@@ -91,3 +94,8 @@ set(ALL_SOURCES
 add_library(${PROJECT_NAME} STATIC
     ${ALL_SOURCES}
 )
+
+add_library(libmcell_callbacks_empty STATIC
+    api/callbacks_empty.cpp
+)
+

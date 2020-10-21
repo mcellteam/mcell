@@ -110,7 +110,7 @@ void MCell3WorldConverter::reset() {
 
 bool MCell3WorldConverter::convert(volume* s) {
 
-  world = new World();
+  world = new World(callbacks);
 
   CHECK(convert_simulation_setup(s));
 

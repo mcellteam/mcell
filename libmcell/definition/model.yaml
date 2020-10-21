@@ -94,6 +94,39 @@ Model:
     - name: id
       type: int
   
+  # --- geometry ---
+  - name: get_wall
+    doc: Returns information about a wall belonging to a given object.
+    return_type: Wall* 
+    params:
+    - name: object
+      type: GeometryObject*
+    - name: wall_index
+      type: int 
+      doc: This is the index of the vertex in object's walls (element_connections).
+      
+  - name: get_vertex_unit_normal
+    doc: | 
+       Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
+       This represents the unit vector pointing outwards from the vertex.
+    return_type: Vec3
+    params:
+    - name: object
+      type: GeometryObject*
+    - name: vertex_index
+      type: int 
+      doc: This is the index of the vertex in object's vertex_list.
+
+  - name: get_wall_unit_normal
+    doc: Returns wall normal converted to a unit vector of length 1um.
+    return_type: Vec3
+    params:
+    - name: object
+      type: GeometryObject*
+    - name: wall_index
+      type: int 
+      doc: This is the index of the vertex in object's walls (element_connections).
+    
   # --- dynamic geometry ---
       
   - name: add_vertex_move
@@ -102,7 +135,7 @@ Model:
     - name: object
       type: GeometryObject*
       doc: Object whose vertex will be changed
-    - name: index
+    - name: vertex_index
       type: int
       doc: Index of vertex in object's vertex list that will be changed
     - name: displacement
@@ -110,15 +143,29 @@ Model:
       doc: Change of vertex coordinates (in um), will be added to the current coordinates of the vertex 
       
   - name: apply_vertex_moves
-    doc: Applies all the vertex moves specified with add_vertex_move call  
+    doc: Applies all the vertex moves specified with add_vertex_move call
+    params:
+    - name: collect_wall_wall_hits
+      type: bool
+      default: false
+      doc: |
+        When set to True, the wall_wall_hits array will contain wall pairs that collided with 
+        each other. 
+      
+    - name: wall_wall_hits
+      type: List[WallWallHitInfo*]
+      default: empty
+      doc: | 
+        When collect_wall_wall_hits is True, a list of wall pairs that 
+        collided is stored into this list.
   
   # --- callbacks ---
   
-  - name: register_wall_hit_callback
+  - name: register_mol_wall_hit_callback
     doc: There can be currently only a single wall hit callback registered.
     params:
     - name: function
-      type: std::function<void(std::shared_ptr<WallHitInfo>, py::object)>
+      type: std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>
       doc: | 
          Callback function to be called. 
          It must have two arguments WallHitInfo and context.

@@ -29,11 +29,12 @@
 #include <boost/container/flat_set.hpp>
 #include <rxn_utils.inc>
 
-//extern "C" {
+#include "api/mol_wall_hit_info.h"
+#include "api/callbacks.h"
+
 #include "rng.h"
 #include "mcell_structs.h"
 #include "logging.h"
-//}
 
 #include "diffuse_react_event.h"
 #include "defines.h"
@@ -473,20 +474,34 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           }
       #endif
 
-        if (world->wall_hit_callback_function != nullptr &&
-            (world->wall_hit_object_id == GEOMETRY_OBJECT_ID_INVALID || world->wall_hit_object_id == colliding_wall.object_id) &&
-            (world->wall_hit_species_id == SPECIES_ID_INVALID || world->wall_hit_species_id == vm_new_ref.species_id) ) {
-          shared_ptr<API::WallHitInfo> info = make_shared<API::WallHitInfo>();
+        if (world->get_callbacks().needs_callback_for_mol_wall_hit(colliding_wall.object_id, vm_new_ref.species_id)) {
+          // prepare part of information
+          shared_ptr<API::MolWallHitInfo> info = make_shared<API::MolWallHitInfo>();
           info->molecule_id = vm_new_ref.id;
-          info->geometry_object_id = colliding_wall.object_id;
-          info->wall_id = colliding_wall.id;
+          info->geometry_object_id = colliding_wall.object_id; // I would need Model to be accessible here
+          info->partition_wall_index = colliding_wall.index; // here as well
           info->time = event_time + collision.time;
           info->pos = collision.pos;
           info->time_before_hit = event_time + elapsed_molecule_time;
           info->pos_before_hit = vm_new_ref.v.pos;
 
-          world->wall_hit_callback_function(info, world->wall_hit_context);
+          world->get_callbacks().do_mol_wall_hit_callback(info);
         }
+
+        /*if (world->mol_wall_hit_callback_function != nullptr &&
+            (world->mol_wall_hit_object_id == GEOMETRY_OBJECT_ID_INVALID || world->mol_wall_hit_object_id == colliding_wall.object_id) &&
+            (world->mol_wall_hit_species_id == SPECIES_ID_INVALID || world->mol_wall_hit_species_id == vm_new_ref.species_id) ) {
+          shared_ptr<API::MolWallHitInfo> info = make_shared<API::MolWallHitInfo>();
+          info->molecule_id = vm_new_ref.id;
+          info->geometry_object_id = colliding_wall.object_id; // I would need Model to be accessible here
+          info->wall_index = colliding_wall.index; // here as well
+          info->time = event_time + collision.time;
+          info->pos = collision.pos;
+          info->time_before_hit = event_time + elapsed_molecule_time;
+          info->pos_before_hit = vm_new_ref.v.pos;
+
+          world->mol_wall_hit_callback_function(info, world->mol_wall_hit_context);
+        }*/
 
 
 

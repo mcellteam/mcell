@@ -925,6 +925,7 @@ void MCell4Converter::convert_geometry_objects() {
     }
 
     // walls (validity of indices is checked in API::GeometryObject::check_semantics)
+    o->first_wall_index = p.get_walls().size();
     for (size_t i = 0; i < o->element_connections.size(); i++) {
       wall_index_t wi = convert_wall_and_add_to_geom_object(*o, i, p, obj);
       o->wall_indices.push_back(wi);
@@ -963,7 +964,7 @@ void MCell4Converter::convert_geometry_objects() {
 
     // also set regions for walls
     for (wall_index_t wi: obj.wall_indices) {
-      Wall& w = p.get_wall(wi);
+      MCell::Wall& w = p.get_wall(wi);
 
       for (region_index_t ri: region_indices) {
         MCell::Region& reg = p.get_region(ri);

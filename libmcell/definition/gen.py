@@ -428,7 +428,7 @@ def get_default_or_unset_value(attr):
     elif t == YAML_TYPE_LONG:
         return UNSET_VALUE_LONG
     elif t == YAML_TYPE_BOOL:
-        assert False, "There is no unset value for bool"
+        assert False, "There is no unset value for bool - for " + attr[KEY_NAME]
         return "error"
     elif t == YAML_TYPE_VEC2:
         return UNSET_VALUE_VEC2

@@ -29,6 +29,7 @@
 #include "../api/elementary_molecule_type.h"
 #include "../api/geometry_object.h"
 #include "../api/instantiation_data.h"
+#include "../api/mol_wall_hit_info.h"
 #include "../api/molecule.h"
 #include "../api/notifications.h"
 #include "../api/observables.h"
@@ -39,7 +40,8 @@
 #include "../api/subsystem.h"
 #include "../api/surface_class.h"
 #include "../api/viz_output.h"
-#include "../api/wall_hit_info.h"
+#include "../api/wall.h"
+#include "../api/wall_wall_hit_info.h"
 #include "../api/warnings.h"
 
 namespace MCell {
@@ -84,9 +86,12 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("export_viz_data_model", &Model::export_viz_data_model, py::arg("file") = STR_UNSET)
       .def("get_molecule_ids", &Model::get_molecule_ids, py::arg("species") = nullptr)
       .def("get_molecule", &Model::get_molecule, py::arg("id"))
-      .def("add_vertex_move", &Model::add_vertex_move, py::arg("object"), py::arg("index"), py::arg("displacement"))
-      .def("apply_vertex_moves", &Model::apply_vertex_moves)
-      .def("register_wall_hit_callback", &Model::register_wall_hit_callback, py::arg("function"), py::arg("context"), py::arg("object") = nullptr, py::arg("species") = nullptr)
+      .def("get_wall", &Model::get_wall, py::arg("object"), py::arg("wall_index"))
+      .def("get_vertex_unit_normal", &Model::get_vertex_unit_normal, py::arg("object"), py::arg("vertex_index"))
+      .def("get_wall_unit_normal", &Model::get_wall_unit_normal, py::arg("object"), py::arg("wall_index"))
+      .def("add_vertex_move", &Model::add_vertex_move, py::arg("object"), py::arg("vertex_index"), py::arg("displacement"))
+      .def("apply_vertex_moves", &Model::apply_vertex_moves, py::arg("collect_wall_wall_hits") = false, py::arg("wall_wall_hits") = std::vector<std::shared_ptr<WallWallHitInfo>>())
+      .def("register_mol_wall_hit_callback", &Model::register_mol_wall_hit_callback, py::arg("function"), py::arg("context"), py::arg("object") = nullptr, py::arg("species") = nullptr)
       .def("load_bngl", &Model::load_bngl, py::arg("file_name"), py::arg("observables_files_prefix"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("add_species", &Model::add_species, py::arg("s"))
       .def("find_species", &Model::find_species, py::arg("name"))

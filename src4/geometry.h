@@ -526,6 +526,7 @@ public:
   Wall()
     : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
       object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
+      is_movable(true),
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       area(POS_INVALID),
@@ -543,6 +544,7 @@ public:
       const bool do_precompute_wall_constants, const bool do_precompute_edge_constants)
     : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
       object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
+      is_movable(true),
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       area(POS_INVALID),
@@ -590,6 +592,8 @@ public:
 
   geometry_object_id_t object_id; // id of object to which this wall belongs
   geometry_object_index_t object_index; // index of object in this partition to which this wall belongs
+
+  bool is_movable;
 
   // regions, one wall can belong to multiple regions, regions are owned by partition
   uint_set<region_index_t> regions;

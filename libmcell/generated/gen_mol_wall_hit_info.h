@@ -20,17 +20,19 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_WALL_HIT_INFO_H
-#define API_GEN_WALL_HIT_INFO_H
+#ifndef API_GEN_MOL_WALL_HIT_INFO_H
+#define API_GEN_MOL_WALL_HIT_INFO_H
 
 #include "../api/common.h"
 
 namespace MCell {
 namespace API {
 
-class GenWallHitInfo {
+class GeometryObject;
+
+class GenMolWallHitInfo {
 public:
-  virtual ~GenWallHitInfo() {}
+  virtual ~GenMolWallHitInfo() {}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---
@@ -42,20 +44,20 @@ public:
     return molecule_id;
   }
 
-  int geometry_object_id;
-  virtual void set_geometry_object_id(const int new_geometry_object_id_) {
-    geometry_object_id = new_geometry_object_id_;
+  std::shared_ptr<GeometryObject> geometry_object;
+  virtual void set_geometry_object(std::shared_ptr<GeometryObject> new_geometry_object_) {
+    geometry_object = new_geometry_object_;
   }
-  virtual int get_geometry_object_id() const {
-    return geometry_object_id;
+  virtual std::shared_ptr<GeometryObject> get_geometry_object() const {
+    return geometry_object;
   }
 
-  int wall_id;
-  virtual void set_wall_id(const int new_wall_id_) {
-    wall_id = new_wall_id_;
+  int wall_index;
+  virtual void set_wall_index(const int new_wall_index_) {
+    wall_index = new_wall_index_;
   }
-  virtual int get_wall_id() const {
-    return wall_id;
+  virtual int get_wall_index() const {
+    return wall_index;
   }
 
   float_t time;
@@ -91,11 +93,11 @@ public:
   }
 
   // --- methods ---
-}; // GenWallHitInfo
+}; // GenMolWallHitInfo
 
-class WallHitInfo;
-py::class_<WallHitInfo> define_pybinding_WallHitInfo(py::module& m);
+class MolWallHitInfo;
+py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_WALL_HIT_INFO_H
+#endif // API_GEN_MOL_WALL_HIT_INFO_H

@@ -140,7 +140,7 @@ public:
   }
 
   // --- methods ---
-  virtual Complex inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = "") = 0;
+  virtual Complex inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = STR_UNSET) = 0;
 }; // GenSpecies
 
 class Species;
