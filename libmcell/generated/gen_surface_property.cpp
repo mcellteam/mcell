@@ -87,6 +87,7 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       )
       .def("check_semantics", &SurfaceProperty::check_semantics)
       .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
       .def("dump", &SurfaceProperty::dump)
       .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type)
       .def_property("affected_species", &SurfaceProperty::get_affected_species, &SurfaceProperty::set_affected_species)

@@ -93,6 +93,7 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       )
       .def("check_semantics", &MoleculeReleaseInfo::check_semantics)
       .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
       .def("dump", &MoleculeReleaseInfo::dump)
       .def_property("complex", &MoleculeReleaseInfo::get_complex, &MoleculeReleaseInfo::set_complex)
       .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location)

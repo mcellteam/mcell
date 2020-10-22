@@ -110,6 +110,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       )
       .def("check_semantics", &Species::check_semantics)
       .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &Species::to_str, py::arg("ind") = std::string(""))
       .def("inst", &Species::inst, py::arg("orientation") = Orientation::DEFAULT, py::arg("compartment_name") = STR_UNSET)
       .def("dump", &Species::dump)
       .def_property("name", &Species::get_name, &Species::set_name)

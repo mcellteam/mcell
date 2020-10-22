@@ -75,6 +75,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
           >()
       )
       .def("__str__", &Model::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &Model::to_str, py::arg("ind") = std::string(""))
       .def("initialize", &Model::initialize)
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("end_simulation", &Model::end_simulation, py::arg("print_final_report") = true)

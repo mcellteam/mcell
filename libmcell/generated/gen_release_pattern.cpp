@@ -83,6 +83,7 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
       )
       .def("check_semantics", &ReleasePattern::check_semantics)
       .def("__str__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReleasePattern::dump)
       .def_property("name", &ReleasePattern::get_name, &ReleasePattern::set_name)
       .def_property("release_interval", &ReleasePattern::get_release_interval, &ReleasePattern::set_release_interval)

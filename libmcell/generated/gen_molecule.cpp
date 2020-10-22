@@ -84,6 +84,7 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       )
       .def("check_semantics", &Molecule::check_semantics)
       .def("__str__", &Molecule::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &Molecule::to_str, py::arg("ind") = std::string(""))
       .def("remove", &Molecule::remove)
       .def("dump", &Molecule::dump)
       .def_property("id", &Molecule::get_id, &Molecule::set_id)

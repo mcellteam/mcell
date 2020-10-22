@@ -96,6 +96,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       )
       .def("check_semantics", &ReactionRule::check_semantics)
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReactionRule::dump)
       .def_property("name", &ReactionRule::get_name, &ReactionRule::set_name)
       .def_property("reactants", &ReactionRule::get_reactants, &ReactionRule::set_reactants)

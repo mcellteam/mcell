@@ -211,6 +211,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       )
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Count::dump)
       .def_property("file_name", &Count::get_file_name, &Count::set_file_name)
       .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression)

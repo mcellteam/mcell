@@ -175,6 +175,7 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
       )
       .def("check_semantics", &CountTerm::check_semantics)
       .def("__str__", &CountTerm::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &CountTerm::to_str, py::arg("ind") = std::string(""))
       .def("__add__", &CountTerm::__add__, py::arg("op2"))
       .def("__sub__", &CountTerm::__sub__, py::arg("op2"))
       .def("dump", &CountTerm::dump)

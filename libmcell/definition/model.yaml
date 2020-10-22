@@ -165,8 +165,8 @@ Model:
       type: bool
       default: false
       doc: |
-        When set to True, a list of wall pairs that collided is returned,
-	otherwise an empty list is returned.
+         When set to True, a list of wall pairs that collided is returned,
+         otherwise an empty list is returned.
   
   # --- callbacks ---
   

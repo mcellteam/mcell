@@ -113,6 +113,7 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
       )
       .def("check_semantics", &Warnings::check_semantics)
       .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &Warnings::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Warnings::dump)
       .def_property("molecule_collision_report", &Warnings::get_molecule_collision_report, &Warnings::set_molecule_collision_report)
       .def_property("degenerate_polygons", &Warnings::get_degenerate_polygons, &Warnings::set_degenerate_polygons)

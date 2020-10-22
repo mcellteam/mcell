@@ -105,6 +105,7 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       )
       .def("check_semantics", &Wall::check_semantics)
       .def("__str__", &Wall::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &Wall::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Wall::dump)
       .def_property("geometry_object", &Wall::get_geometry_object, &Wall::set_geometry_object)
       .def_property("wall_index", &Wall::get_wall_index, &Wall::set_wall_index)

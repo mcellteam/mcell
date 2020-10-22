@@ -97,6 +97,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       )
       .def("check_semantics", &InitialSurfaceRelease::check_semantics)
       .def("__str__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
       .def("dump", &InitialSurfaceRelease::dump)
       .def_property("species", &InitialSurfaceRelease::get_species, &InitialSurfaceRelease::set_species)
       .def_property("bngl_species", &InitialSurfaceRelease::get_bngl_species, &InitialSurfaceRelease::set_bngl_species)

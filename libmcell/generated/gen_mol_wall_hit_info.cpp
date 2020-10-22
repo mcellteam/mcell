@@ -49,6 +49,7 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
           >()
       )
       .def("__str__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
       .def("dump", &MolWallHitInfo::dump)
       .def_property("molecule_id", &MolWallHitInfo::get_molecule_id, &MolWallHitInfo::set_molecule_id)
       .def_property("geometry_object", &MolWallHitInfo::get_geometry_object, &MolWallHitInfo::set_geometry_object)

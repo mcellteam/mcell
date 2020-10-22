@@ -88,6 +88,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       )
       .def("check_semantics", &VizOutput::check_semantics)
       .def("__str__", &VizOutput::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &VizOutput::to_str, py::arg("ind") = std::string(""))
       .def("dump", &VizOutput::dump)
       .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix)
       .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list)

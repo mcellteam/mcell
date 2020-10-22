@@ -113,6 +113,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &Config::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Config::dump)
       .def_property("seed", &Config::get_seed, &Config::set_seed)
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step)

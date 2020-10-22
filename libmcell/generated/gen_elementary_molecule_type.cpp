@@ -100,6 +100,7 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       )
       .def("check_semantics", &ElementaryMoleculeType::check_semantics)
       .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<ComponentInstance>>())
       .def("dump", &ElementaryMoleculeType::dump)
       .def_property("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name)

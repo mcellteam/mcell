@@ -185,6 +185,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
+      .def("__repr__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
       .def_property("complex", &ReleaseSite::get_complex, &ReleaseSite::set_complex)
