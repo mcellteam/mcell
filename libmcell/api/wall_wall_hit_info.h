@@ -31,7 +31,7 @@ namespace API {
 
 class WallWallHitInfo: public GenWallWallHitInfo {
 public:
-  WALL_WALL_HIT_INFO_CTOR_NOARGS();
+  // using default ctor
 };
 
 } // namespace API

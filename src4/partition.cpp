@@ -294,8 +294,6 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
       // decrement by MIN_WALL_GAP because we hit a wall and would like to stay a bit in front of it
       displacement = displacement - wall_gap_displacement;
 
-      // and zero-out parts of displacement that are smaller than MIN_WALL_GAP
-
       if (!ignore_hit) {
         assert(closest_hit_wall_index != WALL_INDEX_INVALID);
 
