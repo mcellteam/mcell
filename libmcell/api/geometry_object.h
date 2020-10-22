@@ -68,15 +68,15 @@ public:
       }
     }
 
-    for (auto& e: element_connections) {
+    for (auto& e: wall_list) {
       if (e.size() != 3) {
         throw ValueError(
-            S("Each item in the '") + NAME_ELEMENT_CONNECTIONS + "' argument must be a triplet of integers, error for " +
+            S("Each item in the '") + NAME_WALL_LIST + "' argument must be a triplet of integers, error for " +
             vec_nonptr_to_str(e) + ".");
         for (int vertex_index: e) {
           if (vertex_index < 0 || vertex_index >= (int)vertex_list.size()) {
             throw ValueError(
-                S("Vertex index the '") + NAME_ELEMENT_CONNECTIONS + "' is out of range, error for " +
+                S("Vertex index the '") + NAME_WALL_LIST + "' is out of range, error for " +
                 std::to_string(vertex_index));
           }
         }
@@ -85,7 +85,7 @@ public:
 
     for (auto& sr: surface_regions) {
       for (int wall_index: sr->wall_indices) {
-        if (wall_index >= (int)element_connections.size()) {
+        if (wall_index >= (int)wall_list.size()) {
           throw ValueError(
               S("Wall index in the '") + NAME_WALL_INDICES + "' of '" + sr->name + "' is out of range, error for " +
               std::to_string(wall_index));
@@ -124,7 +124,7 @@ public:
 
   int get_object_wall_index(const wall_index_t wall_index) {
     int res = wall_index - first_wall_index;
-    assert(res >= 0 && res < (int)element_connections.size());
+    assert(res >= 0 && res < (int)wall_list.size());
     return res;
   }
 
@@ -137,7 +137,7 @@ private:
   }
 
   void check_wall_index(const int wall_index) {
-    if (wall_index < 0 || wall_index >= (int)element_connections.size()) {
+    if (wall_index < 0 || wall_index >= (int)wall_list.size()) {
       throw RuntimeError(
           "Vertex index " + std::to_string(wall_index) + " is out of range for " + NAME_VERTEX_LIST + " of " + name + ".");
     }
@@ -156,7 +156,7 @@ public:
   vertex_index_t first_vertex_index; // index of the first vertex created in partition for this object
   wall_index_t first_wall_index;
   std::vector<vertex_index_t> vertex_indices; // vertex_list[i] has vertex index vertex_indices[i]
-  std::vector<wall_index_t> wall_indices; // element_connections[i] has wall index wall_indices[i]
+  std::vector<wall_index_t> wall_indices; // wall_list[i] has wall index wall_indices[i]
 
   BNG::compartment_id_t vol_compartment_id;
   BNG::compartment_id_t surf_compartment_id;

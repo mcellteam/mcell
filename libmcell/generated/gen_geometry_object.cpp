@@ -39,8 +39,8 @@ void GenGeometryObject::check_semantics() const {
   if (!is_set(vertex_list)) {
     throw ValueError("Parameter 'vertex_list' must be set.");
   }
-  if (!is_set(element_connections)) {
-    throw ValueError("Parameter 'element_connections' must be set.");
+  if (!is_set(wall_list)) {
+    throw ValueError("Parameter 'wall_list' must be set.");
   }
 }
 
@@ -49,7 +49,7 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
     name == other.name &&
     name == other.name &&
     vertex_list == other.vertex_list &&
-    element_connections == other.element_connections &&
+    wall_list == other.wall_list &&
     is_bngl_compartment == other.is_bngl_compartment &&
     surface_compartment_name == other.surface_compartment_name &&
     vec_ptr_eq(surface_regions, other.surface_regions) &&
@@ -109,7 +109,7 @@ void GenGeometryObject::set_all_attributes_as_default_or_unset() {
   class_name = "GeometryObject";
   name = STR_UNSET;
   vertex_list = std::vector<std::vector<float_t>>();
-  element_connections = std::vector<std::vector<int>>();
+  wall_list = std::vector<std::vector<int>>();
   is_bngl_compartment = false;
   surface_compartment_name = STR_UNSET;
   surface_regions = std::vector<std::shared_ptr<SurfaceRegion>>();
@@ -125,7 +125,7 @@ std::string GenGeometryObject::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
       "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
-      "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
+      "wall_list=" << vec_nonptr_to_str(wall_list, ind + "  ") << ", " <<
       "is_bngl_compartment=" << is_bngl_compartment << ", " <<
       "surface_compartment_name=" << surface_compartment_name << ", " <<
       "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ") << ", " << "\n" << ind + "  " <<
@@ -155,7 +155,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
           >(),
           py::arg("name"),
           py::arg("vertex_list"),
-          py::arg("element_connections"),
+          py::arg("wall_list"),
           py::arg("is_bngl_compartment") = false,
           py::arg("surface_compartment_name") = STR_UNSET,
           py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>(),
@@ -172,7 +172,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def("dump", &GeometryObject::dump)
       .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
       .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list)
-      .def_property("element_connections", &GeometryObject::get_element_connections, &GeometryObject::set_element_connections)
+      .def_property("wall_list", &GeometryObject::get_wall_list, &GeometryObject::set_wall_list)
       .def_property("is_bngl_compartment", &GeometryObject::get_is_bngl_compartment, &GeometryObject::set_is_bngl_compartment)
       .def_property("surface_compartment_name", &GeometryObject::get_surface_compartment_name, &GeometryObject::set_surface_compartment_name)
       .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions)

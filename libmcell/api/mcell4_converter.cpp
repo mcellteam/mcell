@@ -817,7 +817,7 @@ MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
     const API::GeometryObject& src_obj, const uint side,
     MCell::Partition& p, MCell::GeometryObject& dst_obj) {
 
-  assert(src_obj.element_connections[side].size() == 3);
+  assert(src_obj.wall_list[side].size() == 3);
 
   // TODO LATER: there is really no reason to add walls in two steps,
   // can be simplified
@@ -828,7 +828,7 @@ MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
   wall.side = side;
 
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    wall.vertex_indices[i] = src_obj.vertex_indices[src_obj.element_connections[side][i]];
+    wall.vertex_indices[i] = src_obj.vertex_indices[src_obj.wall_list[side][i]];
   }
 
   wall.precompute_wall_constants(p);
@@ -926,7 +926,7 @@ void MCell4Converter::convert_geometry_objects() {
 
     // walls (validity of indices is checked in API::GeometryObject::check_semantics)
     o->first_wall_index = p.get_walls().size();
-    for (size_t i = 0; i < o->element_connections.size(); i++) {
+    for (size_t i = 0; i < o->wall_list.size(); i++) {
       wall_index_t wi = convert_wall_and_add_to_geom_object(*o, i, p, obj);
       o->wall_indices.push_back(wi);
     }

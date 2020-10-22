@@ -108,7 +108,6 @@ const char* const NAME_DIFFUSION_CONSTANT_REPORT = "diffusion_constant_report";
 const char* const NAME_DISPLACEMENT = "displacement";
 const char* const NAME_DUMP_INTERNAL_STATE = "dump_internal_state";
 const char* const NAME_EDGE_LENGTH = "edge_length";
-const char* const NAME_ELEMENT_CONNECTIONS = "element_connections";
 const char* const NAME_ELEMENTARY_MOLECULE_INSTANCES = "elementary_molecule_instances";
 const char* const NAME_ELEMENTARY_MOLECULE_TYPE = "elementary_molecule_type";
 const char* const NAME_ELEMENTARY_MOLECULE_TYPES = "elementary_molecule_types";
@@ -254,6 +253,7 @@ const char* const NAME_WALL1 = "wall1";
 const char* const NAME_WALL2 = "wall2";
 const char* const NAME_WALL_INDEX = "wall_index";
 const char* const NAME_WALL_INDICES = "wall_indices";
+const char* const NAME_WALL_LIST = "wall_list";
 const char* const NAME_WARNINGS = "warnings";
 
 const char* const NAME_ENUM_EXPR_NODE_TYPE = "ExprNodeType";

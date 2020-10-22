@@ -664,7 +664,7 @@ string PythonGenerator::generate_single_geometry_object(
   out << "] # " << id_vertex_list << "\n\n";
 
   // element_connections
-  string id_element_connections = name + "_" + NAME_ELEMENT_CONNECTIONS;
+  string id_element_connections = name + "_" + NAME_WALL_LIST;
   out << id_element_connections << " = [\n";
   for (Value::ArrayIndex i = 0; i < element_connections.size(); i++) {
     out << IND << "[";
@@ -716,7 +716,7 @@ string PythonGenerator::generate_single_geometry_object(
   out << name << " = " << MDOT << NAME_CLASS_GEOMETRY_OBJECT << "(\n";
   gen_param(out, NAME_NAME, name, true);
   gen_param_id(out, NAME_VERTEX_LIST, id_vertex_list, true);
-  gen_param_id(out, NAME_ELEMENT_CONNECTIONS, id_element_connections, true);
+  gen_param_id(out, NAME_WALL_LIST, id_element_connections, true);
   out << IND << NAME_SURFACE_REGIONS << " = [";
   for (size_t i = 0; i < sr_global_names.size(); i++) {
     out << sr_global_names[i];

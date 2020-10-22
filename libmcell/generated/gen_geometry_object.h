@@ -39,7 +39,7 @@ class SurfaceRegion;
     GeometryObject( \
         const std::string& name_, \
         const std::vector<std::vector<float_t>> vertex_list_, \
-        const std::vector<std::vector<int>> element_connections_, \
+        const std::vector<std::vector<int>> wall_list_, \
         const bool is_bngl_compartment_ = false, \
         const std::string& surface_compartment_name_ = STR_UNSET, \
         const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions_ = std::vector<std::shared_ptr<SurfaceRegion>>(), \
@@ -52,7 +52,7 @@ class SurfaceRegion;
       class_name = "GeometryObject"; \
       name = name_; \
       vertex_list = vertex_list_; \
-      element_connections = element_connections_; \
+      wall_list = wall_list_; \
       is_bngl_compartment = is_bngl_compartment_; \
       surface_compartment_name = surface_compartment_name_; \
       surface_regions = surface_regions_; \
@@ -94,16 +94,16 @@ public:
     return vertex_list;
   }
 
-  std::vector<std::vector<int>> element_connections;
-  virtual void set_element_connections(const std::vector<std::vector<int>> new_element_connections_) {
+  std::vector<std::vector<int>> wall_list;
+  virtual void set_wall_list(const std::vector<std::vector<int>> new_wall_list_) {
     if (initialized) {
-      throw RuntimeError("Value 'element_connections' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'wall_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
-    element_connections = new_element_connections_;
+    wall_list = new_wall_list_;
   }
-  virtual std::vector<std::vector<int>> get_element_connections() const {
-    return element_connections;
+  virtual std::vector<std::vector<int>> get_wall_list() const {
+    return wall_list;
   }
 
   bool is_bngl_compartment;

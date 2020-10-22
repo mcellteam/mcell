@@ -103,7 +103,7 @@ Model:
       type: GeometryObject*
     - name: vertex_index
       type: int 
-      doc: This is the index of the vertex in object's walls (element_connections).
+      doc: This is the index of the vertex in object's walls (wall_list).
       
   - name: get_wall
     doc: Returns information about a wall belonging to a given object.
@@ -113,7 +113,7 @@ Model:
       type: GeometryObject*
     - name: wall_index
       type: int 
-      doc: This is the index of the wall in object's walls (element_connections).
+      doc: This is the index of the wall in object's walls (wall_list).
       
   - name: get_vertex_unit_normal
     doc: | 
@@ -135,7 +135,7 @@ Model:
       type: GeometryObject*
     - name: wall_index
       type: int 
-      doc: This is the index of the vertex in object's walls (element_connections).
+      doc: This is the index of the vertex in object's walls (wall_list).
     
   # --- dynamic geometry ---
       

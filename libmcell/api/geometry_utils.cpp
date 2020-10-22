@@ -48,7 +48,7 @@ std::shared_ptr<GeometryObject> create_box(const std::string& name, const float_
       { hl,  hl,  hl}
   };
 
-  vector<vector<int>> element_connections {
+  vector<vector<int>> wall_list {
       {1, 2, 0},
       {3, 6, 2},
       {7, 4, 6},
@@ -66,7 +66,7 @@ std::shared_ptr<GeometryObject> create_box(const std::string& name, const float_
   auto res = make_shared<GeometryObject>(
       name,
       vertex_list,
-      element_connections
+      wall_list
   );
 
   return res;

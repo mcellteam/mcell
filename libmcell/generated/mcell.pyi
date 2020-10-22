@@ -343,7 +343,7 @@ class GeometryObject():
             self,
             name : str,
             vertex_list : List[List[float]],
-            element_connections : List[List[int]],
+            wall_list : List[List[int]],
             is_bngl_compartment : bool = False,
             surface_compartment_name : str = None,
             surface_regions : List[SurfaceRegion] = None,
@@ -355,7 +355,7 @@ class GeometryObject():
         ):
         self.name = name
         self.vertex_list = vertex_list
-        self.element_connections = element_connections
+        self.wall_list = wall_list
         self.is_bngl_compartment = is_bngl_compartment
         self.surface_compartment_name = surface_compartment_name
         self.surface_regions = surface_regions
