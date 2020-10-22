@@ -95,6 +95,7 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 void Partition::apply_vertex_moves(
     std::vector<VertexMoveInfo>& vertex_moves,
     std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
+  colliding_walls.clear();
 
   // due to wall-wall collision detection, we must move vertices of each object separately
 
