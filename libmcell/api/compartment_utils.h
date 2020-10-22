@@ -35,9 +35,8 @@ namespace API {
 
 typedef std::vector<GeometryObjectSet> GeometryObjectSetVector;
 
-bool set_parent_and_children_compartments(
-    const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
-    GeometryObjectSetVector& intersecting_objects);
+void set_parent_and_children_compartments(
+    std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects);
 
 } // namespace API
 } // namespace MCell

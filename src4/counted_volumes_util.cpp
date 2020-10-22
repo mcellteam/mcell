@@ -53,12 +53,16 @@ enum class ContainmentResult {
 
 
 GeometryObject& GeomObjectInfo::get_geometry_object_noconst(World* world) const {
+  assert(world != nullptr);
+  assert(for_counted_objects);
   Partition& p = world->get_partition(partition_id);
   return p.get_geometry_object(geometry_object_id);
 }
 
 
 const GeometryObject& GeomObjectInfo::get_geometry_object(const World* world) const {
+  assert(world != nullptr);
+  assert(for_counted_objects);
   const Partition& p = world->get_partition(partition_id);
   return p.get_geometry_object(geometry_object_id);
 }
@@ -269,7 +273,7 @@ static ContainmentResult geom_object_containment_test(vtkSmartPointer<vtkPolyDat
 
 
 // returns false if theee was any error
-static bool compute_containement_mapping(
+bool compute_containement_mapping(
     const World* world, const GeomObjectInfoVector& counted_objects,
     ContainmentMap& contained_in_mapping,
     IntersectingSet& intersecting_objects
@@ -301,8 +305,8 @@ static bool compute_containement_mapping(
 
         case ContainmentResult::Intersect:
           // we are not processing all pairs so we need to insert both object ids
-          intersecting_objects.insert(counted_objects[obj1].geometry_object_id);
-          intersecting_objects.insert(counted_objects[obj2].geometry_object_id);
+          intersecting_objects.insert(counted_objects[obj1]);
+          intersecting_objects.insert(counted_objects[obj2]);
           break;
 
         case ContainmentResult::Identical:
@@ -314,11 +318,20 @@ static bool compute_containement_mapping(
             else {
               fmt = "Error while of counted object is not supported yet, error for %s and %s.";
             }
-            mcell_warn(
-                fmt.c_str(),
-                counted_objects[obj1].get_geometry_object(world).name.c_str(),
-                counted_objects[obj2].get_geometry_object(world).name.c_str()
-            );
+            if (world == nullptr) {
+              mcell_warn(
+                  fmt.c_str(),
+                  counted_objects[obj1].get_geometry_object(world).name.c_str(),
+                  counted_objects[obj2].get_geometry_object(world).name.c_str()
+              );
+            }
+            else {
+              mcell_warn(
+                  fmt.c_str(),
+                  counted_objects[obj1].name.c_str(),
+                  counted_objects[obj2].name.c_str()
+              );
+            }
             res = false;
           }
           break;
@@ -333,14 +346,14 @@ static bool compute_containement_mapping(
 }
 
 
-static const GeometryObject* get_direct_parent(
-    const World* world, const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
+const GeomObjectInfo* get_direct_parent_info(
+    const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
 
   auto it = contained_in_mapping.find(obj_info);
   if (it == contained_in_mapping.end()) {
     return nullptr;
   }
-  const uint_set<GeomObjectInfo>& obj_contained_in = it->second;
+  const std::set<GeomObjectInfo>& obj_contained_in = it->second;
 
   // need to find an object that is a direct parent
   //   p in contained_in_mapping(obj)
@@ -352,19 +365,19 @@ static const GeometryObject* get_direct_parent(
   for (const GeomObjectInfo& parent: obj_contained_in) {
 
     // copy 'parents' and remove 'p'
-    uint_set<GeomObjectInfo> obj_contained_in_less_p = obj_contained_in;
-    obj_contained_in_less_p.erase_existing(parent);
+    std::set<GeomObjectInfo> obj_contained_in_less_p = obj_contained_in;
+    obj_contained_in_less_p.erase(parent);
 
     auto it = contained_in_mapping.find(parent);
     if (it == contained_in_mapping.end()) {
       // this object has no parent so it must be the direct parent
-      return &parent.get_geometry_object(world);
+      return &parent;
     }
-    const uint_set<GeomObjectInfo>& p_contained_in = it->second;
+    const std::set<GeomObjectInfo>& p_contained_in = it->second;
 
     if (obj_contained_in_less_p == p_contained_in) {
       // this is the closest parent
-      return &parent.get_geometry_object(world);
+      return &parent;
     }
   }
 
@@ -374,20 +387,33 @@ static const GeometryObject* get_direct_parent(
 }
 
 
+static const GeometryObject* get_direct_parent(
+    const World* world, const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
+
+  const GeomObjectInfo* info = get_direct_parent_info(obj_info, contained_in_mapping);
+  if (info == nullptr) {
+    return nullptr;
+  }
+  else {
+    return &info->get_geometry_object(world);
+  }
+}
+
+
 static counted_volume_index_t get_counted_volume_index_using_parents(
     World* world,
     const geometry_object_id_t obj_id,
     const ContainmentMap& contained_in_mapping,
     const IntersectingSet& intersecting_objects
 ) {
-  if (intersecting_objects.count(obj_id) != 0) {
+  // search in this map uses only object id
+  GeomObjectInfo obj_info(PARTITION_ID_INVALID, obj_id);
+
+  if (intersecting_objects.count(obj_info) != 0) {
     return COUNTED_VOLUME_INDEX_INTERSECTS;
   }
 
-  // search in this map uses only partition id
-  GeomObjectInfo obj_info(PARTITION_ID_INVALID, obj_id);
-
-  const uint_set<GeomObjectInfo>* obj_contained_in;
+  const std::set<GeomObjectInfo>* obj_contained_in;
 
   auto it = contained_in_mapping.find(obj_info);
   if (it == contained_in_mapping.end()) {
@@ -409,7 +435,7 @@ static counted_volume_index_t get_counted_volume_index_using_parents(
 
       // if any of the parents intersects, let's assume that for counting this object intersects
       // as well, maybe some optimization can be done in the future
-      if (intersecting_objects.count(info.geometry_object_id) != 0) {
+      if (intersecting_objects.count(info) != 0) {
         return COUNTED_VOLUME_INDEX_INTERSECTS;
       }
 
@@ -433,7 +459,7 @@ static void define_counted_volumes(
     GeometryObject& current_obj = obj_info.get_geometry_object_noconst(world);
 
     // set inside index for our object
-    if (intersecting_objects.count(obj_info.geometry_object_id) != 0) {
+    if (intersecting_objects.count(obj_info) != 0) {
       // intersects with other objects - not sure in which counted volume
       // a molecule ends up when entering this object
       current_obj.counted_volume_index_inside = COUNTED_VOLUME_INDEX_INTERSECTS;
@@ -457,7 +483,7 @@ static void define_counted_volumes(
     }
     else {
       // parent is unclear
-      if (intersecting_objects.count(obj_info.geometry_object_id) == 0) {
+      if (intersecting_objects.count(obj_info) == 0) {
         // this is a top level object that has no parent but still needs a counted volume to be created
         outside_index = COUNTED_VOLUME_INDEX_OUTSIDE_ALL;
       }
@@ -503,7 +529,6 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
   }
 
   // define counted volumes, sets inside and outside volume id for geometry objects
-  uint_set<geometry_object_id_t> already_processed_objects;
   define_counted_volumes(world, counted_objects, contained_in_mapping, intersecting_objects);
 
   has_intersecting_counted_objects = !intersecting_objects.empty();

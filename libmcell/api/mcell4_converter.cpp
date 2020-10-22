@@ -1001,15 +1001,8 @@ void MCell4Converter::convert_compartments() {
     }
   }
 
-  // get hierarchy
-  // for now let's just deal with names EC, PM, CP
-  GeometryObjectSetVector intersecting_objects;
-  set_parent_and_children_compartments(compartment_objects, intersecting_objects);
-
-  if (!intersecting_objects.empty()) {
-    // TODO: improve error message and add test
-    throw RuntimeError("Compartments intersect, this is not allowed.");
-  }
+  // set hierarchy of compartments
+  set_parent_and_children_compartments(compartment_objects);
 
   for (std::shared_ptr<API::GeometryObject>& o: compartment_objects) {
 
