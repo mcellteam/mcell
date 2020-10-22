@@ -140,7 +140,7 @@ void Partition::apply_vertex_moves_per_object(
   // 1) create a set of all affected walls with information on how much each wall moves,
   uint_set<vertex_index_t> moved_vertices_set;
   WallsWithTheirMovesMap walls_with_their_moves;
-  for (const VertexMoveInfo& vertex_move_info: vertex_moves) {
+  for (VertexMoveInfo& vertex_move_info: vertex_moves) {
 
     // expecting that there we are not moving a single vertex twice
     if (moved_vertices_set.count(vertex_move_info.vertex_index) != 0) {
@@ -152,13 +152,26 @@ void Partition::apply_vertex_moves_per_object(
     moved_vertices_set.insert(vertex_move_info.vertex_index);
 
     const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info.vertex_index);
+
+    // first check whether we can move all walls
     for (wall_index_t wall_index: wall_indices) {
-      // remember mapping wall_index -> moves
-      auto it = walls_with_their_moves.find(wall_index);
-      if (it == walls_with_their_moves.end()) {
-        it = walls_with_their_moves.insert(make_pair(wall_index, VertexMoveInfoVector())).first;
+      if (!get_wall(wall_index).is_movable) {
+        // we must not move this vertex
+        vertex_move_info.vertex_walls_are_movable = false;
+        break;
       }
-      it->second.push_back(vertex_move_info);
+    }
+
+    // if the move is applicable, create mapping in walls_with_their_moves
+    if (vertex_move_info.vertex_walls_are_movable) {
+      for (wall_index_t wall_index: wall_indices) {
+        // remember mapping wall_index -> moves
+        auto it = walls_with_their_moves.find(wall_index);
+        if (it == walls_with_their_moves.end()) {
+          it = walls_with_their_moves.insert(make_pair(wall_index, VertexMoveInfoVector())).first;
+        }
+        it->second.push_back(vertex_move_info);
+      }
     }
   }
 

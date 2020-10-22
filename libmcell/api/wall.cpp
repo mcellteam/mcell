@@ -20,24 +20,28 @@
  *
 ******************************************************************************/
 
-#ifndef API_WALL_H
-#define API_WALL_H
+#include "api/wall.h"
+#include "api/geometry_object.h"
 
-#include "generated/gen_wall.h"
-#include "api/common.h"
+#include "world.h"
+#include "partition.h"
+#include "geometry.h"
+
+
+using namespace std;
 
 namespace MCell {
 namespace API {
 
-class Wall: public GenWall {
-public:
-  // using default ctor
+void Wall::set_is_movable(const bool new_is_movable_) {
+  check_initialization();
+  is_movable = new_is_movable_;
 
-  // -- overrides ---
-  void set_is_movable(const bool new_is_movable_) override;
-};
+  MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  MCell::Wall& w = p.get_wall(geometry_object->get_partition_wall_index(wall_index));
+  w.is_movable = new_is_movable_;
+}
+
 
 } // namespace API
 } // namespace MCell
-
-#endif // API_WALL_H

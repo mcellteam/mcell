@@ -42,6 +42,7 @@ set(SOURCE_FILES
     api/callbacks.cpp
     
     api/molecule.cpp
+    api/wall.cpp
 
     generated/gen_component_type.cpp
     generated/gen_component_instance.cpp

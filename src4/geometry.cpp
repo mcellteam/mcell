@@ -1389,6 +1389,11 @@ void update_moved_walls(
 
   // move all vertices
   for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
+    // ignore moves where walls are fixed
+    if (!move_info.vertex_walls_are_movable) {
+      continue;
+    }
+
     Vec3& vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
     vertex_ref = vertex_ref + move_info.displacement;
     if (! p.in_this_partition(vertex_ref) ) {

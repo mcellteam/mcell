@@ -39,12 +39,16 @@ public:
   BaseIntrospectionClass()
     : world(nullptr) {
     name = INTROSPECTED_OBJECT;
+    // - introspected objects are assumed to be initialized because they are returned
+    //   by API methods and this does not depend on model initialization
+    // - this flag is checked in set_* methods and must be true to avoid ignoring writes to attributes
+    initialized = true;
   }
   virtual ~BaseIntrospectionClass() {
   }
 
   void check_initialization() const {
-    if (!initialized || world == nullptr) {
+    if (world == nullptr) {
       throw RuntimeError(
           "Object of class " + class_name + " was not correctly initialized. "
           "Introspection objects cannot be created independently. they must always be retrieved through "

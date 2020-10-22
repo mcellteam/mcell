@@ -211,6 +211,7 @@ std::shared_ptr<Wall> Model::get_wall(std::shared_ptr<GeometryObject> object, co
   res->area = w.area * world->config.length_unit * world->config.length_unit;
   res->normal = w.normal; // no need to convert units here
   res->is_movable = w.is_movable;
+  res->world = world;
   return res;
 }
 

@@ -23,7 +23,8 @@ struct VertexMoveInfo {
     : partition_id(partition_id_),
       geometry_object_id(geometry_object_id_),
       vertex_index(vertex_index_),
-      displacement(displacement_) {
+      displacement(displacement_),
+      vertex_walls_are_movable(true) {
   }
 
   // id of partition of where do the move
@@ -37,6 +38,10 @@ struct VertexMoveInfo {
 
   // and by how much
   Vec3 displacement;
+
+  // may be set to false in apply_vertex_moves_per_object when any of the walls to which
+  // this vertex belongs is not movable
+  bool vertex_walls_are_movable;
 };
 
 
