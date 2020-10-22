@@ -457,23 +457,6 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         Wall& colliding_wall = p.get_wall(collision.colliding_wall_index);
 
         // call callback if the user registered one
-        #ifdef ENABLE_LEGACY_CALLBACKS
-          wall_hit_callback_func legacy_wall_hit_callback = world->get_legacy_wall_hit_callback();
-          if (legacy_wall_hit_callback != nullptr &&
-              (world->wall_hit_object_id == GEOMETRY_OBJECT_ID_INVALID || world->wall_hit_object_id == colliding_wall.object_id)) {
-            LegacyWallHitInfo info;
-            info.molecule_id = vm_new_ref.id;
-            info.geometry_object_id = colliding_wall.object_id;
-            info.wall_id = colliding_wall.id;
-            info.time = event_time + collision.time;
-            info.pos = collision.pos;
-            info.time_before_hit = event_time + elapsed_molecule_time;
-            info.pos_before_hit = vm_new_ref.v.pos;
-
-            legacy_wall_hit_callback(info, world->legacy_wall_hit_callback_clientdata);
-          }
-      #endif
-
         if (world->get_callbacks().needs_callback_for_mol_wall_hit(colliding_wall.object_id, vm_new_ref.species_id)) {
           // prepare part of information
           shared_ptr<API::MolWallHitInfo> info = make_shared<API::MolWallHitInfo>();
@@ -487,23 +470,6 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
           world->get_callbacks().do_mol_wall_hit_callback(info);
         }
-
-        /*if (world->mol_wall_hit_callback_function != nullptr &&
-            (world->mol_wall_hit_object_id == GEOMETRY_OBJECT_ID_INVALID || world->mol_wall_hit_object_id == colliding_wall.object_id) &&
-            (world->mol_wall_hit_species_id == SPECIES_ID_INVALID || world->mol_wall_hit_species_id == vm_new_ref.species_id) ) {
-          shared_ptr<API::MolWallHitInfo> info = make_shared<API::MolWallHitInfo>();
-          info->molecule_id = vm_new_ref.id;
-          info->geometry_object_id = colliding_wall.object_id; // I would need Model to be accessible here
-          info->wall_index = colliding_wall.index; // here as well
-          info->time = event_time + collision.time;
-          info->pos = collision.pos;
-          info->time_before_hit = event_time + elapsed_molecule_time;
-          info->pos_before_hit = vm_new_ref.v.pos;
-
-          world->mol_wall_hit_callback_function(info, world->mol_wall_hit_context);
-        }*/
-
-
 
 #ifdef DEBUG_WALL_COLLISIONS
         cout << "Wall collision: \n";

@@ -128,8 +128,6 @@ const float_t MESH_DISTINCTIVE_EPS = EPS;
 
 // ---------------------------------- configurable constants----------------------------------
 
-#define ENABLE_LEGACY_CALLBACKS
-
 //#define ENABLE_SORT_MOLS_BY_SUBPART // improves cache performance but produces different result
 const uint SORT_MOLS_BY_SUBPART_PERIODICITY = 20;
 

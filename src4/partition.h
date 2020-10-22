@@ -1012,10 +1012,6 @@ private:
   // indexed by [x][y][z]
   std::vector< std::vector< std::vector< Waypoint > > > waypoints;
 
-  // ---------------------------------- dynamic vertices ----------------------------------
-  // legacy implementation for pymcell 3_4
-  std::vector<VertexMoveInfo> scheduled_vertex_moves;
-
   // ---------------------------------- shared simulation configuration -------------------
 public:
   partition_id_t id;

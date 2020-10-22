@@ -74,14 +74,6 @@ World::World(API::Callbacks& callbacks_)
     buffers_flushed(false),
     previous_progress_report_time({0, 0}),
     previous_iteration(0)
-
-#ifdef ENABLE_LEGACY_CALLBACKS
-    ,
-    wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID),
-    wall_hit_species_id(SPECIES_ID_INVALID),
-    legacy_wall_hit_callback(nullptr),
-    legacy_wall_hit_callback_clientdata(nullptr)
-#endif
 {
   config.partition_edge_length = FLT_INVALID;
   config.num_subpartitions_per_partition = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;

@@ -94,7 +94,6 @@ public:
     return SPECIES_ID_INVALID;
   }
 
-
   species_id_t find_by_name(const std::string& name) const {
     // TODO: use canonical_species_map
     for (const Species& s: species) {
@@ -103,17 +102,6 @@ public:
       }
     }
     return SPECIES_ID_INVALID;
-  }
-
-  // used from pymcell3_4
-  const Species* find_species_by_name(const char* name) const {
-    species_id_t id = find_by_name(name);
-    if (id != SPECIES_ID_INVALID) {
-      return &get(id);
-    }
-    else {
-      return nullptr;
-    }
   }
 
   Species& get(const species_id_t id) {

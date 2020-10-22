@@ -166,64 +166,6 @@ public:
 
   void to_data_model(Json::Value& root, const bool only_for_viz) const;
 
-  // -------------- callback registration -------------------------
-#ifdef ENABLE_LEGACY_CALLBACKS
-  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_, const char* object_name) {
-    legacy_wall_hit_callback = func;
-    legacy_wall_hit_callback_clientdata = clientdata_;
-
-    std::string log_msg = "Registering a callback for wall hits";
-
-    wall_hit_object_id = GEOMETRY_OBJECT_ID_INVALID;
-    if (object_name != nullptr && strcmp(object_name, "") != 0) {
-      std::string name = object_name;
-      log_msg += " for object " + name;
-      // find object with our name
-      for (const Partition& p: partitions) {
-        const GeometryObject* go = p.find_geometry_object(name);
-        if (go != nullptr) {
-          if (wall_hit_object_id != GEOMETRY_OBJECT_ID_INVALID) {
-            mcell_error("There are multiple geometry objects with name %s.", object_name);
-          }
-          wall_hit_object_id = go->id;
-        }
-      }
-
-      if (wall_hit_object_id != GEOMETRY_OBJECT_ID_INVALID) {
-        log_msg += ", ok - this object was found";
-      }
-      else {
-        log_msg += ", warning - this object was not found";
-      }
-
-    }
-    mcell_log("%s.", log_msg.c_str());
-  }
-  wall_hit_callback_func get_legacy_wall_hit_callback() {
-    return legacy_wall_hit_callback;
-  }
-#endif
-
-  // ------------- counting ---------------------------------------
-#ifdef ENABLE_LEGACY_CALLBACKS
-  // ?? why is it slower???
-  void enable_wall_hit_counting(/*argument might contain information on filtering these events*/) {
-    legacy_wall_hit_callback = wall_hit_callback_append;
-    legacy_wall_hit_callback_clientdata = this;
-  }
-
-  uint get_wall_hit_array_size() const {
-    return wall_hits.size();
-  }
-
-  const LegacyWallHitInfo& get_wall_hit_array_item(uint index) const {
-    return wall_hits[index];
-  }
-
-  void clear_wall_hit_array() {
-    wall_hits.clear();
-  }
-#endif
   // ---------------------- other ----------------------
   BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
   const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
@@ -328,30 +270,6 @@ private:
 
   // and to nicely report simulation progress
   uint64_t previous_iteration;
-
-public:
-
-#ifdef ENABLE_LEGACY_CALLBACKS
-  // legacy implementation (to be removed)
-  
-  // new pymcell4 implementation of callbacks
-  geometry_object_id_t wall_hit_object_id;
-  species_id_t wall_hit_species_id;
-  
-  // callbacks
-  wall_hit_callback_func legacy_wall_hit_callback;
-  // clientdata hold information on what Python function we should call
-  void* legacy_wall_hit_callback_clientdata;
-
-private:
-  static void wall_hit_callback_append(const LegacyWallHitInfo& info, void* ctx) {
-    (static_cast<World*>(ctx))->wall_hits.push_back(info);
-  }
-
-  // used when enable_wall_hit_counting is called
-  small_vector<LegacyWallHitInfo> wall_hits;
-#endif
-
 };
 
 } // namespace mcell

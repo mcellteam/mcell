@@ -74,7 +74,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also PyMCell" OFF) # pymcell3_4 is not supported anymore, cannot be built and will be removed soon, however pymcell3 will be kept
+option(PYMCELL "Build also PyMCell" ON)
 
 
 if (ENABLE_LTO)

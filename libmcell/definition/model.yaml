@@ -177,7 +177,7 @@ Model:
       type: std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>
       doc: | 
          Callback function to be called. 
-         It must have two arguments WallHitInfo and context.
+         It must have two arguments MolWallHitInfo and context.
       internal: Use a more abstract format to define function type 
 
     - name: context
