@@ -61,12 +61,12 @@ const char* const BASE_MODEL_IMPORTS =
     "import os\n\n"
 ;
 
-const char* const MCELL_DIR_SETUP =
-    "MCELL_DIR = os.environ.get('MCELL_DIR', '')\n"
-    "if MCELL_DIR:\n"
-    "    sys.path.append(os.path.join(MCELL_DIR, 'lib'))\n"
+const char* const MCELL_PATH_SETUP =
+    "MCELL_PATH = os.environ.get('MCELL_PATH', '')\n"
+    "if MCELL_PATH:\n"
+    "    sys.path.append(os.path.join(MCELL_PATH, 'lib'))\n"
     "else:\n"
-    "    print(\"Error: variable MCELL_DIR that is used to find the mcell library was not set.\")\n"
+    "    print(\"Error: variable MCELL_PATH that is used to find the mcell library was not set.\")\n"
     "    sys.exit(1)\n\n"
 ;
 

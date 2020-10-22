@@ -29,7 +29,7 @@ import multiprocessing
 import re
 import subprocess
 
-MCELL_DIR = ''
+MCELL_PATH = ''
 RUNNING_MARKER = 'running.marker'
 FINISHED_MARKER = 'finished.marker'
 
@@ -99,15 +99,15 @@ def process_opts():
         
 
 def check_prerequisites():
-    global MCELL_DIR
-    MCELL_DIR = os.environ.get('MCELL_DIR', '')
-    if MCELL_DIR:
-        sys.path.append(os.path.join(MCELL_DIR, 'lib'))
+    global MCELL_PATH
+    MCELL_PATH = os.environ.get('MCELL_PATH', '')
+    if MCELL_PATH:
+        sys.path.append(os.path.join(MCELL_PATH, 'lib'))
     else:
-        print("Error: system variable MCELL_DIR that is used to find the mcell library was not set.")
+        print("Error: system variable MCELL_PATH that is used to find the mcell library was not set.")
         sys.exit(1)
     
-    mcell_so_path = os.path.join(MCELL_DIR, 'lib', 'mcell.so')
+    mcell_so_path = os.path.join(MCELL_PATH, 'lib', 'mcell.so')
     if not os.path.exists(mcell_so_path):
         print("Could not find library '" + mcell_so_path + ".")
         sys.exit(1)

@@ -630,7 +630,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   }
 
   out << BASE_MODEL_IMPORTS;
-  out << MCELL_DIR_SETUP;
+  out << MCELL_PATH_SETUP;
 
   out << MCELL_IMPORT;
 
