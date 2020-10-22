@@ -73,7 +73,7 @@ public:
   int seed;
   virtual void set_seed(const int new_seed_) {
     if (initialized) {
-      throw RuntimeError("Value 'seed' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'seed' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     seed = new_seed_;
@@ -85,7 +85,7 @@ public:
   float_t time_step;
   virtual void set_time_step(const float_t new_time_step_) {
     if (initialized) {
-      throw RuntimeError("Value 'time_step' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'time_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     time_step = new_time_step_;
@@ -97,7 +97,7 @@ public:
   float_t surface_grid_density;
   virtual void set_surface_grid_density(const float_t new_surface_grid_density_) {
     if (initialized) {
-      throw RuntimeError("Value 'surface_grid_density' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'surface_grid_density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     surface_grid_density = new_surface_grid_density_;
@@ -109,7 +109,7 @@ public:
   float_t interaction_radius;
   virtual void set_interaction_radius(const float_t new_interaction_radius_) {
     if (initialized) {
-      throw RuntimeError("Value 'interaction_radius' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'interaction_radius' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     interaction_radius = new_interaction_radius_;
@@ -121,7 +121,7 @@ public:
   float_t vacancy_search_distance;
   virtual void set_vacancy_search_distance(const float_t new_vacancy_search_distance_) {
     if (initialized) {
-      throw RuntimeError("Value 'vacancy_search_distance' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'vacancy_search_distance' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     vacancy_search_distance = new_vacancy_search_distance_;
@@ -133,7 +133,7 @@ public:
   bool center_molecules_on_grid;
   virtual void set_center_molecules_on_grid(const bool new_center_molecules_on_grid_) {
     if (initialized) {
-      throw RuntimeError("Value 'center_molecules_on_grid' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'center_molecules_on_grid' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     center_molecules_on_grid = new_center_molecules_on_grid_;
@@ -145,7 +145,7 @@ public:
   std::vector<float_t> initial_partition_origin;
   virtual void set_initial_partition_origin(const std::vector<float_t> new_initial_partition_origin_) {
     if (initialized) {
-      throw RuntimeError("Value 'initial_partition_origin' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'initial_partition_origin' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     initial_partition_origin = new_initial_partition_origin_;
@@ -157,7 +157,7 @@ public:
   float_t partition_dimension;
   virtual void set_partition_dimension(const float_t new_partition_dimension_) {
     if (initialized) {
-      throw RuntimeError("Value 'partition_dimension' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'partition_dimension' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     partition_dimension = new_partition_dimension_;
@@ -169,7 +169,7 @@ public:
   float_t subpartition_dimension;
   virtual void set_subpartition_dimension(const float_t new_subpartition_dimension_) {
     if (initialized) {
-      throw RuntimeError("Value 'subpartition_dimension' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'subpartition_dimension' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     subpartition_dimension = new_subpartition_dimension_;
@@ -181,7 +181,7 @@ public:
   float_t total_iterations_hint;
   virtual void set_total_iterations_hint(const float_t new_total_iterations_hint_) {
     if (initialized) {
-      throw RuntimeError("Value 'total_iterations_hint' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'total_iterations_hint' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     total_iterations_hint = new_total_iterations_hint_;
@@ -193,7 +193,7 @@ public:
   bool check_overlapped_walls;
   virtual void set_check_overlapped_walls(const bool new_check_overlapped_walls_) {
     if (initialized) {
-      throw RuntimeError("Value 'check_overlapped_walls' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'check_overlapped_walls' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     check_overlapped_walls = new_check_overlapped_walls_;

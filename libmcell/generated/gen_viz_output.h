@@ -63,7 +63,7 @@ public:
   std::string output_files_prefix;
   virtual void set_output_files_prefix(const std::string& new_output_files_prefix_) {
     if (initialized) {
-      throw RuntimeError("Value 'output_files_prefix' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'output_files_prefix' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     output_files_prefix = new_output_files_prefix_;
@@ -75,7 +75,7 @@ public:
   std::vector<std::shared_ptr<Species>> species_list;
   virtual void set_species_list(const std::vector<std::shared_ptr<Species>> new_species_list_) {
     if (initialized) {
-      throw RuntimeError("Value 'species_list' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'species_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     species_list = new_species_list_;
@@ -87,7 +87,7 @@ public:
   bool all_species;
   virtual void set_all_species(const bool new_all_species_) {
     if (initialized) {
-      throw RuntimeError("Value 'all_species' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'all_species' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     all_species = new_all_species_;
@@ -99,7 +99,7 @@ public:
   VizMode mode;
   virtual void set_mode(const VizMode new_mode_) {
     if (initialized) {
-      throw RuntimeError("Value 'mode' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'mode' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     mode = new_mode_;
@@ -111,7 +111,7 @@ public:
   float_t every_n_timesteps;
   virtual void set_every_n_timesteps(const float_t new_every_n_timesteps_) {
     if (initialized) {
-      throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     every_n_timesteps = new_every_n_timesteps_;

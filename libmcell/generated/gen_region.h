@@ -59,7 +59,7 @@ public:
   RegionNodeType node_type;
   virtual void set_node_type(const RegionNodeType new_node_type_) {
     if (initialized) {
-      throw RuntimeError("Value 'node_type' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'node_type' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     node_type = new_node_type_;
@@ -71,7 +71,7 @@ public:
   std::shared_ptr<Region> left_node;
   virtual void set_left_node(std::shared_ptr<Region> new_left_node_) {
     if (initialized) {
-      throw RuntimeError("Value 'left_node' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'left_node' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     left_node = new_left_node_;
@@ -83,7 +83,7 @@ public:
   std::shared_ptr<Region> right_node;
   virtual void set_right_node(std::shared_ptr<Region> new_right_node_) {
     if (initialized) {
-      throw RuntimeError("Value 'right_node' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'right_node' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     right_node = new_right_node_;

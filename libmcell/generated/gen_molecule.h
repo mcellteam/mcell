@@ -57,7 +57,7 @@ public:
   int id;
   virtual void set_id(const int new_id_) {
     if (initialized) {
-      throw RuntimeError("Value 'id' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'id' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     id = new_id_;
@@ -69,7 +69,7 @@ public:
   std::shared_ptr<Species> species;
   virtual void set_species(std::shared_ptr<Species> new_species_) {
     if (initialized) {
-      throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     species = new_species_;
@@ -81,7 +81,7 @@ public:
   Vec3 pos3d;
   virtual void set_pos3d(const Vec3& new_pos3d_) {
     if (initialized) {
-      throw RuntimeError("Value 'pos3d' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'pos3d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     pos3d = new_pos3d_;
@@ -93,7 +93,7 @@ public:
   Orientation orientation;
   virtual void set_orientation(const Orientation new_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     orientation = new_orientation_;

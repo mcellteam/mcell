@@ -58,7 +58,7 @@ public:
   std::shared_ptr<ElementaryMoleculeType> elementary_molecule_type;
   virtual void set_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> new_elementary_molecule_type_) {
     if (initialized) {
-      throw RuntimeError("Value 'elementary_molecule_type' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'elementary_molecule_type' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     elementary_molecule_type = new_elementary_molecule_type_;
@@ -70,7 +70,7 @@ public:
   std::vector<std::shared_ptr<ComponentInstance>> components;
   virtual void set_components(const std::vector<std::shared_ptr<ComponentInstance>> new_components_) {
     if (initialized) {
-      throw RuntimeError("Value 'components' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'components' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     components = new_components_;

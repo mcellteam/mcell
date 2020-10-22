@@ -59,7 +59,7 @@ public:
   std::shared_ptr<Complex> complex;
   virtual void set_complex(std::shared_ptr<Complex> new_complex_) {
     if (initialized) {
-      throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     complex = new_complex_;
@@ -71,7 +71,7 @@ public:
   std::vector<float_t> location;
   virtual void set_location(const std::vector<float_t> new_location_) {
     if (initialized) {
-      throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     location = new_location_;
@@ -83,7 +83,7 @@ public:
   Orientation orientation;
   virtual void set_orientation(const Orientation new_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     orientation = new_orientation_;

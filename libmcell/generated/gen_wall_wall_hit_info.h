@@ -55,7 +55,7 @@ public:
   std::shared_ptr<Wall> wall1;
   virtual void set_wall1(std::shared_ptr<Wall> new_wall1_) {
     if (initialized) {
-      throw RuntimeError("Value 'wall1' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'wall1' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     wall1 = new_wall1_;
@@ -67,7 +67,7 @@ public:
   std::shared_ptr<Wall> wall2;
   virtual void set_wall2(std::shared_ptr<Wall> new_wall2_) {
     if (initialized) {
-      throw RuntimeError("Value 'wall2' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'wall2' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     wall2 = new_wall2_;

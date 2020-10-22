@@ -594,7 +594,7 @@ def write_attr_with_get_set(f, class_def, attr):
     
     if has_single_superclass(class_def):
         f.write('    if (initialized) {\n')
-        f.write('      throw RuntimeError("Value \'' + name + '\' of object with name " + name + " (class " + class_name + ")"\n')
+        f.write('      throw RuntimeError("Value \'' + name + '\' of object with name " + name + " (class " + class_name + ") "\n')
         f.write('                         "cannot be set after model was initialized.");\n')
         f.write('    }\n')
         

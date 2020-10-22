@@ -73,7 +73,7 @@ public:
   WarningLevel molecule_collision_report;
   virtual void set_molecule_collision_report(const WarningLevel new_molecule_collision_report_) {
     if (initialized) {
-      throw RuntimeError("Value 'molecule_collision_report' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'molecule_collision_report' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     molecule_collision_report = new_molecule_collision_report_;
@@ -85,7 +85,7 @@ public:
   WarningLevel degenerate_polygons;
   virtual void set_degenerate_polygons(const WarningLevel new_degenerate_polygons_) {
     if (initialized) {
-      throw RuntimeError("Value 'degenerate_polygons' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'degenerate_polygons' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     degenerate_polygons = new_degenerate_polygons_;
@@ -97,7 +97,7 @@ public:
   WarningLevel negative_diffusion_constant;
   virtual void set_negative_diffusion_constant(const WarningLevel new_negative_diffusion_constant_) {
     if (initialized) {
-      throw RuntimeError("Value 'negative_diffusion_constant' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'negative_diffusion_constant' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     negative_diffusion_constant = new_negative_diffusion_constant_;
@@ -109,7 +109,7 @@ public:
   WarningLevel missing_surface_orientation;
   virtual void set_missing_surface_orientation(const WarningLevel new_missing_surface_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'missing_surface_orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'missing_surface_orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     missing_surface_orientation = new_missing_surface_orientation_;
@@ -121,7 +121,7 @@ public:
   WarningLevel negative_reaction_rate;
   virtual void set_negative_reaction_rate(const WarningLevel new_negative_reaction_rate_) {
     if (initialized) {
-      throw RuntimeError("Value 'negative_reaction_rate' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'negative_reaction_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     negative_reaction_rate = new_negative_reaction_rate_;
@@ -133,7 +133,7 @@ public:
   WarningLevel useless_volume_orientation;
   virtual void set_useless_volume_orientation(const WarningLevel new_useless_volume_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'useless_volume_orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'useless_volume_orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     useless_volume_orientation = new_useless_volume_orientation_;
@@ -145,7 +145,7 @@ public:
   WarningLevel high_reaction_probability;
   virtual void set_high_reaction_probability(const WarningLevel new_high_reaction_probability_) {
     if (initialized) {
-      throw RuntimeError("Value 'high_reaction_probability' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'high_reaction_probability' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     high_reaction_probability = new_high_reaction_probability_;
@@ -157,7 +157,7 @@ public:
   WarningLevel lifetime_too_short;
   virtual void set_lifetime_too_short(const WarningLevel new_lifetime_too_short_) {
     if (initialized) {
-      throw RuntimeError("Value 'lifetime_too_short' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'lifetime_too_short' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     lifetime_too_short = new_lifetime_too_short_;
@@ -169,7 +169,7 @@ public:
   float_t lifetime_threshold;
   virtual void set_lifetime_threshold(const float_t new_lifetime_threshold_) {
     if (initialized) {
-      throw RuntimeError("Value 'lifetime_threshold' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'lifetime_threshold' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     lifetime_threshold = new_lifetime_threshold_;
@@ -181,7 +181,7 @@ public:
   WarningLevel missed_reactions;
   virtual void set_missed_reactions(const WarningLevel new_missed_reactions_) {
     if (initialized) {
-      throw RuntimeError("Value 'missed_reactions' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'missed_reactions' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     missed_reactions = new_missed_reactions_;
@@ -193,7 +193,7 @@ public:
   float_t missed_reactions_threshold;
   virtual void set_missed_reactions_threshold(const float_t new_missed_reactions_threshold_) {
     if (initialized) {
-      throw RuntimeError("Value 'missed_reactions_threshold' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'missed_reactions_threshold' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     missed_reactions_threshold = new_missed_reactions_threshold_;

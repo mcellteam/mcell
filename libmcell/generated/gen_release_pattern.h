@@ -61,7 +61,7 @@ public:
   float_t release_interval;
   virtual void set_release_interval(const float_t new_release_interval_) {
     if (initialized) {
-      throw RuntimeError("Value 'release_interval' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'release_interval' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     release_interval = new_release_interval_;
@@ -73,7 +73,7 @@ public:
   float_t train_duration;
   virtual void set_train_duration(const float_t new_train_duration_) {
     if (initialized) {
-      throw RuntimeError("Value 'train_duration' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'train_duration' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     train_duration = new_train_duration_;
@@ -85,7 +85,7 @@ public:
   float_t train_interval;
   virtual void set_train_interval(const float_t new_train_interval_) {
     if (initialized) {
-      throw RuntimeError("Value 'train_interval' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'train_interval' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     train_interval = new_train_interval_;
@@ -97,7 +97,7 @@ public:
   int number_of_trains;
   virtual void set_number_of_trains(const int new_number_of_trains_) {
     if (initialized) {
-      throw RuntimeError("Value 'number_of_trains' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'number_of_trains' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     number_of_trains = new_number_of_trains_;

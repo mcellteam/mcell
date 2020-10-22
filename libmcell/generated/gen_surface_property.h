@@ -59,7 +59,7 @@ public:
   SurfacePropertyType type;
   virtual void set_type(const SurfacePropertyType new_type_) {
     if (initialized) {
-      throw RuntimeError("Value 'type' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'type' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     type = new_type_;
@@ -71,7 +71,7 @@ public:
   std::shared_ptr<Species> affected_species;
   virtual void set_affected_species(std::shared_ptr<Species> new_affected_species_) {
     if (initialized) {
-      throw RuntimeError("Value 'affected_species' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'affected_species' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     affected_species = new_affected_species_;
@@ -83,7 +83,7 @@ public:
   Orientation orientation;
   virtual void set_orientation(const Orientation new_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     orientation = new_orientation_;

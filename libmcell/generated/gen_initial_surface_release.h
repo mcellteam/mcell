@@ -63,7 +63,7 @@ public:
   std::shared_ptr<Species> species;
   virtual void set_species(std::shared_ptr<Species> new_species_) {
     if (initialized) {
-      throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     species = new_species_;
@@ -75,7 +75,7 @@ public:
   std::string bngl_species;
   virtual void set_bngl_species(const std::string& new_bngl_species_) {
     if (initialized) {
-      throw RuntimeError("Value 'bngl_species' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'bngl_species' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     bngl_species = new_bngl_species_;
@@ -87,7 +87,7 @@ public:
   Orientation orientation;
   virtual void set_orientation(const Orientation new_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     orientation = new_orientation_;
@@ -99,7 +99,7 @@ public:
   int number_to_release;
   virtual void set_number_to_release(const int new_number_to_release_) {
     if (initialized) {
-      throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     number_to_release = new_number_to_release_;
@@ -111,7 +111,7 @@ public:
   float_t density;
   virtual void set_density(const float_t new_density_) {
     if (initialized) {
-      throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     density = new_density_;

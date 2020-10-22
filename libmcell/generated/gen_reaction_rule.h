@@ -67,7 +67,7 @@ public:
   std::vector<std::shared_ptr<Complex>> reactants;
   virtual void set_reactants(const std::vector<std::shared_ptr<Complex>> new_reactants_) {
     if (initialized) {
-      throw RuntimeError("Value 'reactants' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'reactants' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     reactants = new_reactants_;
@@ -79,7 +79,7 @@ public:
   std::vector<std::shared_ptr<Complex>> products;
   virtual void set_products(const std::vector<std::shared_ptr<Complex>> new_products_) {
     if (initialized) {
-      throw RuntimeError("Value 'products' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'products' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     products = new_products_;
@@ -91,7 +91,7 @@ public:
   float_t fwd_rate;
   virtual void set_fwd_rate(const float_t new_fwd_rate_) {
     if (initialized) {
-      throw RuntimeError("Value 'fwd_rate' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'fwd_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     fwd_rate = new_fwd_rate_;
@@ -103,7 +103,7 @@ public:
   std::string rev_name;
   virtual void set_rev_name(const std::string& new_rev_name_) {
     if (initialized) {
-      throw RuntimeError("Value 'rev_name' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'rev_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     rev_name = new_rev_name_;
@@ -115,7 +115,7 @@ public:
   float_t rev_rate;
   virtual void set_rev_rate(const float_t new_rev_rate_) {
     if (initialized) {
-      throw RuntimeError("Value 'rev_rate' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'rev_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     rev_rate = new_rev_rate_;
@@ -127,7 +127,7 @@ public:
   std::vector<std::vector<float_t>> variable_rate;
   virtual void set_variable_rate(const std::vector<std::vector<float_t>> new_variable_rate_) {
     if (initialized) {
-      throw RuntimeError("Value 'variable_rate' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'variable_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     variable_rate = new_variable_rate_;

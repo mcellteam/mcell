@@ -88,7 +88,7 @@ public:
   std::shared_ptr<Complex> complex;
   virtual void set_complex(std::shared_ptr<Complex> new_complex_) {
     if (initialized) {
-      throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     complex = new_complex_;
@@ -100,7 +100,7 @@ public:
   Orientation orientation;
   virtual void set_orientation(const Orientation new_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     orientation = new_orientation_;
@@ -112,7 +112,7 @@ public:
   std::vector<std::shared_ptr<MoleculeReleaseInfo>> molecule_list;
   virtual void set_molecule_list(const std::vector<std::shared_ptr<MoleculeReleaseInfo>> new_molecule_list_) {
     if (initialized) {
-      throw RuntimeError("Value 'molecule_list' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'molecule_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     molecule_list = new_molecule_list_;
@@ -124,7 +124,7 @@ public:
   float_t release_time;
   virtual void set_release_time(const float_t new_release_time_) {
     if (initialized) {
-      throw RuntimeError("Value 'release_time' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'release_time' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     release_time = new_release_time_;
@@ -136,7 +136,7 @@ public:
   std::shared_ptr<ReleasePattern> release_pattern;
   virtual void set_release_pattern(std::shared_ptr<ReleasePattern> new_release_pattern_) {
     if (initialized) {
-      throw RuntimeError("Value 'release_pattern' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'release_pattern' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     release_pattern = new_release_pattern_;
@@ -148,7 +148,7 @@ public:
   Shape shape;
   virtual void set_shape(const Shape new_shape_) {
     if (initialized) {
-      throw RuntimeError("Value 'shape' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'shape' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     shape = new_shape_;
@@ -160,7 +160,7 @@ public:
   std::shared_ptr<Region> region;
   virtual void set_region(std::shared_ptr<Region> new_region_) {
     if (initialized) {
-      throw RuntimeError("Value 'region' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'region' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     region = new_region_;
@@ -172,7 +172,7 @@ public:
   std::string compartment_name;
   virtual void set_compartment_name(const std::string& new_compartment_name_) {
     if (initialized) {
-      throw RuntimeError("Value 'compartment_name' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'compartment_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     compartment_name = new_compartment_name_;
@@ -184,7 +184,7 @@ public:
   Vec3 location;
   virtual void set_location(const Vec3& new_location_) {
     if (initialized) {
-      throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     location = new_location_;
@@ -196,7 +196,7 @@ public:
   float_t site_diameter;
   virtual void set_site_diameter(const float_t new_site_diameter_) {
     if (initialized) {
-      throw RuntimeError("Value 'site_diameter' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'site_diameter' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     site_diameter = new_site_diameter_;
@@ -208,7 +208,7 @@ public:
   float_t site_radius;
   virtual void set_site_radius(const float_t new_site_radius_) {
     if (initialized) {
-      throw RuntimeError("Value 'site_radius' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'site_radius' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     site_radius = new_site_radius_;
@@ -220,7 +220,7 @@ public:
   float_t number_to_release;
   virtual void set_number_to_release(const float_t new_number_to_release_) {
     if (initialized) {
-      throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     number_to_release = new_number_to_release_;
@@ -232,7 +232,7 @@ public:
   float_t density;
   virtual void set_density(const float_t new_density_) {
     if (initialized) {
-      throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     density = new_density_;
@@ -244,7 +244,7 @@ public:
   float_t concentration;
   virtual void set_concentration(const float_t new_concentration_) {
     if (initialized) {
-      throw RuntimeError("Value 'concentration' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'concentration' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     concentration = new_concentration_;
@@ -256,7 +256,7 @@ public:
   float_t release_probability;
   virtual void set_release_probability(const float_t new_release_probability_) {
     if (initialized) {
-      throw RuntimeError("Value 'release_probability' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'release_probability' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     release_probability = new_release_probability_;

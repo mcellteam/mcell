@@ -59,7 +59,7 @@ public:
   std::shared_ptr<GeometryObject> geometry_object;
   virtual void set_geometry_object(std::shared_ptr<GeometryObject> new_geometry_object_) {
     if (initialized) {
-      throw RuntimeError("Value 'geometry_object' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'geometry_object' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     geometry_object = new_geometry_object_;
@@ -71,7 +71,7 @@ public:
   int wall_index;
   virtual void set_wall_index(const int new_wall_index_) {
     if (initialized) {
-      throw RuntimeError("Value 'wall_index' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'wall_index' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     wall_index = new_wall_index_;
@@ -83,7 +83,7 @@ public:
   std::vector<Vec3> vertices;
   virtual void set_vertices(const std::vector<Vec3> new_vertices_) {
     if (initialized) {
-      throw RuntimeError("Value 'vertices' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'vertices' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     vertices = new_vertices_;
@@ -95,7 +95,7 @@ public:
   float_t area;
   virtual void set_area(const float_t new_area_) {
     if (initialized) {
-      throw RuntimeError("Value 'area' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'area' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     area = new_area_;
@@ -107,7 +107,7 @@ public:
   Vec3 normal;
   virtual void set_normal(const Vec3& new_normal_) {
     if (initialized) {
-      throw RuntimeError("Value 'normal' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'normal' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     normal = new_normal_;
@@ -119,7 +119,7 @@ public:
   bool is_movable;
   virtual void set_is_movable(const bool new_is_movable_) {
     if (initialized) {
-      throw RuntimeError("Value 'is_movable' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'is_movable' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     is_movable = new_is_movable_;

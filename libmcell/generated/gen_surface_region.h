@@ -76,7 +76,7 @@ public:
   std::vector<int> wall_indices;
   virtual void set_wall_indices(const std::vector<int> new_wall_indices_) {
     if (initialized) {
-      throw RuntimeError("Value 'wall_indices' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'wall_indices' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     wall_indices = new_wall_indices_;
@@ -88,7 +88,7 @@ public:
   std::shared_ptr<SurfaceClass> surface_class;
   virtual void set_surface_class(std::shared_ptr<SurfaceClass> new_surface_class_) {
     if (initialized) {
-      throw RuntimeError("Value 'surface_class' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'surface_class' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     surface_class = new_surface_class_;
@@ -100,7 +100,7 @@ public:
   std::vector<std::shared_ptr<InitialSurfaceRelease>> initial_surface_releases;
   virtual void set_initial_surface_releases(const std::vector<std::shared_ptr<InitialSurfaceRelease>> new_initial_surface_releases_) {
     if (initialized) {
-      throw RuntimeError("Value 'initial_surface_releases' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'initial_surface_releases' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     initial_surface_releases = new_initial_surface_releases_;

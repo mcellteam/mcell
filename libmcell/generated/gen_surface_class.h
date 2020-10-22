@@ -71,7 +71,7 @@ public:
   std::vector<std::shared_ptr<SurfaceProperty>> properties;
   virtual void set_properties(const std::vector<std::shared_ptr<SurfaceProperty>> new_properties_) {
     if (initialized) {
-      throw RuntimeError("Value 'properties' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'properties' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     properties = new_properties_;

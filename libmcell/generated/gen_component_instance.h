@@ -59,7 +59,7 @@ public:
   std::shared_ptr<ComponentType> component_type;
   virtual void set_component_type(std::shared_ptr<ComponentType> new_component_type_) {
     if (initialized) {
-      throw RuntimeError("Value 'component_type' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'component_type' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     component_type = new_component_type_;
@@ -71,7 +71,7 @@ public:
   std::string state;
   virtual void set_state(const std::string& new_state_) {
     if (initialized) {
-      throw RuntimeError("Value 'state' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'state' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     state = new_state_;
@@ -83,7 +83,7 @@ public:
   int bond;
   virtual void set_bond(const int new_bond_) {
     if (initialized) {
-      throw RuntimeError("Value 'bond' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'bond' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     bond = new_bond_;

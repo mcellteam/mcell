@@ -62,7 +62,7 @@ public:
   std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances;
   virtual void set_elementary_molecule_instances(const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> new_elementary_molecule_instances_) {
     if (initialized) {
-      throw RuntimeError("Value 'elementary_molecule_instances' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'elementary_molecule_instances' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     elementary_molecule_instances = new_elementary_molecule_instances_;
@@ -74,7 +74,7 @@ public:
   Orientation orientation;
   virtual void set_orientation(const Orientation new_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     orientation = new_orientation_;
@@ -86,7 +86,7 @@ public:
   std::string compartment_name;
   virtual void set_compartment_name(const std::string& new_compartment_name_) {
     if (initialized) {
-      throw RuntimeError("Value 'compartment_name' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'compartment_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     compartment_name = new_compartment_name_;

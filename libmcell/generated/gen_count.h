@@ -89,7 +89,7 @@ public:
   std::string file_name;
   virtual void set_file_name(const std::string& new_file_name_) {
     if (initialized) {
-      throw RuntimeError("Value 'file_name' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'file_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     file_name = new_file_name_;
@@ -101,7 +101,7 @@ public:
   std::shared_ptr<CountTerm> count_expression;
   virtual void set_count_expression(std::shared_ptr<CountTerm> new_count_expression_) {
     if (initialized) {
-      throw RuntimeError("Value 'count_expression' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'count_expression' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     count_expression = new_count_expression_;
@@ -113,7 +113,7 @@ public:
   float_t multiplier;
   virtual void set_multiplier(const float_t new_multiplier_) {
     if (initialized) {
-      throw RuntimeError("Value 'multiplier' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'multiplier' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     multiplier = new_multiplier_;
@@ -125,7 +125,7 @@ public:
   float_t every_n_timesteps;
   virtual void set_every_n_timesteps(const float_t new_every_n_timesteps_) {
     if (initialized) {
-      throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     every_n_timesteps = new_every_n_timesteps_;

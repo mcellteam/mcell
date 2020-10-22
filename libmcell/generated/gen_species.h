@@ -82,7 +82,7 @@ public:
   float_t diffusion_constant_2d;
   virtual void set_diffusion_constant_2d(const float_t new_diffusion_constant_2d_) {
     if (initialized) {
-      throw RuntimeError("Value 'diffusion_constant_2d' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'diffusion_constant_2d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     diffusion_constant_2d = new_diffusion_constant_2d_;
@@ -94,7 +94,7 @@ public:
   float_t diffusion_constant_3d;
   virtual void set_diffusion_constant_3d(const float_t new_diffusion_constant_3d_) {
     if (initialized) {
-      throw RuntimeError("Value 'diffusion_constant_3d' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'diffusion_constant_3d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     diffusion_constant_3d = new_diffusion_constant_3d_;
@@ -106,7 +106,7 @@ public:
   float_t custom_time_step;
   virtual void set_custom_time_step(const float_t new_custom_time_step_) {
     if (initialized) {
-      throw RuntimeError("Value 'custom_time_step' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'custom_time_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     custom_time_step = new_custom_time_step_;
@@ -118,7 +118,7 @@ public:
   float_t custom_space_step;
   virtual void set_custom_space_step(const float_t new_custom_space_step_) {
     if (initialized) {
-      throw RuntimeError("Value 'custom_space_step' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'custom_space_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     custom_space_step = new_custom_space_step_;
@@ -130,7 +130,7 @@ public:
   bool target_only;
   virtual void set_target_only(const bool new_target_only_) {
     if (initialized) {
-      throw RuntimeError("Value 'target_only' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'target_only' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     target_only = new_target_only_;

@@ -95,6 +95,8 @@ void define_pybinding_Vec3(py::module& m) {
       .def("__eq__",  [](const Vec3& a, const Vec3& b) { return a == b; } )
       .def("__str__",  [](const Vec3& a)
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + ")"; } )
+      .def("__repr__",  [](const Vec3& a)
+          { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + ")"; } )
       .def("tolist",  [](const Vec3& a) { return std::vector<float_t>{a.x, a.y, a.z}; } )
       .def_readwrite("x", &Vec3::x)
       .def_readwrite("y", &Vec3::y)

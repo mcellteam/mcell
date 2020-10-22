@@ -57,7 +57,7 @@ public:
   std::vector<std::string> states;
   virtual void set_states(const std::vector<std::string> new_states_) {
     if (initialized) {
-      throw RuntimeError("Value 'states' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'states' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     states = new_states_;

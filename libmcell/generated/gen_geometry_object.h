@@ -85,7 +85,7 @@ public:
   std::vector<std::vector<float_t>> vertex_list;
   virtual void set_vertex_list(const std::vector<std::vector<float_t>> new_vertex_list_) {
     if (initialized) {
-      throw RuntimeError("Value 'vertex_list' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'vertex_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     vertex_list = new_vertex_list_;
@@ -97,7 +97,7 @@ public:
   std::vector<std::vector<int>> element_connections;
   virtual void set_element_connections(const std::vector<std::vector<int>> new_element_connections_) {
     if (initialized) {
-      throw RuntimeError("Value 'element_connections' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'element_connections' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     element_connections = new_element_connections_;
@@ -109,7 +109,7 @@ public:
   bool is_bngl_compartment;
   virtual void set_is_bngl_compartment(const bool new_is_bngl_compartment_) {
     if (initialized) {
-      throw RuntimeError("Value 'is_bngl_compartment' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'is_bngl_compartment' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     is_bngl_compartment = new_is_bngl_compartment_;
@@ -121,7 +121,7 @@ public:
   std::string surface_compartment_name;
   virtual void set_surface_compartment_name(const std::string& new_surface_compartment_name_) {
     if (initialized) {
-      throw RuntimeError("Value 'surface_compartment_name' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'surface_compartment_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     surface_compartment_name = new_surface_compartment_name_;
@@ -133,7 +133,7 @@ public:
   std::vector<std::shared_ptr<SurfaceRegion>> surface_regions;
   virtual void set_surface_regions(const std::vector<std::shared_ptr<SurfaceRegion>> new_surface_regions_) {
     if (initialized) {
-      throw RuntimeError("Value 'surface_regions' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'surface_regions' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     surface_regions = new_surface_regions_;
@@ -145,7 +145,7 @@ public:
   std::shared_ptr<SurfaceClass> surface_class;
   virtual void set_surface_class(std::shared_ptr<SurfaceClass> new_surface_class_) {
     if (initialized) {
-      throw RuntimeError("Value 'surface_class' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'surface_class' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     surface_class = new_surface_class_;
@@ -157,7 +157,7 @@ public:
   std::vector<std::shared_ptr<InitialSurfaceRelease>> initial_surface_releases;
   virtual void set_initial_surface_releases(const std::vector<std::shared_ptr<InitialSurfaceRelease>> new_initial_surface_releases_) {
     if (initialized) {
-      throw RuntimeError("Value 'initial_surface_releases' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'initial_surface_releases' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     initial_surface_releases = new_initial_surface_releases_;
