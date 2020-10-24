@@ -205,6 +205,19 @@ public:
     return type == CollisionType::WALL_FRONT || type == CollisionType::WALL_BACK;
   }
 
+  orientation_t get_orientation_against_wall() const {
+    if (type == CollisionType::WALL_BACK) {
+      return ORIENTATION_UP;
+    }
+    else if (type == CollisionType::WALL_FRONT) {
+      return ORIENTATION_DOWN;
+    }
+    else {
+      assert(false);
+      return ORIENTATION_NOT_SET;
+    }
+  }
+
   // full dump
   void dump(Partition& p, const std::string ind) const;
 

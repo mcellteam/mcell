@@ -104,7 +104,7 @@ public:
     return vol_compartment_id != BNG::COMPARTMENT_ID_NONE;
   }
 
-  bool is_counted_volume() const {
+  bool is_counted_volume_or_compartment() const {
     assert(vol_compartment_id != BNG::COMPARTMENT_ID_INVALID);
     return is_used_in_mol_rxn_counts || represents_compartment();
   }

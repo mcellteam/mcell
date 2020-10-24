@@ -1420,7 +1420,7 @@ static float_t get_num_crossed_walls_per_object(
 
       // do we count only counted objects and is this a counted oblect?
       const Wall& w = p.get_wall(wall_index);
-      if (only_counted_objects && !p.get_geometry_object(w.object_index).is_counted_volume()) {
+      if (only_counted_objects && !p.get_geometry_object(w.object_index).is_counted_volume_or_compartment()) {
         continue;
       }
 
@@ -1554,7 +1554,7 @@ static counted_volume_index_t compute_counted_volume_for_pos(
 
   cv.contained_in_objects.clear();
   for (GeometryObject& obj: p.get_geometry_objects()) {
-    if (obj.is_counted_volume()) {
+    if (obj.is_counted_volume_or_compartment()) {
       if (CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
         cv.contained_in_objects.insert(obj.index);
       }
@@ -1593,7 +1593,7 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
       const Wall& w = p.get_wall(wall_index);
 
       // do we care about this object?
-      if (!p.get_geometry_object(w.object_index).is_counted_volume()) {
+      if (!p.get_geometry_object(w.object_index).is_counted_volume_or_compartment()) {
         continue;
       }
 
@@ -1637,22 +1637,23 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
 static void update_counted_volume_id_when_crossing_wall(
     Partition& p,
     const Wall& w,
-    const Collision& collision,
-    const Vec3& displacement, // TODO: not sure if really needed
+    const orientation_t orientation,
     Molecule& vm
 ) {
   assert(vm.is_vol());
 
   const GeometryObject& obj = p.get_geometry_object(w.object_id);
-  if (obj.is_counted_volume()) {
+  if (obj.is_counted_volume_or_compartment()) {
     
     assert(obj.counted_volume_index_inside != COUNTED_VOLUME_INDEX_INVALID);
     assert(obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INVALID);
 
     // which direction?
-    if (collision.type == CollisionType::WALL_BACK) {
+    if (orientation == ORIENTATION_UP) { // for hits - WALL_BACK
       // going outside
-      assert(obj.counted_volume_index_inside == COUNTED_VOLUME_INDEX_INTERSECTS ||
+      assert(
+          vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID ||
+          obj.counted_volume_index_inside == COUNTED_VOLUME_INDEX_INTERSECTS ||
           obj.counted_volume_index_inside == vm.v.counted_volume_index);
 
       if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
@@ -1669,9 +1670,11 @@ static void update_counted_volume_id_when_crossing_wall(
             p, compute_counted_volume_using_waypoints(p, vm.v.pos + displacement));
       }
     }
-    else if (collision.type == CollisionType::WALL_FRONT) {
+    else if (orientation == ORIENTATION_DOWN) { // for hits - WALL_FRONT
       // going inside
-      assert(obj.counted_volume_index_outside == COUNTED_VOLUME_INDEX_INTERSECTS ||
+      assert(
+          vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID ||
+          obj.counted_volume_index_outside == COUNTED_VOLUME_INDEX_INTERSECTS ||
           obj.counted_volume_index_outside == vm.v.counted_volume_index);
 
       if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
@@ -1716,7 +1719,8 @@ static void cross_transparent_wall(
 
   const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
   if (sp.needs_counted_volume()) {
-    update_counted_volume_id_when_crossing_wall(p, w, collision, remaining_displacement, vm);
+    update_counted_volume_id_when_crossing_wall(
+        p, w, collision.get_orientation_against_wall(), vm);
   }
 
 #ifdef DEBUG_TRANSPARENT_SURFACES

@@ -507,7 +507,7 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
   // get counted objects
   for (const Partition& p: world->get_partitions()) {
     for (const GeometryObject& obj: p.get_geometry_objects()) {
-      if (obj.is_counted_volume()) {
+      if (obj.is_counted_volume_or_compartment()) {
         counted_objects.push_back( GeomObjectInfo(p.id, obj.id) );
       }
     }
@@ -538,7 +538,7 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
 
 
 bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point) {
-  assert(obj.is_counted_volume());
+  assert(obj.is_counted_volume_or_compartment());
   assert(obj.counted_volume_polydata.Get() != nullptr);
 
   double point_coords[3] = {point.x, point.y, point.z};

@@ -898,8 +898,9 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     // update position and subpart if needed
     vm.v.pos = collision.pos;
     vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
-    //p.update_molecule_reactants_map(vm);
-    CollisionUtil::update_counted_volume_id_when_crossing_wall(p, wall, collision, remaining_displacement, vm);
+
+    CollisionUtil::update_counted_volume_id_when_crossing_wall(
+        p, wall, collision.get_orientation_against_wall(), vm);
 
     // TODO: same code is on multiple places, e.g. in cross_transparent_wall,
     // make a function for it
@@ -1919,7 +1920,6 @@ static void update_vol_mol_after_rxn_with_surf_mol(
   vm.v.pos = new_pos_after_diffuse;
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
   p.update_molecule_reactants_map(vm);
-  CollisionUtil::update_counted_volume_id_when_crossing_wall(p, w, collision, displacement, vm);
 }
 
 
@@ -2188,8 +2188,20 @@ int DiffuseReactEvent::outcome_products_random(
 
       Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, collision.pos, time);
 
+      assert(is_orientable
+          || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
+      );
+
+      if (is_orientable) {
+        const Wall& w = p.get_wall(surf_reac->s.wall_index);
+        // tiny diffuse done in update_vol_mol_after_rxn_with_surf_mol
+        // cannot cross walls
+        CollisionUtil::update_counted_volume_id_when_crossing_wall(
+            p, w, product_orientation, vm_initialization);
+      }
+
       // adding molecule might invalidate references of already existing molecules and also of species
-      Molecule& new_vm = p.add_volume_molecule(vm_initialization);
+      Molecule& new_vm = p.add_volume_molecule(vm_initialization, 0);
 
       // id and position is used to schedule a diffusion action
       new_m_id = new_vm.id;
@@ -2202,18 +2214,13 @@ int DiffuseReactEvent::outcome_products_random(
       new_vm.set_flag(MOLECULE_FLAG_VOL);
       new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
-      /* For an orientable reaction, we need to move products away from the surface
-       * to ensure they end up on the correct side of the plane. */
-      assert(is_orientable
-          || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
-      );
       if (is_orientable) {
+        // - for an orientable reaction, we need to move products away from the surface
+        //   to ensure they end up on the correct side of the plane.
         update_vol_mol_after_rxn_with_surf_mol(
             p, surf_reac, product_orientation, collision, new_vm
         );
       }
-
-
     #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
         new_vm.dump(p, "", "  created vm:", world->get_current_iteration(), time);
