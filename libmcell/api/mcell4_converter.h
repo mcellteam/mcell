@@ -93,6 +93,10 @@ private:
   BNG::MolInstance convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn_or_observables = false);
   BNG::Cplx convert_complex(API::Complex& inst, const bool in_observables = false, const bool in_rxn = false);
 
+  void check_surface_compartments(const BNG::RxnRule& r, BNG::compartment_id_t& surf_comp_id);
+  void set_vol_rxn_substance_orientation_from_compartment(
+      BNG::RxnRule& r, const BNG::Compartment& surf_comp, BNG::Cplx& substance);
+  void check_compartments_and_set_orientations(BNG::RxnRule& r);
   void convert_rxns();
 
   MCell::wall_index_t convert_wall_and_add_to_geom_object(

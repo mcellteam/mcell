@@ -157,13 +157,13 @@ void InstantiationData::convert_single_seed_species_to_release_site(
     // check that dimensionality of compartment matches the released molecule
     if (surf_release && c.is_3d) {
       throw ValueError(S("Seed species specification for complex instance ") +
-          rel_site->complex->name + ": cannot release surface molecules " +
+          bng_ss.cplx.to_str() + ": cannot release surface molecules " +
           "into a 3d compartment " + c.name + ".\n"
       );
     }
     else if (!surf_release && !c.is_3d) {
       throw ValueError(S("Seed species specification for complex instance ") +
-          rel_site->complex->name + ": cannot release volume molecules " +
+          bng_ss.cplx.to_str() + ": cannot release volume molecules " +
           "onto a 2d compartment " + c.name + ".\n"
       );
     }

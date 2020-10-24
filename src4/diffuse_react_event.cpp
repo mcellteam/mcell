@@ -2267,23 +2267,24 @@ int DiffuseReactEvent::outcome_products_random(
       }
 
       // create our new molecule
-      Molecule sm(MOLECULE_ID_INVALID, product_species_id, pos, time);
-
-      // might invalidate references of already existing molecules
-      Molecule& new_sm = p.add_surface_molecule(sm);
-      new_m_id = new_sm.id;
-      new_sm.flags = (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
-      new_sm.set_flag(MOLECULE_FLAG_SURF);
-      new_sm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+      Molecule sm_to_add(MOLECULE_ID_INVALID, product_species_id, pos, time);
+      sm_to_add.flags = (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
+      sm_to_add.set_flag(MOLECULE_FLAG_SURF);
+      sm_to_add.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
       // set wall and grid information
-      new_sm.s.wall_index = new_grid_pos.wall_index;
-      new_sm.s.grid_tile_index = new_grid_pos.tile_index;
+      sm_to_add.s.wall_index = new_grid_pos.wall_index;
+      sm_to_add.s.grid_tile_index = new_grid_pos.tile_index;
+
+      // and orientation
+      sm_to_add.s.orientation = product_orientation;
+
+      // might invalidate references of already existing molecules
+      // returned molecule has its id set
+      Molecule& new_sm = p.add_surface_molecule(sm_to_add);
       Grid& grid = p.get_wall(new_grid_pos.wall_index).grid;
       grid.set_molecule_tile(new_sm.s.grid_tile_index, new_sm.id);
-
-      // and finally orientation
-      new_sm.s.orientation = product_orientation;
+      new_m_id = new_sm.id;
 
       #ifdef DEBUG_RXNS
         DUMP_CONDITION4(

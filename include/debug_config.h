@@ -146,7 +146,7 @@
 //#define DEBUG_EXTRA_CHECKS
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
@@ -154,7 +154,7 @@
 #define MCELL3_SORTED_VIZ_OUTPUT
 
 #define FROM_ITERATION 0
-#define TO_ITERATION 100
+#define TO_ITERATION 2
 
 #define DUMP_NONDIFFUSING_VMS
 

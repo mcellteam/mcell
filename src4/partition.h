@@ -469,6 +469,7 @@ private:
 public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0) {
+    assert(vm_copy.is_vol());
     update_species_for_new_molecule(vm_copy);
 
     // TODO: use Species::is_instantiated instead of the known_vol_species
@@ -498,9 +499,19 @@ public:
 
 
   Molecule& add_surface_molecule(const Molecule& sm_copy, const float_t release_delay_time = 0) {
+    assert(sm_copy.is_surf() && sm_copy.s.wall_index != WALL_INDEX_INVALID);
     update_species_for_new_molecule(sm_copy);
 
     Molecule& new_sm = add_molecule(sm_copy, false, release_delay_time);
+
+    // set compartment if needed
+    BNG::Species& species = get_all_species().get(new_sm.species_id);
+    if (species.needs_compartment()) {
+      const Wall& w = get_wall(new_sm.s.wall_index);
+      const GeometryObject& o = get_geometry_object(w.object_index);
+      new_sm.reactant_compartment_id = species.get_as_reactant_compartment(o.surf_compartment_id);
+    }
+
     return new_sm;
   }
 

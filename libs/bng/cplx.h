@@ -77,7 +77,7 @@ public:
   // also creates graphs for non-simple complexes
   void finalize();
 
-  // called automatically from finalize
+  // called automatically from finalize but needed elsewhere as well
   void update_flag_and_compartments_used_in_rxns();
 
   void create_graph();

@@ -590,7 +590,7 @@ BNG::compartment_id_t Partition::get_reactant_compartment_id_for_counted_volume(
   for (geometry_object_index_t obj_index: cv.contained_in_objects) {
     const GeometryObject& obj = get_geometry_object(obj_index);
     if (obj.represents_compartment()) {
-      inside_of_compartments.insert(obj.compartment_id);
+      inside_of_compartments.insert(obj.vol_compartment_id);
     }
   }
 

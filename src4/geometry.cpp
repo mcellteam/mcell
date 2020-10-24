@@ -366,7 +366,7 @@ void GeometryObject::initialize_neighboring_walls_and_their_edges(Partition& p) 
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind <<
       "GeometryObject: id:" << id << ", name:" << name <<
-      ", compartment_id " << compartment_id <<
+      ", compartment_id " << vol_compartment_id <<
       ", is_used_in_mol_rxn_counts " << is_used_in_mol_rxn_counts << "\n";
 
   for (wall_index_t i: wall_indices) {
@@ -500,7 +500,7 @@ void GeometryObject::to_data_model_as_model_object(
   const BNG::BNGData& bng_data = p.get_all_species().get_bng_data();
 
   if (represents_compartment()) {
-    const BNG::Compartment& comp3d = bng_data.get_compartment(compartment_id);
+    const BNG::Compartment& comp3d = bng_data.get_compartment(vol_compartment_id);
     assert(comp3d.is_3d);
     if (comp3d.name != obj_name) {
       mcell_error(

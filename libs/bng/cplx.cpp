@@ -494,19 +494,24 @@ std::string Cplx::to_str(bool in_surf_reaction) const {
       ss << ".";
     }
   }
-  if (orientation == ORIENTATION_UP) {
-    ss << "'";
-  }
-  else if (orientation == ORIENTATION_DOWN) {
-    ss << ",";
-  }
-  else if (in_surf_reaction && orientation == ORIENTATION_NONE) {
-    ss << ";";
-  }
 
-  if (compartment_id != COMPARTMENT_ID_INVALID &&
-      compartment_id != COMPARTMENT_ID_ANY &&
-      compartment_id != COMPARTMENT_ID_NONE) {
+  bool no_specific_compartment =
+     (compartment_id == COMPARTMENT_ID_INVALID ||
+      compartment_id == COMPARTMENT_ID_ANY ||
+      compartment_id == COMPARTMENT_ID_NONE);
+
+  if (no_specific_compartment) {
+    if (orientation == ORIENTATION_UP) {
+      ss << "'";
+    }
+    else if (orientation == ORIENTATION_DOWN) {
+      ss << ",";
+    }
+    else if (in_surf_reaction && orientation == ORIENTATION_NONE) {
+      ss << ";";
+    }
+  }
+  else {
     ss << '@' << bng_data->get_compartment(compartment_id).name;
   }
   return ss.str();

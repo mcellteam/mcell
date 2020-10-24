@@ -76,7 +76,8 @@ public:
   GeometryObject()
     : id(GEOMETRY_OBJECT_ID_INVALID), index(GEOMETRY_OBJECT_INDEX_INVALID),
       encompassing_region_id(REGION_ID_INVALID),
-      compartment_id(BNG::COMPARTMENT_ID_NONE),
+      vol_compartment_id(BNG::COMPARTMENT_ID_NONE),
+      surf_compartment_id(BNG::COMPARTMENT_ID_NONE),
       counted_volume_index_inside(COUNTED_VOLUME_INDEX_INVALID),
       counted_volume_index_outside(COUNTED_VOLUME_INDEX_INVALID),
       is_used_in_mol_rxn_counts(false)
@@ -88,7 +89,10 @@ public:
 
   region_id_t encompassing_region_id; // ID of Region that represents this whole object, used only in pymcell4 for now
 
-  BNG::compartment_id_t compartment_id; // ID of compartment, none by default
+  // ID of compartment that represents volume enclosed by this object,none by default
+  BNG::compartment_id_t vol_compartment_id;
+  // ID of compartment that represents the surface of this object, none by default
+  BNG::compartment_id_t surf_compartment_id;
 
   std::string name;
   std::string parent_name;
@@ -97,11 +101,11 @@ public:
   std::vector<wall_index_t> wall_indices;
 
   bool represents_compartment() const {
-    return compartment_id != BNG::COMPARTMENT_ID_NONE;
+    return vol_compartment_id != BNG::COMPARTMENT_ID_NONE;
   }
 
   bool is_counted_volume() const {
-    assert(compartment_id != BNG::COMPARTMENT_ID_INVALID);
+    assert(vol_compartment_id != BNG::COMPARTMENT_ID_INVALID);
     return is_used_in_mol_rxn_counts || represents_compartment();
   }
 

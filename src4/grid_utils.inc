@@ -2095,20 +2095,21 @@ static molecule_id_t place_single_molecule_onto_grid(
     }
   }
 
+  Molecule sm_to_add(MOLECULE_ID_INVALID, species_id, pos_on_wall, current_time);
+  sm_to_add.s.wall_index = wall.index;
+  sm_to_add.s.orientation = orientation;
+  sm_to_add.s.grid_tile_index = tile_index;
+  sm_to_add.flags = ACT_DIFFUSE | IN_SURFACE; // TODO: is ACT_DIFFUSE and IN_SURFACE used somewere?
+  sm_to_add.set_flag(MOLECULE_FLAG_SURF);
+  sm_to_add.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+
+  // returned molecule has its id set
   Molecule& new_sm = p.add_surface_molecule(
-      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall, current_time),
+      sm_to_add,
       release_delay_time
   );
 
-  new_sm.s.wall_index = wall.index;
-  new_sm.s.orientation = orientation;
-
-  new_sm.s.grid_tile_index = tile_index;
   wall.grid.set_molecule_tile(tile_index, new_sm.id);
-
-  new_sm.flags = ACT_DIFFUSE | IN_SURFACE; // TODO: is ACT_DIFFUSE and IN_SURFACE used somewere?
-  new_sm.set_flag(MOLECULE_FLAG_SURF);
-  new_sm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
   return new_sm.id;
 }
