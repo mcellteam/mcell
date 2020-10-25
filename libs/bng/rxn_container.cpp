@@ -367,8 +367,6 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
 void RxnContainer::delete_rxn_class(RxnClass* rxn_class) {
   // remove the pointer from the rxn classes container so that they are not deleted
   // when RxnContainer destructor is called
-  cout << "\n\n" << std::hex << (void*)rxn_class << "\n";
-  rxn_class->dump();
 
   assert(rxn_classes.count(rxn_class) != 0);
   rxn_classes.erase(rxn_class);
