@@ -223,6 +223,18 @@ void BngDataToDatamodelConverter::convert_single_mol_type(const BNG::MolType& mt
         const string& state_name = bng_engine->get_data().get_state_name(s_id);
         cstates.append(state_name);
       }
+
+      // additional empty data required by cellblender
+      bngl_component[KEY_IS_KEY] = false;
+      bngl_component[KEY_ROT_INDEX] = 0;
+      bngl_component[KEY_ROT_ANG] = "0";
+      bngl_component[KEY_ROT_X] = "0";
+      bngl_component[KEY_ROT_Y] = "0";
+      bngl_component[KEY_ROT_Z] = "0";
+      bngl_component[KEY_LOC_X] = "0";
+      bngl_component[KEY_LOC_Y] = "0";
+      bngl_component[KEY_LOC_Z] = "0";
+
       bngl_component_list.append(bngl_component);
     }
   }
