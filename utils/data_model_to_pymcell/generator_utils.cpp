@@ -250,10 +250,14 @@ string get_single_compartment(const std::string& name) {
   return "";
 }
 
-static string make_cplx(const string bngl_str, const string orient = "") {
+
+static string make_cplx(const string bngl_str, const string orient = "", const string compartment = "") {
   string res = S(MDOT) + API::NAME_CLASS_COMPLEX + "('" + fix_dots_in_simple_species(bngl_str) + "'";
   if (orient != "") {
     res += S(", ") + API::NAME_ORIENTATION + " = " + MDOT + API::NAME_ENUM_ORIENTATION + "." + orient;
+  }
+  if (compartment != "") {
+    res += S(", ") + API::NAME_COMPARTMENT_NAME + " = '" + compartment + "'";
   }
   res += ")";
   return res;
@@ -293,7 +297,7 @@ string make_species_or_cplx(
   }
 
   // otherwise we will generate a BNGL string
-  return make_cplx(remove_compartments(name), orient);
+  return make_cplx(remove_compartments(name), orient, compartment);
 }
 
 
