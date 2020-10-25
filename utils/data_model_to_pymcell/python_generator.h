@@ -109,6 +109,7 @@ private:
       bool& rxn_not_mol,
       bool& molecules_not_species,
       std::string& what_to_count,
+      std::string& compartment,
       std::string& where_to_count,
       std::string& orientation);
   std::string generate_count_terms_for_expression(std::ostream& out, const std::string& mdl_string);
