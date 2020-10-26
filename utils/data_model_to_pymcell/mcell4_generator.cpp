@@ -330,7 +330,7 @@ static void insert_compartments_in_string(const std::string& str_w_compartments,
 
 
 void MCell4Generator::find_required_compartments(std::set<std::string>& compartments) {
-  // only rxns in data model may use compartments,
+  // rxns and release sites in data model may use compartments,
   // releases and observables use directly objects
 
   if (data.mcell.isMember(KEY_DEFINE_REACTIONS)) {
@@ -341,6 +341,18 @@ void MCell4Generator::find_required_compartments(std::set<std::string>& compartm
 
       insert_compartments_in_string(reaction_list_item[KEY_REACTANTS].asString(), compartments);
       insert_compartments_in_string(reaction_list_item[KEY_PRODUCTS].asString(), compartments);
+    }
+  }
+
+  if (data.mcell.isMember(KEY_RELEASE_SITES)) {
+    Value& release_sites = get_node(data.mcell, KEY_RELEASE_SITES);
+    Value& release_site_list = get_node(release_sites, KEY_RELEASE_SITE_LIST);
+    for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
+      Value& release_site_item = release_site_list[i];
+
+      if (release_site_item.isMember(KEY_MOLECULE)) {
+        insert_compartments_in_string(release_site_item[KEY_MOLECULE].asString(), compartments);
+      }
     }
   }
 
@@ -366,7 +378,7 @@ void MCell4Generator::analyze_and_generate_bngl_compartments(std::ostream& out) 
 
   // 1) figure out whether what compartments we need
   // not every named object must be a compartment
-  find_required_compartments(data.rxn_compartments);
+  find_required_compartments(data.used_compartments);
 
   // 2) add to BNGL file if needed
   if (data.bng_mode) {

@@ -166,6 +166,7 @@
 
 #define DEBUG_RXNS
 
+//#define DEBUG_COMPARTMENTS
 //#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 //#define DEBUG_CPLX_RXNS

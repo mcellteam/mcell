@@ -241,7 +241,7 @@ string get_single_compartment(const std::string& name) {
   if (pos_at != string::npos) {
     size_t pos_colon = name.find(':');
     if (pos_colon != string::npos) {
-      return name.substr(pos_at + 1, pos_colon - pos_at);
+      return name.substr(pos_at + 1, pos_colon - pos_at - 1);
     }
     else {
       return name.substr(pos_at + 1);

@@ -89,7 +89,7 @@ struct SharedGenData {
   std::vector<std::string> all_count_term_names;
 
   // set in MCell4Generator::analyze_and_generate_bngl_compartments
-  std::set<std::string> rxn_compartments;
+  std::set<std::string> used_compartments;
 
   const SpeciesOrMolType* find_species_or_mol_type_info(const std::string& name) const {
     auto it = std::find(

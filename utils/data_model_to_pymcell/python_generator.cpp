@@ -995,8 +995,10 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     gen_param(out, NAME_NAME, name, true);
 
     bool is_vol;
+    string compartment;
     if (shape != VALUE_LIST) {
       string cplx = release_site_item[KEY_MOLECULE].asString();
+      compartment = get_single_compartment(cplx);
       gen_param_expr(out, NAME_COMPLEX, make_species_or_cplx(data, cplx), true);
 
       string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
@@ -1023,6 +1025,9 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     }
 
     if (shape == VALUE_SPHERICAL) {
+      if (compartment != "") {
+        ERROR("Cannot use compartment " + compartment + " with spherical release.");
+      }
       gen_param_enum(out, NAME_SHAPE, NAME_ENUM_SHAPE, NAME_EV_SPHERICAL, true);
       gen_param_vec3(
           out, NAME_LOCATION,
@@ -1032,9 +1037,19 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
       gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], true);
     }
     else if (shape == VALUE_OBJECT) {
-      gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());
+      if (compartment != "") {
+        cout <<
+            "Ignoring region/object set for release site " << name << " because the complex to be released "
+            "has its compartment " << compartment << " specified, using compartment as the region for release.\n";
+
+        gen_param(out, NAME_COMPARTMENT_NAME, compartment, true);
+      }
+      else {
+        gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());
+      }
     }
     else if (shape == VALUE_LIST) {
+      // FIXME: check that no compartments are used here
       assert(molecule_list_name != "");
       bool diam_is_zero = release_site_item[KEY_SITE_DIAMETER] == "0";
       gen_param_id(out, NAME_MOLECULE_LIST, molecule_list_name, !diam_is_zero);
@@ -1208,7 +1223,7 @@ void PythonGenerator::process_single_count_term(
   what_to_count = trim(what_to_count);
 
   size_t pos_at = what_to_count.find('@');
-  compartment = "";
+  compartment = ""; // FIXME: use get_single_compartment & remove_compartment
   if (pos_at != string::npos) {
     compartment = what_to_count.substr(pos_at + 1);
     what_to_count = what_to_count.substr(0, pos_at);
@@ -1619,7 +1634,7 @@ void PythonGenerator::generate_compartment_assignments(std::ostream& out) {
     Value& model_object = model_object_list[i];
 
     const string& comp = model_object[KEY_NAME].asString();
-    if (data.rxn_compartments.count(comp) != 0) {
+    if (data.used_compartments.count(comp) != 0) {
       // name is the name of the object
       const string& name = model_object[KEY_NAME].asString();
       const string& membrane_name = model_object[KEY_MEMBRANE_NAME].asString();

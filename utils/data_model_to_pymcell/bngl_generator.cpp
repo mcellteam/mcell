@@ -221,7 +221,7 @@ void BNGLGenerator::generate_compartments() {
 
     const string& comp = model_object[KEY_NAME].asString();
     // generate only the compartments that we need for rxns
-    if (data.rxn_compartments.count(comp) != 0) {
+    if (data.used_compartments.count(comp) != 0) {
       generate_single_compartment(model_object);
     }
   }
