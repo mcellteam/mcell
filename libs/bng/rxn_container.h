@@ -92,6 +92,7 @@ public:
   }
 
   // - might invalidate Species reference
+  // - returns nullptr when there are no rxns, never returns an empty rxn class
   RxnClass* get_unimol_rxn_class(const Reactant& reac) {
     assert(all_species.is_valid_reactant(reac));
 
@@ -111,8 +112,12 @@ public:
       assert(it_species_comp != it_species->second.end());
 
       RxnClass* res = it_species_comp->second;
-      assert(res != nullptr && res->get_num_reactions() != 0);
-      return res;
+      if (res == nullptr || res->get_num_reactions() == 0) {
+        return nullptr;
+      }
+      else {
+        return res;
+      }
     }
     else {
       // no reactions for this species
@@ -128,6 +133,7 @@ public:
   // - does not take species superclasses such as ALL_MOLECULES into account
   // - order of species ids does not matter
   // - might invalidate Species reference
+  // - returns nullptr when there are no rxns, never returns an empty rxn class
   RxnClass* get_bimol_rxn_class(const Reactant& reac1, const Reactant& reac2) {
     // species must exist
     assert(all_species.is_valid_reactant(reac1));
@@ -154,8 +160,12 @@ public:
       assert(it_species1_comp1_species2_comp2->second->get_num_reactions() != 0);
 
       RxnClass* res = it_species1_comp1_species2_comp2->second;
-      assert(res != nullptr && res->get_num_reactions() != 0);
-      return res;
+      if (res == nullptr || res->get_num_reactions() == 0) {
+        return nullptr;
+      }
+      else {
+        return res;
+      }
     }
     else {
       // no reactions for first species+compartment & second species
