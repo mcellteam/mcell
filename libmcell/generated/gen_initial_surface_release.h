@@ -29,20 +29,16 @@
 namespace MCell {
 namespace API {
 
-class Species;
+class Complex;
 
 #define INITIAL_SURFACE_RELEASE_CTOR() \
     InitialSurfaceRelease( \
-        std::shared_ptr<Species> species_ = nullptr, \
-        const std::string& bngl_species_ = STR_UNSET, \
-        const Orientation orientation_ = Orientation::UP, \
+        std::shared_ptr<Complex> complex_ = nullptr, \
         const int number_to_release_ = INT_UNSET, \
         const float_t density_ = FLT_UNSET \
     ) { \
       class_name = "InitialSurfaceRelease"; \
-      species = species_; \
-      bngl_species = bngl_species_; \
-      orientation = orientation_; \
+      complex = complex_; \
       number_to_release = number_to_release_; \
       density = density_; \
       postprocess_in_ctor();\
@@ -60,40 +56,16 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::shared_ptr<Species> species;
-  virtual void set_species(std::shared_ptr<Species> new_species_) {
+  std::shared_ptr<Complex> complex;
+  virtual void set_complex(std::shared_ptr<Complex> new_complex_) {
     if (initialized) {
-      throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
-    species = new_species_;
+    complex = new_complex_;
   }
-  virtual std::shared_ptr<Species> get_species() const {
-    return species;
-  }
-
-  std::string bngl_species;
-  virtual void set_bngl_species(const std::string& new_bngl_species_) {
-    if (initialized) {
-      throw RuntimeError("Value 'bngl_species' of object with name " + name + " (class " + class_name + ") "
-                         "cannot be set after model was initialized.");
-    }
-    bngl_species = new_bngl_species_;
-  }
-  virtual const std::string& get_bngl_species() const {
-    return bngl_species;
-  }
-
-  Orientation orientation;
-  virtual void set_orientation(const Orientation new_orientation_) {
-    if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
-                         "cannot be set after model was initialized.");
-    }
-    orientation = new_orientation_;
-  }
-  virtual Orientation get_orientation() const {
-    return orientation;
+  virtual std::shared_ptr<Complex> get_complex() const {
+    return complex;
   }
 
   int number_to_release;

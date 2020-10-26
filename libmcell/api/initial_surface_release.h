@@ -23,8 +23,9 @@
 #ifndef API_INITIAL_SURFACE_RELEASE_H
 #define API_INITIAL_SURFACE_RELEASE_H
 
-#include "../generated/gen_initial_surface_release.h"
-#include "../api/common.h"
+#include "generated/gen_initial_surface_release.h"
+#include "api/common.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -35,11 +36,13 @@ public:
 
   void check_semantics() const override {
     if (get_num_set(number_to_release, density) != 1) {
-      throw ValueError(S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + " and " + NAME_DENSITY + " must be set.");
+      throw ValueError(S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + " and " +
+          NAME_DENSITY + " must be set.");
     }
 
-    if (get_num_set(species, bngl_species) != 1) {
-      throw ValueError(S("Exactly one of ") + NAME_SPECIES + " or " + NAME_BNGL_SPECIES + " must be set.");
+    if (is_set(complex->compartment_name)) {
+      throw ValueError(S("Compartment of the complex to be released in ") +
+          NAME_CLASS_INITIAL_SURFACE_RELEASE + " must not be set.");
     }
   }
 

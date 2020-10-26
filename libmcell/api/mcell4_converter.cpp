@@ -1005,9 +1005,9 @@ void MCell4Converter::convert_initial_surface_releases(
 ) {
   for (auto api_rel: api_releases) {
     species_id_t species_id =
-        get_species_id(*api_rel->species, NAME_CLASS_INITIAL_SURFACE_RELEASE, NAME_SPECIES);
+        get_species_id_for_complex(*api_rel->complex, NAME_CLASS_INITIAL_SURFACE_RELEASE);
 
-    orientation_t orientation = convert_orientation(api_rel->orientation);
+    orientation_t orientation = convert_orientation(api_rel->complex->orientation);
 
     if (is_set(api_rel->number_to_release)) {
       mcell_releases.push_back(

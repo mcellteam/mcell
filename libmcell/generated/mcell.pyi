@@ -393,15 +393,11 @@ class GeometryObject():
 class InitialSurfaceRelease():
     def __init__(
             self,
-            species : Species = None,
-            bngl_species : str = None,
-            orientation : Orientation = Orientation.UP,
+            complex : Complex = None,
             number_to_release : int = None,
             density : float = None
         ):
-        self.species = species
-        self.bngl_species = bngl_species
-        self.orientation = orientation
+        self.complex = complex
         self.number_to_release = number_to_release
         self.density = density
 

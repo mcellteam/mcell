@@ -24,7 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_initial_surface_release.h"
 #include "../api/initial_surface_release.h"
-#include "../api/species.h"
+#include "../api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -36,34 +36,30 @@ bool GenInitialSurfaceRelease::__eq__(const GenInitialSurfaceRelease& other) con
   return
     name == other.name &&
     (
-      (species != nullptr) ?
-        ( (other.species != nullptr) ?
-          (species->__eq__(*other.species)) : 
+      (complex != nullptr) ?
+        ( (other.complex != nullptr) ?
+          (complex->__eq__(*other.complex)) : 
           false
         ) :
-        ( (other.species != nullptr) ?
+        ( (other.complex != nullptr) ?
           false :
           true
         )
      )  &&
-    bngl_species == other.bngl_species &&
-    orientation == other.orientation &&
     number_to_release == other.number_to_release &&
     density == other.density;
 }
 
 void GenInitialSurfaceRelease::set_initialized() {
-  if (is_set(species)) {
-    species->set_initialized();
+  if (is_set(complex)) {
+    complex->set_initialized();
   }
   initialized = true;
 }
 
 void GenInitialSurfaceRelease::set_all_attributes_as_default_or_unset() {
   class_name = "InitialSurfaceRelease";
-  species = nullptr;
-  bngl_species = STR_UNSET;
-  orientation = Orientation::UP;
+  complex = nullptr;
   number_to_release = INT_UNSET;
   density = FLT_UNSET;
 }
@@ -71,9 +67,7 @@ void GenInitialSurfaceRelease::set_all_attributes_as_default_or_unset() {
 std::string GenInitialSurfaceRelease::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "bngl_species=" << bngl_species << ", " <<
-      "orientation=" << orientation << ", " <<
+      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "number_to_release=" << number_to_release << ", " <<
       "density=" << density;
   return ss.str();
@@ -83,15 +77,11 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
   return py::class_<InitialSurfaceRelease, std::shared_ptr<InitialSurfaceRelease>>(m, "InitialSurfaceRelease")
       .def(
           py::init<
-            std::shared_ptr<Species>,
-            const std::string&,
-            const Orientation,
+            std::shared_ptr<Complex>,
             const int,
             const float_t
           >(),
-          py::arg("species") = nullptr,
-          py::arg("bngl_species") = STR_UNSET,
-          py::arg("orientation") = Orientation::UP,
+          py::arg("complex") = nullptr,
           py::arg("number_to_release") = INT_UNSET,
           py::arg("density") = FLT_UNSET
       )
@@ -99,9 +89,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def("__str__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
       .def("dump", &InitialSurfaceRelease::dump)
-      .def_property("species", &InitialSurfaceRelease::get_species, &InitialSurfaceRelease::set_species)
-      .def_property("bngl_species", &InitialSurfaceRelease::get_bngl_species, &InitialSurfaceRelease::set_bngl_species)
-      .def_property("orientation", &InitialSurfaceRelease::get_orientation, &InitialSurfaceRelease::set_orientation)
+      .def_property("complex", &InitialSurfaceRelease::get_complex, &InitialSurfaceRelease::set_complex)
       .def_property("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release)
       .def_property("density", &InitialSurfaceRelease::get_density, &InitialSurfaceRelease::set_density)
     ;

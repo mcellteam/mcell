@@ -1570,16 +1570,9 @@ void PythonGenerator::generate_surface_classes_assignments(ostream& out) {
         out << "    ";
         gen_ctor_call(out, "", NAME_CLASS_INITIAL_SURFACE_RELEASE, true);
         out << "    ";
-        string species_str;
-        if (data.bng_mode) {
-          species_str = make_species(item[KEY_MOLECULE].asString());
-        }
-        else {
-          species_str = item[KEY_MOLECULE].asString();
-        }
-        gen_param_id(out, NAME_SPECIES, species_str, true);
-        out << "    ";
-        gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, convert_orientation(item[KEY_ORIENT].asString()), true);
+        string species_str = item[KEY_MOLECULE].asString();
+        string orient = convert_orientation(item[KEY_ORIENT].asString(), true);
+        gen_param_expr(out, NAME_COMPLEX, make_species_or_cplx(data, species_str, orient), true);
         out << "    ";
         if (item.isMember(KEY_MOLECULE_NUMBER)) {
           gen_param_expr(out, NAME_NUMBER_TO_RELEASE, item[KEY_MOLECULE_NUMBER], false);

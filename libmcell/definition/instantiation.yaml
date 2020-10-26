@@ -156,20 +156,8 @@ InitialSurfaceRelease:
   superclass: BaseDataClass
   doc: Defines molecules to be released onto a SurfaceRegion right when simulation starts
   items:
-  - name: species
-    type: Species*
-    default: unset
-  
-  - name: bngl_species
-    type: str
-    default: unset
-    doc: | 
-      The species of the molecule that will be released represented as BNGL string.
-      One of species or bngl_species must be specified.
-        
-  - name: orientation
-    type: Orientation
-    default: Orientation.UP
+  - name: complex
+    type: Complex*
   
   - name: number_to_release
     type: int
