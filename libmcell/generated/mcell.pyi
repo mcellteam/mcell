@@ -393,7 +393,7 @@ class GeometryObject():
 class InitialSurfaceRelease():
     def __init__(
             self,
-            complex : Complex = None,
+            complex : Complex,
             number_to_release : int = None,
             density : float = None
         ):
@@ -1054,26 +1054,22 @@ class SurfaceClass():
             name : str,
             properties : List[SurfaceProperty] = None,
             type : SurfacePropertyType = SurfacePropertyType.UNSET,
-            affected_species : Species = None,
-            orientation : Orientation = Orientation.NOT_SET
+            affected_complex_pattern : Complex = None
         ):
         self.name = name
         self.properties = properties
         self.type = type
-        self.affected_species = affected_species
-        self.orientation = orientation
+        self.affected_complex_pattern = affected_complex_pattern
 
 
 class SurfaceProperty():
     def __init__(
             self,
             type : SurfacePropertyType = SurfacePropertyType.UNSET,
-            affected_species : Species = None,
-            orientation : Orientation = Orientation.NOT_SET
+            affected_complex_pattern : Complex = None
         ):
         self.type = type
-        self.affected_species = affected_species
-        self.orientation = orientation
+        self.affected_complex_pattern = affected_complex_pattern
 
 
 class SurfaceRegion():

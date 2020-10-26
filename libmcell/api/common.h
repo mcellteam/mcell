@@ -79,6 +79,9 @@ static inline bool is_set(const std::string& a) {
 static inline bool is_set(const Orientation& a) {
   return a != Orientation::NOT_SET;
 }
+static inline bool is_set(const SurfacePropertyType& a) {
+  return a != SurfacePropertyType::UNSET;
+}
 template<typename T>
 static inline bool is_set(const std::shared_ptr<T>& a) {
   return a.use_count() != 0;

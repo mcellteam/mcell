@@ -33,7 +33,7 @@ class Complex;
 
 #define INITIAL_SURFACE_RELEASE_CTOR() \
     InitialSurfaceRelease( \
-        std::shared_ptr<Complex> complex_ = nullptr, \
+        std::shared_ptr<Complex> complex_, \
         const int number_to_release_ = INT_UNSET, \
         const float_t density_ = FLT_UNSET \
     ) { \

@@ -29,18 +29,16 @@
 namespace MCell {
 namespace API {
 
-class Species;
+class Complex;
 
 #define SURFACE_PROPERTY_CTOR() \
     SurfaceProperty( \
         const SurfacePropertyType type_ = SurfacePropertyType::UNSET, \
-        std::shared_ptr<Species> affected_species_ = nullptr, \
-        const Orientation orientation_ = Orientation::NOT_SET \
+        std::shared_ptr<Complex> affected_complex_pattern_ = nullptr \
     ) { \
       class_name = "SurfaceProperty"; \
       type = type_; \
-      affected_species = affected_species_; \
-      orientation = orientation_; \
+      affected_complex_pattern = affected_complex_pattern_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -68,28 +66,16 @@ public:
     return type;
   }
 
-  std::shared_ptr<Species> affected_species;
-  virtual void set_affected_species(std::shared_ptr<Species> new_affected_species_) {
+  std::shared_ptr<Complex> affected_complex_pattern;
+  virtual void set_affected_complex_pattern(std::shared_ptr<Complex> new_affected_complex_pattern_) {
     if (initialized) {
-      throw RuntimeError("Value 'affected_species' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'affected_complex_pattern' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
-    affected_species = new_affected_species_;
+    affected_complex_pattern = new_affected_complex_pattern_;
   }
-  virtual std::shared_ptr<Species> get_affected_species() const {
-    return affected_species;
-  }
-
-  Orientation orientation;
-  virtual void set_orientation(const Orientation new_orientation_) {
-    if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
-                         "cannot be set after model was initialized.");
-    }
-    orientation = new_orientation_;
-  }
-  virtual Orientation get_orientation() const {
-    return orientation;
+  virtual std::shared_ptr<Complex> get_affected_complex_pattern() const {
+    return affected_complex_pattern;
   }
 
   // --- methods ---

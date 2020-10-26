@@ -26,6 +26,7 @@
 #include "generated/gen_surface_class.h"
 #include "api/common.h"
 #include "api/surface_property.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -49,10 +50,16 @@ public:
       // type of used properties must be set
       for (std::shared_ptr<SurfaceProperty> property: properties) {
         if (property->type == SurfacePropertyType::UNSET) {
-          throw ValueError(S("Parameter '") + NAME_TYPE + "' of SurfaceProperty objects contained in SurfaceClass must be set.");
+          throw ValueError(S("Attribute '") + NAME_TYPE + "' of " +
+              NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set.");
         }
-        if (!is_set(property->affected_species)) {
-          throw ValueError(S("Parameter '") + NAME_AFFECTED_SPECIES + "' of SurfaceProperty objects contained in SurfaceClass must be set.");
+        if (!is_set(property->affected_complex_pattern)) {
+          throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
+          NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set.");
+        }
+        if (is_set(property->affected_complex_pattern->compartment_name)) {
+          throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
+              NAME_CLASS_SURFACE_PROPERTY + " must not have a compartment specified");
         }
       }
     }

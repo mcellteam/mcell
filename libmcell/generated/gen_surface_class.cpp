@@ -24,7 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_surface_class.h"
 #include "../api/surface_class.h"
-#include "../api/species.h"
+#include "../api/complex.h"
 #include "../api/surface_property.h"
 
 namespace MCell {
@@ -43,23 +43,22 @@ bool GenSurfaceClass::__eq__(const GenSurfaceClass& other) const {
     vec_ptr_eq(properties, other.properties) &&
     type == other.type &&
     (
-      (affected_species != nullptr) ?
-        ( (other.affected_species != nullptr) ?
-          (affected_species->__eq__(*other.affected_species)) : 
+      (affected_complex_pattern != nullptr) ?
+        ( (other.affected_complex_pattern != nullptr) ?
+          (affected_complex_pattern->__eq__(*other.affected_complex_pattern)) : 
           false
         ) :
-        ( (other.affected_species != nullptr) ?
+        ( (other.affected_complex_pattern != nullptr) ?
           false :
           true
         )
-     )  &&
-    orientation == other.orientation;
+     ) ;
 }
 
 void GenSurfaceClass::set_initialized() {
   vec_set_initialized(properties);
-  if (is_set(affected_species)) {
-    affected_species->set_initialized();
+  if (is_set(affected_complex_pattern)) {
+    affected_complex_pattern->set_initialized();
   }
   initialized = true;
 }
@@ -69,8 +68,7 @@ void GenSurfaceClass::set_all_attributes_as_default_or_unset() {
   name = STR_UNSET;
   properties = std::vector<std::shared_ptr<SurfaceProperty>>();
   type = SurfacePropertyType::UNSET;
-  affected_species = nullptr;
-  orientation = Orientation::NOT_SET;
+  affected_complex_pattern = nullptr;
 }
 
 std::string GenSurfaceClass::to_str(const std::string ind) const {
@@ -79,8 +77,7 @@ std::string GenSurfaceClass::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "\n" << ind + "  " << "properties=" << vec_ptr_to_str(properties, ind + "  ") << ", " << "\n" << ind + "  " <<
       "type=" << type << ", " <<
-      "\n" << ind + "  " << "affected_species=" << "(" << ((affected_species != nullptr) ? affected_species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "orientation=" << orientation;
+      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -91,14 +88,12 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
             const std::string&,
             const std::vector<std::shared_ptr<SurfaceProperty>>,
             const SurfacePropertyType,
-            std::shared_ptr<Species>,
-            const Orientation
+            std::shared_ptr<Complex>
           >(),
           py::arg("name"),
           py::arg("properties") = std::vector<std::shared_ptr<SurfaceProperty>>(),
           py::arg("type") = SurfacePropertyType::UNSET,
-          py::arg("affected_species") = nullptr,
-          py::arg("orientation") = Orientation::NOT_SET
+          py::arg("affected_complex_pattern") = nullptr
       )
       .def("check_semantics", &SurfaceClass::check_semantics)
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))

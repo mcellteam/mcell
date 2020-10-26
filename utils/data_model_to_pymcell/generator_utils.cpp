@@ -264,11 +264,24 @@ static string make_cplx(const string bngl_str, const string orient = "", const s
 }
 
 
+bool static is_mdot_superclass(const std::string& name) {
+  return
+      name == S(MDOT) + API::NAME_CV_AllMolecules ||
+      name == S(MDOT) + API::NAME_CV_AllVolumeMolecules ||
+      name == S(MDOT) + API::NAME_CV_AllSurfaceMolecules;
+}
+
 string make_species_or_cplx(
     const SharedGenData& data,
     const std::string& name,
     const std::string& orient,
     const std::string& compartment) {
+
+  if (is_mdot_superclass(name)) {
+    release_assert(orient == "");
+    release_assert(compartment == "");
+    return name;
+  }
 
   if (!data.bng_mode) {
     stringstream ss;

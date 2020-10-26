@@ -24,7 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_surface_property.h"
 #include "../api/surface_property.h"
-#include "../api/species.h"
+#include "../api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -37,22 +37,21 @@ bool GenSurfaceProperty::__eq__(const GenSurfaceProperty& other) const {
     name == other.name &&
     type == other.type &&
     (
-      (affected_species != nullptr) ?
-        ( (other.affected_species != nullptr) ?
-          (affected_species->__eq__(*other.affected_species)) : 
+      (affected_complex_pattern != nullptr) ?
+        ( (other.affected_complex_pattern != nullptr) ?
+          (affected_complex_pattern->__eq__(*other.affected_complex_pattern)) : 
           false
         ) :
-        ( (other.affected_species != nullptr) ?
+        ( (other.affected_complex_pattern != nullptr) ?
           false :
           true
         )
-     )  &&
-    orientation == other.orientation;
+     ) ;
 }
 
 void GenSurfaceProperty::set_initialized() {
-  if (is_set(affected_species)) {
-    affected_species->set_initialized();
+  if (is_set(affected_complex_pattern)) {
+    affected_complex_pattern->set_initialized();
   }
   initialized = true;
 }
@@ -60,16 +59,14 @@ void GenSurfaceProperty::set_initialized() {
 void GenSurfaceProperty::set_all_attributes_as_default_or_unset() {
   class_name = "SurfaceProperty";
   type = SurfacePropertyType::UNSET;
-  affected_species = nullptr;
-  orientation = Orientation::NOT_SET;
+  affected_complex_pattern = nullptr;
 }
 
 std::string GenSurfaceProperty::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "type=" << type << ", " <<
-      "\n" << ind + "  " << "affected_species=" << "(" << ((affected_species != nullptr) ? affected_species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "orientation=" << orientation;
+      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -78,20 +75,17 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       .def(
           py::init<
             const SurfacePropertyType,
-            std::shared_ptr<Species>,
-            const Orientation
+            std::shared_ptr<Complex>
           >(),
           py::arg("type") = SurfacePropertyType::UNSET,
-          py::arg("affected_species") = nullptr,
-          py::arg("orientation") = Orientation::NOT_SET
+          py::arg("affected_complex_pattern") = nullptr
       )
       .def("check_semantics", &SurfaceProperty::check_semantics)
       .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
       .def("dump", &SurfaceProperty::dump)
       .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type)
-      .def_property("affected_species", &SurfaceProperty::get_affected_species, &SurfaceProperty::set_affected_species)
-      .def_property("orientation", &SurfaceProperty::get_orientation, &SurfaceProperty::set_orientation)
+      .def_property("affected_complex_pattern", &SurfaceProperty::get_affected_complex_pattern, &SurfaceProperty::set_affected_complex_pattern)
     ;
 }
 

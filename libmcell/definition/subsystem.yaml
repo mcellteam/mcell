@@ -281,15 +281,14 @@ SurfaceProperty:
     default: SurfacePropertyType.UNSET
     doc: Must be set.
   
-  - name: affected_species
-    type: Species*
+  - name: affected_complex_pattern
+    type: Complex*
     default: unset
-    doc: Must be set. 
-
-  - name: orientation
-    type: Orientation
-    default: Orientation.NOT_SET
-    
+    doc: | 
+       A complex pattern with optional orientation must be set.
+       Default orientation means that the pattern matches any orientation.
+       The complex pattern must not have any compartment.         
+   
     
 SurfaceClass:
   doc: Defining a surface class allows surfaces to behave like species (in a limited way).

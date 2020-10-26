@@ -30,6 +30,9 @@ namespace MCell {
 namespace API {
 
 void GenInitialSurfaceRelease::check_semantics() const {
+  if (!is_set(complex)) {
+    throw ValueError("Parameter 'complex' must be set.");
+  }
 }
 
 bool GenInitialSurfaceRelease::__eq__(const GenInitialSurfaceRelease& other) const {
@@ -81,7 +84,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
             const int,
             const float_t
           >(),
-          py::arg("complex") = nullptr,
+          py::arg("complex"),
           py::arg("number_to_release") = INT_UNSET,
           py::arg("density") = FLT_UNSET
       )

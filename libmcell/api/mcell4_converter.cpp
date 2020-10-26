@@ -520,13 +520,12 @@ void MCell4Converter::convert_species() {
 void MCell4Converter::convert_surface_class_rxn(
     API::SurfaceProperty& sp, const BNG::Species& surface_reactant) {
 
-  BNG::Species& affected_species =
-      world->get_all_species().get(
-          get_species_id(*sp.affected_species, NAME_CLASS_SURFACE_PROPERTY, sp.name));
+  BNG::Cplx affected_pattern =
+      convert_complex(*sp.affected_complex_pattern, false, true);
 
   BNG::RxnRule rxn(&world->bng_engine.get_data());
 
-  rxn.name = affected_species.name + "+" + surface_reactant.name;
+  rxn.name = affected_pattern.to_str() + "+" + surface_reactant.name;
 
   switch (sp.type) {
     case API::SurfacePropertyType::ABSORPTIVE:
@@ -543,10 +542,15 @@ void MCell4Converter::convert_surface_class_rxn(
   }
 
   // all these reactions happen always
+  // TODO: check that warning is not printed
   rxn.base_rate_constant = FLT_GIGANTIC;
 
-  affected_species.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
-  rxn.append_reactant(affected_species);
+  // any compartment of the
+  affected_pattern.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
+
+  // NONE is ANY in rxns
+  orientation_t orient = convert_orientation(sp.affected_complex_pattern->orientation, true);
+  rxn.append_reactant(affected_pattern);
 
   rxn.append_reactant(surface_reactant); // copies the input reactant
 

@@ -30,7 +30,7 @@
 namespace MCell {
 namespace API {
 
-class Species;
+class Complex;
 class SurfaceProperty;
 
 #define SURFACE_CLASS_CTOR() \
@@ -38,15 +38,13 @@ class SurfaceProperty;
         const std::string& name_, \
         const std::vector<std::shared_ptr<SurfaceProperty>> properties_ = std::vector<std::shared_ptr<SurfaceProperty>>(), \
         const SurfacePropertyType type_ = SurfacePropertyType::UNSET, \
-        std::shared_ptr<Species> affected_species_ = nullptr, \
-        const Orientation orientation_ = Orientation::NOT_SET \
-    )  : GenSurfaceClass(type_,affected_species_,orientation_) { \
+        std::shared_ptr<Complex> affected_complex_pattern_ = nullptr \
+    )  : GenSurfaceClass(type_,affected_complex_pattern_) { \
       class_name = "SurfaceClass"; \
       name = name_; \
       properties = properties_; \
       type = type_; \
-      affected_species = affected_species_; \
-      orientation = orientation_; \
+      affected_complex_pattern = affected_complex_pattern_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -55,9 +53,8 @@ class GenSurfaceClass: public SurfaceProperty {
 public:
   GenSurfaceClass( 
       const SurfacePropertyType type_ = SurfacePropertyType::UNSET, 
-      std::shared_ptr<Species> affected_species_ = nullptr, 
-      const Orientation orientation_ = Orientation::NOT_SET 
-  )  : SurfaceProperty(type_,affected_species_,orientation_)  {
+      std::shared_ptr<Complex> affected_complex_pattern_ = nullptr 
+  )  : SurfaceProperty(type_,affected_complex_pattern_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
