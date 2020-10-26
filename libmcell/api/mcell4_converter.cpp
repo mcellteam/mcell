@@ -269,7 +269,7 @@ void MCell4Converter::convert_simulation_setup() {
   float_t auto_partition_dimension = max3(urb_w_margin) - min3(llf_w_margin);
   if (!is_set(config.initial_partition_origin) && auto_partition_dimension > config.partition_dimension) {
     cout <<
-        "Value of " << NAME_CLASS_MODEL << "." << NAME_CONFIG << "." << NAME_PARTITION_DIMENSION <<
+        "Info: Value of " << NAME_CLASS_MODEL << "." << NAME_CONFIG << "." << NAME_PARTITION_DIMENSION <<
         " " << config.partition_dimension <<
         " is smaller than the automatically determined value " << auto_partition_dimension <<
         ", using the automatic value.\n";

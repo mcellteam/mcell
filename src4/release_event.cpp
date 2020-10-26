@@ -627,7 +627,10 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
       n--;
     }
     else {
-      assert(false && "Recovery from too many failures during surf mol release is not implemented yet");
+      // TODO: MCell3 handles these cases better
+      const BNG::Species& species = world->get_all_species().get(species_id);
+      mcell_error("Could not release %d of %s at %s, too many failed attempts to place surface molecules.",
+          computed_release_number, species.name.c_str(), release_site_name.c_str());
     }
   }
 }
