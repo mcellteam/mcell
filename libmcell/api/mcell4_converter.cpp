@@ -1293,7 +1293,8 @@ RegionExprNode* MCell4Converter::convert_region_expr_recursively(
 
 void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event) {
 
-  if (rel_site.shape == Shape::COMPARTMENT && !is_set(rel_site.compartment_name)) {
+  if (rel_site.shape == Shape::COMPARTMENT && !is_set(rel_site.complex->compartment_name)) {
+    // this should not happen
     throw RuntimeError("Compartment for release site " + rel_site.name + " was not set.");
   }
 
@@ -1304,14 +1305,14 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
     rel_event->region_expr_root = convert_region_expr_recursively(rel_site.region, rel_event);
   }
   else if (rel_site.shape == Shape::COMPARTMENT) {
-    if (!is_set(rel_site.compartment_name)) {
+    if (!is_set(rel_site.complex->compartment_name)) {
       throw RuntimeError("Compartment for release site " + rel_site.name + " was not set.");
     }
 
     // make region that represents the compartment
-    auto region = model->get_compartment_region(rel_site.compartment_name);
+    auto region = model->get_compartment_region(rel_site.complex->compartment_name);
     if (!is_set(region)) {
-      throw RuntimeError("Compartment " + rel_site.compartment_name + " for " + rel_site.name + " was not found.");
+      throw RuntimeError("Compartment " + rel_site.complex->compartment_name + " for " + rel_site.name + " was not found.");
     }
 
     rel_event->region_expr_root = convert_region_expr_recursively(region, rel_event);
@@ -1343,7 +1344,8 @@ void MCell4Converter::convert_molecule_list(
     info.pos.x = item->location[0] * world->config.rcp_length_unit;
     info.pos.y = item->location[1] * world->config.rcp_length_unit;
     info.pos.z = item->location[2] * world->config.rcp_length_unit;
-    info.orientation = convert_orientation(item->orientation); // not set means random orientation for surf mols
+    bool is_vol = world->get_all_species().get(info.species_id).is_vol();
+    info.orientation = convert_orientation(item->complex->orientation, true, is_vol); // not set is not allowed
 
     if (world->get_all_species().get(info.species_id).is_vol() &&
         rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
@@ -1370,17 +1372,17 @@ void MCell4Converter::convert_release_events() {
       rel_event->species_id = get_species_id_for_complex(
           *r->complex, S(NAME_CLASS_RELEASE_SITE) + " '" + r->name + "'");
 
-      rel_event->orientation = convert_orientation(r->orientation);
+      bool is_vol = world->get_all_species().get(rel_event->species_id).is_vol();
+      rel_event->orientation = convert_orientation(r->complex->orientation, true, is_vol);
 
-      // FIXME: this should belong in the ReleaseSite ctor
       if (world->get_all_species().get(rel_event->species_id).is_surf() &&
           rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN) {
         throw ValueError(
             S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
-            " releases a surface molecule but orientation is not set.");
+            " releases a surface molecule but orientation is not set to a valid value.");
       }
 
-      if (world->get_all_species().get(rel_event->species_id).is_vol() &&
+      if (is_vol &&
           rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
         throw ValueError(
             S(NAME_CLASS_RELEASE_SITE) + " " + r->name +

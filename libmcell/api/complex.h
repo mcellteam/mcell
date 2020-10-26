@@ -26,6 +26,7 @@
 #include "generated/gen_complex.h"
 #include "api/common.h"
 #include "api/api_utils.h"
+#include "api/compartment_utils.h"
 
 namespace MCell {
 namespace API {
@@ -42,6 +43,25 @@ public:
     auto res_cplx_inst = std::make_shared<API::Complex>("TMP_NAME");
     res_cplx_inst->name = STR_UNSET;
     return res_cplx_inst;
+  }
+
+  void postprocess_in_ctor() override {
+    // set compartment_name and check that there is only one
+    if (is_set(name)) {
+      std::vector<std::string> compartments;
+      // we do not want to use the BNG parser at thsi point
+      // or do we?
+      get_compartment_names(name, compartments);
+      if (!compartments.empty()) {
+        std::string single_compartment_name = compartments[0];
+        for (size_t i = 1; i < compartments.size(); i++) {
+          if (single_compartment_name != compartments[i]) {
+            throw ValueError("Complex cannot be in multiple compartments, error for " + name + ".");
+          }
+        }
+        compartment_name = single_compartment_name;
+      }
+    }
   }
 
   void check_semantics() const override {
@@ -61,11 +81,6 @@ public:
         throw ValueError("Simple species name must not contain '.', this is incompatible with BNGL definition"
             ", error for " + name + ".");
       }
-    }
-
-    if (orientation != Orientation::DEFAULT && is_set(compartment_name)) {
-      throw ValueError(S(NAME_COMPARTMENT_NAME) + " must not be set when " + NAME_ORIENTATION +
-          " is set to a value other than " + NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE + ".");
     }
 
     // TODO: how can we check that the used molecule types were defined?

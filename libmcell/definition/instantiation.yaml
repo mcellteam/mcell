@@ -44,7 +44,10 @@ MoleculeReleaseInfo:
     type: Complex*
     doc: | 
       Complex instance defining the molecule that will be released.
-      Orientation of the complex instance is ignored, parameter 'orientation' is used instead.
+      Orientation of the complex instance is used to define orientation of the released molecule,
+      when Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and
+      surface molecules are released with Orientation.UP.
+      Compartment must not be set because this specific release definition states the location.  
       
   - name: location
     type: List[float]
@@ -53,12 +56,6 @@ MoleculeReleaseInfo:
       If a molecule has a 2D diffusion constant, it will be
       placed on the surface closest to the coordinate given. 
       Argument must have exactly three floating point values.
-
-  - name: orientation
-    type: Orientation
-    default: Orientation.NONE
-    doc: |
-      Must be set if the species represent surface molecules.     
         
     
 ReleaseSite:
@@ -73,15 +70,13 @@ ReleaseSite:
     default: unset 
     doc: | 
       Defines the species of the molecule that will be released. Not used for the LIST shape. 
-      Orientation of the complex instance is ignored, parameter 'orientation' is used instead.
       Must be set when molecule_list is empty and unset when molecule_list is not empty.
+      Orientation of the complex instance is used to define orientation of the released molecule,
+      when Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and
+      surface molecules are released with Orientation.UP.
+      When compartment is specified, this sets shape to Shape.COMPARTMENT and the molecules are released 
+      into the compartment.
 
-  - name: orientation
-    type: Orientation
-    default: Orientation.NONE
-    doc: |
-      Must be set if the species represent surface molecules.
-      
   - name: molecule_list
     type: List[MoleculeReleaseInfo*]
     default: empty
@@ -114,11 +109,6 @@ ReleaseSite:
     type: Region*
     default: unset
     doc: Sets shape to Shape.REGION_EXPR. 
-
-  - name: compartment_name
-    type: str
-    default: unset
-    doc: Sets shape to Shape.COMPARTMENT. 
 
   - name: location
     type: Vec3 # Vec3 and Vec2 are built-in data types

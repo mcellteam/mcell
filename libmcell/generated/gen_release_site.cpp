@@ -53,7 +53,6 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
           true
         )
      )  &&
-    orientation == other.orientation &&
     vec_ptr_eq(molecule_list, other.molecule_list) &&
     release_time == other.release_time &&
     (
@@ -79,7 +78,6 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
           true
         )
      )  &&
-    compartment_name == other.compartment_name &&
     location == other.location &&
     site_diameter == other.site_diameter &&
     site_radius == other.site_radius &&
@@ -107,13 +105,11 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   class_name = "ReleaseSite";
   name = STR_UNSET;
   complex = nullptr;
-  orientation = Orientation::NONE;
   molecule_list = std::vector<std::shared_ptr<MoleculeReleaseInfo>>();
   release_time = 0;
   release_pattern = nullptr;
   shape = Shape::UNSET;
   region = nullptr;
-  compartment_name = STR_UNSET;
   location = VEC3_UNSET;
   site_diameter = 0;
   site_radius = FLT_UNSET;
@@ -128,13 +124,11 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
       "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "orientation=" << orientation << ", " <<
-      "\n" << ind + "  " << "molecule_list=" << vec_ptr_to_str(molecule_list, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "molecule_list=" << vec_ptr_to_str(molecule_list, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_time=" << release_time << ", " <<
       "\n" << ind + "  " << "release_pattern=" << "(" << ((release_pattern != nullptr) ? release_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "shape=" << shape << ", " <<
       "\n" << ind + "  " << "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "compartment_name=" << compartment_name << ", " <<
       "location=" << location << ", " <<
       "site_diameter=" << site_diameter << ", " <<
       "site_radius=" << site_radius << ", " <<
@@ -151,13 +145,11 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::init<
             const std::string&,
             std::shared_ptr<Complex>,
-            const Orientation,
             const std::vector<std::shared_ptr<MoleculeReleaseInfo>>,
             const float_t,
             std::shared_ptr<ReleasePattern>,
             const Shape,
             std::shared_ptr<Region>,
-            const std::string&,
             const Vec3&,
             const float_t,
             const float_t,
@@ -168,13 +160,11 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           >(),
           py::arg("name"),
           py::arg("complex") = nullptr,
-          py::arg("orientation") = Orientation::NONE,
           py::arg("molecule_list") = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(),
           py::arg("release_time") = 0,
           py::arg("release_pattern") = nullptr,
           py::arg("shape") = Shape::UNSET,
           py::arg("region") = nullptr,
-          py::arg("compartment_name") = STR_UNSET,
           py::arg("location") = VEC3_UNSET,
           py::arg("site_diameter") = 0,
           py::arg("site_radius") = FLT_UNSET,
@@ -189,13 +179,11 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
       .def_property("complex", &ReleaseSite::get_complex, &ReleaseSite::set_complex)
-      .def_property("orientation", &ReleaseSite::get_orientation, &ReleaseSite::set_orientation)
       .def_property("molecule_list", &ReleaseSite::get_molecule_list, &ReleaseSite::set_molecule_list)
       .def_property("release_time", &ReleaseSite::get_release_time, &ReleaseSite::set_release_time)
       .def_property("release_pattern", &ReleaseSite::get_release_pattern, &ReleaseSite::set_release_pattern)
       .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)
       .def_property("region", &ReleaseSite::get_region, &ReleaseSite::set_region)
-      .def_property("compartment_name", &ReleaseSite::get_compartment_name, &ReleaseSite::set_compartment_name)
       .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location)
       .def_property("site_diameter", &ReleaseSite::get_site_diameter, &ReleaseSite::set_site_diameter)
       .def_property("site_radius", &ReleaseSite::get_site_radius, &ReleaseSite::set_site_radius)

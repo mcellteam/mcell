@@ -777,12 +777,10 @@ class MoleculeReleaseInfo():
     def __init__(
             self,
             complex : Complex,
-            location : List[float],
-            orientation : Orientation = Orientation.NONE
+            location : List[float]
         ):
         self.complex = complex
         self.location = location
-        self.orientation = orientation
 
 
 class Notifications():
@@ -913,13 +911,11 @@ class ReleaseSite():
             self,
             name : str,
             complex : Complex = None,
-            orientation : Orientation = Orientation.NONE,
             molecule_list : List[MoleculeReleaseInfo] = None,
             release_time : float = 0,
             release_pattern : ReleasePattern = None,
             shape : Shape = Shape.UNSET,
             region : Region = None,
-            compartment_name : str = None,
             location : Vec3 = None,
             site_diameter : float = 0,
             site_radius : float = None,
@@ -930,13 +926,11 @@ class ReleaseSite():
         ):
         self.name = name
         self.complex = complex
-        self.orientation = orientation
         self.molecule_list = molecule_list
         self.release_time = release_time
         self.release_pattern = release_pattern
         self.shape = shape
         self.region = region
-        self.compartment_name = compartment_name
         self.location = location
         self.site_diameter = site_diameter
         self.site_radius = site_radius

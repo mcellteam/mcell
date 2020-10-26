@@ -26,6 +26,7 @@
 #include "generated/gen_release_site.h"
 #include "api/molecule_release_info.h"
 #include "api/common.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -48,7 +49,7 @@ public:
       shape = Shape::REGION_EXPR;
     }
 
-    if (is_set(compartment_name) && shape != Shape::COMPARTMENT) {
+    if (is_set(complex) && is_set(complex->compartment_name) && shape != Shape::COMPARTMENT) {
       if (shape != Shape::UNSET) {
         throw ValueError(S("When ") + NAME_COMPARTMENT_NAME + " is set, "
             "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_COMPARTMENT + ".");
@@ -95,9 +96,11 @@ public:
           S("Exactly one of ") + NAME_COMPLEX + " or " + NAME_MOLECULE_LIST + " must be set.");
     }
 
-    if (get_num_set(region, compartment_name, molecule_list, location) != 1) {
+    if ( (shape == Shape::COMPARTMENT && get_num_set(region, molecule_list, location) != 0) &&
+         (shape != Shape::COMPARTMENT && get_num_set(region, molecule_list, location) != 1)
+        ) {
       throw ValueError(
-          S("Exactly one of ") + NAME_REGION + ", " + NAME_COMPARTMENT_NAME + ", " + NAME_MOLECULE_LIST +
+          S("Either compartment or exactly one of ") + NAME_REGION + ", " + NAME_MOLECULE_LIST +
           " or " + NAME_LOCATION + " must be set.");
     }
   }

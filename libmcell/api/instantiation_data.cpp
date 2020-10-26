@@ -146,13 +146,11 @@ void InstantiationData::convert_single_seed_species_to_release_site(
   rel_site->complex =
       subsystem.convert_cplx_instance(bng_data, bng_ss.cplx);
 
-  bool surf_release = rel_site->complex->is_surf();
-  if (surf_release) {
-    // the default orientation of released molecules is 'up'
-    rel_site->orientation = Orientation::UP;
-  }
+  // releases from BNGL always used the default orientation
+  rel_site->complex->orientation = Orientation::DEFAULT;
 
   if (bng_ss.cplx.has_compartment()) {
+    bool surf_release = rel_site->complex->is_surf();
     const BNG::Compartment& c = bng_data.get_compartment(bng_ss.cplx.get_compartment_id());
     // check that dimensionality of compartment matches the released molecule
     if (surf_release && c.is_3d) {
@@ -168,11 +166,14 @@ void InstantiationData::convert_single_seed_species_to_release_site(
       );
     }
 
-    rel_site->compartment_name = c.name;
+    rel_site->complex->compartment_name = c.name;
     rel_site->shape = Shape::COMPARTMENT;
+
     rel_site->name =
-          "Release of " + rel_site->complex->to_bngl_str() +
-          " at " + rel_site->compartment_name;
+          "Release of " + rel_site->complex->to_bngl_str();
+    if (is_set(rel_site->complex->compartment_name)) {
+      rel_site->name += " at " + rel_site->complex->compartment_name;
+    }
   }
   else {
     if (!is_set(default_release_region)) {

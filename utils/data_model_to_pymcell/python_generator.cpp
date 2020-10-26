@@ -853,25 +853,23 @@ std::string PythonGenerator::generate_single_molecule_release_info_array(
     Value& points_list = release_site_item[KEY_POINTS_LIST];
 
     for (Value::ArrayIndex i = 0; i < points_list.size(); i++) {
-      out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(";
+      out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(\n";
 
       string cplx = release_site_item[KEY_MOLECULE].asString();
+      bool is_vol = is_volume_species(cplx);
+      string orient = convert_orientation(release_site_item[KEY_ORIENT].asString(), !is_vol);
+      out << "    ";
       gen_param_expr(out, NAME_COMPLEX,
-          make_species_or_cplx(data, cplx),
+          make_species_or_cplx(data, cplx, orient),
           true);
 
       Value& point = points_list[i];
       if (point.size() != 3) {
         ERROR("Release site " + rel_site_name + ": points_list item does not have three values.");
       }
-      out << NAME_LOCATION << " = [" << point[0].asDouble() << ", " << point[1].asDouble() << ", " << point[2].asDouble() << "]";
+      out << "        " << NAME_LOCATION << " = [" << point[0].asDouble() << ", " << point[1].asDouble() << ", " << point[2].asDouble() << "]";
 
-      string orient = convert_orientation(release_site_item[KEY_ORIENT].asString());
-      if (orient != "") {
-        out << ", " << NAME_ORIENTATION << " = " << MDOT << NAME_ENUM_ORIENTATION << "." << orient;
-      }
-
-      out << ")";
+      out << "\n    )";
       if (i + 1 != points_list.size()) {
         out << ", ";
       }
@@ -998,22 +996,16 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     string compartment;
     if (shape != VALUE_LIST) {
       string cplx = release_site_item[KEY_MOLECULE].asString();
-      compartment = get_single_compartment(cplx);
-      gen_param_expr(out, NAME_COMPLEX, make_species_or_cplx(data, cplx), true);
-
-      string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
-      if (orientation != "") {
-        // check that this is not a volume molecule
-        is_vol = is_volume_species(cplx);
-        if (is_vol) {
+      bool is_vol = is_volume_species(cplx);
+      string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString(), !is_vol);
+      if (orientation != "" && is_vol) {
           cout <<
               "Ignoring orientation set for release site " << name << " with species " << cplx <<
               ", this species represent volume molecules.\n";
-        }
-        else {
-          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, true);
-        }
+          orientation = "";
       }
+      compartment = get_single_compartment(cplx);
+      gen_param_expr(out, NAME_COMPLEX, make_species_or_cplx(data, cplx, orientation, compartment), true);
     }
 
     if (delay_string != "" && delay_string != "0") {
@@ -1041,8 +1033,6 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
         cout <<
             "Ignoring region/object set for release site " << name << " because the complex to be released "
             "has its compartment " << compartment << " specified, using compartment as the region for release.\n";
-
-        gen_param(out, NAME_COMPARTMENT_NAME, compartment, true);
       }
       else {
         gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());

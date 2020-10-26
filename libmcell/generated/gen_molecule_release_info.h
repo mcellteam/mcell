@@ -34,13 +34,11 @@ class Complex;
 #define MOLECULE_RELEASE_INFO_CTOR() \
     MoleculeReleaseInfo( \
         std::shared_ptr<Complex> complex_, \
-        const std::vector<float_t> location_, \
-        const Orientation orientation_ = Orientation::NONE \
+        const std::vector<float_t> location_ \
     ) { \
       class_name = "MoleculeReleaseInfo"; \
       complex = complex_; \
       location = location_; \
-      orientation = orientation_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -78,18 +76,6 @@ public:
   }
   virtual std::vector<float_t> get_location() const {
     return location;
-  }
-
-  Orientation orientation;
-  virtual void set_orientation(const Orientation new_orientation_) {
-    if (initialized) {
-      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
-                         "cannot be set after model was initialized.");
-    }
-    orientation = new_orientation_;
-  }
-  virtual Orientation get_orientation() const {
-    return orientation;
   }
 
   // --- methods ---

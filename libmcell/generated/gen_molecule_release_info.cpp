@@ -52,8 +52,7 @@ bool GenMoleculeReleaseInfo::__eq__(const GenMoleculeReleaseInfo& other) const {
           true
         )
      )  &&
-    location == other.location &&
-    orientation == other.orientation;
+    location == other.location;
 }
 
 void GenMoleculeReleaseInfo::set_initialized() {
@@ -67,15 +66,13 @@ void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
   class_name = "MoleculeReleaseInfo";
   complex = nullptr;
   location = std::vector<float_t>();
-  orientation = Orientation::NONE;
 }
 
 std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "location=" << vec_nonptr_to_str(location, ind + "  ") << ", " <<
-      "orientation=" << orientation;
+      "location=" << vec_nonptr_to_str(location, ind + "  ");
   return ss.str();
 }
 
@@ -84,12 +81,10 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def(
           py::init<
             std::shared_ptr<Complex>,
-            const std::vector<float_t>,
-            const Orientation
+            const std::vector<float_t>
           >(),
           py::arg("complex"),
-          py::arg("location"),
-          py::arg("orientation") = Orientation::NONE
+          py::arg("location")
       )
       .def("check_semantics", &MoleculeReleaseInfo::check_semantics)
       .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
@@ -97,7 +92,6 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def("dump", &MoleculeReleaseInfo::dump)
       .def_property("complex", &MoleculeReleaseInfo::get_complex, &MoleculeReleaseInfo::set_complex)
       .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location)
-      .def_property("orientation", &MoleculeReleaseInfo::get_orientation, &MoleculeReleaseInfo::set_orientation)
     ;
 }
 

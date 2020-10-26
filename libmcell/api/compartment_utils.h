@@ -38,6 +38,8 @@ typedef std::vector<GeometryObjectSet> GeometryObjectSetVector;
 void set_parent_and_children_compartments(
     std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects);
 
+void get_compartment_names(const std::string& bngl_string, std::vector<std::string>& compartments);
+
 } // namespace API
 } // namespace MCell
 

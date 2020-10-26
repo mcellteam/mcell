@@ -188,5 +188,34 @@ void set_parent_and_children_compartments(
   }
 }
 
+
+void get_compartment_names(const std::string& bngl_string, std::vector<std::string>& compartments) {
+  size_t i = 0;
+  bool in_compartment = false;
+  string current_name;
+
+  while (i < bngl_string.size()) {
+    char c = bngl_string[i];
+    if (c == '@') {
+      assert(!in_compartment);
+      in_compartment = true;
+    }
+    else if (in_compartment) {
+      current_name += c;
+      if ((!isalnum(c) && c != '_')) {
+        compartments.push_back(current_name);
+        current_name = "";
+        in_compartment = false;
+      }
+    }
+
+    i++;
+  }
+
+  if (current_name != "") {
+    compartments.push_back(current_name);
+  }
+}
+
 } // namespace API
 } // namespace MCell
