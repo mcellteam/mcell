@@ -116,6 +116,7 @@ private:
   );
   void convert_geometry_objects();
 
+  void check_surface_compartment_name_collision(const std::string& surface_compartment_name);
   void convert_compartments();
 
   MCell::RegionExprNode* convert_region_expr_recursively(

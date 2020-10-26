@@ -1151,6 +1151,18 @@ void MCell4Converter::convert_geometry_objects() {
 }
 
 
+void MCell4Converter::check_surface_compartment_name_collision(const std::string& surface_compartment_name) {
+  for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
+    for (std::shared_ptr<API::SurfaceRegion>& s: o->surface_regions) {
+      if (s->name == surface_compartment_name) {
+        throw RuntimeError("Geometry object's " + o->name + " surface region " + s->name + " uses the same name "
+            "as a compartment, this is not allowed yet.");
+      }
+    }
+  }
+}
+
+
 void MCell4Converter::convert_compartments() {
   // we determine the hierarchy of compartments here since all
   // we have are geometry objects
@@ -1178,7 +1190,13 @@ void MCell4Converter::convert_compartments() {
 
     // unlike as in BNG, we do not require that the only child of a 3d compartment is 2d compartment,
     // 2d compartments can be skipped completely
-    if (is_set(o-> surface_compartment_name)) {
+    if (is_set(o->surface_compartment_name)) {
+      // check that there is no SurfaceRegion with this name
+      // this might be supported one day but now the surface compartment must be the whole
+      // surface of the object, reported in redmine as #28
+      check_surface_compartment_name_collision(o->surface_compartment_name);
+
+
       BNG::Compartment bng_comp2d;
       bng_comp2d.name = o->surface_compartment_name;
       bng_comp2d.is_3d = false;
