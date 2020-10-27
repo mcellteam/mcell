@@ -1,0 +1,12 @@
+# FAIL
+# OUTPUT: error: Maximum one reactant may use @IN or @OUT compartment class. Reported for reaction in the forward direction.
+
+begin molecule types
+	V1()
+	V2()
+end molecule types
+
+begin reaction rules
+	V1@IN + V2@OUT -> V1 1e8
+    V2OUT + V2@IN -> V2 1e8
+end reaction rules

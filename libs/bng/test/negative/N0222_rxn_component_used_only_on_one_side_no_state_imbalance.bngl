@@ -1,6 +1,6 @@
 # FAIL
-# OUTPUT: error: Molecule created in reaction rule: Component(s) p missing from molecule A(a!1). (in the forward direction)
-# OUTPUT: error: Molecule used as pattern in reaction rule: Component(s) p missing from molecule A(a!1). (in the reverse direction)
+# OUTPUT: error: Molecule created in reaction rule: Component(s) p missing from molecule A(a!1). Reported for reaction in the forward direction.
+# OUTPUT: error: Molecule used as pattern in reaction rule: Component(s) p missing from molecule A(a!1). Reported for reaction in the reverse direction.
 
 # NOTE: BNG2.pl reports Molecule created in reaction rule: Component(s) p missing from molecule A(a!1)
 

@@ -1,0 +1,7 @@
+# FAIL
+# OUTPUT: error: It is not allowed to use compartment @IN in the seed species section.
+
+begin seed species
+	 V1@IN  100
+	 S@OUT  100
+end seed species

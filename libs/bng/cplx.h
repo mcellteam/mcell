@@ -126,8 +126,18 @@ public:
     return compartment_id != COMPARTMENT_ID_NONE && compartment_id != COMPARTMENT_ID_ANY;
   }
 
-  compartment_id_t get_compartment_id() const {
-    return compartment_id;
+  bool has_compartment_class_in_out() const {
+    assert(compartment_id != COMPARTMENT_ID_INVALID);
+    return compartment_id == COMPARTMENT_ID_IN || compartment_id == COMPARTMENT_ID_OUT;
+  }
+
+  compartment_id_t get_compartment_id(const bool in_out_as_any = false) const {
+    if (in_out_as_any && has_compartment_class_in_out()) {
+      return COMPARTMENT_ID_ANY;
+    }
+    else {
+      return compartment_id;
+    }
   }
 
   void set_compartment_id(const compartment_id_t cid) {

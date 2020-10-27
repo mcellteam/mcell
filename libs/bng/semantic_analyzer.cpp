@@ -720,7 +720,19 @@ void SemanticAnalyzer::convert_rxn_rule_side(
 }
 
 
-void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction) {
+void SemanticAnalyzer::finalize_and_store_rxn_rule(
+    const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction) {
+
+  // check in/out
+  if (r.reactants.size() == 2) {
+    if (r.reactants[0].has_compartment_class_in_out() && r.reactants[1].has_compartment_class_in_out()) {
+      errs_loc(n) << "Maximum one reactant may use @" << COMPARTMENT_NAME_IN << " or @" << COMPARTMENT_NAME_OUT <<
+          " compartment class. Reported for reaction in the " <<
+          (forward_direction ? DIR_FORWARD : DIR_REVERSE) << " direction.\n"; // TEST 600
+      ctx->inc_error_count();
+      return;
+    }
+  }
 
   r.finalize();
 
@@ -730,8 +742,9 @@ void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnR
   if (!ok) {
     // tests N0220, N0230, N0231, N0232
     errs_loc(n) << out.str() <<
-        " (in the " << (forward_direction ? DIR_FORWARD : DIR_REVERSE) << " direction)\n";
+        " Reported for reaction in the " << (forward_direction ? DIR_FORWARD : DIR_REVERSE) << " direction.\n";
     ctx->inc_error_count();
+    return;
   }
 
   bng_data->find_or_add_rxn_rule(r);
@@ -825,6 +838,14 @@ void SemanticAnalyzer::convert_seed_species() {
       return;
     }
 
+    if (ss.cplx.has_compartment_class_in_out()) {
+      errs_loc(ss_node->cplx) <<
+          "It is not allowed to use compartment @" << compartment_id_to_str(ss.cplx.get_compartment_id()) <<
+          " in the seed species section.\n"; // test N0601
+      ctx->inc_error_count();
+      return;
+    }
+
     ASTExprNode* orig_expr = to_expr_node(ss_node->count);
     ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);
     ss.count = new_expr->get_dbl();
@@ -863,6 +884,15 @@ void SemanticAnalyzer::convert_observables() {
       if (ctx->get_error_count() != 0) {
         return;
       }
+
+      if (cplx.has_compartment_class_in_out()) {
+        errs_loc(cplx_pat) <<
+            "It is not allowed to use compartment @" << compartment_id_to_str(cplx.get_compartment_id()) <<
+            " in the observables section.\n"; // test N0602
+        ctx->inc_error_count();
+        return;
+      }
+
       o.patterns.push_back(cplx);
     }
 

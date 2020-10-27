@@ -57,19 +57,44 @@ typedef uint mol_type_id_t;
 const mol_type_id_t MOL_TYPE_ID_INVALID = ID_INVALID;
 
 typedef uint compartment_id_t;
-const compartment_id_t COMPARTMENT_ID_INVALID = ID_INVALID;
+const compartment_id_t COMPARTMENT_ID_INVALID = UINT32_MAX; // same as ID_INVALID;
 // - used for molecules, means that the molecule isn't in any of the named compartments
 // - or we are not tracking compartments for this molecule because there are no reactions
 //   for this molecule that use a compartment
-const compartment_id_t COMPARTMENT_ID_NONE = ID_INVALID2;
+const compartment_id_t COMPARTMENT_ID_NONE = UINT32_MAX - 1;
 // same as don't care, used in rxn classes
-const compartment_id_t COMPARTMENT_ID_ANY = ID_INVALID3;
+const compartment_id_t COMPARTMENT_ID_ANY = UINT32_MAX - 2;
+// compartment classes
+const compartment_id_t COMPARTMENT_ID_IN = UINT32_MAX - 3;
+const compartment_id_t COMPARTMENT_ID_OUT = UINT32_MAX - 4;
+
+const char* const COMPARTMENT_NAME_IN = "IN";
+const char* const COMPARTMENT_NAME_OUT = "OUT";
+
+static bool is_in_out_compartment_id(const compartment_id_t id) {
+  return id == COMPARTMENT_ID_IN || id == COMPARTMENT_ID_OUT;
+}
+
+// returns COMPARTMENT_ID_INVALID if name is not IN or OUT
+static compartment_id_t get_in_or_out_compartment_id(const std::string& name) {
+  if (name == COMPARTMENT_NAME_IN) {
+    return COMPARTMENT_ID_IN;
+  }
+  else if (name == COMPARTMENT_NAME_OUT) {
+    return COMPARTMENT_ID_OUT;
+  }
+  else {
+    return COMPARTMENT_ID_INVALID;
+  }
+}
 
 static std::string compartment_id_to_str(const compartment_id_t id) {
   switch (id) {
     case COMPARTMENT_ID_INVALID: return "INVALID";
     case COMPARTMENT_ID_NONE: return "NONE";
     case COMPARTMENT_ID_ANY: return "ANY";
+    case COMPARTMENT_ID_IN: return COMPARTMENT_NAME_IN;
+    case COMPARTMENT_ID_OUT: return COMPARTMENT_NAME_OUT;
     default: return std::to_string(id);
   }
 }

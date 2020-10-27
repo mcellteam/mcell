@@ -1,0 +1,12 @@
+# FAIL
+# OUTPUT: error: It is not allowed to use compartment @OUT in the observables section.
+
+begin molecule types
+	V1()
+	V2()
+end molecule types
+
+begin observables
+    Molecules CCP V1@OUT
+    Molecules CEP V2@IN
+end observables

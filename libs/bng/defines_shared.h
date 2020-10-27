@@ -174,7 +174,6 @@ const int INT_INVALID = INT32_MAX;
 
 const uint ID_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
 const uint ID_INVALID2 = UINT32_MAX - 1; // second general invalid id, might be used for special values
-const uint ID_INVALID3 = UINT32_MAX - 2;
 const uint INDEX_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID2 = UINT32_MAX - 2; // second general invalid index, might be used for special values
 
