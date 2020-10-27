@@ -96,6 +96,12 @@ public:
           S("Exactly one of ") + NAME_COMPLEX + " or " + NAME_MOLECULE_LIST + " must be set.");
     }
 
+    if (shape == Shape::COMPARTMENT &&
+        BNG::get_in_or_out_compartment_id(complex->compartment_name) != BNG::COMPARTMENT_ID_INVALID) {
+      throw ValueError(
+          S(NAME_CLASS_RELEASE_SITE) + " must not use compartment class name " + complex->compartment_name + ".");
+    }
+
     if ( (shape == Shape::COMPARTMENT && get_num_set(region, molecule_list, location) != 0) &&
          (shape != Shape::COMPARTMENT && get_num_set(region, molecule_list, location) != 1)
         ) {

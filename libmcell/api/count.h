@@ -41,7 +41,7 @@ public:
   COUNT_CTOR()
 
   void check_semantics() const override {
-    GenCount::check_semantics();
+    GenCount::check_semantics(); // calls also CountTerm::check_semantics
     uint num_set = get_num_set(count_expression, species_pattern, molecules_pattern, reaction_rule);
     if (num_set != 1) {
       throw ValueError(

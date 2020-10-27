@@ -27,11 +27,10 @@
 #include "api/common.h"
 #include "api/region.h"
 #include "api/reaction_rule.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
-
-class Complex;
 
 class CountTerm: public GenCountTerm, public std::enable_shared_from_this<CountTerm> {
 public:
@@ -49,6 +48,14 @@ public:
     if (is_set(reaction_rule) && is_set(reaction_rule->rev_rate)) {
       throw ValueError(S("Reversible reactions cannot counted because it is not clear which direction should be counted.") +
           " Error for " + NAME_CLASS_COUNT_TERM + " " + name + ". Split the reaction rule into its forward and reverse variants if needed.");
+    }
+
+
+    if (is_set(get_pattern()) &&
+        BNG::get_in_or_out_compartment_id(get_pattern()->compartment_name) != BNG::COMPARTMENT_ID_INVALID) {
+      throw ValueError(
+          S(NAME_CLASS_COUNT) + " or " + NAME_CLASS_COUNT_TERM + " must not use compartment class name " +
+          get_pattern()->compartment_name + ".");
     }
   }
 

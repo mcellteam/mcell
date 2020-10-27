@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_COMPARTMENT_UTIL_H
-#define API_COMPARTMENT_UTIL_H
+#ifndef API_COMPARTMENT_UTILS_H
+#define API_COMPARTMENT_UTILS_H
 
 #include <string>
 #include <map>
@@ -43,4 +43,4 @@ void get_compartment_names(const std::string& bngl_string, std::vector<std::stri
 } // namespace API
 } // namespace MCell
 
-#endif // API_COMPARTMENT_UTIL_H
+#endif // API_COMPARTMENT_UTILS_H
