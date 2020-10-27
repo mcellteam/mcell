@@ -285,7 +285,8 @@ public:
 
   bool reactant_compatment_matches(const uint index, const compartment_id_t compartment_id) {
     assert(index < reactants.size());
-    if (compartment_id == COMPARTMENT_ID_ANY || reactants[index].get_compartment_id() == COMPARTMENT_ID_ANY) {
+    if (compartment_id == COMPARTMENT_ID_ANY ||
+        reactants[index].get_compartment_id(true) == COMPARTMENT_ID_ANY) {
       return true;
     }
     else {
