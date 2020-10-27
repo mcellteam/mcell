@@ -50,8 +50,8 @@ public:
           " Error for " + NAME_CLASS_COUNT_TERM + " " + name + ". Split the reaction rule into its forward and reverse variants if needed.");
     }
 
-
-    if (is_set(get_pattern()) &&
+    // TODO: add test for this case, not sure if the check works correctly because pattern does not have to be initialized
+    if (is_set(get_pattern(false)) &&
         BNG::get_in_or_out_compartment_id(get_pattern()->compartment_name) != BNG::COMPARTMENT_ID_INVALID) {
       throw ValueError(
           S(NAME_CLASS_COUNT) + " or " + NAME_CLASS_COUNT_TERM + " must not use compartment class name " +
@@ -97,7 +97,7 @@ public:
 
   // manually added, may return empty shared_ptr if reaction_rule
   // is counted
-  std::shared_ptr<Complex> get_pattern() const {
+  std::shared_ptr<Complex> get_pattern(bool must_be_present = true) const {
     if (is_set(species_pattern)) {
       return species_pattern;
     }
@@ -105,7 +105,7 @@ public:
       return molecules_pattern;
     }
     else {
-      assert(is_set(reaction_rule));
+      assert(!must_be_present || is_set(reaction_rule));
       return std::shared_ptr<Complex>(nullptr);
     }
   }

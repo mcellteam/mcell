@@ -696,18 +696,24 @@ BNG::Cplx MCell4Converter::convert_complex(API::Complex& api_cplx, const bool in
   // BNG compartments were already created
   const BNG::BNGData& bng_data = world->bng_engine.get_data();
   if (is_set(api_cplx.compartment_name)) {
-    const BNG::Compartment* bng_comp = bng_data.find_compartment(api_cplx.compartment_name);
-    if (bng_cplx.is_vol() && (bng_comp == nullptr || !bng_comp->is_3d)) {
-      throw ValueError("Did not find volume compartment " + api_cplx.compartment_name +
-          " for a volume complex " + bng_cplx.to_str() + ".");
+    BNG::compartment_id_t in_out_id = BNG::get_in_or_out_compartment_id(api_cplx.compartment_name);
+    if (in_out_id != BNG::COMPARTMENT_ID_INVALID) {
+      bng_cplx.set_compartment_id(in_out_id);
     }
+    else {
+      const BNG::Compartment* bng_comp = bng_data.find_compartment(api_cplx.compartment_name);
+      if (bng_cplx.is_vol() && (bng_comp == nullptr || !bng_comp->is_3d)) {
+        throw ValueError("Did not find volume compartment " + api_cplx.compartment_name +
+            " for a volume complex " + bng_cplx.to_str() + ".");
+      }
 
-    if (bng_cplx.is_surf() && (bng_comp == nullptr || bng_comp->is_3d)) {
-      throw ValueError("Did not find surface compartment " + api_cplx.compartment_name +
-          " for a surface complex " + bng_cplx.to_str() + ".");
+      if (bng_cplx.is_surf() && (bng_comp == nullptr || bng_comp->is_3d)) {
+        throw ValueError("Did not find surface compartment " + api_cplx.compartment_name +
+            " for a surface complex " + bng_cplx.to_str() + ".");
+      }
+
+      bng_cplx.set_compartment_id(bng_comp->id);
     }
-
-    bng_cplx.set_compartment_id(bng_comp->id);
   }
   else {
     bng_cplx.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
@@ -742,161 +748,15 @@ BNG::Cplx MCell4Converter::convert_complex(API::Complex& api_cplx, const bool in
 }
 
 
-// surf_comp is set to a value other than COMPARTMENT_ID_ANY when the rxn
-// has surface reactants that use compartment
-void MCell4Converter::check_surface_compartments(const BNG::RxnRule& r, BNG::compartment_id_t& surf_comp_id) {
-  // NOTE: this seems to belongs to the BNGL library but we do not know
-  // whether the molecules types are surface or volume there
-
-  surf_comp_id = BNG::COMPARTMENT_ID_ANY;
-
-  // this is applicable only when there is a surface reactant
-  if (!r.is_surf_rxn()) {
-    // check that products are volume complexes
-    for (const BNG::Cplx& prod: r.products) {
-      if (prod.is_surf()) {
-        throw ValueError("Reaction rule " + r.name + " has no surface reactants but has surface "
-            "products, this is not allowed because it is not known where to create these surface products.");
-      }
-    }
-    // nothing to do otherwise
-    return;
-  }
-
-  // do we have a surface compartment specified?
-  vector<BNG::compartment_id_t> surf_compartments;
-  for (size_t i = 0; i < r.reactants.size(); i++) {
-    const BNG::Cplx& reac = r.reactants[i];
-
-    assert(reac.get_compartment_id() != BNG::COMPARTMENT_ID_NONE &&
-        "Compartment none is used only for molecules, rxn patterns must use ANY");
-
-    if (reac.is_surf()) {
-      // remember the first surface compartment
-      surf_compartments.push_back(reac.get_compartment_id());
-    }
-  }
-
-  assert(surf_compartments.size() <= 2);
-  if (surf_compartments.size() == 1) {
-    surf_comp_id = surf_compartments[0];
-  }
-  else if (surf_compartments.size() == 2) {
-    if (surf_compartments[0] != surf_compartments[1]) {
-      throw ValueError("Reaction rule " + r.name + ": all compartments of surface molecules on the "
-          "reactants side must use the same compartment.");
-    }
-    surf_comp_id = surf_compartments[0];
-  }
-
-  bool surf_reac_has_compartment =
-      surf_comp_id != BNG::COMPARTMENT_ID_INVALID && surf_comp_id != BNG::COMPARTMENT_ID_ANY;
-
-  const BNG::BNGData& bng_data = world->bng_engine.get_data();
-  string comp_name;
-  if (surf_reac_has_compartment) {
-    comp_name = bng_data.get_compartment(surf_comp_id).name;
-  }
-  else {
-    comp_name = BNG::compartment_id_to_str(surf_comp_id);
-  }
-
-  // do all the surface products use the same compartment?
-  for (const BNG::Cplx& prod: r.products) {
-    if (prod.is_surf() && prod.get_compartment_id() != surf_comp_id) {
-
-      throw ValueError("Reaction rule " + r.name + ": all compartments of surface molecules on the "
-          "products side must use the same compartment " + comp_name + " as reactants.");
-    }
-  }
-
-  assert(
-      (!surf_reac_has_compartment ||
-       !bng_data.get_compartment(surf_comp_id).is_3d) &&
-      "Should have been checked when compartments are assigned to reactants/products");
-}
-
-
-void MCell4Converter::set_vol_rxn_substance_orientation_from_compartment(
-    BNG::RxnRule& r, const BNG::Compartment& surf_comp, BNG::Cplx& substance) {
-
-  assert(substance.is_vol());
-
-  // volume molecules must have compartments set in this case
-  if (!substance.has_compartment()) {
-    throw ValueError("Reaction rule " + r.name + ": surface reactants use compartments but volume reactant or product " +
-        substance.to_str() + " does not have its compartment set.");
-  }
-
-  const BNG::Compartment& vol_comp = world->bng_engine.get_data().get_compartment(substance.get_compartment_id());
-
-  // up or down?
-  if (surf_comp.parent_compartment_id == vol_comp.id) {
-    substance.set_orientation(ORIENTATION_UP);
-  }
-  else if (surf_comp.children_compartments.count(vol_comp.id)) {
-    substance.set_orientation(ORIENTATION_DOWN);
-  }
-  else {
-    throw ValueError("Reaction rule " + r.name + ": surface reactants use compartment " + surf_comp.name +
-        " but volume reactant's compartment " + vol_comp.name + " is neither parent nor child of it.");
-  }
-}
-
-
-void MCell4Converter::check_compartments_and_set_orientations(BNG::RxnRule& r) {
-  assert(r.is_finalized() && "Types of substances (vol,surf,...) are not set without finalization.");
-
-  BNG::compartment_id_t surf_comp_id;
-  check_surface_compartments(r, surf_comp_id);
-  if (surf_comp_id == BNG::COMPARTMENT_ID_ANY) {
-    // does not have surface reactants that use compartment, nothing to do,
-    // this is for example the case when MCell style orientations are specified by the user
-    return;
-  }
-
-  const BNG::Compartment& surf_comp = world->bng_engine.get_data().get_compartment(surf_comp_id);
-
-  // set orientations
-  for (BNG::Cplx& reac: r.reactants) {
-    if (reac.is_surf()) {
-      // overwrite orientation if compartments are used or it was not set
-      if (reac.has_compartment() || reac.get_orientation() == ORIENTATION_NONE) {
-        reac.set_orientation(ORIENTATION_UP);
-      }
-    }
-    else if (reac.is_vol()) {
-      set_vol_rxn_substance_orientation_from_compartment(r, surf_comp, reac);
-    }
-    else {
-      assert(reac.is_reactive_surface());
-    }
-  }
-
-  // set orientations
-  for (BNG::Cplx& prod: r.products) {
-    if (prod.is_surf()) {
-      if (prod.has_compartment() || prod.get_orientation() == ORIENTATION_NONE) {
-        prod.set_orientation(ORIENTATION_UP);
-      }
-    }
-    else if (prod.is_vol()) {
-      set_vol_rxn_substance_orientation_from_compartment(r, surf_comp, prod);
-    }
-    else {
-      // TODO: there should be a general check somewhere for this
-      throw ValueError("Reaction rule " + r.name + ": reactive surface " + prod.to_str() + " cannot be a product.");
-    }
-  }
-}
-
 
 void MCell4Converter::convert_rxns() {
+  BNG::BNGData& bng_data = world->bng_engine.get_data();
+
   for (std::shared_ptr<API::ReactionRule>& r: model->reaction_rules) {
 
     bool is_reversible = is_set(r->rev_rate);
 
-    BNG::RxnRule rxn(&world->bng_engine.get_data());
+    BNG::RxnRule rxn(&bng_data);
 
     rxn.type = BNG::RxnType::Standard;
 
@@ -946,10 +806,13 @@ void MCell4Converter::convert_rxns() {
     }
 
     rxn.finalize();
-    check_compartments_and_set_orientations(rxn);
+    string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn);
+    if (error_msg != "") {
+      throw ValueError(error_msg);
+    }
 
     // reverse reaction
-    BNG::RxnRule rxn_rev(&world->bng_engine.get_data());
+    BNG::RxnRule rxn_rev(&bng_data);
     if (is_reversible) {
       rxn_rev.type = BNG::RxnType::Standard;
       if (is_set(r->rev_name)) {
@@ -963,7 +826,10 @@ void MCell4Converter::convert_rxns() {
       rxn_rev.products = rxn.reactants;
 
       rxn_rev.finalize();
-      check_compartments_and_set_orientations(rxn_rev);
+      string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn_rev);
+      if (error_msg != "") {
+        throw ValueError(error_msg);
+      }
     }
 
     // add reaction(s) and remember mapping
@@ -1363,7 +1229,6 @@ void MCell4Converter::convert_molecule_list(
 
 
 void MCell4Converter::convert_release_events() {
-  // only initial support without any geometries
 
   for (std::shared_ptr<API::ReleaseSite>& r: model->release_sites) {
     MCell::ReleaseEvent* rel_event = new ReleaseEvent(world);

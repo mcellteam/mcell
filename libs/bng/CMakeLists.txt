@@ -30,6 +30,7 @@ set(SOURCE_FILES
 	rxn_class.cpp
 	rxn_container.cpp
 	rxn_rule.cpp
+	rxn_compartment_utils.cpp
 	species.cpp
 	species_container.cpp
 	semantic_analyzer.cpp

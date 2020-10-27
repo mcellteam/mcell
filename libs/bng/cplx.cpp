@@ -512,7 +512,12 @@ std::string Cplx::to_str(bool in_surf_reaction) const {
     }
   }
   else {
-    ss << '@' << bng_data->get_compartment(compartment_id).name;
+    if (is_in_out_compartment_id(compartment_id)) {
+      ss << '@' << compartment_id_to_str(compartment_id);
+    }
+    else {
+      ss << '@' << bng_data->get_compartment(compartment_id).name;
+    }
   }
   return ss.str();
 }
@@ -527,7 +532,9 @@ void Cplx::dump(const bool for_diff, const std::string ind) const {
     cout << ind << "compartment: ";
     if (compartment_id != COMPARTMENT_ID_NONE &&
         compartment_id != COMPARTMENT_ID_ANY &&
-        compartment_id != COMPARTMENT_ID_INVALID) {
+        compartment_id != COMPARTMENT_ID_INVALID &&
+        !is_in_out_compartment_id(compartment_id) ) {
+
       cout << bng_data->get_compartment(compartment_id).name << "\n";
     }
     else {

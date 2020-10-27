@@ -181,6 +181,10 @@ public:
       {
   }
 
+  // after finalize one should call
+  // check_compartments_and_set_orientations (from rxn_compartment_utils)
+  // to check that compartments are valid with respect to volume and surface molecules
+  // and to set orientations from compartments
   void finalize();
 
   // NOTE: must be called only after molecule types are fully known, i.e.

@@ -11,6 +11,7 @@
 #include "bng/rxn_rule.h"
 #include "bng/rxn_class.h"
 #include "bng/rxn_container.h"
+#include "bng/rxn_compartment_utils.h"
 #include "bng/species.h"
 #include "bng/parser.h"
 
