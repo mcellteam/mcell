@@ -24,6 +24,7 @@
 
 #include "generator_utils.h"
 #include "mcell4_generator.h"
+#include "bng/bng_defines.h"
 
 using namespace std;
 using namespace MCell::API;
@@ -214,6 +215,10 @@ static bool rxn_uses_mcell_orientation(Value& reaction_list_item) {
       reaction_list_item[KEY_REACTANTS].asString() + " " +
       reaction_list_item[KEY_PRODUCTS].asString();
 
+  size_t pos_in = substances.find(S("@") + BNG::COMPARTMENT_NAME_IN);
+  size_t pos_out = substances.find(S("@") + BNG::COMPARTMENT_NAME_OUT);
+  bool has_in_out_compartments = pos_in != string::npos || pos_out != string::npos;
+
   // looking for ',; outside of parentheses
   bool in_paren = false;
   size_t i = 0;
@@ -228,7 +233,10 @@ static bool rxn_uses_mcell_orientation(Value& reaction_list_item) {
       in_paren = false;
     }
     else if (!in_paren && (c == ',' || c == '\'' || c == ';')) {
-      return true;
+      // UP is allowed when compartment class @IN or @OUT is used
+      if (!has_in_out_compartments && c != '\'') {
+        return true;
+      }
     }
 
     i++;

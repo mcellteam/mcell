@@ -24,6 +24,7 @@
 #include "generator_structs.h"
 #include "bngl_generator.h"
 #include "libmcell/api/api_utils.h"
+#include "bng/bng_defines.h"
 
 using namespace std;
 
@@ -205,7 +206,20 @@ void BNGLGenerator::generate_compartments() {
   check_version(KEY_MODEL_OBJECTS, model_objects, VER_DM_2018_01_11_1330);
 
   Value& model_object_list = get_node(model_objects, KEY_MODEL_OBJECT_LIST);
-  if (model_object_list.empty()) {
+
+  bool generate_compartments = false;
+  for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
+    Value& model_object = model_object_list[i];
+
+    const string& comp = model_object[KEY_NAME].asString();
+    // generate only the compartments that we need for rxns
+    if (data.used_compartments.count(comp) != 0) {
+      generate_compartments = true;
+      break;
+    }
+  }
+  // do not generate empty section
+  if (!generate_compartments) {
     return;
   }
 
@@ -230,16 +244,34 @@ void BNGLGenerator::generate_compartments() {
 }
 
 
-void static fix_dots_in_simple_substances(vector<string>& substances) {
+static void fix_dots_in_simple_substances(vector<string>& substances) {
   for (string& s: substances) {
     s = fix_dots_in_simple_species(s);
   }
 }
 
 
-void static check_that_orientations_are_not_set(vector<string>& orientations) {
-  for (string& s: orientations) {
-    release_assert(s == "" && "Orientation in BNGL is not supported, should have been checked before");
+static bool has_in_out_compartments(const vector<string>& substances) {
+  bool res = false;
+  for (const string& s: substances) {
+    size_t pos_in = s.find(S("@") + BNG::COMPARTMENT_NAME_IN);
+    size_t pos_out = s.find(S("@") + BNG::COMPARTMENT_NAME_OUT);
+    if (pos_in != string::npos || pos_out != string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+static void check_that_only_allowed_orientations_are_set(
+    const vector<string>& orientations, const bool has_in_out_compartments) {
+
+  for (const string& s: orientations) {
+    release_assert(
+        ((s == "") ||
+         (has_in_out_compartments && s == "'")) &&
+        "Orientation in BNGL is not supported, should have been checked before");
   }
 }
 
@@ -257,16 +289,17 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
     bng_out << name << ": ";
   }
 
-  vector<string> substances;
-  vector<string> orientations;
+  vector<string> reac_substances;
+  vector<string> reac_orientations;
 
   // reactants
-  parse_rxn_rule_side(reaction_list_item[KEY_REACTANTS], substances, orientations);
-  fix_dots_in_simple_substances(substances);
-  check_that_orientations_are_not_set(orientations);
-  for (size_t i = 0; i < substances.size(); i++) {
-    bng_out << substances[i];
-    if (i != substances.size() - 1) {
+  parse_rxn_rule_side(reaction_list_item[KEY_REACTANTS], reac_substances, reac_orientations);
+  fix_dots_in_simple_substances(reac_substances);
+  bool has_in_out = has_in_out_compartments(reac_substances); // in/out must be used in reactants to be allowed
+  check_that_only_allowed_orientations_are_set(reac_orientations, has_in_out);
+  for (size_t i = 0; i < reac_substances.size(); i++) {
+    bng_out << reac_substances[i];
+    if (i != reac_substances.size() - 1) {
       bng_out << " + ";
     }
   }
@@ -274,13 +307,17 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
 
   bng_out << ((is_reversible) ? "<->" : "->") << " ";
 
+  vector<string> prod_substances;
+  vector<string> prod_orientations;
+
   // products
-  parse_rxn_rule_side(reaction_list_item[KEY_PRODUCTS], substances, orientations);
-  fix_dots_in_simple_substances(substances);
-  check_that_orientations_are_not_set(orientations);
-  for (size_t i = 0; i < substances.size(); i++) {
-    bng_out << substances[i];
-    if (i != substances.size() - 1) {
+  parse_rxn_rule_side(reaction_list_item[KEY_PRODUCTS], prod_substances, prod_orientations);
+  fix_dots_in_simple_substances(prod_substances);
+
+  check_that_only_allowed_orientations_are_set(prod_orientations, has_in_out);
+  for (size_t i = 0; i < prod_substances.size(); i++) {
+    bng_out << prod_substances[i];
+    if (i != prod_substances.size() - 1) {
       bng_out << " + ";
     }
   }
