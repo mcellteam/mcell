@@ -234,7 +234,7 @@ static bool rxn_uses_mcell_orientation(Value& reaction_list_item) {
     }
     else if (!in_paren && (c == ',' || c == '\'' || c == ';')) {
       // UP is allowed when compartment class @IN or @OUT is used
-      if (!has_in_out_compartments && c != '\'') {
+      if (!(has_in_out_compartments && c == '\'')) {
         return true;
       }
     }
