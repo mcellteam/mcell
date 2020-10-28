@@ -796,7 +796,11 @@ void MCell4Converter::convert_rxns() {
       rxn.append_product(product);
     }
 
-
+    rxn.finalize();
+    string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn);
+    if (error_msg != "") {
+      throw ValueError(error_msg);
+    }
     if (is_set(r->name)) {
       rxn.name = r->name;
     }
@@ -805,22 +809,10 @@ void MCell4Converter::convert_rxns() {
       rxn.set_automatic_name(false);
     }
 
-    rxn.finalize();
-    string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn);
-    if (error_msg != "") {
-      throw ValueError(error_msg);
-    }
-
     // reverse reaction
     BNG::RxnRule rxn_rev(&bng_data);
     if (is_reversible) {
       rxn_rev.type = BNG::RxnType::Standard;
-      if (is_set(r->rev_name)) {
-        rxn.name = r->rev_name;
-      }
-      else {
-        rxn.set_automatic_name(false);
-      }
       rxn_rev.base_rate_constant = r->rev_rate;
       rxn_rev.reactants = rxn.products;
       rxn_rev.products = rxn.reactants;
@@ -829,6 +821,12 @@ void MCell4Converter::convert_rxns() {
       string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn_rev);
       if (error_msg != "") {
         throw ValueError(error_msg);
+      }
+      if (is_set(r->rev_name)) {
+        rxn.name = r->rev_name;
+      }
+      else {
+        rxn.set_automatic_name(false);
       }
     }
 

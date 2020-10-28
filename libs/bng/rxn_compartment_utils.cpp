@@ -35,6 +35,7 @@ static string check_no_in_out_compartment(const RxnRule& r, const CplxVector& su
 }
 
 
+/*
 static bool has_vol_substance(const CplxVector& substances) {
   // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
@@ -45,7 +46,7 @@ static bool has_vol_substance(const CplxVector& substances) {
   return false;
 }
 
-/*
+
 static string check_all_have_compartment(const RxnRule& r, const CplxVector& substances) {
   // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
@@ -190,6 +191,8 @@ static string check_surface_compartments(
     // 3. In a surface reaction,
     //    b. all volume substances must have one of @IN and @OUT compartments
     //    and all surface substances must not have a compartment
+    assert(r.is_bimol());
+    assert(r.reactants[0].is_surf() == r.reactants[1].is_vol() && "There must be 1 vol and 1 surf reactant");
     CHECK(check_vol_have_in_out_compartment(r, r.reactants));
     CHECK(check_vol_have_in_out_compartment(r, r.products));
     CHECK(check_surf_have_no_compartment(r, r.reactants));
@@ -264,6 +267,17 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
     // with IN/OUT compartments the orientation assignment is easy - IN is DOWN and OUT is UP
     set_substances_orientation_from_in_out_compartments(r.reactants);
     set_substances_orientation_from_in_out_compartments(r.products);
+
+    // we also must set orientation of the surface reactant,
+    // default orientation of a surface reactant when @IN or @OUT is set is UP
+    for (Cplx& c: r.reactants) {
+      if (c.is_surf()) {
+        assert(c.get_orientation() == ORIENTATION_NONE || c.get_orientation() == ORIENTATION_UP);
+        // this also controls the probability factor given to this reaction,
+        // see RxnClass::compute_pb_factor
+        c.set_orientation(ORIENTATION_UP);
+      }
+    }
   }
   else {
     const Compartment& surf_comp = bng_data.get_compartment(surf_comp_id);

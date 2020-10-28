@@ -275,14 +275,18 @@ float_t RxnClass::compute_pb_factor() const {
       orientation_t orient0 = get_reactant_orientation(0);
       orientation_t orient1 = get_reactant_orientation(1);
 
-      // double pb factor if both use orientation (both orientations are not zero)
-      // TODO: search elsewhere in the code for explanation, the first condition
-      // seems superfluous because already the multiplications tells us that neither of them is 0
-      // (assuming the allowed values are -1, 0, 1)
+      /* The value of pb_factor above is calculated for the case
+          when surface_molecule can be hit from either side Otherwise the
+          reaction_rate should be doubled. So we check whether both of the
+          volume_molecules are in the same orientation class as
+          surface_molecule.
+      */
       assert(orient0 == ORIENTATION_UP || orient0 == ORIENTATION_NONE || orient0 == ORIENTATION_DOWN);
       assert(orient1 == ORIENTATION_UP || orient1 == ORIENTATION_NONE || orient1 == ORIENTATION_DOWN);
 
-      if ( ((orient0 + orient1) * (orient0 - orient1) == 0) && (orient0 * orient1 != 0) ) {
+      // original condition: ((orient0 + orient1) * (orient0 - orient1) == 0) && (orient0 * orient1 != 0)
+      // the first condition is not required
+      if (orient0 * orient1 != 0) {
         pb_factor *= 2.0;
       }
     }
