@@ -1014,7 +1014,7 @@ static void create_products_from_reactants_graph(
             reactants_graph, graph_components, i, product_cplx, product_indices);
 
     if (is_rxn_product) {
-      assert(!product_indices.empty());
+      release_assert(!product_indices.empty());
 
       // remember product with its indices
       created_products.push_back(ProductCplxWIndices(product_cplx, product_indices));

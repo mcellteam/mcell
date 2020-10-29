@@ -27,7 +27,7 @@ static string check_no_in_out_compartment(const RxnRule& r, const CplxVector& su
   // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
     if (subst.has_compartment_class_in_out()) {
-      return "Reaction rule " + r.name + ": compartment class " +
+      return "Reaction rule " + r.to_str(false, false, false) + ": compartment class " +
           compartment_id_to_str(subst.get_compartment_id()) + " is not allowed in volume reactions.";
     }
   }
@@ -35,7 +35,7 @@ static string check_no_in_out_compartment(const RxnRule& r, const CplxVector& su
 }
 
 
-/*
+
 static bool has_vol_substance(const CplxVector& substances) {
   // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
@@ -47,25 +47,32 @@ static bool has_vol_substance(const CplxVector& substances) {
 }
 
 
-static string check_all_have_compartment(const RxnRule& r, const CplxVector& substances) {
+static bool has_only_simple_substances(const CplxVector& substances) {
+  for (const Cplx& subst: substances) {
+    if (!subst.is_simple()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+static bool all_have_compartment(const CplxVector& substances) {
   // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
     if (!subst.has_compartment()) {
-      return "In a surface reaction rule " + r.name + " that uses compartments other than " +
-          COMPARTMENT_NAME_IN + " and " + COMPARTMENT_NAME_OUT + ", all products and reactants must have their " +
-          "compartment specified, error for " + subst.to_str() + ".";
+      return false;
     }
   }
-  return "";
+  return true;
 }
-*/
 
 
 static string check_surf_have_no_compartment(const RxnRule& r, const CplxVector& substances) {
   // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
     if (subst.is_surf() && subst.has_compartment()) {
-      return "In a surface reaction rule " + r.name + " that uses compartments " +
+      return "In a surface reaction rule " + r.to_str(false, false, false) + " that uses compartments " +
           COMPARTMENT_NAME_IN + " or " + COMPARTMENT_NAME_OUT + ", no surface products or reactants must have their " +
           "compartment specified, error for " + subst.to_str() + ".";
     }
@@ -78,7 +85,7 @@ static string check_vol_have_in_out_compartment(const RxnRule& r, const CplxVect
   // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
     if (subst.is_vol() && !subst.has_compartment_class_in_out()) {
-      return "In a surface reaction rule " + r.name + " that uses compartments " +
+      return "In a surface reaction rule " + r.to_str(false, false, false) + " that uses compartments " +
           COMPARTMENT_NAME_IN + " or " + COMPARTMENT_NAME_OUT + ", no surface products or reactants must have their " +
           "compartment specified, error for " + subst.to_str() + ".";
     }
@@ -105,7 +112,7 @@ static string check_surface_compartments(
     // 4. A volume reaction must not have surface products
     for (const Cplx& prod: r.products) {
       if (prod.is_surf()) {
-        return "Reaction rule " + r.name + " has no surface reactants but has surface "
+        return "Reaction rule " + r.to_str(false, false, false) + " has no surface reactants but has surface "
             "products, this is not allowed because it is not known where to create these surface products.";
       }
     }
@@ -140,14 +147,31 @@ static string check_surface_compartments(
     //  b. if reaction does not use @IN/@OUT:
     //     all surface substances have the same compartment or no compartment at all
 
-    // FIXME there should be something that we can check here,
-    // e.g. that V + S <-> V.S is allowed (the reverse direction is not supported correctly yet) but
-    //           V + S1 <-> S2 is not allowed
-    /*bool has_vol = has_vol_substance(r.reactants) || has_vol_substance(r.products);
-    if (has_vol) {
-      CHECK(check_all_have_compartment(r, r.reactants));
-      CHECK(check_all_have_compartment(r, r.products));
-    }*/
+    //  c. check for cases that we cannot handle yet because we have a single compartment for
+    //     a complex:
+    //
+    // S + * -> V + *
+    //    - allowed only:
+    //        - when all substances are simple - we cannot distinguish
+    //          it from MCell reaction S; + * -> V; + *
+    //          or
+    //        - when compartments are specified for all substances
+    //
+    bool has_vol_product = has_vol_substance(r.products);
+
+    if (has_vol_product) {
+
+      bool only_simple = has_only_simple_substances(r.reactants) && has_only_simple_substances(r.products);
+      bool all_compartments = all_have_compartment(r.reactants) && all_have_compartment(r.reactants);
+
+      if (!(only_simple || all_compartments)) {
+        return "Cannot determine orientation or compartment of a volume product of a surface reaction rule " + r.to_str(false, false, false) + ". "
+            "Legal BNGL reactions in the form S(s!1).V(v!1) -> V(s) + S(s) are not supported yet. " +
+            "Either specify compartments for each reactant and product or use compartment class "
+            "@" + COMPARTMENT_NAME_IN + " or @" + COMPARTMENT_NAME_OUT + " for the volume products "
+            "(these compartment classes are however not supported by official BioNetGen tool yet).";
+      }
+    }
 
     assert(surf_compartments.size() <= 2);
     if (surf_compartments.size() == 1) {
@@ -155,7 +179,7 @@ static string check_surface_compartments(
     }
     else if (surf_compartments.size() == 2) {
       if (surf_compartments[0] != surf_compartments[1]) {
-        return "Reaction rule " + r.name + ": all compartments of surface molecules on the "
+        return "Reaction rule " + r.to_str(false, false, false) + ": all compartments of surface molecules on the "
             "reactants side must use the same compartment.";
       }
       surf_comp_id = surf_compartments[0];
@@ -176,7 +200,7 @@ static string check_surface_compartments(
     for (const Cplx& prod: r.products) {
       if (prod.is_surf() && prod.get_compartment_id() != surf_comp_id) {
 
-        return "Reaction rule " + r.name + ": all compartments of surface molecules on the "
+        return "Reaction rule " + r.to_str(false, false, false) + ": all compartments of surface molecules on the "
             "products side must use the same compartment " + comp_name + " as reactants.";
       }
     }
