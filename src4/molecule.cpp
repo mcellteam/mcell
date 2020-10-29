@@ -103,11 +103,11 @@ void Molecule::dump(
     const bool print_position
 ) const {
   cout
-    << ind << extra_comment << "it:" << iteration << ", idx:" << id
+    << ind << extra_comment << "it: " << iteration << ", id: " << id
     << ", species: " << p.get_all_species().get(species_id).name;
 
   if (print_position) {
-    cout << ", pos:";
+    cout << ", pos: ";
 
     if (is_vol()) {
       cout << v.pos;
@@ -121,7 +121,7 @@ void Molecule::dump(
     }
   }
   cout
-    << ", flags:" << get_molecule_flags_string(flags, false);
+    << ", flags: " << get_molecule_flags_string(flags, false);
 #ifdef DEBUG_SUBPARTITIONS
   IVec3 indices;
   p.get_subpart_3d_indices_from_index(v.subpart_index, indices);

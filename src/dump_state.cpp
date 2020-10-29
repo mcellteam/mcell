@@ -2223,7 +2223,7 @@ void dump_volume_molecule(
     cout << ind << "  species name: *\t\t" << vm->properties->sym->name << " [char] \t\t\n";
   }
   else {
-    cout << extra_comment << "it:" << iteration << ", idx:" << vm->id;
+    cout << extra_comment << "it: " << iteration << ", id: " << vm->id;
 
     if ((vm->properties->flags & EXTERNAL_SPECIES) == 0) {
       cout << ", species: " << get_species_name(vm);
@@ -2232,9 +2232,9 @@ void dump_volume_molecule(
       cout << ", species: " << graph_pattern_to_bngl(vm->graph_data->graph_pattern);
     }
     if (print_position) {
-      cout << ", pos:" << vm->pos;
+      cout << ", pos: " << vm->pos;
     }
-    cout << ", flags:" << get_molecule_flags_string(vm->flags, false) << ", time: " << time << "\n";
+    cout << ", flags: " << get_molecule_flags_string(vm->flags, false) << ", time: " << time << "\n";
   }
 }
 
@@ -2254,15 +2254,20 @@ void dump_surface_molecule(
     cout << ind << "  species name: *\t\t" << sm->properties->sym->name << " [char] \t\t\n";
   }
   else {
-    cout << extra_comment << "it:" << iteration << ", idx:" << sm->id
-        << ", species: " << get_species_name(sm);
+    cout << extra_comment << "it: " << iteration << ", id: " << sm->id;
+    if ((sm->properties->flags & EXTERNAL_SPECIES) == 0) {
+      cout << ", species: " << get_species_name(sm);
+    }
+    else {
+      cout << ", species: " << graph_pattern_to_bngl(sm->graph_data->graph_pattern);
+    }
     if (print_position) {
-        cout << ", pos:" << sm->s_pos
-            << ", orient:" << sm->orient
+        cout << ", pos: " << sm->s_pos
+            << ", orient: " << sm->orient
             << ", wall side: " << ((sm->grid == nullptr || sm->grid->surface == nullptr) ? -1 : sm->grid->surface->side)
             << ", grid index: " << sm->grid_index;
     }
-    cout << ", flags:" << get_molecule_flags_string(sm->flags, false) << ", time: " << time << "\n";
+    cout << ", flags: " << get_molecule_flags_string(sm->flags, false) << ", time: " << time << "\n";
   }
 }
 
