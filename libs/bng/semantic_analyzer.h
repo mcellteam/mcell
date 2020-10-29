@@ -78,6 +78,8 @@ private:
 
   void extend_molecule_type_definitions(const ASTCplxNode* cplx_node);
 
+  void define_compartments_used_by_cplx_as_3d_compartments(ASTCplxNode* cplx_node);
+
   // local copies so that we don't have to pass everything
   // as arguments
   ParserContext* ctx;

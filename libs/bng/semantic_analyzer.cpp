@@ -1017,8 +1017,36 @@ void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxNode* cplx_
 }
 
 
+void SemanticAnalyzer::define_compartments_used_by_cplx_as_3d_compartments(
+    ASTCplxNode* cplx_node) {
+
+  // to be used only for single cplx mode
+  set<string> compartment_names;
+  if (cplx_node->compartment != nullptr && cplx_node->compartment->str != "") {
+    compartment_names.insert(cplx_node->compartment->str);
+  }
+  for (ASTMolNode* mol: cplx_node->mols) {
+    if (mol->compartment != nullptr && mol->compartment->str != "") {
+      compartment_names.insert(mol->compartment->str);
+    }
+  }
+
+  for (const string& n: compartment_names) {
+    compartment_id_t in_out_id = get_in_or_out_compartment_id(n);
+    if (in_out_id == COMPARTMENT_ID_INVALID) {
+      // is a standard compartment, add it
+      Compartment c;
+      c.name = n;
+      c.is_3d = true;
+      bng_data->add_compartment(c);
+    }
+  }
+}
+
+
 // returns true if conversion and semantic checks passed,
 // resulting complex is stored into res
+// called only from parse_single_cplx_string
 bool SemanticAnalyzer::check_and_convert_single_cplx(
     ParserContext* ctx_, BNGData* res_bng, Cplx& res) {
   assert(ctx_ != nullptr);
@@ -1032,6 +1060,8 @@ bool SemanticAnalyzer::check_and_convert_single_cplx(
   if (ctx->get_error_count() != 0) {
     return false;
   }
+
+  define_compartments_used_by_cplx_as_3d_compartments(ctx->single_cplx);
 
   convert_cplx(ctx->single_cplx, res);
   if (ctx->get_error_count() != 0) {
