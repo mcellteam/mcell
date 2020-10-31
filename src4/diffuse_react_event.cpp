@@ -2362,7 +2362,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     // creates new molecule(s) as output of the unimolecular reaction
     // !! might invalidate references (we might reorder defuncting and outcome call later)
     int outcome_res = outcome_products_random(p, collision, scheduled_time, pathway_index, ignoredA, ignoredB);
-    assert(outcome_res == RX_A_OK);
+    assert(outcome_res == RX_A_OK || outcome_res == RX_BLOCKED);
 
     Molecule& m_new_ref = p.get_m(id);
 
@@ -2370,7 +2370,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
 
     // and defunct this molecule if it was not kept
     assert(unimol_rx->reactants.size() == 1);
-    if (!unimol_rx->is_cplx_reactant_on_both_sides_of_rxn(0)) {
+    if (outcome_res != RX_BLOCKED && !unimol_rx->is_cplx_reactant_on_both_sides_of_rxn(0)) {
     #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
         m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);
