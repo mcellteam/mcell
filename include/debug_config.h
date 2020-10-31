@@ -82,6 +82,7 @@
 
 // MCell3R seems to sort reaction products by name
 //#define MCELL4_SORT_RXN_PRODUCTS_BY_NAME
+//#define MCELL4_SORT_RXN_PRODUCTS_BY_NAME_REV
 #define MCELL4_SORT_RXN_PRODUCTS_BY_LENGTH_DESC
 
 // tentative sorting of reactions in a rxn class to match MCell3R
