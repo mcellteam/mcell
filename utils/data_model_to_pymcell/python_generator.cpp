@@ -1596,8 +1596,7 @@ void PythonGenerator::generate_compartment_assignments(std::ostream& out) {
   for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
     Value& model_object = model_object_list[i];
 
-    const string& comp = model_object[KEY_NAME].asString();
-    if (data.used_compartments.count(comp) != 0) {
+    if (data.is_used_compartment(model_object)) {
       // name is the name of the object
       const string& name = model_object[KEY_NAME].asString();
       const string& membrane_name = model_object[KEY_MEMBRANE_NAME].asString();
@@ -1606,9 +1605,8 @@ void PythonGenerator::generate_compartment_assignments(std::ostream& out) {
       if (membrane_name != "") {
         gen_assign_str(out, name, NAME_SURFACE_COMPARTMENT_NAME, membrane_name);
       }
+      out << "\n";
     }
-
-    out << "\n";
   }
 }
 

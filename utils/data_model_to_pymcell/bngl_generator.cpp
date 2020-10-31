@@ -201,6 +201,33 @@ void BNGLGenerator::generate_single_compartment(Json::Value& model_object) {
 }
 
 
+static void add_parent_compartments_recursively(
+    SharedGenData& data, Value& model_object_list, Value& model_object) {
+
+  // simply keep inserting until we reach the top compartment
+
+  const std::string& vol_comp = model_object[KEY_NAME].asString();
+  assert(vol_comp != "");
+  data.used_compartments.insert(vol_comp);
+
+  const std::string& surf_comp = model_object[KEY_MEMBRANE_NAME].asString();
+  if (surf_comp != "") {
+    data.used_compartments.insert(surf_comp);
+  }
+
+  const std::string& parent_comp = model_object[KEY_PARENT_OBJECT].asString();
+  if (parent_comp != "") {
+    // find corresponding parent
+    for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
+      Value& parent_object = model_object_list[i];
+      if (parent_object[KEY_NAME].asString() == parent_comp) {
+        add_parent_compartments_recursively(data, model_object_list, parent_object);
+      }
+    }
+  }
+}
+
+
 void BNGLGenerator::generate_compartments() {
   Value& model_objects = get_node(data.mcell, KEY_MODEL_OBJECTS);
   check_version(KEY_MODEL_OBJECTS, model_objects, VER_DM_2018_01_11_1330);
@@ -211,11 +238,13 @@ void BNGLGenerator::generate_compartments() {
   for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
     Value& model_object = model_object_list[i];
 
-    const string& comp = model_object[KEY_NAME].asString();
-    // generate only the compartments that we need for rxns
-    if (data.used_compartments.count(comp) != 0) {
+    // generate the compartments that we need for rxns and recursively their parents
+    if (data.is_used_compartment(model_object)) {
       generate_compartments = true;
-      break;
+
+      // recursively add compartment parents to used compartments, we need to generate them as well
+      // because their children reference them
+      add_parent_compartments_recursively(data, model_object_list, model_object);
     }
   }
   // do not generate empty section
@@ -233,9 +262,8 @@ void BNGLGenerator::generate_compartments() {
   for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
     Value& model_object = model_object_list[i];
 
-    const string& comp = model_object[KEY_NAME].asString();
     // generate only the compartments that we need for rxns
-    if (data.used_compartments.count(comp) != 0) {
+    if (data.is_used_compartment(model_object)) {
       generate_single_compartment(model_object);
     }
   }

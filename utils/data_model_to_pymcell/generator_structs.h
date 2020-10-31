@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <set>
 #include "json/json.h"
+#include "datamodel_defines.h"
 
 namespace MCell {
 
@@ -111,6 +112,13 @@ struct SharedGenData {
     else {
       return nullptr;
     }
+  }
+
+  bool is_used_compartment(Json::Value& model_object) {
+    const std::string& vol_comp = model_object[KEY_NAME].asString();
+    const std::string& surf_comp = model_object[KEY_MEMBRANE_NAME].asString();
+
+    return used_compartments.count(vol_comp) != 0 || used_compartments.count(surf_comp);
   }
 
   // mcell node of the loaded JSON file
