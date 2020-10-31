@@ -940,6 +940,18 @@ static int bisect_high(float_t *list, int n, float_t val) {
   }
 }
 
+
+static void push_front_neighbor_if_not_present(
+    TileNeighborVector& neighbors,
+    const WallTileIndexPair& info
+) {
+  auto it  = std::find(neighbors.begin(), neighbors.end(), info);
+  if (it == neighbors.end()) {
+    neighbors.push_front(info);
+  }
+}
+
+
 /**************************************************************************
 add_more_tile_neighbors_to_list_fast:
   In: a linked list of  neighbor tiles
@@ -1230,13 +1242,15 @@ static int add_more_tile_neighbors_to_list_fast(
   if (ind_low >= 0) {
     for (i = ind_low + 1; i < ind_high; i++) {
       for (k = 0; k < 3; k++) {
-        neighbors.push_front(WallTileIndexPair(new_wall.index, new_tile_indices[i][k]));
+        push_front_neighbor_if_not_present(
+            neighbors, WallTileIndexPair(new_wall.index, new_tile_indices[i][k]));
       }
     }
 
   }
   else {
-    neighbors.push_front(WallTileIndexPair(new_wall.index, new_tile_indices[ind_high][0]));
+    push_front_neighbor_if_not_present(
+        neighbors, WallTileIndexPair(new_wall.index, new_tile_indices[ind_high][0]));
   }
 
   return tiles_added;

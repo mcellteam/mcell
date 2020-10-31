@@ -225,6 +225,10 @@ public:
     {
   }
 
+  bool operator== (const WallTileIndexPair& other) const {
+    return wall_index == other.wall_index && tile_index == other.tile_index;
+  }
+
   wall_index_t wall_index;  /* surface grid the tile is on */
   tile_index_t tile_index;  /* index on that tile */
 };
