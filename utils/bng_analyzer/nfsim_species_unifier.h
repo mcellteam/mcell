@@ -35,7 +35,7 @@ public:
   NFSimSpeciesUnifier()
     : bng_engine(bng_config) {
   }
-  bool read_species_file(const std::string& input_file);
+  bool read_input_file(const std::string& input_file, const bool is_dat);
   bool print_unified_species(const std::string& out_file = "");
 
   std::map<species_id_t, double> counts_per_unique_species;

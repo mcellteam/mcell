@@ -39,13 +39,17 @@ using namespace std;
 static const option long_options[] = {
     { "help", 0, 0, 'h' },
     { "version", 0, 0, 'v' },
+    { "dat", 0, 0, 'd' },
     { "output", 1, 0, 'o' },
     { nullptr, 0, 0, 0 }
 };
 
 
 void print_usage(const char* argv0) {
-  cout << "INPUT_FILE [-o OUTPUT_FILE]\n";
+  cout <<
+      " [-d] INPUT_FILE [-o OUTPUT_FILE]\n"
+      "  -d  Optional argument that specifies that the input is a .dat ascii file \n"
+      "      for MCell visualization, NFSim .species file otherwise\n";
 }
 
 
@@ -63,10 +67,12 @@ const int ARG_PARSE_OK = -1;
 int process_args(
     const int argc, char* argv[],
     string& input_file,
-    string& output_file
+    string& output_file,
+    bool& is_dat
 ) {
   input_file = "";
   output_file = "";
+  is_dat = false;
 
   assert(argc > 0);
   while (1) {
@@ -86,6 +92,12 @@ int process_args(
       case 'o':
         output_file = optarg;
         break;
+      case 'd':
+        is_dat = true;
+        break;
+      default:
+        cerr << "Invalid arguments.\n";
+        return ARG_PARSE_ERROR;
     }
   }
 
@@ -109,14 +121,16 @@ int main(const int argc, char* argv[]) {
 
   string input_file;
   string output_file;
+  bool is_dat;
 
-  int arg_process_res = process_args(argc, argv, input_file, output_file);
+  int arg_process_res = process_args(argc, argv, input_file, output_file, is_dat);
   if (arg_process_res != ARG_PARSE_OK) {
     return arg_process_res;
   }
 
   MCell::NFSimSpeciesUnifier nfsim_unifier;
-  bool ok = nfsim_unifier.read_species_file(input_file);
+  bool ok;
+  ok = nfsim_unifier.read_input_file(input_file, is_dat);
   if (!ok) {
     cerr << "There was an error while reading " << input_file << ".\n";
     return 1;

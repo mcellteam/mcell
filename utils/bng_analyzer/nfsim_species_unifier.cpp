@@ -31,7 +31,7 @@ extern int bngldebug;
 
 namespace MCell {
 
-bool NFSimSpeciesUnifier::read_species_file(const std::string& input_file) {
+bool NFSimSpeciesUnifier::read_input_file(const std::string& input_file, const bool is_dat) {
 
   //bngldebug = 1;
 
@@ -55,7 +55,10 @@ bool NFSimSpeciesUnifier::read_species_file(const std::string& input_file) {
     }
 
     // expecting that each line will be in this form:
-    // BNGL_COMPLEX count
+    // NFSim Species:
+    //    BNGL_COMPLEX count
+    // .dat (MCell viz output)
+    //    BNGL_COMPLEX position normal
     size_t cplx_end = line.find(' ');
     if (cplx_end == string::npos) {
       cerr << "Did not find a separator ' ' on line " << linenr << ".\n";
@@ -63,7 +66,13 @@ bool NFSimSpeciesUnifier::read_species_file(const std::string& input_file) {
     }
 
     string cplx_string = line.substr(0, cplx_end);
-    string count_string = line.substr(cplx_end);
+    string count_string;
+    if (!is_dat) {
+      count_string = line.substr(cplx_end);
+    }
+    else {
+      count_string = "1"; // each line in .dat files is one instance
+    }
 
     // parse cplx string
     BNG::Cplx cplx_inst(&bng_engine.get_data());
