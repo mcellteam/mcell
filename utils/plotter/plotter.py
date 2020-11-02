@@ -97,8 +97,8 @@ def get_nfsim_observables_counts(dir):
 
 
 
-mcell3_dir = 'react_data3'
-mcell4_dir = 'react_data'
+mcell3_dir = 'react_data'
+mcell4_dir = 'react_data4'
 bng_dir = '.'
 if len(sys.argv) == 4:
     mcell3_dir = sys.argv[1]
@@ -109,15 +109,21 @@ counts = []
 if os.path.exists(mcell3_dir):
     counts.append(get_mcell_observables_counts(mcell3_dir))
 else:
+    print("Directory " + mcell3_dir + " with MCell3 data not found, ignored")
     counts.append({})
 
 if os.path.exists(mcell4_dir):
     counts.append(get_mcell_observables_counts(mcell4_dir))
 else:
+    print("Directory " + mcell4_dir + " with MCell4 data not found, ignored")
     counts.append({})
 
 # get_nfsim_observables_counts may return an empty dict
 counts.append(get_nfsim_observables_counts(bng_dir))
+
+if counts[0].keys() != counts[1].keys():
+    print(counts[0].keys())
+    print(counts[1].keys())
 
 assert counts[0].keys() == counts[1].keys()
 assert not counts[2] or counts[0].keys() == counts[2].keys()
