@@ -442,8 +442,10 @@ void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id)
         // for each compartment
         for (BimolCompartmentPair& pair_species2_comp2: it_species2->second) {
           ReactantSpeciesIt it_species2_comp2_species1 = pair_species2_comp2.second.find(reac1_species_id);
-          assert(it_species2_comp2_species1 != pair_species2_comp2.second.end() && "Reverse mapping must exist");
-          pair_species2_comp2.second.erase(it_species2_comp2_species1);
+          if (it_species2_comp2_species1 != pair_species2_comp2.second.end()) {
+            // reverse mapping does not have to exist for all compartments
+            pair_species2_comp2.second.erase(it_species2_comp2_species1);
+          }
         }
       }
 
