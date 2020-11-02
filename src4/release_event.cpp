@@ -563,7 +563,70 @@ static size_t cum_area_bisect_high(const vector<CummAreaPWallIndexPair>& array, 
 }
 
 
-void ReleaseEvent::release_onto_regions(int computed_release_number) {
+// returns the number of actually removed molecules
+int ReleaseEvent::randomly_remove_molecules(
+    Partition& p, const MoleculeIdsVector& mol_ids_in_region, int number_to_remove) {
+  // randomly remove molecules
+  int num_removed = 0;
+  for (size_t i = 0; i < mol_ids_in_region.size(); i++) {
+    molecule_id_t m_id = mol_ids_in_region[i];
+    int remaining = mol_ids_in_region.size() - i;
+
+    if (rng_dbl(&world->rng) < ((float_t)(number_to_remove)) / ((float_t)remaining)) {
+      p.set_molecule_as_defunct(p.get_m(m_id));
+      num_removed++;
+      number_to_remove--;
+    }
+  }
+  release_assert(number_to_remove >= 0);
+  return num_removed;
+}
+
+
+/***************************************************************************
+vacuum_from_regions:
+  Molecules of the specified type are
+       removed uniformly at random from the free area in the regions
+       specified by the release site object.
+  Note: if the user requests to remove more molecules than actually exist,
+        the function will return success and not give a warning.
+***************************************************************************/
+int ReleaseEvent::vacuum_from_regions(int number_to_remove) {
+  assert(!cumm_area_and_pwall_index_pairs.empty());
+  assert(number_to_remove > 0);
+
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  MoleculeIdsVector mol_ids_on_region;
+
+  for (auto& item: cumm_area_and_pwall_index_pairs) {
+    assert(item.second.first == PARTITION_ID_INITIAL);
+    const Wall& w = p.get_wall(item.second.second);
+
+    for (molecule_id_t m_id: w.grid.get_molecules_per_tile()) {
+      if (m_id != MOLECULE_ID_INVALID) {
+        const Molecule& m = p.get_m(m_id);
+        assert(m.is_surf());
+        if (m.is_defunct()) {
+          continue;
+        }
+        if (m.species_id != species_id) {
+          continue;
+        }
+        // NOTE: MCell3 does not care about orientation
+        if (orientation != ORIENTATION_NONE && m.s.orientation != orientation) {
+          continue;
+        }
+        mol_ids_on_region.push_back(m_id);
+      }
+    }
+  }
+
+  return randomly_remove_molecules(p, mol_ids_on_region, number_to_remove);
+}
+
+
+void ReleaseEvent::release_onto_regions(int& computed_release_number) {
   int success = 0, failure = 0;
   float_t seek_cost = 0;
 
@@ -576,7 +639,7 @@ void ReleaseEvent::release_onto_regions(int computed_release_number) {
   int n = computed_release_number;
 
   if (n < 0) {
-    //TODO vacuum_from_regions(n);
+    computed_release_number = -vacuum_from_regions(-n);
     return;
   }
 
@@ -738,20 +801,7 @@ int ReleaseEvent::vacuum_inside_regions(int number_to_remove) {
     mol_ids_in_region.push_back(m.id);
   }
 
-  // randomly remove molecules
-  int num_removed = 0;
-  for (size_t i = 0; i < mol_ids_in_region.size(); i++) {
-    molecule_id_t m_id = mol_ids_in_region[i];
-    int remaining = mol_ids_in_region.size() - i;
-
-    if (rng_dbl(&world->rng) < ((float_t)(number_to_remove)) / ((float_t)remaining)) {
-      p.set_molecule_as_defunct(p.get_m(m_id));
-      num_removed++;
-      number_to_remove--;
-    }
-  }
-  release_assert(number_to_remove >= 0);
-  return num_removed;
+  return randomly_remove_molecules(p, mol_ids_in_region, number_to_remove);
 }
 
 

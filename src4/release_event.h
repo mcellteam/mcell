@@ -201,7 +201,8 @@ public:
   bool initialize_walls_for_release();
 
   // initialized from mcell3 state or in initialize_walls_for_release()
-  // TODO: replace with some reasonale strcucture
+  // defines walls of a region for surface release
+  // TODO: replace with some a better structure
   std::vector<CummAreaPWallIndexPair> cumm_area_and_pwall_index_pairs;
 
 
@@ -240,8 +241,12 @@ private:
 private:
   uint calculate_number_to_release();
 
+  int randomly_remove_molecules(
+      Partition& p, const MoleculeIdsVector& mol_ids_in_region, int number_to_remove);
+
   // for surface molecule releases
-  void release_onto_regions(int computed_release_number);
+  int vacuum_from_regions(int number_to_remove);
+  void release_onto_regions(int& computed_release_number);
 
   // for volume molecule releases into a region
   bool is_point_inside_region_expr_recursively(
@@ -258,8 +263,10 @@ private:
   void release_list();
 
   // for releases specified by MODIFY_SURFACE_REGIONS -> MOLECULE_NUMBER or MOLECULE_DENSITY
-  void init_surf_mols_by_number(Partition& p, const Region& reg, const InitialRegionMolecules& info);
-  void init_surf_mols_by_density(Partition& p, const Region& reg, Wall& w, std::map<species_id_t, uint>& num_released_per_species);
+  void init_surf_mols_by_number(
+      Partition& p, const Region& reg, const InitialRegionMolecules& info);
+  void init_surf_mols_by_density(
+      Partition& p, const Region& reg, Wall& w, std::map<species_id_t, uint>& num_released_per_species);
   void release_initial_molecules_onto_surf_regions();
 
   float_t get_release_delay_time() const {

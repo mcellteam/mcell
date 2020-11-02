@@ -463,6 +463,10 @@ public:
       small_vector<molecule_id_t>& molecule_ids
   ) const;
 
+  const MoleculeIdsVector& get_molecules_per_tile() const {
+    return molecules_per_tile;
+  }
+
   void reset_all_tiles() {
     std::fill(molecules_per_tile.begin(), molecules_per_tile.end(), MOLECULE_ID_INVALID);
     num_occupied = 0;
