@@ -567,9 +567,6 @@ void ReleaseEvent::release_onto_regions(int computed_release_number) {
   int success = 0, failure = 0;
   float_t seek_cost = 0;
 
-  // TODO_LATER: for now we are assuming that we have just a single partition
-  // and releases do not cross partition boundary
-
   assert(!cumm_area_and_pwall_index_pairs.empty());
   float_t total_area = cumm_area_and_pwall_index_pairs.back().first;
   float_t est_sites_avail = (int)total_area;
@@ -577,6 +574,11 @@ void ReleaseEvent::release_onto_regions(int computed_release_number) {
   float_t pick_cost = rel_list_gen_cost * est_sites_avail;
 
   int n = computed_release_number;
+
+  if (n < 0) {
+    //TODO vacuum_from_regions(n);
+    return;
+  }
 
   const int too_many_failures = 10; /* Just a guess */
   while (n > 0) {
@@ -701,15 +703,11 @@ uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
 
 /*************************************************************************
 vacuum_inside_regions:
-  In: pointer to a release site object
-      template molecule to remove
-      integer number of molecules to remove (negative)
-  Out: 0 on success, 1 on failure; molecule(s) are removed from the
-       state as specified.
   Note: if more molecules are to be removed than actually exist, all
         existing molecules of the specified type are removed.
+  Returns number of actually removed molecules.
 *************************************************************************/
-void ReleaseEvent::vacuum_inside_regions(int number_to_remove) {
+int ReleaseEvent::vacuum_inside_regions(int number_to_remove) {
   assert(number_to_remove > 0);
 
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
@@ -741,16 +739,19 @@ void ReleaseEvent::vacuum_inside_regions(int number_to_remove) {
   }
 
   // randomly remove molecules
+  int num_removed = 0;
   for (size_t i = 0; i < mol_ids_in_region.size(); i++) {
     molecule_id_t m_id = mol_ids_in_region[i];
     int remaining = mol_ids_in_region.size() - i;
 
     if (rng_dbl(&world->rng) < ((float_t)(number_to_remove)) / ((float_t)remaining)) {
       p.set_molecule_as_defunct(p.get_m(m_id));
+      num_removed++;
       number_to_remove--;
     }
   }
-  release_assert(number_to_remove == 0);
+  release_assert(number_to_remove >= 0);
+  return num_removed;
 }
 
 
@@ -773,7 +774,7 @@ void ReleaseEvent::release_inside_regions(int& computed_release_number) {
   int n = computed_release_number;
 
   if (n < 0) {
-    vacuum_inside_regions(-n);
+    computed_release_number = -vacuum_inside_regions(-n);
     return;
   }
 

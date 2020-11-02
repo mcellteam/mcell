@@ -248,7 +248,7 @@ private:
       Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node
   );
   uint num_vol_mols_from_conc(bool &exact_number);
-  void vacuum_inside_regions(int number_to_remove);
+  int vacuum_inside_regions(int number_to_remove);
   void release_inside_regions(int& computed_release_number);
 
   // for volume molecule releases
