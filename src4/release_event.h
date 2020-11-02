@@ -241,17 +241,18 @@ private:
   uint calculate_number_to_release();
 
   // for surface molecule releases
-  void release_onto_regions(uint computed_release_number);
+  void release_onto_regions(int computed_release_number);
 
   // for volume molecule releases into a region
   bool is_point_inside_region_expr_recursively(
       Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node
   );
   uint num_vol_mols_from_conc(bool &exact_number);
-  void release_inside_regions(uint& computed_release_number);
+  void vacuum_inside_regions(int number_to_remove);
+  void release_inside_regions(int& computed_release_number);
 
   // for volume molecule releases
-  void release_ellipsoid_or_rectcuboid(uint computed_release_number);
+  void release_ellipsoid_or_rectcuboid(int computed_release_number);
 
   // for list releases
   void release_list();

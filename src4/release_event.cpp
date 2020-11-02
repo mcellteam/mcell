@@ -563,7 +563,7 @@ static size_t cum_area_bisect_high(const vector<CummAreaPWallIndexPair>& array, 
 }
 
 
-void ReleaseEvent::release_onto_regions(uint computed_release_number) {
+void ReleaseEvent::release_onto_regions(int computed_release_number) {
   int success = 0, failure = 0;
   float_t seek_cost = 0;
 
@@ -576,7 +576,7 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
   const float_t rel_list_gen_cost = 10.0; /* Just a guess */
   float_t pick_cost = rel_list_gen_cost * est_sites_avail;
 
-  uint n = computed_release_number;
+  int n = computed_release_number;
 
   const int too_many_failures = 10; /* Just a guess */
   while (n > 0) {
@@ -700,22 +700,82 @@ uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
 
 
 /*************************************************************************
+vacuum_inside_regions:
+  In: pointer to a release site object
+      template molecule to remove
+      integer number of molecules to remove (negative)
+  Out: 0 on success, 1 on failure; molecule(s) are removed from the
+       state as specified.
+  Note: if more molecules are to be removed than actually exist, all
+        existing molecules of the specified type are removed.
+*************************************************************************/
+void ReleaseEvent::vacuum_inside_regions(int number_to_remove) {
+  assert(number_to_remove > 0);
+
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  MoleculeIdsVector mol_ids_in_region;
+
+  // get all molecules that match the removed species
+  // MCell3 knows which molecules are in which subparts, we don't know this
+  // so we must go through all molecule
+  for (const Molecule& m: p.get_molecules()) {
+    if (m.is_defunct()) {
+      continue;
+    }
+    if (m.species_id != species_id) {
+      continue;
+    }
+    release_assert(m.is_vol());
+
+    // filter by bounding box
+    if (!point_in_box(m.v.pos, region_llf, region_urb)) {
+      continue;
+    }
+    // then precisely by region
+    if (!is_point_inside_region_expr_recursively(p, m.v.pos, region_expr_root)) {
+      continue;
+    }
+
+    mol_ids_in_region.push_back(m.id);
+  }
+
+  // randomly remove molecules
+  for (size_t i = 0; i < mol_ids_in_region.size(); i++) {
+    molecule_id_t m_id = mol_ids_in_region[i];
+    int remaining = mol_ids_in_region.size() - i;
+
+    if (rng_dbl(&world->rng) < ((float_t)(number_to_remove)) / ((float_t)remaining)) {
+      p.set_molecule_as_defunct(p.get_m(m_id));
+      number_to_remove--;
+    }
+  }
+  release_assert(number_to_remove == 0);
+}
+
+
+/*************************************************************************
 release_inside_regions:
   Note: if the CCNNUM release method is used, the number of molecules
         passed in is ignored.
 *************************************************************************/
-void ReleaseEvent::release_inside_regions(uint& computed_release_number) {
+void ReleaseEvent::release_inside_regions(int& computed_release_number) {
 
   assert(region_expr_root != nullptr);
 
-  Partition& p = world->get_partition(0);
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
   bool exact_number = false;
   if (release_number_method == ReleaseNumberMethod::ConcentrationNum) {
     computed_release_number = num_vol_mols_from_conc(exact_number);
   }
 
-  uint n = computed_release_number;
+  int n = computed_release_number;
+
+  if (n < 0) {
+    vacuum_inside_regions(-n);
+    return;
+  }
 
   while (n > 0) {
     Vec3 pos;
@@ -748,7 +808,8 @@ void ReleaseEvent::release_inside_regions(uint& computed_release_number) {
 }
 
 
-void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
+void ReleaseEvent::release_ellipsoid_or_rectcuboid(int computed_release_number) {
+  assert(computed_release_number >= 0 && "Cannot have negative SPHERICAL release");
 
   Partition& p = world->get_partition(world->get_or_add_partition_index(location));
   float_t time_step = world->get_all_species().get(species_id).time_step;
@@ -757,7 +818,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
                              /*release_shape == SHAPE_ELLIPTIC ||*/
                              release_shape == ReleaseShape::SPHERICAL_SHELL);
 
-  for (uint i = 0; i < computed_release_number; i++) {
+  for (int i = 0; i < computed_release_number; i++) {
     Vec3 pos;
     do /* Pick values in unit square, toss if not in unit circle */
     {
@@ -1032,9 +1093,9 @@ void ReleaseEvent::step() {
 
   perf() << "Starting release from \"" << release_site_name << "\".\n";
 
-  uint num_released = UINT_INVALID;
+  int num_released = 0;
   if (release_shape == ReleaseShape::REGION) {
-    uint number = calculate_number_to_release();
+    int number = calculate_number_to_release();
     const BNG::Species& species = world->get_all_species().get(species_id);
     if (species.is_surf()) {
       release_onto_regions(number);
@@ -1045,7 +1106,7 @@ void ReleaseEvent::step() {
     num_released = number;
   }
   else if (release_shape == ReleaseShape::SPHERICAL) {
-    uint number = calculate_number_to_release();
+    int number = calculate_number_to_release();
     assert(diameter.is_valid());
     release_ellipsoid_or_rectcuboid(number);
     num_released = number;
@@ -1062,8 +1123,18 @@ void ReleaseEvent::step() {
 
   if (release_shape == ReleaseShape::REGION || release_shape == ReleaseShape::SPHERICAL) {
     const BNG::Species& species = world->get_all_species().get(species_id);
+    const char* type;
+    int count;
+    if (num_released >= 0) {
+      type = "Released ";
+      count = num_released;
+    }
+    else {
+      type =  "Removed ";
+      count = -num_released;
+    }
     cout
-      << "Released " << num_released << " " << species.name << " from \"" << release_site_name << "\""
+      << type << count << " " << species.name << " from \"" << release_site_name << "\""
       << " at iteration " << world->get_current_iteration() << ".\n";
   }
 }

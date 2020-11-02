@@ -91,6 +91,25 @@ public:
           " or " + NAME_MOLECULE_LIST + " must be set.");
     }
 
+    if (shape != Shape::REGION_EXPR && get_num_set(number_to_release, density, concentration) == 1 &&
+        (number_to_release < 0 || density < 0 || concentration < 0)) {
+      const char* attribute_name;
+      if (is_set(number_to_release)) {
+        attribute_name = NAME_NUMBER_TO_RELEASE;
+      }
+      else if (is_set(density)) {
+        attribute_name = NAME_DENSITY;
+      }
+      else if (is_set(concentration)) {
+        attribute_name = NAME_CONCENTRATION;
+      }
+      else {
+        release_assert(false);
+      }
+      throw ValueError(
+          S("Negative release value of ") + attribute_name + " may be set only when " + NAME_REGION + " is set.");
+    }
+
     if (get_num_set(complex, molecule_list) != 1) {
       throw ValueError(
           S("Exactly one of ") + NAME_COMPLEX + " or " + NAME_MOLECULE_LIST + " must be set.");
