@@ -121,11 +121,8 @@ else:
 # get_nfsim_observables_counts may return an empty dict
 counts.append(get_nfsim_observables_counts(bng_dir))
 
-if counts[0].keys() != counts[1].keys():
-    print(counts[0].keys())
-    print(counts[1].keys())
 
-assert counts[0].keys() == counts[1].keys()
+assert not counts[1] or counts[0].keys() == counts[1].keys()
 assert not counts[2] or counts[0].keys() == counts[2].keys()
 
 names = ['MCell3R', 'MCell4', 'BNG']
