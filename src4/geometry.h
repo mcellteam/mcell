@@ -604,6 +604,7 @@ public:
   bool is_movable;
 
   // regions, one wall can belong to multiple regions, regions are owned by partition
+  // region may represent a surface class
   uint_set<region_index_t> regions;
 
   // indices of the three triangle's vertices,

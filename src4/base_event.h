@@ -51,10 +51,11 @@ const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;
 // (counts and viz output must be before diffuse&react for MCell3 compatibility)
 const event_type_index_t EVENT_TYPE_INDEX_SIMULATION_END_CHECK = 301;
 
-const event_type_index_t EVENT_TYPE_INDEX_RXN_CLASS_CLEANUP = 470;
-const event_type_index_t EVENT_TYPE_INDEX_SPECIES_CLEANUP = 480;
+const event_type_index_t EVENT_TYPE_INDEX_RXN_CLASS_CLEANUP = 400;
+const event_type_index_t EVENT_TYPE_INDEX_SPECIES_CLEANUP = 410;
+const event_type_index_t EVENT_TYPE_INDEX_SORT_MOLS_BY_SUBPART = 420;
 
-const event_type_index_t EVENT_TYPE_INDEX_SORT_MOLS_BY_SUBPART = 490;
+const event_type_index_t EVENT_TYPE_INDEX_CONCENTRATION_CLAMP_RELEASE = 490;
 const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 500;  // this event spans the whole time step
 const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;
 

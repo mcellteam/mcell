@@ -27,6 +27,8 @@
 #ifndef __DEBUG_CONFIG_H__
 #define __DEBUG_CONFIG_H__
 
+#define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP
+
 // TODO: do not include in defines.h for faster compilation
 
 // TODO: make the dumping system integrated and build it all for debug builds,

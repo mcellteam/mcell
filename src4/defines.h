@@ -438,6 +438,15 @@ static inline float_t ceil_f(const float_t x) {
 #endif
 }
 
+static inline float_t abs_f(const float_t x) {
+  if (x < 0) {
+    return -x;
+  }
+  else {
+    return x;
+  }
+}
+
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
   assert(val >= 0);
   return (float_t)((int)((val + EPS)/ multiple)) * multiple;

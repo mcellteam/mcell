@@ -1396,6 +1396,7 @@ int init_reactions(MCELL_STATE *state) {
               ccd->next = state->clamp_list;
               state->clamp_list = ccd;
             }
+            path->cclamp_concentration = path->km; // remember for mcell3->4 converter
             path->km = GIGANTIC;
           } else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;

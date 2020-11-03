@@ -23,6 +23,7 @@ set(SRC4_SOURCE_FILES
     molecule.cpp
     partition.cpp
     release_event.cpp
+    concentration_clamp_release_event.cpp
     scheduler.cpp
     count_buffer.cpp
     mol_or_rxn_count_event.cpp

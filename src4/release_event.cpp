@@ -177,6 +177,18 @@ static const char* release_number_method_to_str(const ReleaseNumberMethod m) {
 }
 
 
+void ReleaseEvent::dump_cumm_area_and_pwall_index_pairs(const string ind) const {
+  cout << ind << "cumm_area_and_pwall_index_pairs:\n";
+  for (size_t i = 0; i < cumm_area_and_pwall_index_pairs.size(); i++) {
+    cout << ind << i << ": ";
+    const CummAreaPWallIndexPair& area_wall = cumm_area_and_pwall_index_pairs[i];
+    cout <<
+        "area: " << area_wall.first << ", partition_id: " << area_wall.second.first <<
+        ", wall_index: " << area_wall.second.first << "\n";
+  }
+}
+
+
 void ReleaseEvent::dump(const string ind) const {
   cout << "Release event:\n";
   string ind2 = ind + "  ";
@@ -192,14 +204,7 @@ void ReleaseEvent::dump(const string ind) const {
   cout << ind2 << "location: \t\t" << location << " [Vec3]\n";
   cout << ind2 << "diameter: \t\t" << diameter << " [Vec3]\n";
 
-  cout << ind2 << "cumm_area_and_pwall_index_pairs:\n";
-  for (size_t i = 0; i < cumm_area_and_pwall_index_pairs.size(); i++) {
-    cout << ind2 << i << ": ";
-    const CummAreaPWallIndexPair& area_wall = cumm_area_and_pwall_index_pairs[i];
-    cout <<
-        "area: " << area_wall.first << ", partition_id: " << area_wall.second.first <<
-        ", wall_index: " << area_wall.second.first << "\n";
-  }
+  dump_cumm_area_and_pwall_index_pairs(ind2);
 
   cout << ind2 << "region_llf: \t\t" << region_llf << " [Vec3]\n";
   cout << ind2 << "region_urb: \t\t" << region_urb << " [Vec3]\n";
@@ -538,8 +543,7 @@ uint ReleaseEvent::calculate_number_to_release() {
 }
 
 
-// NOTE: maybe a template will be needed for this function, used a lot in mcell3
-static size_t cum_area_bisect_high(const vector<CummAreaPWallIndexPair>& array, float_t val) {
+size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, float_t val) {
   size_t low = 0;
   size_t hi = array.size() - 1;
   size_t mid = 0;

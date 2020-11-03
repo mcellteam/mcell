@@ -702,6 +702,7 @@ struct pathway {
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant (NULL if none) */
   double km;                       /* Rate constant */
+  double cclamp_concentration;     /* Concentration clamp constant, used only by MCell3->4 converter */
   char *km_filename;               /* Filename for time-varying rates */
   short orientation1;           /* Orientation of first reactant */
   short orientation2;           /* Orientation of second reactant */

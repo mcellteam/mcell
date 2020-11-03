@@ -41,6 +41,7 @@ namespace MCell {
 
 class ReleaseEvent;
 class RegionExprNode;
+class ConcentrationClampReleaseEvent;
 
 class MCell3WorldConverter {
 public:
@@ -80,6 +81,7 @@ private:
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);
   bool convert_mol_or_rxn_count_events(volume* s);
+  void update_and_schedule_concentration_clamps();
 
 public:
   // contained world object
@@ -148,6 +150,8 @@ private:
 
   // use only through add_mcell4_region_index_mapping, get_mcell4_region_index
   std::map<const region*, PartitionRegionIndexPair> region_ptr_to_region_index_map;
+
+  std::vector<ConcentrationClampReleaseEvent*> concentration_clamps;
 };
 
 

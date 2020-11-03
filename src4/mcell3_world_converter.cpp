@@ -33,6 +33,7 @@
 
 #include "world.h"
 #include "release_event.h"
+#include "concentration_clamp_release_event.h"
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
 #include "mol_or_rxn_count_event.h"
@@ -134,6 +135,8 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_release_events(s));
   CHECK(convert_viz_output_events(s));
   CHECK(convert_mol_or_rxn_count_events(s));
+
+  update_and_schedule_concentration_clamps();
 
   return true;
 }
@@ -613,7 +616,16 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   std::set<species_id_t> wall_species_from_mcell3;
   for (surf_class_list *sl = w->surf_class_head; sl != nullptr; sl = sl->next) {
     CHECK_PROPERTY(sl->surf_class != nullptr);
-    wall_species_from_mcell3.insert(get_mcell4_species_id(sl->surf_class->species_id));
+    species_id_t surf_class_species_id = get_mcell4_species_id(sl->surf_class->species_id);
+    wall_species_from_mcell3.insert(surf_class_species_id);
+
+    // set concentration clamp walls (note: this might be a bit slow
+    for (ConcentrationClampReleaseEvent* cclamp: concentration_clamps) {
+      if (cclamp->surf_class_species_id == surf_class_species_id) {
+        // cummulative area is updated when the cclamp events are scheduled at the end of conversion
+        cclamp->cumm_area_and_pwall_index_pairs.push_back(CummAreaPWallIndexPair(0, wall_pindex));
+      }
+    }
   }
   CHECK_PROPERTY(wall_species_from_mcell3 == region_species_from_mcell3);
 
@@ -921,9 +933,10 @@ bool MCell3WorldConverter::convert_species(volume* s) {
       CHECK_PROPERTY(spec->refl_mols == nullptr);
     }
 
+    // don't care about these, they will be defined as reactive surface reactions
     // CHECK_PROPERTY(spec->transp_mols == nullptr);
     // CHECK_PROPERTY(spec->absorb_mols == nullptr);
-    CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
+    // CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components
@@ -1088,15 +1101,18 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     );
 
     // reactants
+    vector<species_id_t> reactant_species_ids;
     if (current_pathway->reactant1 != nullptr) {
       species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
       rxn.append_reactant(
           world->bng_engine.create_cplx_from_species(reactant1_id, current_pathway->orientation1, BNG::COMPARTMENT_ID_ANY));
+      reactant_species_ids.push_back(reactant1_id);
 
       if (current_pathway->reactant2 != nullptr) {
         species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
         rxn.append_reactant(
             world->bng_engine.create_cplx_from_species(reactant2_id, current_pathway->orientation2, BNG::COMPARTMENT_ID_ANY));
+        reactant_species_ids.push_back(reactant2_id);
 
         if (current_pathway->reactant3 != nullptr) {
           mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
@@ -1129,7 +1145,10 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       rxn.type = RxnType::Reflect;
     }
     else {
-      CHECK_PROPERTY(current_pathway->flags == 0 || current_pathway->flags == PATHW_ABSORP);
+      CHECK_PROPERTY(current_pathway->flags == 0 ||
+          current_pathway->flags == PATHW_ABSORP ||
+          current_pathway->flags == PATHW_CLAMP_CONC);
+
       rxn.type = RxnType::Standard;
 
       // products
@@ -1141,6 +1160,38 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
             world->bng_engine.create_cplx_from_species(product_id, product_ptr->orientation, BNG::COMPARTMENT_ID_ANY));
 
         product_ptr = product_ptr->next;
+      }
+
+      // create conc clamp event
+      if (current_pathway->flags == PATHW_CLAMP_CONC) {
+        assert(rxn.is_bimol());
+        ConcentrationClampReleaseEvent* cclamp_event = new ConcentrationClampReleaseEvent(world);
+
+        // run each timestep
+        cclamp_event->event_time = 0;
+        cclamp_event->periodicity_interval = 1;
+
+        // which species to clamp
+        assert(!world->bng_engine.get_all_species().get(reactant_species_ids[0]).is_reactive_surface());
+        cclamp_event->surf_class_species_id = reactant_species_ids[1];
+
+        assert(world->bng_engine.get_all_species().get(reactant_species_ids[1]).is_reactive_surface());
+        cclamp_event->species_id = reactant_species_ids[1];
+
+        // on which side
+        if (rxn.reactants[0].get_orientation() == 0 || rxn.reactants[1].get_orientation() == 0) {
+          cclamp_event->orientation = 0;
+        }
+        else {
+          cclamp_event->orientation =
+              (rxn.reactants[0].get_orientation() == rxn.reactants[1].get_orientation()) ? ORIENTATION_UP : ORIENTATION_DOWN;
+        }
+
+        // use the rxn rate for concentration and the rxn that destroys molecules will happen always
+        cclamp_event->concentration = current_pathway->cclamp_concentration;
+        rxn.base_rate_constant = FLT_GIGANTIC;
+
+        concentration_clamps.push_back(cclamp_event);
       }
     }
 
@@ -1815,6 +1866,15 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
   }
 
   return true;
+}
+
+
+void MCell3WorldConverter::update_and_schedule_concentration_clamps() {
+  for (ConcentrationClampReleaseEvent* cclamp: concentration_clamps) {
+    cclamp->update_cumm_areas_and_scaling();
+    cclamp->update_event_time_for_next_scheduled_time();
+    world->scheduler.schedule_event(cclamp);
+  }
 }
 
 } // namespace mcell

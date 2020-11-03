@@ -120,8 +120,8 @@ public:
  */
 class ReleaseEvent: public BaseEvent {
 public:
-  ReleaseEvent(World* world_) :
-    BaseEvent(EVENT_TYPE_INDEX_RELEASE),
+  ReleaseEvent(World* world_, const event_type_index_t type_index_ = EVENT_TYPE_INDEX_RELEASE) :
+    BaseEvent(type_index_),
     release_site_name(NAME_INVALID),
     species_id(SPECIES_ID_INVALID),
     actual_release_time(TIME_INVALID),
@@ -173,6 +173,9 @@ public:
 
   void dump(const std::string indent) const override;
   void to_data_model(Json::Value& mcell_node) const override;
+
+protected:
+  void dump_cumm_area_and_pwall_index_pairs(const std::string ind) const;
 
 public:
   std::string release_site_name; // name of releaser site from which was this event created
@@ -236,6 +239,7 @@ private:
   int current_train_from_0;
   int current_release_in_train_from_0;
 
+protected:
   World* world;
 
 private:
@@ -310,6 +314,10 @@ private:
       const uint points_list_end_index
   ) const;
 };
+
+
+// utility used also from ConcentrationClampReleaseEvent
+size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, float_t val);
 
 } // namespace mcell
 

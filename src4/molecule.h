@@ -33,6 +33,8 @@ namespace MCell {
 
 class Partition;
 
+// TODO: remove usage of ACT_DIFFUSE, it is not used anywhere
+
 #if 0
 // from mcell3, copied for reference
 #define TYPE_SURF 0x001
