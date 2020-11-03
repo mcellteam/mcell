@@ -79,6 +79,11 @@ enum molecule_flag_t {
   MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN = 1 << 16,
   MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE = 1 << 17,
 
+  // flags needed for concentration clamp handling,
+  // only one of them may be set
+  MOLECULE_FLAG_CCLAMP_ORIENTATION_UP = 1 << 20,
+  MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN = 1 << 21,
+
   MOLECULE_FLAG_DEFUNCT = 1 << 31,
 };
 
@@ -174,6 +179,8 @@ public:
       subpart_index_t reactant_subpart_index;
       // do not assign directly, use set_counted_volume_and_compartment istead
       counted_volume_index_t counted_volume_index;
+      // needed for clamp concentration handling
+      wall_index_t previous_wall_index;
     } v;
 
     // surface molecule data
@@ -204,6 +211,34 @@ public:
   void clear_flag(uint flag) {
     assert(__builtin_popcount(flag) == 1);
     flags = flags & ~flag;
+  }
+
+  void set_cclamp_orientation(orientation_t value) {
+    assert(value >= ORIENTATION_DOWN && value <= ORIENTATION_UP);
+    if (value == ORIENTATION_NONE) {
+      clear_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_UP);
+      clear_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN);
+    }
+    else if (value == ORIENTATION_DOWN) {
+      clear_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_UP);
+      set_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN);
+    }
+    else {
+      set_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_UP);
+      clear_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN);
+    }
+  }
+
+  int get_cclamp_orientation() const {
+    if (has_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_UP)) {
+      return ORIENTATION_UP;
+    }
+    else if (has_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN)) {
+      return ORIENTATION_DOWN;
+    }
+    else {
+      return ORIENTATION_NONE;
+    }
   }
 
   bool is_vol() const {

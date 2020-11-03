@@ -132,6 +132,7 @@ void ConcentrationClampReleaseEvent::step() {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
   const BNG::Species& species = world->bng_engine.get_all_species().get(species_id);
+  assert(species.is_vol());
   float_t n_collisions = scaling_factor * species.space_step * concentration / species.time_step;
   if (orientation != ORIENTATION_NONE) {
     n_collisions *= 0.5;
@@ -159,9 +160,12 @@ void ConcentrationClampReleaseEvent::step() {
     Vec3 v;
     v = v0 + Vec3(s1) * (v1 - v0) + Vec3(s2) * (v2 - v1);
 
-    int o = orientation;
+    orientation_t o;
     if (o == ORIENTATION_NONE) {
       o = (rng_uint(&world->rng) & 2) - 1;
+    }
+    else {
+      o = orientation;
     }
 
     float_t eps = EPS * o;
@@ -184,10 +188,10 @@ void ConcentrationClampReleaseEvent::step() {
     Molecule& new_vm = p.add_volume_molecule(
           Molecule(MOLECULE_ID_INVALID, species_id, pos, event_time), 0.5 /* release delay time */
     );
-    new_vm.flags = IN_VOLUME | ACT_DIFFUSE | MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN;
-    // TODO: flag ACT_CLAMPED?
+    new_vm.flags |= ACT_CLAMPED | IN_VOLUME | ACT_DIFFUSE | MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN;
 
-    // TODO: vm.previous_wall = w
+    new_vm.set_cclamp_orientation(o);
+    new_vm.v.previous_wall_index = w.index;
 
     n_to_emit--;
   }

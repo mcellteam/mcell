@@ -196,6 +196,43 @@ static inline float_t get_safe_diffusion_step(
 }
 
 
+
+/*************************************************************************
+pick_clamped_displacement:
+  In: v: vector3 to store the new displacement
+      vm: molecule that just came through the surface
+      rng:
+      radial_subdivisions:
+  Out: No return value.  vector is set to a random orientation and a
+         distance chosen from the probability distribution of a diffusing
+         3D molecule that has come through a surface from a uniform
+         concentration on the other side.
+  Note: vm->previous_wall points to the wall we're coming from, and
+        vm->index is the orientation we came off with
+*************************************************************************/
+void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *vm,
+                               double *r_step_surface, struct rng_state *rng,
+                               u_int radial_subdivisions) {
+  static const double one_over_2_to_20th = 9.5367431640625e-7;
+  struct wall *w = vm->previous_wall;
+
+  unsigned int n = rng_uint(rng);
+
+  /* Correct distribution along normal from surface (from lookup table) */
+  double r_n = r_step_surface[n & (radial_subdivisions - 1)];
+
+  double p = one_over_2_to_20th * ((n >> 12) + 0.5);
+  double t = r_n / erfcinv(p * erfc(r_n));
+  struct vector2 r_uv;
+  pick_2D_displacement(&r_uv, sqrt(t) * vm->get_space_step(vm), rng);
+
+  r_n *= vm->index * vm->get_space_step(vm);
+  v->x = r_n * w->normal.x + r_uv.u * w->unit_u.x + r_uv.v * w->unit_v.x;
+  v->y = r_n * w->normal.y + r_uv.u * w->unit_u.y + r_uv.v * w->unit_v.y;
+  v->z = r_n * w->normal.z + r_uv.u * w->unit_u.z + r_uv.v * w->unit_v.z;
+}
+
+
 // - determine how far will our diffused molecule move
 // - called compute_displacement in MCell3
 static void compute_vol_displacement(
@@ -214,7 +251,9 @@ static void compute_vol_displacement(
   assert(max_time != 0);
   assert(vm.is_vol());
 
-  //assert(!m.has_flag(ACT_CLAMPED) && "Not implemented yet");
+  if (vm.has_flag(ACT_CLAMPED)) {
+
+  }
 
 #ifdef ENABLE_SAFE_DIFFUSION_STEP
   if (max_time > MULTISTEP_WORTHWHILE) {

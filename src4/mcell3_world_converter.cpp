@@ -1173,10 +1173,10 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
         // which species to clamp
         assert(!world->bng_engine.get_all_species().get(reactant_species_ids[0]).is_reactive_surface());
-        cclamp_event->surf_class_species_id = reactant_species_ids[1];
+        cclamp_event->species_id = reactant_species_ids[0];
 
         assert(world->bng_engine.get_all_species().get(reactant_species_ids[1]).is_reactive_surface());
-        cclamp_event->species_id = reactant_species_ids[1];
+        cclamp_event->surf_class_species_id = reactant_species_ids[1];
 
         // on which side
         if (rxn.reactants[0].get_orientation() == 0 || rxn.reactants[1].get_orientation() == 0) {
