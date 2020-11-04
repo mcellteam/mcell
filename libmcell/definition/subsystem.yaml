@@ -288,7 +288,7 @@ SurfaceProperty:
        A complex pattern with optional orientation must be set.
        Default orientation means that the pattern matches any orientation.
        For concentration clamp the orientation specifies on which side  
-       will be the concentration held (UP is front or outside, DOWN is back or inside, ANY or NONE is on both sides).
+       will be the concentration held (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
        The complex pattern must not have any compartment.
        
   - name: clamp_concentration

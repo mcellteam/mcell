@@ -46,6 +46,7 @@ class RegionExprNode;
 class ReleaseEvent;
 class MolOrRxnCountTerm;
 class MolOrRxnCountItem;
+class Region;
 
 namespace API {
 
@@ -65,6 +66,7 @@ class MoleculeReleaseInfo;
 class ReleaseSite;
 class CountTerm;
 class Species;
+class SurfaceClass;
 
 class MCell4Converter {
 public:
@@ -107,6 +109,9 @@ private:
       const std::vector<std::shared_ptr<API::InitialSurfaceRelease>>& api_releases,
       std::vector<MCell::InitialRegionMolecules>& mcell_releases
   );
+
+  void convert_concentration_clamp_release(
+      const partition_id_t partition_id, const API::SurfaceClass& surface_class, const MCell::Region& mcell_region);
 
   MCell::region_index_t convert_surface_region(
       MCell::Partition& p,

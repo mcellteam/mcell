@@ -24,6 +24,7 @@
 #include "model.h"
 #include "world.h"
 #include "release_event.h"
+#include "concentration_clamp_release_event.h"
 #include "viz_output_event.h"
 #include "mol_or_rxn_count_event.h"
 #include "periodic_call_event.h"
@@ -46,7 +47,7 @@ static orientation_t convert_orientation(const Orientation o, const bool allow_d
   switch (o) {
     case Orientation::DEFAULT:
       if (!allow_default) {
-        throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
+        throw ValueError("Invalid Orientation value " + to_string((int)o) + " (DEFAULT).");
       }
       if (is_vol) {
         return ORIENTATION_NONE;
@@ -531,6 +532,10 @@ void MCell4Converter::convert_surface_class_rxn(
     case API::SurfacePropertyType::ABSORPTIVE:
       rxn.type = BNG::RxnType::Standard;
       break;
+    case API::SurfacePropertyType::CONCENTRATION_CLAMP:
+      rxn.type = BNG::RxnType::Standard;
+      rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP);
+      break;
     case API::SurfacePropertyType::REFLECTIVE:
       rxn.type = BNG::RxnType::Reflect;
       break;
@@ -894,6 +899,47 @@ void MCell4Converter::convert_initial_surface_releases(
 }
 
 
+void MCell4Converter::convert_concentration_clamp_release(
+    const partition_id_t partition_id, const API::SurfaceClass& surface_class, const MCell::Region& mcell_region) {
+
+  release_assert(surface_class.properties.empty() && "TODO");
+  assert(surface_class.type == SurfacePropertyType::CONCENTRATION_CLAMP);
+
+  ConcentrationClampReleaseEvent* cclamp_event = new ConcentrationClampReleaseEvent(world);
+
+  // run each timestep
+  cclamp_event->event_time = 0;
+  cclamp_event->periodicity_interval = 1;
+
+  // which species to clamp
+  cclamp_event->species_id = get_species_id_for_complex(
+      *surface_class.affected_complex_pattern,
+      S(NAME_CLASS_SURFACE_CLASS) + ", attribute " + NAME_AFFECTED_COMPLEX_PATTERN);
+
+  // on which side
+  cclamp_event->orientation =
+      convert_orientation(surface_class.affected_complex_pattern->orientation, true, true);
+
+  assert(world->bng_engine.get_all_species().get(surface_class.species_id).is_reactive_surface());
+  cclamp_event->surf_class_species_id = surface_class.species_id;
+
+  cclamp_event->concentration = surface_class.clamp_concentration;
+
+  // walls where to release
+  assert(!mcell_region.walls_and_edges.empty() && "Must be initialized");
+  // we are inserting the walls ordered by their wall index
+  for (const auto& pair_wi_edges: mcell_region.walls_and_edges) {
+    cclamp_event->cumm_area_and_pwall_index_pairs.push_back(
+        CummAreaPWallIndexPair(0, PartitionWallIndexPair(partition_id, pair_wi_edges.first)));
+  }
+
+  cclamp_event->update_cumm_areas_and_scaling();
+
+  // and schedule
+  world->scheduler.schedule_event(cclamp_event);
+}
+
+
 MCell::region_index_t MCell4Converter::convert_surface_region(
     MCell::Partition& p,
     API::SurfaceRegion& surface_region, API::GeometryObject& o,
@@ -912,6 +958,11 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
   if (is_set(surface_region.surface_class)) {
     assert(surface_region.surface_class->species_id != SPECIES_ID_INVALID);
     reg.species_id = surface_region.surface_class->species_id;
+
+    // define releases for concentration clamp
+    if (surface_region.surface_class->type == SurfacePropertyType::CONCENTRATION_CLAMP) {
+      convert_concentration_clamp_release(p.id, *surface_region.surface_class, reg);
+    }
   }
   if (is_set(surface_region.initial_surface_releases)) {
     convert_initial_surface_releases(
@@ -966,9 +1017,16 @@ void MCell4Converter::convert_geometry_objects() {
     MCell::Region reg_all;
     reg_all.init_from_whole_geom_object(obj);
     reg_all.id = world->get_next_region_id();
+
+    // TODO: move surf class handling code to a function and share with convert_surface_region
     if (is_set(o->surface_class)) {
       assert(o->surface_class->species_id != SPECIES_ID_INVALID);
       reg_all.species_id = o->surface_class->species_id;
+
+      // define releases for concentration clamp
+      if (o->surface_class->type == SurfacePropertyType::CONCENTRATION_CLAMP) {
+        convert_concentration_clamp_release(p.id, *o->surface_class, reg_all);
+      }
     }
     if (is_set(o->initial_surface_releases)) {
       convert_initial_surface_releases(o->initial_surface_releases, reg_all.initial_region_molecules);
