@@ -149,7 +149,7 @@
 //#define DEBUG_EXTRA_CHECKS
 
 //#define DUMP_ALWAYS
-//#define DUMP_NEVER
+#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
@@ -170,7 +170,7 @@
 #define DEBUG_RXNS
 
 //#define DEBUG_COMPARTMENTS
-#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 //#define DEBUG_CPLX_RXNS
 //#define DEBUG_CPLX_MATCHING
