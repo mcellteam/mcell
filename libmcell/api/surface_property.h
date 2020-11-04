@@ -26,6 +26,7 @@
 #include "generated/gen_surface_property.h"
 #include "api/common.h"
 #include "bng/bng_defines.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -40,7 +41,30 @@ public:
 
   void check_semantics() const override {
     GenSurfaceProperty::check_semantics();
-    // all checks are done in SurfaceClass::check_semantics
+    // all checks are done in SurfaceClass::check_semantics that calls 
+    // check_semantics_custom
+  }
+  
+  void check_semantics_custom() const {
+    GenSurfaceProperty::check_semantics();
+
+    if (type == SurfacePropertyType::UNSET) {
+      throw ValueError(S("Attribute '") + NAME_TYPE + "' of " +
+          NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set.");
+    }
+    if (!is_set(affected_complex_pattern)) {
+      throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
+      NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set.");
+    }
+    if (is_set(affected_complex_pattern->compartment_name)) {
+      throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
+          NAME_CLASS_SURFACE_PROPERTY + " must not have a compartment specified.");
+    }
+    if (type == SurfacePropertyType::CONCENTRATION_CLAMP && !is_set(clamp_concentration)) {
+      throw ValueError(S("When ") + NAME_TYPE + " in " + NAME_CLASS_SURFACE_PROPERTY + " is " +
+          NAME_ENUM_SURFACE_PROPERTY_TYPE + "." + NAME_EV_CONCENTRATION_CLAMP +
+          " then " + NAME_CLAMP_CONCENTRATION + " must be set.");
+    }
   }
 
   BNG::rxn_rule_id_t rxn_rule_id;

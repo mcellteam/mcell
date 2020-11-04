@@ -360,10 +360,9 @@ void PythonGenerator::generate_species_and_mol_types(
 void PythonGenerator::get_surface_class_property_info(
     Value& property,
     string& name, string& type_name,
-    string& affected_mols, string& orientation
+    string& affected_mols, string& orientation, string& clamp_concentration
 ) {
   check_version(KEY_SURFACE_CLASS_PROP_LIST, property, VER_DM_2015_11_08_1756);
-  CHECK_PROPERTY(property[KEY_CLAMP_VALUE] = "0");
 
   affected_mols = property[KEY_AFFECTED_MOLS].asString();
   if (affected_mols == ::ALL_MOLECULES) {
@@ -381,6 +380,7 @@ void PythonGenerator::get_surface_class_property_info(
 
   orientation = convert_orientation(property[KEY_SURF_CLASS_ORIENT].asString());
 
+  clamp_concentration = "";
   string surf_class_type = property[KEY_SURF_CLASS_TYPE].asString();
   if (surf_class_type == VALUE_TRANSPARENT) {
     type_name = NAME_EV_TRANSPARENT;
@@ -390,6 +390,10 @@ void PythonGenerator::get_surface_class_property_info(
   }
   else if (surf_class_type == VALUE_ABSORPTIVE) {
     type_name = NAME_EV_ABSORPTIVE;
+  }
+  else if (surf_class_type == VALUE_CLAMP_CONCENTRATION) {
+    type_name = NAME_EV_CONCENTRATION_CLAMP;
+    clamp_concentration = property[KEY_CLAMP_VALUE].asString();
   }
   else {
     ERROR(S("Invalid ") + KEY_SURF_CLASS_TYPE + " " + surf_class_type + ".");
@@ -427,18 +431,23 @@ void PythonGenerator::generate_surface_classes(
       for (Value::ArrayIndex i = 0; i < surface_class_prop_list.size(); i++) {
         Value& surface_class_prop_item = surface_class_prop_list[i];
 
-        string name, type_name, affected_mols, orientation_name;
+        string name, type_name, affected_mols, orientation_name, clamp_concentration;
         get_surface_class_property_info(
             surface_class_prop_item, name, type_name,
-            affected_mols, orientation_name);
+            affected_mols, orientation_name, clamp_concentration);
 
         sc_prop_names.push_back(name);
         gen_ctor_call(out, name, NAME_CLASS_SURFACE_PROPERTY, true);
         gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
 
+        bool is_cclamp = type_name == NAME_EV_CONCENTRATION_CLAMP;
         gen_param_expr(
             out, NAME_AFFECTED_COMPLEX_PATTERN,
-            make_species_or_cplx(data, affected_mols, orientation_name), false);
+            make_species_or_cplx(data, affected_mols, orientation_name), is_cclamp);
+
+        if (is_cclamp) {
+          gen_param_expr(out, NAME_CLAMP_CONCENTRATION, clamp_concentration, false);
+        }
 
         out << CTOR_END;
       }
@@ -455,17 +464,21 @@ void PythonGenerator::generate_surface_classes(
     }
     else {
       // simplified setup, directly set members
-      string name, type_name, affected_mols, orientation_name;
+      string name, type_name, affected_mols, orientation_name, clamp_concentration;
       get_surface_class_property_info(
           surface_class_prop_list[0], name, type_name,
-          affected_mols, orientation_name);
+          affected_mols, orientation_name, clamp_concentration);
 
       gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
 
+      bool is_cclamp = type_name == NAME_EV_CONCENTRATION_CLAMP;
       gen_param_expr(
           out, NAME_AFFECTED_COMPLEX_PATTERN,
-          make_species_or_cplx(data, affected_mols, orientation_name), false);
+          make_species_or_cplx(data, affected_mols, orientation_name), is_cclamp);
 
+      if (is_cclamp) {
+        gen_param_expr(out, NAME_CLAMP_CONCENTRATION, clamp_concentration, false);
+      }
     }
     out << CTOR_END;
   }

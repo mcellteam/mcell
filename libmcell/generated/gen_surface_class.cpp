@@ -52,7 +52,8 @@ bool GenSurfaceClass::__eq__(const GenSurfaceClass& other) const {
           false :
           true
         )
-     ) ;
+     )  &&
+    clamp_concentration == other.clamp_concentration;
 }
 
 void GenSurfaceClass::set_initialized() {
@@ -69,6 +70,7 @@ void GenSurfaceClass::set_all_attributes_as_default_or_unset() {
   properties = std::vector<std::shared_ptr<SurfaceProperty>>();
   type = SurfacePropertyType::UNSET;
   affected_complex_pattern = nullptr;
+  clamp_concentration = FLT_UNSET;
 }
 
 std::string GenSurfaceClass::to_str(const std::string ind) const {
@@ -77,7 +79,8 @@ std::string GenSurfaceClass::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "\n" << ind + "  " << "properties=" << vec_ptr_to_str(properties, ind + "  ") << ", " << "\n" << ind + "  " <<
       "type=" << type << ", " <<
-      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")";
+      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "clamp_concentration=" << clamp_concentration;
   return ss.str();
 }
 
@@ -88,12 +91,14 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
             const std::string&,
             const std::vector<std::shared_ptr<SurfaceProperty>>,
             const SurfacePropertyType,
-            std::shared_ptr<Complex>
+            std::shared_ptr<Complex>,
+            const float_t
           >(),
           py::arg("name"),
           py::arg("properties") = std::vector<std::shared_ptr<SurfaceProperty>>(),
           py::arg("type") = SurfacePropertyType::UNSET,
-          py::arg("affected_complex_pattern") = nullptr
+          py::arg("affected_complex_pattern") = nullptr,
+          py::arg("clamp_concentration") = FLT_UNSET
       )
       .def("check_semantics", &SurfaceClass::check_semantics)
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))

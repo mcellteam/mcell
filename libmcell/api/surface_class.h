@@ -26,7 +26,6 @@
 #include "generated/gen_surface_class.h"
 #include "api/common.h"
 #include "api/surface_property.h"
-#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -44,28 +43,18 @@ public:
     GenSurfaceClass::check_semantics(); // does not call further derived classes
 
     if (properties.empty()) {
-      GenSurfaceProperty::check_semantics();
+      SurfaceProperty::check_semantics_custom();
     }
     else {
       // type of used properties must be set
       for (std::shared_ptr<SurfaceProperty> property: properties) {
-        if (property->type == SurfacePropertyType::UNSET) {
-          throw ValueError(S("Attribute '") + NAME_TYPE + "' of " +
-              NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set.");
-        }
-        if (!is_set(property->affected_complex_pattern)) {
-          throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
-          NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set.");
-        }
-        if (is_set(property->affected_complex_pattern->compartment_name)) {
-          throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
-              NAME_CLASS_SURFACE_PROPERTY + " must not have a compartment specified");
-        }
+        property->check_semantics_custom();
       }
     }
   }
 
   // simulation engine mapping
+  // this is the species_id created for this surface class, not for the affected species
   species_id_t species_id;
 };
 

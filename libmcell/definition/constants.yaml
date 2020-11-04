@@ -136,6 +136,8 @@ enums:
       value: 2
     - name: ABSORPTIVE
       value: 3
+    - name: CONCENTRATION_CLAMP
+      value: 4 
       
   - name: ExprNodeType
     doc: Used internally to represent expression trees

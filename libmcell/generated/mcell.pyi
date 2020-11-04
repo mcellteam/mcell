@@ -107,6 +107,7 @@ class SurfacePropertyType(Enum):
     REFLECTIVE = 1
     TRANSPARENT = 2
     ABSORPTIVE = 3
+    CONCENTRATION_CLAMP = 4
 
 class ExprNodeType(Enum):
     UNSET = 0
@@ -1054,22 +1055,26 @@ class SurfaceClass():
             name : str,
             properties : List[SurfaceProperty] = None,
             type : SurfacePropertyType = SurfacePropertyType.UNSET,
-            affected_complex_pattern : Complex = None
+            affected_complex_pattern : Complex = None,
+            clamp_concentration : float = None
         ):
         self.name = name
         self.properties = properties
         self.type = type
         self.affected_complex_pattern = affected_complex_pattern
+        self.clamp_concentration = clamp_concentration
 
 
 class SurfaceProperty():
     def __init__(
             self,
             type : SurfacePropertyType = SurfacePropertyType.UNSET,
-            affected_complex_pattern : Complex = None
+            affected_complex_pattern : Complex = None,
+            clamp_concentration : float = None
         ):
         self.type = type
         self.affected_complex_pattern = affected_complex_pattern
+        self.clamp_concentration = clamp_concentration
 
 
 class SurfaceRegion():

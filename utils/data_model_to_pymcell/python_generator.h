@@ -77,7 +77,7 @@ private:
   void get_surface_class_property_info(
       Json::Value& property,
       std::string& name, std::string& type_name,
-      std::string& affected_mols, std::string& orientation);
+      std::string& affected_mols, std::string& orientation, std::string& clamp_concentration);
 
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
 

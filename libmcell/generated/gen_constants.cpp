@@ -80,6 +80,7 @@ void define_pybinding_enums(py::module& m) {
     .value("REFLECTIVE", SurfacePropertyType::REFLECTIVE)
     .value("TRANSPARENT", SurfacePropertyType::TRANSPARENT)
     .value("ABSORPTIVE", SurfacePropertyType::ABSORPTIVE)
+    .value("CONCENTRATION_CLAMP", SurfacePropertyType::CONCENTRATION_CLAMP)
     .export_values();
   py::enum_<ExprNodeType>(m, "ExprNodeType", py::arithmetic())
     .value("UNSET", ExprNodeType::UNSET)

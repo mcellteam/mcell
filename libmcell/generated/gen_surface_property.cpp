@@ -46,7 +46,8 @@ bool GenSurfaceProperty::__eq__(const GenSurfaceProperty& other) const {
           false :
           true
         )
-     ) ;
+     )  &&
+    clamp_concentration == other.clamp_concentration;
 }
 
 void GenSurfaceProperty::set_initialized() {
@@ -60,13 +61,15 @@ void GenSurfaceProperty::set_all_attributes_as_default_or_unset() {
   class_name = "SurfaceProperty";
   type = SurfacePropertyType::UNSET;
   affected_complex_pattern = nullptr;
+  clamp_concentration = FLT_UNSET;
 }
 
 std::string GenSurfaceProperty::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "type=" << type << ", " <<
-      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")";
+      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "clamp_concentration=" << clamp_concentration;
   return ss.str();
 }
 
@@ -75,10 +78,12 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       .def(
           py::init<
             const SurfacePropertyType,
-            std::shared_ptr<Complex>
+            std::shared_ptr<Complex>,
+            const float_t
           >(),
           py::arg("type") = SurfacePropertyType::UNSET,
-          py::arg("affected_complex_pattern") = nullptr
+          py::arg("affected_complex_pattern") = nullptr,
+          py::arg("clamp_concentration") = FLT_UNSET
       )
       .def("check_semantics", &SurfaceProperty::check_semantics)
       .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
@@ -86,6 +91,7 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       .def("dump", &SurfaceProperty::dump)
       .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type)
       .def_property("affected_complex_pattern", &SurfaceProperty::get_affected_complex_pattern, &SurfaceProperty::set_affected_complex_pattern)
+      .def_property("clamp_concentration", &SurfaceProperty::get_clamp_concentration, &SurfaceProperty::set_clamp_concentration)
     ;
 }
 

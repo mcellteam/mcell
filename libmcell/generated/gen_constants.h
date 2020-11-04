@@ -140,7 +140,8 @@ enum class SurfacePropertyType {
   UNSET = 0,
   REFLECTIVE = 1,
   TRANSPARENT = 2,
-  ABSORPTIVE = 3
+  ABSORPTIVE = 3,
+  CONCENTRATION_CLAMP = 4
 };
 
 
@@ -150,6 +151,7 @@ static inline  std::ostream& operator << (std::ostream& out, const SurfaceProper
     case SurfacePropertyType::REFLECTIVE: out << "SurfacePropertyType.REFLECTIVE (1)"; break;
     case SurfacePropertyType::TRANSPARENT: out << "SurfacePropertyType.TRANSPARENT (2)"; break;
     case SurfacePropertyType::ABSORPTIVE: out << "SurfacePropertyType.ABSORPTIVE (3)"; break;
+    case SurfacePropertyType::CONCENTRATION_CLAMP: out << "SurfacePropertyType.CONCENTRATION_CLAMP (4)"; break;
   }
   return out;
 };

@@ -38,13 +38,15 @@ class SurfaceProperty;
         const std::string& name_, \
         const std::vector<std::shared_ptr<SurfaceProperty>> properties_ = std::vector<std::shared_ptr<SurfaceProperty>>(), \
         const SurfacePropertyType type_ = SurfacePropertyType::UNSET, \
-        std::shared_ptr<Complex> affected_complex_pattern_ = nullptr \
-    )  : GenSurfaceClass(type_,affected_complex_pattern_) { \
+        std::shared_ptr<Complex> affected_complex_pattern_ = nullptr, \
+        const float_t clamp_concentration_ = FLT_UNSET \
+    )  : GenSurfaceClass(type_,affected_complex_pattern_,clamp_concentration_) { \
       class_name = "SurfaceClass"; \
       name = name_; \
       properties = properties_; \
       type = type_; \
       affected_complex_pattern = affected_complex_pattern_; \
+      clamp_concentration = clamp_concentration_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -53,8 +55,9 @@ class GenSurfaceClass: public SurfaceProperty {
 public:
   GenSurfaceClass( 
       const SurfacePropertyType type_ = SurfacePropertyType::UNSET, 
-      std::shared_ptr<Complex> affected_complex_pattern_ = nullptr 
-  )  : SurfaceProperty(type_,affected_complex_pattern_)  {
+      std::shared_ptr<Complex> affected_complex_pattern_ = nullptr, 
+      const float_t clamp_concentration_ = FLT_UNSET 
+  )  : SurfaceProperty(type_,affected_complex_pattern_,clamp_concentration_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
