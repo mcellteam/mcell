@@ -1872,7 +1872,6 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
 void MCell3WorldConverter::update_and_schedule_concentration_clamps() {
   for (ConcentrationClampReleaseEvent* cclamp: concentration_clamps) {
     cclamp->update_cumm_areas_and_scaling();
-    cclamp->update_event_time_for_next_scheduled_time();
     world->scheduler.schedule_event(cclamp);
   }
 }

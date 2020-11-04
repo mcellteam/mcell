@@ -76,6 +76,8 @@ enum molecule_flag_t {
 
   MOLECULE_FLAG_MATURE = 1 << 13, // originally MATURE_MOLECULE
 
+  MOLECULE_FLAG_ACT_CLAMPED = 1 << 15, // originally ACT_CLAMPED
+
   MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN = 1 << 16,
   MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE = 1 << 17,
 
@@ -118,6 +120,7 @@ public:
     v.subpart_index = SUBPART_INDEX_INVALID;
     v.reactant_subpart_index = SUBPART_INDEX_INVALID;
     v.counted_volume_index = COUNTED_VOLUME_INDEX_INVALID;
+    v.previous_wall_index = WALL_INDEX_INVALID;
   }
 
   // surface molecule

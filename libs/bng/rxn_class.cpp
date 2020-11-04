@@ -468,7 +468,8 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
     append_to_report(bng_config.get_rxn_report_file_name(), to_str() + "\n\n");
   }
 
-  if (max_fixed_p > 1.0) {
+  // reactive surfaces have always maximum probability
+  if (max_fixed_p > 1.0 && !rxn_rule_ids.empty() && !all_rxns.get(rxn_rule_ids[0])->is_reactive_surface_rxn()) {
     stringstream ss;
     ss << "Warning: total probability of reaction is > 1 (" << max_fixed_p << ")";
     cout << ss.str() << ", for reactant(s) " << reactants_to_str() << ".\n";

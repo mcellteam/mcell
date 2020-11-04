@@ -57,6 +57,66 @@ const float_t MULTISTEP_WORTHWHILE = 2.0;
 const float_t MULTISTEP_PERCENTILE = 0.99;
 const float_t MULTISTEP_FRACTION = 0.9;
 
+
+/*************************************************************************
+pick_2D_displacement:
+  In: v: vector2 to store the new displacement
+      scale: scale factor to apply to the displacement
+      rng:
+  Out: No return value.  vector is set to a random orientation and a
+         distance chosen from the probability distribution of a diffusing
+         2D molecule, scaled by the scaling factor.
+*************************************************************************/
+static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng) {
+  const float_t one_over_2_to_16th = 1.52587890625e-5;
+  Vec2 a;
+
+  /*
+   * NOTE: The below algorithm is the polar method due to Marsaglia
+   * combined with a rejection method for picking uniform random
+   * variates in C2.
+   * Both methods are nicely described in Chapters V.4.3 and V.4.4
+   * of "Non-Uniform Random Variate Generation" by Luc Devroye
+   * (http://luc.devroye.org/rnbookindex.html).
+   */
+  float_t f;
+  do {
+    unsigned int n = rng_uint(&rng);
+
+    a.u = 2.0 * one_over_2_to_16th * (n & 0xFFFF) - 1.0;
+    a.v = 2.0 * one_over_2_to_16th * (n >> 16) - 1.0;
+    f = len2_squared(a);
+  } while ((f < EPS) || (f > 1.0));
+
+  /*
+   * NOTE: The scaling factor to go from a uniform to
+   * a normal distribution is sqrt(-2log(f)/f).
+   * However, since we use two normally distributed
+   * variates to generate a normally distributed
+   * 2d vector (with variance 1) we have to normalize
+   * and divide by an additional factor of sqrt(2)
+   * resulting in normalFactor.
+   */
+  float_t normal_factor = sqrt_f(-log_f(f) / f);
+  v = a * Vec2(normal_factor * scale);
+}
+
+
+static void compute_surf_displacement(
+    const BNG::Species& sp,
+    const float_t scale,
+    rng_state& rng,
+    Vec2& v
+) {
+  if (sp.can_diffuse()) {
+    pick_surf_displacement(v, scale, rng);
+  }
+  else {
+    v = Vec2(0);
+  }
+}
+
+
 // ---------------------------------- volume mol diffusion ----------------------------------
 
 // get displacement based on scale (related to diffusion constant) and gauss random number
@@ -198,6 +258,72 @@ static inline float_t get_safe_diffusion_step(
 
 
 /*************************************************************************
+erfcinv:
+
+  Fast rational function approximation to inverse of the error function,
+  based upon algorithm for inverse of Normal cumulative distribution
+  function at http://home.online.no/~pjacklam/notes/invnorm/index.html
+  by Peter J. Acklam. Accurate to about 4e-9 in absolute value.
+
+  In: a value between 0 and 1 (not including endpoints)
+  Out: the value y such that erfc(y) = input value
+*************************************************************************/
+static float_t erfcinv_f(float_t x) {
+  /* Misc constants */
+  const float_t tail_cutoff = 0.0485;
+  const float_t neg_twice_log_half = 1.386294361119891;
+  // const float_t sqrt_half_pi = 1.253314137315501;  /* For refinement */
+  const float_t scaling_const = -0.7071067811865475;
+
+  /* Tail numerator */
+  const float_t tn0 = 2.938163982698783;
+  const float_t tn1 = 4.374664141464968;
+  const float_t tn2 = -2.549732539343734;
+  const float_t tn3 = -2.400758277161838;
+  const float_t tn4 = -3.223964580411365e-1;
+  const float_t tn5 = -7.784894002430293e-3;
+  /* Tail denominator */
+  const float_t td1 = 3.754408661907416;
+  const float_t td2 = 2.445134137142996;
+  const float_t td3 = 3.224671290700398e-1;
+  const float_t td4 = 7.784695709041462e-3;
+
+  /* Central numerator */
+  const float_t cn0 = 2.506628277459239;
+  const float_t cn1 = -3.066479806614716e1;
+  const float_t cn2 = 1.383577518672690e2;
+  const float_t cn3 = -2.759285104469687e2;
+  const float_t cn4 = 2.209460984245205e2;
+  const float_t cn5 = -3.969683028665376e1;
+  /* Central denominator */
+  const float_t cd1 = -1.328068155288572e1;
+  const float_t cd2 = 6.680131188771972e1;
+  const float_t cd3 = -1.556989798598866e2;
+  const float_t cd4 = 1.615858368580409e2;
+  const float_t cd5 = -5.447609879822406e1;
+
+  float_t p, q, r;
+
+  if (x < tail_cutoff) {
+    p = sqrt_f(-2 * log_f(x) + neg_twice_log_half);
+    r = (tn0 + p * (tn1 + p * (tn2 + p * (tn3 + p * (tn4 + p * tn5))))) /
+        (1.0 + p * (td1 + p * (td2 + p * (td3 + p * td4))));
+  } else {
+    p = 0.5 * x - 0.5;
+    q = p * p;
+    r = p * (cn0 + q * (cn1 + q * (cn2 + q * (cn3 + q * (cn4 + q * cn5))))) /
+        (1.0 + q * (cd1 + q * (cd2 + q * (cd3 + q * (cd4 + q * cd5)))));
+  }
+  return scaling_const * r;
+  /*
+  Use the code below to refine to macine precision.  Rather slow, though.
+  p = (erfc(scaling_const*r)-x)*sqrt_half_pi*exp(0.5*r*r);
+  return scaling_const*(r - p/(1 + r*p/2));
+  */
+}
+
+
+/*************************************************************************
 pick_clamped_displacement:
   In: v: vector3 to store the new displacement
       vm: molecule that just came through the surface
@@ -210,26 +336,31 @@ pick_clamped_displacement:
   Note: vm->previous_wall points to the wall we're coming from, and
         vm->index is the orientation we came off with
 *************************************************************************/
-void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *vm,
-                               double *r_step_surface, struct rng_state *rng,
-                               u_int radial_subdivisions) {
-  static const double one_over_2_to_20th = 9.5367431640625e-7;
-  struct wall *w = vm->previous_wall;
+static void pick_clamped_displacement(
+    const Partition& p,
+    const BNG::Species& sp,
+    const Molecule& vm,
+    rng_state& rng,
+    Vec3& displacement) {
 
-  unsigned int n = rng_uint(rng);
+  const float_t one_over_2_to_20th = 9.5367431640625e-7;
+
+  assert(vm.v.previous_wall_index != WALL_INDEX_INVALID);
+  const Wall& w = p.get_wall(vm.v.previous_wall_index);
+
+  uint n = rng_uint(&rng);
 
   /* Correct distribution along normal from surface (from lookup table) */
-  double r_n = r_step_surface[n & (radial_subdivisions - 1)];
+  float_t r_n = p.config.radial_2d_step[n & (p.config.num_radial_subdivisions - 1)];
 
-  double p = one_over_2_to_20th * ((n >> 12) + 0.5);
-  double t = r_n / erfcinv(p * erfc(r_n));
-  struct vector2 r_uv;
-  pick_2D_displacement(&r_uv, sqrt(t) * vm->get_space_step(vm), rng);
+  float_t pval = one_over_2_to_20th * ((n >> 12) + 0.5);
+  float_t t = r_n / erfcinv_f(pval * erfc(r_n));
+  Vec2 r_uv;
+  pick_surf_displacement(r_uv, sqrt_f(t) * sp.space_step, rng);
 
-  r_n *= vm->index * vm->get_space_step(vm);
-  v->x = r_n * w->normal.x + r_uv.u * w->unit_u.x + r_uv.v * w->unit_v.x;
-  v->y = r_n * w->normal.y + r_uv.u * w->unit_u.y + r_uv.v * w->unit_v.y;
-  v->z = r_n * w->normal.z + r_uv.u * w->unit_u.z + r_uv.v * w->unit_v.z;
+  r_n *= vm.get_cclamp_orientation() * sp.space_step;
+
+  displacement = Vec3(r_n) * w.normal + Vec3(r_uv.u) * w.unit_u + Vec3(r_uv.v) * w.unit_v;
 }
 
 
@@ -238,13 +369,12 @@ void pick_clamped_displacement(struct vector3 *v, struct volume_molecule *vm,
 static void compute_vol_displacement(
     const Partition& p,
     const BNG::Species& sp,
-    const Molecule& vm,
+    Molecule& vm,
     float_t& max_time, // gets updated to t_steps
     rng_state& rng,
     Vec3& displacement,
     float_t& rate_factor,
-    float_t&
-    r_rate_factor,
+    float_t& r_rate_factor,
     float_t& steps, // number of steps
     float_t& t_steps // time of steps
 ) {
@@ -252,39 +382,50 @@ static void compute_vol_displacement(
   assert(vm.is_vol());
 
   if (vm.has_flag(ACT_CLAMPED)) {
+    pick_clamped_displacement(p, sp, vm, rng, displacement);
+    vm.v.previous_wall_index = WALL_INDEX_INVALID;
+    // not sure why this is set, maybe because it won't be used anymore?
+    vm.set_cclamp_orientation(ORIENTATION_DOWN);
+    vm.clear_flag(ACT_CLAMPED);
 
-  }
-
-#ifdef ENABLE_SAFE_DIFFUSION_STEP
-  if (max_time > MULTISTEP_WORTHWHILE) {
-    // does not work correctly yet, clamping by max_time is done differently in MCell3
-    steps = get_safe_diffusion_step(p, sp, vm);
+    rate_factor = 1.0;
+    r_rate_factor = 1.0;
+    steps = 1.0;
+    t_steps = sp.time_step;
   }
   else {
+
+  #ifdef ENABLE_SAFE_DIFFUSION_STEP
+    if (max_time > MULTISTEP_WORTHWHILE) {
+      // does not work correctly yet, clamping by max_time is done differently in MCell3
+      steps = get_safe_diffusion_step(p, sp, vm);
+    }
+    else {
+      steps = 1.0;
+    }
+  #else
     steps = 1.0;
-  }
-#else
-  steps = 1.0;
-#endif
+  #endif
 
-  t_steps = steps * sp.get_time_step();
-  // clamp to max_time
-  if (t_steps > max_time) {
-    t_steps = max_time;
-    steps = max_time / sp.get_time_step();
-  }
-  if (steps < EPS) {
-    steps = EPS;
-    t_steps = EPS * sp.get_time_step();
-  }
+    t_steps = steps * sp.get_time_step();
+    // clamp to max_time
+    if (t_steps > max_time) {
+      t_steps = max_time;
+      steps = max_time / sp.get_time_step();
+    }
+    if (steps < EPS) {
+      steps = EPS;
+      t_steps = EPS * sp.get_time_step();
+    }
 
-  if (steps == 1.0) {
-    pick_vol_displacement(sp, sp.get_space_step(), rng, displacement);
-    r_rate_factor = rate_factor = 1.0;
-  } else {
-    rate_factor = sqrt_f(steps);
-    r_rate_factor = 1.0 / rate_factor;
-    pick_vol_displacement(sp, rate_factor * sp.get_space_step(), rng, displacement);
+    if (steps == 1.0) {
+      pick_vol_displacement(sp, sp.get_space_step(), rng, displacement);
+      r_rate_factor = rate_factor = 1.0;
+    } else {
+      rate_factor = sqrt_f(steps);
+      r_rate_factor = 1.0 / rate_factor;
+      pick_vol_displacement(sp, rate_factor * sp.get_space_step(), rng, displacement);
+    }
   }
 
   // update max_time
@@ -295,64 +436,6 @@ static void compute_vol_displacement(
 
 // ---------------------------------- surface mol diffusion ----------------------------------
 
-
-/*************************************************************************
-pick_2D_displacement:
-  In: v: vector2 to store the new displacement
-      scale: scale factor to apply to the displacement
-      rng:
-  Out: No return value.  vector is set to a random orientation and a
-         distance chosen from the probability distribution of a diffusing
-         2D molecule, scaled by the scaling factor.
-*************************************************************************/
-static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng) {
-  const float_t one_over_2_to_16th = 1.52587890625e-5;
-  Vec2 a;
-
-  /*
-   * NOTE: The below algorithm is the polar method due to Marsaglia
-   * combined with a rejection method for picking uniform random
-   * variates in C2.
-   * Both methods are nicely described in Chapters V.4.3 and V.4.4
-   * of "Non-Uniform Random Variate Generation" by Luc Devroye
-   * (http://luc.devroye.org/rnbookindex.html).
-   */
-  float_t f;
-  do {
-    unsigned int n = rng_uint(&rng);
-
-    a.u = 2.0 * one_over_2_to_16th * (n & 0xFFFF) - 1.0;
-    a.v = 2.0 * one_over_2_to_16th * (n >> 16) - 1.0;
-    f = len2_squared(a);
-  } while ((f < EPS) || (f > 1.0));
-
-  /*
-   * NOTE: The scaling factor to go from a uniform to
-   * a normal distribution is sqrt(-2log(f)/f).
-   * However, since we use two normally distributed
-   * variates to generate a normally distributed
-   * 2d vector (with variance 1) we have to normalize
-   * and divide by an additional factor of sqrt(2)
-   * resulting in normalFactor.
-   */
-  float_t normal_factor = sqrt_f(-log_f(f) / f);
-  v = a * Vec2(normal_factor * scale);
-}
-
-
-static void compute_surf_displacement(
-    const BNG::Species& sp,
-    const float_t scale,
-    rng_state& rng,
-    Vec2& v
-) {
-  if (sp.can_diffuse()) {
-    pick_surf_displacement(v, scale, rng);
-  }
-  else {
-    v = Vec2(0);
-  }
-}
 
 
 /*************************************************************************

@@ -32,6 +32,7 @@
 #include "world.h"
 #include "partition.h"
 #include "datamodel_defines.h"
+#include "release_event.h"
 
 #include "concentration_clamp_release_event.h"
 
@@ -47,7 +48,7 @@ void ConcentrationClampReleaseEvent::dump(const std::string indent) const {
   cout << ind2 << "surf_class_species_id: \t\t" << surf_class_species_id << " [species_id_t]\n";
   cout << ind2 << "concentration: \t\t" << concentration << " [float_t]\n";
   cout << ind2 << "scaling_factor: \t\t" << scaling_factor << " [float_t]\n";
-  dump_cumm_area_and_pwall_index_pairs(ind2);
+  dump_cumm_area_and_pwall_index_pairs(cumm_area_and_pwall_index_pairs, ind2);
 }
 
 
@@ -161,7 +162,7 @@ void ConcentrationClampReleaseEvent::step() {
     v = v0 + Vec3(s1) * (v1 - v0) + Vec3(s2) * (v2 - v1);
 
     orientation_t o;
-    if (o == ORIENTATION_NONE) {
+    if (orientation == ORIENTATION_NONE) {
       o = (rng_uint(&world->rng) & 2) - 1;
     }
     else {

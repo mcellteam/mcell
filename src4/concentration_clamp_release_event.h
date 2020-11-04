@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include "release_event.h"
+#include "base_event.h"
 
 namespace MCell {
 
@@ -37,12 +37,16 @@ namespace MCell {
  * Separate event from releases because it must be run after all releases and
  * viz/count outputs before diffusion.
  */
-class ConcentrationClampReleaseEvent: public ReleaseEvent {
+class ConcentrationClampReleaseEvent: public BaseEvent {
 public:
   ConcentrationClampReleaseEvent(World* world_) :
-    ReleaseEvent(world_, EVENT_TYPE_INDEX_CONCENTRATION_CLAMP_RELEASE),
+    BaseEvent(EVENT_TYPE_INDEX_CONCENTRATION_CLAMP_RELEASE),
+    species_id(SPECIES_ID_INVALID),
     surf_class_species_id(SPECIES_ID_INVALID),
-    scaling_factor(FLT_INVALID) {
+    concentration(FLT_INVALID),
+    orientation(ORIENTATION_NONE),
+    scaling_factor(FLT_INVALID),
+    world(world_) {
   }
 
   virtual ~ConcentrationClampReleaseEvent() {}
@@ -51,12 +55,20 @@ public:
 
   void dump(const std::string indent) const override;
 
-  void to_data_model(Json::Value& mcell_node) const override {}
+  void to_data_model(Json::Value& mcell_node) const override { assert(false); }
 
   void update_cumm_areas_and_scaling();
 public:
+  species_id_t species_id;
   species_id_t surf_class_species_id;
+  float_t concentration;
+  orientation_t orientation;
   float_t scaling_factor;
+
+  std::vector<CummAreaPWallIndexPair> cumm_area_and_pwall_index_pairs;
+
+private:
+  World* world;
 };
 
 } // namespace mcell

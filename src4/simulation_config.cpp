@@ -23,6 +23,8 @@
 #include "simulation_config.h"
 
 #include <iostream>
+#include <cmath>
+
 using namespace std;
 
 namespace MCell {
@@ -58,9 +60,17 @@ init_r_step:
        returns NULL on malloc failure
   Note: This is for 3D diffusion from a point source (molecule movement)
 ***************************************************************************/
-void SimulationConfig::init_radial_3d_step() {
+/***************************************************************************
+init_r_step_surface:
+  In: number of desired radial subdivisions
+  Out: pointer to array of doubles containing those subdivisions
+       returns NULL on malloc failure
+  Note: This is for 3D molecules emitted from a plane
+***************************************************************************/
+void SimulationConfig::init_radial_steps() {
   float_t inc, target, accum, r, r_max, delta_r, delta_r2;
 
+  // 3D
   radial_3d_step.resize(num_radial_subdivisions);
 
   inc = 1.0 / num_radial_subdivisions;
@@ -79,6 +89,29 @@ void SimulationConfig::init_radial_3d_step() {
       target = target + inc;
       j++;
     }
+  }
+
+  // 2D
+  radial_2d_step.resize(num_radial_subdivisions);
+  static const float_t sqrt_pi = 1.7724538509055160273;
+
+  float_t step = 1.0 / num_radial_subdivisions;
+  int i = 0;
+  float_t p = (1.0 - 1e-6) * step;
+  r = 0;
+  for (; p < 1.0; p += step, i++) {
+    float_t r_min = 0;
+    float_t r_max = 3.0;          /* 17 bit high-end CDF cutoff */
+    for (int j = 0; j < 20; j++) /* 20 bits of accuracy */
+    {
+      r = 0.5 * (r_min + r_max);
+      float_t cdf = 1.0 - exp(-r * r) + sqrt_pi * r * erfc(r);
+      if (cdf > p)
+        r_max = r;
+      else
+        r_min = r;
+    }
+    radial_2d_step[i] = r;
   }
 }
 

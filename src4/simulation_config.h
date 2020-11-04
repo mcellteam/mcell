@@ -49,7 +49,8 @@ public:
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
   uint num_radial_subdivisions = 1024; /* Size of 3D step length lookup tables, not configurable by user yet */
-  std::vector<float_t> radial_3d_step; /* Lookup table of 3D diffusion step lengths */
+  std::vector<float_t> radial_2d_step; /* Lookup table of 2D diffusion step lengths (r_step_surface) */
+  std::vector<float_t> radial_3d_step; /* Lookup table of 3D diffusion step lengths (r_step) */
 
   // other options
   bool use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
@@ -66,14 +67,14 @@ public:
   void init() {
     BNGConfig::init();
     init_subpartition_edge_length();
-    init_radial_3d_step();
+    init_radial_steps();
   }
 
   void dump();
 
 private:
   void init_subpartition_edge_length();
-  void init_radial_3d_step();
+  void init_radial_steps();
 
 };
 
