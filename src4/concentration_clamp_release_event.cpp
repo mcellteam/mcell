@@ -52,6 +52,36 @@ void ConcentrationClampReleaseEvent::dump(const std::string indent) const {
 }
 
 
+void ConcentrationClampReleaseEvent::to_data_model(Json::Value& mcell_node) const {
+  // --- define_surface_classes --- (only when needed)
+  Json::Value& define_surface_classes = mcell_node[KEY_DEFINE_SURFACE_CLASSES];
+  DMUtil::add_version(define_surface_classes, VER_DM_2014_10_24_1638);
+  Json::Value& surface_class_list = define_surface_classes[KEY_SURFACE_CLASS_LIST];
+
+  Json::Value cclamp;
+  cclamp[KEY_NAME] = world->get_all_species().get(surf_class_species_id).name;
+  cclamp[KEY_DESCRIPTION] = "";
+  DMUtil::add_version(cclamp, VER_DM_2018_01_11_1330);
+
+  Json::Value& surface_prop_list = cclamp[KEY_SURFACE_CLASS_PROP_LIST];
+  surface_prop_list = Json::Value(Json::arrayValue);
+
+  Json::Value surface_prop_item;
+  surface_prop_item[KEY_CLAMP_VALUE] = DMUtil::f_to_string(concentration);
+  surface_prop_item[KEY_SURF_CLASS_ORIENT] = DMUtil::orientation_to_str(orientation);
+  surface_prop_item[KEY_MOLECULE] = world->get_all_species().get(species_id).name;
+  surface_prop_item[KEY_NAME] = ""; // blender exports name but it does not seem to be needed
+  surface_prop_item[KEY_AFFECTED_MOLS] = VALUE_SINGLE;
+  surface_prop_item[KEY_SURF_CLASS_TYPE] = VALUE_CLAMP_CONCENTRATION;
+  DMUtil::add_version(surface_prop_item, VER_DM_2015_11_08_1756);
+
+  surface_prop_list.append(surface_prop_item);
+  surface_class_list.append(cclamp);
+
+  // the affected region is printed in Partition::to_data_model
+}
+
+
 void ConcentrationClampReleaseEvent::update_cumm_areas_and_scaling() {
   float_t cumm_area = 0;
   for (auto& area_pindex_pair: cumm_area_and_pwall_index_pairs) {

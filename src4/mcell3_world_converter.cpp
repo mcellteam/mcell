@@ -1165,6 +1165,9 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       // create conc clamp event
       if (current_pathway->flags == PATHW_CLAMP_CONC) {
         assert(rxn.is_bimol());
+
+        rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP);
+
         ConcentrationClampReleaseEvent* cclamp_event = new ConcentrationClampReleaseEvent(world);
 
         // run each timestep

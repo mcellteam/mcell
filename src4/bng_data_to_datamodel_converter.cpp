@@ -376,9 +376,17 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
   Value& define_surface_classes = mcell_node[KEY_DEFINE_SURFACE_CLASSES];
   add_version(define_surface_classes, VER_DM_2014_10_24_1638);
   Value& surface_class_list = define_surface_classes[KEY_SURFACE_CLASS_LIST];
-  surface_class_list = Value(Json::arrayValue);
+  if (!surface_class_list.isArray()) {
+    // do not overwrite if it was already set
+    surface_class_list = Value(Json::arrayValue);
+  }
 
   for (const RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
+    if (rxn_rule->has_flag(RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP)) {
+      // concentration clamp info is generated from ConcentrationClampReleaseEvent
+      continue;
+    }
+
     if (rxn_rule->type == RxnType::Standard) {
       // this might be a special case of absorptive reaction
       if (!rxn_rule->is_absorptive_region_rxn()) {

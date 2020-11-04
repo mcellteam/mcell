@@ -159,7 +159,9 @@ struct RxnRateInfo {
 
 enum class RxnType {
   Invalid,
-  Standard, // any other reaction than below
+  // Standard is any other reaction than below,
+  // standard rxns are also created from absorptive surfaces and also concentration clamps
+  Standard,
   Transparent,
   Reflect,
   AbsorbRegionBorder

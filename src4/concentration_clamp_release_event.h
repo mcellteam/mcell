@@ -55,7 +55,7 @@ public:
 
   void dump(const std::string indent) const override;
 
-  void to_data_model(Json::Value& mcell_node) const override { assert(false); }
+  void to_data_model(Json::Value& mcell_node) const override;
 
   void update_cumm_areas_and_scaling();
 public:
