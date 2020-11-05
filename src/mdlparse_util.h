@@ -869,10 +869,10 @@ mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
                               int reaction_type, struct species *surface_class,
                               struct sym_entry *reactant_sym, short orient);
 
-/* Assemble a concentration clamp reaction from its component parts. */
-struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
+/* Assemble a concentration or flux clamp reaction from its component parts. */
+struct mdlparse_vars *mdl_assemble_clamp_reaction(
     struct mdlparse_vars *parse_state, struct species *surface_class,
-    struct sym_entry *mol_sym, short orient, double conc);
+    struct sym_entry *mol_sym, short orient, int clamp_type, double clamp_value);
 
 /* Start a surface class declaration. */
 void mdl_start_surface_class(struct mdlparse_vars *parse_state,

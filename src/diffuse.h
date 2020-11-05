@@ -106,7 +106,7 @@ void reschedule_surface_molecules(
 void run_timestep(struct volume *world, struct storage *local,
                   double release_time, double checkpt_time);
 
-void run_concentration_clamp(struct volume *world, double t_now);
+void run_clamp(struct volume *world, double t_now);
 
 struct sp_collision *expand_collision_partner_list_for_neighbor(
     struct subvolume *sv, struct volume_molecule *m, struct vector3 *mv,

@@ -8303,21 +8303,23 @@ mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
 }
 
 /**************************************************************************
- mdl_assemble_concentration_clamp_reaction:
-    Assemble a concentration clamp reaction from its component parts.
+ mdl_assemble_clamp_reaction:
+    Assemble a concentration or flux clamp reaction from its component parts.
 
  In: parse_state: parser state
      surface_class: surface class
      mol_sym: symbol for molecule being clamped
      orient: orientation
-     conc: desired concentration
+     clamp_type: clamp concentration or flux
+     clamp_value: desired concentration or flux
  Out: the reaction, or NULL if an error occurred
 **************************************************************************/
-struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
+struct mdlparse_vars *mdl_assemble_clamp_reaction(
     struct mdlparse_vars *parse_state, struct species *surface_class,
-    struct sym_entry *mol_sym, short orient, double conc) {
-  if (mcell_add_concentration_clamp(parse_state->vol->rxn_sym_table,
-                                    surface_class, mol_sym, orient, conc)) {
+    struct sym_entry *mol_sym, short orient, int clamp_type,
+    double clamp_value) {
+  if (mcell_add_clamp(parse_state->vol->rxn_sym_table, surface_class,
+                      mol_sym, orient, clamp_type, clamp_value)) {
     return NULL;
   }
 
@@ -8341,7 +8343,7 @@ void mdl_start_surface_class(struct mdlparse_vars *parse_state,
   specp->refl_mols = NULL;
   specp->transp_mols = NULL;
   specp->absorb_mols = NULL;
-  specp->clamp_conc_mols = NULL;
+  specp->clamp_mols = NULL;
   parse_state->current_surface_class = specp;
 }
 

@@ -181,6 +181,7 @@ struct arg_list printfargs;
 %token       CHECKPOINT_REALTIME
 %token       CHECKPOINT_REPORT
 %token       CLAMP_CONCENTRATION
+%token       CLAMP_FLUX
 %token       CLOSE_PARTITION_SPACING
 %token       CONCENTRATION
 %token       CORNERS
@@ -1342,7 +1343,11 @@ surface_rxn_stmt:
               CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, mol_sym, $4.orient));}
         | CLAMP_CONCENTRATION
             existing_molecule_opt_orient '='
-            num_expr                                  { CHECKN(mdl_assemble_concentration_clamp_reaction(parse_state, parse_state->current_surface_class, $2.mol_type, $2.orient, $4)); }
+            num_expr                                  { CHECKN(mdl_assemble_clamp_reaction(parse_state, parse_state->current_surface_class, $2.mol_type, $2.orient, CLAMP_TYPE_CONC, $4)); }
+;
+        | CLAMP_FLUX
+            existing_molecule_opt_orient '='
+            num_expr                                  { CHECKN(mdl_assemble_clamp_reaction(parse_state, parse_state->current_surface_class, $2.mol_type, $2.orient, CLAMP_TYPE_FLUX, $4)); }
 ;
 
 surface_rxn_type: REFLECTIVE                          { $$ = RFLCT; }

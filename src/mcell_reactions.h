@@ -109,10 +109,11 @@ MCELL_STATUS mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                                         short orient);
 
 MCELL_STATUS
-mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
+mcell_add_clamp(struct sym_table_head *rxn_sym_table,
                               struct species *surface_class,
                               struct sym_entry *mol_sym, short orient,
-                              double conc);
+                              int clamp_type,
+                              double clamp_value);
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);
 

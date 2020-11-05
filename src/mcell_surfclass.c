@@ -85,7 +85,7 @@ MCELL_STATUS mcell_create_surf_class(
   surf_class->refl_mols = NULL;
   surf_class->transp_mols = NULL;
   surf_class->absorb_mols = NULL;
-  surf_class->clamp_conc_mols = NULL;
+  surf_class->clamp_mols = NULL;
 
   if (sc_sym != NULL) {
     *sc_sym = sym;

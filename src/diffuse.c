@@ -4052,24 +4052,24 @@ void run_timestep(struct volume *state, struct storage *local,
 
 
 /*************************************************************************
-run_concentration_clamp:
+run_clamp:
   In: world: simulation state
       t_now: the current time.
-  Out: No return value.  Molecules are released at concentration-clamped
-       surfaces to maintain the desired concentation.
+  Out: No return value.  Molecules are released at clamped
+       surfaces to maintain the desired concentation or flux.
 *************************************************************************/
-void run_concentration_clamp(struct volume *world, double t_now) {
+void run_clamp(struct volume *world, double t_now) {
   int this_count = 0;
   static int total_count = 0;
-  for (struct ccn_clamp_data *ccd = world->clamp_list; ccd != NULL; ccd = ccd->next) {
-    if (ccd->objp == NULL) {
+  for (struct clamp_data *cdp = world->clamp_list; cdp != NULL; cdp = cdp->next) {
+    if (cdp->objp == NULL) {
       continue;
     }
-    for (struct ccn_clamp_data *ccdo = ccd; ccdo != NULL; ccdo = ccdo->next_obj) {
-      for (struct ccn_clamp_data *ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
-        double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
-                       ccdm->concentration / ccdm->mol->time_step;
-        if (ccdm->orient != 0) {
+    for (struct clamp_data *cdpo = cdp; cdpo != NULL; cdpo = cdpo->next_obj) {
+      for (struct clamp_data *cdpm = cdpo; cdpm != NULL; cdpm = cdpm->next_mol) {
+        double n_collisions = cdpo->scaling_factor * cdpm->mol->space_step *
+                       cdpm->clamp_value / cdpm->mol->time_step;
+        if (cdpm->orient != 0) {
           n_collisions *= 0.5;
         }
         int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
@@ -4082,7 +4082,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         vm.t2 = 0;
         vm.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
                   ACT_CLAMPED | ACT_DIFFUSE;
-        vm.properties = ccdm->mol;
+        vm.properties = cdpm->mol;
         initialize_diffusion_function((struct abstract_molecule*)&vm);
 
         vm.mesh_name = NULL;
@@ -4097,10 +4097,10 @@ void run_concentration_clamp(struct volume *world, double t_now) {
 
         this_count += n_emitted;
         while (n_emitted > 0) {
-          int idx = bisect_high(ccdo->cum_area, ccdo->n_sides,
+          int idx = bisect_high(cdpo->cum_area, cdpo->n_sides,
                             rng_dbl(world->rng) *
-                                ccdo->cum_area[ccd->n_sides - 1]);
-          struct wall *w = ccdo->objp->wall_p[ccdo->side_idx[idx]];
+                                cdpo->cum_area[cdp->n_sides - 1]);
+          struct wall *w = cdpo->objp->wall_p[cdpo->side_idx[idx]];
 
           double s1 = sqrt(rng_dbl(world->rng));
           double s2 = rng_dbl(world->rng) * s1;
@@ -4113,10 +4113,10 @@ void run_concentration_clamp(struct volume *world, double t_now) {
           v.z = w->vert[0]->z + s1 * (w->vert[1]->z - w->vert[0]->z) +
                 s2 * (w->vert[2]->z - w->vert[1]->z);
 
-          if (ccdm->orient == 1) {
+          if (cdpm->orient == 1) {
             vm.index = 1;
           }
-          else if (ccdm->orient == -1) {
+          else if (cdpm->orient == -1) {
             vm.index = -1;
           }
           else {
@@ -4155,10 +4155,10 @@ void run_concentration_clamp(struct volume *world, double t_now) {
             vmp = insert_volume_molecule(world, &vm, vmp);
             if (vmp == NULL)
               mcell_allocfailed("Failed to insert a '%s' volume molecule while "
-                                "concentration clamping.",
+                                "concentration/flux clamping.",
                                 vm.properties->sym->name);
             if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-                                     ccdm->mol->hashval,
+                                     cdpm->mol->hashval,
                                      (struct abstract_molecule *)vmp) != NULL) {
               vm.flags |= ACT_REACT;
               vmp->flags |= ACT_REACT;
@@ -4167,7 +4167,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
             vmp = insert_volume_molecule(world, &vm, vmp);
             if (vmp == NULL)
               mcell_allocfailed("Failed to insert a '%s' volume molecule while "
-                                "concentration clamping.",
+                                "concentration/flux clamping.",
                                 vm.properties->sym->name);
           }
 

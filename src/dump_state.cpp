@@ -1442,7 +1442,7 @@ void dump_species_item(species* spec, const char* ind) {
   cout << ind2 <<"refl_mols: *\t\t" << spec->refl_mols << " [name_orient] \t\t// names of the mols that REFLECT from surface\n";
   cout << ind2 <<"transp_mols: *\t\t" << spec->transp_mols << " [name_orient] \t\t/* names of the mols that are TRANSPARENT for surface */\n";
   cout << ind2 <<"absorb_mols: *\t\t" << spec->absorb_mols << " [name_orient] \t\t// names of the mols that ABSORB at surface\n";
-  cout << ind2 <<"clamp_conc_mols: *\t\t" << spec->clamp_conc_mols << " [name_orient] \t\t/* names of mols that CLAMP_CONC at surface */\n";
+  cout << ind2 <<"clamp_mols: *\t\t" << spec->clamp_mols << " [name_orient] \t\t/* names of mols that CLAMP_CONC at surface */\n";
 }
 
 
