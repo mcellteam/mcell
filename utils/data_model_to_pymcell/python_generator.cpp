@@ -44,7 +44,7 @@ void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& 
   string python_expr;
   // replace operator ^ with operator **
   python_expr = regex_replace(parameter[KEY_PAR_EXPRESSION].asString(), regex("\\^"), "**");
-  out << parameter[KEY_PAR_NAME].asString() << " = " << python_expr;
+  out << fix_param_id(parameter[KEY_PAR_NAME].asString()) << " = " << python_expr;
   string units = parameter[KEY_PAR_UNITS].asString();
   if (units != "") {
     out << " # units: " << units;

@@ -37,7 +37,7 @@ void BNGLGenerator::generate_single_bngl_parameter(Value& parameter) {
   if (parameter[KEY_PAR_DESCRIPTION].asString() != "") {
     bng_out << IND << "# " << parameter[KEY_PAR_DESCRIPTION].asString() << "\n";
   }
-  bng_out << IND << parameter[KEY_PAR_NAME].asString() << " " << parameter[KEY_PAR_EXPRESSION].asString();
+  bng_out << IND << fix_param_id(parameter[KEY_PAR_NAME].asString()) << " " << parameter[KEY_PAR_EXPRESSION].asString();
   string units = parameter[KEY_PAR_UNITS].asString();
   if (units != "") {
     bng_out << " # units: " << units;
@@ -47,7 +47,7 @@ void BNGLGenerator::generate_single_bngl_parameter(Value& parameter) {
 
 
 void BNGLGenerator::generate_single_python_parameter(std::ostream& python_out, Value& parameter) {
-  string name = parameter[KEY_PAR_NAME].asString();
+  string name = fix_param_id(parameter[KEY_PAR_NAME].asString());
   python_out << name << " = " << VAR_BNGL_PARAMS << "['" << name << "']\n";
 }
 

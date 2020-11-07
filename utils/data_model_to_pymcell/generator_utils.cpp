@@ -24,6 +24,7 @@
 
 #include "generator_utils.h"
 #include "generator_constants.h"
+#include "api/compartment_utils.h"
 
 namespace MCell {
 
@@ -226,6 +227,9 @@ string remove_compartments(const std::string& species_name) {
     }
     else if (in_compartment && (!isalnum(c) && c != '_')) {
       in_compartment = false;
+      if (c != ':') {
+        res += c;
+      }
     }
     else if (!in_compartment) {
       res += c;
@@ -237,17 +241,21 @@ string remove_compartments(const std::string& species_name) {
 
 
 string get_single_compartment(const std::string& name) {
-  size_t pos_at = name.find('@');
-  if (pos_at != string::npos) {
-    size_t pos_colon = name.find(':');
-    if (pos_colon != string::npos) {
-      return name.substr(pos_at + 1, pos_colon - pos_at - 1);
-    }
-    else {
-      return name.substr(pos_at + 1);
-    }
+  std::vector<std::string> compartments;
+  API::get_compartment_names(name, compartments);
+
+  if (compartments.empty()) {
+    return "";
   }
-  return "";
+  else {
+    string res = compartments[0];
+    for (size_t i = 1; i < compartments.size(); i++) {
+      if (res != compartments[i]) {
+        ERROR("Complexes may use a single compartment for now, error for " + name + ".");
+      }
+    }
+    return res;
+  }
 }
 
 
@@ -311,6 +319,18 @@ string make_species_or_cplx(
 
   // otherwise we will generate a BNGL string
   return make_cplx(remove_compartments(name), orient, compartment);
+}
+
+
+string fix_param_id(const std::string& str) {
+  assert(str.size() > 0);
+  if (str[0] == '_') {
+    // underscore denotes private variables in Python
+    return "und" + str;
+  }
+  else {
+    return str;
+  }
 }
 
 

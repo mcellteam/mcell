@@ -154,6 +154,7 @@ static string fix_dots_in_simple_species(const string& s) {
   return res;
 }
 
+string fix_param_id(const std::string& str);
 
 string fix_id(const std::string& str);
 
@@ -281,8 +282,8 @@ static void gen_param_id(ostream& out, string name, Json::Value& id, bool comma)
 
 static void gen_param_expr(ostream& out, string name, const string& value, bool comma) {
   string python_expr;
-  // replace operator ^ with operator **
-  python_expr = regex_replace(value, regex("\\^"), "**");
+  // replace operator ^ with operator ** and '_' at the beginning with 'und_'
+  python_expr = fix_param_id(regex_replace(value, regex("\\^"), "**"));
   out << IND << name << " = " << python_expr << (comma?",":"") << "\n";
 }
 

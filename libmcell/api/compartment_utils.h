@@ -26,19 +26,47 @@
 #include <string>
 #include <map>
 #include <vector>
-
-#include "api/geometry_object.h"
+#include <memory>
 
 namespace MCell {
 namespace API {
 
-
-typedef std::vector<GeometryObjectSet> GeometryObjectSetVector;
+class GeometryObject;
 
 void set_parent_and_children_compartments(
     std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects);
 
-void get_compartment_names(const std::string& bngl_string, std::vector<std::string>& compartments);
+// used also from data model converter
+static void get_compartment_names(const std::string& bngl_string, std::vector<std::string>& compartments) {
+  size_t i = 0;
+  bool in_compartment = false;
+  std::string current_name;
+
+  while (i < bngl_string.size()) {
+    char c = bngl_string[i];
+    if (c == '@') {
+      assert(!in_compartment);
+      in_compartment = true;
+    }
+    else if (in_compartment) {
+      if ((!isalnum(c) && c != '_')) {
+        compartments.push_back(current_name);
+        current_name = "";
+        in_compartment = false;
+      }
+      else {
+        current_name += c;
+      }
+    }
+
+    i++;
+  }
+
+  if (current_name != "") {
+    compartments.push_back(current_name);
+  }
+
+}
 
 } // namespace API
 } // namespace MCell
