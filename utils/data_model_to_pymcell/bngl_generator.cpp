@@ -96,7 +96,9 @@ void BNGLGenerator::generate_bngl_mol_type(Json::Value& molecule_list_item) {
         bng_out << "~" << cstates[i].asString();
       }
 
-      gen_comma(bng_out, i, bngl_component_list);
+      if (i + 1 != bngl_component_list.size()) {
+        bng_out << ",";
+      }
     }
     bng_out << ")";
   }
