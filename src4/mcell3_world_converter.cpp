@@ -1023,6 +1023,16 @@ void MCell3WorldConverter::create_clamp_release_event(
 
   ClampReleaseEvent* clamp_event = new ClampReleaseEvent(world);
 
+  if ((current_pathway->flags & PATHW_CLAMP_CONC) != 0) {
+    clamp_event->type = ClampType::CONCENTRATION;
+  }
+  else if ((current_pathway->flags & PATHW_CLAMP_FLUX) != 0) {
+    clamp_event->type = ClampType::FLUX;
+  }
+  else {
+    assert(false);
+  }
+
   // run each timestep
   clamp_event->event_time = 0;
   clamp_event->periodicity_interval = 1;

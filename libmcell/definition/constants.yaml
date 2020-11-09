@@ -138,6 +138,16 @@ enums:
       value: 3
     - name: CONCENTRATION_CLAMP
       value: 4 
+      doc: | 
+         Clamps concentration at a surface by periodically releasing molecules that correspond
+         to the wall being a transparent boundary to area with given concentration, 
+         and by absorbing all molecules that hit this surface.  
+    - name: FLUX_CLAMP
+      value: 5 
+      doc: | 
+         Clamps flux at a surface by periodically releasing molecules that correspond
+         to the wall being a transparent boundary to area with given concentration. 
+         The clamped surface reflects these molecules. 
       
   - name: ExprNodeType
     doc: Used internally to represent expression trees

@@ -53,7 +53,7 @@ bool GenSurfaceClass::__eq__(const GenSurfaceClass& other) const {
           true
         )
      )  &&
-    clamp_concentration == other.clamp_concentration;
+    concentration == other.concentration;
 }
 
 void GenSurfaceClass::set_initialized() {
@@ -70,7 +70,7 @@ void GenSurfaceClass::set_all_attributes_as_default_or_unset() {
   properties = std::vector<std::shared_ptr<SurfaceProperty>>();
   type = SurfacePropertyType::UNSET;
   affected_complex_pattern = nullptr;
-  clamp_concentration = FLT_UNSET;
+  concentration = FLT_UNSET;
 }
 
 std::string GenSurfaceClass::to_str(const std::string ind) const {
@@ -80,7 +80,7 @@ std::string GenSurfaceClass::to_str(const std::string ind) const {
       "\n" << ind + "  " << "properties=" << vec_ptr_to_str(properties, ind + "  ") << ", " << "\n" << ind + "  " <<
       "type=" << type << ", " <<
       "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "clamp_concentration=" << clamp_concentration;
+      "concentration=" << concentration;
   return ss.str();
 }
 
@@ -98,7 +98,7 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
           py::arg("properties") = std::vector<std::shared_ptr<SurfaceProperty>>(),
           py::arg("type") = SurfacePropertyType::UNSET,
           py::arg("affected_complex_pattern") = nullptr,
-          py::arg("clamp_concentration") = FLT_UNSET
+          py::arg("concentration") = FLT_UNSET
       )
       .def("check_semantics", &SurfaceClass::check_semantics)
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))

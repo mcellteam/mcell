@@ -382,7 +382,8 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
   }
 
   for (const RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
-    if (rxn_rule->has_flag(RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP)) {
+    if (rxn_rule->has_flag(RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP) ||
+        rxn_rule->has_flag(RXN_FLAG_CREATED_FOR_FLUX_CLAMP) ) {
       // concentration clamp info is generated from ConcentrationClampReleaseEvent
       continue;
     }

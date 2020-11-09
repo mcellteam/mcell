@@ -53,6 +53,12 @@ public:
     }
   }
 
+  // added methods
+  bool is_clamp() const {
+    return type == SurfacePropertyType::CONCENTRATION_CLAMP ||
+        type == SurfacePropertyType::FLUX_CLAMP;
+  }
+
   // simulation engine mapping
   // this is the species_id created for this surface class, not for the affected species
   species_id_t species_id;

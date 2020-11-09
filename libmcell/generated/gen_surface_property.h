@@ -35,12 +35,12 @@ class Complex;
     SurfaceProperty( \
         const SurfacePropertyType type_ = SurfacePropertyType::UNSET, \
         std::shared_ptr<Complex> affected_complex_pattern_ = nullptr, \
-        const float_t clamp_concentration_ = FLT_UNSET \
+        const float_t concentration_ = FLT_UNSET \
     ) { \
       class_name = "SurfaceProperty"; \
       type = type_; \
       affected_complex_pattern = affected_complex_pattern_; \
-      clamp_concentration = clamp_concentration_; \
+      concentration = concentration_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -80,16 +80,16 @@ public:
     return affected_complex_pattern;
   }
 
-  float_t clamp_concentration;
-  virtual void set_clamp_concentration(const float_t new_clamp_concentration_) {
+  float_t concentration;
+  virtual void set_concentration(const float_t new_concentration_) {
     if (initialized) {
-      throw RuntimeError("Value 'clamp_concentration' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'concentration' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
-    clamp_concentration = new_clamp_concentration_;
+    concentration = new_concentration_;
   }
-  virtual float_t get_clamp_concentration() const {
-    return clamp_concentration;
+  virtual float_t get_concentration() const {
+    return concentration;
   }
 
   // --- methods ---

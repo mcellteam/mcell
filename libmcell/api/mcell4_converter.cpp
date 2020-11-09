@@ -536,6 +536,10 @@ void MCell4Converter::convert_surface_class_rxn(
       rxn.type = BNG::RxnType::Standard;
       rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP);
       break;
+    case API::SurfacePropertyType::FLUX_CLAMP:
+      rxn.type = BNG::RxnType::Reflect;
+      rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_FLUX_CLAMP);
+      break;
     case API::SurfacePropertyType::REFLECTIVE:
       rxn.type = BNG::RxnType::Reflect;
       break;
@@ -547,7 +551,6 @@ void MCell4Converter::convert_surface_class_rxn(
   }
 
   // all these reactions happen always
-  // TODO: check that warning is not printed
   rxn.base_rate_constant = FLT_GIGANTIC;
 
   // any compartment of the
@@ -903,9 +906,18 @@ void MCell4Converter::convert_concentration_clamp_release(
     const partition_id_t partition_id, const API::SurfaceClass& surface_class, const MCell::Region& mcell_region) {
 
   release_assert(surface_class.properties.empty() && "TODO");
-  assert(surface_class.type == SurfacePropertyType::CONCENTRATION_CLAMP);
 
   ClampReleaseEvent* clamp_event = new ClampReleaseEvent(world);
+  
+  if (surface_class.type == SurfacePropertyType::CONCENTRATION_CLAMP) {
+    clamp_event->type = ClampType::CONCENTRATION;
+  }
+  else if (surface_class.type == SurfacePropertyType::FLUX_CLAMP) {
+    clamp_event->type = ClampType::FLUX;
+  }
+  else {
+    assert(false);
+  }
 
   // run each timestep
   clamp_event->event_time = 0;
@@ -923,7 +935,7 @@ void MCell4Converter::convert_concentration_clamp_release(
   assert(world->bng_engine.get_all_species().get(surface_class.species_id).is_reactive_surface());
   clamp_event->surf_class_species_id = surface_class.species_id;
 
-  clamp_event->concentration = surface_class.clamp_concentration;
+  clamp_event->concentration = surface_class.concentration;
 
   // walls where to release
   assert(!mcell_region.walls_and_edges.empty() && "Must be initialized");
@@ -960,7 +972,7 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
     reg.species_id = surface_region.surface_class->species_id;
 
     // define releases for concentration clamp
-    if (surface_region.surface_class->type == SurfacePropertyType::CONCENTRATION_CLAMP) {
+    if (surface_region.surface_class->is_clamp()) {
       convert_concentration_clamp_release(p.id, *surface_region.surface_class, reg);
     }
   }
@@ -1024,7 +1036,7 @@ void MCell4Converter::convert_geometry_objects() {
       reg_all.species_id = o->surface_class->species_id;
 
       // define releases for concentration clamp
-      if (o->surface_class->type == SurfacePropertyType::CONCENTRATION_CLAMP) {
+      if (o->surface_class->is_clamp()) {
         convert_concentration_clamp_release(p.id, *o->surface_class, reg_all);
       }
     }

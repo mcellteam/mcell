@@ -287,15 +287,18 @@ SurfaceProperty:
     doc: | 
        A complex pattern with optional orientation must be set.
        Default orientation means that the pattern matches any orientation.
-       For concentration clamp the orientation specifies on which side  
-       will be the concentration held (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
+       For concentration or flux clamp the orientation specifies on which side  
+       will be the concentration held 
+       (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
        The complex pattern must not have any compartment.
        
-  - name: clamp_concentration
+  - name: concentration
     type: float
     default: unset
     doc: |
-       Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION.
+       Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 
+       SurfacePropertyType.CLAMP_FLUX. Represents concentration of the imagined opposide side 
+       of the wall that has this concentration or flux clamped.
        
     
 SurfaceClass:

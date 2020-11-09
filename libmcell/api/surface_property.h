@@ -60,10 +60,12 @@ public:
       throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
           NAME_CLASS_SURFACE_PROPERTY + " must not have a compartment specified.");
     }
-    if (type == SurfacePropertyType::CONCENTRATION_CLAMP && !is_set(clamp_concentration)) {
+    if ((type == SurfacePropertyType::CONCENTRATION_CLAMP || type == SurfacePropertyType::FLUX_CLAMP) &&
+        !is_set(concentration)) {
       throw ValueError(S("When ") + NAME_TYPE + " in " + NAME_CLASS_SURFACE_PROPERTY + " is " +
-          NAME_ENUM_SURFACE_PROPERTY_TYPE + "." + NAME_EV_CONCENTRATION_CLAMP +
-          " then " + NAME_CLAMP_CONCENTRATION + " must be set.");
+          NAME_ENUM_SURFACE_PROPERTY_TYPE + "." + NAME_EV_CONCENTRATION_CLAMP + " or " +
+          NAME_ENUM_SURFACE_PROPERTY_TYPE + "." + NAME_EV_FLUX_CLAMP +
+          " then " + NAME_CONCENTRATION + " must be set.");
     }
   }
 

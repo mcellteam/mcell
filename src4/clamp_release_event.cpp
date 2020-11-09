@@ -73,7 +73,15 @@ void ClampReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   surface_prop_item[KEY_MOLECULE] = world->get_all_species().get(species_id).name;
   surface_prop_item[KEY_NAME] = ""; // blender exports name but it does not seem to be needed
   surface_prop_item[KEY_AFFECTED_MOLS] = VALUE_SINGLE;
-  surface_prop_item[KEY_SURF_CLASS_TYPE] = VALUE_CLAMP_CONCENTRATION;
+  if (type == ClampType::CONCENTRATION) {
+    surface_prop_item[KEY_SURF_CLASS_TYPE] = VALUE_CLAMP_CONCENTRATION;
+  }
+  else if (type == ClampType::FLUX) {
+    surface_prop_item[KEY_SURF_CLASS_TYPE] = VALUE_CLAMP_FLUX;
+  }
+  else {
+    assert(false);
+  }
   DMUtil::add_version(surface_prop_item, VER_DM_2015_11_08_1756);
 
   surface_prop_list.append(surface_prop_item);

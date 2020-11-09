@@ -395,6 +395,10 @@ void PythonGenerator::get_surface_class_property_info(
     type_name = NAME_EV_CONCENTRATION_CLAMP;
     clamp_concentration = property[KEY_CLAMP_VALUE].asString();
   }
+  else if (surf_class_type == VALUE_CLAMP_FLUX) {
+    type_name = NAME_EV_FLUX_CLAMP;
+    clamp_concentration = property[KEY_CLAMP_VALUE].asString();
+  }
   else {
     ERROR(S("Invalid ") + KEY_SURF_CLASS_TYPE + " " + surf_class_type + ".");
   }
@@ -440,13 +444,13 @@ void PythonGenerator::generate_surface_classes(
         gen_ctor_call(out, name, NAME_CLASS_SURFACE_PROPERTY, true);
         gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
 
-        bool is_cclamp = type_name == NAME_EV_CONCENTRATION_CLAMP;
+        bool is_clamp = type_name == NAME_EV_CONCENTRATION_CLAMP || type_name == NAME_EV_FLUX_CLAMP;
         gen_param_expr(
             out, NAME_AFFECTED_COMPLEX_PATTERN,
-            make_species_or_cplx(data, affected_mols, orientation_name), is_cclamp);
+            make_species_or_cplx(data, affected_mols, orientation_name), is_clamp);
 
-        if (is_cclamp) {
-          gen_param_expr(out, NAME_CLAMP_CONCENTRATION, clamp_concentration, false);
+        if (is_clamp) {
+          gen_param_expr(out, NAME_CONCENTRATION, clamp_concentration, false);
         }
 
         out << CTOR_END;
@@ -471,13 +475,13 @@ void PythonGenerator::generate_surface_classes(
 
       gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
 
-      bool is_cclamp = type_name == NAME_EV_CONCENTRATION_CLAMP;
+      bool is_clamp = type_name == NAME_EV_CONCENTRATION_CLAMP || type_name == NAME_EV_FLUX_CLAMP;
       gen_param_expr(
           out, NAME_AFFECTED_COMPLEX_PATTERN,
-          make_species_or_cplx(data, affected_mols, orientation_name), is_cclamp);
+          make_species_or_cplx(data, affected_mols, orientation_name), is_clamp);
 
-      if (is_cclamp) {
-        gen_param_expr(out, NAME_CLAMP_CONCENTRATION, clamp_concentration, false);
+      if (is_clamp) {
+        gen_param_expr(out, NAME_CONCENTRATION, clamp_concentration, false);
       }
     }
     out << CTOR_END;

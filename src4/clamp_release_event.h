@@ -30,6 +30,12 @@
 
 namespace MCell {
 
+enum class ClampType {
+  INVALID,
+  CONCENTRATION,
+  FLUX
+};
+
 /**
  * Molecules are released at:
  * 1) concentration-clamped surfaces to maintain the desired concentration
@@ -43,6 +49,7 @@ class ClampReleaseEvent: public BaseEvent {
 public:
   ClampReleaseEvent(World* world_) :
     BaseEvent(EVENT_TYPE_INDEX_CLAMP_RELEASE),
+    type(ClampType::INVALID),
     species_id(SPECIES_ID_INVALID),
     surf_class_species_id(SPECIES_ID_INVALID),
     concentration(FLT_INVALID),
@@ -61,6 +68,7 @@ public:
 
   void update_cumm_areas_and_scaling();
 public:
+  ClampType type; // used only when converting to data model
   species_id_t species_id;
   species_id_t surf_class_species_id;
   float_t concentration;
