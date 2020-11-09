@@ -1443,7 +1443,7 @@ int init_reactions(MCELL_STATE *state) {
               cdp->next = state->clamp_list;
               state->clamp_list = cdp;
             }
-            path->cclamp_concentration = path->km; // remember for mcell3->4 converter
+            path->clamp_concentration = path->km; // remember for mcell3->4 converter
             path->km = GIGANTIC;
 
             if ((path->flags & PATHW_CLAMP_FLUX) != 0) {

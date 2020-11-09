@@ -83,8 +83,8 @@ enum molecule_flag_t {
 
   // flags needed for concentration clamp handling,
   // only one of them may be set
-  MOLECULE_FLAG_CCLAMP_ORIENTATION_UP = 1 << 20,
-  MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN = 1 << 21,
+  MOLECULE_FLAG_CLAMP_ORIENTATION_UP = 1 << 20,
+  MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN = 1 << 21,
 
   MOLECULE_FLAG_DEFUNCT = 1 << 31,
 };
@@ -216,27 +216,27 @@ public:
     flags = flags & ~flag;
   }
 
-  void set_cclamp_orientation(orientation_t value) {
+  void set_clamp_orientation(orientation_t value) {
     assert(value >= ORIENTATION_DOWN && value <= ORIENTATION_UP);
     if (value == ORIENTATION_NONE) {
-      clear_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_UP);
-      clear_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN);
+      clear_flag(MOLECULE_FLAG_CLAMP_ORIENTATION_UP);
+      clear_flag(MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN);
     }
     else if (value == ORIENTATION_DOWN) {
-      clear_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_UP);
-      set_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN);
+      clear_flag(MOLECULE_FLAG_CLAMP_ORIENTATION_UP);
+      set_flag(MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN);
     }
     else {
-      set_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_UP);
-      clear_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN);
+      set_flag(MOLECULE_FLAG_CLAMP_ORIENTATION_UP);
+      clear_flag(MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN);
     }
   }
 
-  int get_cclamp_orientation() const {
-    if (has_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_UP)) {
+  int get_clamp_orientation() const {
+    if (has_flag(MOLECULE_FLAG_CLAMP_ORIENTATION_UP)) {
       return ORIENTATION_UP;
     }
-    else if (has_flag(MOLECULE_FLAG_CCLAMP_ORIENTATION_DOWN)) {
+    else if (has_flag(MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN)) {
       return ORIENTATION_DOWN;
     }
     else {

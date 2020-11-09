@@ -33,7 +33,7 @@
 
 #include "world.h"
 #include "release_event.h"
-#include "concentration_clamp_release_event.h"
+#include "clamp_release_event.h"
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
 #include "mol_or_rxn_count_event.h"
@@ -620,10 +620,10 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
     wall_species_from_mcell3.insert(surf_class_species_id);
 
     // set concentration clamp walls (note: this might be a bit slow
-    for (ConcentrationClampReleaseEvent* cclamp: concentration_clamps) {
-      if (cclamp->surf_class_species_id == surf_class_species_id) {
-        // cummulative area is updated when the cclamp events are scheduled at the end of conversion
-        cclamp->cumm_area_and_pwall_index_pairs.push_back(CummAreaPWallIndexPair(0, wall_pindex));
+    for (ClampReleaseEvent* clamp: concentration_clamps) {
+      if (clamp->surf_class_species_id == surf_class_species_id) {
+        // cummulative area is updated when the clamp events are scheduled at the end of conversion
+        clamp->cumm_area_and_pwall_index_pairs.push_back(CummAreaPWallIndexPair(0, wall_pindex));
       }
     }
   }
@@ -1021,32 +1021,32 @@ static bool get_variable_rates(const t_func* prob_t, small_vector<small_vector<B
 void MCell3WorldConverter::create_clamp_release_event(
     const pathway* current_pathway, const RxnRule& rxn, const std::vector<species_id_t>& reactant_species_ids) {
 
-  ConcentrationClampReleaseEvent* cclamp_event = new ConcentrationClampReleaseEvent(world);
+  ClampReleaseEvent* clamp_event = new ClampReleaseEvent(world);
 
   // run each timestep
-  cclamp_event->event_time = 0;
-  cclamp_event->periodicity_interval = 1;
+  clamp_event->event_time = 0;
+  clamp_event->periodicity_interval = 1;
 
   // which species to clamp
   assert(!world->bng_engine.get_all_species().get(reactant_species_ids[0]).is_reactive_surface());
-  cclamp_event->species_id = reactant_species_ids[0];
+  clamp_event->species_id = reactant_species_ids[0];
 
   assert(world->bng_engine.get_all_species().get(reactant_species_ids[1]).is_reactive_surface());
-  cclamp_event->surf_class_species_id = reactant_species_ids[1];
+  clamp_event->surf_class_species_id = reactant_species_ids[1];
 
   // on which side
   if (rxn.reactants[0].get_orientation() == 0 || rxn.reactants[1].get_orientation() == 0) {
-    cclamp_event->orientation = 0;
+    clamp_event->orientation = 0;
   }
   else {
-    cclamp_event->orientation =
+    clamp_event->orientation =
         (rxn.reactants[0].get_orientation() == rxn.reactants[1].get_orientation()) ? ORIENTATION_UP : ORIENTATION_DOWN;
   }
 
   // use the rxn rate for concentration and the rxn that destroys molecules will happen always
-  cclamp_event->concentration = current_pathway->cclamp_concentration;
+  clamp_event->concentration = current_pathway->clamp_concentration;
 
-  concentration_clamps.push_back(cclamp_event);
+  concentration_clamps.push_back(clamp_event);
 }
 
 
@@ -1889,9 +1889,9 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
 
 
 void MCell3WorldConverter::update_and_schedule_concentration_clamps() {
-  for (ConcentrationClampReleaseEvent* cclamp: concentration_clamps) {
-    cclamp->update_cumm_areas_and_scaling();
-    world->scheduler.schedule_event(cclamp);
+  for (ClampReleaseEvent* clamp: concentration_clamps) {
+    clamp->update_cumm_areas_and_scaling();
+    world->scheduler.schedule_event(clamp);
   }
 }
 

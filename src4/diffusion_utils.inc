@@ -358,7 +358,7 @@ static void pick_clamped_displacement(
   Vec2 r_uv;
   pick_surf_displacement(r_uv, sqrt_f(t) * sp.space_step, rng);
 
-  r_n *= vm.get_cclamp_orientation() * sp.space_step;
+  r_n *= vm.get_clamp_orientation() * sp.space_step;
 
   displacement = Vec3(r_n) * w.normal + Vec3(r_uv.u) * w.unit_u + Vec3(r_uv.v) * w.unit_v;
 }
@@ -385,7 +385,7 @@ static void compute_vol_displacement(
     pick_clamped_displacement(p, sp, vm, rng, displacement);
     vm.v.previous_wall_index = WALL_INDEX_INVALID;
     // not sure why this is set, maybe because it won't be used anymore?
-    vm.set_cclamp_orientation(ORIENTATION_DOWN);
+    vm.set_clamp_orientation(ORIENTATION_DOWN);
     vm.clear_flag(ACT_CLAMPED);
 
     rate_factor = 1.0;

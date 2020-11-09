@@ -21,6 +21,8 @@
  *
 ******************************************************************************/
 
+#include "clamp_release_event.h"
+
 #include "rng.h" // MCell 3
 #include "isaac64.h"
 #include "mcell_structs.h"
@@ -34,13 +36,12 @@
 #include "datamodel_defines.h"
 #include "release_event.h"
 
-#include "concentration_clamp_release_event.h"
 
 using namespace std;
 
 namespace MCell {
 
-void ConcentrationClampReleaseEvent::dump(const std::string indent) const {
+void ClampReleaseEvent::dump(const std::string indent) const {
   cout << "Concentration clamp event:\n";
   string ind2 = indent + "  ";
   BaseEvent::dump(ind2);
@@ -52,18 +53,18 @@ void ConcentrationClampReleaseEvent::dump(const std::string indent) const {
 }
 
 
-void ConcentrationClampReleaseEvent::to_data_model(Json::Value& mcell_node) const {
+void ClampReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   // --- define_surface_classes --- (only when needed)
   Json::Value& define_surface_classes = mcell_node[KEY_DEFINE_SURFACE_CLASSES];
   DMUtil::add_version(define_surface_classes, VER_DM_2014_10_24_1638);
   Json::Value& surface_class_list = define_surface_classes[KEY_SURFACE_CLASS_LIST];
 
-  Json::Value cclamp;
-  cclamp[KEY_NAME] = world->get_all_species().get(surf_class_species_id).name;
-  cclamp[KEY_DESCRIPTION] = "";
-  DMUtil::add_version(cclamp, VER_DM_2018_01_11_1330);
+  Json::Value clamp;
+  clamp[KEY_NAME] = world->get_all_species().get(surf_class_species_id).name;
+  clamp[KEY_DESCRIPTION] = "";
+  DMUtil::add_version(clamp, VER_DM_2018_01_11_1330);
 
-  Json::Value& surface_prop_list = cclamp[KEY_SURFACE_CLASS_PROP_LIST];
+  Json::Value& surface_prop_list = clamp[KEY_SURFACE_CLASS_PROP_LIST];
   surface_prop_list = Json::Value(Json::arrayValue);
 
   Json::Value surface_prop_item;
@@ -76,13 +77,13 @@ void ConcentrationClampReleaseEvent::to_data_model(Json::Value& mcell_node) cons
   DMUtil::add_version(surface_prop_item, VER_DM_2015_11_08_1756);
 
   surface_prop_list.append(surface_prop_item);
-  surface_class_list.append(cclamp);
+  surface_class_list.append(clamp);
 
   // the affected region is printed in Partition::to_data_model
 }
 
 
-void ConcentrationClampReleaseEvent::update_cumm_areas_and_scaling() {
+void ClampReleaseEvent::update_cumm_areas_and_scaling() {
   float_t cumm_area = 0;
   for (auto& area_pindex_pair: cumm_area_and_pwall_index_pairs) {
     PartitionWallIndexPair pindex = area_pindex_pair.second;
@@ -158,7 +159,7 @@ run_concentration_clamp:
   Out: No return value.  Molecules are released at concentration-clamped
        surfaces to maintain the desired concentation.
 *************************************************************************/
-void ConcentrationClampReleaseEvent::step() {
+void ClampReleaseEvent::step() {
 
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
@@ -221,7 +222,7 @@ void ConcentrationClampReleaseEvent::step() {
     );
     new_vm.flags |= ACT_CLAMPED | IN_VOLUME | ACT_DIFFUSE | MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN;
 
-    new_vm.set_cclamp_orientation(o);
+    new_vm.set_clamp_orientation(o);
     new_vm.v.previous_wall_index = w.index;
 
     n_to_emit--;

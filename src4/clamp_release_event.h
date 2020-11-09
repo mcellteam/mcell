@@ -21,8 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_CONCENTRATION_CLAMP_RELEASE_EVENT_H_
-#define SRC4_CONCENTRATION_CLAMP_RELEASE_EVENT_H_
+#ifndef SRC4_CLAMP_RELEASE_EVENT_H_
+#define SRC4_CLAMP_RELEASE_EVENT_H_
 
 #include <vector>
 
@@ -31,16 +31,18 @@
 namespace MCell {
 
 /**
- * Molecules are released at concentration-clamped
- * surfaces to maintain the desired concentation.
+ * Molecules are released at:
+ * 1) concentration-clamped surfaces to maintain the desired concentration
+ * or
+ * 2) flux-clamped surfaces to maintain the desired influx
  *
  * Separate event from releases because it must be run after all releases and
  * viz/count outputs before diffusion.
  */
-class ConcentrationClampReleaseEvent: public BaseEvent {
+class ClampReleaseEvent: public BaseEvent {
 public:
-  ConcentrationClampReleaseEvent(World* world_) :
-    BaseEvent(EVENT_TYPE_INDEX_CONCENTRATION_CLAMP_RELEASE),
+  ClampReleaseEvent(World* world_) :
+    BaseEvent(EVENT_TYPE_INDEX_CLAMP_RELEASE),
     species_id(SPECIES_ID_INVALID),
     surf_class_species_id(SPECIES_ID_INVALID),
     concentration(FLT_INVALID),
@@ -49,7 +51,7 @@ public:
     world(world_) {
   }
 
-  virtual ~ConcentrationClampReleaseEvent() {}
+  virtual ~ClampReleaseEvent() {}
 
   void step() override;
 
@@ -74,4 +76,4 @@ private:
 } // namespace mcell
 
 
-#endif // SRC4_CONCENTRATION_CLAMP_RELEASE_EVENT_H_
+#endif // SRC4_CLAMP_RELEASE_EVENT_H_
