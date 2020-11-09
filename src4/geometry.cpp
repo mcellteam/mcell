@@ -509,17 +509,22 @@ void GeometryObject::to_data_model_as_model_object(
     }
 
     if (comp3d.has_parent()) {
-      const BNG::Compartment& comp2d = bng_data.get_compartment(comp3d.parent_compartment_id);
-      assert(!comp2d.is_3d);
-      // parent of this 3d object is its membrane
-      model_object[KEY_MEMBRANE_NAME] = comp2d.name;
-
-      if (comp2d.has_parent()) {
-        const BNG::Compartment& comp3d_parent =
-            bng_data.get_compartment(comp2d.parent_compartment_id);
-        assert(comp3d_parent.is_3d);
+      const BNG::Compartment& comp_parent = bng_data.get_compartment(comp3d.parent_compartment_id);
+      if (!comp_parent.is_3d) {
         // parent of this 3d object is its membrane
-        model_object[KEY_PARENT_OBJECT] = comp3d_parent.name;
+        model_object[KEY_MEMBRANE_NAME] = comp_parent.name;
+
+        if (comp_parent.has_parent()) {
+          const BNG::Compartment& comp3d_parent =
+              bng_data.get_compartment(comp_parent.parent_compartment_id);
+          assert(comp3d_parent.is_3d);
+          // parent of this 3d object is its membrane
+          model_object[KEY_PARENT_OBJECT] = comp3d_parent.name;
+        }
+      }
+      else {
+        // parent is this 3d object, membrane has no name
+        model_object[KEY_PARENT_OBJECT] = comp_parent.name;
       }
     }
   }
