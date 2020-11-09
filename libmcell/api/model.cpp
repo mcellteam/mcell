@@ -178,7 +178,7 @@ std::shared_ptr<API::Molecule> Model::get_molecule(const int id) {
     res->orientation = convert_orientation(m.s.orientation);
   }
   else {
-    res->pos3d = m.v.pos;
+    res->pos3d = m.v.pos * Vec3(world->config.length_unit);
     res->orientation = Orientation::NONE;
   }
   res->world = world;
