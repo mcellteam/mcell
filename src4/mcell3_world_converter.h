@@ -72,6 +72,8 @@ private:
   bool convert_geometry_meta_object_recursively(volume* s, geom_object* meta_inst);
   bool convert_geometry_objects(volume* s);
   bool convert_species(volume* s);
+  void create_clamp_release_event(
+      const pathway* current_pathway, const BNG::RxnRule& rxn, const std::vector<species_id_t>& reactant_species_ids);
   bool convert_single_reaction(const rxn *rx);
   bool convert_rxns(volume* s);
 

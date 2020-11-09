@@ -1139,8 +1139,16 @@ mcell_add_clamp(struct sym_table_head *rxn_sym_table,
     pathp->prod_signature = NULL;
   }
   else {
-    pathp->flags |= PATHW_CLAMP_FLUX;
+    pathp->flags |= PATHW_CLAMP_FLUX | PATHW_REFLEC;
+    pathp->product_head = NULL;
+    pathp->prod_signature = NULL;
 
+    /*
+    Original implementation from branch neumann_boundaries
+    created rxn a+ sc -> a, however in this case the molecules could pass through
+    the clamped membrane which does not seem correct*/
+
+#if 0
     struct product *prodp;
     prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
                                                     "reaction product");
@@ -1162,6 +1170,7 @@ mcell_add_clamp(struct sym_table_head *rxn_sym_table,
         return MCELL_FAIL;
       }
     }
+#endif
   }
 
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
@@ -1393,7 +1402,7 @@ int init_reactions(MCELL_STATE *state) {
                && path->km >= 0.0
                && ( ( path->product_head == NULL && (path->flags & PATHW_CLAMP_CONC) != 0 )
                   ||
-                  ( path->product_head != NULL && (path->flags & PATHW_CLAMP_FLUX) != 0 ) )
+                  ( path->product_head == NULL && (path->flags & PATHW_CLAMP_FLUX) != 0 ) )
              ) {
 
             struct clamp_data *cdp;
@@ -1436,6 +1445,16 @@ int init_reactions(MCELL_STATE *state) {
             }
             path->cclamp_concentration = path->km; // remember for mcell3->4 converter
             path->km = GIGANTIC;
+
+            if ((path->flags & PATHW_CLAMP_FLUX) != 0) {
+              rx->n_pathways = RX_REFLEC;
+              if (path->reactant2 != NULL &&
+                  (path->reactant2->flags & IS_SURFACE) &&
+                  (path->reactant1->flags & ON_GRID)) {
+                path->reactant1->flags |= CAN_REGION_BORDER;
+              }
+            }
+
           } else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
             if (path->reactant2 != NULL &&

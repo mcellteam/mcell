@@ -1018,6 +1018,38 @@ static bool get_variable_rates(const t_func* prob_t, small_vector<small_vector<B
 }
 
 
+void MCell3WorldConverter::create_clamp_release_event(
+    const pathway* current_pathway, const RxnRule& rxn, const std::vector<species_id_t>& reactant_species_ids) {
+
+  ConcentrationClampReleaseEvent* cclamp_event = new ConcentrationClampReleaseEvent(world);
+
+  // run each timestep
+  cclamp_event->event_time = 0;
+  cclamp_event->periodicity_interval = 1;
+
+  // which species to clamp
+  assert(!world->bng_engine.get_all_species().get(reactant_species_ids[0]).is_reactive_surface());
+  cclamp_event->species_id = reactant_species_ids[0];
+
+  assert(world->bng_engine.get_all_species().get(reactant_species_ids[1]).is_reactive_surface());
+  cclamp_event->surf_class_species_id = reactant_species_ids[1];
+
+  // on which side
+  if (rxn.reactants[0].get_orientation() == 0 || rxn.reactants[1].get_orientation() == 0) {
+    cclamp_event->orientation = 0;
+  }
+  else {
+    cclamp_event->orientation =
+        (rxn.reactants[0].get_orientation() == rxn.reactants[1].get_orientation()) ? ORIENTATION_UP : ORIENTATION_DOWN;
+  }
+
+  // use the rxn rate for concentration and the rxn that destroys molecules will happen always
+  cclamp_event->concentration = current_pathway->cclamp_concentration;
+
+  concentration_clamps.push_back(cclamp_event);
+}
+
+
 bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
@@ -1141,13 +1173,22 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       rxn.type = RxnType::Transparent;
     }
     else if (mcell3_rx->n_pathways == RX_REFLEC) {
-      CHECK_PROPERTY(current_pathway->flags == PATHW_REFLEC);
+      CHECK_PROPERTY(current_pathway->flags == PATHW_REFLEC || current_pathway->flags == (PATHW_REFLEC | PATHW_CLAMP_FLUX));
       rxn.type = RxnType::Reflect;
+
+      if ((current_pathway->flags & PATHW_CLAMP_FLUX) != 0) {
+        // the rxn is in the form of: a + sc -> null
+        rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_FLUX_CLAMP);
+        create_clamp_release_event(current_pathway, rxn, reactant_species_ids);
+        rxn.base_rate_constant = FLT_GIGANTIC;
+      }
     }
     else {
-      CHECK_PROPERTY(current_pathway->flags == 0 ||
+      CHECK_PROPERTY(
+          current_pathway->flags == 0 ||
           current_pathway->flags == PATHW_ABSORP ||
-          current_pathway->flags == PATHW_CLAMP_CONC);
+          current_pathway->flags == PATHW_CLAMP_CONC ||
+          current_pathway->flags == PATHW_CLAMP_FLUX);
 
       rxn.type = RxnType::Standard;
 
@@ -1163,40 +1204,17 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       }
 
       // create conc clamp event
+      assert(current_pathway->flags != PATHW_CLAMP_FLUX);
       if (current_pathway->flags == PATHW_CLAMP_CONC) {
         assert(rxn.is_bimol());
-
+        // the rxn is in the form of: a + sc -> null
         rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP);
 
-        ConcentrationClampReleaseEvent* cclamp_event = new ConcentrationClampReleaseEvent(world);
-
-        // run each timestep
-        cclamp_event->event_time = 0;
-        cclamp_event->periodicity_interval = 1;
-
-        // which species to clamp
-        assert(!world->bng_engine.get_all_species().get(reactant_species_ids[0]).is_reactive_surface());
-        cclamp_event->species_id = reactant_species_ids[0];
-
-        assert(world->bng_engine.get_all_species().get(reactant_species_ids[1]).is_reactive_surface());
-        cclamp_event->surf_class_species_id = reactant_species_ids[1];
-
-        // on which side
-        if (rxn.reactants[0].get_orientation() == 0 || rxn.reactants[1].get_orientation() == 0) {
-          cclamp_event->orientation = 0;
-        }
-        else {
-          cclamp_event->orientation =
-              (rxn.reactants[0].get_orientation() == rxn.reactants[1].get_orientation()) ? ORIENTATION_UP : ORIENTATION_DOWN;
-        }
-
-        // use the rxn rate for concentration and the rxn that destroys molecules will happen always
-        cclamp_event->concentration = current_pathway->cclamp_concentration;
+        create_clamp_release_event(current_pathway, rxn, reactant_species_ids);
         rxn.base_rate_constant = FLT_GIGANTIC;
-
-        concentration_clamps.push_back(cclamp_event);
       }
     }
+
 
     if (current_pathway->pathname != nullptr) {
       assert(current_pathway->pathname->sym != nullptr);
@@ -1214,8 +1232,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     // add our reaction, reaction classes are created on-the-fly
     world->get_all_rxns().add_and_finalize(rxn);
   }
-
-
 
   return true;
 }
