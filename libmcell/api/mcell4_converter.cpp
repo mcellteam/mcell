@@ -152,10 +152,11 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 }
 
 
-species_id_t MCell4Converter::get_species_id_for_complex(API::Complex& ci, const std::string error_msg) {
+species_id_t MCell4Converter::get_species_id_for_complex(
+    API::Complex& ci, const std::string error_msg, const bool check_orientation) {
   // check that the complex instance if fully qualified
 
-  BNG::Cplx bng_ci = convert_complex(ci, true);
+  BNG::Cplx bng_ci = convert_complex(ci, true, !check_orientation);
   if (!bng_ci.is_fully_qualified()) {
     // TODO: add test
     throw ValueError(
@@ -926,7 +927,8 @@ void MCell4Converter::convert_concentration_clamp_release(
   // which species to clamp
   clamp_event->species_id = get_species_id_for_complex(
       *surface_class.affected_complex_pattern,
-      S(NAME_CLASS_SURFACE_CLASS) + ", attribute " + NAME_AFFECTED_COMPLEX_PATTERN);
+      S(NAME_CLASS_SURFACE_CLASS) + ", attribute " + NAME_AFFECTED_COMPLEX_PATTERN,
+      false);
 
   // on which side
   clamp_event->orientation =

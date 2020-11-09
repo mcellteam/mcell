@@ -118,6 +118,11 @@ int process_args(
     return ARG_PARSE_ERROR;
   }
 
+  if (output_files_prefix == "Untitled") {
+    cout << "Ignoring files prefix 'Untitled'.\n";
+    output_files_prefix = "";
+  }
+
   return ARG_PARSE_OK;
 }
 

@@ -77,7 +77,7 @@ public:
 
 private:
   species_id_t get_species_id(API::Species& s, const std::string class_name, const std::string object_name);
-  species_id_t get_species_id_for_complex(API::Complex& ci, const std::string error_msg);
+  species_id_t get_species_id_for_complex(API::Complex& ci, const std::string error_msg, const bool check_orientation = true);
 
   void get_geometry_bounding_box(Vec3& llf, Vec3& urb);
   void convert_simulation_setup();
