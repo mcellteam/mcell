@@ -108,6 +108,7 @@ private:
   // indexed with rxn_rule_id_t
   // rxn rules are then in rxn container, this is a temporary placeholder
   // for parsing result
+  // TODO: remove and fix dump, not used?
   std::vector<RxnRule> rxn_rules;
   
   // not referenced by any other data in this class,
@@ -124,16 +125,6 @@ private:
 
 public:
   void clear();
-
-  // returns true if conversion was successful
-  // only one compartment and volume reactions are supported now
-  // returns empty string if everything went well,
-  // nonempty string with error message
-  std::string export_as_bngl(
-      std::ostream& out_parameters,
-      std::ostream& out_molecule_types,
-      std::ostream& out_reaction_rules,
-      const float_t volume) const;
 
   // -------- component state names --------
 
@@ -269,13 +260,6 @@ public:
 private:
   void dump_molecule_types() const;
   void dump_reaction_rules() const;
-
-  // when all_mol_types is false, no superclass species neither
-  // surface classes are exported
-  void export_molecule_types_as_bngl(
-      std::ostream& out_parameters, std::ostream& out_molecule_types) const;
-  void export_reaction_rules_as_bngl(
-      std::ostream& out_parameters, std::ostream& out_reaction_rules) const;
 };
 
 } /* namespace BNG2 */

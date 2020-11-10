@@ -8,7 +8,6 @@
 #include <iostream>
 
 #include "bng/bng_data.h"
-#include "bng/bngl_names.h"
 
 using namespace std;
 
@@ -163,57 +162,6 @@ rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
   rxn_rules.push_back(rr);
   rxn_rules.back().id = id;
   return id;
-}
-
-
-std::string BNGData::export_as_bngl(
-    std::ostream& out_parameters,
-    std::ostream& out_molecule_types,
-    std::ostream& out_reaction_rules,
-    const float_t volume) const {
-
-  export_molecule_types_as_bngl(out_parameters, out_molecule_types);
-  export_reaction_rules_as_bngl(out_parameters, out_reaction_rules);
-
-  return "";
-}
-
-
-void BNGData::export_molecule_types_as_bngl(std::ostream& out_parameters, std::ostream& out_molecule_types) const {
-  out_molecule_types << BEGIN_MOLECULE_TYPES << "\n";
-
-  for (const MolType& mt: molecule_types) {
-    if (!mt.is_reactive_surface() && !is_species_superclass(mt.name)) {
-      // define as mol type
-      out_molecule_types << IND << mt.to_str(*this) << "\n";
-      
-      // and also set its diffusion constant as parameter
-      if (mt.is_vol()) {
-        out_parameters << IND << MCELL_DIFFUSION_CONSTANT_3D_PREFIX << mt.name << " " << f_to_str(mt.D) << "\n";
-      }
-      else if (mt.is_surf()){
-        out_parameters << IND << MCELL_DIFFUSION_CONSTANT_2D_PREFIX << mt.name << " " << f_to_str(mt.D) << "\n";
-      }
-    }
-  }
-
-  out_molecule_types << END_MOLECULE_TYPES << "\n";
-}
-
-
-void BNGData::export_reaction_rules_as_bngl(
-    std::ostream& out_parameters,
-    std::ostream& out_reaction_rules) const {
-  out_reaction_rules << BEGIN_REACTION_RULES << "\n";
-
-  for (const RxnRule& rr: rxn_rules) {
-    out_reaction_rules << "  ";
-    // TODO: params
-    rr.dump(true, "", out_reaction_rules);
-    out_reaction_rules << "\n";
-  }
-
-  out_reaction_rules << END_REACTION_RULES << "\n";
 }
 
 

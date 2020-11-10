@@ -437,10 +437,17 @@ std::string World::export_as_bngl(const std::string& file_name) const {
   stringstream reaction_rules;
 
   // TODO: determine volume and define compartment
+  const Partition& p = get_partition(PARTITION_ID_INITIAL);
+  if (p.get_geometry_objects().size() != 1) {
+    return "The only supported models currently are those that have exactly 1 geometry object.";
+  }
+  const GeometryObject& obj = p.get_geometry_objects()[0];
+  // TODO
+
   float_t volume = 1.0;
 
   parameters << BNG::BEGIN_PARAMETERS << "\n";
-  string err_msg = bng_engine.get_data().export_as_bngl(
+  string err_msg = bng_engine.export_as_bngl(
       parameters, molecule_types, reaction_rules, volume);
   if (err_msg != "") {
     out.close();
@@ -448,9 +455,15 @@ std::string World::export_as_bngl(const std::string& file_name) const {
   }
   parameters << BNG::END_PARAMETERS << "\n";
 
-  out << parameters.str();
-  out << molecule_types.str();
-  out << reaction_rules.str();
+  out << parameters.str() << "\n";
+  out << molecule_types.str() << "\n";
+
+  // compartments
+
+
+  // seed species
+
+  out << reaction_rules.str() << "\n";
   out.close();
 
   return "";

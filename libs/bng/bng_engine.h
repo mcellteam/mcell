@@ -72,6 +72,26 @@ public:
   const BNGConfig& get_config() const { return bng_config; }
 
   Cplx create_cplx_from_species(const species_id_t id, const orientation_t o, const compartment_id_t compartment_id) const;
+
+
+  // returns true if conversion was successful
+  // only one compartment and volume reactions are supported now
+  // returns empty string if everything went well,
+  // nonempty string with error message
+  std::string export_as_bngl(
+      std::ostream& out_parameters,
+      std::ostream& out_molecule_types,
+      std::ostream& out_reaction_rules,
+      const float_t volume_um3) const;
+
+private:
+
+  // when all_mol_types is false, no superclass species neither
+  // surface classes are exported
+  void export_molecule_types_as_bngl(
+      std::ostream& out_parameters, std::ostream& out_molecule_types) const;
+  void export_reaction_rules_as_bngl(
+      std::ostream& out_parameters, std::ostream& out_reaction_rules) const;
 };
 
 

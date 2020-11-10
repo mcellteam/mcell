@@ -35,8 +35,6 @@ const uint MAX_PRODUCT_SETS_PER_RXN = 1024*1024;
 // and we know the count of the product, do not compute the products immediatelly
 const uint MAX_IMMEDIATELLY_COMPUTED_PRODUCT_SETS_PER_RXN = 8;
 
-const char* const MCELL_REDEFINE_PREFIX = "MCELL_REDEFINE_";
-
 typedef uint state_id_t;
 const state_id_t STATE_ID_INVALID = UINT32_MAX;
 

@@ -5,6 +5,7 @@
 
 #include "bng/ast.h"
 #include "bng/parser_utils.h"
+#include "bng/bngl_names.h"
 
 using namespace std;
 
