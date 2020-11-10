@@ -27,6 +27,7 @@
 #include <iostream>
 
 #include "json/json.h"
+#include "bng/bngl_names.h"
 
 namespace MCell {
 
@@ -44,9 +45,9 @@ public:
 
   void generate_compartments();
 
-  void open_reaction_rules_section() { bng_out << "begin reaction rules\n"; }
+  void open_reaction_rules_section() { bng_out << BNG::BEGIN_REACTION_RULES << "\n"; }
   std::string generate_single_reaction_rule(Json::Value& reaction_list_item, const bool generate_name);
-  void close_reaction_rules_section() { bng_out << "end reaction rules\n\n"; }
+  void close_reaction_rules_section() { bng_out << BNG::END_REACTION_RULES << "\n\n"; }
 
   void add_comment(const std::string& text) { bng_out << "# " << text << "\n"; }
 

@@ -58,7 +58,7 @@ void BNGLGenerator::generate_parameters(std::ostream& python_out) {
   python_out << VAR_BNGL_PARAMS << " = m.bngl_utils.load_bngl_parameters('" << bngl_filename << "')\n\n";
 
   // and generate BNGL parameters and also their Python representations
-  bng_out << "begin parameters\n";
+  bng_out << BNG::BEGIN_PARAMETERS << "\n";
   Value& parameter_system = get_node(data.mcell, KEY_PARAMETER_SYSTEM);
   if (parameter_system.isMember(KEY_MODEL_PARAMETERS)) {
     Value& parameter_list = get_node(parameter_system, KEY_MODEL_PARAMETERS);
@@ -67,7 +67,7 @@ void BNGLGenerator::generate_parameters(std::ostream& python_out) {
       generate_single_python_parameter(python_out, parameter_list[i]);
     }
   }
-  bng_out << "end parameters\n\n";
+  bng_out << BNG::END_PARAMETERS << "\n\n";
   python_out << "\n";
 }
 
@@ -148,7 +148,7 @@ void BNGLGenerator::generate_python_mol_type_info(
 
 
 void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
-  bng_out << "begin molecule types\n";
+  bng_out << BNG::BEGIN_MOLECULE_TYPES << "\n";
 
   python_out <<
       "# set additional information about species and molecule types that cannot be stored in BNGL,\n"
@@ -172,7 +172,7 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
   }
 
   python_out << "\n";
-  bng_out << "end molecule types\n\n";
+  bng_out << BNG::END_MOLECULE_TYPES << "\n\n";
 }
 
 
@@ -254,7 +254,7 @@ void BNGLGenerator::generate_compartments() {
     return;
   }
 
-  bng_out << "begin compartments\n";
+  bng_out << BNG::BEGIN_COMPARTMENTS << "\n";
   bng_out <<
       IND << "# - volumes of compartments do not have correct values \n" <<
       IND << "# - this file is loaded through Subsystem.load_bngl_molecule_types_and_reaction_rules and\n" <<
@@ -270,7 +270,7 @@ void BNGLGenerator::generate_compartments() {
     }
   }
 
-  bng_out << "end compartments\n\n";
+  bng_out << BNG::END_COMPARTMENTS << "\n\n";
 }
 
 
