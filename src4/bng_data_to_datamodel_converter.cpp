@@ -187,14 +187,14 @@ void BngDataToDatamodelConverter::convert_single_mol_type(const BNG::MolType& mt
   }
 
   if (mt.custom_space_step != 0) {
-    molecule_node[KEY_CUSTOM_SPACE_STEP] = DMUtil::f_to_string(mt.custom_space_step);
+    molecule_node[KEY_CUSTOM_SPACE_STEP] = f_to_str(mt.custom_space_step);
   }
   else {
     molecule_node[KEY_CUSTOM_SPACE_STEP] = "";
   }
 
   if (mt.custom_time_step != 0) {
-    molecule_node[KEY_CUSTOM_TIME_STEP] = DMUtil::f_to_string(mt.custom_time_step);
+    molecule_node[KEY_CUSTOM_TIME_STEP] = f_to_str(mt.custom_time_step);
   }
   else {
     molecule_node[KEY_CUSTOM_TIME_STEP] = "";
@@ -202,7 +202,7 @@ void BngDataToDatamodelConverter::convert_single_mol_type(const BNG::MolType& mt
 
   molecule_node[KEY_MAXIMUM_STEP_LENGTH] = "";
   molecule_node[KEY_TARGET_ONLY] = mt.cant_initiate();
-  molecule_node[KEY_DIFFUSION_CONSTANT] = DMUtil::f_to_string(mt.D);
+  molecule_node[KEY_DIFFUSION_CONSTANT] = f_to_str(mt.D);
   molecule_node[KEY_SPATIAL_STRUCTURE] = "None";
   molecule_node[KEY_MOL_NAME] = mt.name;
 
@@ -264,7 +264,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   rxn_node[KEY_NAME] = reactants + " -> " + products;
 
   if (r.base_variable_rates.empty()) {
-    rxn_node[KEY_FWD_RATE] = DMUtil::f_to_string(r.base_rate_constant);
+    rxn_node[KEY_FWD_RATE] = f_to_str(r.base_rate_constant);
     rxn_node[KEY_BKWD_RATE] = "";
 
     CHECK_PROPERTY_W_NAME(r.base_variable_rates.empty(), r.name);

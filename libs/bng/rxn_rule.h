@@ -457,7 +457,7 @@ public:
       const bool with_rate_constant = true, const bool with_name = true, const bool with_id = true) const;
   std::string reactants_to_str() const;
   std::string products_to_str() const;
-  void dump(const bool for_diff = false, const std::string ind = "") const;
+  void dump(const bool for_diff = false, const std::string ind = "", std::ostream& out = std::cout) const;
 
 private:
   void create_patterns_graph();

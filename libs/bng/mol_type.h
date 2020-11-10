@@ -30,6 +30,7 @@ public:
     return name == ct2.name && allowed_state_ids == ct2.allowed_state_ids;
   }
 
+  std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data) const;
 };
 
@@ -117,6 +118,7 @@ public:
     return res;
   }
 
+  std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data) const;
 };
 

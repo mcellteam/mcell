@@ -293,7 +293,7 @@ void MolOrRxnCountItem::to_data_model(const World* world, Json::Value& reaction_
   }
 
   if (multiplier != 1) {
-    mdl_string = DMUtil::f_to_string(multiplier) + "*(" + mdl_string + ")";
+    mdl_string = f_to_str(multiplier) + "*(" + mdl_string + ")";
   }
 
   reaction_output[KEY_MDL_STRING] = mdl_string;
@@ -582,7 +582,7 @@ void MolOrRxnCountEvent::to_data_model(Json::Value& mcell_node) const {
   // (period in second on how often to dump the counted data)
   // at least this is the only supported option in data model right now
   const string& orig_rxn_step = reaction_data_output[KEY_RXN_STEP].asString();
-  string new_rxn_step = DMUtil::f_to_string(periodicity_interval * world->config.time_unit);
+  string new_rxn_step = f_to_str(periodicity_interval * world->config.time_unit);
 
   if (orig_rxn_step != "" && orig_rxn_step != new_rxn_step) {
     mcell_log(

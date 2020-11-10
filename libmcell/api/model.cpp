@@ -356,6 +356,13 @@ void Model::load_bngl(
 }
 
 
+void Model::export_as_bngl(const std::string& file_name) {
+  string err_msg = world->export_as_bngl(file_name);
+  if (err_msg != "") {
+    throw RuntimeError("BNGL export failed: " + err_msg);
+  }
+}
+
 
 // overrides from derived classes Subsystem, InstantiationData, and Observables,
 // in .cpp because implementation in .h file would need too many headers to be included

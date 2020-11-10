@@ -12,6 +12,7 @@
 
 namespace BNG {
 
+using BNGCommon::f_to_str;
 using BNGCommon::float_t;
 using BNGCommon::EPS;
 using BNGCommon::BNG_PI;
@@ -98,6 +99,18 @@ static std::string compartment_id_to_str(const compartment_id_t id) {
     default: return std::to_string(id);
   }
 }
+
+// same string are defined as API::ALL... in libmcell's gen_constants.h but
+// we want BNG lib to be independent
+const char* const ALL_MOLECULES = "ALL_MOLECULES";
+const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
+const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
+const int NUM_GENERAL_SPECIES = 3;
+
+static bool is_species_superclass(const std::string& name) {
+  return name == ALL_MOLECULES || name == ALL_VOLUME_MOLECULES || name == ALL_SURFACE_MOLECULES;
+}
+
 
 typedef std::set<compartment_id_t> CompartmentIdSet;
 

@@ -45,7 +45,6 @@
 #include "api/geometry_object.h"
 #include "api/model.h"
 
-
 using namespace std;
 
 const double USEC_IN_SEC = 1000000.0;
@@ -424,6 +423,40 @@ bool World::check_for_overlapped_walls() {
 }
 
 
+// returns empty string if everything went well, nonempty string with error message
+std::string World::export_as_bngl(const std::string& file_name) const {
+
+  ofstream out;
+  out.open(file_name);
+  if (!out.is_open()) {
+    return "Could not open output file " + file_name + ".";
+  }
+
+  stringstream parameters;
+  stringstream molecule_types;
+  stringstream reaction_rules;
+
+  // TODO: determine volume and define compartment
+  float_t volume = 1.0;
+
+  parameters << BNG::BEGIN_PARAMETERS << "\n";
+  string err_msg = bng_engine.get_data().export_as_bngl(
+      parameters, molecule_types, reaction_rules, volume);
+  if (err_msg != "") {
+    out.close();
+    return err_msg;
+  }
+  parameters << BNG::END_PARAMETERS << "\n";
+
+  out << parameters.str();
+  out << molecule_types.str();
+  out << reaction_rules.str();
+  out.close();
+
+  return "";
+}
+
+
 void World::export_data_model_to_dir(const std::string& prefix, const bool only_for_viz) const {
   // prefix should be the same directory that is used for viz_output,
   // e.g. ./viz_data/seed_0001/Scene
@@ -441,7 +474,7 @@ void World::export_data_model_to_dir(const std::string& prefix, const bool only_
 }
 
 
-void World::export_data_model(const std::string& filename, const bool only_for_viz) const {
+void World::export_data_model(const std::string& file_name, const bool only_for_viz) const {
 
   Json::Value root;
   to_data_model(root, only_for_viz);
@@ -453,14 +486,14 @@ void World::export_data_model(const std::string& filename, const bool only_for_v
   std::string document = Json::writeString(wbuilder, root);
 
   // write result into a file
-  ofstream res_file(filename);
+  ofstream res_file(file_name);
   if (res_file.is_open())
   {
     res_file << document;
     res_file.close();
   }
   else {
-    cout << "Unable to open file " << filename << " for writing.\n";
+    cout << "Unable to open file " << file_name << " for writing.\n";
   }
 
   // also, if rxn_output was enabled and in the first iteration, generate data_layout.json file
@@ -594,7 +627,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   DMUtil::add_version(initialization, VER_DM_2017_11_18_0130);
 
   // time step will most probably use rounded values, therefore we don't have to use full precision here
-  initialization[KEY_TIME_STEP] = DMUtil::f_to_string(config.time_unit, 8);
+  initialization[KEY_TIME_STEP] = f_to_str(config.time_unit, 8);
   initialization[KEY_ITERATIONS] = to_string(total_iterations);
 
   initialization[KEY_INTERACTION_RADIUS] = "";
@@ -609,10 +642,10 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
 
   // reversed computation from mcell3's init_reactions
   float_t vsd = sqrt(config.vacancy_search_dist2) * config.length_unit;
-  initialization[KEY_VACANCY_SEARCH_DISTANCE] = DMUtil::f_to_string(vsd);
+  initialization[KEY_VACANCY_SEARCH_DISTANCE] = f_to_str(vsd);
 
   initialization[KEY_SPACE_STEP] = "";
-  initialization[KEY_SURFACE_GRID_DENSITY] = DMUtil::f_to_string(config.grid_density);
+  initialization[KEY_SURFACE_GRID_DENSITY] = f_to_str(config.grid_density);
 
   // --- warnings ---
   Json::Value& warnings = initialization[KEY_WARNINGS];
@@ -656,15 +689,15 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   const Vec3& origin = (config.partition0_llf * config.length_unit);
   float_t length = config.partition_edge_length * config.length_unit;
 
-  partitions[KEY_X_START] = DMUtil::f_to_string(origin.x);
-  partitions[KEY_X_END] = DMUtil::f_to_string(origin.x + length);
-  partitions[KEY_Y_START] = DMUtil::f_to_string(origin.y);
-  partitions[KEY_Y_END] = DMUtil::f_to_string(origin.y + length);
-  partitions[KEY_Z_START] = DMUtil::f_to_string(origin.z);
-  partitions[KEY_Z_END] = DMUtil::f_to_string(origin.z + length);
+  partitions[KEY_X_START] = f_to_str(origin.x);
+  partitions[KEY_X_END] = f_to_str(origin.x + length);
+  partitions[KEY_Y_START] = f_to_str(origin.y);
+  partitions[KEY_Y_END] = f_to_str(origin.y + length);
+  partitions[KEY_Z_START] = f_to_str(origin.z);
+  partitions[KEY_Z_END] = f_to_str(origin.z + length);
 
   float_t step = config.subpartition_edge_length * config.length_unit;
-  string step_str = DMUtil::f_to_string(step);
+  string step_str = f_to_str(step);
   partitions[KEY_X_STEP] = step_str;
   partitions[KEY_Y_STEP] = step_str;
   partitions[KEY_Z_STEP] = step_str;

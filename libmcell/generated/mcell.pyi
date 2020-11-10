@@ -611,6 +611,12 @@ class Model():
         ) -> None:
         pass
 
+    def export_as_bngl(
+            self,
+            file_name : str
+        ) -> None:
+        pass
+
     def add_species(
             self,
             s : Species

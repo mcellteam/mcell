@@ -95,6 +95,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("apply_vertex_moves", &Model::apply_vertex_moves, py::arg("collect_wall_wall_hits") = false)
       .def("register_mol_wall_hit_callback", &Model::register_mol_wall_hit_callback, py::arg("function"), py::arg("context"), py::arg("object") = nullptr, py::arg("species") = nullptr)
       .def("load_bngl", &Model::load_bngl, py::arg("file_name"), py::arg("observables_files_prefix"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
+      .def("export_as_bngl", &Model::export_as_bngl, py::arg("file_name"))
       .def("add_species", &Model::add_species, py::arg("s"))
       .def("find_species", &Model::find_species, py::arg("name"))
       .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("r"))

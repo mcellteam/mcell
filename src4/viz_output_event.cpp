@@ -282,7 +282,7 @@ bool VizOutputEvent::should_visualize_all_species() const {
   // we are counting only specific vol & surf species, not reactive surfaces
   uint vol_surf_species_count = 0;
   for (const BNG::Species& s: world->get_all_species().get_species_vector()) {
-    if (!is_species_superclass(s.name) && !s.is_reactive_surface()) {
+    if (!BNG::is_species_superclass(s.name) && !s.is_reactive_surface()) {
       vol_surf_species_count++;
     }
   }
@@ -299,9 +299,9 @@ void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
   DMUtil::add_version(viz_output, VER_DM_2014_10_24_1638);
 
   viz_output[KEY_EXPORT_ALL] = should_visualize_all_species();
-  viz_output[KEY_START] = DMUtil::f_to_string(event_time);
+  viz_output[KEY_START] = f_to_str(event_time);
   viz_output[KEY_ALL_ITERATIONS] = cmp_eq(periodicity_interval, 1.0);
-  viz_output[KEY_STEP] = DMUtil::f_to_string(periodicity_interval);
+  viz_output[KEY_STEP] = f_to_str(periodicity_interval);
   viz_output[KEY_END] = to_string(world->total_iterations);
 
 }

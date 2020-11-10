@@ -543,7 +543,7 @@ void InitialRegionMolecules::to_data_model(
     initial_region_molecules[KEY_MOLECULE_NUMBER] = to_string(release_num);
   }
   else {
-    initial_region_molecules[KEY_MOLECULE_DENSITY] = DMUtil::f_to_string(release_density);
+    initial_region_molecules[KEY_MOLECULE_DENSITY] = f_to_str(release_density);
   }
 }
 

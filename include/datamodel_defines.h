@@ -12,14 +12,6 @@ const char* const DEFAULT_DATA_MODEL_VIZ_FILENAME = "data_model_viz.json";
 
 const char* const DEFAULT_DATA_LAYOUT_FILENAME = "data_layout.json";
 
-// same string are defined as API::ALL... in libmcell's gen_constants.h, but
-// using them brigs for now many dependencies in the generated gen_constants.h
-// so at least for now, the definitions are repeated
-const char* const ALL_MOLECULES = "ALL_MOLECULES";
-const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
-const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
-const int NUM_GENERAL_SPECIES = 3;
-
 // ---------------------------------- datamodel constants----------------------------------
 
 const char* const VER_DM_2017_11_18_0130 = "DM_2017_11_18_0130";
@@ -475,23 +467,6 @@ static inline std::string to_id(const std::string& name) {
 }
 
 
-// NOTE: we must be sure to use our BNGCommon::float_t here otherwise 
-// there will be conversion imprecisions if float_t from 'math.h' is used
-static inline std::string f_to_string(const float_t val, const int n = 17)
-{
-  std::stringstream out;
-  if (val == 0.0) {
-    return "0";
-  }
-  else if (val <= 0.01 || val >= 100000) {
-    out << std::scientific;
-  }
-  out.precision(n);
-  out << val;
-  return out.str();
-}
-
-
 static inline std::string orientation_to_str(const orientation_t o) {
   switch (o) {
     case ORIENTATION_DOWN: return ",";
@@ -511,14 +486,5 @@ static inline std::string orientation_to_str(const orientation_t o) {
   do { if (!(cond)) { errs() << "Check failed: " << #cond << ": " << msg << " This is not supported yet.\n"; exit(1); } } while (0)
 
 } // namespace DMUtil
-
-// TODO: make some common header with utilities and move this there
-namespace MCell {
-
-static bool is_species_superclass(const std::string& name) {
-  return name == ALL_MOLECULES || name == ALL_VOLUME_MOLECULES || name == ALL_SURFACE_MOLECULES;
-}
-
-} // namespace MCell
 
 #endif // _DATAMODEL_DEFINES_H_

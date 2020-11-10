@@ -112,6 +112,7 @@ const char* const NAME_ELEMENTARY_MOLECULE_TYPE = "elementary_molecule_type";
 const char* const NAME_ELEMENTARY_MOLECULE_TYPES = "elementary_molecule_types";
 const char* const NAME_END_SIMULATION = "end_simulation";
 const char* const NAME_EVERY_N_TIMESTEPS = "every_n_timesteps";
+const char* const NAME_EXPORT_AS_BNGL = "export_as_bngl";
 const char* const NAME_EXPORT_DATA_MODEL = "export_data_model";
 const char* const NAME_EXPORT_VIZ_DATA_MODEL = "export_viz_data_model";
 const char* const NAME_FILE = "file";

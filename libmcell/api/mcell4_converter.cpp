@@ -464,7 +464,7 @@ void MCell4Converter::convert_species() {
       new_species.set_is_surf();
       new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
-    else if (is_species_superclass(new_species.name)) {
+    else if (BNG::is_species_superclass(new_species.name)) {
       is_vol = new_species.name != ALL_SURFACE_MOLECULES;
       // these values are not really used, they are initialized for comparisons
       new_species.D = 0;

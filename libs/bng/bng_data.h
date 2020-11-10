@@ -125,6 +125,16 @@ private:
 public:
   void clear();
 
+  // returns true if conversion was successful
+  // only one compartment and volume reactions are supported now
+  // returns empty string if everything went well,
+  // nonempty string with error message
+  std::string export_as_bngl(
+      std::ostream& out_parameters,
+      std::ostream& out_molecule_types,
+      std::ostream& out_reaction_rules,
+      const float_t volume) const;
+
   // -------- component state names --------
 
   state_id_t find_or_add_state_name(const std::string& s);
@@ -254,11 +264,18 @@ public:
   }
 
   // -------- utilities --------
-  void dump();
+  void dump() const;
 
 private:
-  void dump_molecule_types_as_bngl();
-  void dump_reaction_rules_as_bngl();
+  void dump_molecule_types() const;
+  void dump_reaction_rules() const;
+
+  // when all_mol_types is false, no superclass species neither
+  // surface classes are exported
+  void export_molecule_types_as_bngl(
+      std::ostream& out_parameters, std::ostream& out_molecule_types) const;
+  void export_reaction_rules_as_bngl(
+      std::ostream& out_parameters, std::ostream& out_reaction_rules) const;
 };
 
 } /* namespace BNG2 */

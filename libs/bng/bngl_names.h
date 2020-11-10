@@ -1,5 +1,5 @@
-#ifndef LIBS_BNG_BNG_DATA_H_
-#define LIBS_BNG_BNG_DATA_H_
+#ifndef LIBS_BNG_BNGL_NAMES_H_
+#define LIBS_BNG_BNGL_NAMES_H_
 
 namespace BNG {
 
@@ -15,6 +15,11 @@ const char* const END_COMPARTMENTS = "end compartments";
 const char* const BEGIN_REACTION_RULES = "begin reaction rules";
 const char* const END_REACTION_RULES = "end reaction rules";
 
+const char* const MCELL_DIFFUSION_CONSTANT_3D_PREFIX = "MCELL_DIFFUSION_CONSTANT_3D_";
+const char* const MCELL_DIFFUSION_CONSTANT_2D_PREFIX = "MCELL_DIFFUSION_CONSTANT_2D_";
+
+const char* const IND = "  ";
+
 } // namespace BNG
 
-#endif LIBS_BNG_BNG_DATA_H_
+#endif LIBS_BNG_BNGL_NAMES_H_

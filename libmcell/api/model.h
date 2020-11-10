@@ -104,11 +104,7 @@ public:
       const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
   ) override;
 
-  void error_if_initialized(const char* what) {
-    if (initialized) {
-      throw(S("It is not possible to add ") + what + " once a model was initialized.");
-    }
-  }
+  void export_as_bngl(const std::string& file_name) override;
 
   // overrides from derived classes Subsystem, InstantiationData, and Observables
   void add_species(std::shared_ptr<Species> s) override;
@@ -126,6 +122,12 @@ public:
   std::string to_str(const std::string ind="") const;
 
   std::shared_ptr<GeometryObject> get_geometry_object_with_id(const geometry_object_id_t id);
+
+  void error_if_initialized(const char* what) {
+    if (initialized) {
+      throw(S("It is not possible to add ") + what + " once a model was initialized.");
+    }
+  }
 
   void dump() const;
 

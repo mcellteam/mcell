@@ -265,11 +265,11 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
 
   DMUtil::add_version(release_pattern_item, VER_DM_2018_01_11_1330);
 
-  release_pattern_item[KEY_DELAY] = DMUtil::f_to_string(delay * world->config.time_unit);
+  release_pattern_item[KEY_DELAY] = f_to_str(delay * world->config.time_unit);
   release_pattern_item[KEY_NUMBER_OF_TRAINS] = to_string(number_of_trains);
-  release_pattern_item[KEY_TRAIN_INTERVAL] = DMUtil::f_to_string(train_interval * world->config.time_unit);
-  release_pattern_item[KEY_TRAIN_DURATION] = DMUtil::f_to_string(train_duration * world->config.time_unit);
-  release_pattern_item[KEY_RELEASE_INTERVAL] = DMUtil::f_to_string(release_interval * world->config.time_unit);
+  release_pattern_item[KEY_TRAIN_INTERVAL] = f_to_str(train_interval * world->config.time_unit);
+  release_pattern_item[KEY_TRAIN_DURATION] = f_to_str(train_duration * world->config.time_unit);
+  release_pattern_item[KEY_RELEASE_INTERVAL] = f_to_str(release_interval * world->config.time_unit);
 
   string name;
   if (release_pattern_name != "") {
@@ -332,7 +332,7 @@ void ReleaseEvent::to_data_model_as_one_release_site(
     case ReleaseNumberMethod::ConcentrationNum:
     case ReleaseNumberMethod::DensityNum:
       release_site[KEY_QUANTITY_TYPE] = VALUE_DENSITY;
-      release_site[KEY_QUANTITY] = DMUtil::f_to_string(concentration);
+      release_site[KEY_QUANTITY] = f_to_str(concentration);
       break;
     default:
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has invalid release_number_method.");
@@ -344,7 +344,7 @@ void ReleaseEvent::to_data_model_as_one_release_site(
   release_site[KEY_PATTERN] = data_model_release_pattern_name;
 
   release_site[KEY_STDDEV] = "0"; // TODO
-  release_site[KEY_RELEASE_PROBABILITY] = DMUtil::f_to_string(1.0);  // only 1 for now
+  release_site[KEY_RELEASE_PROBABILITY] = f_to_str(1.0);  // only 1 for now
 
   // where to release
   switch (release_shape) {
@@ -368,9 +368,9 @@ void ReleaseEvent::to_data_model_as_one_release_site(
 
   if (release_shape != ReleaseShape::REGION) {
     if (release_shape != ReleaseShape::LIST) {
-      release_site[KEY_LOCATION_X] = DMUtil::f_to_string(location.x * world->config.length_unit);
-      release_site[KEY_LOCATION_Y] = DMUtil::f_to_string(location.y * world->config.length_unit);
-      release_site[KEY_LOCATION_Z] = DMUtil::f_to_string(location.z * world->config.length_unit);
+      release_site[KEY_LOCATION_X] = f_to_str(location.x * world->config.length_unit);
+      release_site[KEY_LOCATION_Y] = f_to_str(location.y * world->config.length_unit);
+      release_site[KEY_LOCATION_Z] = f_to_str(location.z * world->config.length_unit);
     }
     else {
       assert(points_list_begin_index < points_list_end_index);
@@ -383,7 +383,7 @@ void ReleaseEvent::to_data_model_as_one_release_site(
     }
 
     CONVERSION_CHECK(diameter.x == diameter.y && diameter.y == diameter.z, "Datamodel does not support different diameters.");
-    release_site[KEY_SITE_DIAMETER] = DMUtil::f_to_string(diameter.x * world->config.length_unit);
+    release_site[KEY_SITE_DIAMETER] = f_to_str(diameter.x * world->config.length_unit);
   }
 
   release_site_list.append(release_site);

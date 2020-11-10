@@ -14,5 +14,6 @@
 #include "bng/rxn_compartment_utils.h"
 #include "bng/species.h"
 #include "bng/parser.h"
+#include "bng/bngl_names.h"
 
 #endif // LIBS_BNG_H_

@@ -98,6 +98,7 @@
 namespace MCell {
 
 // import shared declarations from BNG into our own namespace
+using BNGCommon::f_to_str;
 using BNGCommon::float_t;
 using BNGCommon::EPS;
 using BNGCommon::SQRT_EPS;

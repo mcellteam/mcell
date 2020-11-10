@@ -68,7 +68,7 @@ void ClampReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   surface_prop_list = Json::Value(Json::arrayValue);
 
   Json::Value surface_prop_item;
-  surface_prop_item[KEY_CLAMP_VALUE] = DMUtil::f_to_string(concentration);
+  surface_prop_item[KEY_CLAMP_VALUE] = f_to_str(concentration);
   surface_prop_item[KEY_SURF_CLASS_ORIENT] = DMUtil::orientation_to_str(orientation);
   surface_prop_item[KEY_MOLECULE] = world->get_all_species().get(species_id).name;
   surface_prop_item[KEY_NAME] = ""; // blender exports name but it does not seem to be needed

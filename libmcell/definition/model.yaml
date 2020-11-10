@@ -201,7 +201,7 @@ Model:
   
   - name: load_bngl
     doc: | 
-      Loads sections: molecule types, reaction rules, seed species, and observables from a BNGL file
+      Loads sections\: molecule types, reaction rules, seed species, and observables from a BNGL file
       and creates objects in the current model according to it.
       All elementary molecule types used in the seed species section must be defined in subsystem.
       If an item in the seed species section does not have its compartment set,
@@ -222,4 +222,14 @@ Model:
     - name: parameter_overrides
       type: Dict[str, float]
       default: empty
+      
+  - name: export_as_bngl
+    doc: |
+      Exports all defined species, reaction rules and applicable observables
+      as a BNGL file. 
+      Limited currrently to exactly one volume compartment and volume reactions.
+    params:
+    - name: file_name
+      type: str
+      doc: Output file name.
       

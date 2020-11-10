@@ -1948,7 +1948,8 @@ void RxnRule::dump_cplx_vector(
 }
 
 
-void RxnRule::dump(const bool for_diff, const std::string ind) const {
+void RxnRule::dump(
+    const bool for_diff, const std::string ind, std::ostream& out_reaction_rules) const {
   if (!for_diff) {
     cout << ind << to_str();
   }

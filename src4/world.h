@@ -160,9 +160,12 @@ public:
 
   void dump();
 
+  // returns empty string if everything went well, nonempty string with error message
+  std::string export_as_bngl(const std::string& file_name) const;
+
   // the export to directory is usually called periodically and the output is used for visualization
   void export_data_model_to_dir(const std::string& prefix, const bool only_for_viz = true) const;
-  void export_data_model(const std::string& filename, const bool only_for_viz) const;
+  void export_data_model(const std::string& file_name, const bool only_for_viz) const;
 
   void to_data_model(Json::Value& root, const bool only_for_viz) const;
 
@@ -173,9 +176,9 @@ public:
   BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
-  count_buffer_id_t create_count_buffer(const std::string filename, const size_t buffer_size) {
+  count_buffer_id_t create_count_buffer(const std::string file_name, const size_t buffer_size) {
     count_buffer_id_t id = count_buffers.size();
-    count_buffers.push_back(CountBuffer(filename, buffer_size));
+    count_buffers.push_back(CountBuffer(file_name, buffer_size));
     return id;
   }
 

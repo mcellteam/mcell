@@ -32,7 +32,7 @@
 #include "api/complex.h"
 #include "elementary_molecule_type.h"
 
-#include "include/datamodel_defines.h"
+#include "bng/bng_defines.h"
 
 namespace MCell {
 namespace API {
@@ -154,7 +154,7 @@ public:
   }
 
   bool is_species_superclass() const {
-    return MCell::is_species_superclass(name);
+    return BNG::is_species_superclass(name);
   }
 
   // simulation engine mapping

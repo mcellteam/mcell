@@ -15,6 +15,7 @@
 #include <set>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <map>
 #include <unordered_map>
 #include <cmath>
@@ -87,6 +88,22 @@ const float_t FLT_GIGANTIC = 1e38;
 
 #endif
 
+
+// NOTE: we must be sure to use our BNGCommon::float_t here otherwise
+// there will be conversion imprecisions if float_t from 'math.h' is used
+static inline std::string f_to_str(const float_t val, const int n = 17)
+{
+  std::stringstream out;
+  if (val == 0.0) {
+    return "0";
+  }
+  else if (val <= 0.01 || val >= 100000) {
+    out << std::scientific;
+  }
+  out.precision(n);
+  out << val;
+  return out.str();
+}
 
 static inline float_t fabs_f(const float_t x) {
 #if FLOAT_T_BYTES == 8
