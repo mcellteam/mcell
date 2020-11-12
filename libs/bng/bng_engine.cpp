@@ -52,12 +52,12 @@ std::string BNGEngine::export_as_bngl(
     std::ostream& out_reaction_rules,
     const float_t volume_um3) const {
 
-  out_parameters << IND << PARAM_V << " " << volume_um3 << " * 1e-15 # volume in um^3\n";
+  out_parameters << IND << PARAM_V << " " << volume_um3 << " * 1e-15 # volume in litres\n";
 
   export_molecule_types_as_bngl(out_parameters, out_molecule_types);
-  export_reaction_rules_as_bngl(out_parameters, out_reaction_rules);
+  string err_msg = export_reaction_rules_as_bngl(out_parameters, out_reaction_rules);
 
-  return "";
+  return err_msg;
 }
 
 
@@ -86,31 +86,38 @@ void BNGEngine::export_molecule_types_as_bngl(std::ostream& out_parameters, std:
 }
 
 
-void BNGEngine::export_reaction_rules_as_bngl(
+std::string BNGEngine::export_reaction_rules_as_bngl(
     std::ostream& out_parameters,
     std::ostream& out_reaction_rules) const {
   out_reaction_rules << BEGIN_REACTION_RULES << "\n";
 
   // parameters to control rates MCell/BNG
-  out_parameters << IND << PARAM_VOL_RXN << " 1\n";
   out_parameters << IND << PARAM_NA_V << " " << NA_VALUE_STR << " * " << PARAM_V << "\n";
+  out_parameters << IND << PARAM_VOL_RXN << " 1\n";
   out_parameters << IND << MCELL_REDEFINE_PREFIX << PARAM_VOL_RXN << " " << PARAM_NA_V << "\n";
 
   for (size_t i = 0; i < get_all_rxns().get_rxn_rules_vector().size(); i++) {
     const RxnRule* rr = get_all_rxns().get_rxn_rules_vector()[i];
 
-    string rate_param = "k" + to_string(i);
-    out_parameters << IND << rate_param << " " << f_to_str(rr->base_rate_constant) << " / NA_V";
-    if (rr->is_bimol_vol_rxn()) {
-      out_parameters << " * " << PARAM_VOL_RXN << "\n";
-    }
-    // TODO: surf rxns
+    string rxn_as_bngl = rr->to_str(false, false, false);
 
-    out_reaction_rules << IND << rr->to_str(false, false, false);
+    string rate_param = "k" + to_string(i);
+    out_parameters << IND << rate_param << " " << f_to_str(rr->base_rate_constant);
+    if (rr->is_bimol_vol_rxn()) {
+      out_parameters  << " / NA_V * " << PARAM_VOL_RXN;
+    }
+    else if (rr->is_surf_rxn()) {
+      return "Export of surface reactions to BNGL is not supported yet, error for " + rxn_as_bngl + ".";
+    }
+    out_parameters << "\n";
+
+
+    out_reaction_rules << IND << rxn_as_bngl;
     out_reaction_rules << " " << rate_param << "\n";
   }
 
   out_reaction_rules << END_REACTION_RULES << "\n";
+  return "";
 }
 
 

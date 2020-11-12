@@ -90,7 +90,8 @@ private:
   // surface classes are exported
   void export_molecule_types_as_bngl(
       std::ostream& out_parameters, std::ostream& out_molecule_types) const;
-  void export_reaction_rules_as_bngl(
+  // if error occurred, returns nonempty string with error message
+  std::string export_reaction_rules_as_bngl(
       std::ostream& out_parameters, std::ostream& out_reaction_rules) const;
 };
 

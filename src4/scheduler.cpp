@@ -170,8 +170,8 @@ const BaseEvent* Calendar::find_next_event_with_type_index(
 
 void Calendar::get_all_events_with_type_index(
     const event_type_index_t event_type_index,
-    std::vector<BaseEvent*>& events
-) {
+    std::vector<const BaseEvent*>& events
+) const {
 
   for (const Bucket& bucket: queue) {
     for (BaseEvent* event: bucket.events) {

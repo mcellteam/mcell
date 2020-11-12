@@ -322,7 +322,7 @@ void MCell4Converter::convert_simulation_setup() {
     Vec3 new_origin = origin - Vec3(llf_partition_dimension_diff);
 
     cout <<
-        "Value of " << NAME_INITIAL_PARTITION_ORIGIN << " " << origin <<
+        "Info: Value of " << NAME_INITIAL_PARTITION_ORIGIN << " " << origin <<
         " does not provide enough margin"
         " for model's geometry bounding box lower, left, front point " << llf << " "
         " and upper, right, back " << urb << "."
@@ -350,7 +350,7 @@ void MCell4Converter::convert_simulation_setup() {
   uint tentative_subparts = world->config.partition_edge_length / sp_len;
   if (tentative_subparts > MAX_SUBPARTS_PER_PARTITION) {
     cout <<
-      "Approximate number of subpartitions " << tentative_subparts <<
+      "Info: Approximate number of subpartitions " << tentative_subparts <<
       " is too high, lowering it to a limit of " << MAX_SUBPARTS_PER_PARTITION << ".\n";
     sp_len = world->config.partition_edge_length / MAX_SUBPARTS_PER_PARTITION;
   }

@@ -127,7 +127,7 @@ void World::create_initial_surface_region_release_event() {
 void World::recompute_species_flags() {
   // collect all MolOrRxnCountEvent to initialize species_flags_analyzer that is then used to set
   // certain species flags
-  vector<BaseEvent*> count_events;
+  vector<const BaseEvent*> count_events;
   scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
   species_flags_analyzer.initialize(count_events);
   get_all_species().recompute_species_flags(get_all_rxns(), &species_flags_analyzer);
@@ -423,6 +423,57 @@ bool World::check_for_overlapped_walls() {
 }
 
 
+std::string World::export_releases_as_bngl_seed_species(
+    std::ostream& parameters, std::ostream& seed_species) const {
+  seed_species << BNG::BEGIN_SEED_SPECIES << "\n";
+
+  vector<const BaseEvent*> release_events;
+  scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_RELEASE, release_events);
+
+  for (size_t i = 0; i < release_events.size(); i++) {
+    const ReleaseEvent* re = dynamic_cast<const ReleaseEvent*>(release_events[i]);
+    assert(re != nullptr);
+
+    if (re->release_shape == ReleaseShape::INITIAL_SURF_REGION) {
+      // TODO: check whether there are initial releases, ignoring it for now because it is not often used
+      continue;
+    }
+
+    const string & err_suffix = ", error for " + re->release_site_name + ".";
+    if (re->release_shape != ReleaseShape::REGION) {
+      return "Only region release shapes are currently supported for BNGL export" + err_suffix;
+    }
+    if (re->release_number_method != ReleaseNumberMethod::ConstNum) {
+      return "Only constant release number releases are currently supported for BNGL export" + err_suffix;
+    }
+    if (re->region_expr_root->op != RegionExprOperator::Leaf) {
+      return "Only simple release regions are currently supported for BNGL export" + err_suffix;
+    }
+    if (re->actual_release_time != 0) {
+      return "Only releases for time 0 are currently supported for BNGL export" + err_suffix;
+    }
+    if (re->orientation != ORIENTATION_NONE) {
+      return "Only releases for volume molecules are currently supported for BNGL export" + err_suffix;
+    }
+    if (re->needs_release_pattern()) {
+      return "Releases with release patterns are not currently supported for BNGL export" + err_suffix;
+    }
+
+    // create parameter for the count
+    string rel_count_name = "rel_count_" + to_string(i);
+    parameters << BNG::IND << rel_count_name << " " << to_string(re->release_number) << "\n";
+
+    // and line in seed species
+    const Region& region = get_region(re->region_expr_root->region_id);
+    const BNG::Species& species = bng_engine.get_all_species().get(re->species_id);
+    seed_species << BNG::IND << '@' << region.name << ':' << species.name << ' ' << rel_count_name << "\n";
+  }
+
+  seed_species << BNG::END_SEED_SPECIES << "\n\n";
+  return "";
+}
+
+
 // returns empty string if everything went well, nonempty string with error message
 std::string World::export_as_bngl(const std::string& file_name) const {
 
@@ -432,9 +483,6 @@ std::string World::export_as_bngl(const std::string& file_name) const {
     return "Could not open output file " + file_name + ".";
   }
 
-  stringstream parameters;
-  stringstream molecule_types;
-  stringstream reaction_rules;
 
   // TODO: determine volume and define compartment
   const Partition& p = get_partition(PARTITION_ID_INITIAL);
@@ -442,28 +490,58 @@ std::string World::export_as_bngl(const std::string& file_name) const {
     return "The only supported models currently are those that have exactly 1 geometry object.";
   }
   const GeometryObject& obj = p.get_geometry_objects()[0];
-  // TODO
 
+  // TODO volume
   float_t volume = 1.0;
 
+  stringstream parameters;
+  stringstream molecule_types;
+  stringstream reaction_rules;
   parameters << BNG::BEGIN_PARAMETERS << "\n";
+
+  parameters << BNG::IND << BNG::ITERATIONS << " " << total_iterations << "\n";
+
   string err_msg = bng_engine.export_as_bngl(
       parameters, molecule_types, reaction_rules, volume);
   if (err_msg != "") {
     out.close();
     return err_msg;
   }
+
+  // seed species
+  stringstream seed_species;
+  err_msg = export_releases_as_bngl_seed_species(parameters, seed_species);
+  if (err_msg != "") {
+    out.close();
+    return err_msg;
+  }
+
+  stringstream observables;
+  // TODO:
+  //err_msg = export_counts_as_bngl_observables(observables);
+  if (err_msg != "") {
+    out.close();
+    return err_msg;
+  }
+
   parameters << BNG::END_PARAMETERS << "\n";
 
   out << parameters.str() << "\n";
   out << molecule_types.str() << "\n";
 
   // compartments
+  out << BNG::BEGIN_COMPARTMENTS << "\n";
+  out << BNG::IND << obj.name << " 3 " << BNG::PARAM_V << "\n";
+  out << BNG::END_COMPARTMENTS << "\n\n";
 
-
-  // seed species
+  out << seed_species.str() << "\n";
+  out << observables.str() << "\n";
 
   out << reaction_rules.str() << "\n";
+
+  // NFSim/ODE
+  // simulate({method=>"nf",seed=>1,gml=>1000000,t_end=>1e-3,n_steps=>1000})
+
   out.close();
 
   return "";

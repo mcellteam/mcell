@@ -227,6 +227,8 @@ private:
 
   void export_data_layout() const;
 
+  std::string export_releases_as_bngl_seed_species(
+      std::ostream& parameters, std::ostream& seed_species) const;
 public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation

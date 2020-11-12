@@ -44,7 +44,7 @@ std::string MolType::to_str(const BNGData& bng_data) const {
     out << ct.to_str(bng_data);
 
     if (i != component_type_ids.size() - 1) {
-      cout << ", ";
+      out << ",";
     }
   }
 

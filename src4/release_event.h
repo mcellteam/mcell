@@ -173,6 +173,12 @@ public:
   void dump(const std::string indent) const override;
   void to_data_model(Json::Value& mcell_node) const override;
 
+
+  bool needs_release_pattern() const {
+    bool single_release_at_t0 = delay == 0 && number_of_trains == 1 && get_num_releases_per_train() == 1;
+    return !single_release_at_t0;
+  }
+
 public:
   std::string release_site_name; // name of releaser site from which was this event created
 
@@ -292,11 +298,6 @@ private:
   }
 
   std::string release_pattern_to_data_model(Json::Value& mcell_node) const;
-
-  bool needs_release_pattern() const {
-    bool single_release_at_t0 = delay == 0 && number_of_trains == 1 && get_num_releases_per_train() == 1;
-    return !single_release_at_t0;
-  }
 
   void to_data_model_as_one_release_site(
       Json::Value& mcell_node,
