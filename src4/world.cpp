@@ -37,6 +37,7 @@
 #include "species_cleanup_event.h"
 #include "sort_mols_by_subpart_event.h"
 #include "release_event.h"
+#include "mol_or_rxn_count_event.h"
 #include "datamodel_defines.h"
 #include "bng_data_to_datamodel_converter.h"
 #include "diffuse_react_event.h"
@@ -427,6 +428,8 @@ std::string World::export_releases_as_bngl_seed_species(
     std::ostream& parameters, std::ostream& seed_species) const {
   seed_species << BNG::BEGIN_SEED_SPECIES << "\n";
 
+  parameters << "\n" << BNG::IND << "# seed species counts\n";
+
   vector<const BaseEvent*> release_events;
   scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_RELEASE, release_events);
 
@@ -460,16 +463,78 @@ std::string World::export_releases_as_bngl_seed_species(
     }
 
     // create parameter for the count
-    string rel_count_name = "rel_count_" + to_string(i);
-    parameters << BNG::IND << rel_count_name << " " << to_string(re->release_number) << "\n";
+    string seed_count_name = "seed_count_" + to_string(i);
+    parameters << BNG::IND << seed_count_name << " " << to_string(re->release_number) << "\n";
 
     // and line in seed species
     const Region& region = get_region(re->region_expr_root->region_id);
     const BNG::Species& species = bng_engine.get_all_species().get(re->species_id);
-    seed_species << BNG::IND << '@' << region.name << ':' << species.name << ' ' << rel_count_name << "\n";
+    seed_species << BNG::IND <<
+        "@" << DMUtil::get_region_name(region.name) << ":" << species.name << " " << seed_count_name << "\n";
   }
 
-  seed_species << BNG::END_SEED_SPECIES << "\n\n";
+  seed_species << BNG::END_SEED_SPECIES << "\n";
+  return "";
+}
+
+
+std::string World::export_counts_as_bngl_observables(std::ostream& observables) const {
+  observables << BNG::BEGIN_OBSERVABLES << "\n";
+
+  vector<const BaseEvent*> count_events;
+  scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
+
+  for (size_t i = 0; i < count_events.size(); i++) {
+    const MolOrRxnCountEvent* ce = dynamic_cast<const MolOrRxnCountEvent*>(count_events[i]);
+    assert(ce != nullptr);
+
+    for (const MolOrRxnCountItem& item: ce->mol_count_items) {
+      // get observable name from filename
+      const string& path = get_count_buffer(item.buffer_id).get_filename();
+      size_t slash_pos = path.find_last_of("/\\");
+      release_assert(slash_pos != string::npos);
+      size_t dot_pos = path.rfind('.');
+      release_assert(dot_pos != string::npos);
+      string name = path.substr(slash_pos + 1, dot_pos - slash_pos - 1);
+
+      const string& err_suffix = ", error for " + name + ".";
+
+      if (item.terms.size() != 1 || item.multiplier != 1.0) {
+        return "Observable expressions other than a single pattern are not yet supported by BNGL export" + err_suffix;
+      }
+      const MolOrRxnCountTerm& term = item.terms[0];
+      if (term.is_rxn_count()) {
+        return "Reaction counts are not supported by BNGL export" + err_suffix;
+      }
+      if (term.type == CountType::PresentOnSurfaceRegion) {
+        return "Surface molecule counts are yet not supported by BNGL export" + err_suffix;
+      }
+
+      string compartment_prefix = "";
+      if (term.type == CountType::EnclosedInVolumeRegion) {
+        compartment_prefix = "@" + get_geometry_object(term.geometry_object_id).name + ":";
+      }
+
+      // Species or Molecules
+      string type;
+      if (term.species_pattern_type == SpeciesPatternType::SpeciesPattern) {
+        type = BNG::OBSERVABLE_SPECIES;
+      }
+      else if (term.species_pattern_type == SpeciesPatternType::MoleculesPattern) {
+        type = BNG::OBSERVABLE_MOLECULES;
+      }
+      else {
+        release_assert("SpeciesId type should not be used here.");
+      }
+
+      string pattern = term.species_molecules_pattern.to_str(false);
+
+      observables << BNG::IND <<
+          type << " " << name << " " << compartment_prefix << pattern << " " << "\n";
+    }
+  }
+
+  observables << BNG::END_OBSERVABLES << "\n";
   return "";
 }
 
@@ -499,6 +564,7 @@ std::string World::export_as_bngl(const std::string& file_name) const {
   stringstream reaction_rules;
   parameters << BNG::BEGIN_PARAMETERS << "\n";
 
+  parameters << BNG::IND << "# general parameters\n";
   parameters << BNG::IND << BNG::ITERATIONS << " " << total_iterations << "\n";
 
   string err_msg = bng_engine.export_as_bngl(
@@ -517,8 +583,7 @@ std::string World::export_as_bngl(const std::string& file_name) const {
   }
 
   stringstream observables;
-  // TODO:
-  //err_msg = export_counts_as_bngl_observables(observables);
+  err_msg = export_counts_as_bngl_observables(observables);
   if (err_msg != "") {
     out.close();
     return err_msg;

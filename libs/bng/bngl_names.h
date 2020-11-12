@@ -15,8 +15,15 @@ const char* const END_COMPARTMENTS = "end compartments";
 const char* const BEGIN_SEED_SPECIES = "begin seed species";
 const char* const END_SEED_SPECIES = "end seed species";
 
+const char* const BEGIN_OBSERVABLES = "begin observables";
+const char* const END_OBSERVABLES = "end observables";
+
 const char* const BEGIN_REACTION_RULES = "begin reaction rules";
 const char* const END_REACTION_RULES = "end reaction rules";
+
+const char* const OBSERVABLE_SPECIES = "Species";
+const char* const OBSERVABLE_MOLECULES = "Molecules";
+
 
 const char* const ITERATIONS = "ITERATIONS";
 

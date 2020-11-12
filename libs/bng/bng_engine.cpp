@@ -64,6 +64,7 @@ std::string BNGEngine::export_as_bngl(
 void BNGEngine::export_molecule_types_as_bngl(std::ostream& out_parameters, std::ostream& out_molecule_types) const {
   out_molecule_types << BEGIN_MOLECULE_TYPES << "\n";
 
+  out_parameters << "\n" << BNG::IND << "# diffusion constants\n";
   for (const MolType& mt: data.get_molecule_types()) {
     if (mt.is_reactive_surface() || is_species_superclass(mt.name)) {
       continue;
@@ -91,10 +92,11 @@ std::string BNGEngine::export_reaction_rules_as_bngl(
     std::ostream& out_reaction_rules) const {
   out_reaction_rules << BEGIN_REACTION_RULES << "\n";
 
-  // parameters to control rates MCell/BNG
+  out_parameters << "\n" << BNG::IND << "# parameters to control rates in MCell and BioNetGen\n";
   out_parameters << IND << PARAM_NA_V << " " << NA_VALUE_STR << " * " << PARAM_V << "\n";
   out_parameters << IND << PARAM_VOL_RXN << " 1\n";
   out_parameters << IND << MCELL_REDEFINE_PREFIX << PARAM_VOL_RXN << " " << PARAM_NA_V << "\n";
+  out_parameters << "\n" << BNG::IND << "# reaction rates\n";
 
   for (size_t i = 0; i < get_all_rxns().get_rxn_rules_vector().size(); i++) {
     const RxnRule* rr = get_all_rxns().get_rxn_rules_vector()[i];

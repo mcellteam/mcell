@@ -80,7 +80,7 @@ private:
   bool open(bool error_is_fatal = true);
 
 private:
-  // name of the output file
+  // name of the output file with the full path
   std::string filename;
 
   // number of items to be stored, automatically flushes afterwards

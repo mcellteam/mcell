@@ -229,6 +229,8 @@ private:
 
   std::string export_releases_as_bngl_seed_species(
       std::ostream& parameters, std::ostream& seed_species) const;
+
+  std::string export_counts_as_bngl_observables(std::ostream& observables) const;
 public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation
