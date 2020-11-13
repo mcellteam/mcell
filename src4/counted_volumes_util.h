@@ -35,6 +35,7 @@
 namespace MCell {
 
 class World;
+class Partition;
 class GeometryObject;
 
 namespace CountedVolumesUtil {
@@ -100,7 +101,9 @@ typedef std::set<GeomObjectInfo> IntersectingSet;
 // return true if counted volumes were correctly set up
 bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_objects);
 
+#if 0
 bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point);
+#endif
 
 // world is nullptr for compartment hierarchy computation
 bool compute_containement_mapping(
@@ -111,7 +114,11 @@ bool compute_containement_mapping(
 const GeomObjectInfo* get_direct_parent_info(
     const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping);
 
-};
+
+// auxiliary function to compute volume, not related to counted volumes but uses VTK
+float_t get_geometry_object_volume(const World* world, const GeometryObject& obj);
+
+}; // namespace CountedVolumesUtil
 
 } // namespace MCell
 

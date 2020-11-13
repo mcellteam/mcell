@@ -170,6 +170,21 @@ const BaseEvent* Calendar::find_next_event_with_type_index(
 
 void Calendar::get_all_events_with_type_index(
     const event_type_index_t event_type_index,
+    std::vector<BaseEvent*>& events
+) {
+
+  for (const Bucket& bucket: queue) {
+    for (BaseEvent* event: bucket.events) {
+      if (event->type_index == event_type_index) {
+        events.push_back(event);
+      }
+    }
+  }
+}
+
+
+void Calendar::get_all_events_with_type_index(
+    const event_type_index_t event_type_index,
     std::vector<const BaseEvent*>& events
 ) const {
 
@@ -181,7 +196,6 @@ void Calendar::get_all_events_with_type_index(
     }
   }
 }
-
 
 // returns max_time_step if no barrier is scheduled for interval
 // current_time .. current_time+max_time_step

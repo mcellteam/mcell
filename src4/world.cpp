@@ -128,7 +128,7 @@ void World::create_initial_surface_region_release_event() {
 void World::recompute_species_flags() {
   // collect all MolOrRxnCountEvent to initialize species_flags_analyzer that is then used to set
   // certain species flags
-  vector<const BaseEvent*> count_events;
+  vector<BaseEvent*> count_events;
   scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
   species_flags_analyzer.initialize(count_events);
   get_all_species().recompute_species_flags(get_all_rxns(), &species_flags_analyzer);
@@ -549,15 +549,15 @@ std::string World::export_as_bngl(const std::string& file_name) const {
   }
 
 
-  // TODO: determine volume and define compartment
   const Partition& p = get_partition(PARTITION_ID_INITIAL);
   if (p.get_geometry_objects().size() != 1) {
     return "The only supported models currently are those that have exactly 1 geometry object.";
   }
   const GeometryObject& obj = p.get_geometry_objects()[0];
 
-  // TODO volume
-  float_t volume = 1.0;
+  float_t volume =
+      CountedVolumesUtil::get_geometry_object_volume(this, obj) *
+      pow(config.length_unit, 3); // fix unit
 
   stringstream parameters;
   stringstream molecule_types;
@@ -596,7 +596,7 @@ std::string World::export_as_bngl(const std::string& file_name) const {
 
   // compartments
   out << BNG::BEGIN_COMPARTMENTS << "\n";
-  out << BNG::IND << obj.name << " 3 " << BNG::PARAM_V << "\n";
+  out << BNG::IND << obj.name << " 3 " << BNG::PARAM_V << " * 1e15 # volume in fL (um^3)\n";
   out << BNG::END_COMPARTMENTS << "\n\n";
 
   out << seed_species.str() << "\n";

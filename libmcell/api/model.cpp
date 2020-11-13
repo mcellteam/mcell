@@ -357,6 +357,10 @@ void Model::load_bngl(
 
 
 void Model::export_as_bngl(const std::string& file_name) {
+  if (!initialized) {
+    throw RuntimeError("Model must be initialized for BNGL export.");
+  }
+
   string err_msg = world->export_as_bngl(file_name);
   if (err_msg != "") {
     throw RuntimeError("BNGL export failed: " + err_msg);

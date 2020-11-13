@@ -27,11 +27,11 @@
 
 namespace MCell {
 
-void SpeciesFlagsAnalyzer::initialize(std::vector<const BaseEvent*>& base_count_events) {
+void SpeciesFlagsAnalyzer::initialize(std::vector<BaseEvent*>& base_count_events) {
 
-  for (const BaseEvent* event: base_count_events) {
+  for (BaseEvent* event: base_count_events) {
     assert(event->type_index == EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT);
-    const MolOrRxnCountEvent* count_event = dynamic_cast<const MolOrRxnCountEvent*>(event);
+    MolOrRxnCountEvent* count_event = dynamic_cast<MolOrRxnCountEvent*>(event);
     assert(count_event != nullptr);
     count_events.push_back(count_event);
   }

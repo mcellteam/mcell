@@ -125,7 +125,7 @@ public:
 
   void error_if_initialized(const char* what) {
     if (initialized) {
-      throw(S("It is not possible to add ") + what + " once a model was initialized.");
+      throw RuntimeError(S("It is not possible to add ") + what + " once a model was initialized.");
     }
   }
 

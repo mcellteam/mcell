@@ -30,11 +30,17 @@
 #include <vtkSelectEnclosedPoints.h>
 #include <vtkTransform.h>
 #include <vtkPointData.h>
+#include <vtkFeatureEdges.h>
+#include <vtkMassProperties.h>
+#include <vtkPolyDataNormals.h>
 
 #include "logging.h"
 
 #include "world.h"
+#include "partition.h"
 #include "geometry.h"
+
+#include "counted_volumes_util.h"
 
 using namespace std;
 
@@ -68,81 +74,87 @@ const GeometryObject& GeomObjectInfo::get_geometry_object(const World* world) co
 }
 
 
+static vtkSmartPointer<vtkPolyData> convert_geometry_object_to_polydata(
+    const World* world, const GeometryObject& obj) {
+
+  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  // we need to convert each geometry object into VTK's polydata representation
+  // example: https://vtk.org/Wiki/VTK/Examples/Cxx/PolyData/TriangleArea
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
+
+  // first collect vertices
+  uint_set<vertex_index_t> vertex_indices;
+  for (wall_index_t wi: obj.wall_indices) {
+    const Wall& w = p.get_wall(wi);
+
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      vertex_indices.insert(w.vertex_indices[i]);
+    }
+  }
+
+  // store vertices and create mapping
+  // mcell vertex index -> vtk vertex index
+  map<vertex_index_t, uint> vertex_mapping;
+  uint curr_vtk_index = 0;
+  for (vertex_index_t vi: vertex_indices) {
+
+    Vec3 pt = p.get_geometry_vertex(vi);
+    points->InsertNextPoint(pt.x, pt.y, pt.z);
+
+    vertex_mapping[vi] = curr_vtk_index;
+    curr_vtk_index++;
+  }
+
+  // store triangles
+  for (wall_index_t wi: obj.wall_indices) {
+    const Wall& w = p.get_wall(wi);
+
+    vtkSmartPointer<vtkTriangle> triangle = vtkSmartPointer<vtkTriangle>::New();
+
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      triangle->GetPointIds()->SetId(i, vertex_mapping[w.vertex_indices[i]]);
+    }
+
+    triangles->InsertNextCell(triangle);
+  }
+
+  // create input polydata
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints(points);
+  polydata->SetPolys(triangles);
+
+  // clean them up
+  vtkSmartPointer<vtkTriangleFilter> tri = vtkSmartPointer<vtkTriangleFilter>::New();
+  tri->SetInputData(polydata);
+  vtkSmartPointer<vtkCleanPolyData> clean = vtkSmartPointer<vtkCleanPolyData>::New();
+  clean->SetInputConnection(tri->GetOutputPort());
+  clean->Update();
+
+  // also copy this information to our object
+  return clean->GetOutput();
+}
+
+
 static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector& counted_objects) {
   bool res = true;
 
   for (GeomObjectInfo& obj_info: counted_objects) {
 
-    Partition& p = world->get_partition(obj_info.partition_id);
-    GeometryObject& obj = p.get_geometry_object(obj_info.geometry_object_id);
+    GeometryObject& obj = world->get_geometry_object(obj_info.geometry_object_id);
+    vtkSmartPointer<vtkPolyData> polydata = convert_geometry_object_to_polydata(world, obj);
 
-    // we need to convert each geometry object into VTK's polydata representation
-    // example: https://vtk.org/Wiki/VTK/Examples/Cxx/PolyData/TriangleArea
-    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
-    obj_info.polydata = vtkSmartPointer<vtkPolyData>::New();
 
-    // first collect vertices
-    uint_set<vertex_index_t> vertex_indices;
-    for (wall_index_t wi: obj.wall_indices) {
-      const Wall& w = p.get_wall(wi);
-
-      for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-        vertex_indices.insert(w.vertex_indices[i]);
-      }
-    }
-
-    // store vertices and create mapping
-    // mcell vertex index -> vtk vertex index
-    map<vertex_index_t, uint> vertex_mapping;
-    uint curr_vtk_index = 0;
-    for (vertex_index_t vi: vertex_indices) {
-
-      Vec3 pt = p.get_geometry_vertex(vi);
-      points->InsertNextPoint(pt.x, pt.y, pt.z);
-
-      vertex_mapping[vi] = curr_vtk_index;
-      curr_vtk_index++;
-    }
-
-    // store triangles
-    for (wall_index_t wi: obj.wall_indices) {
-      const Wall& w = p.get_wall(wi);
-
-      vtkSmartPointer<vtkTriangle> triangle = vtkSmartPointer<vtkTriangle>::New();
-
-      for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-        triangle->GetPointIds()->SetId(i, vertex_mapping[w.vertex_indices[i]]);
-      }
-
-      triangles->InsertNextCell(triangle);
-    }
-
-    // create input polydata
-    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
-    polydata->SetPoints(points);
-    polydata->SetPolys(triangles);
-
-    // clean them up
-    vtkSmartPointer<vtkTriangleFilter> tri = vtkSmartPointer<vtkTriangleFilter>::New();
-    tri->SetInputData(polydata);
-    vtkSmartPointer<vtkCleanPolyData> clean = vtkSmartPointer<vtkCleanPolyData>::New();
-    clean->SetInputConnection(tri->GetOutputPort());
-    clean->Update();
-
-    int closed = vtkSelectEnclosedPoints::IsSurfaceClosed(clean->GetOutput());
+    int closed = vtkSelectEnclosedPoints::IsSurfaceClosed(polydata.Get());
     if (closed != 1) {
       mcell_warn("Counting object must be closed, error for %s.", obj.name.c_str());
       res = false;
       continue;
     }
 
-    // and finally store the points and faces
-    obj_info.polydata = clean->GetOutput();
-
-    // also copy this information to our object
-    //obj.counted_volume_polydata.TakeReference(clean->GetOutput());
-    obj.counted_volume_polydata = clean->GetOutput();
+    // copy a reference to object info as well
+    obj_info.polydata = polydata;
   }
 
   return res;
@@ -536,7 +548,7 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
   return true;
 }
 
-
+#if 0
 bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point) {
   assert(obj.is_counted_volume_or_compartment());
   assert(obj.counted_volume_polydata.Get() != nullptr);
@@ -557,7 +569,54 @@ bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point) {
 
   return select_enclosed_points->IsInside(0) ;
 }
+#endif
 
+
+static float_t is_watertight(vtkSmartPointer<vtkPolyData> polydata) {
+  // check if the object is watertight,
+  // based on https://lorensen.github.io/VTKExamples/site/Cxx/Meshes/BoundaryEdges/
+  vtkSmartPointer<vtkFeatureEdges> featureEdges =
+    vtkSmartPointer<vtkFeatureEdges>::New();
+  featureEdges->SetInputData(polydata.Get());
+  featureEdges->BoundaryEdgesOn();
+  featureEdges->FeatureEdgesOff();
+  featureEdges->ManifoldEdgesOff();
+  featureEdges->NonManifoldEdgesOff();
+  featureEdges->Update();
+
+  // if there are no edges, the object is watertight
+  return featureEdges->GetOutput()->GetNumberOfCells() < 1;
+}
+
+// auxiliary function to compute volume, not related to counted volumes but uses VTK
+// returns FLT_INVALID if the object is not watertight
+float_t get_geometry_object_volume(const World* world, const GeometryObject& obj) {
+  vtkSmartPointer<vtkPolyData> polydata = convert_geometry_object_to_polydata(world, obj);
+
+  if (!is_watertight(polydata)) {
+    return FLT_INVALID;
+  }
+
+  // volume computation is based on
+  // https://lorensen.github.io/VTKExamples/site/Cxx/Utilities/MassProperties/
+  vtkSmartPointer<vtkTriangleFilter> triangleFilter =
+      vtkSmartPointer<vtkTriangleFilter>::New();
+  triangleFilter->SetInputData(polydata);
+
+  // Make the triangle windong order consistent
+  vtkSmartPointer<vtkPolyDataNormals> normals =
+    vtkSmartPointer<vtkPolyDataNormals>::New();
+  normals->SetInputConnection(triangleFilter->GetOutputPort());
+  normals->ConsistencyOn();
+  normals->SplittingOff();
+
+  vtkSmartPointer<vtkMassProperties> massProperties =
+    vtkSmartPointer<vtkMassProperties>::New();
+  massProperties->SetInputConnection(normals->GetOutputPort());
+  massProperties->Update();
+
+  return massProperties->GetVolume();
+}
 
 
 } // namespace CountedVolumesUtil

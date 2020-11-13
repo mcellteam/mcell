@@ -26,7 +26,6 @@
 
 #include <vector>
 #include <set>
-#include <vtkPolyData.h>
 
 #include "defines.h"
 #include "molecule.h"
@@ -118,9 +117,6 @@ public:
   // might be set to COUNTED_VOLUME_INDEX_INTERSECTS if the direct parent of
   // this object intersects with another object
   counted_volume_index_t counted_volume_index_outside;
-
-  // valid only if is_counted_volume is true
-  vtkSmartPointer<vtkPolyData> counted_volume_polydata;
 
   void initialize_neighboring_walls_and_their_edges(Partition& p);
 

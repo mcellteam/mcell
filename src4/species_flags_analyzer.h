@@ -42,7 +42,7 @@ public:
   }
 
   // vector base_count_events may be empty
-  void initialize(std::vector<const BaseEvent*>& base_count_events);
+  void initialize(std::vector<BaseEvent*>& base_count_events);
 
   // returns a mask of all custom flags for species,
   // used to clear any pre-existing flag values
@@ -57,7 +57,7 @@ public:
 
 private:
   bool initialized;
-  std::vector<const MolOrRxnCountEvent*> count_events;
+  std::vector<MolOrRxnCountEvent*> count_events;
 };
 
 } /* namespace MCell */

@@ -77,6 +77,8 @@ public:
   const BaseEvent* find_next_event_with_type_index(
       const event_type_index_t event_type_index) const;
   void get_all_events_with_type_index(
+      const event_type_index_t event_type_index, std::vector<BaseEvent*>& events);
+  void get_all_events_with_type_index(
       const event_type_index_t event_type_index, std::vector<const BaseEvent*>& events) const;
 
   float_t get_time_up_to_next_barrier(const float_t current_time, const float_t max_time_step) const;
@@ -126,6 +128,11 @@ public:
   const BaseEvent* find_next_event_with_type_index(
       const event_type_index_t event_type_index) const {
     return calendar.find_next_event_with_type_index(event_type_index);
+  }
+
+  void get_all_events_with_type_index(
+      const event_type_index_t event_type_index, std::vector<BaseEvent*>& events) {
+    return calendar.get_all_events_with_type_index(event_type_index, events);
   }
 
   void get_all_events_with_type_index(

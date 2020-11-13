@@ -41,7 +41,7 @@ using namespace CountedVolumesUtil;
 
 namespace API {
 
-// similar code is in convert_objects_to_clean_polydata
+// note: similar code is in convert_and_set_geometry_object_polydata but uses different input data
 static void convert_compartment_objects_to_geom_object_infos(
     const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
     GeomObjectInfoVector& compartment_infos) {
