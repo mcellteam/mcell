@@ -555,9 +555,12 @@ std::string World::export_as_bngl(const std::string& file_name) const {
   }
   const GeometryObject& obj = p.get_geometry_objects()[0];
 
-  float_t volume =
-      CountedVolumesUtil::get_geometry_object_volume(this, obj) *
-      pow(config.length_unit, 3); // fix unit
+  float_t volume_internal_units = CountedVolumesUtil::get_geometry_object_volume(this, obj);
+  if (volume_internal_units == FLT_INVALID) {
+    return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
+  }
+
+  float_t volume = volume_internal_units * pow(config.length_unit, 3);
 
   stringstream parameters;
   stringstream molecule_types;
