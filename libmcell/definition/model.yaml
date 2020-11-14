@@ -212,8 +212,9 @@ Model:
       type: str  
       
     - name: observables_files_prefix
-      type: str   
-      doc: Prefix to be used for created files with observable values.      
+      type: str
+      default: ""
+      doc: Prefix to be used when creating files with observable values. 
       
     - name: default_release_region
       type: Region*

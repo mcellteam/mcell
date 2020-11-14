@@ -101,7 +101,7 @@ public:
   virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement) = 0;
   virtual std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) = 0;
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
-  virtual void load_bngl(const std::string& file_name, const std::string& observables_files_prefix, std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
+  virtual void load_bngl(const std::string& file_name, const std::string& observables_files_prefix = "", std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
   virtual void export_to_bngl(const std::string& file_name) = 0;
 }; // GenModel
 

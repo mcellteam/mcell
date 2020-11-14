@@ -605,7 +605,7 @@ class Model():
     def load_bngl(
             self,
             file_name : str,
-            observables_files_prefix : str,
+            observables_files_prefix : str = ,
             default_release_region : Region = None,
             parameter_overrides : Dict[str, float] = None
         ) -> None:
@@ -733,7 +733,7 @@ class Model():
             self,
             file_name : str,
             subsystem : Subsystem,
-            output_files_prefix : str,
+            output_files_prefix : str = ,
             parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
@@ -839,7 +839,7 @@ class Observables():
             self,
             file_name : str,
             subsystem : Subsystem,
-            output_files_prefix : str,
+            output_files_prefix : str = ,
             parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass

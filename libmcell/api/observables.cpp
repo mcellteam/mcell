@@ -75,12 +75,6 @@ void Observables::load_bngl_observables(
     throw RuntimeError("Could not parse BNGL file " + file_name + ".");
   }
 
-  if (!is_set(output_files_prefix)) {
-    throw ValueError(
-        S("Argument ") + NAME_OUTPUT_FILES_PREFIX + " must be set."
-    );
-  }
-
   // now convert everything we parsed into the API classes so that the user can
   // inspect or manipulate it if needed
   convert_bng_data_to_observables_data(bng_data, *subsystem, output_files_prefix);
