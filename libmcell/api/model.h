@@ -104,7 +104,7 @@ public:
       const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
   ) override;
 
-  void export_as_bngl(const std::string& file_name) override;
+  void export_to_bngl(const std::string& file_name) override;
 
   // overrides from derived classes Subsystem, InstantiationData, and Observables
   void add_species(std::shared_ptr<Species> s) override;

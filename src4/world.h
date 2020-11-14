@@ -161,7 +161,7 @@ public:
   void dump();
 
   // returns empty string if everything went well, nonempty string with error message
-  std::string export_as_bngl(const std::string& file_name) const;
+  std::string export_to_bngl(const std::string& file_name) const;
 
   // the export to directory is usually called periodically and the output is used for visualization
   void export_data_model_to_dir(const std::string& prefix, const bool only_for_viz = true) const;
@@ -227,10 +227,10 @@ private:
 
   void export_data_layout() const;
 
-  std::string export_releases_as_bngl_seed_species(
+  std::string export_releases_to_bngl_seed_species(
       std::ostream& parameters, std::ostream& seed_species) const;
 
-  std::string export_counts_as_bngl_observables(std::ostream& observables) const;
+  std::string export_counts_to_bngl_observables(std::ostream& observables) const;
 public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation

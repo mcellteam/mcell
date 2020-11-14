@@ -223,7 +223,7 @@ Model:
       type: Dict[str, float]
       default: empty
       
-  - name: export_as_bngl
+  - name: export_to_bngl
     doc: |
       Exports all defined species, reaction rules and applicable observables
       as a BNGL file. 

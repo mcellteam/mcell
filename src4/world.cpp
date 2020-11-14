@@ -424,7 +424,7 @@ bool World::check_for_overlapped_walls() {
 }
 
 
-std::string World::export_releases_as_bngl_seed_species(
+std::string World::export_releases_to_bngl_seed_species(
     std::ostream& parameters, std::ostream& seed_species) const {
   seed_species << BNG::BEGIN_SEED_SPECIES << "\n";
 
@@ -466,11 +466,15 @@ std::string World::export_releases_as_bngl_seed_species(
     string seed_count_name = "seed_count_" + to_string(i);
     parameters << BNG::IND << seed_count_name << " " << to_string(re->release_number) << "\n";
 
-    // and line in seed species
+    // and line in seed species, for now whole objects are representing compartments
     const Region& region = get_region(re->region_expr_root->region_id);
+    if (DMUtil::get_region_name(region.name) != "ALL") {
+      return "Compartments that do not span the whole object are not supported yet" + err_suffix;
+    }
+    const GeometryObject& obj = get_geometry_object(region.geometry_object_id);
     const BNG::Species& species = bng_engine.get_all_species().get(re->species_id);
     seed_species << BNG::IND <<
-        "@" << DMUtil::get_region_name(region.name) << ":" << species.name << " " << seed_count_name << "\n";
+        "@" <<  obj.name << ":" << species.name << " " << seed_count_name << "\n";
   }
 
   seed_species << BNG::END_SEED_SPECIES << "\n";
@@ -478,7 +482,7 @@ std::string World::export_releases_as_bngl_seed_species(
 }
 
 
-std::string World::export_counts_as_bngl_observables(std::ostream& observables) const {
+std::string World::export_counts_to_bngl_observables(std::ostream& observables) const {
   observables << BNG::BEGIN_OBSERVABLES << "\n";
 
   vector<const BaseEvent*> count_events;
@@ -540,7 +544,7 @@ std::string World::export_counts_as_bngl_observables(std::ostream& observables) 
 
 
 // returns empty string if everything went well, nonempty string with error message
-std::string World::export_as_bngl(const std::string& file_name) const {
+std::string World::export_to_bngl(const std::string& file_name) const {
 
   ofstream out;
   out.open(file_name);
@@ -570,7 +574,7 @@ std::string World::export_as_bngl(const std::string& file_name) const {
   parameters << BNG::IND << "# general parameters\n";
   parameters << BNG::IND << BNG::ITERATIONS << " " << total_iterations << "\n";
 
-  string err_msg = bng_engine.export_as_bngl(
+  string err_msg = bng_engine.export_to_bngl(
       parameters, molecule_types, reaction_rules, volume);
   if (err_msg != "") {
     out.close();
@@ -579,14 +583,14 @@ std::string World::export_as_bngl(const std::string& file_name) const {
 
   // seed species
   stringstream seed_species;
-  err_msg = export_releases_as_bngl_seed_species(parameters, seed_species);
+  err_msg = export_releases_to_bngl_seed_species(parameters, seed_species);
   if (err_msg != "") {
     out.close();
     return err_msg;
   }
 
   stringstream observables;
-  err_msg = export_counts_as_bngl_observables(observables);
+  err_msg = export_counts_to_bngl_observables(observables);
   if (err_msg != "") {
     out.close();
     return err_msg;

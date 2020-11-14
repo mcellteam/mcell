@@ -46,7 +46,7 @@ Cplx BNGEngine::create_cplx_from_species(
 
 
 
-std::string BNGEngine::export_as_bngl(
+std::string BNGEngine::export_to_bngl(
     std::ostream& out_parameters,
     std::ostream& out_molecule_types,
     std::ostream& out_reaction_rules,

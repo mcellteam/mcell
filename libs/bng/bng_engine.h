@@ -78,7 +78,7 @@ public:
   // only one compartment and volume reactions are supported now
   // returns empty string if everything went well,
   // nonempty string with error message
-  std::string export_as_bngl(
+  std::string export_to_bngl(
       std::ostream& out_parameters,
       std::ostream& out_molecule_types,
       std::ostream& out_reaction_rules,
