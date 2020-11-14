@@ -564,6 +564,8 @@ void MCell4Generator::generate_config(ostream& out) {
   gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, S(FUNCTION_GET_SEED) + "()");
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, PARAM_ITERATIONS);
   out << "\n";
+  gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT, true);
+  out << "\n";
 
   if (!data.mcell.isMember(KEY_INITIALIZATION)) {
     ERROR(S("Data model does not contain key ") + KEY_INITIALIZATION + ".");
