@@ -116,6 +116,13 @@ void InstantiationData::convert_compartments(const BNG::BNGData& bng_data) {
     }
 
     if (bng_comp.is_3d) {
+      std::shared_ptr<GeometryObject> existing_obj = find_geometry_object(bng_comp.name);
+      if (is_set(existing_obj)) {
+        // object with this name already exists, we will use it instead
+        existing_obj->is_bngl_compartment = true;
+        continue;
+      }
+
       float_t side = pow_f(bng_comp.get_volume(), 1.0/3.0);
 
       // create box for the given compartment
