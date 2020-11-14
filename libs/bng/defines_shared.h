@@ -91,19 +91,7 @@ const float_t FLT_GIGANTIC = 1e38;
 
 // NOTE: we must be sure to use our BNGCommon::float_t here otherwise
 // there will be conversion imprecisions if float_t from 'math.h' is used
-static inline std::string f_to_str(const float_t val, const int n = 17)
-{
-  std::stringstream out;
-  if (val == 0.0) {
-    return "0";
-  }
-  else if (val <= 0.01 || val >= 100000) {
-    out << std::scientific;
-  }
-  out.precision(n);
-  out << val;
-  return out.str();
-}
+std::string f_to_str(const float_t val, const int n = 17);
 
 static inline float_t fabs_f(const float_t x) {
 #if FLOAT_T_BYTES == 8
@@ -219,15 +207,7 @@ const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 const orientation_t ORIENTATION_NOT_SET = 2;
 
-static char orientation_to_char(const orientation_t o) {
-  switch (o) {
-    case ORIENTATION_DOWN: return ',';
-    case ORIENTATION_NONE: return ';';
-    case ORIENTATION_UP: return '\'';
-    case ORIENTATION_NOT_SET: return 'u';
-    default: return 'x';
-  }
-}
+char orientation_to_char(const orientation_t o);
 
 // index of reaction with products in a reaction class
 typedef int rxn_class_pathway_index_t;
