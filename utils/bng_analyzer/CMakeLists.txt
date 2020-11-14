@@ -9,7 +9,7 @@ include_directories(
 )
 
 
-add_definitions(-std=c++17)
+add_definitions(-std=c++14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -isystem ${CMAKE_SOURCE_DIR}/libs/ -isystem ${CMAKE_SOURCE_DIR}/libs/sparsehash/src")
 
 if (NOT TARGET bng)
