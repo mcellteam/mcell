@@ -14,7 +14,7 @@ import os
 
 # special object created for releases in case 
 # when there are no compartments
-BOX_NO_COMPARTMENT = 'box_no_compartment'
+DEFAULT_COMPARTMENT = 'default_compartment'
 
 def eprint(*args, **kwargs):
     '''
@@ -137,8 +137,8 @@ def process_init_compartments(initializations):
                 cstr.write('\t{0} 2 1 {1}\n'.format(optionDict['membrane'], optionDict['parent']))
                 cstr.write('\t{0} 3 1 {1}\n'.format(optionDict['name'], optionDict['membrane']))
             else:
-                if optionDict['name'] == BOX_NO_COMPARTMENT:
-                    # skip this special name - BMGL has not compartments
+                if optionDict['name'] == DEFAULT_COMPARTMENT:
+                    # skip this special name - BNGL has not compartments
                     continue 
                 tmp = '{0} 3 1 {1}'.format(optionDict['name'], optionDict['parent'])
                 tmp = tmp.strip()
