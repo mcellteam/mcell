@@ -116,6 +116,14 @@ typedef std::set<compartment_id_t> CompartmentIdSet;
 typedef uint rxn_rule_id_t;
 const rxn_rule_id_t RXN_RULE_ID_INVALID = ID_INVALID;
 
+const char* const PATH_SEPARATOR =
+#ifdef _WIN32
+                            "\\";
+#else
+                            "/";
+#endif
+
+const char* const REPORT_DIR = "reports";
 const char* const RXN_REPORT_PREFIX = "rxn_report_";
 const char* const SPECIES_REPORT_PREFIX = "species_report_";
 const char* const WARNINGS_REPORT_PREFIX = "warnings_report_";
