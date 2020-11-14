@@ -573,6 +573,7 @@ std::string World::export_to_bngl(const std::string& file_name) const {
 
   parameters << BNG::IND << "# general parameters\n";
   parameters << BNG::IND << BNG::ITERATIONS << " " << total_iterations << "\n";
+  parameters << BNG::IND << BNG::MCELL_TIME_STEP << " " << f_to_str(config.time_unit) << "\n";
 
   string err_msg = bng_engine.export_to_bngl(
       parameters, molecule_types, reaction_rules, volume);

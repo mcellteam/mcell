@@ -52,7 +52,7 @@ std::string BNGEngine::export_to_bngl(
     std::ostream& out_reaction_rules,
     const float_t volume_um3) const {
 
-  out_parameters << IND << PARAM_V << " " << volume_um3 << " * 1e-15 # volume in litres\n";
+  out_parameters << IND << PARAM_V << " " << f_to_str(volume_um3) << " * 1e-15 # volume in litres\n";
 
   export_molecule_types_as_bngl(out_parameters, out_molecule_types);
   string err_msg = export_reaction_rules_as_bngl(out_parameters, out_reaction_rules);

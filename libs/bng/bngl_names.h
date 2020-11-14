@@ -35,12 +35,14 @@ const char* const COMPLEX_trash = "trash";
 
 const char* const ITERATIONS = "ITERATIONS";
 
+const char* const MCELL_TIME_STEP = "MCELL_TIME_STEP";
+
 const char* const MCELL_DIFFUSION_CONSTANT_3D_PREFIX = "MCELL_DIFFUSION_CONSTANT_3D_";
 const char* const MCELL_DIFFUSION_CONSTANT_2D_PREFIX = "MCELL_DIFFUSION_CONSTANT_2D_";
 const char* const MCELL_REDEFINE_PREFIX = "MCELL_REDEFINE_";
 
 const char* const PARAM_VOL_RXN = "VOL_RXN";
-const char* const NA_VALUE_STR = "6.022e23";
+const char* const NA_VALUE_STR = "6.02214e23";
 const char* const PARAM_NA_V = "NA_V";
 const char* const PARAM_V = "V";
 
