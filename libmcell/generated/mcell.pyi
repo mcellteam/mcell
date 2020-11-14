@@ -611,7 +611,7 @@ class Model():
         ) -> None:
         pass
 
-    def export_as_bngl(
+    def export_to_bngl(
             self,
             file_name : str
         ) -> None:
