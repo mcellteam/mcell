@@ -12,6 +12,7 @@
 #include "bng/bng_data.h"
 #include "bng/mol_type.h"
 #include "bng/parser_utils.h"
+#include "bng/bngl_names.h"
 
 // each semantic check has in comment the name of a test for it
 
@@ -22,14 +23,10 @@ namespace BNG {
 const char* const DIR_FORWARD = "forward";
 const char* const DIR_REVERSE = "reverse";
 
-const char* const OBSERVABLE_MOLECULES = "Molecules";
-const char* const OBSERVABLE_SPECIES = "Species";
-
-
 static bool is_thrash_or_null(const string& name) {
   // same check as in nfsim
-  return (name == "Null" || name == "NULL" || name=="null" ||
-      name == "Trash" || name == "trash" || name=="TRASH");
+  return (name == COMPLEX_Null || name == COMPLEX_NULL || name == COMPLEX_null ||
+      name == COMPLEX_Trash || name == COMPLEX_TRASH || name == COMPLEX_trash);
 }
 
 

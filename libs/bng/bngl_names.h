@@ -24,6 +24,14 @@ const char* const END_REACTION_RULES = "end reaction rules";
 const char* const OBSERVABLE_SPECIES = "Species";
 const char* const OBSERVABLE_MOLECULES = "Molecules";
 
+// these variants are accepted by BNGL2.pl
+const char* const COMPLEX_Null = "Null";
+const char* const COMPLEX_NULL = "NULL";
+const char* const COMPLEX_null = "null";
+
+const char* const COMPLEX_Trash = "Trash";
+const char* const COMPLEX_TRASH = "TRASH";
+const char* const COMPLEX_trash = "trash";
 
 const char* const ITERATIONS = "ITERATIONS";
 

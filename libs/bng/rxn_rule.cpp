@@ -20,7 +20,7 @@
 
 #include "bng/rxn_rule.h"
 #include "bng/rxn_class.h"
-
+#include "bng/bngl_names.h"
 #include "bng/species.h"
 #include "bng/species_container.h"
 
@@ -1892,7 +1892,12 @@ std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name,
 
   ss << cplx_vector_to_str(reactants);
   ss << " -> ";
-  ss << cplx_vector_to_str(products);
+  if (!products.empty()) {
+    ss << cplx_vector_to_str(products);
+  }
+  else {
+    ss << COMPLEX_Null;
+  }
 
   if (with_rate_constant) {
     ss << " " << base_rate_constant;
