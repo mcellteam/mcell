@@ -7,8 +7,8 @@
 #include <time.h>
 #include <sys/stat.h> // mkdir
 
-#include "defines_shared.h" // includes bng_config.h
-#include "bng_defines.h" // includes bng_config.h
+#include "bng/shared_defines.h"
+#include "bng/bng_defines.h" // includes bng_config.h
 
 using namespace std;
 

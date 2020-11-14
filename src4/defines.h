@@ -44,7 +44,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "../libs/glm/gtx/component_wise.hpp"
 
-#include "../libs/bng/defines_shared.h" // may define INDEXER_WA
+#include "bng/shared_defines.h" // may define INDEXER_WA
 
 #if defined(NDEBUG) && defined(INDEXER_WA)
 #warning "INDEXER_WA is enabled and this will lead to lower performance"

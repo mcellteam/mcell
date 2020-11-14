@@ -1,5 +1,5 @@
 
-#include "defines_shared.h"
+#include "bng/shared_defines.h"
 
 namespace BNGCommon {
 

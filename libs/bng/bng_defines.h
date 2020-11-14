@@ -8,7 +8,7 @@
 #include <set>
 #include <iostream>
 
-#include "bng/defines_shared.h"
+#include "bng/shared_defines.h"
 
 namespace BNG {
 
