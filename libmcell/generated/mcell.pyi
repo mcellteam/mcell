@@ -864,6 +864,11 @@ class ReactionRule():
         self.variable_rate = variable_rate
 
 
+    def to_bngl_str(
+            self,
+        ) -> 'str':
+        pass
+
 class Region():
     def __init__(
             self,

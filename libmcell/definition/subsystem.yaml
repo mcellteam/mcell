@@ -177,7 +177,7 @@ Complex:
   - name: as_species
     return_type: Species*
     doc: | 
-       Returns a Species object based on this Complex. All Species-specific 
+       Returns a Species object based on this Complex. All species-specific 
        attributes are set to their default values and 'name' is set to value returned by 
        'to_bngl_str()'.
       
@@ -357,7 +357,11 @@ ReactionRule:
       Variable rate is applicable only for irreversible reactions. Members fwd_rate and rev_rate 
       must not be set. The array passed as this argument must have as its items a pair of floats (time, rate).     
 
-
+  methods:
+  - name: to_bngl_str
+    return_type: str
+    doc: Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.     
+  
 Subsystem:
   items:
   - name: species

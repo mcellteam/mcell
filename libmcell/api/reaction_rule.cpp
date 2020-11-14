@@ -21,58 +21,43 @@
 ******************************************************************************/
 
 #include "api/complex.h"
-#include "api/species.h"
-#include "api/elementary_molecule_instance.h"
-#include "api/elementary_molecule_type.h"
+#include "api/reaction_rule.h"
+#include "bng/bngl_names.h"
 
 using namespace std;
 
 namespace MCell {
 namespace API {
 
-
-bool Complex::is_surf() const {
-  for (auto em: elementary_molecule_instances) {
-    if (is_set(em->elementary_molecule_type->diffusion_constant_2d)) {
-      return true;
+std::string ReactionRule::to_bngl_str() {
+  string res;
+  for (size_t i = 0; i < reactants.size(); i++) {
+    res += reactants[i]->to_bngl_str();
+    if (i + 1 != reactants.size()) {
+      res += " + ";
     }
   }
-  return false;
-}
 
-
-std::string Complex::to_bngl_str() {
-  if (is_set(name)) {
-    return name;
+  if (is_set(rev_rate)) {
+    res += " <-> ";
   }
   else {
-    std::string res;
-    for (size_t i = 0; i < elementary_molecule_instances.size(); i++) {
-      res += elementary_molecule_instances[i]->to_bngl_str();
-      if (i + 1 != elementary_molecule_instances.size()) {
-        res += ".";
+    res += " -> ";
+  }
+
+  if (!products.empty()) {
+    for (size_t i = 0; i < products.size(); i++) {
+      res += products[i]->to_bngl_str();
+      if (i + 1 != products.size()) {
+        res += " + ";
       }
     }
-
-    if (orientation == Orientation::UP) {
-      res += "'";
-    }
-    else if (orientation == Orientation::DOWN) {
-      res += ",";
-    }
-
-    return res;
   }
-}
+  else {
+    res += BNG::COMPLEX_Null;
+  }
 
-
-bool Complex::is_species_object() const {
-  return dynamic_cast<const Species*>(this) != nullptr;
-}
-
-
-std::shared_ptr<Species> Complex::as_species() {
-  return std::make_shared<Species>(*this);
+  return res;
 }
 
 

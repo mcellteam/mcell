@@ -27,6 +27,7 @@ set(SOURCE_FILES
     api/component_instance.cpp
     api/elementary_molecule_instance.cpp
     api/complex.cpp
+    api/reaction_rule.cpp
     
     api/subsystem.cpp
     api/instantiation_data.cpp
