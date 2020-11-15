@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Callable, Any
 from enum import Enum
 
 # "forward" declarations to make the type hints valid
@@ -275,8 +275,8 @@ class CountTerm():
             reaction_rule : ReactionRule = None,
             region : Region = None,
             node_type : ExprNodeType = ExprNodeType.LEAF,
-            left_node : 'CountTerm' = None,
-            right_node : 'CountTerm' = None
+            left_node : CountTerm = None,
+            right_node : CountTerm = None
         ):
         self.species_pattern = species_pattern
         self.molecules_pattern = molecules_pattern
@@ -289,13 +289,13 @@ class CountTerm():
 
     def __add__(
             self,
-            op2 : 'CountTerm'
+            op2 : CountTerm
         ) -> 'CountTerm':
         pass
 
     def __sub__(
             self,
-            op2 : 'CountTerm'
+            op2 : CountTerm
         ) -> 'CountTerm':
         pass
 
@@ -595,8 +595,8 @@ class Model():
 
     def register_mol_wall_hit_callback(
             self,
-            function : std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>,
-            context : py::object,
+            function : Callable, # std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>,
+            context : Any, # py::object,
             object : GeometryObject = None,
             species : Species = None
         ) -> None:
@@ -605,7 +605,7 @@ class Model():
     def load_bngl(
             self,
             file_name : str,
-            observables_files_prefix : str = ,
+            observables_files_prefix : str = '',
             default_release_region : Region = None,
             parameter_overrides : Dict[str, float] = None
         ) -> None:
@@ -733,7 +733,7 @@ class Model():
             self,
             file_name : str,
             subsystem : Subsystem,
-            output_files_prefix : str = ,
+            output_files_prefix : str = '',
             parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
@@ -839,7 +839,7 @@ class Observables():
             self,
             file_name : str,
             subsystem : Subsystem,
-            output_files_prefix : str = ,
+            output_files_prefix : str = '',
             parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
@@ -873,8 +873,8 @@ class Region():
     def __init__(
             self,
             node_type : RegionNodeType = RegionNodeType.UNSET,
-            left_node : 'Region' = None,
-            right_node : 'Region' = None
+            left_node : Region = None,
+            right_node : Region = None
         ):
         self.node_type = node_type
         self.left_node = left_node
@@ -883,19 +883,19 @@ class Region():
 
     def __add__(
             self,
-            other : 'Region'
+            other : Region
         ) -> 'Region':
         pass
 
     def __sub__(
             self,
-            other : 'Region'
+            other : Region
         ) -> 'Region':
         pass
 
     def __mul__(
             self,
-            other : 'Region'
+            other : Region
         ) -> 'Region':
         pass
 
@@ -958,7 +958,6 @@ class Species():
             custom_time_step : float = None,
             custom_space_step : float = None,
             target_only : bool = False,
-            name : str = None,
             elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.DEFAULT,
             compartment_name : str = None

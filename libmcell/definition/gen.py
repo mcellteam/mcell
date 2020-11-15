@@ -368,6 +368,10 @@ def yaml_type_to_py_type(t):
     assert len(t) >= 1
     if t == YAML_TYPE_LONG:
         return YAML_TYPE_INT # not sure what should be the name
+    elif is_yaml_function_type(t):
+        return "Callable, # " + t
+    elif t == YAML_TYPE_PY_OBJECT:
+        return "Any, # " + t
     else:
         return t.replace('*', '')
 
@@ -452,15 +456,15 @@ def get_default_or_unset_value_py(attr):
 
     if KEY_DEFAULT in attr:
         default_value = attr[KEY_DEFAULT]
-        if default_value != UNSET_VALUE and default_value != EMPTY_ARRAY:
-            res = str(default_value)
+        if default_value == "":
+            return "''"
+        elif default_value != UNSET_VALUE and default_value != EMPTY_ARRAY:
+            return str(default_value)
             # might need to convert enum.value into enum::value
             #if not is_base_yaml_type(t):
             #    res = res.replace('.', '::')
             #elif t == YAML_TYPE_BOOL:
             #    res = get_cpp_bool_string(res)
-                
-            return res 
     
     return PY_NONE
 
@@ -1565,12 +1569,18 @@ def generate_pyi_class(f, name, class_def):
     
     # ctor
     if KEY_ITEMS in class_def:
+        generated_params = set()
         num_items = len(class_def[KEY_ITEMS])
         for i in range(0, num_items):
             item = class_def[KEY_ITEMS][i]
-            f.write(param_ind + item[KEY_NAME])
+            name = item[KEY_NAME]
+            if name in generated_params:
+                continue
+            generated_params.add(name)
             
-            # self-referencing classes must usestring type reference
+            f.write(param_ind + name)
+            
+            # self-referencing classes must use string type reference
             # https://www.python.org/dev/peps/pep-0484/#forward-references
             t = yaml_type_to_py_type(item[KEY_TYPE])
             q = '\'' if t == name else ''
@@ -1633,7 +1643,7 @@ def generate_pyi_class(f, name, class_def):
 def generate_pyi_file(data_classes):
     with open(os.path.join(TARGET_DIRECTORY, MCELL_PYI), 'w') as f:
         
-        f.write('from typing import List\n')
+        f.write('from typing import List, Dict, Callable, Any\n')
         f.write('from enum import Enum\n\n')
         
         f.write('# "forward" declarations to make the type hints valid\n')
