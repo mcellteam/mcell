@@ -475,11 +475,11 @@ def write_generated_notice(f):
     #date_time = now.strftime("%m/%d/%Y, %H:%M")
     #f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
 
-def write_ctor_decl(f, class_def, class_name, append_backslash, indent, only_inherited, with_args=True):
+def write_ctor_decl(f, class_def, class_name, append_backslash, indent_and_fix_rst_chars, only_inherited, with_args=True):
     items = class_def[KEY_ITEMS] if KEY_ITEMS in class_def else []
     backshlash = '\\' if append_backslash else ''
     
-    f.write(indent + class_name + '( ' + backshlash + '\n')
+    f.write(indent_and_fix_rst_chars + class_name + '( ' + backshlash + '\n')
      
     inherited_items = [ attr for attr in items if is_inherited(attr) ]
 
@@ -501,7 +501,7 @@ def write_ctor_decl(f, class_def, class_name, append_backslash, indent, only_inh
             name = attr[KEY_NAME]
     
             const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
-            f.write(indent + '    ' + const_spec + get_type_as_ref_param(attr) + ' ' + name + '_')
+            f.write(indent_and_fix_rst_chars + '    ' + const_spec + get_type_as_ref_param(attr) + ' ' + name + '_')
             
             if KEY_DEFAULT in attr:
                 f.write(' = ' + get_default_or_unset_value(attr))
@@ -510,7 +510,7 @@ def write_ctor_decl(f, class_def, class_name, append_backslash, indent, only_inh
                 f.write(',')
             f.write(' ' + backshlash + '\n')
     
-    f.write(indent + ') ')
+    f.write(indent_and_fix_rst_chars + ') ')
     
     if has_superclass_other_than_base(class_def):
         # call superclass ctor
@@ -543,7 +543,7 @@ def write_ctor_define(f, class_def, class_name):
     suffix = CTOR_SUFFIX if with_args else CTOR_NOARGS_SUFFIX
     f.write('#define ' + get_underscored(class_name).upper() + suffix + '() \\\n')
 
-    write_ctor_decl(f, class_def, class_name, append_backslash=True, indent='    ', only_inherited=False, with_args=with_args)
+    write_ctor_decl(f, class_def, class_name, append_backslash=True, indent_and_fix_rst_chars='    ', only_inherited=False, with_args=with_args)
 
     f.write('{ \\\n')
 
@@ -568,7 +568,7 @@ def write_ctor_define(f, class_def, class_name):
     
     
 def write_ctor_for_superclass(f, class_def, class_name):
-    write_ctor_decl(f, class_def, GEN_CLASS_PREFIX + class_name, append_backslash=False, indent='  ', only_inherited=True)
+    write_ctor_decl(f, class_def, GEN_CLASS_PREFIX + class_name, append_backslash=False, indent_and_fix_rst_chars='  ', only_inherited=True)
     f.write(' {\n')
     f.write('  }\n')
     
@@ -1693,17 +1693,17 @@ def generate_pyi_file(data_classes):
         f.write(species_def)
         
         
-def indent(text, indent):
-    return text.replace('\n', '\n' + indent)
+def indent_and_fix_rst_chars(text, indent_and_fix_rst_chars):
+    return text.replace('\n', '\n' + indent_and_fix_rst_chars).replace('*', '\\*')
             
 
 def generate_class_documentation(f, class_name, class_def):
     f.write(class_name + '\n' + '='*len(class_name) + '\n\n')
     
     if KEY_DOC in class_def:
-        f.write(class_def[KEY_DOC] + '\n\n')
+        f.write(class_def[KEY_DOC].strip() + '\n\n')
         
-    if KEY_ITEMS in class_def:
+    if KEY_ITEMS in class_def and class_def[KEY_ITEMS]:
         f.write('Attributes\n' + '*'*len('Attributes') + '\n')
         num_items = len(class_def[KEY_ITEMS])
         for item in class_def[KEY_ITEMS]:
@@ -1715,22 +1715,16 @@ def generate_class_documentation(f, class_name, class_def):
             f.write('\n')
             
             if KEY_DOC in item:
-                f.write('  | ' + indent(item[KEY_DOC], '  | ') + '\n')
+                f.write('  | ' + indent_and_fix_rst_chars(item[KEY_DOC].strip(), '  | ') + '\n')
             f.write('\n')
         
-    if KEY_METHODS in class_def:
+    if KEY_METHODS in class_def and class_def[KEY_METHODS]:
         f.write('\nMethods\n' + '*'*len('nMethods') + '\n')
         for method in class_def[KEY_METHODS]:
             method_name = method[KEY_NAME]
             
-            f.write('* | **' + method[KEY_NAME] + '**\n')
+            f.write('* | **' + method[KEY_NAME] + '**\n\n')
 
-            if KEY_DOC in method:
-                f.write('  | ' + indent(method[KEY_DOC], '  | ') + '\n\n')
-
-            if KEY_RETURN_TYPE in method:
-                f.write('   * return type: ' + yaml_type_to_py_type(method[KEY_RETURN_TYPE]) + '\n')
-            
             if KEY_PARAMS in method:
                 num_params = len(method[KEY_PARAMS])
                 for param in method[KEY_PARAMS]:
@@ -1738,20 +1732,64 @@ def generate_class_documentation(f, class_name, class_def):
                     f.write('   * | ' + param[KEY_NAME] + ': ' + t)
                     if KEY_DEFAULT in param:
                         f.write(' = ' + get_default_or_unset_value_py(param))
-                        if KEY_DOC in method:
-                            f.write('     | ' + indent(method[KEY_DOC], '     | ') + '\n\n')
+                    if KEY_DOC in param:
+                        f.write('\n     | ' + indent_and_fix_rst_chars(param[KEY_DOC].strip(), '     | ') + '\n\n')
+                    else:
+                        f.write('\n')
+
+            if KEY_RETURN_TYPE in method:
+                f.write('   * | return type: ' + yaml_type_to_py_type(method[KEY_RETURN_TYPE]) + '\n\n')
             
+            if KEY_DOC in method:
+                f.write('\n  | ' + indent_and_fix_rst_chars(method[KEY_DOC].strip(), '  | ') + '\n\n')
+                
+
+
             f.write('\n')
         f.write('\n')
     
         
 def generate_documentation(data_classes):
     with open(os.path.join(DOC_DIRECTORY, CLASSES_RST), 'w') as f:
+
+        f.write(
+            '**************************************\n'
+            'MCell 4 Python API Enums and Constants\n'
+            '**************************************\n\n'
+        )
+
+        # generate enums first, then constants
+        enums = data_classes[KEY_ENUMS]
+        for enum in enums:
+            enum_name = enum[KEY_NAME]
+            f.write(enum_name + '\n' + '='*len(enum_name) + '\n\n')
+            
+            if KEY_DOC in enum:
+                f.write('\n  | ' + indent_and_fix_rst_chars(enum[KEY_DOC].strip(), '  | ') + '\n\n')            
+                
+            for value in enum[KEY_VALUES]:
+                f.write('* | **' + value[KEY_NAME] + '** = ' + str(value[KEY_VALUE]) + '\n')
+                if KEY_DOC in value:
+                    f.write('  | ' + indent_and_fix_rst_chars(value[KEY_DOC].strip(), '  | ') + '\n\n')                
+            f.write('\n')
+        f.write('\n\n')
+        
+        c = 'Constants'
+        f.write(c + '\n' + '='*len(c) + '\n\n')
+        constants = data_classes[KEY_CONSTANTS]
+        for const in constants:
+            const_name = const[KEY_NAME]
+            
+            f.write('* | **' + const_name + '**: ' + yaml_type_to_py_type(const[KEY_TYPE]) + \
+                    ' = ' + str(const[KEY_VALUE]) +'\n')
+            if KEY_DOC in const:
+                f.write('  | ' + indent_and_fix_rst_chars(const[KEY_DOC].strip(), '  | ') + '\n\n')              
+        f.write('\n\n')
         
         f.write(
             '**************************\n'
             'MCell 4 Python API Classes\n'
-            '**************************\n'
+            '**************************\n\n'
         )
                     
         for key, value in sorted(data_classes.items()):
@@ -1759,28 +1797,6 @@ def generate_documentation(data_classes):
                 generate_class_documentation(f, key, value)
 
 
-    """        
-    # generate enums first, then constants
-    enums = data_classes[KEY_ENUMS]
-    for enum in enums:
-        f.write('class ' + enum[KEY_NAME] + '(Enum):\n')
-        for enum_item in enum[KEY_VALUES]:
-            f.write('    ' + enum_item[KEY_NAME] + ' = ' + str(enum_item[KEY_VALUE]) + '\n')
-        f.write('\n')
-    f.write('\n\n')
-    
-    constants = data_classes[KEY_CONSTANTS]
-    for const in constants:
-        if const[KEY_TYPE] == YAML_TYPE_SPECIES:
-            # Species constants are a bit special
-            ctor_param = get_underscored(const[KEY_VALUE]).upper()
-            species_def += const[KEY_NAME] + ' = ' + YAML_TYPE_SPECIES + '(\'' + ctor_param + '\')\n'
-        elif const[KEY_TYPE] == YAML_TYPE_STR:
-            f.write(const[KEY_NAME] + ' = \'' + str(const[KEY_VALUE]) + '\'\n')
-        else:
-            f.write(const[KEY_NAME] + ' = ' + str(const[KEY_VALUE]) + '\n')
-    f.write('\n\n')
-    """
         
 def load_and_generate_data_classes():
     # create work directory

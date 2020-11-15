@@ -118,90 +118,89 @@ Notifications:
       details on reaction classes and species that were created based on reaction rules.   
   
   # none of these notifications below are currrently interpreted by mcell
-  - name: probability_report
-    type: bool
-    default: True
-    
-  - name: diffusion_constant_report
-    type: Notification
-    default: Notification.BRIEF
-    
-  # FILE_OUTPUT_REPORT - to be removed, controls only how many lines are to be printed to reac_output
-  
-  - name: final_summary
-    type: bool
-    default: True
-  
-  - name: iteration_report
-    type: bool
-    default: True
-  
-  # PARTITION_LOCATION_REPORT - maybe rename to something modere useful, used here: vol_util.cpp:1835
-  
-  - name: varying_probability_report
-    type: bool
-    default: True
-    doc: Related to changing rxn probabilities at runtime
-    
-  - name: progress_report
-    type: bool
-    default: True
-
-  - name: release_event_report
-    type: bool
-    default: True
-  
-  - name: molecule_collision_report
-    type: bool
-    default: True
+#   - name: probability_report
+#     type: bool
+#     default: True
+#     
+#   - name: diffusion_constant_report
+#     type: Notification
+#     default: Notification.BRIEF
+#     
+#  FILE_OUTPUT_REPORT - to be removed, controls only how many lines are to be printed to reac_output
+#   
+#   - name: final_summary
+#     type: bool
+#     default: True
+#   
+#   - name: iteration_report
+#     type: bool
+#     default: True
+#   
+#  PARTITION_LOCATION_REPORT - maybe rename to something modere useful, used here: vol_util.cpp:1835
+#   
+#   - name: varying_probability_report
+#     type: bool
+#     default: True
+#     doc: Related to changing rxn probabilities at runtime
+#     
+#   - name: progress_report
+#     type: bool
+#     default: True
+# 
+#   - name: release_event_report
+#     type: bool
+#     default: True
+#   
+#   - name: molecule_collision_report
+#     type: bool
+#     default: True
    
-# none of these warnings are currrently interpreted by mcell   
 Warnings:
   superclass: BaseDataClass
-  
-  items:
-  - name: molecule_collision_report
-    type: WarningLevel
-    default: WarningLevel.WARNING
-     
-  - name: degenerate_polygons
-    type: WarningLevel
-    default: WarningLevel.WARNING
-
-  - name: negative_diffusion_constant
-    type: WarningLevel
-    default: WarningLevel.WARNING
-
-  - name: missing_surface_orientation
-    type: WarningLevel
-    default: WarningLevel.ERROR
-
-  - name: negative_reaction_rate
-    type: WarningLevel
-    default: WarningLevel.WARNING
-
-  - name: useless_volume_orientation
-    type: WarningLevel
-    default: WarningLevel.WARNING
-
-  - name: high_reaction_probability
-    type: WarningLevel
-    default: WarningLevel.IGNORE
-
-  - name: lifetime_too_short
-    type: WarningLevel
-    default: WarningLevel.WARNING
-
-  - name: lifetime_threshold
-    type: float
-    default: 50 # units?
-
-  - name: missed_reactions
-    type: WarningLevel
-    default: WarningLevel.WARNING
-
-  - name: missed_reactions_threshold
-    type: float
-    default: 0.00100000004749745 # TODO: where is this constant coming from?
-    
+  doc: This is a placeholder for future warnings settings. Empty for now.
+#   items:
+#   - name: molecule_collision_report
+#     type: WarningLevel
+#     default: WarningLevel.WARNING
+#      
+#   - name: degenerate_polygons
+#     type: WarningLevel
+#     default: WarningLevel.WARNING
+# 
+#   - name: negative_diffusion_constant
+#     type: WarningLevel
+#     default: WarningLevel.WARNING
+# 
+#   - name: missing_surface_orientation
+#     type: WarningLevel
+#     default: WarningLevel.ERROR
+# 
+#   - name: negative_reaction_rate
+#     type: WarningLevel
+#     default: WarningLevel.WARNING
+# 
+#   - name: useless_volume_orientation
+#     type: WarningLevel
+#     default: WarningLevel.WARNING
+# 
+#   - name: high_reaction_probability
+#     type: WarningLevel
+#     default: WarningLevel.IGNORE
+# 
+#   - name: lifetime_too_short
+#     type: WarningLevel
+#     default: WarningLevel.WARNING
+# 
+#   - name: lifetime_threshold
+#     type: float
+#     default: 50 # units?
+# 
+#   - name: missed_reactions
+#     type: WarningLevel
+#     default: WarningLevel.WARNING
+# 
+#   - name: missed_reactions_threshold
+#     type: float
+#     default: 0.00100000004749745 # TODO: where is this constant coming from?
+#     
     

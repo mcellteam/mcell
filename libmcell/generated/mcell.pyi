@@ -791,26 +791,10 @@ class Notifications():
     def __init__(
             self,
             bng_verbosity_level : int = 0,
-            rxn_and_species_report : bool = True,
-            probability_report : bool = True,
-            diffusion_constant_report : Notification = Notification.BRIEF,
-            final_summary : bool = True,
-            iteration_report : bool = True,
-            varying_probability_report : bool = True,
-            progress_report : bool = True,
-            release_event_report : bool = True,
-            molecule_collision_report : bool = True
+            rxn_and_species_report : bool = True
         ):
         self.bng_verbosity_level = bng_verbosity_level
         self.rxn_and_species_report = rxn_and_species_report
-        self.probability_report = probability_report
-        self.diffusion_constant_report = diffusion_constant_report
-        self.final_summary = final_summary
-        self.iteration_report = iteration_report
-        self.varying_probability_report = varying_probability_report
-        self.progress_report = progress_report
-        self.release_event_report = release_event_report
-        self.molecule_collision_report = molecule_collision_report
 
 
 class Observables():
@@ -1173,30 +1157,8 @@ class WallWallHitInfo():
 class Warnings():
     def __init__(
             self,
-            molecule_collision_report : WarningLevel = WarningLevel.WARNING,
-            degenerate_polygons : WarningLevel = WarningLevel.WARNING,
-            negative_diffusion_constant : WarningLevel = WarningLevel.WARNING,
-            missing_surface_orientation : WarningLevel = WarningLevel.ERROR,
-            negative_reaction_rate : WarningLevel = WarningLevel.WARNING,
-            useless_volume_orientation : WarningLevel = WarningLevel.WARNING,
-            high_reaction_probability : WarningLevel = WarningLevel.IGNORE,
-            lifetime_too_short : WarningLevel = WarningLevel.WARNING,
-            lifetime_threshold : float = 50,
-            missed_reactions : WarningLevel = WarningLevel.WARNING,
-            missed_reactions_threshold : float = 0.00100000004749745
         ):
-        self.molecule_collision_report = molecule_collision_report
-        self.degenerate_polygons = degenerate_polygons
-        self.negative_diffusion_constant = negative_diffusion_constant
-        self.missing_surface_orientation = missing_surface_orientation
-        self.negative_reaction_rate = negative_reaction_rate
-        self.useless_volume_orientation = useless_volume_orientation
-        self.high_reaction_probability = high_reaction_probability
-        self.lifetime_too_short = lifetime_too_short
-        self.lifetime_threshold = lifetime_threshold
-        self.missed_reactions = missed_reactions
-        self.missed_reactions_threshold = missed_reactions_threshold
-
+        pass
 
 class bngl_utils():
     def __init__(

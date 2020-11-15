@@ -68,6 +68,7 @@ constants:
     
 enums:
   - name: Orientation
+    doc: Orientation of a Complex.
     # TODO: consider adding/changing orientation don't care, this might make things a bit clearer 
     values:
     - name: DOWN
@@ -150,7 +151,7 @@ enums:
          The clamped surface reflects these molecules. 
       
   - name: ExprNodeType
-    doc: Used internally to represent expression trees
+    doc: Used internally to represent expression trees.
     values:
     - name: UNSET
       value: 0
@@ -162,7 +163,7 @@ enums:
       value: 3
       
   - name: RegionNodeType
-    doc: Used internally to represent region trees
+    doc: Used internally to represent region trees.
     values:
     - name: UNSET
       value: 0    
