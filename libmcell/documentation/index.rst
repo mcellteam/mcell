@@ -11,7 +11,7 @@ MCell 4 Python API documentation
    :hidden:
    :caption: Contents
    
-   classes
+   generated/classes
    
 
 Indices and tables

@@ -73,6 +73,7 @@ COPYRIGHT = \
 """
 
 TARGET_DIRECTORY = os.path.join('..', 'generated')
+DOC_DIRECTORY = os.path.join('..', 'documentation', 'generated')
 API_DIRECTORY = os.path.join('..', 'api')
 WORK_DIRECTORY = os.path.join('..', 'work')
 
@@ -1735,7 +1736,7 @@ def generate_class_documentation(f, class_name, class_def):
     
         
 def generate_documentation(data_classes):
-    with open(os.path.join(TARGET_DIRECTORY, CLASSES_RST), 'w') as f:
+    with open(os.path.join(DOC_DIRECTORY, CLASSES_RST), 'w') as f:
         
         f.write(
             '**************************\n'

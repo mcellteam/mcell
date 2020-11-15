@@ -1,6 +1,0 @@
-Using Sphinx:
-
-https://docs.readthedocs.io/en/stable/intro/getting-started-with-sphinx.html
-
-python -m pip install sphinx sphinx_rtd_theme
-
