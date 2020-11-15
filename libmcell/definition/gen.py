@@ -1704,7 +1704,7 @@ def generate_class_documentation(f, class_name, class_def):
         f.write(class_def[KEY_DOC].strip() + '\n\n')
         
     if KEY_ITEMS in class_def and class_def[KEY_ITEMS]:
-        f.write('Attributes\n' + '*'*len('Attributes') + '\n')
+        f.write('Attributes:\n' + '*'*len('Attributes:') + '\n')
         num_items = len(class_def[KEY_ITEMS])
         for item in class_def[KEY_ITEMS]:
             t = yaml_type_to_py_type(item[KEY_TYPE])
@@ -1719,7 +1719,7 @@ def generate_class_documentation(f, class_name, class_def):
             f.write('\n')
         
     if KEY_METHODS in class_def and class_def[KEY_METHODS]:
-        f.write('\nMethods\n' + '*'*len('nMethods') + '\n')
+        f.write('\nMethods:\n' + '*'*len('nMethods:') + '\n')
         for method in class_def[KEY_METHODS]:
             method_name = method[KEY_NAME]
             

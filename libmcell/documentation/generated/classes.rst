@@ -140,8 +140,8 @@ On top of that, orientation may be defined.
 This class is used as argument in cases where either a fully qualified instance or a pattern 
 can be provided such as in observable Count.
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str = None
   | When set, this complex instance is initialized from a BNGL string passed as this argument, 
   | the string is parsed during model initialization so the molecule types it uses
@@ -167,8 +167,8 @@ Attributes
   | Ignored by derived class Species.
 
 
-Methods
-********
+Methods:
+*********
 * | **to_bngl_str**
 
    * | return type: str
@@ -195,8 +195,8 @@ Instance of a component belonging to a molecule instance.
 A component instance may have its state set.
 It is also used to connect molecule instance in a complex instance.
 
-Attributes
-**********
+Attributes:
+***********
 * | **component_type**: ComponentType
 
 * | **state**: str = STATE_UNSET
@@ -204,8 +204,8 @@ Attributes
 * | **bond**: int = BOND_UNBOUND
 
 
-Methods
-********
+Methods:
+*********
 * | **to_bngl_str**
 
    * | return type: str
@@ -218,15 +218,15 @@ Methods
 ComponentType
 =============
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str
 
 * | **states**: List[str] = None
 
 
-Methods
-********
+Methods:
+*********
 * | **inst**
 
    * | state: str = STATE_UNSET
@@ -245,8 +245,8 @@ Methods
 Config
 ======
 
-Attributes
-**********
+Attributes:
+***********
 * | **seed**: int = 1
 
 * | **time_step**: float = 1e-6
@@ -295,8 +295,8 @@ Attributes
 Count
 =====
 
-Attributes
-**********
+Attributes:
+***********
 * | **file_name**: str
 
 * | **count_expression**: CountTerm = None
@@ -344,8 +344,8 @@ Attributes
   | Internal, when node_type is not Leaf, this is the right operand
 
 
-Methods
-********
+Methods:
+*********
 * | **__add__**
 
    * | op2: CountTerm
@@ -362,8 +362,8 @@ Methods
 CountTerm
 =========
 
-Attributes
-**********
+Attributes:
+***********
 * | **species_pattern**: Complex = None
   | Count the number of molecules that match the given complex instance pattern.
   | Counts each molecule exactly once. 
@@ -397,8 +397,8 @@ Attributes
   | Internal, when node_type is not Leaf, this is the right operand
 
 
-Methods
-********
+Methods:
+*********
 * | **__add__**
 
    * | op2: CountTerm
@@ -415,15 +415,15 @@ Methods
 ElementaryMoleculeInstance
 ==========================
 
-Attributes
-**********
+Attributes:
+***********
 * | **elementary_molecule_type**: ElementaryMoleculeType
 
 * | **components**: List[ComponentInstance] = None
 
 
-Methods
-********
+Methods:
+*********
 * | **to_bngl_str**
 
    * | return type: str
@@ -436,8 +436,8 @@ Methods
 ElementaryMoleculeType
 ======================
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str
 
 * | **components**: List[ComponentType] = None
@@ -462,8 +462,8 @@ Attributes
   | not affect unimolecular reactions.
 
 
-Methods
-********
+Methods:
+*********
 * | **inst**
 
    * | components: List[ComponentInstance] = None
@@ -474,8 +474,8 @@ Methods
 GeometryObject
 ==============
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str
   | Name of the object. Also represents BNGL compartment name if 'is_bngl_compartment' is True.
 
@@ -514,8 +514,8 @@ Attributes
   | Internal, when node_type is not Leaf, this is the right operand
 
 
-Methods
-********
+Methods:
+*********
 * | **translate**
 
    * | move: Vec3
@@ -550,8 +550,8 @@ InitialSurfaceRelease
 
 Defines molecules to be released onto a SurfaceRegion right when simulation starts
 
-Attributes
-**********
+Attributes:
+***********
 * | **complex**: Complex
 
 * | **number_to_release**: int = None
@@ -565,15 +565,15 @@ Attributes
 InstantiationData
 =================
 
-Attributes
-**********
+Attributes:
+***********
 * | **release_sites**: List[ReleaseSite] = None
 
 * | **geometry_objects**: List[GeometryObject] = None
 
 
-Methods
-********
+Methods:
+*********
 * | **add_release_site**
 
    * | s: ReleaseSite
@@ -632,8 +632,8 @@ Methods
 Model
 =====
 
-Attributes
-**********
+Attributes:
+***********
 * | **config**: Config = Config()
 
 * | **warnings**: Warnings = Warnings()
@@ -659,8 +659,8 @@ Attributes
 * | **counts**: List[Count] = None
 
 
-Methods
-********
+Methods:
+*********
 * | **initialize**
 
 
@@ -999,8 +999,8 @@ Methods
 MolWallHitInfo
 ==============
 
-Attributes
-**********
+Attributes:
+***********
 * | **molecule_id**: int
 
 * | **geometry_object**: GeometryObject
@@ -1029,8 +1029,8 @@ Molecule
 This is a Python representation of a molecule obtained from Model 
 during simulation.
 
-Attributes
-**********
+Attributes:
+***********
 * | **id**: int = MOLECULE_ID_INVALID
   | Unique id of this molecule
 
@@ -1046,8 +1046,8 @@ Attributes
   | have always orientation set to Orientation.NONE.
 
 
-Methods
-********
+Methods:
+*********
 * | **remove**
 
 
@@ -1059,8 +1059,8 @@ Methods
 MoleculeReleaseInfo
 ===================
 
-Attributes
-**********
+Attributes:
+***********
 * | **complex**: Complex
   | Complex instance defining the molecule that will be released.
   | Orientation of the complex instance is used to define orientation of the released molecule,
@@ -1077,8 +1077,8 @@ Attributes
 Notifications
 =============
 
-Attributes
-**********
+Attributes:
+***********
 * | **bng_verbosity_level**: int = 0
   | Sets verbosity level that enables printouts of extra information on BioNetGen 
   | species and rules created and used during simulation.
@@ -1092,15 +1092,15 @@ Observables
 
 Neither VizOutput, nor Count have name, therefore there are no find_* methods.
 
-Attributes
-**********
+Attributes:
+***********
 * | **viz_outputs**: List[VizOutput] = None
 
 * | **counts**: List[Count] = None
 
 
-Methods
-********
+Methods:
+*********
 * | **add_viz_output**
 
    * | viz_output: VizOutput
@@ -1128,8 +1128,8 @@ Methods
 ReactionRule
 ============
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str = None
   | Name of the reaction. If this is a reversible reaction, then it is the name of the 
   | reaction in forward direction.
@@ -1151,8 +1151,8 @@ Attributes
   | must not be set. The array passed as this argument must have as its items a pair of floats (time, rate).
 
 
-Methods
-********
+Methods:
+*********
 * | **to_bngl_str**
 
    * | return type: str
@@ -1167,8 +1167,8 @@ Region
 
 Represents region construted from 1 or more multiple, usually unnamed?
 
-Attributes
-**********
+Attributes:
+***********
 * | **node_type**: RegionNodeType = RegionNodeType.UNSET
   | When this values is LeafGeometryObject, then this object is of class GeometryObject,
   | when LeafSurfaceRegion, then it is of class SurfaceRegion.
@@ -1180,8 +1180,8 @@ Attributes
   | Internal, when node_type is not Leaf, this is the right operand
 
 
-Methods
-********
+Methods:
+*********
 * | **__add__**
 
    * | other: Region
@@ -1207,8 +1207,8 @@ Methods
 ReleasePattern
 ==============
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str = None
   | Name of the release pattern
 
@@ -1232,8 +1232,8 @@ Attributes
 ReleaseSite
 ===========
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str
   | Name of the release site
 
@@ -1318,8 +1318,8 @@ Such declaration does no need to be added to subsystem or model.
 This form is used as argument in cases where a fully qualified instance  
 must be provided such as in molecule releases.
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str = None
   | Name of the species in the BNGL format. 
   | One must either specify 'name' or 'elementary_molecule_instances' 
@@ -1370,8 +1370,8 @@ Attributes
   | Ignored by derived class Species.
 
 
-Methods
-********
+Methods:
+*********
 * | **inst**
 
    * | orientation: Orientation = Orientation.DEFAULT
@@ -1409,8 +1409,8 @@ Methods
 Subsystem
 =========
 
-Attributes
-**********
+Attributes:
+***********
 * | **species**: List[Species] = None
 
 * | **reaction_rules**: List[ReactionRule] = None
@@ -1422,8 +1422,8 @@ Attributes
   | Python API, this array is populated automatically
 
 
-Methods
-********
+Methods:
+*********
 * | **add_species**
 
    * | s: Species
@@ -1485,8 +1485,8 @@ SurfaceClass
 
 Defining a surface class allows surfaces to behave like species (in a limited way).
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str
   | Name of the surface class
 
@@ -1514,8 +1514,8 @@ Attributes
 SurfaceProperty
 ===============
 
-Attributes
-**********
+Attributes:
+***********
 * | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
   | Must be set.
 
@@ -1538,8 +1538,8 @@ SurfaceRegion
 Surface region  in MDL, however a new class Region was instroduced in MCell4 so it was renamed 
 to avoid confusion.
 
-Attributes
-**********
+Attributes:
+***********
 * | **name**: str
 
 * | **wall_indices**: List[int]
@@ -1565,8 +1565,8 @@ Attributes
   | Internal, when node_type is not Leaf, this is the right operand
 
 
-Methods
-********
+Methods:
+*********
 * | **__add__**
 
    * | other: Region
@@ -1592,8 +1592,8 @@ Methods
 VizOutput
 =========
 
-Attributes
-**********
+Attributes:
+***********
 * | **output_files_prefix**: str
 
 * | **species_list**: List[Species] = None
@@ -1613,8 +1613,8 @@ Wall
 This is a Python representation of a molecule obtained from Model 
 during simulation.
 
-Attributes
-**********
+Attributes:
+***********
 * | **geometry_object**: GeometryObject
   | Object to which this wall belongs.
 
@@ -1637,8 +1637,8 @@ Attributes
 WallWallHitInfo
 ===============
 
-Attributes
-**********
+Attributes:
+***********
 * | **wall1**: Wall
 
 * | **wall2**: Wall
@@ -1652,8 +1652,8 @@ bngl_utils
 ==========
 
 
-Methods
-********
+Methods:
+*********
 * | **load_bngl_parameters**
 
    * | file_name: str
@@ -1666,8 +1666,8 @@ geometry_utils
 ==============
 
 
-Methods
-********
+Methods:
+*********
 * | **create_box**
 
    * | name: str
