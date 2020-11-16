@@ -143,9 +143,12 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   add_ctrl_c_termination_event();
 
   // some general checks
-  if (world->config.rx_radius_3d >= world->config.subpartition_edge_length) {
-    throw ValueError(S("Reaction radius ") + to_string(world->config.rx_radius_3d * world->config.length_unit) +
-        " is larger than subpartition edge length " + to_string(world->config.subpartition_edge_length * world->config.length_unit) + ".");
+  if (world->config.rx_radius_3d * SQRT2 >= world->config.subpartition_edge_length / 2) {
+    throw ValueError(S("Reaction radius multiplied by sqrt(2) ") +
+        to_string(world->config.rx_radius_3d * world->config.length_unit * SQRT2) +
+        " must be less than half of subpartition edge length " +
+        to_string(world->config.subpartition_edge_length * world->config.length_unit / 2) + ". " +
+        "Increase the model's " + NAME_CONFIG + "." + NAME_SUBPARTITION_DIMENSION + ".");
   }
 
   check_all_mol_types_have_diffusion_const();

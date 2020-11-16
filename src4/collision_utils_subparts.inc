@@ -1,6 +1,6 @@
 
-#ifndef SRC4_COLLISION_UTILS_LEGACY_INC_
-#define SRC4_COLLISION_UTILS_LEGACY_INC_
+#ifndef SRC4_COLLISION_UTILS_SUBPARTS_INC_
+#define SRC4_COLLISION_UTILS_SUBPARTS_INC_
 
 #include <vector>
 
@@ -113,7 +113,7 @@ static void collect_neighboring_subparts(
 
 // collect subpartition indices that we are crossing and that are within radius
 // of vm that moves by displacement
-static inline void __attribute__((always_inline)) collect_crossed_subparts_legacy(
+static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
   const Vec3& displacement,
@@ -312,4 +312,4 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts_legac
 } // namespace CollisionUtil
 } // namespace MCell
 
-#endif // SRC4_COLLISION_UTILS_LEGACY_INC_
+#endif // SRC4_COLLISION_UTILS_SUBPARTS_INC_

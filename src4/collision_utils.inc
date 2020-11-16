@@ -47,7 +47,7 @@
 
 using namespace std;
 
-#include "collision_utils_legacy.inc"
+#include "collision_utils_subparts.inc"
 
 namespace MCell {
 
@@ -133,86 +133,6 @@ static Vec3 get_displacement_up_to_partition_boundary(
   assert(p.in_this_partition(pos + new_displacement));
 
   return new_displacement;
-}
-
-
-static inline void get_corner_points_for_subpart_colection(
-    const Vec3& pos,
-    const Vec3& move,
-    const float_t rx_radius,
-    small_vector<Vec3>& pts
-) {
-  assert(pts.size() >= 4);
-  assert(!cmp_eq(move, 0));
-  /* A) compute 4 points where the traces start
-          p0--p1
-          |\  /|
-          | pos|
-          |/  \|
-          p2--p3
-   */
-
-   /* 1) first vector perpendicular to the move id computed this way
-       v = (vx, vy, vz), move = (mx, my, mx)
-
-       dot product:
-       mx*vx + my*vy + mz*vz == 0
-
-       then we set 2 values to be 1:
-       mx*1 + my*1 + mz*vz == 0
-
-       vz = (-mx-my)/mz
-
-       assuming that mz is not 0, then:
-       v = (1, 1, -(mx+my / mz))
-
-       precision of the initial points is not so important
-   */
-  uint largest_dim = get_largest_abs_dim_index(move);
-  Vec3 v;
-  switch(largest_dim) {
-    case 0:
-      v = Vec3( -(move.y + move.z)/move.x, 1, 1);
-      break;
-    case 1:
-      v = Vec3( 1, -(move.x + move.z)/move.y, 1);
-      break;
-    case 2:
-      v = Vec3( 1, 1, -(move.x + move.y)/move.z);
-      break;
-    default:
-      assert(false);
-  }
-
-  // 2) get a vector perpendicular to v and move
-  Vec3 vp = cross(v, move);
-
-  // 3) and compute the vectors v1-v4 of length rx_radius * SQRT2
-  float_t radius = rx_radius * SQRT2 * RX_RADIUS_MULTIPLIER;
-  float_t ratio = 1/len3(v) * radius;
-  float_t ratiop = 1/len3(vp) * radius;
-
-  Vec3 v0 = v * Vec3(ratio);
-  Vec3 v1 = vp * Vec3(ratiop);
-  Vec3 v2 = -v1;
-  Vec3 v3 = -v0;
-
-  assert(
-      cmp_eq(len3(v0), radius, SQRT_EPS) && cmp_eq(len3(v1), radius, SQRT_EPS) &&
-      cmp_eq(len3(v2), radius, SQRT_EPS) && cmp_eq(len3(v3), radius, SQRT_EPS));
-  assert(
-      cmp_eq(dot(v0, move), 0, SQRT_EPS) && cmp_eq(dot(v1, move), 0, SQRT_EPS) &&
-      cmp_eq(dot(v2, move), 0, SQRT_EPS) && cmp_eq(dot(v3, move), 0, SQRT_EPS));
-
-  pts[0] = pos + v0;
-  pts[1] = pos + v1;
-  pts[2] = pos + v2;
-  pts[3] = pos + v3;
-
-#ifdef DEBUG_SUBPARTITIONS
-  std::cout << "get_corner_points_for_subpart_colection: pos: " << pos << ", \n"
-      << "0:" << pts[0] << "\n1:" << pts[1] << "\n2:" << pts[2] << "\n3:" << pts[3] << "\n";
-#endif
 }
 
 
@@ -343,8 +263,88 @@ static inline void compute_inputs_for_raycast_with_endpoints(
   deltat = Vec3(subpartition_edge_length) * abs_d_rcp;
 }
 
+#if 0
 
-static inline void collect_crossed_subparts(
+static inline void get_corner_points_for_subpart_colection(
+    const Vec3& pos,
+    const Vec3& move,
+    const float_t rx_radius,
+    small_vector<Vec3>& pts
+) {
+  assert(pts.size() >= 4);
+  assert(!cmp_eq(move, 0));
+  /* A) compute 4 points where the traces start
+          p0--p1
+          |\  /|
+          | pos|
+          |/  \|
+          p2--p3
+   */
+
+   /* 1) first vector perpendicular to the move id computed this way
+       v = (vx, vy, vz), move = (mx, my, mx)
+
+       dot product:
+       mx*vx + my*vy + mz*vz == 0
+
+       then we set 2 values to be 1:
+       mx*1 + my*1 + mz*vz == 0
+
+       vz = (-mx-my)/mz
+
+       assuming that mz is not 0, then:
+       v = (1, 1, -(mx+my / mz))
+
+       precision of the initial points is not so important
+   */
+  uint largest_dim = get_largest_abs_dim_index(move);
+  Vec3 v;
+  switch(largest_dim) {
+    case 0:
+      v = Vec3( -(move.y + move.z)/move.x, 1, 1);
+      break;
+    case 1:
+      v = Vec3( 1, -(move.x + move.z)/move.y, 1);
+      break;
+    case 2:
+      v = Vec3( 1, 1, -(move.x + move.y)/move.z);
+      break;
+    default:
+      assert(false);
+  }
+
+  // 2) get a vector perpendicular to v and move
+  Vec3 vp = cross(v, move);
+
+  // 3) and compute the vectors v1-v4 of length rx_radius * SQRT2
+  float_t radius = rx_radius * SQRT2 * RX_RADIUS_MULTIPLIER;
+  float_t ratio = 1/len3(v) * radius;
+  float_t ratiop = 1/len3(vp) * radius;
+
+  Vec3 v0 = v * Vec3(ratio);
+  Vec3 v1 = vp * Vec3(ratiop);
+  Vec3 v2 = -v1;
+  Vec3 v3 = -v0;
+
+  assert(
+      cmp_eq(len3(v0), radius, SQRT_EPS) && cmp_eq(len3(v1), radius, SQRT_EPS) &&
+      cmp_eq(len3(v2), radius, SQRT_EPS) && cmp_eq(len3(v3), radius, SQRT_EPS));
+  assert(
+      cmp_eq(dot(v0, move), 0, SQRT_EPS) && cmp_eq(dot(v1, move), 0, SQRT_EPS) &&
+      cmp_eq(dot(v2, move), 0, SQRT_EPS) && cmp_eq(dot(v3, move), 0, SQRT_EPS));
+
+  pts[0] = pos + v0;
+  pts[1] = pos + v1;
+  pts[2] = pos + v2;
+  pts[3] = pos + v3;
+
+#ifdef DEBUG_SUBPARTITIONS
+  std::cout << "get_corner_points_for_subpart_colection: pos: " << pos << ", \n"
+      << "0:" << pts[0] << "\n1:" << pts[1] << "\n2:" << pts[2] << "\n3:" << pts[3] << "\n";
+#endif
+}
+
+static inline void collect_crossed_subparts_orig(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
   const Vec3& displacement,
@@ -476,6 +476,7 @@ static inline void collect_crossed_subparts(
     crossed_subparts_for_molecules.insert(index);
   }
 }
+#endif
 
 // ---------------------------------- molecule collisions ----------------------------------
 

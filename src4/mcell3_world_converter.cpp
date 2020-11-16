@@ -340,6 +340,13 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->config.init();
   assert(cmp_eq(sp_len, world->config.subpartition_edge_length));
 
+  if (world->config.rx_radius_3d * 2 * SQRT2 > world->config.subpartition_edge_length) {
+    mcell_error("Reaction radius multiplied by sqrt(2) %f must be less than half of subpartition edge length %f.",
+        world->config.rx_radius_3d * world->config.length_unit * SQRT2,
+        world->config.subpartition_edge_length * world->config.length_unit / 2.0
+    );
+  }
+
   return true;
 }
 
