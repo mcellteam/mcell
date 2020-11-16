@@ -905,9 +905,12 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
 
     f.write('  std::stringstream ss;\n')
     if based_on_base_superclass:
-        f.write('  ss << get_object_name() << ": " <<\n')
+        f.write('  ss << get_object_name()')
     else:
-        f.write('  ss << "' + class_name + '" << ": " <<\n')
+        f.write('  ss << "' + class_name + '"')
+
+    if items:
+        f.write(' << ": " <<\n')
 
     last_print_nl = False  
     
@@ -963,7 +966,12 @@ def write_operator_equal_implemetation(f, class_name, items):
     gen_class_name = GEN_CLASS_PREFIX + class_name
     f.write('bool ' + gen_class_name + '::__eq__(const ' + gen_class_name + '& other) const {\n')
     f.write('  return\n') 
-    f.write('    name == other.name &&\n')
+    f.write('    name == other.name')
+    
+    if not items:
+        f.write(';\n')
+    else:
+        f.write(' &&\n')
     
     num_attrs = len(items) 
     for i in range(num_attrs):

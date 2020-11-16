@@ -33,7 +33,7 @@ void GenWarnings::check_semantics() const {
 
 bool GenWarnings::__eq__(const GenWarnings& other) const {
   return
-    name == other.name &&
+    name == other.name;
 }
 
 void GenWarnings::set_initialized() {
@@ -46,8 +46,7 @@ void GenWarnings::set_all_attributes_as_default_or_unset() {
 
 std::string GenWarnings::to_str(const std::string ind) const {
   std::stringstream ss;
-  ss << get_object_name() << ": " <<
-;
+  ss << get_object_name();
   return ss.str();
 }
 
