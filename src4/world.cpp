@@ -202,28 +202,23 @@ void World::init_simulation() {
   scheduler.schedule_event(defragmentation_event);
 
   // create rxn class cleanup events
-#ifdef ENABLE_RXN_CLASS_CLEANUP
   RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
   rxn_class_cleanup_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
   rxn_class_cleanup_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
   scheduler.schedule_event(rxn_class_cleanup_event);
-#endif
 
-
-#ifdef ENABLE_SPECIES_CLEANUP
   SpeciesCleanupEvent* species_cleanup_event = new SpeciesCleanupEvent(this);
   species_cleanup_event->event_time = SPECIES_CLEANUP_PERIODICITY;
   species_cleanup_event->periodicity_interval = SPECIES_CLEANUP_PERIODICITY;
   scheduler.schedule_event(species_cleanup_event);
-#endif
 
   // create subpart sorting events
-#ifdef ENABLE_SORT_MOLS_BY_SUBPART
-  SortMolsBySubpartEvent* sort_event = new SortMolsBySubpartEvent(this);
-  sort_event->event_time = 0;
-  sort_event->periodicity_interval = 10;
-  scheduler.schedule_event(sort_event);
-#endif
+  if (config.sort_mols_by_subpart) {
+    SortMolsBySubpartEvent* sort_event = new SortMolsBySubpartEvent(this);
+    sort_event->event_time = 0;
+    sort_event->periodicity_interval = SORT_MOLS_BY_SUBPART_PERIODICITY;
+    scheduler.schedule_event(sort_event);
+  }
 
   // initialize timing
   previous_progress_report_time = {0, 0};

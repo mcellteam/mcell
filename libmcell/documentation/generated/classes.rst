@@ -292,6 +292,10 @@ Attributes:
   | simulation such as a molecule escaping closed geometry when it hits two walls 
   | that overlap.
 
+* | **sort_molecules**: bool = False
+  | Enables sorting of molecules for diffusion, this may improve cache locality.
+  | Produces different results when enabled.
+
 Count
 =====
 

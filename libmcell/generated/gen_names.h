@@ -202,6 +202,7 @@ const char* const NAME_SEED = "seed";
 const char* const NAME_SHAPE = "shape";
 const char* const NAME_SITE_DIAMETER = "site_diameter";
 const char* const NAME_SITE_RADIUS = "site_radius";
+const char* const NAME_SORT_MOLECULES = "sort_molecules";
 const char* const NAME_SPECIES = "species";
 const char* const NAME_SPECIES_LIST = "species_list";
 const char* const NAME_SPECIES_PATTERN = "species_pattern";

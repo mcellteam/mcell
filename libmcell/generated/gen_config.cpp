@@ -44,7 +44,8 @@ bool GenConfig::__eq__(const GenConfig& other) const {
     partition_dimension == other.partition_dimension &&
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations_hint == other.total_iterations_hint &&
-    check_overlapped_walls == other.check_overlapped_walls;
+    check_overlapped_walls == other.check_overlapped_walls &&
+    sort_molecules == other.sort_molecules;
 }
 
 void GenConfig::set_initialized() {
@@ -64,6 +65,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   subpartition_dimension = 0.5;
   total_iterations_hint = 1000000;
   check_overlapped_walls = true;
+  sort_molecules = false;
 }
 
 std::string GenConfig::to_str(const std::string ind) const {
@@ -79,7 +81,8 @@ std::string GenConfig::to_str(const std::string ind) const {
       "partition_dimension=" << partition_dimension << ", " <<
       "subpartition_dimension=" << subpartition_dimension << ", " <<
       "total_iterations_hint=" << total_iterations_hint << ", " <<
-      "check_overlapped_walls=" << check_overlapped_walls;
+      "check_overlapped_walls=" << check_overlapped_walls << ", " <<
+      "sort_molecules=" << sort_molecules;
   return ss.str();
 }
 
@@ -97,6 +100,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const float_t,
             const float_t,
             const float_t,
+            const bool,
             const bool
           >(),
           py::arg("seed") = 1,
@@ -109,7 +113,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("partition_dimension") = 10,
           py::arg("subpartition_dimension") = 0.5,
           py::arg("total_iterations_hint") = 1000000,
-          py::arg("check_overlapped_walls") = true
+          py::arg("check_overlapped_walls") = true,
+          py::arg("sort_molecules") = false
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
@@ -126,6 +131,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension)
       .def_property("total_iterations_hint", &Config::get_total_iterations_hint, &Config::set_total_iterations_hint)
       .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls)
+      .def_property("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules)
     ;
 }
 

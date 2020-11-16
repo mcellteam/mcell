@@ -41,7 +41,8 @@ namespace API {
         const float_t partition_dimension_ = 10, \
         const float_t subpartition_dimension_ = 0.5, \
         const float_t total_iterations_hint_ = 1000000, \
-        const bool check_overlapped_walls_ = true \
+        const bool check_overlapped_walls_ = true, \
+        const bool sort_molecules_ = false \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
@@ -55,6 +56,7 @@ namespace API {
       subpartition_dimension = subpartition_dimension_; \
       total_iterations_hint = total_iterations_hint_; \
       check_overlapped_walls = check_overlapped_walls_; \
+      sort_molecules = sort_molecules_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -200,6 +202,18 @@ public:
   }
   virtual bool get_check_overlapped_walls() const {
     return check_overlapped_walls;
+  }
+
+  bool sort_molecules;
+  virtual void set_sort_molecules(const bool new_sort_molecules_) {
+    if (initialized) {
+      throw RuntimeError("Value 'sort_molecules' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    sort_molecules = new_sort_molecules_;
+  }
+  virtual bool get_sort_molecules() const {
+    return sort_molecules;
   }
 
   // --- methods ---

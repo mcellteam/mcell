@@ -256,6 +256,8 @@ void MCell4Converter::convert_simulation_setup() {
 
   world->config.randomize_smol_pos = !config.center_molecules_on_grid;
 
+  world->config.sort_mols_by_subpart = config.sort_molecules;
+
   world->config.check_overlapped_walls = config.check_overlapped_walls;
 
   world->config.initial_seed = config.seed;

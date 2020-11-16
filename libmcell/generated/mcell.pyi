@@ -212,7 +212,8 @@ class Config():
             partition_dimension : float = 10,
             subpartition_dimension : float = 0.5,
             total_iterations_hint : float = 1000000,
-            check_overlapped_walls : bool = True
+            check_overlapped_walls : bool = True,
+            sort_molecules : bool = False
         ):
         self.seed = seed
         self.time_step = time_step
@@ -225,6 +226,7 @@ class Config():
         self.subpartition_dimension = subpartition_dimension
         self.total_iterations_hint = total_iterations_hint
         self.check_overlapped_walls = check_overlapped_walls
+        self.sort_molecules = sort_molecules
 
 
 class Count():

@@ -129,15 +129,12 @@ const float_t MESH_DISTINCTIVE_EPS = EPS;
 
 // ---------------------------------- configurable constants----------------------------------
 
-//#define ENABLE_SORT_MOLS_BY_SUBPART // improves cache performance but produces different result
 const uint SORT_MOLS_BY_SUBPART_PERIODICITY = 20;
 
 const uint DEFRAGMENTATION_PERIODICITY = 100;
 
-#define ENABLE_RXN_CLASS_CLEANUP
 const uint RXN_CLASS_CLEANUP_PERIODICITY = 100;
 
-#define ENABLE_SPECIES_CLEANUP
 const uint SPECIES_CLEANUP_PERIODICITY = 2000;
 
 const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we have just one partition

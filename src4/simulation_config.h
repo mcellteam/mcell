@@ -33,7 +33,20 @@ namespace MCell {
 // TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
 class SimulationConfig: public BNG::BNGConfig {
 public:
-  // TODO: add ctor
+  SimulationConfig() :
+    vacancy_search_dist2(FLT_INVALID),
+    partition_edge_length(FLT_INVALID),
+    num_subpartitions_per_partition(UINT_INVALID),
+    num_subpartitions_per_partition_squared(UINT_INVALID),
+    subpartition_edge_length(FLT_INVALID),
+    subpartition_edge_length_rcp(FLT_INVALID),
+    num_radial_subdivisions(1024),
+    use_expanded_list(true),
+    randomize_smol_pos(false),
+    check_overlapped_walls(true),
+    sort_mols_by_subpart(false),
+    has_intersecting_counted_objects(false) {
+  }
 
   // configuration
 
@@ -48,7 +61,7 @@ public:
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
-  uint num_radial_subdivisions = 1024; /* Size of 3D step length lookup tables, not configurable by user yet */
+  uint num_radial_subdivisions; /* Size of 3D step length lookup tables, not configurable by user yet */
   std::vector<float_t> radial_2d_step; /* Lookup table of 2D diffusion step lengths (r_step_surface) */
   std::vector<float_t> radial_3d_step; /* Lookup table of 3D diffusion step lengths (r_step) */
 
@@ -58,6 +71,8 @@ public:
   bool randomize_smol_pos; /* If set, always place surface molecule at random
                              location instead of center of grid */
   bool check_overlapped_walls; /* Check geometry for overlapped walls? */
+
+  bool sort_mols_by_subpart;
 
   // initialized in World::init_counted_volumes
   // also tells whether waypoints in a partition were initialized
