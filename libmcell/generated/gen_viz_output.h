@@ -59,6 +59,7 @@ public:
 
   virtual bool __eq__(const VizOutput& other) const;
   bool operator == (const VizOutput& other) const { return __eq__(other);}
+  bool operator != (const VizOutput& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

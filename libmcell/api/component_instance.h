@@ -33,6 +33,11 @@ class ComponentInstance: public GenComponentInstance {
 public:
   COMPONENT_INSTANCE_CTOR()
 
+  // default __eq__ operator is sufficient
+
+  // needed when defining a set of ComponentInstances
+  bool operator < (const ComponentInstance& other) const;
+
   std::string to_bngl_str() const override;
 };
 

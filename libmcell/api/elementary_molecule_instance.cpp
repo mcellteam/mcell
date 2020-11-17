@@ -24,13 +24,37 @@
 #include "api/elementary_molecule_type.h"
 #include "api/component_type.h"
 #include "api/component_instance.h"
+#include "api/complex.h"
 
 using namespace std;
 
 namespace MCell {
 namespace API {
 
-std::string ElementaryMoleculeInstance::to_bngl_str() {
+
+bool ElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& other) const {
+
+  // do we have the same mol type?
+  if (*elementary_molecule_type != *other.elementary_molecule_type) {
+    return false;
+  }
+
+  // we must sort the components,
+  // canonicalization of BNGL strings cannot be used because it maintains
+  // the component ordering and it is not known when processing a single string
+  std::set<ComponentInstance> s1;
+  for (auto& c: components) {
+    s1.insert(*c);
+  }
+  std::set<ComponentInstance> s2;
+  for (auto& c: other.components) {
+    s2.insert(*c);
+  }
+  return s1 == s2;
+}
+
+
+std::string ElementaryMoleculeInstance::to_bngl_str() const {
   std::string res;
 
   res = elementary_molecule_type->name;

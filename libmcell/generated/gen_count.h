@@ -85,6 +85,7 @@ public:
 
   virtual bool __eq__(const Count& other) const;
   bool operator == (const Count& other) const { return __eq__(other);}
+  bool operator != (const Count& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

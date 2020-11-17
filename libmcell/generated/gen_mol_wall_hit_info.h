@@ -36,6 +36,7 @@ public:
   virtual ~GenMolWallHitInfo() {}
   virtual bool __eq__(const MolWallHitInfo& other) const;
   bool operator == (const MolWallHitInfo& other) const { return __eq__(other);}
+  bool operator != (const MolWallHitInfo& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---

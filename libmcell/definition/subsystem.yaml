@@ -58,7 +58,6 @@ ComponentInstance:
     return_type: str
     doc: Creates a string that corresponds to its BNGL representation.
     is_const: true 
-    
       
       
 ElementaryMoleculeType:
@@ -133,7 +132,7 @@ ElementaryMoleculeInstance:
   - name: to_bngl_str
     return_type: str
     doc: Creates a string that corresponds to its BNGL representation 
-    
+    is_const: true    
     
 Complex:    
   superclass: BaseDataClass

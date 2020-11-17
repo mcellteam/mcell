@@ -54,6 +54,7 @@ public:
 
   virtual bool __eq__(const ElementaryMoleculeInstance& other) const;
   bool operator == (const ElementaryMoleculeInstance& other) const { return __eq__(other);}
+  bool operator != (const ElementaryMoleculeInstance& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -86,7 +87,7 @@ public:
   }
 
   // --- methods ---
-  virtual std::string to_bngl_str() = 0;
+  virtual std::string to_bngl_str() const = 0;
 }; // GenElementaryMoleculeInstance
 
 class ElementaryMoleculeInstance;

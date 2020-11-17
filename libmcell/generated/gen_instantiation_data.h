@@ -39,6 +39,7 @@ public:
   virtual ~GenInstantiationData() {}
   virtual bool __eq__(const InstantiationData& other) const;
   bool operator == (const InstantiationData& other) const { return __eq__(other);}
+  bool operator != (const InstantiationData& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---

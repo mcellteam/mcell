@@ -54,6 +54,7 @@ public:
 
   virtual bool __eq__(const Region& other) const;
   bool operator == (const Region& other) const { return __eq__(other);}
+  bool operator != (const Region& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

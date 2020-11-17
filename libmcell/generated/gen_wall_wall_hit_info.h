@@ -51,6 +51,7 @@ public:
 
   virtual bool __eq__(const WallWallHitInfo& other) const;
   bool operator == (const WallWallHitInfo& other) const { return __eq__(other);}
+  bool operator != (const WallWallHitInfo& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

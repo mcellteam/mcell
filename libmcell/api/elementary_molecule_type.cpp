@@ -28,6 +28,31 @@ using namespace std;
 namespace MCell {
 namespace API {
 
+bool ElementaryMoleculeType::__eq__(const ElementaryMoleculeType& other) const {
+  bool attrs_eq =
+    name == other.name &&
+    name == other.name &&
+    diffusion_constant_2d == other.diffusion_constant_2d &&
+    diffusion_constant_3d == other.diffusion_constant_3d &&
+    custom_time_step == other.custom_time_step &&
+    custom_space_step == other.custom_space_step &&
+    target_only == other.target_only;
+
+  if (!attrs_eq) {
+    return false;
+  }
+
+  std::set<ComponentType> s1;
+  for (auto& c: components) {
+    s1.insert(*c);
+  }
+  std::set<ComponentType> s2;
+  for (auto& c: other.components) {
+    s2.insert(*c);
+  }
+  return s1 == s2;
+}
+
 std::string ElementaryMoleculeType::to_bngl_str() const {
   std::string res;
 

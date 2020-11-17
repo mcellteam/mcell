@@ -38,6 +38,7 @@ public:
   virtual ~GenObservables() {}
   virtual bool __eq__(const Observables& other) const;
   bool operator == (const Observables& other) const { return __eq__(other);}
+  bool operator != (const Observables& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---

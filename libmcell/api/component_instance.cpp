@@ -29,6 +29,19 @@ using namespace std;
 namespace MCell {
 namespace API {
 
+bool ComponentInstance::operator < (const ComponentInstance& other) const {
+  if (name != other.name) {
+    return name < other.name;
+  }
+
+  if (state != other.state) {
+    return state < other.state;
+  }
+
+  return bond < other.bond;
+}
+
+
 std::string ComponentInstance::to_bngl_str() const {
   std::string res;
 

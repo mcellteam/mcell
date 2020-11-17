@@ -42,6 +42,11 @@ public:
     return std::make_shared<ComponentInstance>(shared_from_this(), std::to_string(state), bond);
   }
 
+  bool __eq__(const ComponentType& other) const override;
+
+  // needed when defining a set of ComponentTypes
+  bool operator < (const ComponentType& other) const;
+
   std::string to_bngl_str() const override;
 };
 

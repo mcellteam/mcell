@@ -33,7 +33,9 @@ class ElementaryMoleculeInstance: public GenElementaryMoleculeInstance {
 public:
   ELEMENTARY_MOLECULE_INSTANCE_CTOR()
 
-  std::string to_bngl_str() override;
+  bool __eq__(const ElementaryMoleculeInstance& other) const override;
+
+  std::string to_bngl_str() const override;
 };
 
 } // namespace API

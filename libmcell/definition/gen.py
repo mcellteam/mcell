@@ -724,6 +724,7 @@ def write_gen_class(f, class_def, class_name):
 
     f.write('  virtual bool __eq__(const ' + class_name + '& other) const;\n')
     f.write('  bool operator == (const ' + class_name + '& other) const { return __eq__(other);}\n')
+    f.write('  bool operator != (const ' + class_name + '& other) const { return !__eq__(other);}\n')
 
     override = KEYWORD_OVERRIDE if has_single_superclass(class_def) else ''
     f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + override + ';\n\n')

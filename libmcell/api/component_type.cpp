@@ -22,10 +22,36 @@
 
 #include "api/component_type.h"
 
+#include <set>
+
 using namespace std;
 
 namespace MCell {
 namespace API {
+
+bool ComponentType::__eq__(const ComponentType& other) const {
+  return
+      name == other.name &&
+      std::set<string>(states.begin(), states.end()) ==
+      std::set<string>(other.states.begin(), other.states.end());
+}
+
+// useful when we need to put component types to a set
+bool ComponentType::operator < (const ComponentType& other) const {
+  if (name == other.name) {
+    if (!__eq__(other)) {
+      throw RuntimeError(
+          "Cannot define ordering (less) between " + to_bngl_str() + " and " + other.to_bngl_str() + ", "
+          "they have the same name but different states. " +
+          "Error might have occurred due to a call to " + NAME_CLASS_ELEMENTARY_MOLECULE_TYPE + ".__eq__().");
+    }
+    return false;
+  }
+  else {
+    return name < other.name;
+  }
+}
+
 
 std::string ComponentType::to_bngl_str() const {
   std::string res;

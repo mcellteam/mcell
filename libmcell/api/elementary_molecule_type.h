@@ -45,6 +45,8 @@ public:
     return std::make_shared<ElementaryMoleculeInstance>( shared_from_this(), components);
   }
 
+  bool __eq__(const ElementaryMoleculeType& other) const override;
+
   virtual std::string to_bngl_str() const;
 
   // mapping to MCell4
