@@ -54,7 +54,8 @@ void Complex::set_canonical_name_if_needed() const {
   // create canonical name
   // we don't care that the complex may not be fully qualified, we cannot know this at this point
   BNG::Species new_species(cplx_inst, bng_engine.get_data(), bng_engine.get_config(), false);
-  new_species.canonicalize();
+  // order components by name during canonicalization
+  new_species.canonicalize(true);
 
   canonical_name = new_species.name;
   cached_data_are_uptodate = true;

@@ -101,6 +101,10 @@ public:
 
   void canonicalize(const BNGData& bng_data);
 
+  // sorting by name is useful when we have no fixed molecule type
+  // to guide the sorting
+  void sort_components_by_name(const BNGData& bng_data);
+
   void finalize_flags_and_sort_components(const BNGData& bng_data);
 
   void insert_missing_components_as_any_state_pattern(const BNGData& bng_data);

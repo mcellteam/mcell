@@ -198,7 +198,8 @@ public:
 
   // sort molecule instances so that all identical complexes use
   // the same ordering
-  void canonicalize();
+  // default sorting of components is according to molecule types
+  void canonicalize(const bool sort_components_by_name_do_not_finalize = false);
 
   const CompartmentIdSet& get_reactant_compartments() const {
     assert(!reactant_compartments.empty() && "Not initialized");

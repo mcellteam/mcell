@@ -89,7 +89,7 @@ void Cplx::finalize() {
     set_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
   }
 
-  // CPLX_FLAG_SINGLE_MOL_NO_COMPONENTS
+  // set flag SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS
   bool is_simple = true;
   if (mol_instances.size() > 1) {
     is_simple = false;
@@ -243,14 +243,21 @@ void Cplx::renumber_bonds() {
 // even the usage in nfsim seems to be wrong?
 // TODO: split into multiple functions
 // https://computationalcombinatorics.wordpress.com/2012/09/20/canonical-labelings-with-nauty/
-void Cplx::canonicalize() {
+void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
   if (mol_instances.size() == 1) {
-    // sort components in molecules back to their prescribed form
-    // and in a way that the state name is ascending (wee have no bonds here)
+
     for (MolInstance& mi: mol_instances) {
-      mi.canonicalize(*bng_data);
+      if (!sort_components_by_name_do_not_finalize) {
+        // sort components in molecules to their prescribed form
+        // and in a way that the state name is ascending (we have no bonds here)
+        mi.canonicalize(*bng_data);
+      }
+      else {
+        mi.sort_components_by_name(*bng_data);
+      }
     }
 
+    finalize();
     set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
     return;
   }
@@ -467,14 +474,23 @@ void Cplx::canonicalize() {
   // 6) sort components in molecules back to their prescribed form
   // and in a way that the bond index is increasing
   for (MolInstance& mi: mol_instances) {
-    mi.canonicalize(*bng_data);
+    if (!sort_components_by_name_do_not_finalize) {
+      // sort components in molecules to their prescribed form
+      // and in a way that the state name is ascending (we have no bonds here)
+      mi.canonicalize(*bng_data);
+    }
+    else {
+      mi.sort_components_by_name(*bng_data);
+    }
   }
 
   // 7) and renumber bonds again
   renumber_bonds();
 
   // 8) update the boost graph representation
-  finalize();
+  if (!sort_components_by_name_do_not_finalize) {
+    finalize();
+  }
 
   set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
 

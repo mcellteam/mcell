@@ -17,6 +17,25 @@ using namespace std;
 
 namespace BNG {
 
+static bool state_bond_less(
+    const BNGData& bng_data, const ComponentInstance& ci1, const ComponentInstance& ci2) {
+
+  // bond
+  if (ci1.bond_value != ci2.bond_value) {
+    return ci1.bond_value < ci2.bond_value;
+  }
+
+  // state name
+  if (ci1.state_is_set() && ci2.state_is_set()) {
+    const string& sn1 = bng_data.get_state_name(ci1.state_id);
+    const string& sn2 = bng_data.get_state_name(ci2.state_id);
+    return sn1 < sn2;
+  }
+  else {
+    return ci1.state_id < ci2.state_id;
+  }
+}
+
 class CanonicalComponentComparator {
 public:
   // need to pass bng data for state names
@@ -45,20 +64,7 @@ public:
       return ci1_index < ci2_index;
     }
 
-    // 2) bond
-    if (ci1.bond_value != ci2.bond_value) {
-      return ci1.bond_value < ci2.bond_value;
-    }
-
-    // 3) state name
-    if (ci1.state_is_set() && ci2.state_is_set()) {
-      const string& sn1 = bng_data.get_state_name(ci1.state_id);
-      const string& sn2 = bng_data.get_state_name(ci2.state_id);
-      return sn1 < sn2;
-    }
-    else {
-      return ci1.state_id < ci2.state_id;
-    }
+    return state_bond_less(bng_data, ci1, ci2);
   }
 
 private:
@@ -66,6 +72,27 @@ private:
   const MolType& mt;
 };
 
+
+class ComponentNameComparator {
+public:
+  // need to pass bng data for component and state names
+  ComponentNameComparator(const BNGData& bng_data_)
+    : bng_data(bng_data_) {
+  }
+
+  bool operator()(const ComponentInstance& ci1, const ComponentInstance& ci2) {
+    // component name
+    if (ci1.component_type_id != ci2.component_type_id) {
+      return bng_data.get_component_type(ci1.component_type_id).name <
+          bng_data.get_component_type(ci2.component_type_id).name;
+    }
+
+    return state_bond_less(bng_data, ci1, ci2);
+  }
+
+private:
+  const BNGData& bng_data;
+};
 
 // ------------- ComponentInstance -------------
 std::string ComponentInstance::to_str(const BNGData& bng_data) const {
@@ -125,11 +152,16 @@ bool MolInstance::is_fully_qualified(const BNGData& bng_data) const {
 
 
 void MolInstance::canonicalize(const BNGData& bng_data) {
-  // we need to sort components first
+  // sort components first
   CanonicalComponentComparator comp_cmp(bng_data, bng_data.get_molecule_type(mol_type_id));
   sort(component_instances.begin(), component_instances.end(), comp_cmp);
 }
 
+
+void MolInstance::sort_components_by_name(const BNGData& bng_data) {
+  ComponentNameComparator name_cmp(bng_data);
+  sort(component_instances.begin(), component_instances.end(), name_cmp);
+}
 
 // TODO: component sorting overlaps with MolType::canonicalize
 void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {

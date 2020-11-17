@@ -39,9 +39,7 @@ bool ElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& other)
     return false;
   }
 
-  // we must sort the components,
-  // canonicalization of BNGL strings cannot be used because it maintains
-  // the component ordering and it is not known when processing a single string
+  // are components the same (order does not matter)
   std::set<ComponentInstance> s1;
   for (auto& c: components) {
     s1.insert(*c);

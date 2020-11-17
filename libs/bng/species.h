@@ -80,8 +80,9 @@ public:
     }
   }
 
-  void canonicalize() {
-    Cplx::canonicalize(); // calls also CplxInstance::finalize
+  // default sorting of components is according to molecule types
+  void canonicalize(const bool sort_components_by_name_do_not_finalize = false) {
+    Cplx::canonicalize(sort_components_by_name_do_not_finalize); // calls also CplxInstance::finalize
     name = to_str();
   }
 
