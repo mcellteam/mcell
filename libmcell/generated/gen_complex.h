@@ -23,12 +23,13 @@
 #ifndef API_GEN_COMPLEX_H
 #define API_GEN_COMPLEX_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class Complex;
 class ElementaryMoleculeInstance;
 class Species;
 
@@ -53,9 +54,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenComplex& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const Complex& other) const;
+  bool operator == (const Complex& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -65,9 +67,11 @@ public:
       throw RuntimeError("Value 'elementary_molecule_instances' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     elementary_molecule_instances = new_elementary_molecule_instances_;
   }
   virtual std::vector<std::shared_ptr<ElementaryMoleculeInstance>> get_elementary_molecule_instances() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return elementary_molecule_instances;
   }
 
@@ -77,9 +81,11 @@ public:
       throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     orientation = new_orientation_;
   }
   virtual Orientation get_orientation() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return orientation;
   }
 
@@ -89,14 +95,16 @@ public:
       throw RuntimeError("Value 'compartment_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     compartment_name = new_compartment_name_;
   }
   virtual const std::string& get_compartment_name() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return compartment_name;
   }
 
   // --- methods ---
-  virtual std::string to_bngl_str() = 0;
+  virtual std::string to_bngl_str() const = 0;
   virtual std::shared_ptr<Species> as_species() = 0;
 }; // GenComplex
 

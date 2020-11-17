@@ -23,10 +23,10 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_surface_region.h"
-#include "../api/surface_region.h"
-#include "../api/initial_surface_release.h"
-#include "../api/region.h"
-#include "../api/surface_class.h"
+#include "api/surface_region.h"
+#include "api/initial_surface_release.h"
+#include "api/region.h"
+#include "api/surface_class.h"
 
 namespace MCell {
 namespace API {
@@ -40,7 +40,32 @@ void GenSurfaceRegion::check_semantics() const {
   }
 }
 
-bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
+void GenSurfaceRegion::set_initialized() {
+  if (is_set(surface_class)) {
+    surface_class->set_initialized();
+  }
+  vec_set_initialized(initial_surface_releases);
+  if (is_set(left_node)) {
+    left_node->set_initialized();
+  }
+  if (is_set(right_node)) {
+    right_node->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenSurfaceRegion::set_all_attributes_as_default_or_unset() {
+  class_name = "SurfaceRegion";
+  name = STR_UNSET;
+  wall_indices = std::vector<int>();
+  surface_class = nullptr;
+  initial_surface_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
+  node_type = RegionNodeType::UNSET;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
+bool GenSurfaceRegion::__eq__(const SurfaceRegion& other) const {
   return
     name == other.name &&
     name == other.name &&
@@ -82,31 +107,6 @@ bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
      ) ;
 }
 
-void GenSurfaceRegion::set_initialized() {
-  if (is_set(surface_class)) {
-    surface_class->set_initialized();
-  }
-  vec_set_initialized(initial_surface_releases);
-  if (is_set(left_node)) {
-    left_node->set_initialized();
-  }
-  if (is_set(right_node)) {
-    right_node->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenSurfaceRegion::set_all_attributes_as_default_or_unset() {
-  class_name = "SurfaceRegion";
-  name = STR_UNSET;
-  wall_indices = std::vector<int>();
-  surface_class = nullptr;
-  initial_surface_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
-  node_type = RegionNodeType::UNSET;
-  left_node = nullptr;
-  right_node = nullptr;
-}
-
 std::string GenSurfaceRegion::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
@@ -143,6 +143,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       .def("check_semantics", &SurfaceRegion::check_semantics)
       .def("__str__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
       .def("dump", &SurfaceRegion::dump)
       .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name)
       .def_property("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices)

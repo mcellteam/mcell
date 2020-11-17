@@ -23,11 +23,11 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_count_term.h"
-#include "../api/count_term.h"
-#include "../api/complex.h"
-#include "../api/count_term.h"
-#include "../api/reaction_rule.h"
-#include "../api/region.h"
+#include "api/count_term.h"
+#include "api/complex.h"
+#include "api/count_term.h"
+#include "api/reaction_rule.h"
+#include "api/region.h"
 
 namespace MCell {
 namespace API {
@@ -35,7 +35,40 @@ namespace API {
 void GenCountTerm::check_semantics() const {
 }
 
-bool GenCountTerm::__eq__(const GenCountTerm& other) const {
+void GenCountTerm::set_initialized() {
+  if (is_set(species_pattern)) {
+    species_pattern->set_initialized();
+  }
+  if (is_set(molecules_pattern)) {
+    molecules_pattern->set_initialized();
+  }
+  if (is_set(reaction_rule)) {
+    reaction_rule->set_initialized();
+  }
+  if (is_set(region)) {
+    region->set_initialized();
+  }
+  if (is_set(left_node)) {
+    left_node->set_initialized();
+  }
+  if (is_set(right_node)) {
+    right_node->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenCountTerm::set_all_attributes_as_default_or_unset() {
+  class_name = "CountTerm";
+  species_pattern = nullptr;
+  molecules_pattern = nullptr;
+  reaction_rule = nullptr;
+  region = nullptr;
+  node_type = ExprNodeType::LEAF;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
+bool GenCountTerm::__eq__(const CountTerm& other) const {
   return
     name == other.name &&
     (
@@ -107,39 +140,6 @@ bool GenCountTerm::__eq__(const GenCountTerm& other) const {
      ) ;
 }
 
-void GenCountTerm::set_initialized() {
-  if (is_set(species_pattern)) {
-    species_pattern->set_initialized();
-  }
-  if (is_set(molecules_pattern)) {
-    molecules_pattern->set_initialized();
-  }
-  if (is_set(reaction_rule)) {
-    reaction_rule->set_initialized();
-  }
-  if (is_set(region)) {
-    region->set_initialized();
-  }
-  if (is_set(left_node)) {
-    left_node->set_initialized();
-  }
-  if (is_set(right_node)) {
-    right_node->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenCountTerm::set_all_attributes_as_default_or_unset() {
-  class_name = "CountTerm";
-  species_pattern = nullptr;
-  molecules_pattern = nullptr;
-  reaction_rule = nullptr;
-  region = nullptr;
-  node_type = ExprNodeType::LEAF;
-  left_node = nullptr;
-  right_node = nullptr;
-}
-
 std::string GenCountTerm::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
@@ -176,6 +176,7 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
       .def("check_semantics", &CountTerm::check_semantics)
       .def("__str__", &CountTerm::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &CountTerm::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &CountTerm::__eq__, py::arg("other"))
       .def("__add__", &CountTerm::__add__, py::arg("op2"))
       .def("__sub__", &CountTerm::__sub__, py::arg("op2"))
       .def("dump", &CountTerm::dump)

@@ -23,8 +23,8 @@
 #ifndef API_GEN_REGION_H
 #define API_GEN_REGION_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -50,9 +50,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenRegion& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const Region& other) const;
+  bool operator == (const Region& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -62,9 +63,11 @@ public:
       throw RuntimeError("Value 'node_type' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     node_type = new_node_type_;
   }
   virtual RegionNodeType get_node_type() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return node_type;
   }
 
@@ -74,9 +77,11 @@ public:
       throw RuntimeError("Value 'left_node' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     left_node = new_left_node_;
   }
   virtual std::shared_ptr<Region> get_left_node() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return left_node;
   }
 
@@ -86,9 +91,11 @@ public:
       throw RuntimeError("Value 'right_node' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     right_node = new_right_node_;
   }
   virtual std::shared_ptr<Region> get_right_node() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return right_node;
   }
 

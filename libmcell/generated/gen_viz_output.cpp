@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_viz_output.h"
-#include "../api/viz_output.h"
-#include "../api/species.h"
+#include "api/viz_output.h"
+#include "api/species.h"
 
 namespace MCell {
 namespace API {
@@ -33,16 +33,6 @@ void GenVizOutput::check_semantics() const {
   if (!is_set(output_files_prefix)) {
     throw ValueError("Parameter 'output_files_prefix' must be set.");
   }
-}
-
-bool GenVizOutput::__eq__(const GenVizOutput& other) const {
-  return
-    name == other.name &&
-    output_files_prefix == other.output_files_prefix &&
-    vec_ptr_eq(species_list, other.species_list) &&
-    all_species == other.all_species &&
-    mode == other.mode &&
-    every_n_timesteps == other.every_n_timesteps;
 }
 
 void GenVizOutput::set_initialized() {
@@ -57,6 +47,16 @@ void GenVizOutput::set_all_attributes_as_default_or_unset() {
   all_species = false;
   mode = VizMode::ASCII;
   every_n_timesteps = 1;
+}
+
+bool GenVizOutput::__eq__(const VizOutput& other) const {
+  return
+    name == other.name &&
+    output_files_prefix == other.output_files_prefix &&
+    vec_ptr_eq(species_list, other.species_list) &&
+    all_species == other.all_species &&
+    mode == other.mode &&
+    every_n_timesteps == other.every_n_timesteps;
 }
 
 std::string GenVizOutput::to_str(const std::string ind) const {
@@ -89,6 +89,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def("check_semantics", &VizOutput::check_semantics)
       .def("__str__", &VizOutput::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &VizOutput::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &VizOutput::__eq__, py::arg("other"))
       .def("dump", &VizOutput::dump)
       .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix)
       .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list)

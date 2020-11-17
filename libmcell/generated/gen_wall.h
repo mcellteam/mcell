@@ -23,12 +23,13 @@
 #ifndef API_GEN_WALL_H
 #define API_GEN_WALL_H
 
-#include "../api/common.h"
-#include "../api/base_introspection_class.h"
+#include "api/common.h"
+#include "api/base_introspection_class.h"
 
 namespace MCell {
 namespace API {
 
+class Wall;
 class GeometryObject;
 
 #define WALL_CTOR_NOARGS() \
@@ -50,9 +51,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenWall& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const Wall& other) const;
+  bool operator == (const Wall& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -62,9 +64,11 @@ public:
       throw RuntimeError("Value 'geometry_object' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     geometry_object = new_geometry_object_;
   }
   virtual std::shared_ptr<GeometryObject> get_geometry_object() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return geometry_object;
   }
 
@@ -74,9 +78,11 @@ public:
       throw RuntimeError("Value 'wall_index' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     wall_index = new_wall_index_;
   }
   virtual int get_wall_index() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return wall_index;
   }
 
@@ -86,9 +92,11 @@ public:
       throw RuntimeError("Value 'vertices' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     vertices = new_vertices_;
   }
   virtual std::vector<Vec3> get_vertices() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return vertices;
   }
 
@@ -98,9 +106,11 @@ public:
       throw RuntimeError("Value 'area' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     area = new_area_;
   }
   virtual float_t get_area() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return area;
   }
 
@@ -110,9 +120,11 @@ public:
       throw RuntimeError("Value 'normal' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     normal = new_normal_;
   }
   virtual const Vec3& get_normal() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return normal;
   }
 
@@ -122,9 +134,11 @@ public:
       throw RuntimeError("Value 'is_movable' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     is_movable = new_is_movable_;
   }
   virtual bool get_is_movable() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return is_movable;
   }
 

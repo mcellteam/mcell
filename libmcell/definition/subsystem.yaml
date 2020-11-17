@@ -131,6 +131,8 @@ Complex:
      On top of that, orientation may be defined.
      This class is used as argument in cases where either a fully qualified instance or a pattern 
      can be provided such as in observable Count.  
+     Comparison operator __eq__ first converts complexes to their canonical representation and 
+     then does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').
   internal: | 
      Ctor Species(Complex& cplx_inst) must be updated if if attributes change     
   items:
@@ -172,7 +174,8 @@ Complex:
   methods:
   - name: to_bngl_str
     return_type: str
-    doc: Creates a string that corresponds to its BNGL representation 
+    doc: Creates a string that corresponds to its BNGL representation
+    is_const: true 
     
   - name: as_species
     return_type: Species*
@@ -361,6 +364,7 @@ ReactionRule:
   - name: to_bngl_str
     return_type: str
     doc: Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.     
+    is_const: true 
   
 Subsystem:
   items:

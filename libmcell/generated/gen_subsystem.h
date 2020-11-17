@@ -23,11 +23,12 @@
 #ifndef API_GEN_SUBSYSTEM_H
 #define API_GEN_SUBSYSTEM_H
 
-#include "../api/common.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
 
+class Subsystem;
 class ElementaryMoleculeType;
 class ReactionRule;
 class Species;
@@ -36,6 +37,8 @@ class SurfaceClass;
 class GenSubsystem {
 public:
   virtual ~GenSubsystem() {}
+  virtual bool __eq__(const Subsystem& other) const;
+  bool operator == (const Subsystem& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---

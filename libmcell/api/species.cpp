@@ -20,51 +20,34 @@
  *
 ******************************************************************************/
 
-#include <sstream>
-#include "libs/pybind11/include/pybind11/stl.h"
-#include "gen_warnings.h"
-#include "api/warnings.h"
+#include "api/complex.h"
+#include "api/species.h"
+#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule_type.h"
+
+using namespace std;
 
 namespace MCell {
 namespace API {
 
-void GenWarnings::check_semantics() const {
-}
 
-void GenWarnings::set_initialized() {
-  initialized = true;
-}
-
-void GenWarnings::set_all_attributes_as_default_or_unset() {
-  class_name = "Warnings";
-}
-
-bool GenWarnings::__eq__(const Warnings& other) const {
+// TODO: how to make this consistent with API definition?
+bool Species::__eq__(const Species& other) const {
   return
-    name == other.name;
-}
+    name == other.name &&
+    diffusion_constant_2d == other.diffusion_constant_2d &&
+    diffusion_constant_3d == other.diffusion_constant_3d &&
+    custom_time_step == other.custom_time_step &&
+    custom_space_step == other.custom_space_step &&
+    target_only == other.target_only &&
+    orientation == other.orientation &&
+    compartment_name == other.compartment_name &&
 
-std::string GenWarnings::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name();
-  return ss.str();
-}
-
-py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
-  return py::class_<Warnings, std::shared_ptr<Warnings>>(m, "Warnings")
-      .def(
-          py::init<
-          >()
-
-      )
-      .def("check_semantics", &Warnings::check_semantics)
-      .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Warnings::to_str, py::arg("ind") = std::string(""))
-      .def("__eq__", &Warnings::__eq__, py::arg("other"))
-      .def("dump", &Warnings::dump)
+    Complex::__eq__(other) // make canonical comparison
     ;
 }
 
+
+
 } // namespace API
 } // namespace MCell
-

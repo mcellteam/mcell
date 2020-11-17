@@ -23,12 +23,13 @@
 #ifndef API_GEN_ELEMENTARY_MOLECULE_TYPE_H
 #define API_GEN_ELEMENTARY_MOLECULE_TYPE_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class ElementaryMoleculeType;
 class ComponentInstance;
 class ComponentType;
 class ElementaryMoleculeInstance;
@@ -60,9 +61,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenElementaryMoleculeType& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const ElementaryMoleculeType& other) const;
+  bool operator == (const ElementaryMoleculeType& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -72,9 +74,11 @@ public:
       throw RuntimeError("Value 'components' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     components = new_components_;
   }
   virtual std::vector<std::shared_ptr<ComponentType>> get_components() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return components;
   }
 
@@ -84,9 +88,11 @@ public:
       throw RuntimeError("Value 'diffusion_constant_2d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     diffusion_constant_2d = new_diffusion_constant_2d_;
   }
   virtual float_t get_diffusion_constant_2d() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return diffusion_constant_2d;
   }
 
@@ -96,9 +102,11 @@ public:
       throw RuntimeError("Value 'diffusion_constant_3d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     diffusion_constant_3d = new_diffusion_constant_3d_;
   }
   virtual float_t get_diffusion_constant_3d() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return diffusion_constant_3d;
   }
 
@@ -108,9 +116,11 @@ public:
       throw RuntimeError("Value 'custom_time_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     custom_time_step = new_custom_time_step_;
   }
   virtual float_t get_custom_time_step() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return custom_time_step;
   }
 
@@ -120,9 +130,11 @@ public:
       throw RuntimeError("Value 'custom_space_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     custom_space_step = new_custom_space_step_;
   }
   virtual float_t get_custom_space_step() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return custom_space_step;
   }
 
@@ -132,9 +144,11 @@ public:
       throw RuntimeError("Value 'target_only' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     target_only = new_target_only_;
   }
   virtual bool get_target_only() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return target_only;
   }
 

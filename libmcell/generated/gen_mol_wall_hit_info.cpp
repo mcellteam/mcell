@@ -23,11 +23,32 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_mol_wall_hit_info.h"
-#include "../api/mol_wall_hit_info.h"
-#include "../api/geometry_object.h"
+#include "api/mol_wall_hit_info.h"
+#include "api/geometry_object.h"
 
 namespace MCell {
 namespace API {
+
+bool GenMolWallHitInfo::__eq__(const MolWallHitInfo& other) const {
+  return
+    molecule_id == other.molecule_id &&
+    (
+      (geometry_object != nullptr) ?
+        ( (other.geometry_object != nullptr) ?
+          (geometry_object->__eq__(*other.geometry_object)) : 
+          false
+        ) :
+        ( (other.geometry_object != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    wall_index == other.wall_index &&
+    time == other.time &&
+    pos == other.pos &&
+    time_before_hit == other.time_before_hit &&
+    pos_before_hit == other.pos_before_hit;
+}
 
 std::string GenMolWallHitInfo::to_str(const std::string ind) const {
   std::stringstream ss;
@@ -50,6 +71,7 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
       )
       .def("__str__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &MolWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &MolWallHitInfo::dump)
       .def_property("molecule_id", &MolWallHitInfo::get_molecule_id, &MolWallHitInfo::set_molecule_id)
       .def_property("geometry_object", &MolWallHitInfo::get_geometry_object, &MolWallHitInfo::set_geometry_object)

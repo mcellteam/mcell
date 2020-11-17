@@ -23,12 +23,13 @@
 #ifndef API_GEN_COMPONENT_INSTANCE_H
 #define API_GEN_COMPONENT_INSTANCE_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class ComponentInstance;
 class ComponentType;
 
 #define COMPONENT_INSTANCE_CTOR() \
@@ -50,9 +51,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenComponentInstance& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const ComponentInstance& other) const;
+  bool operator == (const ComponentInstance& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -62,9 +64,11 @@ public:
       throw RuntimeError("Value 'component_type' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     component_type = new_component_type_;
   }
   virtual std::shared_ptr<ComponentType> get_component_type() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return component_type;
   }
 
@@ -74,9 +78,11 @@ public:
       throw RuntimeError("Value 'state' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     state = new_state_;
   }
   virtual const std::string& get_state() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return state;
   }
 
@@ -86,9 +92,11 @@ public:
       throw RuntimeError("Value 'bond' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     bond = new_bond_;
   }
   virtual int get_bond() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return bond;
   }
 

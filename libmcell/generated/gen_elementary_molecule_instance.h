@@ -23,12 +23,13 @@
 #ifndef API_GEN_ELEMENTARY_MOLECULE_INSTANCE_H
 #define API_GEN_ELEMENTARY_MOLECULE_INSTANCE_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class ElementaryMoleculeInstance;
 class ComponentInstance;
 class ElementaryMoleculeType;
 
@@ -49,9 +50,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenElementaryMoleculeInstance& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const ElementaryMoleculeInstance& other) const;
+  bool operator == (const ElementaryMoleculeInstance& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -61,9 +63,11 @@ public:
       throw RuntimeError("Value 'elementary_molecule_type' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     elementary_molecule_type = new_elementary_molecule_type_;
   }
   virtual std::shared_ptr<ElementaryMoleculeType> get_elementary_molecule_type() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return elementary_molecule_type;
   }
 
@@ -73,9 +77,11 @@ public:
       throw RuntimeError("Value 'components' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     components = new_components_;
   }
   virtual std::vector<std::shared_ptr<ComponentInstance>> get_components() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return components;
   }
 

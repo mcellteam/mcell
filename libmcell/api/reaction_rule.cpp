@@ -29,7 +29,7 @@ using namespace std;
 namespace MCell {
 namespace API {
 
-std::string ReactionRule::to_bngl_str() {
+std::string ReactionRule::to_bngl_str() const {
   string res;
   for (size_t i = 0; i < reactants.size(); i++) {
     res += reactants[i]->to_bngl_str();

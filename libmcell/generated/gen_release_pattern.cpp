@@ -23,22 +23,12 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_release_pattern.h"
-#include "../api/release_pattern.h"
+#include "api/release_pattern.h"
 
 namespace MCell {
 namespace API {
 
 void GenReleasePattern::check_semantics() const {
-}
-
-bool GenReleasePattern::__eq__(const GenReleasePattern& other) const {
-  return
-    name == other.name &&
-    name == other.name &&
-    release_interval == other.release_interval &&
-    train_duration == other.train_duration &&
-    train_interval == other.train_interval &&
-    number_of_trains == other.number_of_trains;
 }
 
 void GenReleasePattern::set_initialized() {
@@ -52,6 +42,16 @@ void GenReleasePattern::set_all_attributes_as_default_or_unset() {
   train_duration = TIME_INFINITY;
   train_interval = TIME_INFINITY;
   number_of_trains = 1;
+}
+
+bool GenReleasePattern::__eq__(const ReleasePattern& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    release_interval == other.release_interval &&
+    train_duration == other.train_duration &&
+    train_interval == other.train_interval &&
+    number_of_trains == other.number_of_trains;
 }
 
 std::string GenReleasePattern::to_str(const std::string ind) const {
@@ -84,6 +84,7 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
       .def("check_semantics", &ReleasePattern::check_semantics)
       .def("__str__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &ReleasePattern::__eq__, py::arg("other"))
       .def("dump", &ReleasePattern::dump)
       .def_property("name", &ReleasePattern::get_name, &ReleasePattern::set_name)
       .def_property("release_interval", &ReleasePattern::get_release_interval, &ReleasePattern::set_release_interval)

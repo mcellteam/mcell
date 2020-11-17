@@ -82,11 +82,11 @@ public:
             ", error for " + name + ".");
       }
     }
-
-    // TODO: how can we check that the used molecule types were defined?
   }
 
-  std::string to_bngl_str() override;
+  bool __eq__(const Complex& other) const override;
+
+  std::string to_bngl_str() const override;
 
   std::shared_ptr<Species> as_species() override;
 
@@ -98,6 +98,12 @@ public:
 
 private:
   bool is_species_object() const;
+
+  // not really const, sets mutable members
+  void set_canonical_name_if_needed() const;
+
+  // set when __eq__ is called, valid if cached_data_are_uptodate is true
+  mutable std::string canonical_name;
 };
 
 } // namespace API

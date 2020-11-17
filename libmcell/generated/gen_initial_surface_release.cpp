@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_initial_surface_release.h"
-#include "../api/initial_surface_release.h"
-#include "../api/complex.h"
+#include "api/initial_surface_release.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -35,7 +35,21 @@ void GenInitialSurfaceRelease::check_semantics() const {
   }
 }
 
-bool GenInitialSurfaceRelease::__eq__(const GenInitialSurfaceRelease& other) const {
+void GenInitialSurfaceRelease::set_initialized() {
+  if (is_set(complex)) {
+    complex->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenInitialSurfaceRelease::set_all_attributes_as_default_or_unset() {
+  class_name = "InitialSurfaceRelease";
+  complex = nullptr;
+  number_to_release = INT_UNSET;
+  density = FLT_UNSET;
+}
+
+bool GenInitialSurfaceRelease::__eq__(const InitialSurfaceRelease& other) const {
   return
     name == other.name &&
     (
@@ -51,20 +65,6 @@ bool GenInitialSurfaceRelease::__eq__(const GenInitialSurfaceRelease& other) con
      )  &&
     number_to_release == other.number_to_release &&
     density == other.density;
-}
-
-void GenInitialSurfaceRelease::set_initialized() {
-  if (is_set(complex)) {
-    complex->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenInitialSurfaceRelease::set_all_attributes_as_default_or_unset() {
-  class_name = "InitialSurfaceRelease";
-  complex = nullptr;
-  number_to_release = INT_UNSET;
-  density = FLT_UNSET;
 }
 
 std::string GenInitialSurfaceRelease::to_str(const std::string ind) const {
@@ -91,6 +91,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def("check_semantics", &InitialSurfaceRelease::check_semantics)
       .def("__str__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &InitialSurfaceRelease::__eq__, py::arg("other"))
       .def("dump", &InitialSurfaceRelease::dump)
       .def_property("complex", &InitialSurfaceRelease::get_complex, &InitialSurfaceRelease::set_complex)
       .def_property("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release)

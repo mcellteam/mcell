@@ -23,9 +23,9 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_surface_class.h"
-#include "../api/surface_class.h"
-#include "../api/complex.h"
-#include "../api/surface_property.h"
+#include "api/surface_class.h"
+#include "api/complex.h"
+#include "api/surface_property.h"
 
 namespace MCell {
 namespace API {
@@ -34,26 +34,6 @@ void GenSurfaceClass::check_semantics() const {
   if (!is_set(name)) {
     throw ValueError("Parameter 'name' must be set.");
   }
-}
-
-bool GenSurfaceClass::__eq__(const GenSurfaceClass& other) const {
-  return
-    name == other.name &&
-    name == other.name &&
-    vec_ptr_eq(properties, other.properties) &&
-    type == other.type &&
-    (
-      (affected_complex_pattern != nullptr) ?
-        ( (other.affected_complex_pattern != nullptr) ?
-          (affected_complex_pattern->__eq__(*other.affected_complex_pattern)) : 
-          false
-        ) :
-        ( (other.affected_complex_pattern != nullptr) ?
-          false :
-          true
-        )
-     )  &&
-    concentration == other.concentration;
 }
 
 void GenSurfaceClass::set_initialized() {
@@ -71,6 +51,26 @@ void GenSurfaceClass::set_all_attributes_as_default_or_unset() {
   type = SurfacePropertyType::UNSET;
   affected_complex_pattern = nullptr;
   concentration = FLT_UNSET;
+}
+
+bool GenSurfaceClass::__eq__(const SurfaceClass& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    vec_ptr_eq(properties, other.properties) &&
+    type == other.type &&
+    (
+      (affected_complex_pattern != nullptr) ?
+        ( (other.affected_complex_pattern != nullptr) ?
+          (affected_complex_pattern->__eq__(*other.affected_complex_pattern)) : 
+          false
+        ) :
+        ( (other.affected_complex_pattern != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    concentration == other.concentration;
 }
 
 std::string GenSurfaceClass::to_str(const std::string ind) const {
@@ -103,6 +103,7 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
       .def("check_semantics", &SurfaceClass::check_semantics)
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &SurfaceClass::__eq__, py::arg("other"))
       .def("dump", &SurfaceClass::dump)
       .def_property("name", &SurfaceClass::get_name, &SurfaceClass::set_name)
       .def_property("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties)

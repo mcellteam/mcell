@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_molecule.h"
-#include "../api/molecule.h"
-#include "../api/species.h"
+#include "api/molecule.h"
+#include "api/species.h"
 
 namespace MCell {
 namespace API {
@@ -32,7 +32,22 @@ namespace API {
 void GenMolecule::check_semantics() const {
 }
 
-bool GenMolecule::__eq__(const GenMolecule& other) const {
+void GenMolecule::set_initialized() {
+  if (is_set(species)) {
+    species->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenMolecule::set_all_attributes_as_default_or_unset() {
+  class_name = "Molecule";
+  id = MOLECULE_ID_INVALID;
+  species = nullptr;
+  pos3d = VEC3_UNSET;
+  orientation = Orientation::NOT_SET;
+}
+
+bool GenMolecule::__eq__(const Molecule& other) const {
   return
     name == other.name &&
     id == other.id &&
@@ -49,21 +64,6 @@ bool GenMolecule::__eq__(const GenMolecule& other) const {
      )  &&
     pos3d == other.pos3d &&
     orientation == other.orientation;
-}
-
-void GenMolecule::set_initialized() {
-  if (is_set(species)) {
-    species->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenMolecule::set_all_attributes_as_default_or_unset() {
-  class_name = "Molecule";
-  id = MOLECULE_ID_INVALID;
-  species = nullptr;
-  pos3d = VEC3_UNSET;
-  orientation = Orientation::NOT_SET;
 }
 
 std::string GenMolecule::to_str(const std::string ind) const {
@@ -85,6 +85,7 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       .def("check_semantics", &Molecule::check_semantics)
       .def("__str__", &Molecule::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Molecule::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Molecule::__eq__, py::arg("other"))
       .def("remove", &Molecule::remove)
       .def("dump", &Molecule::dump)
       .def_property("id", &Molecule::get_id, &Molecule::set_id)

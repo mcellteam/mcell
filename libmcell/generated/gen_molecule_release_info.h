@@ -23,12 +23,13 @@
 #ifndef API_GEN_MOLECULE_RELEASE_INFO_H
 #define API_GEN_MOLECULE_RELEASE_INFO_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class MoleculeReleaseInfo;
 class Complex;
 
 #define MOLECULE_RELEASE_INFO_CTOR() \
@@ -48,9 +49,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenMoleculeReleaseInfo& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const MoleculeReleaseInfo& other) const;
+  bool operator == (const MoleculeReleaseInfo& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -60,9 +62,11 @@ public:
       throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     complex = new_complex_;
   }
   virtual std::shared_ptr<Complex> get_complex() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return complex;
   }
 
@@ -72,9 +76,11 @@ public:
       throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     location = new_location_;
   }
   virtual std::vector<float_t> get_location() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return location;
   }
 

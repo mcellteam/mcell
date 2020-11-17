@@ -23,11 +23,12 @@
 #ifndef API_GEN_INSTANTIATION_DATA_H
 #define API_GEN_INSTANTIATION_DATA_H
 
-#include "../api/common.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
 
+class InstantiationData;
 class GeometryObject;
 class Region;
 class ReleaseSite;
@@ -36,6 +37,8 @@ class Subsystem;
 class GenInstantiationData {
 public:
   virtual ~GenInstantiationData() {}
+  virtual bool __eq__(const InstantiationData& other) const;
+  bool operator == (const InstantiationData& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---

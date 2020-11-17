@@ -23,11 +23,11 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_count.h"
-#include "../api/count.h"
-#include "../api/complex.h"
-#include "../api/count_term.h"
-#include "../api/reaction_rule.h"
-#include "../api/region.h"
+#include "api/count.h"
+#include "api/complex.h"
+#include "api/count_term.h"
+#include "api/reaction_rule.h"
+#include "api/region.h"
 
 namespace MCell {
 namespace API {
@@ -38,7 +38,47 @@ void GenCount::check_semantics() const {
   }
 }
 
-bool GenCount::__eq__(const GenCount& other) const {
+void GenCount::set_initialized() {
+  if (is_set(count_expression)) {
+    count_expression->set_initialized();
+  }
+  if (is_set(species_pattern)) {
+    species_pattern->set_initialized();
+  }
+  if (is_set(molecules_pattern)) {
+    molecules_pattern->set_initialized();
+  }
+  if (is_set(reaction_rule)) {
+    reaction_rule->set_initialized();
+  }
+  if (is_set(region)) {
+    region->set_initialized();
+  }
+  if (is_set(left_node)) {
+    left_node->set_initialized();
+  }
+  if (is_set(right_node)) {
+    right_node->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenCount::set_all_attributes_as_default_or_unset() {
+  class_name = "Count";
+  file_name = STR_UNSET;
+  count_expression = nullptr;
+  multiplier = 1;
+  every_n_timesteps = 1;
+  species_pattern = nullptr;
+  molecules_pattern = nullptr;
+  reaction_rule = nullptr;
+  region = nullptr;
+  node_type = ExprNodeType::LEAF;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
+bool GenCount::__eq__(const Count& other) const {
   return
     name == other.name &&
     file_name == other.file_name &&
@@ -124,46 +164,6 @@ bool GenCount::__eq__(const GenCount& other) const {
      ) ;
 }
 
-void GenCount::set_initialized() {
-  if (is_set(count_expression)) {
-    count_expression->set_initialized();
-  }
-  if (is_set(species_pattern)) {
-    species_pattern->set_initialized();
-  }
-  if (is_set(molecules_pattern)) {
-    molecules_pattern->set_initialized();
-  }
-  if (is_set(reaction_rule)) {
-    reaction_rule->set_initialized();
-  }
-  if (is_set(region)) {
-    region->set_initialized();
-  }
-  if (is_set(left_node)) {
-    left_node->set_initialized();
-  }
-  if (is_set(right_node)) {
-    right_node->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenCount::set_all_attributes_as_default_or_unset() {
-  class_name = "Count";
-  file_name = STR_UNSET;
-  count_expression = nullptr;
-  multiplier = 1;
-  every_n_timesteps = 1;
-  species_pattern = nullptr;
-  molecules_pattern = nullptr;
-  reaction_rule = nullptr;
-  region = nullptr;
-  node_type = ExprNodeType::LEAF;
-  left_node = nullptr;
-  right_node = nullptr;
-}
-
 std::string GenCount::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
@@ -212,6 +212,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Count::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Count::__eq__, py::arg("other"))
       .def("dump", &Count::dump)
       .def_property("file_name", &Count::get_file_name, &Count::set_file_name)
       .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression)

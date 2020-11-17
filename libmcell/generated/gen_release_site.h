@@ -23,12 +23,13 @@
 #ifndef API_GEN_RELEASE_SITE_H
 #define API_GEN_RELEASE_SITE_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class ReleaseSite;
 class Complex;
 class MoleculeReleaseInfo;
 class Region;
@@ -75,9 +76,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenReleaseSite& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const ReleaseSite& other) const;
+  bool operator == (const ReleaseSite& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -87,9 +89,11 @@ public:
       throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     complex = new_complex_;
   }
   virtual std::shared_ptr<Complex> get_complex() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return complex;
   }
 
@@ -99,9 +103,11 @@ public:
       throw RuntimeError("Value 'molecule_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     molecule_list = new_molecule_list_;
   }
   virtual std::vector<std::shared_ptr<MoleculeReleaseInfo>> get_molecule_list() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return molecule_list;
   }
 
@@ -111,9 +117,11 @@ public:
       throw RuntimeError("Value 'release_time' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     release_time = new_release_time_;
   }
   virtual float_t get_release_time() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return release_time;
   }
 
@@ -123,9 +131,11 @@ public:
       throw RuntimeError("Value 'release_pattern' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     release_pattern = new_release_pattern_;
   }
   virtual std::shared_ptr<ReleasePattern> get_release_pattern() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return release_pattern;
   }
 
@@ -135,9 +145,11 @@ public:
       throw RuntimeError("Value 'shape' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     shape = new_shape_;
   }
   virtual Shape get_shape() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return shape;
   }
 
@@ -147,9 +159,11 @@ public:
       throw RuntimeError("Value 'region' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     region = new_region_;
   }
   virtual std::shared_ptr<Region> get_region() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return region;
   }
 
@@ -159,9 +173,11 @@ public:
       throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     location = new_location_;
   }
   virtual const Vec3& get_location() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return location;
   }
 
@@ -171,9 +187,11 @@ public:
       throw RuntimeError("Value 'site_diameter' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     site_diameter = new_site_diameter_;
   }
   virtual float_t get_site_diameter() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return site_diameter;
   }
 
@@ -183,9 +201,11 @@ public:
       throw RuntimeError("Value 'site_radius' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     site_radius = new_site_radius_;
   }
   virtual float_t get_site_radius() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return site_radius;
   }
 
@@ -195,9 +215,11 @@ public:
       throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     number_to_release = new_number_to_release_;
   }
   virtual float_t get_number_to_release() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return number_to_release;
   }
 
@@ -207,9 +229,11 @@ public:
       throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     density = new_density_;
   }
   virtual float_t get_density() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return density;
   }
 
@@ -219,9 +243,11 @@ public:
       throw RuntimeError("Value 'concentration' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     concentration = new_concentration_;
   }
   virtual float_t get_concentration() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return concentration;
   }
 
@@ -231,9 +257,11 @@ public:
       throw RuntimeError("Value 'release_probability' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     release_probability = new_release_probability_;
   }
   virtual float_t get_release_probability() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return release_probability;
   }
 

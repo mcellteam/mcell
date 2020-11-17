@@ -24,24 +24,58 @@
 #include "api/species.h"
 #include "api/elementary_molecule_instance.h"
 #include "api/elementary_molecule_type.h"
+#include "bng/bng.h"
 
 using namespace std;
 
 namespace MCell {
 namespace API {
 
-
-bool Complex::is_surf() const {
-  for (auto em: elementary_molecule_instances) {
-    if (is_set(em->elementary_molecule_type->diffusion_constant_2d)) {
-      return true;
-    }
+void Complex::set_canonical_name_if_needed() const {
+  if (cached_data_are_uptodate && canonical_name != "") {
+    return;
   }
-  return false;
+
+  // get BNGL string and parse it, then get canonical name
+  BNG::BNGConfig bng_config;
+  BNG::BNGEngine bng_engine(bng_config);
+
+  // parse cplx string
+  BNG::Cplx cplx_inst(&bng_engine.get_data());
+  int num_errors = BNG::parse_single_cplx_string(
+      to_bngl_str(), bng_engine.get_data(),
+      cplx_inst
+  );
+  if (num_errors != 0) {
+    throw RuntimeError("While creating canonical name for a Complex, could not parse '" + to_bngl_str() + "'.");
+  }
+  assert(!cplx_inst.mol_instances.empty());
+
+  // create canonical name
+  // we don't care that the complex may not be fully qualified, we cannot know this at this point
+  BNG::Species new_species(cplx_inst, bng_engine.get_data(), bng_engine.get_config(), false);
+  new_species.canonicalize();
+
+  canonical_name = new_species.name;
+  cached_data_are_uptodate = true;
 }
 
 
-std::string Complex::to_bngl_str() {
+bool Complex::__eq__(const Complex& other) const {
+
+  if (orientation != other.orientation ||
+      compartment_name != other.compartment_name) {
+    return false;
+  }
+
+  set_canonical_name_if_needed();
+  other.set_canonical_name_if_needed();
+
+  return canonical_name == other.canonical_name;
+}
+
+
+std::string Complex::to_bngl_str() const {
   if (is_set(name)) {
     return name;
   }
@@ -63,6 +97,16 @@ std::string Complex::to_bngl_str() {
 
     return res;
   }
+}
+
+
+bool Complex::is_surf() const {
+  for (auto em: elementary_molecule_instances) {
+    if (is_set(em->elementary_molecule_type->diffusion_constant_2d)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 

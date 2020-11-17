@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_molecule_release_info.h"
-#include "../api/molecule_release_info.h"
-#include "../api/complex.h"
+#include "api/molecule_release_info.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -38,7 +38,20 @@ void GenMoleculeReleaseInfo::check_semantics() const {
   }
 }
 
-bool GenMoleculeReleaseInfo::__eq__(const GenMoleculeReleaseInfo& other) const {
+void GenMoleculeReleaseInfo::set_initialized() {
+  if (is_set(complex)) {
+    complex->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
+  class_name = "MoleculeReleaseInfo";
+  complex = nullptr;
+  location = std::vector<float_t>();
+}
+
+bool GenMoleculeReleaseInfo::__eq__(const MoleculeReleaseInfo& other) const {
   return
     name == other.name &&
     (
@@ -53,19 +66,6 @@ bool GenMoleculeReleaseInfo::__eq__(const GenMoleculeReleaseInfo& other) const {
         )
      )  &&
     location == other.location;
-}
-
-void GenMoleculeReleaseInfo::set_initialized() {
-  if (is_set(complex)) {
-    complex->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
-  class_name = "MoleculeReleaseInfo";
-  complex = nullptr;
-  location = std::vector<float_t>();
 }
 
 std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {
@@ -89,6 +89,7 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def("check_semantics", &MoleculeReleaseInfo::check_semantics)
       .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &MoleculeReleaseInfo::__eq__, py::arg("other"))
       .def("dump", &MoleculeReleaseInfo::dump)
       .def_property("complex", &MoleculeReleaseInfo::get_complex, &MoleculeReleaseInfo::set_complex)
       .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location)

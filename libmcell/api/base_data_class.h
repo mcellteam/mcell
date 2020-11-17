@@ -33,7 +33,7 @@ namespace API {
 class BaseDataClass {
 public:
   BaseDataClass()
-    : class_name(STR_UNSET), name(STR_UNSET), initialized(false) {
+    : class_name(STR_UNSET), name(STR_UNSET), initialized(false), cached_data_are_uptodate(false) {
   }
   virtual ~BaseDataClass() {
   }
@@ -50,14 +50,19 @@ public:
   // every object defined by the MCell API might have its name
   std::string name;
   virtual void set_name(const std::string& name_) {
+    cached_data_are_uptodate = false;
     name = name_;
   }
   virtual const std::string& get_name() const {
+    cached_data_are_uptodate = false; // might be modified in theory
     return name;
   }
 
   bool initialized;
   virtual void set_initialized() = 0;
+
+  // attribute used when some caching is employed
+  mutable bool cached_data_are_uptodate;
 
   // this method is used to identify this particular object in error messages
   virtual std::string get_object_name() const {
@@ -79,8 +84,8 @@ public:
   virtual void set_all_attributes_as_default_or_unset() {
     name = STR_UNSET;
     initialized = false;
+    cached_data_are_uptodate = false;
   };
-
 
   // calls virtual method, usually no need to override
   virtual void dump() const {

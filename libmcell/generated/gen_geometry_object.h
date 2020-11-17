@@ -23,13 +23,14 @@
 #ifndef API_GEN_GEOMETRY_OBJECT_H
 #define API_GEN_GEOMETRY_OBJECT_H
 
-#include "../api/common.h"
-#include "../api/region.h"
+#include "api/common.h"
+#include "api/region.h"
 
 
 namespace MCell {
 namespace API {
 
+class GeometryObject;
 class InitialSurfaceRelease;
 class Region;
 class SurfaceClass;
@@ -76,9 +77,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenGeometryObject& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const GeometryObject& other) const;
+  bool operator == (const GeometryObject& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -88,9 +90,11 @@ public:
       throw RuntimeError("Value 'vertex_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     vertex_list = new_vertex_list_;
   }
   virtual std::vector<std::vector<float_t>> get_vertex_list() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return vertex_list;
   }
 
@@ -100,9 +104,11 @@ public:
       throw RuntimeError("Value 'wall_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     wall_list = new_wall_list_;
   }
   virtual std::vector<std::vector<int>> get_wall_list() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return wall_list;
   }
 
@@ -112,9 +118,11 @@ public:
       throw RuntimeError("Value 'is_bngl_compartment' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     is_bngl_compartment = new_is_bngl_compartment_;
   }
   virtual bool get_is_bngl_compartment() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return is_bngl_compartment;
   }
 
@@ -124,9 +132,11 @@ public:
       throw RuntimeError("Value 'surface_compartment_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     surface_compartment_name = new_surface_compartment_name_;
   }
   virtual const std::string& get_surface_compartment_name() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return surface_compartment_name;
   }
 
@@ -136,9 +146,11 @@ public:
       throw RuntimeError("Value 'surface_regions' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     surface_regions = new_surface_regions_;
   }
   virtual std::vector<std::shared_ptr<SurfaceRegion>> get_surface_regions() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return surface_regions;
   }
 
@@ -148,9 +160,11 @@ public:
       throw RuntimeError("Value 'surface_class' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     surface_class = new_surface_class_;
   }
   virtual std::shared_ptr<SurfaceClass> get_surface_class() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return surface_class;
   }
 
@@ -160,9 +174,11 @@ public:
       throw RuntimeError("Value 'initial_surface_releases' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     initial_surface_releases = new_initial_surface_releases_;
   }
   virtual std::vector<std::shared_ptr<InitialSurfaceRelease>> get_initial_surface_releases() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_surface_releases;
   }
 

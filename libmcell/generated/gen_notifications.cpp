@@ -23,19 +23,12 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_notifications.h"
-#include "../api/notifications.h"
+#include "api/notifications.h"
 
 namespace MCell {
 namespace API {
 
 void GenNotifications::check_semantics() const {
-}
-
-bool GenNotifications::__eq__(const GenNotifications& other) const {
-  return
-    name == other.name &&
-    bng_verbosity_level == other.bng_verbosity_level &&
-    rxn_and_species_report == other.rxn_and_species_report;
 }
 
 void GenNotifications::set_initialized() {
@@ -46,6 +39,13 @@ void GenNotifications::set_all_attributes_as_default_or_unset() {
   class_name = "Notifications";
   bng_verbosity_level = 0;
   rxn_and_species_report = true;
+}
+
+bool GenNotifications::__eq__(const Notifications& other) const {
+  return
+    name == other.name &&
+    bng_verbosity_level == other.bng_verbosity_level &&
+    rxn_and_species_report == other.rxn_and_species_report;
 }
 
 std::string GenNotifications::to_str(const std::string ind) const {
@@ -69,6 +69,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def("check_semantics", &Notifications::check_semantics)
       .def("__str__", &Notifications::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Notifications::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Notifications::__eq__, py::arg("other"))
       .def("dump", &Notifications::dump)
       .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level)
       .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report)

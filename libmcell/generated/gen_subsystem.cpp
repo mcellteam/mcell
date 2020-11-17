@@ -23,14 +23,22 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_subsystem.h"
-#include "../api/subsystem.h"
-#include "../api/elementary_molecule_type.h"
-#include "../api/reaction_rule.h"
-#include "../api/species.h"
-#include "../api/surface_class.h"
+#include "api/subsystem.h"
+#include "api/elementary_molecule_type.h"
+#include "api/reaction_rule.h"
+#include "api/species.h"
+#include "api/surface_class.h"
 
 namespace MCell {
 namespace API {
+
+bool GenSubsystem::__eq__(const Subsystem& other) const {
+  return
+    vec_ptr_eq(species, other.species) &&
+    vec_ptr_eq(reaction_rules, other.reaction_rules) &&
+    vec_ptr_eq(surface_classes, other.surface_classes) &&
+    vec_ptr_eq(elementary_molecule_types, other.elementary_molecule_types);
+}
 
 std::string GenSubsystem::to_str(const std::string ind) const {
   std::stringstream ss;
@@ -50,6 +58,7 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       )
       .def("__str__", &Subsystem::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Subsystem::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Subsystem::__eq__, py::arg("other"))
       .def("add_species", &Subsystem::add_species, py::arg("s"))
       .def("find_species", &Subsystem::find_species, py::arg("name"))
       .def("add_reaction_rule", &Subsystem::add_reaction_rule, py::arg("r"))

@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_wall.h"
-#include "../api/wall.h"
-#include "../api/geometry_object.h"
+#include "api/wall.h"
+#include "api/geometry_object.h"
 
 namespace MCell {
 namespace API {
@@ -47,7 +47,24 @@ void GenWall::check_semantics() const {
   }
 }
 
-bool GenWall::__eq__(const GenWall& other) const {
+void GenWall::set_initialized() {
+  if (is_set(geometry_object)) {
+    geometry_object->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenWall::set_all_attributes_as_default_or_unset() {
+  class_name = "Wall";
+  geometry_object = nullptr;
+  wall_index = INT_UNSET;
+  vertices = std::vector<Vec3>();
+  area = FLT_UNSET;
+  normal = VEC3_UNSET;
+  is_movable = true;
+}
+
+bool GenWall::__eq__(const Wall& other) const {
   return
     name == other.name &&
     (
@@ -66,23 +83,6 @@ bool GenWall::__eq__(const GenWall& other) const {
     area == other.area &&
     normal == other.normal &&
     is_movable == other.is_movable;
-}
-
-void GenWall::set_initialized() {
-  if (is_set(geometry_object)) {
-    geometry_object->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenWall::set_all_attributes_as_default_or_unset() {
-  class_name = "Wall";
-  geometry_object = nullptr;
-  wall_index = INT_UNSET;
-  vertices = std::vector<Vec3>();
-  area = FLT_UNSET;
-  normal = VEC3_UNSET;
-  is_movable = true;
 }
 
 std::string GenWall::to_str(const std::string ind) const {
@@ -106,6 +106,7 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       .def("check_semantics", &Wall::check_semantics)
       .def("__str__", &Wall::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Wall::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Wall::__eq__, py::arg("other"))
       .def("dump", &Wall::dump)
       .def_property("geometry_object", &Wall::get_geometry_object, &Wall::set_geometry_object)
       .def_property("wall_index", &Wall::get_wall_index, &Wall::set_wall_index)

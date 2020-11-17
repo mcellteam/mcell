@@ -23,14 +23,20 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_instantiation_data.h"
-#include "../api/instantiation_data.h"
-#include "../api/geometry_object.h"
-#include "../api/region.h"
-#include "../api/release_site.h"
-#include "../api/subsystem.h"
+#include "api/instantiation_data.h"
+#include "api/geometry_object.h"
+#include "api/region.h"
+#include "api/release_site.h"
+#include "api/subsystem.h"
 
 namespace MCell {
 namespace API {
+
+bool GenInstantiationData::__eq__(const InstantiationData& other) const {
+  return
+    vec_ptr_eq(release_sites, other.release_sites) &&
+    vec_ptr_eq(geometry_objects, other.geometry_objects);
+}
 
 std::string GenInstantiationData::to_str(const std::string ind) const {
   std::stringstream ss;
@@ -48,6 +54,7 @@ py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m) 
       )
       .def("__str__", &InstantiationData::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &InstantiationData::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &InstantiationData::__eq__, py::arg("other"))
       .def("add_release_site", &InstantiationData::add_release_site, py::arg("s"))
       .def("find_release_site", &InstantiationData::find_release_site, py::arg("name"))
       .def("add_geometry_object", &InstantiationData::add_geometry_object, py::arg("o"))

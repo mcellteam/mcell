@@ -25,6 +25,7 @@
 // libraries it needs
 
 #include "api/callbacks.h"
+#include "api/mol_wall_hit_info.h"
 
 namespace MCell {
 namespace API {
@@ -36,6 +37,12 @@ Callbacks::Callbacks(Model* model_) {
 
 void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo> info) {
   release_assert("must not be called");
+}
+
+// we also need some implementations for MolWallHitInfo
+bool GenMolWallHitInfo::__eq__(const MolWallHitInfo& other) const {
+  release_assert("must not be called");
+  return false;
 }
 
 } /* namespace API */

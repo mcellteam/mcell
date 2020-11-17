@@ -23,10 +23,10 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_elementary_molecule_type.h"
-#include "../api/elementary_molecule_type.h"
-#include "../api/component_instance.h"
-#include "../api/component_type.h"
-#include "../api/elementary_molecule_instance.h"
+#include "api/elementary_molecule_type.h"
+#include "api/component_instance.h"
+#include "api/component_type.h"
+#include "api/elementary_molecule_instance.h"
 
 namespace MCell {
 namespace API {
@@ -35,18 +35,6 @@ void GenElementaryMoleculeType::check_semantics() const {
   if (!is_set(name)) {
     throw ValueError("Parameter 'name' must be set.");
   }
-}
-
-bool GenElementaryMoleculeType::__eq__(const GenElementaryMoleculeType& other) const {
-  return
-    name == other.name &&
-    name == other.name &&
-    vec_ptr_eq(components, other.components) &&
-    diffusion_constant_2d == other.diffusion_constant_2d &&
-    diffusion_constant_3d == other.diffusion_constant_3d &&
-    custom_time_step == other.custom_time_step &&
-    custom_space_step == other.custom_space_step &&
-    target_only == other.target_only;
 }
 
 void GenElementaryMoleculeType::set_initialized() {
@@ -63,6 +51,18 @@ void GenElementaryMoleculeType::set_all_attributes_as_default_or_unset() {
   custom_time_step = FLT_UNSET;
   custom_space_step = FLT_UNSET;
   target_only = false;
+}
+
+bool GenElementaryMoleculeType::__eq__(const ElementaryMoleculeType& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    vec_ptr_eq(components, other.components) &&
+    diffusion_constant_2d == other.diffusion_constant_2d &&
+    diffusion_constant_3d == other.diffusion_constant_3d &&
+    custom_time_step == other.custom_time_step &&
+    custom_space_step == other.custom_space_step &&
+    target_only == other.target_only;
 }
 
 std::string GenElementaryMoleculeType::to_str(const std::string ind) const {
@@ -101,6 +101,7 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def("check_semantics", &ElementaryMoleculeType::check_semantics)
       .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &ElementaryMoleculeType::__eq__, py::arg("other"))
       .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<ComponentInstance>>())
       .def("dump", &ElementaryMoleculeType::dump)
       .def_property("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name)

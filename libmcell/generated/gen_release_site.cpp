@@ -23,11 +23,11 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_release_site.h"
-#include "../api/release_site.h"
-#include "../api/complex.h"
-#include "../api/molecule_release_info.h"
-#include "../api/region.h"
-#include "../api/release_pattern.h"
+#include "api/release_site.h"
+#include "api/complex.h"
+#include "api/molecule_release_info.h"
+#include "api/region.h"
+#include "api/release_pattern.h"
 
 namespace MCell {
 namespace API {
@@ -38,7 +38,39 @@ void GenReleaseSite::check_semantics() const {
   }
 }
 
-bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
+void GenReleaseSite::set_initialized() {
+  if (is_set(complex)) {
+    complex->set_initialized();
+  }
+  vec_set_initialized(molecule_list);
+  if (is_set(release_pattern)) {
+    release_pattern->set_initialized();
+  }
+  if (is_set(region)) {
+    region->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenReleaseSite::set_all_attributes_as_default_or_unset() {
+  class_name = "ReleaseSite";
+  name = STR_UNSET;
+  complex = nullptr;
+  molecule_list = std::vector<std::shared_ptr<MoleculeReleaseInfo>>();
+  release_time = 0;
+  release_pattern = nullptr;
+  shape = Shape::UNSET;
+  region = nullptr;
+  location = VEC3_UNSET;
+  site_diameter = 0;
+  site_radius = FLT_UNSET;
+  number_to_release = FLT_UNSET;
+  density = FLT_UNSET;
+  concentration = FLT_UNSET;
+  release_probability = FLT_UNSET;
+}
+
+bool GenReleaseSite::__eq__(const ReleaseSite& other) const {
   return
     name == other.name &&
     name == other.name &&
@@ -85,38 +117,6 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
     density == other.density &&
     concentration == other.concentration &&
     release_probability == other.release_probability;
-}
-
-void GenReleaseSite::set_initialized() {
-  if (is_set(complex)) {
-    complex->set_initialized();
-  }
-  vec_set_initialized(molecule_list);
-  if (is_set(release_pattern)) {
-    release_pattern->set_initialized();
-  }
-  if (is_set(region)) {
-    region->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenReleaseSite::set_all_attributes_as_default_or_unset() {
-  class_name = "ReleaseSite";
-  name = STR_UNSET;
-  complex = nullptr;
-  molecule_list = std::vector<std::shared_ptr<MoleculeReleaseInfo>>();
-  release_time = 0;
-  release_pattern = nullptr;
-  shape = Shape::UNSET;
-  region = nullptr;
-  location = VEC3_UNSET;
-  site_diameter = 0;
-  site_radius = FLT_UNSET;
-  number_to_release = FLT_UNSET;
-  density = FLT_UNSET;
-  concentration = FLT_UNSET;
-  release_probability = FLT_UNSET;
 }
 
 std::string GenReleaseSite::to_str(const std::string ind) const {
@@ -176,6 +176,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &ReleaseSite::__eq__, py::arg("other"))
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
       .def_property("complex", &ReleaseSite::get_complex, &ReleaseSite::set_complex)

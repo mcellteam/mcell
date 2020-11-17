@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_region.h"
-#include "../api/region.h"
-#include "../api/region.h"
+#include "api/region.h"
+#include "api/region.h"
 
 namespace MCell {
 namespace API {
@@ -32,7 +32,24 @@ namespace API {
 void GenRegion::check_semantics() const {
 }
 
-bool GenRegion::__eq__(const GenRegion& other) const {
+void GenRegion::set_initialized() {
+  if (is_set(left_node)) {
+    left_node->set_initialized();
+  }
+  if (is_set(right_node)) {
+    right_node->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenRegion::set_all_attributes_as_default_or_unset() {
+  class_name = "Region";
+  node_type = RegionNodeType::UNSET;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
+bool GenRegion::__eq__(const Region& other) const {
   return
     name == other.name &&
     node_type == other.node_type &&
@@ -60,23 +77,6 @@ bool GenRegion::__eq__(const GenRegion& other) const {
      ) ;
 }
 
-void GenRegion::set_initialized() {
-  if (is_set(left_node)) {
-    left_node->set_initialized();
-  }
-  if (is_set(right_node)) {
-    right_node->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenRegion::set_all_attributes_as_default_or_unset() {
-  class_name = "Region";
-  node_type = RegionNodeType::UNSET;
-  left_node = nullptr;
-  right_node = nullptr;
-}
-
 std::string GenRegion::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
@@ -101,6 +101,7 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
       .def("check_semantics", &Region::check_semantics)
       .def("__str__", &Region::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Region::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Region::__eq__, py::arg("other"))
       .def("__add__", &Region::__add__, py::arg("other"))
       .def("__sub__", &Region::__sub__, py::arg("other"))
       .def("__mul__", &Region::__mul__, py::arg("other"))

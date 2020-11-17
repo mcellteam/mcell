@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_wall_wall_hit_info.h"
-#include "../api/wall_wall_hit_info.h"
-#include "../api/wall.h"
+#include "api/wall_wall_hit_info.h"
+#include "api/wall.h"
 
 namespace MCell {
 namespace API {
@@ -38,7 +38,23 @@ void GenWallWallHitInfo::check_semantics() const {
   }
 }
 
-bool GenWallWallHitInfo::__eq__(const GenWallWallHitInfo& other) const {
+void GenWallWallHitInfo::set_initialized() {
+  if (is_set(wall1)) {
+    wall1->set_initialized();
+  }
+  if (is_set(wall2)) {
+    wall2->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenWallWallHitInfo::set_all_attributes_as_default_or_unset() {
+  class_name = "WallWallHitInfo";
+  wall1 = nullptr;
+  wall2 = nullptr;
+}
+
+bool GenWallWallHitInfo::__eq__(const WallWallHitInfo& other) const {
   return
     name == other.name &&
     (
@@ -65,22 +81,6 @@ bool GenWallWallHitInfo::__eq__(const GenWallWallHitInfo& other) const {
      ) ;
 }
 
-void GenWallWallHitInfo::set_initialized() {
-  if (is_set(wall1)) {
-    wall1->set_initialized();
-  }
-  if (is_set(wall2)) {
-    wall2->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenWallWallHitInfo::set_all_attributes_as_default_or_unset() {
-  class_name = "WallWallHitInfo";
-  wall1 = nullptr;
-  wall2 = nullptr;
-}
-
 std::string GenWallWallHitInfo::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
@@ -98,6 +98,7 @@ py::class_<WallWallHitInfo> define_pybinding_WallWallHitInfo(py::module& m) {
       .def("check_semantics", &WallWallHitInfo::check_semantics)
       .def("__str__", &WallWallHitInfo::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &WallWallHitInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &WallWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &WallWallHitInfo::dump)
       .def_property("wall1", &WallWallHitInfo::get_wall1, &WallWallHitInfo::set_wall1)
       .def_property("wall2", &WallWallHitInfo::get_wall2, &WallWallHitInfo::set_wall2)

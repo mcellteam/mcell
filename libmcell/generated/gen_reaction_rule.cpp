@@ -23,25 +23,13 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_reaction_rule.h"
-#include "../api/reaction_rule.h"
-#include "../api/complex.h"
+#include "api/reaction_rule.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
 
 void GenReactionRule::check_semantics() const {
-}
-
-bool GenReactionRule::__eq__(const GenReactionRule& other) const {
-  return
-    name == other.name &&
-    name == other.name &&
-    vec_ptr_eq(reactants, other.reactants) &&
-    vec_ptr_eq(products, other.products) &&
-    fwd_rate == other.fwd_rate &&
-    rev_name == other.rev_name &&
-    rev_rate == other.rev_rate &&
-    variable_rate == other.variable_rate;
 }
 
 void GenReactionRule::set_initialized() {
@@ -59,6 +47,18 @@ void GenReactionRule::set_all_attributes_as_default_or_unset() {
   rev_name = STR_UNSET;
   rev_rate = FLT_UNSET;
   variable_rate = std::vector<std::vector<float_t>>();
+}
+
+bool GenReactionRule::__eq__(const ReactionRule& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    vec_ptr_eq(reactants, other.reactants) &&
+    vec_ptr_eq(products, other.products) &&
+    fwd_rate == other.fwd_rate &&
+    rev_name == other.rev_name &&
+    rev_rate == other.rev_rate &&
+    variable_rate == other.variable_rate;
 }
 
 std::string GenReactionRule::to_str(const std::string ind) const {
@@ -97,6 +97,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       .def("check_semantics", &ReactionRule::check_semantics)
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &ReactionRule::__eq__, py::arg("other"))
       .def("to_bngl_str", &ReactionRule::to_bngl_str)
       .def("dump", &ReactionRule::dump)
       .def_property("name", &ReactionRule::get_name, &ReactionRule::set_name)

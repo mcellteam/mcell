@@ -23,11 +23,13 @@
 #ifndef API_GEN_NOTIFICATIONS_H
 #define API_GEN_NOTIFICATIONS_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
+
+class Notifications;
 
 #define NOTIFICATIONS_CTOR() \
     Notifications( \
@@ -46,9 +48,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenNotifications& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const Notifications& other) const;
+  bool operator == (const Notifications& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -58,9 +61,11 @@ public:
       throw RuntimeError("Value 'bng_verbosity_level' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     bng_verbosity_level = new_bng_verbosity_level_;
   }
   virtual int get_bng_verbosity_level() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return bng_verbosity_level;
   }
 
@@ -70,9 +75,11 @@ public:
       throw RuntimeError("Value 'rxn_and_species_report' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     rxn_and_species_report = new_rxn_and_species_report_;
   }
   virtual bool get_rxn_and_species_report() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return rxn_and_species_report;
   }
 

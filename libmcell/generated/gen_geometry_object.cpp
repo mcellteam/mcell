@@ -23,11 +23,11 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_geometry_object.h"
-#include "../api/geometry_object.h"
-#include "../api/initial_surface_release.h"
-#include "../api/region.h"
-#include "../api/surface_class.h"
-#include "../api/surface_region.h"
+#include "api/geometry_object.h"
+#include "api/initial_surface_release.h"
+#include "api/region.h"
+#include "api/surface_class.h"
+#include "api/surface_region.h"
 
 namespace MCell {
 namespace API {
@@ -44,7 +44,37 @@ void GenGeometryObject::check_semantics() const {
   }
 }
 
-bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
+void GenGeometryObject::set_initialized() {
+  vec_set_initialized(surface_regions);
+  if (is_set(surface_class)) {
+    surface_class->set_initialized();
+  }
+  vec_set_initialized(initial_surface_releases);
+  if (is_set(left_node)) {
+    left_node->set_initialized();
+  }
+  if (is_set(right_node)) {
+    right_node->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenGeometryObject::set_all_attributes_as_default_or_unset() {
+  class_name = "GeometryObject";
+  name = STR_UNSET;
+  vertex_list = std::vector<std::vector<float_t>>();
+  wall_list = std::vector<std::vector<int>>();
+  is_bngl_compartment = false;
+  surface_compartment_name = STR_UNSET;
+  surface_regions = std::vector<std::shared_ptr<SurfaceRegion>>();
+  surface_class = nullptr;
+  initial_surface_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
+  node_type = RegionNodeType::UNSET;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
+bool GenGeometryObject::__eq__(const GeometryObject& other) const {
   return
     name == other.name &&
     name == other.name &&
@@ -88,36 +118,6 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
           true
         )
      ) ;
-}
-
-void GenGeometryObject::set_initialized() {
-  vec_set_initialized(surface_regions);
-  if (is_set(surface_class)) {
-    surface_class->set_initialized();
-  }
-  vec_set_initialized(initial_surface_releases);
-  if (is_set(left_node)) {
-    left_node->set_initialized();
-  }
-  if (is_set(right_node)) {
-    right_node->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenGeometryObject::set_all_attributes_as_default_or_unset() {
-  class_name = "GeometryObject";
-  name = STR_UNSET;
-  vertex_list = std::vector<std::vector<float_t>>();
-  wall_list = std::vector<std::vector<int>>();
-  is_bngl_compartment = false;
-  surface_compartment_name = STR_UNSET;
-  surface_regions = std::vector<std::shared_ptr<SurfaceRegion>>();
-  surface_class = nullptr;
-  initial_surface_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
-  node_type = RegionNodeType::UNSET;
-  left_node = nullptr;
-  right_node = nullptr;
 }
 
 std::string GenGeometryObject::to_str(const std::string ind) const {
@@ -168,6 +168,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def("check_semantics", &GeometryObject::check_semantics)
       .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &GeometryObject::__eq__, py::arg("other"))
       .def("translate", &GeometryObject::translate, py::arg("move"))
       .def("dump", &GeometryObject::dump)
       .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)

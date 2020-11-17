@@ -23,9 +23,9 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_elementary_molecule_instance.h"
-#include "../api/elementary_molecule_instance.h"
-#include "../api/component_instance.h"
-#include "../api/elementary_molecule_type.h"
+#include "api/elementary_molecule_instance.h"
+#include "api/component_instance.h"
+#include "api/elementary_molecule_type.h"
 
 namespace MCell {
 namespace API {
@@ -34,23 +34,6 @@ void GenElementaryMoleculeInstance::check_semantics() const {
   if (!is_set(elementary_molecule_type)) {
     throw ValueError("Parameter 'elementary_molecule_type' must be set.");
   }
-}
-
-bool GenElementaryMoleculeInstance::__eq__(const GenElementaryMoleculeInstance& other) const {
-  return
-    name == other.name &&
-    (
-      (elementary_molecule_type != nullptr) ?
-        ( (other.elementary_molecule_type != nullptr) ?
-          (elementary_molecule_type->__eq__(*other.elementary_molecule_type)) : 
-          false
-        ) :
-        ( (other.elementary_molecule_type != nullptr) ?
-          false :
-          true
-        )
-     )  &&
-    vec_ptr_eq(components, other.components);
 }
 
 void GenElementaryMoleculeInstance::set_initialized() {
@@ -65,6 +48,23 @@ void GenElementaryMoleculeInstance::set_all_attributes_as_default_or_unset() {
   class_name = "ElementaryMoleculeInstance";
   elementary_molecule_type = nullptr;
   components = std::vector<std::shared_ptr<ComponentInstance>>();
+}
+
+bool GenElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& other) const {
+  return
+    name == other.name &&
+    (
+      (elementary_molecule_type != nullptr) ?
+        ( (other.elementary_molecule_type != nullptr) ?
+          (elementary_molecule_type->__eq__(*other.elementary_molecule_type)) : 
+          false
+        ) :
+        ( (other.elementary_molecule_type != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    vec_ptr_eq(components, other.components);
 }
 
 std::string GenElementaryMoleculeInstance::to_str(const std::string ind) const {
@@ -88,6 +88,7 @@ py::class_<ElementaryMoleculeInstance> define_pybinding_ElementaryMoleculeInstan
       .def("check_semantics", &ElementaryMoleculeInstance::check_semantics)
       .def("__str__", &ElementaryMoleculeInstance::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &ElementaryMoleculeInstance::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &ElementaryMoleculeInstance::__eq__, py::arg("other"))
       .def("to_bngl_str", &ElementaryMoleculeInstance::to_bngl_str)
       .def("dump", &ElementaryMoleculeInstance::dump)
       .def_property("elementary_molecule_type", &ElementaryMoleculeInstance::get_elementary_molecule_type, &ElementaryMoleculeInstance::set_elementary_molecule_type)

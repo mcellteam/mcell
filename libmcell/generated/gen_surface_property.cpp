@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_surface_property.h"
-#include "../api/surface_property.h"
-#include "../api/complex.h"
+#include "api/surface_property.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -32,7 +32,21 @@ namespace API {
 void GenSurfaceProperty::check_semantics() const {
 }
 
-bool GenSurfaceProperty::__eq__(const GenSurfaceProperty& other) const {
+void GenSurfaceProperty::set_initialized() {
+  if (is_set(affected_complex_pattern)) {
+    affected_complex_pattern->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenSurfaceProperty::set_all_attributes_as_default_or_unset() {
+  class_name = "SurfaceProperty";
+  type = SurfacePropertyType::UNSET;
+  affected_complex_pattern = nullptr;
+  concentration = FLT_UNSET;
+}
+
+bool GenSurfaceProperty::__eq__(const SurfaceProperty& other) const {
   return
     name == other.name &&
     type == other.type &&
@@ -48,20 +62,6 @@ bool GenSurfaceProperty::__eq__(const GenSurfaceProperty& other) const {
         )
      )  &&
     concentration == other.concentration;
-}
-
-void GenSurfaceProperty::set_initialized() {
-  if (is_set(affected_complex_pattern)) {
-    affected_complex_pattern->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenSurfaceProperty::set_all_attributes_as_default_or_unset() {
-  class_name = "SurfaceProperty";
-  type = SurfacePropertyType::UNSET;
-  affected_complex_pattern = nullptr;
-  concentration = FLT_UNSET;
 }
 
 std::string GenSurfaceProperty::to_str(const std::string ind) const {
@@ -88,6 +88,7 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       .def("check_semantics", &SurfaceProperty::check_semantics)
       .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &SurfaceProperty::__eq__, py::arg("other"))
       .def("dump", &SurfaceProperty::dump)
       .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type)
       .def_property("affected_complex_pattern", &SurfaceProperty::get_affected_complex_pattern, &SurfaceProperty::set_affected_complex_pattern)

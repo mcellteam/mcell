@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_component_instance.h"
-#include "../api/component_instance.h"
-#include "../api/component_type.h"
+#include "api/component_instance.h"
+#include "api/component_type.h"
 
 namespace MCell {
 namespace API {
@@ -35,7 +35,21 @@ void GenComponentInstance::check_semantics() const {
   }
 }
 
-bool GenComponentInstance::__eq__(const GenComponentInstance& other) const {
+void GenComponentInstance::set_initialized() {
+  if (is_set(component_type)) {
+    component_type->set_initialized();
+  }
+  initialized = true;
+}
+
+void GenComponentInstance::set_all_attributes_as_default_or_unset() {
+  class_name = "ComponentInstance";
+  component_type = nullptr;
+  state = "STATE_UNSET";
+  bond = BOND_UNBOUND;
+}
+
+bool GenComponentInstance::__eq__(const ComponentInstance& other) const {
   return
     name == other.name &&
     (
@@ -51,20 +65,6 @@ bool GenComponentInstance::__eq__(const GenComponentInstance& other) const {
      )  &&
     state == other.state &&
     bond == other.bond;
-}
-
-void GenComponentInstance::set_initialized() {
-  if (is_set(component_type)) {
-    component_type->set_initialized();
-  }
-  initialized = true;
-}
-
-void GenComponentInstance::set_all_attributes_as_default_or_unset() {
-  class_name = "ComponentInstance";
-  component_type = nullptr;
-  state = "STATE_UNSET";
-  bond = BOND_UNBOUND;
 }
 
 std::string GenComponentInstance::to_str(const std::string ind) const {
@@ -91,6 +91,7 @@ py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) 
       .def("check_semantics", &ComponentInstance::check_semantics)
       .def("__str__", &ComponentInstance::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &ComponentInstance::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &ComponentInstance::__eq__, py::arg("other"))
       .def("to_bngl_str", &ComponentInstance::to_bngl_str)
       .def("dump", &ComponentInstance::dump)
       .def_property("component_type", &ComponentInstance::get_component_type, &ComponentInstance::set_component_type)

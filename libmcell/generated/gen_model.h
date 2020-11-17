@@ -23,15 +23,19 @@
 #ifndef API_GEN_MODEL_H
 #define API_GEN_MODEL_H
 
-#include "../api/common.h"
-#include "../api/config.h"
-#include "../api/mol_wall_hit_info.h"
-#include "../api/notifications.h"
-#include "../api/warnings.h"
+#include "api/common.h"
+#include "api/config.h"
+#include "api/mol_wall_hit_info.h"
+#include "api/notifications.h"
+#include "api/warnings.h"
+#include "api/subsystem.h"
+#include "api/instantiation_data.h"
+#include "api/observables.h"
 
 namespace MCell {
 namespace API {
 
+class Model;
 class Config;
 class Count;
 class ElementaryMoleculeType;
@@ -52,9 +56,11 @@ class Wall;
 class WallWallHitInfo;
 class Warnings;
 
-class GenModel {
+class GenModel: public Subsystem, public InstantiationData, public Observables {
 public:
   virtual ~GenModel() {}
+  virtual bool __eq__(const Model& other) const;
+  bool operator == (const Model& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---

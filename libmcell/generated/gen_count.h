@@ -23,13 +23,14 @@
 #ifndef API_GEN_COUNT_H
 #define API_GEN_COUNT_H
 
-#include "../api/common.h"
-#include "../api/count_term.h"
+#include "api/common.h"
+#include "api/count_term.h"
 
 
 namespace MCell {
 namespace API {
 
+class Count;
 class Complex;
 class CountTerm;
 class ReactionRule;
@@ -80,9 +81,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenCount& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const Count& other) const;
+  bool operator == (const Count& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -92,9 +94,11 @@ public:
       throw RuntimeError("Value 'file_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     file_name = new_file_name_;
   }
   virtual const std::string& get_file_name() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return file_name;
   }
 
@@ -104,9 +108,11 @@ public:
       throw RuntimeError("Value 'count_expression' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     count_expression = new_count_expression_;
   }
   virtual std::shared_ptr<CountTerm> get_count_expression() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return count_expression;
   }
 
@@ -116,9 +122,11 @@ public:
       throw RuntimeError("Value 'multiplier' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     multiplier = new_multiplier_;
   }
   virtual float_t get_multiplier() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return multiplier;
   }
 
@@ -128,9 +136,11 @@ public:
       throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     every_n_timesteps = new_every_n_timesteps_;
   }
   virtual float_t get_every_n_timesteps() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return every_n_timesteps;
   }
 

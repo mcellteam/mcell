@@ -23,12 +23,13 @@
 #ifndef API_GEN_COMPONENT_TYPE_H
 #define API_GEN_COMPONENT_TYPE_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class ComponentType;
 class ComponentInstance;
 
 #define COMPONENT_TYPE_CTOR() \
@@ -48,9 +49,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenComponentType& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const ComponentType& other) const;
+  bool operator == (const ComponentType& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -60,9 +62,11 @@ public:
       throw RuntimeError("Value 'states' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     states = new_states_;
   }
   virtual std::vector<std::string> get_states() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return states;
   }
 

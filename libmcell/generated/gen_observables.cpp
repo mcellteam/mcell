@@ -23,13 +23,19 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_observables.h"
-#include "../api/observables.h"
-#include "../api/count.h"
-#include "../api/subsystem.h"
-#include "../api/viz_output.h"
+#include "api/observables.h"
+#include "api/count.h"
+#include "api/subsystem.h"
+#include "api/viz_output.h"
 
 namespace MCell {
 namespace API {
+
+bool GenObservables::__eq__(const Observables& other) const {
+  return
+    vec_ptr_eq(viz_outputs, other.viz_outputs) &&
+    vec_ptr_eq(counts, other.counts);
+}
 
 std::string GenObservables::to_str(const std::string ind) const {
   std::stringstream ss;
@@ -47,6 +53,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       )
       .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Observables::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Observables::__eq__, py::arg("other"))
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"))
       .def("add_count", &Observables::add_count, py::arg("count"))
       .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("file_name"), py::arg("subsystem"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>())

@@ -23,7 +23,7 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_geometry_utils.h"
-#include "../api/geometry_object.h"
+#include "api/geometry_object.h"
 
 namespace MCell {
 namespace API {

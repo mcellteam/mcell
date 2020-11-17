@@ -23,8 +23,8 @@
 #ifndef API_GEN_COUNT_TERM_H
 #define API_GEN_COUNT_TERM_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -61,9 +61,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenCountTerm& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const CountTerm& other) const;
+  bool operator == (const CountTerm& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -73,9 +74,11 @@ public:
       throw RuntimeError("Value 'species_pattern' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     species_pattern = new_species_pattern_;
   }
   virtual std::shared_ptr<Complex> get_species_pattern() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return species_pattern;
   }
 
@@ -85,9 +88,11 @@ public:
       throw RuntimeError("Value 'molecules_pattern' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     molecules_pattern = new_molecules_pattern_;
   }
   virtual std::shared_ptr<Complex> get_molecules_pattern() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return molecules_pattern;
   }
 
@@ -97,9 +102,11 @@ public:
       throw RuntimeError("Value 'reaction_rule' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     reaction_rule = new_reaction_rule_;
   }
   virtual std::shared_ptr<ReactionRule> get_reaction_rule() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return reaction_rule;
   }
 
@@ -109,9 +116,11 @@ public:
       throw RuntimeError("Value 'region' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     region = new_region_;
   }
   virtual std::shared_ptr<Region> get_region() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return region;
   }
 
@@ -121,9 +130,11 @@ public:
       throw RuntimeError("Value 'node_type' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     node_type = new_node_type_;
   }
   virtual ExprNodeType get_node_type() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return node_type;
   }
 
@@ -133,9 +144,11 @@ public:
       throw RuntimeError("Value 'left_node' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     left_node = new_left_node_;
   }
   virtual std::shared_ptr<CountTerm> get_left_node() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return left_node;
   }
 
@@ -145,9 +158,11 @@ public:
       throw RuntimeError("Value 'right_node' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     right_node = new_right_node_;
   }
   virtual std::shared_ptr<CountTerm> get_right_node() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return right_node;
   }
 

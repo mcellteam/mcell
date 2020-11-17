@@ -23,11 +23,12 @@
 #ifndef API_GEN_OBSERVABLES_H
 #define API_GEN_OBSERVABLES_H
 
-#include "../api/common.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
 
+class Observables;
 class Count;
 class Subsystem;
 class VizOutput;
@@ -35,6 +36,8 @@ class VizOutput;
 class GenObservables {
 public:
   virtual ~GenObservables() {}
+  virtual bool __eq__(const Observables& other) const;
+  bool operator == (const Observables& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---

@@ -23,12 +23,13 @@
 #ifndef API_GEN_WALL_WALL_HIT_INFO_H
 #define API_GEN_WALL_WALL_HIT_INFO_H
 
-#include "../api/common.h"
-#include "../api/base_introspection_class.h"
+#include "api/common.h"
+#include "api/base_introspection_class.h"
 
 namespace MCell {
 namespace API {
 
+class WallWallHitInfo;
 class Wall;
 
 #define WALL_WALL_HIT_INFO_CTOR_NOARGS() \
@@ -46,9 +47,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenWallWallHitInfo& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const WallWallHitInfo& other) const;
+  bool operator == (const WallWallHitInfo& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -58,9 +60,11 @@ public:
       throw RuntimeError("Value 'wall1' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     wall1 = new_wall1_;
   }
   virtual std::shared_ptr<Wall> get_wall1() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return wall1;
   }
 
@@ -70,9 +74,11 @@ public:
       throw RuntimeError("Value 'wall2' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     wall2 = new_wall2_;
   }
   virtual std::shared_ptr<Wall> get_wall2() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return wall2;
   }
 

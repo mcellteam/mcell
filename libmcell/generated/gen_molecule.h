@@ -23,12 +23,13 @@
 #ifndef API_GEN_MOLECULE_H
 #define API_GEN_MOLECULE_H
 
-#include "../api/common.h"
-#include "../api/base_introspection_class.h"
+#include "api/common.h"
+#include "api/base_introspection_class.h"
 
 namespace MCell {
 namespace API {
 
+class Molecule;
 class Species;
 
 #define MOLECULE_CTOR_NOARGS() \
@@ -48,9 +49,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenMolecule& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const Molecule& other) const;
+  bool operator == (const Molecule& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -60,9 +62,11 @@ public:
       throw RuntimeError("Value 'id' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     id = new_id_;
   }
   virtual int get_id() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return id;
   }
 
@@ -72,9 +76,11 @@ public:
       throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     species = new_species_;
   }
   virtual std::shared_ptr<Species> get_species() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return species;
   }
 
@@ -84,9 +90,11 @@ public:
       throw RuntimeError("Value 'pos3d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     pos3d = new_pos3d_;
   }
   virtual const Vec3& get_pos3d() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return pos3d;
   }
 
@@ -96,9 +104,11 @@ public:
       throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     orientation = new_orientation_;
   }
   virtual Orientation get_orientation() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return orientation;
   }
 

@@ -23,13 +23,14 @@
 #ifndef API_GEN_SURFACE_REGION_H
 #define API_GEN_SURFACE_REGION_H
 
-#include "../api/common.h"
-#include "../api/region.h"
+#include "api/common.h"
+#include "api/region.h"
 
 
 namespace MCell {
 namespace API {
 
+class SurfaceRegion;
 class InitialSurfaceRelease;
 class Region;
 class SurfaceClass;
@@ -67,9 +68,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenSurfaceRegion& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const SurfaceRegion& other) const;
+  bool operator == (const SurfaceRegion& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -79,9 +81,11 @@ public:
       throw RuntimeError("Value 'wall_indices' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     wall_indices = new_wall_indices_;
   }
   virtual std::vector<int> get_wall_indices() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return wall_indices;
   }
 
@@ -91,9 +95,11 @@ public:
       throw RuntimeError("Value 'surface_class' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     surface_class = new_surface_class_;
   }
   virtual std::shared_ptr<SurfaceClass> get_surface_class() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return surface_class;
   }
 
@@ -103,9 +109,11 @@ public:
       throw RuntimeError("Value 'initial_surface_releases' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     initial_surface_releases = new_initial_surface_releases_;
   }
   virtual std::vector<std::shared_ptr<InitialSurfaceRelease>> get_initial_surface_releases() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_surface_releases;
   }
 

@@ -23,11 +23,13 @@
 #ifndef API_GEN_RELEASE_PATTERN_H
 #define API_GEN_RELEASE_PATTERN_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
+
+class ReleasePattern;
 
 #define RELEASE_PATTERN_CTOR() \
     ReleasePattern( \
@@ -52,9 +54,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenReleasePattern& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const ReleasePattern& other) const;
+  bool operator == (const ReleasePattern& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -64,9 +67,11 @@ public:
       throw RuntimeError("Value 'release_interval' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     release_interval = new_release_interval_;
   }
   virtual float_t get_release_interval() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return release_interval;
   }
 
@@ -76,9 +81,11 @@ public:
       throw RuntimeError("Value 'train_duration' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     train_duration = new_train_duration_;
   }
   virtual float_t get_train_duration() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return train_duration;
   }
 
@@ -88,9 +95,11 @@ public:
       throw RuntimeError("Value 'train_interval' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     train_interval = new_train_interval_;
   }
   virtual float_t get_train_interval() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return train_interval;
   }
 
@@ -100,9 +109,11 @@ public:
       throw RuntimeError("Value 'number_of_trains' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     number_of_trains = new_number_of_trains_;
   }
   virtual int get_number_of_trains() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return number_of_trains;
   }
 

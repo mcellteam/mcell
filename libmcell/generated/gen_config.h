@@ -23,11 +23,13 @@
 #ifndef API_GEN_CONFIG_H
 #define API_GEN_CONFIG_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
+
+class Config;
 
 #define CONFIG_CTOR() \
     Config( \
@@ -66,9 +68,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenConfig& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const Config& other) const;
+  bool operator == (const Config& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -78,9 +81,11 @@ public:
       throw RuntimeError("Value 'seed' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     seed = new_seed_;
   }
   virtual int get_seed() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return seed;
   }
 
@@ -90,9 +95,11 @@ public:
       throw RuntimeError("Value 'time_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     time_step = new_time_step_;
   }
   virtual float_t get_time_step() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return time_step;
   }
 
@@ -102,9 +109,11 @@ public:
       throw RuntimeError("Value 'surface_grid_density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     surface_grid_density = new_surface_grid_density_;
   }
   virtual float_t get_surface_grid_density() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return surface_grid_density;
   }
 
@@ -114,9 +123,11 @@ public:
       throw RuntimeError("Value 'interaction_radius' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     interaction_radius = new_interaction_radius_;
   }
   virtual float_t get_interaction_radius() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return interaction_radius;
   }
 
@@ -126,9 +137,11 @@ public:
       throw RuntimeError("Value 'vacancy_search_distance' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     vacancy_search_distance = new_vacancy_search_distance_;
   }
   virtual float_t get_vacancy_search_distance() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return vacancy_search_distance;
   }
 
@@ -138,9 +151,11 @@ public:
       throw RuntimeError("Value 'center_molecules_on_grid' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     center_molecules_on_grid = new_center_molecules_on_grid_;
   }
   virtual bool get_center_molecules_on_grid() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return center_molecules_on_grid;
   }
 
@@ -150,9 +165,11 @@ public:
       throw RuntimeError("Value 'initial_partition_origin' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     initial_partition_origin = new_initial_partition_origin_;
   }
   virtual std::vector<float_t> get_initial_partition_origin() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_partition_origin;
   }
 
@@ -162,9 +179,11 @@ public:
       throw RuntimeError("Value 'partition_dimension' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     partition_dimension = new_partition_dimension_;
   }
   virtual float_t get_partition_dimension() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return partition_dimension;
   }
 
@@ -174,9 +193,11 @@ public:
       throw RuntimeError("Value 'subpartition_dimension' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     subpartition_dimension = new_subpartition_dimension_;
   }
   virtual float_t get_subpartition_dimension() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return subpartition_dimension;
   }
 
@@ -186,9 +207,11 @@ public:
       throw RuntimeError("Value 'total_iterations_hint' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     total_iterations_hint = new_total_iterations_hint_;
   }
   virtual float_t get_total_iterations_hint() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return total_iterations_hint;
   }
 
@@ -198,9 +221,11 @@ public:
       throw RuntimeError("Value 'check_overlapped_walls' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     check_overlapped_walls = new_check_overlapped_walls_;
   }
   virtual bool get_check_overlapped_walls() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return check_overlapped_walls;
   }
 
@@ -210,9 +235,11 @@ public:
       throw RuntimeError("Value 'sort_molecules' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     sort_molecules = new_sort_molecules_;
   }
   virtual bool get_sort_molecules() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return sort_molecules;
   }
 

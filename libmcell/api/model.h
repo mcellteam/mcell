@@ -45,7 +45,7 @@ namespace API {
 class MolWallHitInfo;
 class WallWallHitInfo;
 
-class Model: public GenModel, public Subsystem, public InstantiationData, public Observables {
+class Model: public GenModel {
 public:
 
   Model() : initialized(false), world(nullptr), callbacks(this) {

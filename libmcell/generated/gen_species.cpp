@@ -23,30 +23,15 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_species.h"
-#include "../api/species.h"
-#include "../api/complex.h"
-#include "../api/elementary_molecule_instance.h"
-#include "../api/species.h"
+#include "api/species.h"
+#include "api/complex.h"
+#include "api/elementary_molecule_instance.h"
+#include "api/species.h"
 
 namespace MCell {
 namespace API {
 
 void GenSpecies::check_semantics() const {
-}
-
-bool GenSpecies::__eq__(const GenSpecies& other) const {
-  return
-    name == other.name &&
-    name == other.name &&
-    diffusion_constant_2d == other.diffusion_constant_2d &&
-    diffusion_constant_3d == other.diffusion_constant_3d &&
-    custom_time_step == other.custom_time_step &&
-    custom_space_step == other.custom_space_step &&
-    target_only == other.target_only &&
-    name == other.name &&
-    vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
-    orientation == other.orientation &&
-    compartment_name == other.compartment_name;
 }
 
 void GenSpecies::set_initialized() {
@@ -66,6 +51,21 @@ void GenSpecies::set_all_attributes_as_default_or_unset() {
   elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
   orientation = Orientation::DEFAULT;
   compartment_name = STR_UNSET;
+}
+
+bool GenSpecies::__eq__(const Species& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    diffusion_constant_2d == other.diffusion_constant_2d &&
+    diffusion_constant_3d == other.diffusion_constant_3d &&
+    custom_time_step == other.custom_time_step &&
+    custom_space_step == other.custom_space_step &&
+    target_only == other.target_only &&
+    name == other.name &&
+    vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
+    orientation == other.orientation &&
+    compartment_name == other.compartment_name;
 }
 
 std::string GenSpecies::to_str(const std::string ind) const {
@@ -111,6 +111,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       .def("check_semantics", &Species::check_semantics)
       .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Species::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Species::__eq__, py::arg("other"))
       .def("inst", &Species::inst, py::arg("orientation") = Orientation::DEFAULT, py::arg("compartment_name") = STR_UNSET)
       .def("dump", &Species::dump)
       .def_property("name", &Species::get_name, &Species::set_name)

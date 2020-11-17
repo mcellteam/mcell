@@ -23,29 +23,12 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_config.h"
-#include "../api/config.h"
+#include "api/config.h"
 
 namespace MCell {
 namespace API {
 
 void GenConfig::check_semantics() const {
-}
-
-bool GenConfig::__eq__(const GenConfig& other) const {
-  return
-    name == other.name &&
-    seed == other.seed &&
-    time_step == other.time_step &&
-    surface_grid_density == other.surface_grid_density &&
-    interaction_radius == other.interaction_radius &&
-    vacancy_search_distance == other.vacancy_search_distance &&
-    center_molecules_on_grid == other.center_molecules_on_grid &&
-    initial_partition_origin == other.initial_partition_origin &&
-    partition_dimension == other.partition_dimension &&
-    subpartition_dimension == other.subpartition_dimension &&
-    total_iterations_hint == other.total_iterations_hint &&
-    check_overlapped_walls == other.check_overlapped_walls &&
-    sort_molecules == other.sort_molecules;
 }
 
 void GenConfig::set_initialized() {
@@ -66,6 +49,23 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   total_iterations_hint = 1000000;
   check_overlapped_walls = true;
   sort_molecules = false;
+}
+
+bool GenConfig::__eq__(const Config& other) const {
+  return
+    name == other.name &&
+    seed == other.seed &&
+    time_step == other.time_step &&
+    surface_grid_density == other.surface_grid_density &&
+    interaction_radius == other.interaction_radius &&
+    vacancy_search_distance == other.vacancy_search_distance &&
+    center_molecules_on_grid == other.center_molecules_on_grid &&
+    initial_partition_origin == other.initial_partition_origin &&
+    partition_dimension == other.partition_dimension &&
+    subpartition_dimension == other.subpartition_dimension &&
+    total_iterations_hint == other.total_iterations_hint &&
+    check_overlapped_walls == other.check_overlapped_walls &&
+    sort_molecules == other.sort_molecules;
 }
 
 std::string GenConfig::to_str(const std::string ind) const {
@@ -119,6 +119,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Config::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Config::__eq__, py::arg("other"))
       .def("dump", &Config::dump)
       .def_property("seed", &Config::get_seed, &Config::set_seed)
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step)

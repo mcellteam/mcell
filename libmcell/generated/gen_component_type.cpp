@@ -23,8 +23,8 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_component_type.h"
-#include "../api/component_type.h"
-#include "../api/component_instance.h"
+#include "api/component_type.h"
+#include "api/component_instance.h"
 
 namespace MCell {
 namespace API {
@@ -35,13 +35,6 @@ void GenComponentType::check_semantics() const {
   }
 }
 
-bool GenComponentType::__eq__(const GenComponentType& other) const {
-  return
-    name == other.name &&
-    name == other.name &&
-    states == other.states;
-}
-
 void GenComponentType::set_initialized() {
   initialized = true;
 }
@@ -50,6 +43,13 @@ void GenComponentType::set_all_attributes_as_default_or_unset() {
   class_name = "ComponentType";
   name = STR_UNSET;
   states = std::vector<std::string>();
+}
+
+bool GenComponentType::__eq__(const ComponentType& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    states == other.states;
 }
 
 std::string GenComponentType::to_str(const std::string ind) const {
@@ -73,6 +73,7 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
       .def("check_semantics", &ComponentType::check_semantics)
       .def("__str__", &ComponentType::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &ComponentType::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &ComponentType::__eq__, py::arg("other"))
       .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET", py::arg("bond") = BOND_UNBOUND)
       .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET_INT, py::arg("bond") = BOND_UNBOUND)
       .def("dump", &ComponentType::dump)

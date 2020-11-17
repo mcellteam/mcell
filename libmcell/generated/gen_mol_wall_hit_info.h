@@ -23,16 +23,19 @@
 #ifndef API_GEN_MOL_WALL_HIT_INFO_H
 #define API_GEN_MOL_WALL_HIT_INFO_H
 
-#include "../api/common.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
 
+class MolWallHitInfo;
 class GeometryObject;
 
 class GenMolWallHitInfo {
 public:
   virtual ~GenMolWallHitInfo() {}
+  virtual bool __eq__(const MolWallHitInfo& other) const;
+  bool operator == (const MolWallHitInfo& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---

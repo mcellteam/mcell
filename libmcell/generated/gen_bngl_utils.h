@@ -23,10 +23,11 @@
 #ifndef API_GEN_BNGL_UTILS_H
 #define API_GEN_BNGL_UTILS_H
 
-#include "../api/common.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
+
 
 namespace bngl_utils {
 

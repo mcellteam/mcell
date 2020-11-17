@@ -23,12 +23,13 @@
 #ifndef API_GEN_VIZ_OUTPUT_H
 #define API_GEN_VIZ_OUTPUT_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class VizOutput;
 class Species;
 
 #define VIZ_OUTPUT_CTOR() \
@@ -54,9 +55,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenVizOutput& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const VizOutput& other) const;
+  bool operator == (const VizOutput& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -66,9 +68,11 @@ public:
       throw RuntimeError("Value 'output_files_prefix' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     output_files_prefix = new_output_files_prefix_;
   }
   virtual const std::string& get_output_files_prefix() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return output_files_prefix;
   }
 
@@ -78,9 +82,11 @@ public:
       throw RuntimeError("Value 'species_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     species_list = new_species_list_;
   }
   virtual std::vector<std::shared_ptr<Species>> get_species_list() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return species_list;
   }
 
@@ -90,9 +96,11 @@ public:
       throw RuntimeError("Value 'all_species' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     all_species = new_all_species_;
   }
   virtual bool get_all_species() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return all_species;
   }
 
@@ -102,9 +110,11 @@ public:
       throw RuntimeError("Value 'mode' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     mode = new_mode_;
   }
   virtual VizMode get_mode() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return mode;
   }
 
@@ -114,9 +124,11 @@ public:
       throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     every_n_timesteps = new_every_n_timesteps_;
   }
   virtual float_t get_every_n_timesteps() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return every_n_timesteps;
   }
 

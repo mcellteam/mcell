@@ -23,11 +23,13 @@
 #ifndef API_GEN_WARNINGS_H
 #define API_GEN_WARNINGS_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
+
+class Warnings;
 
 #define WARNINGS_CTOR() \
     Warnings( \
@@ -42,9 +44,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenWarnings& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const Warnings& other) const;
+  bool operator == (const Warnings& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

@@ -23,12 +23,13 @@
 #ifndef API_GEN_REACTION_RULE_H
 #define API_GEN_REACTION_RULE_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class ReactionRule;
 class Complex;
 
 #define REACTION_RULE_CTOR() \
@@ -58,9 +59,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenReactionRule& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const ReactionRule& other) const;
+  bool operator == (const ReactionRule& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -70,9 +72,11 @@ public:
       throw RuntimeError("Value 'reactants' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     reactants = new_reactants_;
   }
   virtual std::vector<std::shared_ptr<Complex>> get_reactants() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return reactants;
   }
 
@@ -82,9 +86,11 @@ public:
       throw RuntimeError("Value 'products' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     products = new_products_;
   }
   virtual std::vector<std::shared_ptr<Complex>> get_products() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return products;
   }
 
@@ -94,9 +100,11 @@ public:
       throw RuntimeError("Value 'fwd_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     fwd_rate = new_fwd_rate_;
   }
   virtual float_t get_fwd_rate() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return fwd_rate;
   }
 
@@ -106,9 +114,11 @@ public:
       throw RuntimeError("Value 'rev_name' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     rev_name = new_rev_name_;
   }
   virtual const std::string& get_rev_name() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return rev_name;
   }
 
@@ -118,9 +128,11 @@ public:
       throw RuntimeError("Value 'rev_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     rev_rate = new_rev_rate_;
   }
   virtual float_t get_rev_rate() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return rev_rate;
   }
 
@@ -130,14 +142,16 @@ public:
       throw RuntimeError("Value 'variable_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     variable_rate = new_variable_rate_;
   }
   virtual std::vector<std::vector<float_t>> get_variable_rate() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return variable_rate;
   }
 
   // --- methods ---
-  virtual std::string to_bngl_str() = 0;
+  virtual std::string to_bngl_str() const = 0;
 }; // GenReactionRule
 
 class ReactionRule;

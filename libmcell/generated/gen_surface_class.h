@@ -23,13 +23,14 @@
 #ifndef API_GEN_SURFACE_CLASS_H
 #define API_GEN_SURFACE_CLASS_H
 
-#include "../api/common.h"
-#include "../api/surface_property.h"
+#include "api/common.h"
+#include "api/surface_property.h"
 
 
 namespace MCell {
 namespace API {
 
+class SurfaceClass;
 class Complex;
 class SurfaceProperty;
 
@@ -62,9 +63,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenSurfaceClass& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const SurfaceClass& other) const;
+  bool operator == (const SurfaceClass& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -74,9 +76,11 @@ public:
       throw RuntimeError("Value 'properties' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     properties = new_properties_;
   }
   virtual std::vector<std::shared_ptr<SurfaceProperty>> get_properties() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return properties;
   }
 

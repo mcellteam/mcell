@@ -23,29 +23,44 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_model.h"
-#include "../api/model.h"
-#include "../api/config.h"
-#include "../api/count.h"
-#include "../api/elementary_molecule_type.h"
-#include "../api/geometry_object.h"
-#include "../api/instantiation_data.h"
-#include "../api/mol_wall_hit_info.h"
-#include "../api/molecule.h"
-#include "../api/notifications.h"
-#include "../api/observables.h"
-#include "../api/reaction_rule.h"
-#include "../api/region.h"
-#include "../api/release_site.h"
-#include "../api/species.h"
-#include "../api/subsystem.h"
-#include "../api/surface_class.h"
-#include "../api/viz_output.h"
-#include "../api/wall.h"
-#include "../api/wall_wall_hit_info.h"
-#include "../api/warnings.h"
+#include "api/model.h"
+#include "api/config.h"
+#include "api/count.h"
+#include "api/elementary_molecule_type.h"
+#include "api/geometry_object.h"
+#include "api/instantiation_data.h"
+#include "api/mol_wall_hit_info.h"
+#include "api/molecule.h"
+#include "api/notifications.h"
+#include "api/observables.h"
+#include "api/reaction_rule.h"
+#include "api/region.h"
+#include "api/release_site.h"
+#include "api/species.h"
+#include "api/subsystem.h"
+#include "api/surface_class.h"
+#include "api/viz_output.h"
+#include "api/wall.h"
+#include "api/wall_wall_hit_info.h"
+#include "api/warnings.h"
 
 namespace MCell {
 namespace API {
+
+bool GenModel::__eq__(const Model& other) const {
+  return
+    config == other.config &&
+    warnings == other.warnings &&
+    notifications == other.notifications &&
+    vec_ptr_eq(species, other.species) &&
+    vec_ptr_eq(reaction_rules, other.reaction_rules) &&
+    vec_ptr_eq(surface_classes, other.surface_classes) &&
+    vec_ptr_eq(elementary_molecule_types, other.elementary_molecule_types) &&
+    vec_ptr_eq(release_sites, other.release_sites) &&
+    vec_ptr_eq(geometry_objects, other.geometry_objects) &&
+    vec_ptr_eq(viz_outputs, other.viz_outputs) &&
+    vec_ptr_eq(counts, other.counts);
+}
 
 std::string GenModel::to_str(const std::string ind) const {
   #if 0 // not generated correctly yet
@@ -76,6 +91,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       )
       .def("__str__", &Model::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Model::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Model::__eq__, py::arg("other"))
       .def("initialize", &Model::initialize)
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("end_simulation", &Model::end_simulation, py::arg("print_final_report") = true)

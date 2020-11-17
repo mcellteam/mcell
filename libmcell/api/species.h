@@ -141,6 +141,8 @@ public:
     }
   }
 
+  bool __eq__(const Species& other) const override;
+
   Complex inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = "") override {
     if (orientation != Orientation::DEFAULT && is_set(compartment_name)) {
       throw ValueError(S("Maximum one of ") + NAME_ORIENTATION + " or " + NAME_COMPARTMENT_NAME + " can be set not both.");

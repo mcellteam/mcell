@@ -74,7 +74,7 @@ COPYRIGHT = \
 
 TARGET_DIRECTORY = os.path.join('..', 'generated')
 DOC_DIRECTORY = os.path.join('..', 'documentation', 'generated')
-API_DIRECTORY = os.path.join('..', 'api')
+API_DIRECTORY = os.path.join('api')
 WORK_DIRECTORY = os.path.join('..', 'work')
 
 KEY_ITEMS = 'items'
@@ -95,6 +95,7 @@ KEY_ENUMS = 'enums'
 KEY_METHODS = 'methods'
 KEY_PARAMS = 'params'
 KEY_RETURN_TYPE = 'return_type'
+KEY_IS_CONST = 'is_const'
 
 KEY_INHERITED = 'inherited' # used only internally, not in input YAML
 KEY_NOT_AS_CTOR_ARG = 'not_as_ctor_arg'
@@ -181,6 +182,7 @@ DECL_TO_STR = 'to_str(const std::string ind) const'
 KEYWORD_OVERRIDE = 'override'
   
 CLASS_NAME_ATTR = 'class_name'
+CACHED_DATA_ARE_UPTODATE_ATTR = 'cached_data_are_uptodate'
 
 GEN_CONSTANTS_H = 'gen_constants.h'
 GEN_CONSTANTS_CPP = 'gen_constants.cpp'
@@ -195,10 +197,10 @@ ENUM_PREFIX = 'ENUM_'
 ENUM_VALUE_PREFIX = 'EV_'
 CONSTANT_VALUE_PREFIX = 'CV_'
 
-INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
-INCLUDE_API_COMMON_H = '#include "../api/common.h"'
-INCLUDE_API_BASE_DATA_CLASS_H = '#include "../api/base_data_class.h"'
-INCLUDE_API_BASE_INTROSPECTION_CLASS_H = '#include "../api/base_introspection_class.h"'
+INCLUDE_API_MCELL_H = '#include "api/mcell.h"'
+INCLUDE_API_COMMON_H = '#include "api/common.h"'
+INCLUDE_API_BASE_DATA_CLASS_H = '#include "api/base_data_class.h"'
+INCLUDE_API_BASE_INTROSPECTION_CLASS_H = '#include "api/base_introspection_class.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
 NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
@@ -602,7 +604,9 @@ def write_attr_with_get_set(f, class_def, attr):
         f.write('      throw RuntimeError("Value \'' + name + '\' of object with name " + name + " (class " + class_name + ") "\n')
         f.write('                         "cannot be set after model was initialized.");\n')
         f.write('    }\n')
-        
+    
+    if has_single_superclass(class_def):
+        f.write('    ' + CACHED_DATA_ARE_UPTODATE_ATTR + ' = false;\n');
     f.write('    ' + name + ' = new_' + name + '_;\n')
     f.write('  }\n') 
 
@@ -610,6 +614,8 @@ def write_attr_with_get_set(f, class_def, attr):
     ret_type_const = 'const ' if is_cpp_ref_type(cpp_type) else ''
     
     f.write('  virtual ' + ret_type_const + get_type_as_ref_param(attr) + ' get_' + name + '() const {\n')
+    if has_single_superclass(class_def):
+        f.write('    ' + CACHED_DATA_ARE_UPTODATE_ATTR + ' = false; // arrays and other data can be modified through getters\n');
     f.write('    return ' + name + ';\n')
     f.write('  }\n') 
     return True
@@ -642,6 +648,9 @@ def write_method_signature(f, method):
                 f.write(', ')
                 
     f.write(')')
+    
+    if KEY_IS_CONST in method and method[KEY_IS_CONST]:
+        f.write(' const')
     
         
 def write_method_declaration(f, method):
@@ -687,6 +696,15 @@ def write_gen_class(f, class_def, class_name):
     
     if has_single_superclass(class_def):
         f.write(': public ' + class_def[KEY_SUPERCLASS])
+    elif KEY_SUPERCLASSES in class_def:
+        scs = class_def[KEY_SUPERCLASSES]
+        assert scs
+        f.write(': ')
+        for i in range(len(scs)):
+            f.write('public ' + scs[i])
+            if i + 1 != len(scs):
+                f.write(', ')
+            
         
     f.write( ' {\n')
     f.write('public:\n')
@@ -702,9 +720,10 @@ def write_gen_class(f, class_def, class_name):
         f.write('  ' + RET_CTOR_POSTPROCESS + ' ' + CTOR_POSTPROCESS + '() ' + KEYWORD_OVERRIDE + ' {}\n')
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  void ' + DECL_SET_INITIALIZED + ' ' + KEYWORD_OVERRIDE + ';\n')
-        # not virtual because overrides need different parameter type
-        f.write('  bool __eq__(const ' + gen_class_name + '& other) const;\n')
         f.write('  ' +  RET_TYPE_SET_ALL_DEFAULT_OR_UNSET + ' ' + SET_ALL_DEFAULT_OR_UNSET_DECL + ' ' + KEYWORD_OVERRIDE + ';\n\n')
+
+    f.write('  virtual bool __eq__(const ' + class_name + '& other) const;\n')
+    f.write('  bool operator == (const ' + class_name + '& other) const { return __eq__(other);}\n')
 
     override = KEYWORD_OVERRIDE if has_single_superclass(class_def) else ''
     f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + override + ';\n\n')
@@ -793,16 +812,22 @@ def write_required_includes(f, class_def):
     for t in sorted_types_no_enums:
         f.write('#include "' + get_api_class_file_name_w_dir(t, EXT_H) + '"\n')
 
+    if KEY_SUPERCLASSES in class_def:
+        scs = class_def[KEY_SUPERCLASSES]
+        for sc in scs:
+            f.write('#include "' + get_api_class_file_name_w_dir(sc, EXT_H) + '"\n')
 
-def write_forward_decls(f, class_def):
+def write_forward_decls(f, class_def, class_name):
     # first we need to collect all types that we will need
     types = get_all_used_compound_types_no_decorations(class_def)
     
+    if class_name not in types and class_def[KEY_TYPE] != VALUE_SUBMODULE:
+        f.write('class ' + class_name + ';\n')
+        
     for t in types:
         f.write('class ' + t + ';\n')
         
-    if types:
-        f.write('\n')
+    f.write('\n')
 
     
 def generate_class_header(class_name, class_def):
@@ -831,7 +856,7 @@ def generate_class_header(class_name, class_def):
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
-        write_forward_decls(f, class_def)
+        write_forward_decls(f, class_def, class_name)
         
         if has_single_superclass(class_def): # not sure about this condition
             write_ctor_define(f, class_def, class_name)
@@ -958,19 +983,22 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write('}\n\n')                
 
 
-def write_operator_equal_implemetation(f, class_name, items):
+def write_operator_equal_implemetation(f, class_name, class_def):
     # originally was operator== used, but this causes too cryptic compilation errors, 
     # so it was better to use python-style naming,
     # also the __eq__ is aonly defined for the 'Gen' classes, so defining operator ==
     # might have been more confusing 
+    items = class_def[KEY_ITEMS]
+                
     gen_class_name = GEN_CLASS_PREFIX + class_name
-    f.write('bool ' + gen_class_name + '::__eq__(const ' + gen_class_name + '& other) const {\n')
+    f.write('bool ' + gen_class_name + '::__eq__(const ' + class_name + '& other) const {\n')
     f.write('  return\n') 
-    f.write('    name == other.name')
+    if has_single_superclass(class_def):
+        f.write('    name == other.name')
     
     if not items:
         f.write(';\n')
-    else:
+    elif has_single_superclass(class_def):
         f.write(' &&\n')
     
     num_attrs = len(items) 
@@ -1146,6 +1174,7 @@ def write_pybind11_bindings(f, class_name, class_def):
         
         f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         f.write('      .def("__repr__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
+        f.write('      .def("__eq__", &' + class_name + '::__eq__, py::arg("other"))\n')
     else:
         f.write('  m.def_submodule("' + class_name + '")\n')
         
@@ -1217,10 +1246,10 @@ def generate_class_implementation_and_bindings(class_name, class_def):
             items = class_def[KEY_ITEMS]
             if has_single_superclass(class_def):
                 write_check_semantics_implemetation(f, class_name, items)
-                write_operator_equal_implemetation(f, class_name, items)
                 write_set_initialized_implemetation(f, class_name, items)
                 write_set_all_default_or_unset(f, class_name, class_def)
     
+            write_operator_equal_implemetation(f, class_name, class_def)
             write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         
         write_pybind11_bindings(f, class_name, class_def)

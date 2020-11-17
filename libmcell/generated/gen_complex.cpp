@@ -23,23 +23,14 @@
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_complex.h"
-#include "../api/complex.h"
-#include "../api/elementary_molecule_instance.h"
-#include "../api/species.h"
+#include "api/complex.h"
+#include "api/elementary_molecule_instance.h"
+#include "api/species.h"
 
 namespace MCell {
 namespace API {
 
 void GenComplex::check_semantics() const {
-}
-
-bool GenComplex::__eq__(const GenComplex& other) const {
-  return
-    name == other.name &&
-    name == other.name &&
-    vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
-    orientation == other.orientation &&
-    compartment_name == other.compartment_name;
 }
 
 void GenComplex::set_initialized() {
@@ -53,6 +44,15 @@ void GenComplex::set_all_attributes_as_default_or_unset() {
   elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
   orientation = Orientation::DEFAULT;
   compartment_name = STR_UNSET;
+}
+
+bool GenComplex::__eq__(const Complex& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
+    orientation == other.orientation &&
+    compartment_name == other.compartment_name;
 }
 
 std::string GenComplex::to_str(const std::string ind) const {
@@ -82,6 +82,7 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       .def("check_semantics", &Complex::check_semantics)
       .def("__str__", &Complex::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Complex::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Complex::__eq__, py::arg("other"))
       .def("to_bngl_str", &Complex::to_bngl_str)
       .def("as_species", &Complex::as_species)
       .def("dump", &Complex::dump)

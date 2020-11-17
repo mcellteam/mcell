@@ -23,12 +23,13 @@
 #ifndef API_GEN_INITIAL_SURFACE_RELEASE_H
 #define API_GEN_INITIAL_SURFACE_RELEASE_H
 
-#include "../api/common.h"
-#include "../api/base_data_class.h"
+#include "api/common.h"
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
+class InitialSurfaceRelease;
 class Complex;
 
 #define INITIAL_SURFACE_RELEASE_CTOR() \
@@ -50,9 +51,10 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-  bool __eq__(const GenInitialSurfaceRelease& other) const;
   void set_all_attributes_as_default_or_unset() override;
 
+  virtual bool __eq__(const InitialSurfaceRelease& other) const;
+  bool operator == (const InitialSurfaceRelease& other) const { return __eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -62,9 +64,11 @@ public:
       throw RuntimeError("Value 'complex' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     complex = new_complex_;
   }
   virtual std::shared_ptr<Complex> get_complex() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return complex;
   }
 
@@ -74,9 +78,11 @@ public:
       throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     number_to_release = new_number_to_release_;
   }
   virtual int get_number_to_release() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return number_to_release;
   }
 
@@ -86,9 +92,11 @@ public:
       throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
+    cached_data_are_uptodate = false;
     density = new_density_;
   }
   virtual float_t get_density() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return density;
   }
 

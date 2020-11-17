@@ -75,7 +75,7 @@ public:
     }
   }
 
-  std::string to_bngl_str() override;
+  std::string to_bngl_str() const override;
 
   // simulation engine mapping
   BNG::rxn_rule_id_t fwd_rxn_rule_id;
