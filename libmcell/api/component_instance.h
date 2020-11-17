@@ -33,7 +33,7 @@ class ComponentInstance: public GenComponentInstance {
 public:
   COMPONENT_INSTANCE_CTOR()
 
-  std::string to_bngl_str() override;
+  std::string to_bngl_str() const override;
 };
 
 } // namespace API

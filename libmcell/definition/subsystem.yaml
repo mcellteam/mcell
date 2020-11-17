@@ -28,6 +28,11 @@ ComponentType:
     - name: bond
       type: int
       default: BOND_UNBOUND
+
+  - name: to_bngl_str
+    return_type: str
+    doc: Creates a string that corresponds to its BNGL representation.
+    is_const: true       
       
       
 ComponentInstance:
@@ -51,7 +56,9 @@ ComponentInstance:
   methods:    
   - name: to_bngl_str
     return_type: str
-    doc: Creates a string that corresponds to its BNGL representation     
+    doc: Creates a string that corresponds to its BNGL representation.
+    is_const: true 
+    
       
       
 ElementaryMoleculeType:
@@ -105,7 +112,12 @@ ElementaryMoleculeType:
     - name: components
       type: List[ComponentInstance*]
       default: empty
-      
+
+  - name: to_bngl_str
+    return_type: str
+    doc: Creates a string that corresponds to its BNGL representation.
+    is_const: true 
+          
       
 ElementaryMoleculeInstance:
   superclass: BaseDataClass

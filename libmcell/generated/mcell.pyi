@@ -199,6 +199,11 @@ class ComponentType():
         ) -> 'ComponentInstance':
         pass
 
+    def to_bngl_str(
+            self,
+        ) -> 'str':
+        pass
+
 class Config():
     def __init__(
             self,
@@ -340,6 +345,11 @@ class ElementaryMoleculeType():
             self,
             components : List[ComponentInstance] = None
         ) -> 'ElementaryMoleculeInstance':
+        pass
+
+    def to_bngl_str(
+            self,
+        ) -> 'str':
         pass
 
 class GeometryObject():

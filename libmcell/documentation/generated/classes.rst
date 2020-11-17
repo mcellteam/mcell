@@ -138,7 +138,9 @@ This class represents a complex molecule composed of molecule instances.
 It is either defined using a BNGL string or using a list of elementary molecule instances.
 On top of that, orientation may be defined.
 This class is used as argument in cases where either a fully qualified instance or a pattern 
-can be provided such as in observable Count.
+can be provided such as in observable Count.  
+Comparison operator __eq__ first converts complexes to their canonical representation and 
+then does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').
 
 Attributes:
 ***********
@@ -211,7 +213,7 @@ Methods:
    * | return type: str
 
 
-  | Creates a string that corresponds to its BNGL representation
+  | Creates a string that corresponds to its BNGL representation.
 
 
 
@@ -239,6 +241,14 @@ Methods:
    * | state: int = STATE_UNSET_INT
    * | bond: int = BOND_UNBOUND
    * | return type: ComponentInstance
+
+
+* | **to_bngl_str**
+
+   * | return type: str
+
+
+  | Creates a string that corresponds to its BNGL representation.
 
 
 
@@ -472,6 +482,14 @@ Methods:
 
    * | components: List[ComponentInstance] = None
    * | return type: ElementaryMoleculeInstance
+
+
+* | **to_bngl_str**
+
+   * | return type: str
+
+
+  | Creates a string that corresponds to its BNGL representation.
 
 
 

@@ -20,38 +20,23 @@
  *
 ******************************************************************************/
 
-#ifndef API_ELEMENTARY_MOLECULE_TYPE_H
-#define API_ELEMENTARY_MOLECULE_TYPE_H
+#include "api/component_type.h"
 
-#include "bng/bng_defines.h"
-
-#include "generated/gen_elementary_molecule_type.h"
-#include "api/common.h"
-#include "api/elementary_molecule_instance.h"
+using namespace std;
 
 namespace MCell {
 namespace API {
 
-class ElementaryMoleculeType:
-    public GenElementaryMoleculeType, public std::enable_shared_from_this<ElementaryMoleculeType> {
-public:
-  ELEMENTARY_MOLECULE_TYPE_CTOR()
+std::string ComponentType::to_bngl_str() const {
+  std::string res;
 
-  void postprocess_in_ctor() override {
-    mol_type_id = BNG::MOL_TYPE_ID_INVALID;
+  res = name;
+  for (const string& s: states) {
+    res += "~" + s;
   }
 
-  std::shared_ptr<ElementaryMoleculeInstance> inst(const std::vector<std::shared_ptr<ComponentInstance>> components) override {
-    return std::make_shared<ElementaryMoleculeInstance>( shared_from_this(), components);
-  }
-
-  virtual std::string to_bngl_str() const;
-
-  // mapping to MCell4
-  BNG::mol_type_id_t mol_type_id;
-};
+  return res;
+}
 
 } // namespace API
 } // namespace MCell
-
-#endif // API_ELEMENTARY_MOLECULE_TYPE_H

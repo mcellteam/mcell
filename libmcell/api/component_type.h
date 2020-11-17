@@ -23,9 +23,9 @@
 #ifndef API_COMPONENT_TYPE_H
 #define API_COMPONENT_TYPE_H
 
-#include "../generated/gen_component_type.h"
-#include "../api/common.h"
-#include "component_instance.h"
+#include "generated/gen_component_type.h"
+#include "api/common.h"
+#include "api/component_instance.h"
 
 namespace MCell {
 namespace API {
@@ -41,6 +41,8 @@ public:
   std::shared_ptr<ComponentInstance> inst(const int state, const int bond) override {
     return std::make_shared<ComponentInstance>(shared_from_this(), std::to_string(state), bond);
   }
+
+  std::string to_bngl_str() const override;
 };
 
 } // namespace API

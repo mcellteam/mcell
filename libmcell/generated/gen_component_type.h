@@ -73,6 +73,7 @@ public:
   // --- methods ---
   virtual std::shared_ptr<ComponentInstance> inst(const std::string& state = "STATE_UNSET", const int bond = BOND_UNBOUND) = 0;
   virtual std::shared_ptr<ComponentInstance> inst(const int state = STATE_UNSET_INT, const int bond = BOND_UNBOUND) = 0;
+  virtual std::string to_bngl_str() const = 0;
 }; // GenComponentType
 
 class ComponentType;

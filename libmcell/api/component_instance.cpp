@@ -29,7 +29,7 @@ using namespace std;
 namespace MCell {
 namespace API {
 
-std::string ComponentInstance::to_bngl_str() {
+std::string ComponentInstance::to_bngl_str() const {
   std::string res;
 
   res = component_type->name;
