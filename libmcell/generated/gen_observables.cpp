@@ -37,6 +37,12 @@ bool GenObservables::__eq__(const Observables& other) const {
     vec_ptr_eq(counts, other.counts);
 }
 
+bool GenObservables::eq_nonarray_attributes(const Observables& other) const {
+  return
+    true /*viz_outputs*/ &&
+    true /*counts*/;
+}
+
 std::string GenObservables::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "Observables" << ": " <<

@@ -73,14 +73,13 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
 bool GenReleaseSite::__eq__(const ReleaseSite& other) const {
   return
     name == other.name &&
-    name == other.name &&
     (
-      (complex != nullptr) ?
-        ( (other.complex != nullptr) ?
+      (is_set(complex)) ?
+        (is_set(other.complex) ?
           (complex->__eq__(*other.complex)) : 
           false
         ) :
-        ( (other.complex != nullptr) ?
+        (is_set(other.complex) ?
           false :
           true
         )
@@ -88,24 +87,72 @@ bool GenReleaseSite::__eq__(const ReleaseSite& other) const {
     vec_ptr_eq(molecule_list, other.molecule_list) &&
     release_time == other.release_time &&
     (
-      (release_pattern != nullptr) ?
-        ( (other.release_pattern != nullptr) ?
+      (is_set(release_pattern)) ?
+        (is_set(other.release_pattern) ?
           (release_pattern->__eq__(*other.release_pattern)) : 
           false
         ) :
-        ( (other.release_pattern != nullptr) ?
+        (is_set(other.release_pattern) ?
           false :
           true
         )
      )  &&
     shape == other.shape &&
     (
-      (region != nullptr) ?
-        ( (other.region != nullptr) ?
+      (is_set(region)) ?
+        (is_set(other.region) ?
           (region->__eq__(*other.region)) : 
           false
         ) :
-        ( (other.region != nullptr) ?
+        (is_set(other.region) ?
+          false :
+          true
+        )
+     )  &&
+    location == other.location &&
+    site_diameter == other.site_diameter &&
+    site_radius == other.site_radius &&
+    number_to_release == other.number_to_release &&
+    density == other.density &&
+    concentration == other.concentration &&
+    release_probability == other.release_probability;
+}
+
+bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other) const {
+  return
+    name == other.name &&
+    (
+      (is_set(complex)) ?
+        (is_set(other.complex) ?
+          (complex->__eq__(*other.complex)) : 
+          false
+        ) :
+        (is_set(other.complex) ?
+          false :
+          true
+        )
+     )  &&
+    true /*molecule_list*/ &&
+    release_time == other.release_time &&
+    (
+      (is_set(release_pattern)) ?
+        (is_set(other.release_pattern) ?
+          (release_pattern->__eq__(*other.release_pattern)) : 
+          false
+        ) :
+        (is_set(other.release_pattern) ?
+          false :
+          true
+        )
+     )  &&
+    shape == other.shape &&
+    (
+      (is_set(region)) ?
+        (is_set(other.region) ?
+          (region->__eq__(*other.region)) : 
+          false
+        ) :
+        (is_set(other.region) ?
           false :
           true
         )

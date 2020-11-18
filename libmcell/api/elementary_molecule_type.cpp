@@ -29,16 +29,8 @@ namespace MCell {
 namespace API {
 
 bool ElementaryMoleculeType::__eq__(const ElementaryMoleculeType& other) const {
-  bool attrs_eq =
-    name == other.name &&
-    name == other.name &&
-    diffusion_constant_2d == other.diffusion_constant_2d &&
-    diffusion_constant_3d == other.diffusion_constant_3d &&
-    custom_time_step == other.custom_time_step &&
-    custom_space_step == other.custom_space_step &&
-    target_only == other.target_only;
 
-  if (!attrs_eq) {
+  if (!eq_nonarray_attributes(other)) {
     return false;
   }
 

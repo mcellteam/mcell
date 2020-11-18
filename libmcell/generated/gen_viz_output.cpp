@@ -51,9 +51,17 @@ void GenVizOutput::set_all_attributes_as_default_or_unset() {
 
 bool GenVizOutput::__eq__(const VizOutput& other) const {
   return
-    name == other.name &&
     output_files_prefix == other.output_files_prefix &&
     vec_ptr_eq(species_list, other.species_list) &&
+    all_species == other.all_species &&
+    mode == other.mode &&
+    every_n_timesteps == other.every_n_timesteps;
+}
+
+bool GenVizOutput::eq_nonarray_attributes(const VizOutput& other) const {
+  return
+    output_files_prefix == other.output_files_prefix &&
+    true /*species_list*/ &&
     all_species == other.all_species &&
     mode == other.mode &&
     every_n_timesteps == other.every_n_timesteps;

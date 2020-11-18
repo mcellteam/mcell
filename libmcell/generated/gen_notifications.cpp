@@ -43,7 +43,12 @@ void GenNotifications::set_all_attributes_as_default_or_unset() {
 
 bool GenNotifications::__eq__(const Notifications& other) const {
   return
-    name == other.name &&
+    bng_verbosity_level == other.bng_verbosity_level &&
+    rxn_and_species_report == other.rxn_and_species_report;
+}
+
+bool GenNotifications::eq_nonarray_attributes(const Notifications& other) const {
+  return
     bng_verbosity_level == other.bng_verbosity_level &&
     rxn_and_species_report == other.rxn_and_species_report;
 }

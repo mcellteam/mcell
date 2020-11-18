@@ -64,6 +64,7 @@ void Complex::set_canonical_name_if_needed() const {
 
 bool Complex::__eq__(const Complex& other) const {
 
+  // cannot use eq_nonarray_attributes here because we don't care about name
   if (orientation != other.orientation ||
       compartment_name != other.compartment_name) {
     return false;

@@ -31,7 +31,7 @@ namespace API {
 
 bool ComponentType::__eq__(const ComponentType& other) const {
   return
-      name == other.name &&
+      eq_nonarray_attributes(other) &&
       std::set<string>(states.begin(), states.end()) ==
       std::set<string>(other.states.begin(), other.states.end());
 }

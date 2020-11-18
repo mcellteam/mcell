@@ -52,6 +52,7 @@ public:
   void set_all_attributes_as_default_or_unset() override;
 
   virtual bool __eq__(const ComponentType& other) const;
+  virtual bool eq_nonarray_attributes(const ComponentType& other) const;
   bool operator == (const ComponentType& other) const { return __eq__(other);}
   bool operator != (const ComponentType& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;

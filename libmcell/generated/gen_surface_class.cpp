@@ -56,16 +56,34 @@ void GenSurfaceClass::set_all_attributes_as_default_or_unset() {
 bool GenSurfaceClass::__eq__(const SurfaceClass& other) const {
   return
     name == other.name &&
-    name == other.name &&
     vec_ptr_eq(properties, other.properties) &&
     type == other.type &&
     (
-      (affected_complex_pattern != nullptr) ?
-        ( (other.affected_complex_pattern != nullptr) ?
+      (is_set(affected_complex_pattern)) ?
+        (is_set(other.affected_complex_pattern) ?
           (affected_complex_pattern->__eq__(*other.affected_complex_pattern)) : 
           false
         ) :
-        ( (other.affected_complex_pattern != nullptr) ?
+        (is_set(other.affected_complex_pattern) ?
+          false :
+          true
+        )
+     )  &&
+    concentration == other.concentration;
+}
+
+bool GenSurfaceClass::eq_nonarray_attributes(const SurfaceClass& other) const {
+  return
+    name == other.name &&
+    true /*properties*/ &&
+    type == other.type &&
+    (
+      (is_set(affected_complex_pattern)) ?
+        (is_set(other.affected_complex_pattern) ?
+          (affected_complex_pattern->__eq__(*other.affected_complex_pattern)) : 
+          false
+        ) :
+        (is_set(other.affected_complex_pattern) ?
           false :
           true
         )

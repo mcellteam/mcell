@@ -48,15 +48,31 @@ void GenSurfaceProperty::set_all_attributes_as_default_or_unset() {
 
 bool GenSurfaceProperty::__eq__(const SurfaceProperty& other) const {
   return
-    name == other.name &&
     type == other.type &&
     (
-      (affected_complex_pattern != nullptr) ?
-        ( (other.affected_complex_pattern != nullptr) ?
+      (is_set(affected_complex_pattern)) ?
+        (is_set(other.affected_complex_pattern) ?
           (affected_complex_pattern->__eq__(*other.affected_complex_pattern)) : 
           false
         ) :
-        ( (other.affected_complex_pattern != nullptr) ?
+        (is_set(other.affected_complex_pattern) ?
+          false :
+          true
+        )
+     )  &&
+    concentration == other.concentration;
+}
+
+bool GenSurfaceProperty::eq_nonarray_attributes(const SurfaceProperty& other) const {
+  return
+    type == other.type &&
+    (
+      (is_set(affected_complex_pattern)) ?
+        (is_set(other.affected_complex_pattern) ?
+          (affected_complex_pattern->__eq__(*other.affected_complex_pattern)) : 
+          false
+        ) :
+        (is_set(other.affected_complex_pattern) ?
           false :
           true
         )

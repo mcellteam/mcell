@@ -49,8 +49,15 @@ void GenComplex::set_all_attributes_as_default_or_unset() {
 bool GenComplex::__eq__(const Complex& other) const {
   return
     name == other.name &&
-    name == other.name &&
     vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
+    orientation == other.orientation &&
+    compartment_name == other.compartment_name;
+}
+
+bool GenComplex::eq_nonarray_attributes(const Complex& other) const {
+  return
+    name == other.name &&
+    true /*elementary_molecule_instances*/ &&
     orientation == other.orientation &&
     compartment_name == other.compartment_name;
 }

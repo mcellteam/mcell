@@ -68,15 +68,14 @@ void GenSurfaceRegion::set_all_attributes_as_default_or_unset() {
 bool GenSurfaceRegion::__eq__(const SurfaceRegion& other) const {
   return
     name == other.name &&
-    name == other.name &&
     wall_indices == other.wall_indices &&
     (
-      (surface_class != nullptr) ?
-        ( (other.surface_class != nullptr) ?
+      (is_set(surface_class)) ?
+        (is_set(other.surface_class) ?
           (surface_class->__eq__(*other.surface_class)) : 
           false
         ) :
-        ( (other.surface_class != nullptr) ?
+        (is_set(other.surface_class) ?
           false :
           true
         )
@@ -84,23 +83,64 @@ bool GenSurfaceRegion::__eq__(const SurfaceRegion& other) const {
     vec_ptr_eq(initial_surface_releases, other.initial_surface_releases) &&
     node_type == other.node_type &&
     (
-      (left_node != nullptr) ?
-        ( (other.left_node != nullptr) ?
+      (is_set(left_node)) ?
+        (is_set(other.left_node) ?
           (left_node->__eq__(*other.left_node)) : 
           false
         ) :
-        ( (other.left_node != nullptr) ?
+        (is_set(other.left_node) ?
           false :
           true
         )
      )  &&
     (
-      (right_node != nullptr) ?
-        ( (other.right_node != nullptr) ?
+      (is_set(right_node)) ?
+        (is_set(other.right_node) ?
           (right_node->__eq__(*other.right_node)) : 
           false
         ) :
-        ( (other.right_node != nullptr) ?
+        (is_set(other.right_node) ?
+          false :
+          true
+        )
+     ) ;
+}
+
+bool GenSurfaceRegion::eq_nonarray_attributes(const SurfaceRegion& other) const {
+  return
+    name == other.name &&
+    true /*wall_indices*/ &&
+    (
+      (is_set(surface_class)) ?
+        (is_set(other.surface_class) ?
+          (surface_class->__eq__(*other.surface_class)) : 
+          false
+        ) :
+        (is_set(other.surface_class) ?
+          false :
+          true
+        )
+     )  &&
+    true /*initial_surface_releases*/ &&
+    node_type == other.node_type &&
+    (
+      (is_set(left_node)) ?
+        (is_set(other.left_node) ?
+          (left_node->__eq__(*other.left_node)) : 
+          false
+        ) :
+        (is_set(other.left_node) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (is_set(right_node)) ?
+        (is_set(other.right_node) ?
+          (right_node->__eq__(*other.right_node)) : 
+          false
+        ) :
+        (is_set(other.right_node) ?
           false :
           true
         )

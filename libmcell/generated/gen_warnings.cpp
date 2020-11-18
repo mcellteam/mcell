@@ -41,7 +41,12 @@ void GenWarnings::set_all_attributes_as_default_or_unset() {
 
 bool GenWarnings::__eq__(const Warnings& other) const {
   return
-    name == other.name;
+true ;
+}
+
+bool GenWarnings::eq_nonarray_attributes(const Warnings& other) const {
+  return
+true ;
 }
 
 std::string GenWarnings::to_str(const std::string ind) const {

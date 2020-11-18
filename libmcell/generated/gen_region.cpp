@@ -51,26 +51,52 @@ void GenRegion::set_all_attributes_as_default_or_unset() {
 
 bool GenRegion::__eq__(const Region& other) const {
   return
-    name == other.name &&
     node_type == other.node_type &&
     (
-      (left_node != nullptr) ?
-        ( (other.left_node != nullptr) ?
+      (is_set(left_node)) ?
+        (is_set(other.left_node) ?
           (left_node->__eq__(*other.left_node)) : 
           false
         ) :
-        ( (other.left_node != nullptr) ?
+        (is_set(other.left_node) ?
           false :
           true
         )
      )  &&
     (
-      (right_node != nullptr) ?
-        ( (other.right_node != nullptr) ?
+      (is_set(right_node)) ?
+        (is_set(other.right_node) ?
           (right_node->__eq__(*other.right_node)) : 
           false
         ) :
-        ( (other.right_node != nullptr) ?
+        (is_set(other.right_node) ?
+          false :
+          true
+        )
+     ) ;
+}
+
+bool GenRegion::eq_nonarray_attributes(const Region& other) const {
+  return
+    node_type == other.node_type &&
+    (
+      (is_set(left_node)) ?
+        (is_set(other.left_node) ?
+          (left_node->__eq__(*other.left_node)) : 
+          false
+        ) :
+        (is_set(other.left_node) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (is_set(right_node)) ?
+        (is_set(other.right_node) ?
+          (right_node->__eq__(*other.right_node)) : 
+          false
+        ) :
+        (is_set(other.right_node) ?
           false :
           true
         )

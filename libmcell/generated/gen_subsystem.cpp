@@ -40,6 +40,14 @@ bool GenSubsystem::__eq__(const Subsystem& other) const {
     vec_ptr_eq(elementary_molecule_types, other.elementary_molecule_types);
 }
 
+bool GenSubsystem::eq_nonarray_attributes(const Subsystem& other) const {
+  return
+    true /*species*/ &&
+    true /*reaction_rules*/ &&
+    true /*surface_classes*/ &&
+    true /*elementary_molecule_types*/;
+}
+
 std::string GenSubsystem::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "Subsystem" << ": " <<

@@ -48,8 +48,13 @@ void GenComponentType::set_all_attributes_as_default_or_unset() {
 bool GenComponentType::__eq__(const ComponentType& other) const {
   return
     name == other.name &&
-    name == other.name &&
     states == other.states;
+}
+
+bool GenComponentType::eq_nonarray_attributes(const ComponentType& other) const {
+  return
+    name == other.name &&
+    true /*states*/;
 }
 
 std::string GenComponentType::to_str(const std::string ind) const {

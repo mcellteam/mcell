@@ -52,13 +52,23 @@ void GenReactionRule::set_all_attributes_as_default_or_unset() {
 bool GenReactionRule::__eq__(const ReactionRule& other) const {
   return
     name == other.name &&
-    name == other.name &&
     vec_ptr_eq(reactants, other.reactants) &&
     vec_ptr_eq(products, other.products) &&
     fwd_rate == other.fwd_rate &&
     rev_name == other.rev_name &&
     rev_rate == other.rev_rate &&
     variable_rate == other.variable_rate;
+}
+
+bool GenReactionRule::eq_nonarray_attributes(const ReactionRule& other) const {
+  return
+    name == other.name &&
+    true /*reactants*/ &&
+    true /*products*/ &&
+    fwd_rate == other.fwd_rate &&
+    rev_name == other.rev_name &&
+    rev_rate == other.rev_rate &&
+    true /*variable_rate*/;
 }
 
 std::string GenReactionRule::to_str(const std::string ind) const {

@@ -80,15 +80,14 @@ void GenCount::set_all_attributes_as_default_or_unset() {
 
 bool GenCount::__eq__(const Count& other) const {
   return
-    name == other.name &&
     file_name == other.file_name &&
     (
-      (count_expression != nullptr) ?
-        ( (other.count_expression != nullptr) ?
+      (is_set(count_expression)) ?
+        (is_set(other.count_expression) ?
           (count_expression->__eq__(*other.count_expression)) : 
           false
         ) :
-        ( (other.count_expression != nullptr) ?
+        (is_set(other.count_expression) ?
           false :
           true
         )
@@ -96,68 +95,153 @@ bool GenCount::__eq__(const Count& other) const {
     multiplier == other.multiplier &&
     every_n_timesteps == other.every_n_timesteps &&
     (
-      (species_pattern != nullptr) ?
-        ( (other.species_pattern != nullptr) ?
+      (is_set(species_pattern)) ?
+        (is_set(other.species_pattern) ?
           (species_pattern->__eq__(*other.species_pattern)) : 
           false
         ) :
-        ( (other.species_pattern != nullptr) ?
+        (is_set(other.species_pattern) ?
           false :
           true
         )
      )  &&
     (
-      (molecules_pattern != nullptr) ?
-        ( (other.molecules_pattern != nullptr) ?
+      (is_set(molecules_pattern)) ?
+        (is_set(other.molecules_pattern) ?
           (molecules_pattern->__eq__(*other.molecules_pattern)) : 
           false
         ) :
-        ( (other.molecules_pattern != nullptr) ?
+        (is_set(other.molecules_pattern) ?
           false :
           true
         )
      )  &&
     (
-      (reaction_rule != nullptr) ?
-        ( (other.reaction_rule != nullptr) ?
+      (is_set(reaction_rule)) ?
+        (is_set(other.reaction_rule) ?
           (reaction_rule->__eq__(*other.reaction_rule)) : 
           false
         ) :
-        ( (other.reaction_rule != nullptr) ?
+        (is_set(other.reaction_rule) ?
           false :
           true
         )
      )  &&
     (
-      (region != nullptr) ?
-        ( (other.region != nullptr) ?
+      (is_set(region)) ?
+        (is_set(other.region) ?
           (region->__eq__(*other.region)) : 
           false
         ) :
-        ( (other.region != nullptr) ?
+        (is_set(other.region) ?
           false :
           true
         )
      )  &&
     node_type == other.node_type &&
     (
-      (left_node != nullptr) ?
-        ( (other.left_node != nullptr) ?
+      (is_set(left_node)) ?
+        (is_set(other.left_node) ?
           (left_node->__eq__(*other.left_node)) : 
           false
         ) :
-        ( (other.left_node != nullptr) ?
+        (is_set(other.left_node) ?
           false :
           true
         )
      )  &&
     (
-      (right_node != nullptr) ?
-        ( (other.right_node != nullptr) ?
+      (is_set(right_node)) ?
+        (is_set(other.right_node) ?
           (right_node->__eq__(*other.right_node)) : 
           false
         ) :
-        ( (other.right_node != nullptr) ?
+        (is_set(other.right_node) ?
+          false :
+          true
+        )
+     ) ;
+}
+
+bool GenCount::eq_nonarray_attributes(const Count& other) const {
+  return
+    file_name == other.file_name &&
+    (
+      (is_set(count_expression)) ?
+        (is_set(other.count_expression) ?
+          (count_expression->__eq__(*other.count_expression)) : 
+          false
+        ) :
+        (is_set(other.count_expression) ?
+          false :
+          true
+        )
+     )  &&
+    multiplier == other.multiplier &&
+    every_n_timesteps == other.every_n_timesteps &&
+    (
+      (is_set(species_pattern)) ?
+        (is_set(other.species_pattern) ?
+          (species_pattern->__eq__(*other.species_pattern)) : 
+          false
+        ) :
+        (is_set(other.species_pattern) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (is_set(molecules_pattern)) ?
+        (is_set(other.molecules_pattern) ?
+          (molecules_pattern->__eq__(*other.molecules_pattern)) : 
+          false
+        ) :
+        (is_set(other.molecules_pattern) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (is_set(reaction_rule)) ?
+        (is_set(other.reaction_rule) ?
+          (reaction_rule->__eq__(*other.reaction_rule)) : 
+          false
+        ) :
+        (is_set(other.reaction_rule) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (is_set(region)) ?
+        (is_set(other.region) ?
+          (region->__eq__(*other.region)) : 
+          false
+        ) :
+        (is_set(other.region) ?
+          false :
+          true
+        )
+     )  &&
+    node_type == other.node_type &&
+    (
+      (is_set(left_node)) ?
+        (is_set(other.left_node) ?
+          (left_node->__eq__(*other.left_node)) : 
+          false
+        ) :
+        (is_set(other.left_node) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (is_set(right_node)) ?
+        (is_set(other.right_node) ?
+          (right_node->__eq__(*other.right_node)) : 
+          false
+        ) :
+        (is_set(other.right_node) ?
           false :
           true
         )

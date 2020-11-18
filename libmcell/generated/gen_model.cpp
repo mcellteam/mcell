@@ -62,6 +62,21 @@ bool GenModel::__eq__(const Model& other) const {
     vec_ptr_eq(counts, other.counts);
 }
 
+bool GenModel::eq_nonarray_attributes(const Model& other) const {
+  return
+    config == other.config &&
+    warnings == other.warnings &&
+    notifications == other.notifications &&
+    true /*species*/ &&
+    true /*reaction_rules*/ &&
+    true /*surface_classes*/ &&
+    true /*elementary_molecule_types*/ &&
+    true /*release_sites*/ &&
+    true /*geometry_objects*/ &&
+    true /*viz_outputs*/ &&
+    true /*counts*/;
+}
+
 std::string GenModel::to_str(const std::string ind) const {
   #if 0 // not generated correctly yet
   std::stringstream ss;

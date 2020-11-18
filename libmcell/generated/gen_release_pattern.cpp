@@ -47,6 +47,14 @@ void GenReleasePattern::set_all_attributes_as_default_or_unset() {
 bool GenReleasePattern::__eq__(const ReleasePattern& other) const {
   return
     name == other.name &&
+    release_interval == other.release_interval &&
+    train_duration == other.train_duration &&
+    train_interval == other.train_interval &&
+    number_of_trains == other.number_of_trains;
+}
+
+bool GenReleasePattern::eq_nonarray_attributes(const ReleasePattern& other) const {
+  return
     name == other.name &&
     release_interval == other.release_interval &&
     train_duration == other.train_duration &&

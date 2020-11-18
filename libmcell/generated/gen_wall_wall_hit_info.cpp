@@ -56,25 +56,50 @@ void GenWallWallHitInfo::set_all_attributes_as_default_or_unset() {
 
 bool GenWallWallHitInfo::__eq__(const WallWallHitInfo& other) const {
   return
-    name == other.name &&
     (
-      (wall1 != nullptr) ?
-        ( (other.wall1 != nullptr) ?
+      (is_set(wall1)) ?
+        (is_set(other.wall1) ?
           (wall1->__eq__(*other.wall1)) : 
           false
         ) :
-        ( (other.wall1 != nullptr) ?
+        (is_set(other.wall1) ?
           false :
           true
         )
      )  &&
     (
-      (wall2 != nullptr) ?
-        ( (other.wall2 != nullptr) ?
+      (is_set(wall2)) ?
+        (is_set(other.wall2) ?
           (wall2->__eq__(*other.wall2)) : 
           false
         ) :
-        ( (other.wall2 != nullptr) ?
+        (is_set(other.wall2) ?
+          false :
+          true
+        )
+     ) ;
+}
+
+bool GenWallWallHitInfo::eq_nonarray_attributes(const WallWallHitInfo& other) const {
+  return
+    (
+      (is_set(wall1)) ?
+        (is_set(other.wall1) ?
+          (wall1->__eq__(*other.wall1)) : 
+          false
+        ) :
+        (is_set(other.wall1) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (is_set(wall2)) ?
+        (is_set(other.wall2) ?
+          (wall2->__eq__(*other.wall2)) : 
+          false
+        ) :
+        (is_set(other.wall2) ?
           false :
           true
         )

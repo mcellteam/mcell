@@ -53,6 +53,7 @@ public:
   void set_all_attributes_as_default_or_unset() override;
 
   virtual bool __eq__(const Region& other) const;
+  virtual bool eq_nonarray_attributes(const Region& other) const;
   bool operator == (const Region& other) const { return __eq__(other);}
   bool operator != (const Region& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;

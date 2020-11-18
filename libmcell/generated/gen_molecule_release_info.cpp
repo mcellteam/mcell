@@ -53,19 +53,34 @@ void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
 
 bool GenMoleculeReleaseInfo::__eq__(const MoleculeReleaseInfo& other) const {
   return
-    name == other.name &&
     (
-      (complex != nullptr) ?
-        ( (other.complex != nullptr) ?
+      (is_set(complex)) ?
+        (is_set(other.complex) ?
           (complex->__eq__(*other.complex)) : 
           false
         ) :
-        ( (other.complex != nullptr) ?
+        (is_set(other.complex) ?
           false :
           true
         )
      )  &&
     location == other.location;
+}
+
+bool GenMoleculeReleaseInfo::eq_nonarray_attributes(const MoleculeReleaseInfo& other) const {
+  return
+    (
+      (is_set(complex)) ?
+        (is_set(other.complex) ?
+          (complex->__eq__(*other.complex)) : 
+          false
+        ) :
+        (is_set(other.complex) ?
+          false :
+          true
+        )
+     )  &&
+    true /*location*/;
 }
 
 std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {

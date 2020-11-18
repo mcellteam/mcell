@@ -33,12 +33,33 @@ bool GenMolWallHitInfo::__eq__(const MolWallHitInfo& other) const {
   return
     molecule_id == other.molecule_id &&
     (
-      (geometry_object != nullptr) ?
-        ( (other.geometry_object != nullptr) ?
+      (is_set(geometry_object)) ?
+        (is_set(other.geometry_object) ?
           (geometry_object->__eq__(*other.geometry_object)) : 
           false
         ) :
-        ( (other.geometry_object != nullptr) ?
+        (is_set(other.geometry_object) ?
+          false :
+          true
+        )
+     )  &&
+    wall_index == other.wall_index &&
+    time == other.time &&
+    pos == other.pos &&
+    time_before_hit == other.time_before_hit &&
+    pos_before_hit == other.pos_before_hit;
+}
+
+bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other) const {
+  return
+    molecule_id == other.molecule_id &&
+    (
+      (is_set(geometry_object)) ?
+        (is_set(other.geometry_object) ?
+          (geometry_object->__eq__(*other.geometry_object)) : 
+          false
+        ) :
+        (is_set(other.geometry_object) ?
           false :
           true
         )

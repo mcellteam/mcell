@@ -52,19 +52,34 @@ void GenElementaryMoleculeInstance::set_all_attributes_as_default_or_unset() {
 
 bool GenElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& other) const {
   return
-    name == other.name &&
     (
-      (elementary_molecule_type != nullptr) ?
-        ( (other.elementary_molecule_type != nullptr) ?
+      (is_set(elementary_molecule_type)) ?
+        (is_set(other.elementary_molecule_type) ?
           (elementary_molecule_type->__eq__(*other.elementary_molecule_type)) : 
           false
         ) :
-        ( (other.elementary_molecule_type != nullptr) ?
+        (is_set(other.elementary_molecule_type) ?
           false :
           true
         )
      )  &&
     vec_ptr_eq(components, other.components);
+}
+
+bool GenElementaryMoleculeInstance::eq_nonarray_attributes(const ElementaryMoleculeInstance& other) const {
+  return
+    (
+      (is_set(elementary_molecule_type)) ?
+        (is_set(other.elementary_molecule_type) ?
+          (elementary_molecule_type->__eq__(*other.elementary_molecule_type)) : 
+          false
+        ) :
+        (is_set(other.elementary_molecule_type) ?
+          false :
+          true
+        )
+     )  &&
+    true /*components*/;
 }
 
 std::string GenElementaryMoleculeInstance::to_str(const std::string ind) const {

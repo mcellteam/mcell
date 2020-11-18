@@ -60,6 +60,7 @@ class GenModel: public Subsystem, public InstantiationData, public Observables {
 public:
   virtual ~GenModel() {}
   virtual bool __eq__(const Model& other) const;
+  virtual bool eq_nonarray_attributes(const Model& other) const;
   bool operator == (const Model& other) const { return __eq__(other);}
   bool operator != (const Model& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;

@@ -51,14 +51,30 @@ void GenComponentInstance::set_all_attributes_as_default_or_unset() {
 
 bool GenComponentInstance::__eq__(const ComponentInstance& other) const {
   return
-    name == other.name &&
     (
-      (component_type != nullptr) ?
-        ( (other.component_type != nullptr) ?
+      (is_set(component_type)) ?
+        (is_set(other.component_type) ?
           (component_type->__eq__(*other.component_type)) : 
           false
         ) :
-        ( (other.component_type != nullptr) ?
+        (is_set(other.component_type) ?
+          false :
+          true
+        )
+     )  &&
+    state == other.state &&
+    bond == other.bond;
+}
+
+bool GenComponentInstance::eq_nonarray_attributes(const ComponentInstance& other) const {
+  return
+    (
+      (is_set(component_type)) ?
+        (is_set(other.component_type) ?
+          (component_type->__eq__(*other.component_type)) : 
+          false
+        ) :
+        (is_set(other.component_type) ?
           false :
           true
         )

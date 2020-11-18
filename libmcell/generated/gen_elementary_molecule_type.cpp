@@ -56,8 +56,18 @@ void GenElementaryMoleculeType::set_all_attributes_as_default_or_unset() {
 bool GenElementaryMoleculeType::__eq__(const ElementaryMoleculeType& other) const {
   return
     name == other.name &&
-    name == other.name &&
     vec_ptr_eq(components, other.components) &&
+    diffusion_constant_2d == other.diffusion_constant_2d &&
+    diffusion_constant_3d == other.diffusion_constant_3d &&
+    custom_time_step == other.custom_time_step &&
+    custom_space_step == other.custom_space_step &&
+    target_only == other.target_only;
+}
+
+bool GenElementaryMoleculeType::eq_nonarray_attributes(const ElementaryMoleculeType& other) const {
+  return
+    name == other.name &&
+    true /*components*/ &&
     diffusion_constant_2d == other.diffusion_constant_2d &&
     diffusion_constant_3d == other.diffusion_constant_3d &&
     custom_time_step == other.custom_time_step &&

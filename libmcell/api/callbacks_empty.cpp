@@ -45,5 +45,10 @@ bool GenMolWallHitInfo::__eq__(const MolWallHitInfo& other) const {
   return false;
 }
 
+bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other) const {
+  release_assert("must not be called");
+  return false;
+}
+
 } /* namespace API */
 } /* namespace MCell */

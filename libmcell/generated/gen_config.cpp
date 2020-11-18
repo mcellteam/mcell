@@ -53,7 +53,6 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
 
 bool GenConfig::__eq__(const Config& other) const {
   return
-    name == other.name &&
     seed == other.seed &&
     time_step == other.time_step &&
     surface_grid_density == other.surface_grid_density &&
@@ -61,6 +60,22 @@ bool GenConfig::__eq__(const Config& other) const {
     vacancy_search_distance == other.vacancy_search_distance &&
     center_molecules_on_grid == other.center_molecules_on_grid &&
     initial_partition_origin == other.initial_partition_origin &&
+    partition_dimension == other.partition_dimension &&
+    subpartition_dimension == other.subpartition_dimension &&
+    total_iterations_hint == other.total_iterations_hint &&
+    check_overlapped_walls == other.check_overlapped_walls &&
+    sort_molecules == other.sort_molecules;
+}
+
+bool GenConfig::eq_nonarray_attributes(const Config& other) const {
+  return
+    seed == other.seed &&
+    time_step == other.time_step &&
+    surface_grid_density == other.surface_grid_density &&
+    interaction_radius == other.interaction_radius &&
+    vacancy_search_distance == other.vacancy_search_distance &&
+    center_molecules_on_grid == other.center_molecules_on_grid &&
+    true /*initial_partition_origin*/ &&
     partition_dimension == other.partition_dimension &&
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations_hint == other.total_iterations_hint &&

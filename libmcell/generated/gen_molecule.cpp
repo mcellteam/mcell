@@ -49,15 +49,32 @@ void GenMolecule::set_all_attributes_as_default_or_unset() {
 
 bool GenMolecule::__eq__(const Molecule& other) const {
   return
-    name == other.name &&
     id == other.id &&
     (
-      (species != nullptr) ?
-        ( (other.species != nullptr) ?
+      (is_set(species)) ?
+        (is_set(other.species) ?
           (species->__eq__(*other.species)) : 
           false
         ) :
-        ( (other.species != nullptr) ?
+        (is_set(other.species) ?
+          false :
+          true
+        )
+     )  &&
+    pos3d == other.pos3d &&
+    orientation == other.orientation;
+}
+
+bool GenMolecule::eq_nonarray_attributes(const Molecule& other) const {
+  return
+    id == other.id &&
+    (
+      (is_set(species)) ?
+        (is_set(other.species) ?
+          (species->__eq__(*other.species)) : 
+          false
+        ) :
+        (is_set(other.species) ?
           false :
           true
         )

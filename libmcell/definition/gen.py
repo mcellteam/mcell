@@ -723,6 +723,7 @@ def write_gen_class(f, class_def, class_name):
         f.write('  ' +  RET_TYPE_SET_ALL_DEFAULT_OR_UNSET + ' ' + SET_ALL_DEFAULT_OR_UNSET_DECL + ' ' + KEYWORD_OVERRIDE + ';\n\n')
 
     f.write('  virtual bool __eq__(const ' + class_name + '& other) const;\n')
+    f.write('  virtual bool eq_nonarray_attributes(const ' + class_name + '& other) const;\n')
     f.write('  bool operator == (const ' + class_name + '& other) const { return __eq__(other);}\n')
     f.write('  bool operator != (const ' + class_name + '& other) const { return !__eq__(other);}\n')
 
@@ -984,23 +985,17 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write('}\n\n')                
 
 
-def write_operator_equal_implemetation(f, class_name, class_def):
-    # originally was operator== used, but this causes too cryptic compilation errors, 
-    # so it was better to use python-style naming,
-    # also the __eq__ is aonly defined for the 'Gen' classes, so defining operator ==
-    # might have been more confusing 
+def write_operator_equal_body(f, class_name, class_def, array_attributes=True):
     items = class_def[KEY_ITEMS]
-                
-    gen_class_name = GEN_CLASS_PREFIX + class_name
-    f.write('bool ' + gen_class_name + '::__eq__(const ' + class_name + '& other) const {\n')
+
     f.write('  return\n') 
-    if has_single_superclass(class_def):
-        f.write('    name == other.name')
+    #if has_single_superclass(class_def):
+    #    f.write('    name == other.name')
     
     if not items:
-        f.write(';\n')
-    elif has_single_superclass(class_def):
-        f.write(' &&\n')
+        f.write('true ;\n')
+    #elif has_single_superclass(class_def):
+    #    f.write(' &&\n')
     
     num_attrs = len(items) 
     for i in range(num_attrs):
@@ -1010,28 +1005,49 @@ def write_operator_equal_implemetation(f, class_name, class_def):
             
             f.write(
                 '    (\n' 
-                '      (' + name + ' != nullptr) ?\n'  
-                '        ( (other.' + name + ' != nullptr) ?\n'
+                '      (is_set(' + name + ')) ?\n'  
+                '        (is_set(other.' + name + ') ?\n'
                 '          (' + name + '->__eq__(*other.' + name + ')) : \n'
                 '          false\n' 
                 '        ) :\n'
-                '        ( (other.' + name + ' != nullptr) ?\n'
+                '        (is_set(other.' + name + ') ?\n'
                 '          false :\n'
                 '          true\n'
                 '        )\n'
                 '     ) '
             )
             
-        elif is_yaml_list_type(t) and is_yaml_ptr_type(get_inner_list_type(t)):
-            f.write('    vec_ptr_eq(' + name + ', other.' + name + ')')
+        elif is_yaml_list_type(t):
+            if array_attributes:
+                if is_yaml_ptr_type(get_inner_list_type(t)):
+                    f.write('    vec_ptr_eq(' + name + ', other.' + name + ')')
+                else:
+                    f.write('    ' + name + ' == other.' + name)
+            else:
+                f.write('    true /*' + name + '*/')
         else:
             f.write('    ' + name + ' == other.' + name)
+            
         if i != num_attrs - 1:
             f.write(' &&')
         else: 
             f.write(';')
         f.write('\n')
         
+        
+def write_operator_equal_implementation(f, class_name, class_def):
+    # originally was operator== used, but this causes too cryptic compilation errors, 
+    # so it was better to use python-style naming,
+    # also the __eq__ is only defined for the 'Gen' classes, so defining operator ==
+    # might have been more confusing 
+                
+    gen_class_name = GEN_CLASS_PREFIX + class_name
+    f.write('bool ' + gen_class_name + '::__eq__(const ' + class_name + '& other) const {\n')
+    write_operator_equal_body(f, class_name, class_def)
+    f.write('}\n\n')    
+    
+    f.write('bool ' + gen_class_name + '::eq_nonarray_attributes(const ' + class_name + '& other) const {\n')
+    write_operator_equal_body(f, class_name, class_def, array_attributes=False)
     f.write('}\n\n')    
 
 
@@ -1250,7 +1266,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
                 write_set_initialized_implemetation(f, class_name, items)
                 write_set_all_default_or_unset(f, class_name, class_def)
     
-            write_operator_equal_implemetation(f, class_name, class_def)
+            write_operator_equal_implementation(f, class_name, class_def)
             write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         
         write_pybind11_bindings(f, class_name, class_def)

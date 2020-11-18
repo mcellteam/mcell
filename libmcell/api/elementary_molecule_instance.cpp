@@ -35,7 +35,7 @@ namespace API {
 bool ElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& other) const {
 
   // do we have the same mol type?
-  if (*elementary_molecule_type != *other.elementary_molecule_type) {
+  if (!eq_nonarray_attributes(other)) {
     return false;
   }
 

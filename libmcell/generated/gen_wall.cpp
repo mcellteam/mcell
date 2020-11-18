@@ -66,20 +66,39 @@ void GenWall::set_all_attributes_as_default_or_unset() {
 
 bool GenWall::__eq__(const Wall& other) const {
   return
-    name == other.name &&
     (
-      (geometry_object != nullptr) ?
-        ( (other.geometry_object != nullptr) ?
+      (is_set(geometry_object)) ?
+        (is_set(other.geometry_object) ?
           (geometry_object->__eq__(*other.geometry_object)) : 
           false
         ) :
-        ( (other.geometry_object != nullptr) ?
+        (is_set(other.geometry_object) ?
           false :
           true
         )
      )  &&
     wall_index == other.wall_index &&
     vertices == other.vertices &&
+    area == other.area &&
+    normal == other.normal &&
+    is_movable == other.is_movable;
+}
+
+bool GenWall::eq_nonarray_attributes(const Wall& other) const {
+  return
+    (
+      (is_set(geometry_object)) ?
+        (is_set(other.geometry_object) ?
+          (geometry_object->__eq__(*other.geometry_object)) : 
+          false
+        ) :
+        (is_set(other.geometry_object) ?
+          false :
+          true
+        )
+     )  &&
+    wall_index == other.wall_index &&
+    true /*vertices*/ &&
     area == other.area &&
     normal == other.normal &&
     is_movable == other.is_movable;

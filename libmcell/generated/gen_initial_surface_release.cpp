@@ -51,14 +51,30 @@ void GenInitialSurfaceRelease::set_all_attributes_as_default_or_unset() {
 
 bool GenInitialSurfaceRelease::__eq__(const InitialSurfaceRelease& other) const {
   return
-    name == other.name &&
     (
-      (complex != nullptr) ?
-        ( (other.complex != nullptr) ?
+      (is_set(complex)) ?
+        (is_set(other.complex) ?
           (complex->__eq__(*other.complex)) : 
           false
         ) :
-        ( (other.complex != nullptr) ?
+        (is_set(other.complex) ?
+          false :
+          true
+        )
+     )  &&
+    number_to_release == other.number_to_release &&
+    density == other.density;
+}
+
+bool GenInitialSurfaceRelease::eq_nonarray_attributes(const InitialSurfaceRelease& other) const {
+  return
+    (
+      (is_set(complex)) ?
+        (is_set(other.complex) ?
+          (complex->__eq__(*other.complex)) : 
+          false
+        ) :
+        (is_set(other.complex) ?
           false :
           true
         )
