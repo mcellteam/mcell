@@ -61,8 +61,8 @@ public:
 
   void generate_single_count(
       std::ostream& out,
-      const std::string& name,
-      const std::string& mdl_file_prefix_orig,
+      const std::string& count_name,
+      const std::string& observable_name,
       const std::string& what_to_count,
       const std::string& compartment,
       const std::string& where_to_count, // empty for WORLD

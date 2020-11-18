@@ -78,7 +78,7 @@ private:
 
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
-  void generate_counts(std::ostream& out, std::vector<std::string>& counts);
+  void generate_counts(std::ostream& out, std::vector<std::string>& python_counts, bool& has_bng_observables);
   void generate_observables(const bool cellblender_viz);
 
   void generate_config(std::ostream& out);

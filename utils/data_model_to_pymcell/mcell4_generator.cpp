@@ -545,7 +545,8 @@ static string get_count_multiplier(const string& mdl_string) {
 }
 
 
-void MCell4Generator::generate_counts(std::ostream& out, std::vector<std::string>& counts) {
+void MCell4Generator::generate_counts(
+    std::ostream& out, std::vector<std::string>& python_counts, bool& has_bng_observables) {
 
   if (!data.mcell.isMember(KEY_REACTION_DATA_OUTPUT)) {
     return;
@@ -555,6 +556,8 @@ void MCell4Generator::generate_counts(std::ostream& out, std::vector<std::string
     python_gen->generate_all_bngl_reaction_rules_used_in_observables(out);
   }
 
+  has_bng_observables = false;
+
   Value& reaction_data_output = get_node(data.mcell, KEY_REACTION_DATA_OUTPUT);
   check_version(KEY_DEFINE_MOLECULES, reaction_data_output, VER_DM_2016_03_15_1800);
   string rxn_step = reaction_data_output[KEY_RXN_STEP].asString();
@@ -563,7 +566,7 @@ void MCell4Generator::generate_counts(std::ostream& out, std::vector<std::string
   for (Value::ArrayIndex i = 0; i < reaction_output_list.size(); i++) {
     Value& reaction_output_item = reaction_output_list[i];
 
-    string mdl_file_prefix = reaction_output_item[KEY_MDL_FILE_PREFIX].asString();
+    string observable_name = reaction_output_item[KEY_MDL_FILE_PREFIX].asString();
 
     bool must_be_in_python = false;
 
@@ -584,7 +587,7 @@ void MCell4Generator::generate_counts(std::ostream& out, std::vector<std::string
       string mdl_string = reaction_output_item[KEY_MDL_STRING].asString();
       uint num_counts = get_num_counts_in_mdl_string(mdl_string);
       if (num_counts == 0) {
-        ERROR("There is no 'COUNT' in mdl_string for output with filename " +  mdl_file_prefix + ".");
+        ERROR("There is no 'COUNT' in mdl_string for output with filename " +  observable_name + ".");
       }
       else if (num_counts == 1) {
         single_term = true;
@@ -633,20 +636,43 @@ void MCell4Generator::generate_counts(std::ostream& out, std::vector<std::string
     }
     else {
       ERROR("Invalid rxn_or_mol '" + rxn_or_mol + "' in reaction_output_list for output with filename " +
-          mdl_file_prefix + ".");
+          observable_name + ".");
     }
 
-    string name = create_count_name(what_to_count, compartment, where_to_count, molecules_not_species);
-    counts.push_back(name);
+    if (observable_name == "") {
+      string where = where_to_count;
+      if (where == "") {
+        where = WORLD_FIRST_UPPER;
+      }
+      // using underscore instead of '.' that was used in MCell3, '.' cannot be used in BNGL
+      observable_name = what_to_count + "_" + where;
 
-    if (data.bng_mode && !must_be_in_python && false/*can_express_count_with_bngl(rxn_not_mol, where_to_count, orientation)*/) {
-      //bng_gen->generate_single_count();
+      // TODO: this might need further checks
+      if (observable_name.find_first_of(" ,+*/\\") != string::npos) {
+        cout << "Warning: count file prefix '" + observable_name + "' is probably invalid.\n";
+      }
+    }
+
+    if (data.bng_mode && !must_be_in_python &&
+        bng_gen->can_express_count_with_bngl(
+            single_term, rxn_not_mol, where_to_count, orientation, multiplier_str, rxn_step)) {
+
+      if (!has_bng_observables) {
+        bng_gen->open_observables_section();
+      }
+      bng_gen->generate_single_count(
+          observable_name,
+          what_to_count,
+          compartment,
+          molecules_not_species);
+      has_bng_observables = true;
     }
     else {
+      string name = create_count_name(what_to_count, compartment, where_to_count, molecules_not_species);
       python_gen->generate_single_count(
           out,
           name,
-          mdl_file_prefix,
+          observable_name,
           what_to_count,
           compartment,
           where_to_count, // empty for WORLD
@@ -657,9 +683,9 @@ void MCell4Generator::generate_counts(std::ostream& out, std::vector<std::string
           molecules_not_species,
           single_term
       );
+      python_counts.push_back(name);
     }
   }
-
 }
 
 
@@ -681,7 +707,8 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
   python_gen->generate_viz_outputs(out, cellblender_viz, viz_outputs);
 
   vector<string> counts;
-  generate_counts(out, counts);
+  bool has_bngl_observables;
+  generate_counts(out, counts, has_bngl_observables);
 
   gen_ctor_call(out, OBSERVABLES, NAME_CLASS_OBSERVABLES, false);
   for (const string& s: viz_outputs) {
@@ -689,6 +716,18 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
   }
   for (const string& r: counts) {
     gen_method_call(out, OBSERVABLES, NAME_ADD_COUNT, r);
+  }
+  if (has_bngl_observables) {
+    out << "\n# load observables information from bngl file\n";
+    gen_method_call(
+        out, OBSERVABLES,
+        NAME_LOAD_BNGL_OBSERVABLES,
+        "'" + get_filename(data.output_files_prefix, MODEL, BNGL_EXT) + "', " +
+        get_module_name(SUBSYSTEM) + ", " +
+        "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'"
+    );
+
+    bng_gen->close_observables_section();
   }
 
   observables_generated = true;

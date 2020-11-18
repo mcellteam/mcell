@@ -49,6 +49,22 @@ public:
   std::string generate_single_reaction_rule(Json::Value& reaction_list_item, const bool generate_name);
   void close_reaction_rules_section() { bng_out << BNG::END_REACTION_RULES << "\n\n"; }
 
+  bool can_express_count_with_bngl(
+      const bool single_term,
+      const bool rxn_not_mol,
+      const std::string& where_to_count,
+      const std::string& orientation,
+      const std::string& multiplier_str,
+      const std::string& rxn_step) const;
+
+  void open_observables_section() { bng_out << BNG::BEGIN_OBSERVABLES << "\n"; }
+  void generate_single_count(
+      const std::string& observable_name,
+      const std::string& what_to_count,
+      const std::string& compartment,
+      const bool molecules_not_species);
+  void close_observables_section() { bng_out << BNG::END_OBSERVABLES << "\n"; }
+
   void add_comment(const std::string& text) { bng_out << "# " << text << "\n"; }
 
 private:

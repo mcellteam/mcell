@@ -541,4 +541,40 @@ void process_single_count_term(
   }
 }
 
+// sets val if the name_or_value is a floating point value,
+// if not, tries to find the parameter and reads its value
+// returns true on success
+// parameters are not evaluated and only one level is tried,
+// returns false if value was not obtained
+bool get_parameter_value(Json::Value& mcell, const string& name_or_value, double& val) {
+  try {
+    val = stod(name_or_value);
+    return true;
+  }
+  catch (const std::invalid_argument& ia) {
+    // not a float, try to get parameter value
+    if (mcell.isMember(KEY_PARAMETER_SYSTEM) && mcell.isMember(KEY_MODEL_PARAMETERS)) {
+      Json::Value& params = mcell[KEY_PARAMETER_SYSTEM][KEY_MODEL_PARAMETERS];
+      for (Value::ArrayIndex i = 0; i < params.size(); i++) {
+        if (params[i][KEY_NAME].asString() == name_or_value) {
+          try {
+            if (params[i].isMember(KEY__EXTRAS)) {
+              val = stod(params[i][KEY__EXTRAS][KEY_PAR_VALUE].asString());
+            }
+            else {
+              val = stod(params[i][KEY_PAR_EXPRESSION].asString());
+            }
+            return true;
+          }
+          catch (const std::invalid_argument& ia) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+
 } // namespace MCell

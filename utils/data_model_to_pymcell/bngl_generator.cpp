@@ -363,4 +363,68 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
   return name;
 }
 
+
+// rather limited for now
+bool BNGLGenerator::can_express_count_with_bngl(
+  const bool single_term,
+  const bool rxn_not_mol,
+  const std::string& where_to_count,
+  const std::string& orientation,
+  const std::string& multiplier_str,
+  const std::string& rxn_step
+) const {
+
+  if (!single_term) {
+    return false;
+  }
+  if (rxn_not_mol) {
+    return false;
+  }
+  if (where_to_count != "" && where_to_count != VALUE_COUNT_LOCATION_WORLD) {
+    return false;
+  }
+  if (orientation != "") {
+    return false;
+  }
+  if (multiplier_str != "") {
+    return false;
+  }
+
+  if (rxn_step != "") {
+    // TODO: add test that uses parameters for both examined values
+    double rxn_step_val;
+    bool ok = get_parameter_value(data.mcell, rxn_step, rxn_step_val);
+    if (!ok) {
+      return false;
+    }
+    double time_step_val;
+    const string& time_step = data.mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString();
+    ok = get_parameter_value(data.mcell, time_step, time_step_val);
+    if (!ok) {
+      return false;
+    }
+    // time step and rxn step must be the same
+    if (!cmp_eq(rxn_step_val, time_step_val)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+void BNGLGenerator::generate_single_count(
+    const std::string& observable_name,
+    const std::string& what_to_count,
+    const std::string& compartment,
+    const bool molecules_not_species) {
+
+  bng_out << IND <<
+      ((molecules_not_species) ? BNG::OBSERVABLE_MOLECULES : BNG::OBSERVABLE_SPECIES) << " " <<
+      fix_id(observable_name) << " " <<
+      ((compartment != "") ? ("@" + compartment + ":") : string("")) <<
+      what_to_count << "\n";
+}
+
+
 } /* namespace MCell */

@@ -388,6 +388,25 @@ static string convert_orientation(const string s, const bool return_any_orientat
   }
 }
 
+// NOTE: the same code is in mcell3_world_converter.cpp
+static bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) {
+      return false;
+    }
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+static string trim(const string& str)
+{
+    size_t first = str.find_first_not_of(' ');
+    if (string::npos == first)
+    {
+        return str;
+    }
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
 
 string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter);
 
@@ -409,26 +428,12 @@ void process_single_count_term(
     string& where_to_count,
     string& orientation);
 
-// NOTE: the same code is in mcell3_world_converter.cpp
-static bool ends_with(std::string const & value, std::string const & ending)
-{
-    if (ending.size() > value.size()) {
-      return false;
-    }
-    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
-
-static string trim(const string& str)
-{
-    size_t first = str.find_first_not_of(' ');
-    if (string::npos == first)
-    {
-        return str;
-    }
-    size_t last = str.find_last_not_of(' ');
-    return str.substr(first, (last - first + 1));
-}
+// sets val if the name_or_value is a floating point value,
+// if not, tries to find the parameter and reads its value
+// returns true on success
+// parameters are not evaluated and only one level is tried,
+// returns false if value was not obtained
+bool get_parameter_value(Json::Value& mcell, const string& name_or_value, double& val);
 
 } // namespace MCell
 

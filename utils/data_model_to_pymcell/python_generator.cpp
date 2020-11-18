@@ -1211,8 +1211,8 @@ string PythonGenerator::generate_count_terms_for_expression(
 
 void PythonGenerator::generate_single_count(
     std::ostream& out,
-    const std::string& name,
-    const std::string& mdl_file_prefix_orig,
+    const std::string& count_name,
+    const std::string& observable_name,
     const std::string& what_to_count,
     const std::string& compartment,
     const std::string& where_to_count, // empty for WORLD
@@ -1223,9 +1223,8 @@ void PythonGenerator::generate_single_count(
     const bool molecules_not_species,
     const bool single_term
 ) {
-  string mdl_file_prefix = mdl_file_prefix_orig;
 
-  gen_ctor_call(out, name, NAME_CLASS_COUNT);
+  gen_ctor_call(out, count_name, NAME_CLASS_COUNT);
 
   if (single_term) {
     if (rxn_not_mol) {
@@ -1246,21 +1245,8 @@ void PythonGenerator::generate_single_count(
     gen_param_expr(out, NAME_REGION, where_to_count, true);
   }
 
-  if (mdl_file_prefix == "") {
-    string where = where_to_count;
-    if (where == "") {
-      where = WORLD_FIRST_UPPER;
-    }
-    mdl_file_prefix = what_to_count + "." + where;
-
-    // TODO: this might need further checks
-    if (mdl_file_prefix.find_first_of(" ,+*/\\") != string::npos) {
-      cout << "Warning: count file prefix '" + mdl_file_prefix + "' is probably invalid.\n";
-    }
-  }
-
   gen_param(out, NAME_FILE_NAME,
-      DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat", multiplier_str != "" || rxn_step != "");
+      DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + observable_name + ".dat", multiplier_str != "" || rxn_step != "");
 
   if (multiplier_str != "") {
     gen_param_expr(out, NAME_MULTIPLIER, multiplier_str, rxn_step != "");
