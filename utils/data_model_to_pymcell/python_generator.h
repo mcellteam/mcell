@@ -57,7 +57,23 @@ public:
 
   void generate_viz_outputs(std::ostream& out, const bool cellblender_viz, std::vector<std::string>& viz_output_names);
 
-  void generate_counts(std::ostream& out, std::vector<std::string>& counts);
+  void generate_all_bngl_reaction_rules_used_in_observables(std::ostream& out);
+
+  void generate_single_count(
+      std::ostream& out,
+      const std::string& name,
+      const std::string& mdl_file_prefix_orig,
+      const std::string& what_to_count,
+      const std::string& compartment,
+      const std::string& where_to_count, // empty for WORLD
+      const std::string& orientation,
+      const std::string& multiplier_str,
+      const std::string& rxn_step,
+      const bool rxn_not_mol,
+      const bool molecules_not_species,
+      const bool single_term
+  );
+  std::string generate_count_terms_for_expression(std::ostream& out, const std::string& mdl_string);
 
 private:
   void generate_single_parameter(std::ostream& out, Json::Value& parameter);
@@ -97,17 +113,6 @@ private:
   void generate_release_pattern(std::ostream& out, const std::string& name, std::string& delay_string);
 
   std::vector<std::string> get_species_to_visualize();
-
-  void generate_all_bngl_reaction_rules_used_in_observables(std::ostream& out);
-  void process_single_count_term(
-      const std::string& mdl_string,
-      bool& rxn_not_mol,
-      bool& molecules_not_species,
-      std::string& what_to_count,
-      std::string& compartment,
-      std::string& where_to_count,
-      std::string& orientation);
-  std::string generate_count_terms_for_expression(std::ostream& out, const std::string& mdl_string);
 
 
 private:

@@ -405,4 +405,140 @@ string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter) {
 }
 
 
+string create_count_name(
+    const string& what_to_count, const string& compartmnent, const string& where_to_count,
+    const bool molecules_not_species) {
+
+  // first remove all cterm_refixes
+  regex pattern_cterm(COUNT_TERM_PREFIX);
+  string what_to_count_no_cterm = regex_replace(what_to_count, pattern_cterm, "");
+  string res = COUNT_PREFIX + fix_id(what_to_count_no_cterm);
+
+  if (!molecules_not_species) {
+    res += "_species";
+  }
+
+  if (compartmnent != "") {
+    res += "_at_" + compartmnent;
+  }
+
+  if (where_to_count != WORLD && where_to_count != "") {
+    res += "_" + where_to_count;
+  }
+
+  return res;
+}
+
+
+uint get_num_counts_in_mdl_string(const string& mdl_string) {
+  uint res = 0;
+  size_t pos = 0;
+  while ((pos = mdl_string.find(COUNT, pos)) != string::npos) {
+    res++;
+    pos += strlen(COUNT);
+  }
+  return res;
+}
+
+
+string remove_c_comment(const string& str) {
+  std::regex e ("/\\*.*\\*/");
+  return std::regex_replace(str, e, "");
+}
+
+void process_single_count_term(
+    const SharedGenData& data,
+    const string& mdl_string,
+    bool& rxn_not_mol,
+    bool& molecules_not_species,
+    string& what_to_count,
+    string& compartment,
+    string& where_to_count,
+    string& orientation) {
+
+  // mdl_string is always in the form COUNT[what,where]
+  size_t start_brace = mdl_string.find('[');
+  size_t comma = mdl_string.rfind(',');
+  size_t end_brace = mdl_string.find(']');
+
+  if (mdl_string.find(COUNT) == string::npos) {
+    ERROR("String 'COUNT' was not found in mdl_string '" + mdl_string + "'.");
+  }
+  if (start_brace == string::npos || comma == string::npos || end_brace == string::npos ||
+      start_brace > comma || start_brace > end_brace || comma > end_brace
+  ) {
+    ERROR("Malformed mdl_string '" + mdl_string + "'.");
+  }
+
+  what_to_count = mdl_string.substr(start_brace + 1, comma - start_brace - 1);
+  what_to_count = trim(what_to_count);
+
+  size_t pos_at = what_to_count.find('@');
+  compartment = ""; // FIXME: use get_single_compartment & remove_compartment
+  if (pos_at != string::npos) {
+    compartment = what_to_count.substr(pos_at + 1);
+    what_to_count = what_to_count.substr(0, pos_at);
+  }
+
+  // default is 'molecules_pattern', for now we are storing the
+  // as a comment because the counting type belongs to the count term,
+  // not to the whole 'reaction_output_list'
+  // TODO: this should resolved in a better way
+  molecules_not_species = true;
+  if (what_to_count.find(MARKER_SPECIES_COMMENT) != string::npos) {
+    molecules_not_species = false;
+  }
+
+  what_to_count = remove_c_comment(what_to_count);
+
+  // process orientation
+  orientation = "";
+  assert(what_to_count != "");
+  char last_c = what_to_count.back();
+  if (last_c == '\'' || last_c == ',' || last_c == ';') {
+    string s;
+    s = last_c;
+    orientation = convert_orientation(s);
+
+    what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
+  }
+
+  if (data.find_reaction_rule_info(what_to_count) != nullptr) {
+    rxn_not_mol = true;
+  }
+  else if (data.bng_mode ||
+      data.find_species_or_mol_type_info(what_to_count) != nullptr ||
+      !API::is_simple_species(what_to_count)) {
+    // if we did not find the name to be a reaction, we assume it is simple species or complex pattern
+    rxn_not_mol = false;
+  }
+  else {
+    ERROR("Identifier '" + what_to_count + "' is neither species nor reaction, from mdl_string '" + mdl_string + "'.");
+  }
+
+  where_to_count = mdl_string.substr(comma + 1, end_brace - comma - 1);
+  size_t dot_pos = where_to_count.find('.');
+  if (dot_pos !=- string::npos) {
+    where_to_count = where_to_count.substr(dot_pos + 1);
+  }
+  where_to_count = trim(where_to_count);
+  if (where_to_count == WORLD) {
+    where_to_count = "";
+  }
+  // where_to_count can now look like this: "Cube[ALL"
+  size_t brace = where_to_count.find('[');
+  if (brace != string::npos) {
+    if (where_to_count.substr(brace + 1) == REGION_ALL_NAME) {
+      where_to_count = where_to_count.substr(0, brace);
+    }
+    else {
+      where_to_count[brace] = '_';
+    }
+  }
+
+  if (compartment != "" && where_to_count != "") {
+      ERROR("Cannot both specify location and compartment for a count location '" + mdl_string + "'.");
+  }
+}
+
 } // namespace MCell

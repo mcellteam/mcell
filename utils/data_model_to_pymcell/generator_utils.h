@@ -391,6 +391,23 @@ static string convert_orientation(const string s, const bool return_any_orientat
 
 string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter);
 
+string create_count_name(
+    const string& what_to_count, const string& compartmnent, const string& where_to_count,
+    const bool molecules_not_species);
+
+uint get_num_counts_in_mdl_string(const string& mdl_string);
+
+string remove_c_comment(const string& str);
+
+void process_single_count_term(
+    const SharedGenData& data,
+    const string& mdl_string,
+    bool& rxn_not_mol,
+    bool& molecules_not_species,
+    string& what_to_count,
+    string& compartment,
+    string& where_to_count,
+    string& orientation);
 
 // NOTE: the same code is in mcell3_world_converter.cpp
 static bool ends_with(std::string const & value, std::string const & ending)
