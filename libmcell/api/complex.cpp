@@ -78,11 +78,15 @@ bool Complex::__eq__(const Complex& other) const {
 
 
 std::string Complex::to_bngl_str() const {
+  string res;
+  bool add_compartment = false;
   if (is_set(name)) {
-    return name;
+    res = name;
+    if (is_set(compartment_name) && name.find('@') == string::npos) {
+      add_compartment = true;
+    }
   }
   else {
-    std::string res;
     for (size_t i = 0; i < elementary_molecule_instances.size(); i++) {
       res += elementary_molecule_instances[i]->to_bngl_str();
       if (i + 1 != elementary_molecule_instances.size()) {
@@ -97,8 +101,21 @@ std::string Complex::to_bngl_str() const {
       res += ",";
     }
 
-    return res;
+    if (is_set(compartment_name)) {
+      add_compartment = true;
+    }
   }
+
+  if (add_compartment) {
+    if (name.find('.') == string::npos) {
+      res += "@" + compartment_name;
+    }
+    else {
+      res = "@" + compartment_name + ":" + res;
+    }
+  }
+
+  return res;
 }
 
 

@@ -53,6 +53,11 @@ public:
       // or do we?
       get_compartment_names(name, compartments);
       if (!compartments.empty()) {
+        if (is_set(compartment_name)) {
+          throw ValueError("Complex " + name + " is defined with both compartment name in " +
+              NAME_NAME + " and in " + NAME_COMPARTMENT_NAME + ", only one is allowed.");
+        }
+
         std::string single_compartment_name = compartments[0];
         for (size_t i = 1; i < compartments.size(); i++) {
           if (single_compartment_name != compartments[i]) {
