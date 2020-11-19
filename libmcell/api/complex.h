@@ -101,11 +101,11 @@ public:
   }
   bool is_surf() const;
 
+  // not really const, sets mutable members that serve as cache
+  const std::string& get_canonical_name() const;
+
 private:
   bool is_species_object() const;
-
-  // not really const, sets mutable members
-  void set_canonical_name_if_needed() const;
 
   // set when __eq__ is called, valid if cached_data_are_uptodate is true
   mutable std::string canonical_name;

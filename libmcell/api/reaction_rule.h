@@ -75,7 +75,12 @@ public:
     }
   }
 
+  bool __eq__(const ReactionRule& other) const override;
+
   std::string to_bngl_str() const override;
+
+  // added methods
+  bool eq_reactants_and_products(const ReactionRule& other) const;
 
   // simulation engine mapping
   BNG::rxn_rule_id_t fwd_rxn_rule_id;

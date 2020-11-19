@@ -31,9 +31,9 @@ using namespace std;
 namespace MCell {
 namespace API {
 
-void Complex::set_canonical_name_if_needed() const {
+const std::string& Complex::get_canonical_name() const {
   if (cached_data_are_uptodate && canonical_name != "") {
-    return;
+    return canonical_name;
   }
 
   // get BNGL string and parse it, then get canonical name
@@ -59,6 +59,7 @@ void Complex::set_canonical_name_if_needed() const {
 
   canonical_name = new_species.name;
   cached_data_are_uptodate = true;
+  return canonical_name;
 }
 
 
@@ -70,10 +71,7 @@ bool Complex::__eq__(const Complex& other) const {
     return false;
   }
 
-  set_canonical_name_if_needed();
-  other.set_canonical_name_if_needed();
-
-  return canonical_name == other.canonical_name;
+  return get_canonical_name() == other.get_canonical_name();
 }
 
 

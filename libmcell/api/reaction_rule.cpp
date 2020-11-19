@@ -24,10 +24,56 @@
 #include "api/reaction_rule.h"
 #include "bng/bngl_names.h"
 
+#include <set>
+
 using namespace std;
 
 namespace MCell {
 namespace API {
+
+static void get_canonical_multiset(
+    const std::vector<std::shared_ptr<Complex>>& substances,
+    std::multiset<std::string>& res) {
+
+  res.clear();
+  for (const auto& s: substances) {
+    res.insert(s->get_canonical_name());
+  }
+}
+
+
+bool ReactionRule::eq_reactants_and_products(const ReactionRule& other) const {
+
+  multiset<string> r1, r2;
+  get_canonical_multiset(reactants, r1);
+  get_canonical_multiset(other.reactants, r2);
+  if (r1 != r2) {
+    return false;
+  }
+
+  multiset<string> p1, p2;
+  get_canonical_multiset(products, p1);
+  get_canonical_multiset(other.products, p2);
+  if (p1 != p2) {
+    return false;
+  }
+
+  return true;
+}
+
+
+bool ReactionRule::__eq__(const ReactionRule& other) const {
+  if (!eq_nonarray_attributes(other)) {
+    return false;
+  }
+
+  if (variable_rate != other.variable_rate) {
+    return false;
+  }
+
+  return eq_reactants_and_products(other);
+}
+
 
 std::string ReactionRule::to_bngl_str() const {
   string res;
