@@ -1907,13 +1907,17 @@ search_nbhd_for_free:
   Note: usually the calling function will create a grid if needed and
         check the grid element at u,v; if that is not done this function
         will return the correct result but not efficiently.
-  Note: This is not recursive.  It should be made recursive.
 *************************************************************************/
 static void search_nbhd_for_free(
     Partition& p,
     const wall_index_t origin_wall_index, const Vec2& closest_pos2d, const float_t max_search_d2,
-    wall_index_t& res_wall_index, tile_index_t& res_tile_index
+    wall_index_t& res_wall_index, tile_index_t& res_tile_index,
+    set<wall_index_t>& visited_walls,
+    int remaining_attempts = 100
   ) {
+
+  release_assert(remaining_attempts > 0
+      && "Reached threshold for neighbor search, could not find an empty slot on a wall.");
 
   wall_index_t best_wall_index = origin_wall_index;
   tile_index_t best_tile_index = TILE_INDEX_INVALID;
@@ -1935,6 +1939,8 @@ static void search_nbhd_for_free(
 
   float_t best_d2 = 2.0 * max_search_d2 + 1.0;
   const Vec2& point = closest_pos2d;
+
+  vector<wall_index_t> walls_to_try_if_fail;
 
   /* if there are no free slots on the origin wall - look around */
   /* Check for closer free grid elements on neighboring walls */
@@ -1959,6 +1965,9 @@ static void search_nbhd_for_free(
     /* check whether there are any available spots on the neighbor wall */
     if (there_wall.grid.is_initialized()) {
       if (there_wall.grid.is_full()) {
+        if (visited_walls.count(there_wall_index) == 0) {
+          walls_to_try_if_fail.push_back(there_wall_index);
+        }
         continue;
       }
     }
@@ -2013,6 +2022,25 @@ static void search_nbhd_for_free(
     }
   }
 
+  if (best_tile_index == TILE_INDEX_INVALID && remaining_attempts != 0) {
+    // TODO: choose random direction
+    // TODO: it would be better to check the closest walls first
+    visited_walls.insert(origin_wall_index);
+    for (wall_index_t wi: walls_to_try_if_fail) {
+      search_nbhd_for_free(
+          p, wi, closest_pos2d, max_search_d2,
+          res_wall_index, res_tile_index,
+          visited_walls,
+          remaining_attempts-1
+      );
+      if (res_tile_index != TILE_INDEX_INVALID) {
+        assert(res_wall_index != WALL_INDEX_INVALID);
+        // found a slot
+        return;
+      }
+    }
+  }
+
   res_wall_index = best_wall_index;
   res_tile_index = best_tile_index;
 }
@@ -2056,11 +2084,15 @@ static void find_closest_tile_on_wall(
 
     wall_index_t new_wall_index;
     wall_index_t new_tile_index;
+
+    set<wall_index_t> visited_walls;
     search_nbhd_for_free(
         p, closest_wall_index, closest_pos2d, max_search_d2,
-        new_wall_index, new_tile_index
+        new_wall_index, new_tile_index,
+        visited_walls
     );
     assert(new_wall_index != TILE_INDEX_INVALID);
+    assert(new_tile_index != TILE_INDEX_INVALID);
 
     Vec2 new_pos2d;
     const Wall& w = p.get_wall(new_wall_index);
@@ -2194,9 +2226,12 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
       return MOLECULE_ID_INVALID;
     }
     else {
+      set<wall_index_t> visited_walls;
       search_nbhd_for_free(
           p, best_w.index, best_wall_pos2d, d2,
-          found_wall_index, found_tile_index);
+          found_wall_index, found_tile_index,
+          visited_walls
+      );
 
       if (found_wall_index == WALL_INDEX_INVALID) {
         return MOLECULE_ID_INVALID;

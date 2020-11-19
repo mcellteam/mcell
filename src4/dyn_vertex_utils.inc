@@ -203,7 +203,7 @@ static void dump_blender_display_code(
 
 static void collect_volume_molecules_moved_due_to_moving_wall(
     Partition& p,
-    const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos,
+    const wall_index_t moved_wall_index, const WallMoveInfo& move_info,
     uint_set<molecule_id_t>& already_moved_molecules,
     VolumeMoleculeMoveInfoVector& molecule_moves
 ) {
@@ -213,7 +213,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
 #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
   cout << "*** Moving vertices of a wall:\n";
   orig_wall.dump(p, "", false);
-  for (const VertexMoveInfo& info: move_infos) {
+  for (const VertexMoveInfo& info: move_info) {
     cout << "vertex index: " << info.vertex_index << "\n";
     cout << "original position: " << p.get_geometry_vertex(info.vertex_index) << "\n";
     cout << "translation: " << info.displacement << "\n";
@@ -221,7 +221,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
   cout << "***\n";
 #endif
 
-  assert(move_infos.size() > 0 && move_infos.size() <= 3 && "Move infos belong to the wall that is being moved");
+  assert(move_info.vertex_moves.size() > 0 && move_info.vertex_moves.size() <= 3 && "Move infos belong to the wall that is being moved");
 
   // construct a virtual space where we have all the walls with new and old
   // positions
@@ -237,10 +237,10 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
 
     // should we move it?
     bool moved = false;
-    for (const VertexMoveInfo& move_info: move_infos) {
-      if (move_info.vertex_index == orig_indices[i]) {
+    for (const VertexMoveInfo& vertex_move: move_info.vertex_moves) {
+      if (vertex_move.vertex_index == orig_indices[i]) {
         assert(!moved);
-        new_vertex = new_vertex + move_info.displacement;
+        new_vertex = new_vertex + vertex_move.displacement;
         #ifndef NDEBUG
           break;
         #endif
@@ -375,8 +375,6 @@ void collect_surface_molecules_moved_due_to_moving_wall(
     const Partition& p,
     const wall_index_t moved_wall_index,
     SurfaceMoleculeMoveInfoVector& molecule_moves) {
-
-  // get all surface molecules that belong to a given wall
 
   // We have no direct set that would say which molecules belong to a given wall,
   // attempts were done, but even maintaining a simple set in grid costs ~5% of runtime.

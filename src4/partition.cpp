@@ -153,7 +153,7 @@ void Partition::apply_vertex_moves_per_object(
 
     const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info.vertex_index);
 
-    // first check whether we can move all walls
+    // first check whether we can move all walls belonging to the vertex
     for (wall_index_t wall_index: wall_indices) {
       if (!get_wall(wall_index).is_movable) {
         // we must not move this vertex
@@ -168,11 +168,20 @@ void Partition::apply_vertex_moves_per_object(
         // remember mapping wall_index -> moves
         auto it = walls_with_their_moves.find(wall_index);
         if (it == walls_with_their_moves.end()) {
-          it = walls_with_their_moves.insert(make_pair(wall_index, VertexMoveInfoVector())).first;
+          it = walls_with_their_moves.insert(make_pair(wall_index, WallMoveInfo())).first;
         }
-        it->second.push_back(vertex_move_info);
+        it->second.vertex_moves.push_back(vertex_move_info);
       }
     }
+  }
+
+  // set whether walls change area
+  for (auto& it: walls_with_their_moves) {
+    // FIXME: reenable and improve check, we do not want molecules to move too far
+    it.second.wall_changes_area = true; /*
+        !(it.second.vertex_moves.size() == 3 &&
+          it.second.vertex_moves[0].displacement == it.second.vertex_moves[1].displacement &&
+          it.second.vertex_moves[1].displacement == it.second.vertex_moves[2].displacement);*/
   }
 
 
@@ -198,8 +207,11 @@ void Partition::apply_vertex_moves_per_object(
     DynVertexUtil::collect_volume_molecules_moved_due_to_moving_wall(
         *this, it.first, it.second, already_moved_volume_molecules, volume_molecule_moves);
 
-    DynVertexUtil::collect_surface_molecules_moved_due_to_moving_wall(
-        *this, it.first, surface_molecule_moves);
+    // does the area of the wall change?
+    if (it.second.wall_changes_area) {
+      DynVertexUtil::collect_surface_molecules_moved_due_to_moving_wall(
+          *this, it.first, surface_molecule_moves);
+    }
   }
 
   // 3) get information on where these walls are and remove them
@@ -219,9 +231,11 @@ void Partition::apply_vertex_moves_per_object(
   // 7) move surface molecules
   // 7.1) clear grids of affected walls
   for (const auto& it: walls_with_their_moves) {
-    Wall& w = get_wall(it.first);
-    if (w.grid.is_initialized()) {
-      w.grid.reset_all_tiles();
+    if (it.second.wall_changes_area) {
+      Wall& w = get_wall(it.first);
+      if (w.grid.is_initialized()) {
+        w.grid.reset_all_tiles();
+      }
     }
   }
 
@@ -235,7 +249,7 @@ void Partition::apply_vertex_moves_per_object(
       }
   );
   for (const SurfaceMoleculeMoveInfo& move_info: surface_molecule_moves) {
-    // finally fix positions of the surface molecules
+    // finally fix positions of the surface molecules (only those that are on walls that change area)
     DynVertexUtil::move_surface_molecule_to_closest_wall_point(*this, move_info);
   }
 }

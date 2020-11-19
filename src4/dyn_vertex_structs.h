@@ -32,8 +32,12 @@ namespace MCell {
 
 class Partition;
 
-typedef std::vector<VertexMoveInfo> VertexMoveInfoVector;
-typedef std::map<wall_index_t, VertexMoveInfoVector> WallsWithTheirMovesMap;
+struct WallMoveInfo {
+  bool wall_changes_area;
+  std::vector<VertexMoveInfo> vertex_moves;
+};
+
+typedef std::map<wall_index_t, WallMoveInfo> WallsWithTheirMovesMap;
 
 struct VolumeMoleculeMoveInfo {
   VolumeMoleculeMoveInfo(const molecule_id_t molecule_id_, const wall_index_t wall_index_, const bool place_above_)
