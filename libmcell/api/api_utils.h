@@ -54,6 +54,10 @@ void append_to_vec(
               "' caused an error, object with the same name is already present but it is different."
           );
         }
+        else {
+          std::cerr << "Warning: adding of " + item->class_name + " with name '" + item->name +
+              "' is ignored, identical object is already present.";
+        }
       }
     }
   }
@@ -61,6 +65,38 @@ void append_to_vec(
   dst.push_back(item);
 }
 
+
+template<class T>
+void append_to_vec_bngl_name(
+    std::vector<std::shared_ptr<T>>& dst,
+    const std::shared_ptr<T>& item,
+    const bool allow_same_name_different_contents = false,
+    const bool allow_unnamed_different_contents = false) {
+
+
+  if (!allow_same_name_different_contents &&
+      !(allow_unnamed_different_contents && (item->name == "" || item->name == STR_UNSET))) {
+
+    // check if item with this name already exists
+    for (std::shared_ptr<T>& existing: dst) {
+      if (item->to_bngl_str() == existing->to_bngl_str()) {
+        // must be identical
+        if (!item->__eq__(*existing)) {
+          throw ValueError(
+              "Adding object of " + item->class_name + " with name '" + item->name +
+              "' caused an error, object with the same name is already present but it is different."
+          );
+        }
+        else {
+          std::cerr << "Warning: adding of " + item->class_name + " with name '" + item->name +
+              "' is ignored, identical object is already present.\n";
+        }
+      }
+    }
+  }
+
+  dst.push_back(item);
+}
 
 template<class T>
 void append_vec_to_vec(

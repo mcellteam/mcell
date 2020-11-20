@@ -482,6 +482,12 @@ void MCell4Converter::convert_species() {
 	
     new_species.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, s->target_only); // default is false
 
+    // FIXME: the MolType below is created correctly only for simple species
+    release_assert(s->elementary_molecule_instances.size() <= 1 && "TODO: Complex species");
+    for (auto& mi: s->elementary_molecule_instances) {
+      release_assert(mi->components.empty());
+    }
+
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components
     BNG::MolType mol_type;

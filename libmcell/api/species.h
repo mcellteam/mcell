@@ -101,7 +101,8 @@ public:
     if (is_set(name) && !is_set(elementary_molecule_instances) && (is_set(diffusion_constant_2d) || is_set(diffusion_constant_3d))) {
 
       if (!is_simple_species(name)) {
-        throw ValueError("Only simple species can be fully defined by setting name and diffusion constant.");
+        throw ValueError("Only simple species can be fully defined by setting name and diffusion constant. "
+            "For complex species, it cannot be usually deduced what the diffusion constants of elementary molecule types should be.");
       }
 
       if (name.find('.') != std::string::npos) {
