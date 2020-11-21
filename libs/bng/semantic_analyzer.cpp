@@ -202,7 +202,7 @@ state_id_t SemanticAnalyzer::convert_state_name(const ASTStrNode* s) {
 }
 
 
-component_type_id_t SemanticAnalyzer::convert_component_type(
+ComponentType SemanticAnalyzer::convert_component_type(
     const ASTComponentNode* c,
     const bool allow_components_to_have_bonds
 ) {
@@ -224,45 +224,52 @@ component_type_id_t SemanticAnalyzer::convert_component_type(
     ctx->inc_error_count();
   }
 
-  return bng_data->find_or_add_component_type(ct);
+  return ct;
 }
 
 
 MolType SemanticAnalyzer::convert_molecule_type(
     const ASTMolNode* n,
-    const bool allow_same_component_different_state,
-    const bool allow_components_to_have_bonds
+    // when parsing single cplx we don't have the full information from the molecule types section
+    // so we allow merging component types and also bonds
+    const bool parsing_single_cplx
 ) {
   MolType mt;
   mt.name = n->name;
 
   for (const ASTBaseNode* c: n->components->items) {
-    // component types must not have bonds
-    component_type_id_t component_type_id =
-        convert_component_type(to_component_node(c), allow_components_to_have_bonds);
-    mt.component_type_ids.push_back(component_type_id);
-  }
+    const ASTComponentNode* comp = to_component_node(c);
 
-  // when there a components with the same name in on molecule, they must have the same allowed states
-  for (size_t i = 0; i < mt.component_type_ids.size(); i++) {
-
-    component_type_id_t ct_i_id = mt.component_type_ids[i];
-    const ComponentType& ct_i = bng_data->get_component_type(ct_i_id);
-
-    for (size_t k = i+1; k < mt.component_type_ids.size(); k++) {
-
-      component_type_id_t ct_k_id = mt.component_type_ids[k];
-      const ComponentType& ct_k = bng_data->get_component_type(ct_k_id);
-
-      if (ct_i_id != ct_k_id && ct_i.name == ct_k.name) {
-        if (!allow_same_component_different_state) {
-          // this is directly a conflict because if the components would have the same name and the same components,
-          // their id would be the same
+    // did we already define a component for this molecule with this name?
+    component_type_id_t ct_id = bng_data->find_component_type_id(mt, comp->name);
+    if (ct_id == COMPONENT_TYPE_ID_INVALID) {
+      // new component type
+      ComponentType ct = convert_component_type(to_component_node(c), parsing_single_cplx);
+      component_type_id_t new_ct_id = bng_data->find_or_add_component_type(ct);
+      mt.component_type_ids.push_back(new_ct_id);
+    }
+    else {
+      // check or add states used in the new component against
+      // what we defined before
+      ComponentType& existing_ct = bng_data->get_component_type(ct_id);
+      ComponentType new_ct = convert_component_type(comp, parsing_single_cplx);
+      assert(existing_ct.name == new_ct.name);
+      if (!parsing_single_cplx) {
+        if (existing_ct.allowed_state_ids != new_ct.allowed_state_ids) {
           errs_loc(n) <<
-              "Molecule type has 2 components with name '" << ct_i.name << "' but with different states, this is not allowed.\n"; // test N0101
+              "Molecule type has 2 components with name '" << existing_ct.name <<
+              "' but with different states, this is not allowed.\n"; // test N0101
           ctx->inc_error_count();
         }
       }
+      else {
+        // while parsing a single cplx, we didn't get the molecule types definitions
+        // so we do not know how the component definitions look like, let's merge the allowed states
+        existing_ct.allowed_state_ids.insert(new_ct.allowed_state_ids.begin(), new_ct.allowed_state_ids.end());
+      }
+
+      // append it to the molecule type's components
+      mt.component_type_ids.push_back(ct_id);
     }
   }
 
@@ -971,7 +978,7 @@ void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxNode* cplx_
     mol_type_id_t mt_id = bng_data->find_molecule_type_id(mol->name);
     if (mt_id == MOL_TYPE_ID_INVALID) {
       // no, simply add as a new one
-      MolType mt = convert_molecule_type(mol, false, true);
+      MolType mt = convert_molecule_type(mol, true);
       bng_data->find_or_add_molecule_type(mt);
     }
     else {

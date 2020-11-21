@@ -257,7 +257,9 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
       }
     }
 
-    finalize();
+    if (!sort_components_by_name_do_not_finalize) {
+      finalize();
+    }
     set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
     return;
   }

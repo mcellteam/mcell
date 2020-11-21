@@ -36,14 +36,13 @@ private:
   void convert_and_evaluate_parameters(const std::map<std::string, float_t>& parameter_overrides);
 
   state_id_t convert_state_name(const ASTStrNode* s);
-  component_type_id_t convert_component_type(
+  ComponentType convert_component_type(
       const ASTComponentNode* c,
       const bool allow_components_to_have_bonds = false
   );
   MolType convert_molecule_type(
       const ASTMolNode* n,
-      const bool allow_same_component_different_state = false,
-      const bool allow_components_to_have_bonds = false
+      const bool parsing_single_cplx = false
   );
   void convert_and_store_molecule_types();
 
