@@ -67,7 +67,7 @@ void append_to_vec(
 
 
 template<class T>
-void append_to_vec_bngl_name(
+void append_to_vec_canonical_name(
     std::vector<std::shared_ptr<T>>& dst,
     const std::shared_ptr<T>& item,
     const bool allow_same_name_different_contents = false,
@@ -79,7 +79,7 @@ void append_to_vec_bngl_name(
 
     // check if item with this name already exists
     for (std::shared_ptr<T>& existing: dst) {
-      if (item->to_bngl_str() == existing->to_bngl_str()) {
+      if (item->get_canonical_name() == existing->get_canonical_name()) {
         // must be identical
         if (!item->__eq__(*existing)) {
           throw ValueError(

@@ -44,10 +44,13 @@ public:
 
   bool __eq__(const ComponentType& other) const override;
 
+  std::string to_bngl_str() const override;
+
+  // added manually
+  std::string get_canonical_name() const;
+
   // needed when defining a set of ComponentTypes
   bool operator < (const ComponentType& other) const;
-
-  std::string to_bngl_str() const override;
 };
 
 } // namespace API

@@ -36,6 +36,19 @@ bool ComponentType::__eq__(const ComponentType& other) const {
       std::set<string>(other.states.begin(), other.states.end());
 }
 
+
+std::string ComponentType::to_bngl_str() const {
+  std::string res;
+
+  res = name;
+  for (const string& s: states) {
+    res += "~" + s;
+  }
+
+  return res;
+}
+
+
 // useful when we need to put component types to a set
 bool ComponentType::operator < (const ComponentType& other) const {
   if (name == other.name) {
@@ -53,10 +66,12 @@ bool ComponentType::operator < (const ComponentType& other) const {
 }
 
 
-std::string ComponentType::to_bngl_str() const {
+std::string ComponentType::get_canonical_name() const {
   std::string res;
 
   res = name;
+
+  set<string> sorted(states.begin(), states.end());
   for (const string& s: states) {
     res += "~" + s;
   }

@@ -28,41 +28,56 @@ using namespace std;
 namespace MCell {
 namespace API {
 
-bool ElementaryMoleculeType::__eq__(const ElementaryMoleculeType& other) const {
 
-  if (!eq_nonarray_attributes(other)) {
-    return false;
-  }
-
-  std::set<ComponentType> s1;
-  for (auto& c: components) {
-    s1.insert(*c);
-  }
-  std::set<ComponentType> s2;
-  for (auto& c: other.components) {
-    s2.insert(*c);
-  }
-  return s1 == s2;
-}
-
-std::string ElementaryMoleculeType::to_bngl_str() const {
-  std::string res;
-
-  res = name;
-
+static std::string get_components_str(
+    const std::vector<std::shared_ptr<ComponentType>>& components,
+    const bool canonical = false
+) {
+  string res;
   if (!components.empty()) {
     res += "(";
     for (size_t i = 0; i < components.size(); i++) {
-      res += components[i]->to_bngl_str();
+      if (!canonical) {
+        res += components[i]->to_bngl_str();
+      }
+      else {
+        res += components[i]->get_canonical_name();
+      }
       if (i + 1 != components.size()) {
         res += ",";
       }
     }
     res += ")";
   }
-
   return res;
 }
+
+
+std::string ElementaryMoleculeType::get_canonical_name() const {
+  std::vector<std::shared_ptr<ComponentType>> sorted;
+  sorted = components;
+  std::sort(sorted.begin(), sorted.end(),
+      [](const std::shared_ptr<ComponentType>& a, const std::shared_ptr<ComponentType>& b) -> bool {
+          return *a < *b;
+      });
+  return name + get_components_str(sorted);
+}
+
+
+bool ElementaryMoleculeType::__eq__(const ElementaryMoleculeType& other) const {
+
+  if (!eq_nonarray_attributes(other)) {
+    return false;
+  }
+
+  return get_canonical_name() == other.get_canonical_name();
+}
+
+
+std::string ElementaryMoleculeType::to_bngl_str() const {
+  return name + get_components_str(components);
+}
+
 
 } // namespace API
 } // namespace MCell

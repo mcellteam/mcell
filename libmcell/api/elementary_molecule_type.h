@@ -49,6 +49,9 @@ public:
 
   virtual std::string to_bngl_str() const;
 
+  // added methods
+  std::string get_canonical_name() const;
+
   // mapping to MCell4
   BNG::mol_type_id_t mol_type_id;
 };

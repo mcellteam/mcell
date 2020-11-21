@@ -47,7 +47,7 @@ class Subsystem: public GenSubsystem, public std::enable_shared_from_this<Subsys
 public:
   // from generated template
   void add_species(std::shared_ptr<Species> s) override {
-    append_to_vec_bngl_name(species, s);
+    append_to_vec_canonical_name(species, s);
   }
 
   std::shared_ptr<Species> find_species(const std::string& name) override {
@@ -73,7 +73,7 @@ public:
   }
 
   void add_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> mt) override {
-    append_to_vec(elementary_molecule_types, mt);
+    append_to_vec_canonical_name(elementary_molecule_types, mt);
   }
 
   std::shared_ptr<ElementaryMoleculeType> find_elementary_molecule_type(const std::string& name) override {
