@@ -52,6 +52,7 @@ int parse_bngl_file(
   int errors = ctx->get_error_count();
 
   BNG::delete_parser_context();
+  bngllex_destroy();
 
   return errors;
 }
@@ -98,6 +99,7 @@ int parse_single_cplx_string(
   int errors = ctx->get_error_count();
 
   BNG::delete_parser_context();
+  bngllex_destroy();
 
   return errors;
 }
