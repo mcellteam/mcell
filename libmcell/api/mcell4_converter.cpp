@@ -477,7 +477,9 @@ void MCell4Converter::convert_species() {
       new_species.time_step = 0;
     }
     else {
-      throw ValueError("Neither diffusion_constant_2d nor diffusion_constant_3d was set.");
+      throw ValueError(S("Neither ") + NAME_DIFFUSION_CONSTANT_2D + " nor " +
+          NAME_DIFFUSION_CONSTANT_3D + " was set for " + NAME_CLASS_SPECIES + " " +
+          s->to_bngl_str() + ".");
     }
 	
     new_species.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, s->target_only); // default is false
