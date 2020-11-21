@@ -37,12 +37,9 @@ template<class T>
 void append_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
     const std::shared_ptr<T>& item,
-    const bool allow_same_name_different_contents = false,
-    const bool allow_unnamed_different_contents = false) {
+    const bool allow_same_name_different_contents = false) {
 
-
-  if (!allow_same_name_different_contents &&
-      !(allow_unnamed_different_contents && (item->name == "" || item->name == STR_UNSET))) {
+  if (!allow_same_name_different_contents) {
 
     // check if item with this name already exists
     for (std::shared_ptr<T>& existing: dst) {
@@ -70,29 +67,22 @@ void append_to_vec(
 template<class T>
 void append_to_vec_canonical_name(
     std::vector<std::shared_ptr<T>>& dst,
-    const std::shared_ptr<T>& item,
-    const bool allow_same_name_different_contents = false,
-    const bool allow_unnamed_different_contents = false) {
+    const std::shared_ptr<T>& item) {
 
-
-  if (!allow_same_name_different_contents &&
-      !(allow_unnamed_different_contents && (item->name == "" || item->name == STR_UNSET))) {
-
-    // check if item with this name already exists
-    for (std::shared_ptr<T>& existing: dst) {
-      if (item->get_canonical_name() == existing->get_canonical_name()) {
-        // must be identical
-        if (!item->__eq__(*existing)) {
-          throw ValueError(
-              "Adding object of " + item->class_name + " with name '" + item->name +
-              "' caused an error, object with the same name is already present but it is different."
-          );
-        }
-        else {
-          std::cerr << "Warning: adding of " + item->class_name + " with name '" + item->name +
-              "' is ignored, identical object is already present.\n";
-          return;
-        }
+  // check if item with this name already exists
+  for (std::shared_ptr<T>& existing: dst) {
+    if (item->get_canonical_name() == existing->get_canonical_name()) {
+      // must be identical
+      if (!item->__eq__(*existing)) {
+        throw ValueError(
+            "Adding object of " + item->class_name + " with name '" + item->name +
+            "' and canonical name '"  + item->get_canonical_name() + "' caused an error, object with the same name is already present but it is different."
+        );
+      }
+      else {
+        std::cerr << "Warning: adding of " + item->class_name + " with name '" + item->name +
+            "' and canonical name '"  + item->get_canonical_name() + "' is ignored, identical object is already present.\n";
+        return;
       }
     }
   }
@@ -100,17 +90,30 @@ void append_to_vec_canonical_name(
   dst.push_back(item);
 }
 
+
 template<class T>
 void append_vec_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
     const std::vector<std::shared_ptr<T>>& src,
-    const bool allow_same_name_different_contents = false,
-    const bool allow_unnamed_different_contents = false
+    const bool allow_same_name_different_contents = false
 ) {
 
   for (const std::shared_ptr<T>& item: src) {
     append_to_vec(
-        dst, item, allow_same_name_different_contents, allow_unnamed_different_contents);
+        dst, item, allow_same_name_different_contents);
+  }
+}
+
+
+
+template<class T>
+void append_vec_to_vec_canonical_name(
+    std::vector<std::shared_ptr<T>>& dst,
+    const std::vector<std::shared_ptr<T>>& src
+) {
+
+  for (const std::shared_ptr<T>& item: src) {
+    append_to_vec_canonical_name(dst, item);
   }
 }
 

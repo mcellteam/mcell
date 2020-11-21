@@ -54,10 +54,10 @@ Model::~Model() {
 void Model::add_subsystem(std::shared_ptr<Subsystem> subsystem) {
   error_if_initialized(NAME_CLASS_SUBSYSTEM);
 
-  append_vec_to_vec(elementary_molecule_types, subsystem->elementary_molecule_types);
-  append_vec_to_vec(species, subsystem->species);
+  append_vec_to_vec_canonical_name(elementary_molecule_types, subsystem->elementary_molecule_types);
+  append_vec_to_vec_canonical_name(species, subsystem->species);
   append_vec_to_vec(surface_classes, subsystem->surface_classes);
-  append_vec_to_vec(reaction_rules, subsystem->reaction_rules, false, true);
+  append_vec_to_vec_canonical_name(reaction_rules, subsystem->reaction_rules);
 }
 
 

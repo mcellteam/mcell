@@ -111,7 +111,7 @@ void Subsystem::convert_molecule_type(const BNG::BNGData& bng_data, const BNG::M
     res_mt->components.push_back(ct);
   }
 
-  append_to_vec(elementary_molecule_types, res_mt);
+  append_to_vec_canonical_name(elementary_molecule_types, res_mt);
 }
 
 
@@ -143,7 +143,7 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   }
 
   // allow reactions with identical names
-  append_to_vec(reaction_rules, res_rr, false, true);
+  append_to_vec_canonical_name(reaction_rules, res_rr);
 }
 
 

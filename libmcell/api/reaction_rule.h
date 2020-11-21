@@ -82,6 +82,10 @@ public:
   // added methods
   bool eq_reactants_and_products(const ReactionRule& other) const;
 
+
+  // FIXME:
+  std::string get_canonical_name() const { return to_bngl_str(); }
+
   // simulation engine mapping
   BNG::rxn_rule_id_t fwd_rxn_rule_id;
   BNG::rxn_rule_id_t rev_rxn_rule_id;

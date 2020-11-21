@@ -40,6 +40,7 @@ int parse_bngl_file(
   int res = bnglparse();
   if (res != 0) {
     // parse error, do not continue
+    BNG::delete_parser_context();
     return 1;
   }
 
@@ -82,6 +83,7 @@ int parse_single_cplx_string(
 
   if (res != 0) {
     // parse error, do not continue
+    BNG::delete_parser_context();
     return 1;
   }
 
