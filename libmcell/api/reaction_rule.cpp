@@ -75,10 +75,11 @@ bool ReactionRule::__eq__(const ReactionRule& other) const {
 }
 
 
-std::string ReactionRule::to_bngl_str() const {
+std::string ReactionRule::to_bngl_str_w_orientation(
+    bool replace_orientation_w_up_down_compartments) const {
   string res;
   for (size_t i = 0; i < reactants.size(); i++) {
-    res += reactants[i]->to_bngl_str();
+    res += reactants[i]->to_bngl_str_w_orientation(replace_orientation_w_up_down_compartments);
     if (i + 1 != reactants.size()) {
       res += " + ";
     }
@@ -93,7 +94,7 @@ std::string ReactionRule::to_bngl_str() const {
 
   if (!products.empty()) {
     for (size_t i = 0; i < products.size(); i++) {
-      res += products[i]->to_bngl_str();
+      res += products[i]->to_bngl_str_w_orientation(replace_orientation_w_up_down_compartments);
       if (i + 1 != products.size()) {
         res += " + ";
       }

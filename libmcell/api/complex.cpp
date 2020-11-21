@@ -75,7 +75,7 @@ bool Complex::__eq__(const Complex& other) const {
 }
 
 
-std::string Complex::to_bngl_str() const {
+std::string Complex::to_bngl_str_w_orientation(bool replace_orientation_w_up_down_compartments) const {
   string res;
   bool add_compartment = false;
   if (is_set(name)) {
@@ -92,11 +92,21 @@ std::string Complex::to_bngl_str() const {
       }
     }
 
-    if (orientation == Orientation::UP) {
-      res += "'";
+    if (!replace_orientation_w_up_down_compartments) {
+      if (orientation == Orientation::UP) {
+        res += "'";
+      }
+      else if (orientation == Orientation::DOWN) {
+        res += ",";
+      }
     }
-    else if (orientation == Orientation::DOWN) {
-      res += ",";
+    else {
+      if (orientation == Orientation::UP) {
+        res += BNG::MCELL_COMPARTMENT_UP;
+      }
+      else if (orientation == Orientation::DOWN) {
+        res += BNG::MCELL_COMPARTMENT_DOWN;
+      }
     }
 
     if (is_set(compartment_name)) {

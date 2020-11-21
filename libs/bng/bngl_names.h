@@ -48,6 +48,9 @@ const char* const PARAM_V = "V";
 
 const char* const IND = "  ";
 
+const char* const MCELL_COMPARTMENT_UP = "@_UP_";
+const char* const MCELL_COMPARTMENT_DOWN = "@_DOWN_";
+
 } // namespace BNG
 
 #endif LIBS_BNG_BNGL_NAMES_H_

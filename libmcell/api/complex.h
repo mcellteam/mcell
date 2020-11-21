@@ -91,7 +91,9 @@ public:
 
   bool __eq__(const Complex& other) const override;
 
-  std::string to_bngl_str() const override;
+  std::string to_bngl_str() const override {
+    return to_bngl_str_w_orientation();
+  }
 
   std::shared_ptr<Species> as_species() override;
 
@@ -100,6 +102,8 @@ public:
     return !is_surf();
   }
   bool is_surf() const;
+
+  std::string to_bngl_str_w_orientation(bool replace_orientation_w_up_down_compartments = false) const;
 
   // not really const, sets mutable members that serve as cache
   const std::string& get_canonical_name() const;

@@ -77,11 +77,14 @@ public:
 
   bool __eq__(const ReactionRule& other) const override;
 
-  std::string to_bngl_str() const override;
+  std::string to_bngl_str() const override {
+    return to_bngl_str_w_orientation();
+  }
 
   // added methods
   bool eq_reactants_and_products(const ReactionRule& other) const;
 
+  std::string to_bngl_str_w_orientation(bool replace_orientation_w_up_down_compartments = false) const;
 
   // FIXME:
   std::string get_canonical_name() const { return to_bngl_str(); }

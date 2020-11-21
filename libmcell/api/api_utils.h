@@ -71,19 +71,29 @@ void append_to_vec_canonical_name(
 
   // check if item with this name already exists
   for (std::shared_ptr<T>& existing: dst) {
+    bool are_equal = item->__eq__(*existing);
     if (item->get_canonical_name() == existing->get_canonical_name()) {
       // must be identical
-      if (!item->__eq__(*existing)) {
+      if (!are_equal) {
         throw ValueError(
             "Adding object of " + item->class_name + " with name '" + item->name +
-            "' and canonical name '"  + item->get_canonical_name() + "' caused an error, object with the same name is already present but it is different."
+            "' and canonical name '"  + item->get_canonical_name() + "' caused an error, object with the same canonical name is already present but it is different."
         );
       }
       else {
         std::cerr << "Warning: adding of " + item->class_name + " with name '" + item->name +
-            "' and canonical name '"  + item->get_canonical_name() + "' is ignored, identical object is already present.\n";
+            "' and canonical name '"  + item->get_canonical_name() + "' is ignored, object with the same canonical name is already present.\n";
         return;
       }
+
+    }
+
+    // also check, if name is set, that I cannot have different objects with the same name
+    if (is_set(item->name) && item->name == existing->name && !are_equal) {
+      throw ValueError(
+          "Adding object of " + item->class_name + " with name '" + item->name +
+          "' caused an error, object with the same name is already present but it is different."
+      );
     }
   }
 

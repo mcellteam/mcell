@@ -1009,11 +1009,12 @@ void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxNode* cplx_
           }
         }
         else {
-          // there is no such component, this is an error for now
-          errs_loc(c) <<
-              "Molecule type " + mt.name + " was previously defined without component " + comp_node->name +
-              ", this is not allowed. All molecule type occurrences must use all components.\n";
-          ctx->inc_error_count();
+          // there is no such component, this may happen in cases such as:
+          // CaMKII(l!1,Y286~0,cam!2).CaM(C~0,N~0,camkii!2).CaMKII(r!1,Y286~P)
+          // we must add the component to the molecule type
+          ComponentType ct = convert_component_type(to_component_node(c), true);
+          component_type_id_t new_ct_id = bng_data->find_or_add_component_type(ct);
+          mt.component_type_ids.push_back(new_ct_id);
         }
       }
     }
