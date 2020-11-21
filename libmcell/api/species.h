@@ -160,6 +160,8 @@ public:
     return BNG::is_species_superclass(name);
   }
 
+  bool warn_if_adding_identical_object() const { return true; }
+
   // simulation engine mapping
   species_id_t species_id;
 };

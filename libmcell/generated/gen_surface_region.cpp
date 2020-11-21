@@ -106,9 +106,9 @@ bool GenSurfaceRegion::__eq__(const SurfaceRegion& other) const {
      ) ;
 }
 
-bool GenSurfaceRegion::eq_nonarray_attributes(const SurfaceRegion& other) const {
+bool GenSurfaceRegion::eq_nonarray_attributes(const SurfaceRegion& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     true /*wall_indices*/ &&
     (
       (is_set(surface_class)) ?

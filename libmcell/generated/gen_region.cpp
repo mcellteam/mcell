@@ -76,7 +76,7 @@ bool GenRegion::__eq__(const Region& other) const {
      ) ;
 }
 
-bool GenRegion::eq_nonarray_attributes(const Region& other) const {
+bool GenRegion::eq_nonarray_attributes(const Region& other, const bool ignore_name) const {
   return
     node_type == other.node_type &&
     (

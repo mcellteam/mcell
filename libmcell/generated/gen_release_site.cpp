@@ -118,9 +118,9 @@ bool GenReleaseSite::__eq__(const ReleaseSite& other) const {
     release_probability == other.release_probability;
 }
 
-bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other) const {
+bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     (
       (is_set(complex)) ?
         (is_set(other.complex) ?

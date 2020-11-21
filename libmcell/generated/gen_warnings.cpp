@@ -44,7 +44,7 @@ bool GenWarnings::__eq__(const Warnings& other) const {
 true ;
 }
 
-bool GenWarnings::eq_nonarray_attributes(const Warnings& other) const {
+bool GenWarnings::eq_nonarray_attributes(const Warnings& other, const bool ignore_name) const {
   return
 true ;
 }

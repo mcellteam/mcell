@@ -62,10 +62,8 @@ bool ReactionRule::eq_reactants_and_products(const ReactionRule& other) const {
 }
 */
 
-
 bool ReactionRule::__eq__(const ReactionRule& other) const {
-  // ignore name when comparing
-  if (!eq_nonarray_attributes(other, true)) {
+  if (!eq_nonarray_attributes(other)) {
     return false;
   }
 
@@ -73,26 +71,16 @@ bool ReactionRule::__eq__(const ReactionRule& other) const {
     return false;
   }
 
-  string n1 = get_canonical_name();
-  string n2 = other.get_canonical_name();
-
-  return n1 == n2;
+  return get_canonical_name() == other.get_canonical_name();
+  //return eq_reactants_and_products(other);
 }
 
 
-static std::string get_rxn_side_str(
-    const std::vector<std::shared_ptr<Complex>>& cplxs,
-    const bool canonical) {
-
+static std::string get_rxn_side_str(const std::vector<std::shared_ptr<Complex>>& cplxs) {
   string res;
   if (!cplxs.empty()) {
     for (size_t i = 0; i < cplxs.size(); i++) {
-      if (!canonical) {
-        res += cplxs[i]->to_bngl_str();
-      }
-      else {
-        res += cplxs[i]->get_canonical_name();
-      }
+      res += cplxs[i]->to_bngl_str();
       if (i + 1 != cplxs.size()) {
         res += " + ";
       }
@@ -108,11 +96,9 @@ static std::string get_rxn_side_str(
 static std::string get_rxn_str(
     const std::vector<std::shared_ptr<Complex>>& reactants,
     const std::vector<std::shared_ptr<Complex>>& products,
-    const float_t rev_rate,
-    bool canonical) {
-
+    const float_t rev_rate) {
   string res;
-  res = get_rxn_side_str(reactants, canonical);
+  res = get_rxn_side_str(reactants);
 
   if (is_set(rev_rate)) {
     res += " <-> ";
@@ -121,19 +107,17 @@ static std::string get_rxn_str(
     res += " -> ";
   }
 
-  res += get_rxn_side_str(products, canonical);
+  res += get_rxn_side_str(products);
   return res;
 }
 
 
-std::string ReactionRule::to_bngl_str_w_orientation(
-    bool replace_orientation_w_up_down_compartments) const {
-
-  return get_rxn_str(reactants, products, rev_rate, replace_orientation_w_up_down_compartments);
+std::string ReactionRule::to_bngl_str() const {
+  return get_rxn_str(reactants, products, rev_rate);
 }
 
 
-static void sort_by_canonical_name(std::vector<std::shared_ptr<Complex>>& vec) {
+static void sort_by_canonical_name(std::vector<std::shared_ptr<Complex>> vec) {
   std::sort(vec.begin(), vec.end(),
       [](const std::shared_ptr<Complex>& a, const std::shared_ptr<Complex>& b) -> bool {
           return a->get_canonical_name() < b->get_canonical_name();
@@ -143,14 +127,17 @@ static void sort_by_canonical_name(std::vector<std::shared_ptr<Complex>>& vec) {
 
 std::string ReactionRule::get_canonical_name() const {
 
-  std::vector<std::shared_ptr<Complex>> r_sorted = reactants;
+  std::vector<std::shared_ptr<Complex>> r_sorted;
+  r_sorted = reactants;
   sort_by_canonical_name(r_sorted);
 
-  std::vector<std::shared_ptr<Complex>> p_sorted = products;
+  std::vector<std::shared_ptr<Complex>> p_sorted;
+  p_sorted = products;
   sort_by_canonical_name(p_sorted);
 
-  return get_rxn_str(r_sorted, p_sorted, rev_rate, true);
+  return get_rxn_str(r_sorted, p_sorted, rev_rate);
 }
+
 
 } // namespace API
 } // namespace MCell

@@ -38,7 +38,7 @@ bool GenInstantiationData::__eq__(const InstantiationData& other) const {
     vec_ptr_eq(geometry_objects, other.geometry_objects);
 }
 
-bool GenInstantiationData::eq_nonarray_attributes(const InstantiationData& other) const {
+bool GenInstantiationData::eq_nonarray_attributes(const InstantiationData& other, const bool ignore_name) const {
   return
     true /*release_sites*/ &&
     true /*geometry_objects*/;

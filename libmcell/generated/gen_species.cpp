@@ -67,15 +67,15 @@ bool GenSpecies::__eq__(const Species& other) const {
     compartment_name == other.compartment_name;
 }
 
-bool GenSpecies::eq_nonarray_attributes(const Species& other) const {
+bool GenSpecies::eq_nonarray_attributes(const Species& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     diffusion_constant_2d == other.diffusion_constant_2d &&
     diffusion_constant_3d == other.diffusion_constant_3d &&
     custom_time_step == other.custom_time_step &&
     custom_space_step == other.custom_space_step &&
     target_only == other.target_only &&
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     true /*elementary_molecule_instances*/ &&
     orientation == other.orientation &&
     compartment_name == other.compartment_name;

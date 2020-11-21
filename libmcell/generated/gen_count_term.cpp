@@ -139,7 +139,7 @@ bool GenCountTerm::__eq__(const CountTerm& other) const {
      ) ;
 }
 
-bool GenCountTerm::eq_nonarray_attributes(const CountTerm& other) const {
+bool GenCountTerm::eq_nonarray_attributes(const CountTerm& other, const bool ignore_name) const {
   return
     (
       (is_set(species_pattern)) ?

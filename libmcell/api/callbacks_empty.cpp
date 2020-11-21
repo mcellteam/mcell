@@ -30,22 +30,21 @@
 namespace MCell {
 namespace API {
 
-Callbacks::Callbacks(Model* model_) {
+Callbacks::Callbacks(Model*) {
   // empty
 }
 
-
-void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo> info) {
+void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo>) {
   release_assert("must not be called");
 }
 
 // we also need some implementations for MolWallHitInfo
-bool GenMolWallHitInfo::__eq__(const MolWallHitInfo& other) const {
+bool GenMolWallHitInfo::__eq__(const MolWallHitInfo&) const {
   release_assert("must not be called");
   return false;
 }
 
-bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other) const {
+bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo&, const bool) const {
   release_assert("must not be called");
   return false;
 }

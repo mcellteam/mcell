@@ -66,7 +66,7 @@ bool GenElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& oth
     vec_ptr_eq(components, other.components);
 }
 
-bool GenElementaryMoleculeInstance::eq_nonarray_attributes(const ElementaryMoleculeInstance& other) const {
+bool GenElementaryMoleculeInstance::eq_nonarray_attributes(const ElementaryMoleculeInstance& other, const bool ignore_name) const {
   return
     (
       (is_set(elementary_molecule_type)) ?

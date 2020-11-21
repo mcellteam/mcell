@@ -72,17 +72,22 @@ void append_to_vec_canonical_name(
   // check if item with this name already exists
   for (std::shared_ptr<T>& existing: dst) {
     bool are_equal = item->__eq__(*existing);
+
+    std::string name_in_msg = "object of " + item->class_name +
+        (is_set(item->name) ? " with name '" + item->name : S("")) +
+        "' and canonical name '"  + item->get_canonical_name() + "'";
+
     if (item->get_canonical_name() == existing->get_canonical_name()) {
       // must be identical
       if (!are_equal) {
         throw ValueError(
-            "Adding object of " + item->class_name + " with name '" + item->name +
-            "' and canonical name '"  + item->get_canonical_name() + "' caused an error, object with the same canonical name is already present but it is different."
+            "Adding " + name_in_msg + " caused an error, object with the same canonical name is already present but it is different."
         );
       }
       else {
-        std::cerr << "Warning: adding of " + item->class_name + " with name '" + item->name +
-            "' and canonical name '"  + item->get_canonical_name() + "' is ignored, object with the same canonical name is already present.\n";
+        if (item->warn_if_adding_identical_object()) {
+          std::cerr << "Warning: adding of " + name_in_msg + " is ignored, object with the same canonical name is already present.\n";
+        }
         return;
       }
 
@@ -91,8 +96,7 @@ void append_to_vec_canonical_name(
     // also check, if name is set, that I cannot have different objects with the same name
     if (is_set(item->name) && item->name == existing->name && !are_equal) {
       throw ValueError(
-          "Adding object of " + item->class_name + " with name '" + item->name +
-          "' caused an error, object with the same name is already present but it is different."
+          "Adding object of " + name_in_msg + " caused an error, object with the same name is already present but it is different."
       );
     }
   }

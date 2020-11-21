@@ -62,7 +62,7 @@ public:
   void set_all_attributes_as_default_or_unset() override;
 
   virtual bool __eq__(const ReactionRule& other) const;
-  virtual bool eq_nonarray_attributes(const ReactionRule& other) const;
+  virtual bool eq_nonarray_attributes(const ReactionRule& other, const bool ignore_name = false) const;
   bool operator == (const ReactionRule& other) const { return __eq__(other);}
   bool operator != (const ReactionRule& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;

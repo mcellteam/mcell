@@ -77,18 +77,12 @@ public:
 
   bool __eq__(const ReactionRule& other) const override;
 
-  std::string to_bngl_str() const override {
-    return to_bngl_str_w_orientation();
-  }
+  std::string to_bngl_str() const override;
 
   // added methods
-  bool eq_reactants_and_products(const ReactionRule& other) const;
-
-  std::string to_bngl_str_w_orientation(bool replace_orientation_w_up_down_compartments = false) const;
+  //bool eq_reactants_and_products(const ReactionRule& other) const;
 
   std::string get_canonical_name() const;
-
-  bool warn_if_adding_identical_object() const { return true; }
 
   // simulation engine mapping
   BNG::rxn_rule_id_t fwd_rxn_rule_id;

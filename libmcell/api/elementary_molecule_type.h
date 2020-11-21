@@ -52,6 +52,8 @@ public:
   // added methods
   std::string get_canonical_name() const;
 
+  bool warn_if_adding_identical_object() const { return false; }
+
   // mapping to MCell4
   BNG::mol_type_id_t mol_type_id;
 };

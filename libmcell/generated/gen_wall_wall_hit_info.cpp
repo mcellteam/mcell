@@ -80,7 +80,7 @@ bool GenWallWallHitInfo::__eq__(const WallWallHitInfo& other) const {
      ) ;
 }
 
-bool GenWallWallHitInfo::eq_nonarray_attributes(const WallWallHitInfo& other) const {
+bool GenWallWallHitInfo::eq_nonarray_attributes(const WallWallHitInfo& other, const bool ignore_name) const {
   return
     (
       (is_set(wall1)) ?

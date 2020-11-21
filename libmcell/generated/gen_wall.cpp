@@ -84,7 +84,7 @@ bool GenWall::__eq__(const Wall& other) const {
     is_movable == other.is_movable;
 }
 
-bool GenWall::eq_nonarray_attributes(const Wall& other) const {
+bool GenWall::eq_nonarray_attributes(const Wall& other, const bool ignore_name) const {
   return
     (
       (is_set(geometry_object)) ?

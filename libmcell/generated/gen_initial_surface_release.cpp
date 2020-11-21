@@ -66,7 +66,7 @@ bool GenInitialSurfaceRelease::__eq__(const InitialSurfaceRelease& other) const 
     density == other.density;
 }
 
-bool GenInitialSurfaceRelease::eq_nonarray_attributes(const InitialSurfaceRelease& other) const {
+bool GenInitialSurfaceRelease::eq_nonarray_attributes(const InitialSurfaceRelease& other, const bool ignore_name) const {
   return
     (
       (is_set(complex)) ?

@@ -47,7 +47,7 @@ bool GenNotifications::__eq__(const Notifications& other) const {
     rxn_and_species_report == other.rxn_and_species_report;
 }
 
-bool GenNotifications::eq_nonarray_attributes(const Notifications& other) const {
+bool GenNotifications::eq_nonarray_attributes(const Notifications& other, const bool ignore_name) const {
   return
     bng_verbosity_level == other.bng_verbosity_level &&
     rxn_and_species_report == other.rxn_and_species_report;

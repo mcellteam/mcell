@@ -65,7 +65,7 @@ bool GenMolecule::__eq__(const Molecule& other) const {
     orientation == other.orientation;
 }
 
-bool GenMolecule::eq_nonarray_attributes(const Molecule& other) const {
+bool GenMolecule::eq_nonarray_attributes(const Molecule& other, const bool ignore_name) const {
   return
     id == other.id &&
     (

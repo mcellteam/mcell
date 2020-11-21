@@ -54,9 +54,9 @@ bool GenComplex::__eq__(const Complex& other) const {
     compartment_name == other.compartment_name;
 }
 
-bool GenComplex::eq_nonarray_attributes(const Complex& other) const {
+bool GenComplex::eq_nonarray_attributes(const Complex& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     true /*elementary_molecule_instances*/ &&
     orientation == other.orientation &&
     compartment_name == other.compartment_name;

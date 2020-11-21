@@ -41,13 +41,14 @@ const std::string& Complex::get_canonical_name() const {
   BNG::BNGEngine bng_engine(bng_config);
 
   // parse cplx string
+  string bngl_str = to_bngl_str_w_orientation(true);
   BNG::Cplx cplx_inst(&bng_engine.get_data());
   int num_errors = BNG::parse_single_cplx_string(
-      to_bngl_str(), bng_engine.get_data(),
+      bngl_str, bng_engine.get_data(),
       cplx_inst
   );
   if (num_errors != 0) {
-    throw RuntimeError("While creating canonical name for a Complex, could not parse '" + to_bngl_str() + "'.");
+    throw RuntimeError("While creating canonical name for a Complex, could not parse '" + bngl_str + "'.");
   }
   assert(!cplx_inst.mol_instances.empty());
 
@@ -58,6 +59,23 @@ const std::string& Complex::get_canonical_name() const {
   new_species.canonicalize(true);
 
   canonical_name = new_species.name;
+
+  // conversion to Species caused compartment and orientation to be ignored
+  if (orientation == Orientation::UP) {
+    canonical_name += "'";
+  }
+  else if (orientation == Orientation::DOWN) {
+    canonical_name += ",";
+  }
+  if (is_set(compartment_name)) {
+    if (name.find('.') == string::npos) {
+      canonical_name += "@" + compartment_name;
+    }
+    else {
+      canonical_name = "@" + compartment_name + ":" + canonical_name;
+    }
+  }
+
   cached_data_are_uptodate = true;
   return canonical_name;
 }
@@ -78,6 +96,7 @@ bool Complex::__eq__(const Complex& other) const {
 std::string Complex::to_bngl_str_w_orientation(bool replace_orientation_w_up_down_compartments) const {
   string res;
   bool add_compartment = false;
+  bool orientation_replaced = false;
   if (is_set(name)) {
     res = name;
     if (is_set(compartment_name) && name.find('@') == string::npos) {
@@ -103,9 +122,11 @@ std::string Complex::to_bngl_str_w_orientation(bool replace_orientation_w_up_dow
     else {
       if (orientation == Orientation::UP) {
         res += BNG::MCELL_COMPARTMENT_UP;
+        orientation_replaced = true;
       }
       else if (orientation == Orientation::DOWN) {
         res += BNG::MCELL_COMPARTMENT_DOWN;
+        orientation_replaced = true;
       }
     }
 
@@ -115,11 +136,12 @@ std::string Complex::to_bngl_str_w_orientation(bool replace_orientation_w_up_dow
   }
 
   if (add_compartment) {
+    string at_str = (orientation_replaced) ? "" : "@";
     if (name.find('.') == string::npos) {
-      res += "@" + compartment_name;
+      res += at_str + compartment_name;
     }
     else {
-      res = "@" + compartment_name + ":" + res;
+      res = at_str + compartment_name + ":" + res;
     }
   }
 

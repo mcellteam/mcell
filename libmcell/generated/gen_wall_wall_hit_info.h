@@ -50,7 +50,7 @@ public:
   void set_all_attributes_as_default_or_unset() override;
 
   virtual bool __eq__(const WallWallHitInfo& other) const;
-  virtual bool eq_nonarray_attributes(const WallWallHitInfo& other) const;
+  virtual bool eq_nonarray_attributes(const WallWallHitInfo& other, const bool ignore_name = false) const;
   bool operator == (const WallWallHitInfo& other) const { return __eq__(other);}
   bool operator != (const WallWallHitInfo& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;

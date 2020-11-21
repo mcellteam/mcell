@@ -40,7 +40,7 @@ bool GenSubsystem::__eq__(const Subsystem& other) const {
     vec_ptr_eq(elementary_molecule_types, other.elementary_molecule_types);
 }
 
-bool GenSubsystem::eq_nonarray_attributes(const Subsystem& other) const {
+bool GenSubsystem::eq_nonarray_attributes(const Subsystem& other, const bool ignore_name) const {
   return
     true /*species*/ &&
     true /*reaction_rules*/ &&

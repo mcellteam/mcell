@@ -50,7 +50,7 @@ bool GenMolWallHitInfo::__eq__(const MolWallHitInfo& other) const {
     pos_before_hit == other.pos_before_hit;
 }
 
-bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other) const {
+bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other, const bool ignore_name) const {
   return
     molecule_id == other.molecule_id &&
     (

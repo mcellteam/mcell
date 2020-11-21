@@ -67,7 +67,7 @@ bool GenMoleculeReleaseInfo::__eq__(const MoleculeReleaseInfo& other) const {
     location == other.location;
 }
 
-bool GenMoleculeReleaseInfo::eq_nonarray_attributes(const MoleculeReleaseInfo& other) const {
+bool GenMoleculeReleaseInfo::eq_nonarray_attributes(const MoleculeReleaseInfo& other, const bool ignore_name) const {
   return
     (
       (is_set(complex)) ?

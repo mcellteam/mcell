@@ -119,9 +119,9 @@ bool GenGeometryObject::__eq__(const GeometryObject& other) const {
      ) ;
 }
 
-bool GenGeometryObject::eq_nonarray_attributes(const GeometryObject& other) const {
+bool GenGeometryObject::eq_nonarray_attributes(const GeometryObject& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     true /*vertex_list*/ &&
     true /*wall_list*/ &&
     is_bngl_compartment == other.is_bngl_compartment &&

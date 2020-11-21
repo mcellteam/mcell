@@ -64,9 +64,9 @@ bool GenElementaryMoleculeType::__eq__(const ElementaryMoleculeType& other) cons
     target_only == other.target_only;
 }
 
-bool GenElementaryMoleculeType::eq_nonarray_attributes(const ElementaryMoleculeType& other) const {
+bool GenElementaryMoleculeType::eq_nonarray_attributes(const ElementaryMoleculeType& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     true /*components*/ &&
     diffusion_constant_2d == other.diffusion_constant_2d &&
     diffusion_constant_3d == other.diffusion_constant_3d &&

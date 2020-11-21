@@ -163,7 +163,7 @@ bool GenCount::__eq__(const Count& other) const {
      ) ;
 }
 
-bool GenCount::eq_nonarray_attributes(const Count& other) const {
+bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name) const {
   return
     file_name == other.file_name &&
     (

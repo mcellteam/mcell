@@ -67,7 +67,7 @@ bool GenConfig::__eq__(const Config& other) const {
     sort_molecules == other.sort_molecules;
 }
 
-bool GenConfig::eq_nonarray_attributes(const Config& other) const {
+bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_name) const {
   return
     seed == other.seed &&
     time_step == other.time_step &&

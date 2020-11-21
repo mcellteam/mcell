@@ -60,9 +60,9 @@ bool GenReactionRule::__eq__(const ReactionRule& other) const {
     variable_rate == other.variable_rate;
 }
 
-bool GenReactionRule::eq_nonarray_attributes(const ReactionRule& other) const {
+bool GenReactionRule::eq_nonarray_attributes(const ReactionRule& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     true /*reactants*/ &&
     true /*products*/ &&
     fwd_rate == other.fwd_rate &&

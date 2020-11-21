@@ -72,9 +72,9 @@ bool GenSurfaceClass::__eq__(const SurfaceClass& other) const {
     concentration == other.concentration;
 }
 
-bool GenSurfaceClass::eq_nonarray_attributes(const SurfaceClass& other) const {
+bool GenSurfaceClass::eq_nonarray_attributes(const SurfaceClass& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     true /*properties*/ &&
     type == other.type &&
     (

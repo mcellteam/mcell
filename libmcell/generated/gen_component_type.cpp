@@ -51,9 +51,9 @@ bool GenComponentType::__eq__(const ComponentType& other) const {
     states == other.states;
 }
 
-bool GenComponentType::eq_nonarray_attributes(const ComponentType& other) const {
+bool GenComponentType::eq_nonarray_attributes(const ComponentType& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     true /*states*/;
 }
 

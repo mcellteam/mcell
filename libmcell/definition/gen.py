@@ -723,7 +723,7 @@ def write_gen_class(f, class_def, class_name):
         f.write('  ' +  RET_TYPE_SET_ALL_DEFAULT_OR_UNSET + ' ' + SET_ALL_DEFAULT_OR_UNSET_DECL + ' ' + KEYWORD_OVERRIDE + ';\n\n')
 
     f.write('  virtual bool __eq__(const ' + class_name + '& other) const;\n')
-    f.write('  virtual bool eq_nonarray_attributes(const ' + class_name + '& other) const;\n')
+    f.write('  virtual bool eq_nonarray_attributes(const ' + class_name + '& other, const bool ignore_name = false) const;\n')
     f.write('  bool operator == (const ' + class_name + '& other) const { return __eq__(other);}\n')
     f.write('  bool operator != (const ' + class_name + '& other) const { return !__eq__(other);}\n')
 
@@ -985,18 +985,14 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write('}\n\n')                
 
 
-def write_operator_equal_body(f, class_name, class_def, array_attributes=True):
+def write_operator_equal_body(f, class_name, class_def, skip_arrays_and_name=False):
     items = class_def[KEY_ITEMS]
 
     f.write('  return\n') 
-    #if has_single_superclass(class_def):
-    #    f.write('    name == other.name')
-    
+
     if not items:
         f.write('true ;\n')
-    #elif has_single_superclass(class_def):
-    #    f.write(' &&\n')
-    
+   
     num_attrs = len(items) 
     for i in range(num_attrs):
         name = items[i][KEY_NAME]
@@ -1018,7 +1014,7 @@ def write_operator_equal_body(f, class_name, class_def, array_attributes=True):
             )
             
         elif is_yaml_list_type(t):
-            if array_attributes:
+            if not skip_arrays_and_name:
                 if is_yaml_ptr_type(get_inner_list_type(t)):
                     f.write('    vec_ptr_eq(' + name + ', other.' + name + ')')
                 else:
@@ -1026,7 +1022,10 @@ def write_operator_equal_body(f, class_name, class_def, array_attributes=True):
             else:
                 f.write('    true /*' + name + '*/')
         else:
-            f.write('    ' + name + ' == other.' + name)
+            if skip_arrays_and_name and name == KEY_NAME:
+                f.write('    (ignore_name || ' + name + ' == other.' + name + ')')
+            else:
+                f.write('    ' + name + ' == other.' + name)
             
         if i != num_attrs - 1:
             f.write(' &&')
@@ -1046,8 +1045,8 @@ def write_operator_equal_implementation(f, class_name, class_def):
     write_operator_equal_body(f, class_name, class_def)
     f.write('}\n\n')    
     
-    f.write('bool ' + gen_class_name + '::eq_nonarray_attributes(const ' + class_name + '& other) const {\n')
-    write_operator_equal_body(f, class_name, class_def, array_attributes=False)
+    f.write('bool ' + gen_class_name + '::eq_nonarray_attributes(const ' + class_name + '& other, const bool ignore_name) const {\n')
+    write_operator_equal_body(f, class_name, class_def, skip_arrays_and_name=True)
     f.write('}\n\n')    
 
 

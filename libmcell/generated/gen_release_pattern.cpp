@@ -53,9 +53,9 @@ bool GenReleasePattern::__eq__(const ReleasePattern& other) const {
     number_of_trains == other.number_of_trains;
 }
 
-bool GenReleasePattern::eq_nonarray_attributes(const ReleasePattern& other) const {
+bool GenReleasePattern::eq_nonarray_attributes(const ReleasePattern& other, const bool ignore_name) const {
   return
-    name == other.name &&
+    (ignore_name || name == other.name) &&
     release_interval == other.release_interval &&
     train_duration == other.train_duration &&
     train_interval == other.train_interval &&

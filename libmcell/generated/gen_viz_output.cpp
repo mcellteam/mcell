@@ -58,7 +58,7 @@ bool GenVizOutput::__eq__(const VizOutput& other) const {
     every_n_timesteps == other.every_n_timesteps;
 }
 
-bool GenVizOutput::eq_nonarray_attributes(const VizOutput& other) const {
+bool GenVizOutput::eq_nonarray_attributes(const VizOutput& other, const bool ignore_name) const {
   return
     output_files_prefix == other.output_files_prefix &&
     true /*species_list*/ &&

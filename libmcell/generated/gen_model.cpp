@@ -62,7 +62,7 @@ bool GenModel::__eq__(const Model& other) const {
     vec_ptr_eq(counts, other.counts);
 }
 
-bool GenModel::eq_nonarray_attributes(const Model& other) const {
+bool GenModel::eq_nonarray_attributes(const Model& other, const bool ignore_name) const {
   return
     config == other.config &&
     warnings == other.warnings &&

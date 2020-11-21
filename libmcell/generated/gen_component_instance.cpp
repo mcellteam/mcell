@@ -66,7 +66,7 @@ bool GenComponentInstance::__eq__(const ComponentInstance& other) const {
     bond == other.bond;
 }
 
-bool GenComponentInstance::eq_nonarray_attributes(const ComponentInstance& other) const {
+bool GenComponentInstance::eq_nonarray_attributes(const ComponentInstance& other, const bool ignore_name) const {
   return
     (
       (is_set(component_type)) ?
