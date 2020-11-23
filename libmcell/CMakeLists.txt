@@ -31,6 +31,7 @@ set(SOURCE_FILES
     api/complex.cpp
     api/species.cpp
     api/reaction_rule.cpp
+    api/surface_class.cpp
     
     api/subsystem.cpp
     api/instantiation_data.cpp

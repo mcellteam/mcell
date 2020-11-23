@@ -69,6 +69,19 @@ public:
     }
   }
 
+  // needed when defining a set of SurfaceProperty(s)
+  bool operator < (const SurfaceProperty& other) const {
+    if (type != other.type) {
+      return type < other.type;
+    }
+    if (concentration != other.concentration) {
+      return concentration < other.concentration;
+    }
+
+    return affected_complex_pattern->get_canonical_name() <
+        other.affected_complex_pattern->get_canonical_name();
+  }
+
   BNG::rxn_rule_id_t rxn_rule_id;
 };
 

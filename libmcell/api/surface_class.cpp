@@ -20,53 +20,33 @@
  *
 ******************************************************************************/
 
-#ifndef API_SURFACE_CLASS_H
-#define API_SURFACE_CLASS_H
-
-#include "generated/gen_surface_class.h"
-#include "api/common.h"
+#include "api/surface_class.h"
 #include "api/surface_property.h"
+
+#include <set>
+
+using namespace std;
 
 namespace MCell {
 namespace API {
 
-class SurfaceClass: public GenSurfaceClass {
-public:
-  SURFACE_CLASS_CTOR()
-
-  void postprocess_in_ctor() override {
-    // initialization
-    species_id = SPECIES_ID_INVALID;
+bool SurfaceClass::__eq__(const SurfaceClass& other) const {
+  if (!eq_nonarray_attributes(other)) {
+    return false;
   }
 
-  void check_semantics() const override {
-    GenSurfaceClass::check_semantics(); // does not call further derived classes
-
-    if (properties.empty()) {
-      SurfaceProperty::check_semantics_custom();
-    }
-    else {
-      // type of used properties must be set
-      for (std::shared_ptr<SurfaceProperty> property: properties) {
-        property->check_semantics_custom();
-      }
-    }
+  // are surface properties the same?
+  std::set<SurfaceProperty> s1;
+  for (auto& c: properties) {
+    s1.insert(*c);
   }
-
-  bool __eq__(const SurfaceClass& other) const override;
-
-  // added methods
-  bool is_clamp() const {
-    return type == SurfacePropertyType::CONCENTRATION_CLAMP ||
-        type == SurfacePropertyType::FLUX_CLAMP;
+  std::set<SurfaceProperty> s2;
+  for (auto& c: other.properties) {
+    s2.insert(*c);
   }
+  return s1 == s2;
+}
 
-  // simulation engine mapping
-  // this is the species_id created for this surface class, not for the affected species
-  species_id_t species_id;
-};
 
 } // namespace API
 } // namespace MCell
-
-#endif // API_SURFACE_CLASS_H

@@ -53,7 +53,7 @@ void append_to_vec(
         }
         else {
           std::cerr << "Warning: adding of " + item->class_name + " with name '" + item->name +
-              "' is ignored, identical object is already present.";
+              "' is ignored, identical object is already present.\n";
           return;
         }
       }
