@@ -73,9 +73,9 @@ void append_to_vec_canonical_name(
   for (std::shared_ptr<T>& existing: dst) {
     bool are_equal = item->__eq__(*existing);
 
-    std::string name_in_msg = "object of " + item->class_name +
-        (is_set(item->name) ? " with name '" + item->name : S("")) +
-        "' and canonical name '"  + item->get_canonical_name() + "'";
+    std::string name_in_msg = "object of " + item->class_name + " with" +
+        (is_set(item->name) ? " name '" + item->name + "' and" : S("")) +
+        " canonical name '"  + item->get_canonical_name() + "'";
 
     if (item->get_canonical_name() == existing->get_canonical_name()) {
       // must be identical
