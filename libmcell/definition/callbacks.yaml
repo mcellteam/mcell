@@ -17,7 +17,7 @@ MolWallHitInfo:
      type: float
      doc: Time of the hit
       
-   - name: pos
+   - name: pos3d
      type: Vec3
      doc: Position of the hit
      
@@ -28,7 +28,52 @@ MolWallHitInfo:
         It is either the start of the molecule's diffusion or 
         if a wall was hit later then the time of last wall hit.
           
-   - name: pos_before_hit
+   - name: pos3d_before_hit
      type: Vec3
      doc: Position of the molecule at time_before_hit
       
+      
+ReactionInfo:
+   doc: Data structure passed to a reaction callback. 
+   items:
+   - name: reactant_ids
+     type: List[int]
+     doc: | 
+        IDs of the reacting molecules, contains 1 ID for a unimolecular reaction, 2 IDs for a bimolecular reaction.
+        For a bimolecular reaction, the first ID is always the molecule that was diffused and the second one 
+        is the molecule that was hit.
+   
+   - name: reaction_rule
+     type: ReactionRule*
+     doc: Reaction rule of the reaction.
+     todo: info on rxn type
+     
+   - name: time
+     type: float
+     doc: Time of the reaction
+     
+   - name: pos3d
+     type: Vec3 
+     doc: Position of the reaction in the 3D space.
+     
+   - name: geometry_object
+     type: GeometryObject*
+     default: unset
+     doc: |
+        Set only for surface reactions
+        Object on whose surface where the reaction occured.
+      
+   - name: wall_index
+     type: int
+     default: -1
+     doc: |
+        Set only for surface reactions
+        Index of wall belonging to the geometry_object where the reacton occured.
+    
+   - name: pos2d
+     type: Vec2 
+     default: unset
+     doc: |
+        Set only for surface reactions
+        Position of the reaction in the 2D uv coordinates defined by the wall where the reaction occured.
+          

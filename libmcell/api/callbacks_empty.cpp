@@ -24,6 +24,7 @@
 // uses this Callbacks class but we do not want to link all the Python
 // libraries it needs
 
+#include "api/reaction_info.h"
 #include "api/callbacks.h"
 #include "api/mol_wall_hit_info.h"
 
@@ -45,6 +46,20 @@ bool GenMolWallHitInfo::__eq__(const MolWallHitInfo&) const {
 }
 
 bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo&, const bool) const {
+  release_assert("must not be called");
+  return false;
+}
+
+void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo>) {
+  release_assert("must not be called");
+}
+
+bool GenReactionInfo::__eq__(const ReactionInfo&) const {
+  release_assert("must not be called");
+  return false;
+}
+
+bool GenReactionInfo::eq_nonarray_attributes(const ReactionInfo&, const bool) const {
   release_assert("must not be called");
   return false;
 }

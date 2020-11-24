@@ -308,8 +308,9 @@ void Model::register_mol_wall_hit_callback(
     std::shared_ptr<GeometryObject> object,
     std::shared_ptr<Species> species
 ) {
+  // TODO: check, only one wall hit callback is allowed now
   if (!initialized) {
-    throw RuntimeError("Model must be initialized before registering callbacks");
+    throw RuntimeError("Model must be initialized before registering callbacks.");
   }
 
   geometry_object_id_t geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;
@@ -329,6 +330,32 @@ void Model::register_mol_wall_hit_callback(
   }
 
   callbacks.register_mol_wall_hit_callback(function, context, geometry_object_id, species_id);
+}
+
+
+void Model::register_reaction_callback(
+    const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function,
+    py::object context,
+    std::shared_ptr<ReactionRule> reaction_rule
+) {
+  // TODO: check, only one vol rxn callback is allowed now
+  if (!initialized) {
+    throw RuntimeError("Model must be initialized before registering callbacks.");
+  }
+
+  if (reaction_rule->is_reversible()) {
+    throw RuntimeError(S("Reaction callback cannot be registered for reversible reactions. ") +
+        "Split the reaction rule's forward and reverese direction into separate " +
+        NAME_REACTION_RULE + " objects.");
+  }
+
+  BNG::rxn_rule_id_t rxn_id = reaction_rule->fwd_rxn_rule_id;
+  if (rxn_id == BNG::RXN_RULE_ID_INVALID) {
+    throw RuntimeError(S(NAME_REACTION_RULE) + reaction_rule->name + " with its BNGL representation " +
+        reaction_rule->to_bngl_str() + " is not present in model.");
+  }
+
+  callbacks.register_rxn_callback(function, context, rxn_id);
 }
 
 
@@ -431,6 +458,16 @@ std::shared_ptr<GeometryObject> Model::get_geometry_object_with_id(const geometr
   return std::shared_ptr<GeometryObject>(nullptr);
 }
 
+
+std::shared_ptr<ReactionRule> Model::get_reaction_rule_with_fwd_id(const BNG::rxn_rule_id_t id) {
+  // not very efficient, we may need some caching/map later
+  for (auto r: reaction_rules) {
+    if (r->fwd_rxn_rule_id == id) {
+      return r;
+    }
+  }
+  return std::shared_ptr<ReactionRule>(nullptr);
+}
 
 void Model::dump() const {
   cout << to_str();

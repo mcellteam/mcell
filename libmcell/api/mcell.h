@@ -64,6 +64,7 @@
 #include "api/wall_wall_hit_info.h"
 
 #include "api/mol_wall_hit_info.h"
+#include "api/reaction_info.h"
 
 #include "generated/gen_geometry_utils.h"
 #include "generated/gen_bngl_utils.h"

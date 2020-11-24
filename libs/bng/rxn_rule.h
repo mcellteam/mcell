@@ -334,6 +334,19 @@ public:
     }
   }
 
+  bool is_vol_rxn() const {
+    if (is_unimol()) {
+      return reactants[0].is_vol();
+    }
+    else if (is_bimol()) {
+      return reactants[0].is_vol() && reactants[1].is_vol();
+    }
+    else {
+      assert(false);
+      return false;
+    }
+  }
+
   bool is_surf_rxn() const {
     if (is_unimol()) {
       return reactants[0].is_surf();

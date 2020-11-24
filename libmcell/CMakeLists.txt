@@ -84,6 +84,7 @@ set(SOURCE_FILES
     generated/gen_wall_wall_hit_info.cpp
     
     generated/gen_mol_wall_hit_info.cpp
+    generated/gen_reaction_info.cpp
 
     generated/gen_constants.cpp
 

@@ -857,6 +857,27 @@ Methods:
   | There can be currently only a single wall hit callback registered.
 
 
+* | **register_reaction_callback**
+
+   * | function: Callable, # std::function<void(std::shared_ptr<ReactionInfo>, py::object)>
+     | Callback function to be called. 
+     | It must have two arguments ReactionInfo and context.
+     | Called when it is decided that the reaction will happen.
+     | After return the reaction proceeds as it would without a callback.
+
+   * | context: Any, # py::object
+     | Context passed to the callback function, the callback function can store
+     | information to this object. Some context must be always passed, even when 
+     | it is a useless python object.
+
+   * | reaction_rule: ReactionRule
+     | The callback function will be called whenever is this reaction rule applied.
+
+
+  | Allows to intercept unimolecular and bimolecular reactions happening in volume.
+  | It is allowed to do state modifications except for removing reacting molecules.
+
+
 * | **load_bngl**
 
    * | file_name: str
@@ -1034,7 +1055,7 @@ Attributes:
 * | **time**: float
   | Time of the hit
 
-* | **pos**: Vec3
+* | **pos3d**: Vec3
   | Position of the hit
 
 * | **time_before_hit**: float
@@ -1042,7 +1063,7 @@ Attributes:
   | It is either the start of the molecule's diffusion or 
   | if a wall was hit later then the time of last wall hit.
 
-* | **pos_before_hit**: Vec3
+* | **pos3d_before_hit**: Vec3
   | Position of the molecule at time_before_hit
 
 Molecule
@@ -1146,6 +1167,39 @@ Methods:
   | All elementary molecule types used in the seed species section must be defined in subsystem.
 
 
+
+ReactionInfo
+============
+
+Data structure passed to a reaction callback.
+
+Attributes:
+***********
+* | **reactant_ids**: List[int]
+  | IDs of the reacting molecules, contains 1 ID for a unimolecular reaction, 2 IDs for a bimolecular reaction.
+  | For a bimolecular reaction, the first ID is always the molecule that was diffused and the second one 
+  | is the molecule that was hit.
+
+* | **reaction_rule**: ReactionRule
+  | Reaction rule of the reaction.
+
+* | **time**: float
+  | Time of the reaction
+
+* | **pos3d**: Vec3
+  | Position of the reaction in the 3D space.
+
+* | **geometry_object**: GeometryObject = None
+  | Set only for surface reactions
+  | Object on whose surface where the reaction occured.
+
+* | **wall_index**: int = -1
+  | Set only for surface reactions
+  | Index of wall belonging to the geometry_object where the reacton occured.
+
+* | **pos2d**: Vec2 = None
+  | Set only for surface reactions
+  | Position of the reaction in the 2D uv coordinates defined by the wall where the reaction occured.
 
 ReactionRule
 ============

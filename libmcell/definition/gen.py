@@ -1715,6 +1715,11 @@ def generate_pyi_file(data_classes):
             '        self.y = y\n'
             '        self.z = z\n'
             '\n'
+            'class Vec2():\n'
+            '    def __init__(self, u : float = 0, v : float = 0):\n'
+            '        self.u = u\n'
+            '        self.v = v\n'
+            '\n'            
         )
         
         # generate enums first, then constants

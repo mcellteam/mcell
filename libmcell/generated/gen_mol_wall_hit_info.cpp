@@ -45,9 +45,9 @@ bool GenMolWallHitInfo::__eq__(const MolWallHitInfo& other) const {
      )  &&
     wall_index == other.wall_index &&
     time == other.time &&
-    pos == other.pos &&
+    pos3d == other.pos3d &&
     time_before_hit == other.time_before_hit &&
-    pos_before_hit == other.pos_before_hit;
+    pos3d_before_hit == other.pos3d_before_hit;
 }
 
 bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other, const bool ignore_name) const {
@@ -66,9 +66,9 @@ bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other, cons
      )  &&
     wall_index == other.wall_index &&
     time == other.time &&
-    pos == other.pos &&
+    pos3d == other.pos3d &&
     time_before_hit == other.time_before_hit &&
-    pos_before_hit == other.pos_before_hit;
+    pos3d_before_hit == other.pos3d_before_hit;
 }
 
 std::string GenMolWallHitInfo::to_str(const std::string ind) const {
@@ -78,9 +78,9 @@ std::string GenMolWallHitInfo::to_str(const std::string ind) const {
       "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index << ", " <<
       "time=" << time << ", " <<
-      "pos=" << pos << ", " <<
+      "pos3d=" << pos3d << ", " <<
       "time_before_hit=" << time_before_hit << ", " <<
-      "pos_before_hit=" << pos_before_hit;
+      "pos3d_before_hit=" << pos3d_before_hit;
   return ss.str();
 }
 
@@ -98,9 +98,9 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
       .def_property("geometry_object", &MolWallHitInfo::get_geometry_object, &MolWallHitInfo::set_geometry_object)
       .def_property("wall_index", &MolWallHitInfo::get_wall_index, &MolWallHitInfo::set_wall_index)
       .def_property("time", &MolWallHitInfo::get_time, &MolWallHitInfo::set_time)
-      .def_property("pos", &MolWallHitInfo::get_pos, &MolWallHitInfo::set_pos)
+      .def_property("pos3d", &MolWallHitInfo::get_pos3d, &MolWallHitInfo::set_pos3d)
       .def_property("time_before_hit", &MolWallHitInfo::get_time_before_hit, &MolWallHitInfo::set_time_before_hit)
-      .def_property("pos_before_hit", &MolWallHitInfo::get_pos_before_hit, &MolWallHitInfo::set_pos_before_hit)
+      .def_property("pos3d_before_hit", &MolWallHitInfo::get_pos3d_before_hit, &MolWallHitInfo::set_pos3d_before_hit)
     ;
 }
 

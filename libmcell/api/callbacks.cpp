@@ -25,26 +25,72 @@
 #include "api/model.h"
 #include "api/geometry_object.h"
 
+#include "world.h"
+
 namespace MCell {
 namespace API {
 
 Callbacks::Callbacks(Model* model_)
   : model(model_),
+
     mol_wall_hit_callback_function(nullptr),
     mol_wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID),
-    mol_wall_hit_species_id(SPECIES_ID_INVALID)
+    mol_wall_hit_species_id(SPECIES_ID_INVALID),
+
+    rxn_callback_function(nullptr),
+    rxn_rule_id(BNG::RXN_RULE_ID_INVALID)
   {
   assert(model != nullptr);
 }
 
 
 void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo> info) {
+
+  // set geometry data
   info->geometry_object = model->get_geometry_object_with_id(info->geometry_object_id);
   assert(is_set(info->geometry_object));
   assert(info->partition_wall_index >= info->geometry_object->first_wall_index);
   info->wall_index = info->partition_wall_index - info->geometry_object->first_wall_index;
+
+  // convert units
+  assert(model->get_world() != nullptr);
+  info->time = info->time * model->get_world()->config.time_unit;
+  info->pos3d = info->pos3d * Vec3(model->get_world()->config.length_unit);
+  info->time_before_hit = info->time_before_hit * model->get_world()->config.time_unit;
+  info->pos3d_before_hit = info->pos3d_before_hit * Vec3(model->get_world()->config.length_unit);
+
   // call the actual callback
   mol_wall_hit_callback_function(info, mol_wall_hit_context);
+}
+
+
+void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
+  // set reaction rule object
+  info->reaction_rule = model->get_reaction_rule_with_fwd_id(info->rxn_rule_id);
+  assert(is_set(info->reaction_rule));
+
+  // convert units
+  assert(model->get_world() != nullptr);
+  info->time = info->time * model->get_world()->config.time_unit;
+  info->pos3d = info->pos3d * Vec3(model->get_world()->config.length_unit);
+
+  const BNG::RxnRule* rxn = model->get_world()->get_all_rxns().get(info->rxn_rule_id);
+  if (rxn->is_vol_rxn()) {
+    // TODO: reset using a generated method
+    info->geometry_object = nullptr;
+    info->wall_index = -1;
+    info->pos2d = Vec2(FLT_UNSET);
+  }
+  else if (rxn->is_surf_rxn()) {
+    release_assert(false && "TODO");
+  }
+  else {
+    // TODO: add support for surf class reactions
+    release_assert(false && "Only volume and surface reaction callbacks are supported for now");
+  }
+
+  // call the actual callback
+  rxn_callback_function(info, rxn_context);
 }
 
 } /* namespace API */

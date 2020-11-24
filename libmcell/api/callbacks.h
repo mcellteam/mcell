@@ -28,17 +28,23 @@
 #include "pybind11/include/pybind11/pybind11.h"
 #include "api/common.h"
 #include "defines.h"
+#include "bng/bng_defines.h"
 
 namespace MCell {
 namespace API {
 
 class Model;
 class MolWallHitInfo;
+class ReactionInfo;
 
 typedef std::function<void(std::shared_ptr<API::MolWallHitInfo>, pybind11::object)>
   wall_hit_callback_function_t;
 
+typedef std::function<void(std::shared_ptr<API::ReactionInfo>, pybind11::object)>
+  rxn_callback_function_t;
+
 // not generated
+// TODO: allow multiple callbacks
 class Callbacks {
 public:
   // model_ is nullptr in MDL mode
@@ -46,7 +52,7 @@ public:
 
   Model* model;
 
-  // --- mol-wall hit callbacks ---
+  // -------------------- mol-wall hit callbacks --------------------
   void register_mol_wall_hit_callback(
       const wall_hit_callback_function_t func,
       py::object context,
@@ -75,6 +81,32 @@ public:
   py::object mol_wall_hit_context;
   geometry_object_id_t mol_wall_hit_object_id; // GEOMETRY_OBJECT_ID_INVALID - any object may be hit
   species_id_t mol_wall_hit_species_id; // SPECIES_ID_INVALID - any species may be hit
+
+
+  // -------------------- reaction callbacks --------------------
+  void register_rxn_callback(
+      const rxn_callback_function_t func,
+      py::object context,
+      const BNG::rxn_rule_id_t rxn_rule_id_
+  ) {
+    assert(model != nullptr);
+    rxn_callback_function = func;
+    rxn_context = context;
+    rxn_rule_id = rxn_rule_id_;
+  }
+
+  bool needs_rxn_callback(
+      const BNG::rxn_rule_id_t rxn_rule_id_) {
+    return rxn_callback_function != nullptr &&
+        rxn_rule_id == rxn_rule_id_;
+  }
+
+  void do_rxn_callback(std::shared_ptr<ReactionInfo> info);
+
+  rxn_callback_function_t rxn_callback_function;
+  py::object rxn_context;
+  BNG::rxn_rule_id_t rxn_rule_id;
+
 };
 
 } /* namespace API */

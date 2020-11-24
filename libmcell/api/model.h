@@ -96,6 +96,11 @@ public:
       std::shared_ptr<Species> species = nullptr
   ) override;
 
+  void register_reaction_callback(
+      const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function,
+      py::object context,
+      std::shared_ptr<ReactionRule> reaction_rule
+  ) override;
 
   void load_bngl(
       const std::string& file_name,
@@ -122,6 +127,7 @@ public:
   std::string to_str(const std::string ind="") const;
 
   std::shared_ptr<GeometryObject> get_geometry_object_with_id(const geometry_object_id_t id);
+  std::shared_ptr<ReactionRule> get_reaction_rule_with_fwd_id(const BNG::rxn_rule_id_t id);
 
   void error_if_initialized(const char* what) {
     if (initialized) {
@@ -130,6 +136,10 @@ public:
   }
 
   void dump() const;
+
+  const World* get_world() const {
+    return world;
+  }
 
 private:
   void export_data_model_viz_or_full(

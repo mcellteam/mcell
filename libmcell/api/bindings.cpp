@@ -55,7 +55,9 @@
 #include "generated/gen_molecule.h"
 #include "generated/gen_wall.h"
 #include "generated/gen_mol_wall_hit_info.h"
+
 #include "generated/gen_wall_wall_hit_info.h"
+#include "generated/gen_reaction_info.h"
 
 #include "generated/gen_geometry_utils.h"
 
@@ -104,6 +106,36 @@ void define_pybinding_Vec3(py::module& m) {
   ;
 }
 
+void define_pybinding_Vec2(py::module& m) {
+  py::class_<MCell::Vec2>(m, "Vec2")
+      .def(
+          py::init<>()
+      )
+      .def(
+          py::init<const float_t>(),
+          py::arg("xy")
+      )
+      .def(
+          py::init<const float_t, const float_t>(),
+          py::arg("x"), py::arg("y")
+      )
+      .def("__add__", [](const Vec2& a, const Vec2& b) { return Vec2(a + b); } )
+      .def("__sub__", [](const Vec2& a, const Vec2& b) { return Vec2(a - b); } )
+      .def("__mul__", [](const Vec2& a, const Vec2& b) { return Vec2(a * b); } )
+      .def("__truediv__", [](const Vec2& a, const Vec2& b) { return Vec2(a / b); } )
+      .def("__eq__",  [](const Vec2& a, const Vec2& b) { return a == b; } )
+      .def("__str__",  [](const Vec2& a)
+          { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y); } )
+      .def("__repr__",  [](const Vec2& a)
+          { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y); } )
+      .def("tolist",  [](const Vec2& a) { return std::vector<float_t>{a.x, a.y}; } )
+      .def_readwrite("x", &Vec2::x)
+      .def_readwrite("y", &Vec2::y)
+      .def_readwrite("u", &Vec2::u)
+      .def_readwrite("v", &Vec2::v)
+  ;
+}
+
 void define_pybinding_IVec3(py::module& m) {
   py::class_<MCell::IVec3>(m, "IVec3")
       .def(
@@ -145,6 +177,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_enums(m);
 
   define_pybinding_Vec3(m);
+  define_pybinding_Vec2(m);
   define_pybinding_IVec3(m);
 
   define_pybinding_ComponentType(m);
@@ -183,6 +216,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_WallWallHitInfo(m);
 
   define_pybinding_MolWallHitInfo(m);
+  define_pybinding_ReactionInfo(m);
 
   // constants may reference existing types, must be "bound" later
   define_pybinding_constants(m);

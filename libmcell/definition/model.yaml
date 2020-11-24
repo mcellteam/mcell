@@ -198,6 +198,35 @@ Model:
       default: unset
       doc: Only hits of molecules of this species will be reported, any species hit is reported when not set.
       
+      
+  - name: register_reaction_callback
+    doc: | 
+       Allows to intercept unimolecular and bimolecular reactions happening in volume.
+       It is allowed to do state modifications except for removing reacting molecules.  
+    params: 
+    - name: function
+      type: std::function<void(std::shared_ptr<ReactionInfo>, py::object)>
+      doc: | 
+         Callback function to be called. 
+         It must have two arguments ReactionInfo and context.
+         Called when it is decided that the reaction will happen.
+         After return the reaction proceeds as it would without a callback. 
+         
+    - name: context
+      type: py::object
+      doc: | 
+         Context passed to the callback function, the callback function can store
+         information to this object. Some context must be always passed, even when 
+         it is a useless python object. 
+      internal: |
+         In the future, One may set attributes of ReactionInfo to say how the reaction should proceed. 
+         If unchanged, reaction proceeds as it woudl without this callback. 
+         
+    - name: reaction_rule
+      type: ReactionRule*
+      internal: maybe also add filtering by species
+      doc: The callback function will be called whenever is this reaction rule applied.
+          
   
   - name: load_bngl
     doc: | 

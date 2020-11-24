@@ -33,6 +33,7 @@
 #include "api/molecule.h"
 #include "api/notifications.h"
 #include "api/observables.h"
+#include "api/reaction_info.h"
 #include "api/reaction_rule.h"
 #include "api/region.h"
 #include "api/release_site.h"
@@ -125,6 +126,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("add_vertex_move", &Model::add_vertex_move, py::arg("object"), py::arg("vertex_index"), py::arg("displacement"))
       .def("apply_vertex_moves", &Model::apply_vertex_moves, py::arg("collect_wall_wall_hits") = false)
       .def("register_mol_wall_hit_callback", &Model::register_mol_wall_hit_callback, py::arg("function"), py::arg("context"), py::arg("object") = nullptr, py::arg("species") = nullptr)
+      .def("register_reaction_callback", &Model::register_reaction_callback, py::arg("function"), py::arg("context"), py::arg("reaction_rule"))
       .def("load_bngl", &Model::load_bngl, py::arg("file_name"), py::arg("observables_files_prefix") = "", py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("export_to_bngl", &Model::export_to_bngl, py::arg("file_name"))
       .def("add_species", &Model::add_species, py::arg("s"))

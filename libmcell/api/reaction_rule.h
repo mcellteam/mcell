@@ -82,6 +82,10 @@ public:
   }
 
   // added methods
+  bool is_reversible() const {
+    return is_set(rev_rate);
+  }
+
   bool eq_reactants_and_products(const ReactionRule& other) const;
 
   std::string to_bngl_str_w_orientation(bool replace_orientation_w_up_down_compartments = false) const;

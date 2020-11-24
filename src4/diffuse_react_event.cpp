@@ -30,6 +30,7 @@
 #include <rxn_utils.inc>
 
 #include "api/mol_wall_hit_info.h"
+#include "api/reaction_info.h"
 #include "api/callbacks.h"
 
 #include "rng.h"
@@ -463,10 +464,10 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           info->molecule_id = vm_new_ref.id;
           info->geometry_object_id = colliding_wall.object_id; // I would need Model to be accessible here
           info->partition_wall_index = colliding_wall.index; // here as well
-          info->time = event_time + collision.time;
-          info->pos = collision.pos;
-          info->time_before_hit = event_time + elapsed_molecule_time;
-          info->pos_before_hit = vm_new_ref.v.pos;
+          info->time = elapsed_molecule_time + t_steps * collision.time;
+          info->pos3d = collision.pos;
+          info->time_before_hit = elapsed_molecule_time;
+          info->pos3d_before_hit = vm_new_ref.v.pos;
 
           world->get_callbacks().do_mol_wall_hit_callback(info);
         }
@@ -787,6 +788,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
  *
  ******************************************************************************/
 // TODO: return enum
+// TODO: remove the remaining_time_step argument - same as t_steps
 int DiffuseReactEvent::collide_and_react_with_surf_mol(
     Partition& p,
     const Collision& collision,
@@ -1984,6 +1986,23 @@ int DiffuseReactEvent::outcome_products_random(
   }
 
   assert(rxn != nullptr);
+
+  // check callback
+  if (world->get_callbacks().needs_rxn_callback(rxn->id)) {
+    assert(rxn->is_vol_rxn());
+    shared_ptr<API::ReactionInfo> info = make_shared<API::ReactionInfo>();
+    info->reactant_ids.push_back(collision.diffused_molecule_id);
+    if (rxn->is_bimol()) {
+      info->reactant_ids.push_back(collision.colliding_molecule_id);
+    }
+    info->time = time;
+    info->pos3d = collision.pos;
+    info->rxn_rule_id = rxn->id;
+    if (rxn->is_surf_rxn()) {
+      release_assert(false && "TODO");
+    }
+    world->get_callbacks().do_rxn_callback(info);
+  }
 
 #ifdef DEBUG_CPLX_MATCHING
   cout << "Reaction to be executed:\n";

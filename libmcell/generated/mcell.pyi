@@ -36,6 +36,8 @@ class Notifications():
     pass
 class Observables():
     pass
+class ReactionInfo():
+    pass
 class ReactionRule():
     pass
 class Region():
@@ -72,6 +74,11 @@ class Vec3():
         self.x = x
         self.y = y
         self.z = z
+
+class Vec2():
+    def __init__(self, u : float = 0, v : float = 0):
+        self.u = u
+        self.v = v
 
 class Orientation(Enum):
     DOWN = -1
@@ -614,6 +621,14 @@ class Model():
         ) -> None:
         pass
 
+    def register_reaction_callback(
+            self,
+            function : Callable, # std::function<void(std::shared_ptr<ReactionInfo>, py::object)>,
+            context : Any, # py::object,
+            reaction_rule : ReactionRule
+        ) -> None:
+        pass
+
     def load_bngl(
             self,
             file_name : str,
@@ -757,17 +772,17 @@ class MolWallHitInfo():
             geometry_object : GeometryObject,
             wall_index : int,
             time : float,
-            pos : Vec3,
+            pos3d : Vec3,
             time_before_hit : float,
-            pos_before_hit : Vec3
+            pos3d_before_hit : Vec3
         ):
         self.molecule_id = molecule_id
         self.geometry_object = geometry_object
         self.wall_index = wall_index
         self.time = time
-        self.pos = pos
+        self.pos3d = pos3d
         self.time_before_hit = time_before_hit
-        self.pos_before_hit = pos_before_hit
+        self.pos3d_before_hit = pos3d_before_hit
 
 
 class Molecule():
@@ -839,6 +854,26 @@ class Observables():
             parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
+
+class ReactionInfo():
+    def __init__(
+            self,
+            reactant_ids : List[int],
+            reaction_rule : ReactionRule,
+            time : float,
+            pos3d : Vec3,
+            geometry_object : GeometryObject = None,
+            wall_index : int = -1,
+            pos2d : Vec2 = None
+        ):
+        self.reactant_ids = reactant_ids
+        self.reaction_rule = reaction_rule
+        self.time = time
+        self.pos3d = pos3d
+        self.geometry_object = geometry_object
+        self.wall_index = wall_index
+        self.pos2d = pos2d
+
 
 class ReactionRule():
     def __init__(
