@@ -425,3 +425,4 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer)
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
