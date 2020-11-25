@@ -247,7 +247,8 @@ std::shared_ptr<Wall> Model::get_wall(std::shared_ptr<GeometryObject> object, co
     res->vertices.push_back(p.get_geometry_vertex(w.vertex_indices[i]) * Vec3(world->config.length_unit));
   }
   res->area = w.area * world->config.length_unit * world->config.length_unit;
-  res->normal = w.normal; // no need to convert units here
+  res->unit_normal = w.normal;
+  assert(cmp_eq(len3(res->unit_normal), 1));
   res->is_movable = w.is_movable;
   res->world = world;
   return res;
@@ -269,6 +270,7 @@ Vec3 Model::get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const
   Vec3 normals_sum = Vec3(0);
   for (wall_index_t wi: walls) {
     const MCell::Wall& w = p.get_wall(wi);
+    // wall normals are already unit vectors so we can just sum them
     normals_sum = normals_sum + w.normal;
   }
 
@@ -282,7 +284,9 @@ Vec3 Model::get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const i
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
 
-  return w.normal / Vec3(len3(w.normal));
+  // the value is is already normalized
+  assert(cmp_eq(len3(w.normal), 1));
+  return w.normal;
 }
 
 

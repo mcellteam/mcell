@@ -61,11 +61,11 @@ Wall:
   - name: area
     type: float
     
-  - name: normal
+  - name: unit_normal
     type: Vec3
     doc: | 
-       Normal of this wall, no guarantees on the length of this vector are given.
-       To get a unit vector, use Model.get_wall_unit_normal instead. 
+       Normal of this wall with unit length of 1 um.
+       To get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal. 
 
   - name: is_movable
     type: bool

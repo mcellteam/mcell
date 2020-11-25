@@ -42,8 +42,8 @@ void GenWall::check_semantics() const {
   if (!is_set(area)) {
     throw ValueError("Parameter 'area' must be set.");
   }
-  if (!is_set(normal)) {
-    throw ValueError("Parameter 'normal' must be set.");
+  if (!is_set(unit_normal)) {
+    throw ValueError("Parameter 'unit_normal' must be set.");
   }
 }
 
@@ -60,7 +60,7 @@ void GenWall::set_all_attributes_as_default_or_unset() {
   wall_index = INT_UNSET;
   vertices = std::vector<Vec3>();
   area = FLT_UNSET;
-  normal = VEC3_UNSET;
+  unit_normal = VEC3_UNSET;
   is_movable = true;
 }
 
@@ -80,7 +80,7 @@ bool GenWall::__eq__(const Wall& other) const {
     wall_index == other.wall_index &&
     vertices == other.vertices &&
     area == other.area &&
-    normal == other.normal &&
+    unit_normal == other.unit_normal &&
     is_movable == other.is_movable;
 }
 
@@ -100,7 +100,7 @@ bool GenWall::eq_nonarray_attributes(const Wall& other, const bool ignore_name) 
     wall_index == other.wall_index &&
     true /*vertices*/ &&
     area == other.area &&
-    normal == other.normal &&
+    unit_normal == other.unit_normal &&
     is_movable == other.is_movable;
 }
 
@@ -111,7 +111,7 @@ std::string GenWall::to_str(const std::string ind) const {
       "wall_index=" << wall_index << ", " <<
       "vertices=" << vec_nonptr_to_str(vertices, ind + "  ") << ", " <<
       "area=" << area << ", " <<
-      "normal=" << normal << ", " <<
+      "unit_normal=" << unit_normal << ", " <<
       "is_movable=" << is_movable;
   return ss.str();
 }
@@ -131,7 +131,7 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       .def_property("wall_index", &Wall::get_wall_index, &Wall::set_wall_index)
       .def_property("vertices", &Wall::get_vertices, &Wall::set_vertices)
       .def_property("area", &Wall::get_area, &Wall::set_area)
-      .def_property("normal", &Wall::get_normal, &Wall::set_normal)
+      .def_property("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal)
       .def_property("is_movable", &Wall::get_is_movable, &Wall::set_is_movable)
     ;
 }

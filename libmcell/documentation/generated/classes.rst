@@ -755,8 +755,9 @@ Methods:
    * | release_site: ReleaseSite
 
   | Performs immediate release based on the definition of the release site argument.
-  | If called within a callback, the molecules are released in time when the callback occurred.
-  | The ReleaseSite.release_time attribute is ignored.
+  | The ReleaseSite.release_time must not be in the past and should be withing the current iteration.
+  | The ReleaseEvent must not use a release_pattern because this is an immediate release and it is not 
+  | scheduled into the global scheduler.
 
 
 * | **get_molecule_ids**
@@ -1749,9 +1750,9 @@ Attributes:
 
 * | **area**: float
 
-* | **normal**: Vec3
-  | Normal of this wall, no guarantees on the length of this vector are given.
-  | To get a unit vector, use Model.get_wall_unit_normal instead.
+* | **unit_normal**: Vec3
+  | Normal of this wall with unit length of 1 um.
+  | To get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal.
 
 * | **is_movable**: bool = True
   | If True, whis wall can be moved through Model.apply_vertex_moves,

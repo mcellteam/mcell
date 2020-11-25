@@ -1202,14 +1202,14 @@ class Wall():
             wall_index : int,
             vertices : List[Vec3],
             area : float,
-            normal : Vec3,
+            unit_normal : Vec3,
             is_movable : bool = True
         ):
         self.geometry_object = geometry_object
         self.wall_index = wall_index
         self.vertices = vertices
         self.area = area
-        self.normal = normal
+        self.unit_normal = unit_normal
         self.is_movable = is_movable
 
 

@@ -40,7 +40,7 @@ class GeometryObject;
       wall_index = INT_UNSET; \
       vertices = std::vector<Vec3>(); \
       area = FLT_UNSET; \
-      normal = VEC3_UNSET; \
+      unit_normal = VEC3_UNSET; \
       is_movable = true; \
       postprocess_in_ctor();\
       check_semantics();\
@@ -116,18 +116,18 @@ public:
     return area;
   }
 
-  Vec3 normal;
-  virtual void set_normal(const Vec3& new_normal_) {
+  Vec3 unit_normal;
+  virtual void set_unit_normal(const Vec3& new_unit_normal_) {
     if (initialized) {
-      throw RuntimeError("Value 'normal' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'unit_normal' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     cached_data_are_uptodate = false;
-    normal = new_normal_;
+    unit_normal = new_unit_normal_;
   }
-  virtual const Vec3& get_normal() const {
+  virtual const Vec3& get_unit_normal() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return normal;
+    return unit_normal;
   }
 
   bool is_movable;
