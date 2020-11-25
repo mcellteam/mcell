@@ -75,23 +75,21 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
   info->pos3d = info->pos3d * Vec3(model->get_world()->config.length_unit);
 
   const BNG::RxnRule* rxn = model->get_world()->get_all_rxns().get(info->rxn_rule_id);
-  if (rxn->is_vol_rxn()) {
-    // TODO: reset using a generated method
-    info->geometry_object = nullptr;
-    info->wall_index = -1;
-    info->pos2d = Vec2(FLT_UNSET);
-  }
-  else if (rxn->is_surf_rxn()) {
+
+  if (info->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID) {
     info->geometry_object = model->get_geometry_object_with_id(info->geometry_object_id);
     assert(is_set(info->geometry_object));
     assert(info->partition_wall_index >= info->geometry_object->first_wall_index);
     info->wall_index = info->partition_wall_index - info->geometry_object->first_wall_index;
-
     info->pos2d = info->pos2d * Vec2(model->get_world()->config.length_unit);
   }
-  else {
-    // TODO: add support for surf class reactions
-    release_assert(false && "Only volume and surface reaction callbacks are supported for now");
+
+  if (info->geometry_object_id_surf_reac2 != GEOMETRY_OBJECT_ID_INVALID) {
+    info->geometry_object_surf_reac2 = model->get_geometry_object_with_id(info->geometry_object_id_surf_reac2);
+    assert(is_set(info->geometry_object_surf_reac2));
+    assert(info->partition_wall_index_surf_reac2 >= info->geometry_object_surf_reac2->first_wall_index);
+    info->wall_index_surf_reac2 = info->partition_wall_index_surf_reac2 - info->geometry_object_surf_reac2->first_wall_index;
+    info->pos2d_surf_reac2 = info->pos2d_surf_reac2 * Vec2(model->get_world()->config.length_unit);
   }
 
   // call the actual callback

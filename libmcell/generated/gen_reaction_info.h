@@ -42,6 +42,14 @@ public:
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---
+  ReactionType type;
+  virtual void set_type(const ReactionType new_type_) {
+    type = new_type_;
+  }
+  virtual ReactionType get_type() const {
+    return type;
+  }
+
   std::vector<int> reactant_ids;
   virtual void set_reactant_ids(const std::vector<int> new_reactant_ids_) {
     reactant_ids = new_reactant_ids_;

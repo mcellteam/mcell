@@ -97,6 +97,14 @@ void define_pybinding_enums(py::module& m) {
     .value("DIFFERENCE", RegionNodeType::DIFFERENCE)
     .value("INTERSECT", RegionNodeType::INTERSECT)
     .export_values();
+  py::enum_<ReactionType>(m, "ReactionType", py::arithmetic())
+    .value("UNSET", ReactionType::UNSET)
+    .value("UNIMOL_VOLUME", ReactionType::UNIMOL_VOLUME)
+    .value("UNIMOL_SURFACE", ReactionType::UNIMOL_SURFACE)
+    .value("VOLUME_VOLUME", ReactionType::VOLUME_VOLUME)
+    .value("VOLUME_SURFACE", ReactionType::VOLUME_SURFACE)
+    .value("SURFACE_SURFACE", ReactionType::SURFACE_SURFACE)
+    .export_values();
 }
 
 } // namespace API

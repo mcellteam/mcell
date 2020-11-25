@@ -1925,6 +1925,80 @@ static void update_vol_mol_after_rxn_with_surf_mol(
 }
 
 
+void DiffuseReactEvent::handle_rxn_callback(
+    Partition& p,
+    const Collision& collision,
+    const float_t time,
+    const BNG::RxnRule* rxn,
+    // reac1 is the diffused molecule and reac2 is the optional second reactant
+    const Molecule* reac1,
+    const Molecule* reac2
+) {
+
+  // check callback (reactive surface are ignored)
+  if (world->get_callbacks().needs_rxn_callback(rxn->id) && !rxn->is_reactive_surface_rxn()) {
+    shared_ptr<API::ReactionInfo> info = make_shared<API::ReactionInfo>();
+
+    assert(reac1->id == collision.diffused_molecule_id);
+    assert(reac2 == nullptr || reac2->id == collision.colliding_molecule_id);
+
+    // determine type
+    if (reac2 == nullptr) {
+      info->type = reac1->is_vol() ?
+          API::ReactionType::UNIMOL_VOLUME :
+          API::ReactionType::UNIMOL_SURFACE;
+    }
+    else {
+      if (reac1->is_vol()) {
+        info->type = reac2->is_vol() ?
+            API::ReactionType::VOLUME_VOLUME :
+            API::ReactionType::VOLUME_SURFACE;
+      }
+      else {
+        // surface-volume ordering or reactants is not allowed
+        assert(reac2->is_surf());
+        info->type = API::ReactionType::SURFACE_SURFACE;
+      }
+    }
+
+    info->reactant_ids.push_back(reac1->id);
+    if (reac2 != nullptr) {
+      info->reactant_ids.push_back(reac2->id);
+    }
+
+    info->time = time;
+    info->rxn_rule_id = rxn->id;
+
+    // pos3d
+    if (reac1->is_vol()) {
+      info->pos3d = collision.pos;
+    }
+    else {
+      // collision.pos is not valid for unimol surf or surf-surf reactions
+      const Wall& w = p.get_wall(reac1->s.wall_index);
+      const Vec3& v0 = p.get_wall_vertex(w, 0);
+      info->pos3d = GeometryUtil::uv2xyz(reac1->s.pos, w, v0);
+    }
+
+    if (rxn->is_surf_rxn()) {
+      const Molecule* first_surf_reac = reac1->is_surf() ? reac1 : reac2;
+      // use the first surface reactant for the first surface location
+      info->pos2d = first_surf_reac->s.pos;
+      info->geometry_object_id = p.get_wall(first_surf_reac->s.wall_index).object_id;
+      info->partition_wall_index = first_surf_reac->s.wall_index;
+
+      if (info->type == API::ReactionType::SURFACE_SURFACE)  {
+        // use the second surface reactant for the second surface location
+        info->pos2d_surf_reac2 = reac2->s.pos;
+        info->geometry_object_id_surf_reac2 = p.get_wall(reac2->s.wall_index).object_id;
+        info->partition_wall_index_surf_reac2 = reac2->s.wall_index;
+      }
+    }
+
+    world->get_callbacks().do_rxn_callback(info);
+  }
+}
+
 // why is this called "random"? - check if reaction occurs is in test_bimolecular
 // ! might invalidate references
 // might return RX_BLOCKED
@@ -2013,7 +2087,11 @@ int DiffuseReactEvent::outcome_products_random(
 
   if (num_mol_reactants == 2) {
     reacB = &p.get_m(collision.colliding_molecule_id);
+  }
 
+  handle_rxn_callback(p, collision, time, rxn, reacA, reacB);
+
+  if (num_mol_reactants == 2) {
     if (reacA->is_surf()) {
       surf_reac = reacA;
     }
@@ -2044,49 +2122,6 @@ int DiffuseReactEvent::outcome_products_random(
   }
   assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
   keep_reacA = rxn->is_cplx_reactant_on_both_sides_of_rxn(0);
-
-  // TODO: move to a separate function
-  // check callback (reactive surface are ignored)
-  if (world->get_callbacks().needs_rxn_callback(rxn->id) && !rxn->is_reactive_surface_rxn()) {
-    shared_ptr<API::ReactionInfo> info = make_shared<API::ReactionInfo>();
-    info->reactant_ids.push_back(collision.diffused_molecule_id);
-    if (rxn->is_bimol()) {
-      info->reactant_ids.push_back(collision.colliding_molecule_id);
-    }
-    info->time = time;
-
-    bool used_surf_reac_pos = false;
-    if (reacA->is_vol() || (reacB != nullptr && reacB->is_vol())) {
-      // one of the reactants must be a volume molecule for collision.pos to be valid
-      info->pos3d = collision.pos;
-    }
-    else {
-      assert(surf_reac->is_surf());
-      const Wall& w = p.get_wall(surf_reac->s.wall_index);
-      const Vec3& v0 = p.get_wall_vertex(w, 0);
-      info->pos3d = GeometryUtil::uv2xyz(surf_reac->s.pos, w, v0);
-      used_surf_reac_pos = true;
-    }
-    info->rxn_rule_id = rxn->id;
-    if (rxn->is_surf_rxn()) {
-      assert(surf_reac != nullptr);
-
-      if (used_surf_reac_pos) {
-        // as pos2d set the 2d position of the second reactant (if this is not an unimol rxn)
-        const Molecule* second_surf_reac = (surf_reac == reacA && reacB != nullptr) ? reacB : reacA;
-        assert(second_surf_reac->is_surf());
-        info->pos2d = second_surf_reac->s.pos;
-      }
-      else {
-        info->pos2d = surf_reac->s.pos;
-      }
-      // for wall we always use the first reactant
-      info->geometry_object_id = p.get_wall(surf_reac->s.wall_index).object_id;
-      info->partition_wall_index = surf_reac->s.wall_index;
-    }
-    world->get_callbacks().do_rxn_callback(info);
-  }
-
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 

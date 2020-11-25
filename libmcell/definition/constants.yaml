@@ -178,3 +178,20 @@ enums:
     - name: INTERSECT
       value: 5
       
+  - name: ReactionType
+    doc: Used in reaction callbacks.
+    values:
+    - name: UNSET
+      value: 0
+    - name: UNIMOL_VOLUME
+      value: 1
+    - name: UNIMOL_SURFACE
+      value: 2
+    - name: VOLUME_VOLUME
+      value: 3
+    - name: VOLUME_SURFACE
+      value: 4
+    - name: SURFACE_SURFACE
+      value: 5
+    
+      

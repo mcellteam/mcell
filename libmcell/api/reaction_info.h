@@ -36,13 +36,33 @@ public:
     std::cout << to_str();
   }
 
-  // using default ctor
+  ReactionInfo() :
+    rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
+    geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
+    partition_wall_index(WALL_INDEX_INVALID),
+    geometry_object_id_surf_reac2(GEOMETRY_OBJECT_ID_INVALID),
+    partition_wall_index_surf_reac2(WALL_INDEX_INVALID) {
+
+    // inherited attributes
+    type = ReactionType::UNSET;
+    reaction_rule = nullptr;
+    time = FLT_UNSET;
+    pos3d = POS_INVALID;
+    geometry_object = nullptr;
+    wall_index = -1;
+    pos2d = POS_INVALID;
+    geometry_object_surf_reac2 = nullptr;
+    wall_index_surf_reac2 = -1;
+    pos2d_surf_reac2 = POS_INVALID;
+  }
 
   // extra information to be converted in Callbacks
   BNG::rxn_rule_id_t rxn_rule_id;
 
   geometry_object_id_t geometry_object_id; // to geometry_object
   wall_index_t partition_wall_index;
+  geometry_object_id_t geometry_object_id_surf_reac2; // to geometry_object
+  wall_index_t partition_wall_index_surf_reac2;
 };
 
 } // namespace API

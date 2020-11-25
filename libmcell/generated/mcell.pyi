@@ -131,6 +131,14 @@ class RegionNodeType(Enum):
     DIFFERENCE = 4
     INTERSECT = 5
 
+class ReactionType(Enum):
+    UNSET = 0
+    UNIMOL_VOLUME = 1
+    UNIMOL_SURFACE = 2
+    VOLUME_VOLUME = 3
+    VOLUME_SURFACE = 4
+    SURFACE_SURFACE = 5
+
 
 
 STATE_UNSET = 'STATE_UNSET'
@@ -858,6 +866,7 @@ class Observables():
 class ReactionInfo():
     def __init__(
             self,
+            type : ReactionType,
             reactant_ids : List[int],
             reaction_rule : ReactionRule,
             time : float,
@@ -869,6 +878,7 @@ class ReactionInfo():
             wall_index_surf_reac2 : int = -1,
             pos2d_surf_reac2 : Vec2 = None
         ):
+        self.type = type
         self.reactant_ids = reactant_ids
         self.reaction_rule = reaction_rule
         self.time = time

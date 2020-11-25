@@ -36,6 +36,12 @@ MolWallHitInfo:
 ReactionInfo:
    doc: Data structure passed to a reaction callback. 
    items:
+   - name: type
+     type: ReactionType
+     doc: |
+        Specifies whether the reaction is unimolecular or bimolecular and
+        also provides information in reactant types. 
+   
    - name: reactant_ids
      type: List[int]
      doc: | 

@@ -283,6 +283,15 @@ private:
       const rxn_class_pathway_index_t pathway_index
   );
 
+  void handle_rxn_callback(
+      Partition& p,
+      const Collision& collision,
+      const float_t time,
+      const BNG::RxnRule* rxn,
+      const Molecule* reac1,
+      const Molecule* reac2
+  );
+
   int outcome_products_random(
       Partition& p,
       const Collision& collision,

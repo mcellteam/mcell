@@ -94,6 +94,19 @@ RegionNodeType
 * | **DIFFERENCE** = 4
 * | **INTERSECT** = 5
 
+ReactionType
+============
+
+
+  | Used in reaction callbacks.
+
+* | **UNSET** = 0
+* | **UNIMOL_VOLUME** = 1
+* | **UNIMOL_SURFACE** = 2
+* | **VOLUME_VOLUME** = 3
+* | **VOLUME_SURFACE** = 4
+* | **SURFACE_SURFACE** = 5
+
 
 
 Constants
@@ -1175,6 +1188,10 @@ Data structure passed to a reaction callback.
 
 Attributes:
 ***********
+* | **type**: ReactionType
+  | Specifies whether the reaction is unimolecular or bimolecular and
+  | also provides information in reactant types.
+
 * | **reactant_ids**: List[int]
   | IDs of the reacting molecules, contains 1 ID for a unimolecular reaction, 2 IDs for a bimolecular reaction.
   | For a bimolecular reaction, the first ID is always the molecule that was diffused and the second one 

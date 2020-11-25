@@ -32,6 +32,7 @@ namespace API {
 
 bool GenReactionInfo::__eq__(const ReactionInfo& other) const {
   return
+    type == other.type &&
     reactant_ids == other.reactant_ids &&
     (
       (is_set(reaction_rule)) ?
@@ -76,6 +77,7 @@ bool GenReactionInfo::__eq__(const ReactionInfo& other) const {
 
 bool GenReactionInfo::eq_nonarray_attributes(const ReactionInfo& other, const bool ignore_name) const {
   return
+    type == other.type &&
     true /*reactant_ids*/ &&
     (
       (is_set(reaction_rule)) ?
@@ -121,6 +123,7 @@ bool GenReactionInfo::eq_nonarray_attributes(const ReactionInfo& other, const bo
 std::string GenReactionInfo::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "ReactionInfo" << ": " <<
+      "type=" << type << ", " <<
       "reactant_ids=" << vec_nonptr_to_str(reactant_ids, ind + "  ") << ", " <<
       "\n" << ind + "  " << "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "time=" << time << ", " <<
@@ -144,6 +147,7 @@ py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
       .def("__repr__", &ReactionInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionInfo::__eq__, py::arg("other"))
       .def("dump", &ReactionInfo::dump)
+      .def_property("type", &ReactionInfo::get_type, &ReactionInfo::set_type)
       .def_property("reactant_ids", &ReactionInfo::get_reactant_ids, &ReactionInfo::set_reactant_ids)
       .def_property("reaction_rule", &ReactionInfo::get_reaction_rule, &ReactionInfo::set_reaction_rule)
       .def_property("time", &ReactionInfo::get_time, &ReactionInfo::set_time)

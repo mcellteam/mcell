@@ -201,6 +201,29 @@ static inline  std::ostream& operator << (std::ostream& out, const RegionNodeTyp
 };
 
 
+enum class ReactionType {
+  UNSET = 0,
+  UNIMOL_VOLUME = 1,
+  UNIMOL_SURFACE = 2,
+  VOLUME_VOLUME = 3,
+  VOLUME_SURFACE = 4,
+  SURFACE_SURFACE = 5
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const ReactionType v) {
+  switch (v) {
+    case ReactionType::UNSET: out << "ReactionType.UNSET (0)"; break;
+    case ReactionType::UNIMOL_VOLUME: out << "ReactionType.UNIMOL_VOLUME (1)"; break;
+    case ReactionType::UNIMOL_SURFACE: out << "ReactionType.UNIMOL_SURFACE (2)"; break;
+    case ReactionType::VOLUME_VOLUME: out << "ReactionType.VOLUME_VOLUME (3)"; break;
+    case ReactionType::VOLUME_SURFACE: out << "ReactionType.VOLUME_SURFACE (4)"; break;
+    case ReactionType::SURFACE_SURFACE: out << "ReactionType.SURFACE_SURFACE (5)"; break;
+  }
+  return out;
+};
+
+
 void define_pybinding_constants(py::module& m);
 void define_pybinding_enums(py::module& m);
 
