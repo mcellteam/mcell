@@ -338,7 +338,10 @@ void Model::register_reaction_callback(
     py::object context,
     std::shared_ptr<ReactionRule> reaction_rule
 ) {
-  // TODO: check, only one vol rxn callback is allowed now
+  if (callbacks.rxn_callback_function != nullptr) {
+    throw RuntimeError("Only one reaction callback is supported for now.");
+  }
+
   if (!initialized) {
     throw RuntimeError("Model must be initialized before registering callbacks.");
   }
