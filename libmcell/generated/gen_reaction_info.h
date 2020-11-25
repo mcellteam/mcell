@@ -98,6 +98,30 @@ public:
     return pos2d;
   }
 
+  std::shared_ptr<GeometryObject> geometry_object_surf_reac2;
+  virtual void set_geometry_object_surf_reac2(std::shared_ptr<GeometryObject> new_geometry_object_surf_reac2_) {
+    geometry_object_surf_reac2 = new_geometry_object_surf_reac2_;
+  }
+  virtual std::shared_ptr<GeometryObject> get_geometry_object_surf_reac2() const {
+    return geometry_object_surf_reac2;
+  }
+
+  int wall_index_surf_reac2;
+  virtual void set_wall_index_surf_reac2(const int new_wall_index_surf_reac2_) {
+    wall_index_surf_reac2 = new_wall_index_surf_reac2_;
+  }
+  virtual int get_wall_index_surf_reac2() const {
+    return wall_index_surf_reac2;
+  }
+
+  Vec2 pos2d_surf_reac2;
+  virtual void set_pos2d_surf_reac2(const Vec2& new_pos2d_surf_reac2_) {
+    pos2d_surf_reac2 = new_pos2d_surf_reac2_;
+  }
+  virtual const Vec2& get_pos2d_surf_reac2() const {
+    return pos2d_surf_reac2;
+  }
+
   // --- methods ---
 }; // GenReactionInfo
 

@@ -40,6 +40,9 @@ public:
 
   // extra information to be converted in Callbacks
   BNG::rxn_rule_id_t rxn_rule_id;
+
+  geometry_object_id_t geometry_object_id; // to geometry_object
+  wall_index_t partition_wall_index;
 };
 
 } // namespace API

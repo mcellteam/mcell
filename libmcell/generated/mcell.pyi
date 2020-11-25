@@ -864,7 +864,10 @@ class ReactionInfo():
             pos3d : Vec3,
             geometry_object : GeometryObject = None,
             wall_index : int = -1,
-            pos2d : Vec2 = None
+            pos2d : Vec2 = None,
+            geometry_object_surf_reac2 : GeometryObject = None,
+            wall_index_surf_reac2 : int = -1,
+            pos2d_surf_reac2 : Vec2 = None
         ):
         self.reactant_ids = reactant_ids
         self.reaction_rule = reaction_rule
@@ -873,6 +876,9 @@ class ReactionInfo():
         self.geometry_object = geometry_object
         self.wall_index = wall_index
         self.pos2d = pos2d
+        self.geometry_object_surf_reac2 = geometry_object_surf_reac2
+        self.wall_index_surf_reac2 = wall_index_surf_reac2
+        self.pos2d_surf_reac2 = pos2d_surf_reac2
 
 
 class ReactionRule():

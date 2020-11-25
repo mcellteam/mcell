@@ -82,7 +82,12 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
     info->pos2d = Vec2(FLT_UNSET);
   }
   else if (rxn->is_surf_rxn()) {
-    release_assert(false && "TODO");
+    info->geometry_object = model->get_geometry_object_with_id(info->geometry_object_id);
+    assert(is_set(info->geometry_object));
+    assert(info->partition_wall_index >= info->geometry_object->first_wall_index);
+    info->wall_index = info->partition_wall_index - info->geometry_object->first_wall_index;
+
+    info->pos2d = info->pos2d * Vec2(model->get_world()->config.length_unit);
   }
   else {
     // TODO: add support for surf class reactions
