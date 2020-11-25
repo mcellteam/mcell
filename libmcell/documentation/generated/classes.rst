@@ -750,6 +750,15 @@ Methods:
   | Same as export_data_model, only the created data model will contain only information required for visualization in CellBlender. This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential compatibility issues.
 
 
+* | **release_molecules**
+
+   * | release_site: ReleaseSite
+
+  | Performs immediate release based on the definition of the release site argument.
+  | If called within a callback, the molecules are released in time when the callback occurred.
+  | The ReleaseSite.release_time attribute is ignored.
+
+
 * | **get_molecule_ids**
 
    * | species: Species = None

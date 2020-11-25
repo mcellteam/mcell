@@ -117,7 +117,6 @@ uint64_t World::determine_output_frequency(uint64_t iterations) {
 void World::create_initial_surface_region_release_event() {
   ReleaseEvent* rel_event = new ReleaseEvent(this);
   rel_event->event_time = 0;
-  rel_event->actual_release_time = 0;
   rel_event->release_site_name = "initial surface releases";
   rel_event->release_shape = ReleaseShape::INITIAL_SURF_REGION;
   rel_event->update_event_time_for_next_scheduled_time();
@@ -447,7 +446,7 @@ std::string World::export_releases_to_bngl_seed_species(
     if (re->region_expr_root->op != RegionExprOperator::Leaf) {
       return "Only simple release regions are currently supported for BNGL export" + err_suffix;
     }
-    if (re->actual_release_time != 0) {
+    if (re->event_time != 0) {
       return "Only releases for time 0 are currently supported for BNGL export" + err_suffix;
     }
     if (re->orientation != ORIENTATION_NONE) {

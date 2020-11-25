@@ -38,6 +38,8 @@
 #include "api/wall_wall_hit_info.h"
 
 #include "world.h"
+#include "diffuse_react_event.h"
+#include "release_event.h"
 
 
 using namespace std;
@@ -85,9 +87,9 @@ void Model::initialize() {
   world = new World(callbacks);
 
   // semantic checks are done during conversion
-  MCell4Converter converter;
+  MCell4Converter converter(this, world);
 
-  converter.convert(this, world);
+  converter.convert();
 
   // set that all used objects were initialized
   vec_set_initialized(species);
@@ -134,6 +136,42 @@ void Model::export_data_model_viz_or_full(
   else {
     world->export_data_model_to_dir(get_first_viz_output_files_prefix(method_name));
   }
+}
+
+
+void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
+  // check that time is now or in the future
+  float_t iteration_start_time = world->stats.get_current_iteration() * world->config.time_unit;
+  if (release_site->release_time < iteration_start_time) {
+    throw ValueError("Cannot release molecules for time " + to_string(release_site->release_time) +
+        " before the start time of the current iteration " + to_string(iteration_start_time) + ".");
+  }
+
+  if (is_set(release_site->release_pattern)) {
+    throw ValueError(S("Cannot release molecules with a release pattern, method ") + NAME_RELEASE_MOLECULES +
+        " may be used only for immediate releases.");
+  }
+
+  // convert to a ReleaseEvent
+  MCell4Converter converter(this, world);
+  MCell::ReleaseEvent* rel_event = converter.convert_single_release_event(release_site);
+  assert(rel_event != nullptr);
+
+  // TODO: we must improve handling of cases when the release is in the future
+  rel_event->event_time = release_site->release_time / world->config.time_unit;
+
+  // figure out whether the DiffuseAndReactEvent is running
+  MCell::BaseEvent* current_event = world->scheduler.get_event_being_executed();
+
+  MCell::DiffuseReactEvent* diffuse_event = nullptr;
+  if (current_event != nullptr && current_event->type_index == EVENT_TYPE_INDEX_DIFFUSE_REACT) {
+    diffuse_event = dynamic_cast<MCell::DiffuseReactEvent*>(current_event);
+    assert(diffuse_event != nullptr);
+  }
+  
+  // and execute the release
+  rel_event->release_immediatelly(diffuse_event);
+  delete rel_event;
 }
 
 

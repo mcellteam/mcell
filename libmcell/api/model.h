@@ -74,6 +74,8 @@ public:
     export_data_model_viz_or_full(file, true, NAME_EXPORT_VIZ_DATA_MODEL);
   }
 
+  void release_molecules(std::shared_ptr<ReleaseSite> release_site) override;
+
   std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
   std::shared_ptr<Molecule> get_molecule(const int id) override;
 

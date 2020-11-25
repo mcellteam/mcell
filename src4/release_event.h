@@ -39,6 +39,7 @@ class Region;
 class Wall;
 class Grid;
 class InitialRegionMolecules;
+class DiffuseReactEvent;
 
 // TODO: replace with defines from API
 enum class ReleaseShape {
@@ -124,7 +125,6 @@ public:
     BaseEvent(EVENT_TYPE_INDEX_RELEASE),
     release_site_name(NAME_INVALID),
     species_id(SPECIES_ID_INVALID),
-    actual_release_time(TIME_INVALID),
     release_number_method(ReleaseNumberMethod::Invalid),
     release_number(UINT_INVALID),
     concentration(FLT_INVALID),
@@ -142,13 +142,24 @@ public:
     train_interval(EPS),
     train_duration(EPS),
     release_interval(FLT_GIGANTIC),
+
+    actual_release_time(TIME_INVALID),
     current_train_from_0(0),
     current_release_in_train_from_0(0),
-    world(world_) {
+    world(world_),
+    running_diffuse_event_to_update(nullptr) {
   }
   virtual ~ReleaseEvent();
 
   void step() override;
+
+  // argument may be nullptr
+  // NOTE: will need extra care for parallel diffusion
+  void release_immediatelly(DiffuseReactEvent* running_diffuse_event_to_update_) {
+      update_event_time_for_next_scheduled_time();
+      running_diffuse_event_to_update = running_diffuse_event_to_update_;
+      step();
+  }
 
   // release events must be sorted by the actual release time as well
   bool needs_secondary_ordering() override {
@@ -173,7 +184,6 @@ public:
   void dump(const std::string indent) const override;
   void to_data_model(Json::Value& mcell_node) const override;
 
-
   bool needs_release_pattern() const {
     bool single_release_at_t0 = delay == 0 && number_of_trains == 1 && get_num_releases_per_train() == 1;
     return !single_release_at_t0;
@@ -183,8 +193,6 @@ public:
   std::string release_site_name; // name of releaser site from which was this event created
 
   species_id_t species_id;
-
-  float_t actual_release_time;
 
   ReleaseNumberMethod release_number_method; // specifies what does the release_number mean
   uint release_number; // number of molecules to release
@@ -237,11 +245,17 @@ public:
 
 
 private:
+  float_t actual_release_time;
+
   // both values are initialized to 0 and counted from 0
   int current_train_from_0;
   int current_release_in_train_from_0;
 
   World* world;
+
+  // if not nullptr, we need to inform this event that there are new
+  // molecules to be released
+  DiffuseReactEvent* running_diffuse_event_to_update;
 
 private:
   uint calculate_number_to_release();
@@ -273,6 +287,9 @@ private:
   void init_surf_mols_by_density(
       Partition& p, const Region& reg, Wall& w, std::map<species_id_t, uint>& num_released_per_species);
   void release_initial_molecules_onto_surf_regions();
+
+  void schedule_for_immediate_diffusion_if_needed(
+      const molecule_id_t id, const WallTileIndexPair& where_released = WallTileIndexPair());
 
   float_t get_release_delay_time() const {
     if (cmp_eq(actual_release_time, event_time)) {

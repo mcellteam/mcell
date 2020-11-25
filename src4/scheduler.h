@@ -112,6 +112,10 @@ struct EventExecutionInfo {
 
 class Scheduler {
 public:
+  Scheduler() :
+    event_being_executed(nullptr) {
+  }
+
   // scheduler becomes owner of the base_event object
   void schedule_event(BaseEvent* event);
 
@@ -140,8 +144,16 @@ public:
     return calendar.get_all_events_with_type_index(event_type_index, events);
   }
 
+  BaseEvent* get_event_being_executed() {
+    return event_being_executed;
+  }
+
 private:
   Calendar calendar;
+
+  // callback might need to query which event is being executed right now
+  // is nullptr when no event is running
+  BaseEvent* event_being_executed;
 };
 
 } // namespace mcell

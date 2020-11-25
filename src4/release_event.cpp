@@ -33,6 +33,7 @@
 #include "release_event.h"
 #include "world.h"
 #include "partition.h"
+#include "diffuse_react_event.h"
 #include "datamodel_defines.h"
 
 #include "geometry_utils.h"
@@ -689,6 +690,8 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
               species_id, orientation, event_time, get_release_delay_time()
           );
 
+      schedule_for_immediate_diffusion_if_needed(sm_id, WallTileIndexPair(wall.index, tile_index));
+
       #ifdef DEBUG_RELEASES
         p.get_m(sm_id).dump(p, "Released sm:", "", p.stats.get_current_iteration(), actual_release_time, true);
       #endif
@@ -855,6 +858,8 @@ void ReleaseEvent::release_inside_regions(int& computed_release_number) {
     new_vm.set_flag(MOLECULE_FLAG_VOL);
     new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
+    schedule_for_immediate_diffusion_if_needed(new_vm.id);
+
     n--;
 
 #ifdef DEBUG_RELEASES
@@ -913,6 +918,9 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(int computed_release_number) 
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
     new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+
+    schedule_for_immediate_diffusion_if_needed(new_vm.id);
+
 #ifdef DEBUG_RELEASES
     new_vm.dump(p, "Released vm:", "", p.stats.get_current_iteration(), actual_release_time, true);
 #endif
@@ -935,6 +943,8 @@ void ReleaseEvent::release_list() {
       new_vm.set_flag(MOLECULE_FLAG_VOL);
       new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
+      schedule_for_immediate_diffusion_if_needed(new_vm.id);
+
       cout
         << "Released 1 " << species.name << " from \"" << release_site_name << "\""
         << " at iteration " << world->get_current_iteration() << ".\n";
@@ -955,6 +965,9 @@ void ReleaseEvent::release_list() {
           p, world->rng, info.pos, info.species_id, orient, diameter.x,
           event_time, get_release_delay_time()
       );
+
+      const Molecule& sm = p.get_m(sm_id);
+      schedule_for_immediate_diffusion_if_needed(sm_id, WallTileIndexPair(sm.s.wall_index, sm.s.grid_tile_index));
 
       if (sm_id != MOLECULE_ID_INVALID) {
         cout
@@ -1109,6 +1122,8 @@ void ReleaseEvent::init_surf_mols_by_density(
 
 
 void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
+  release_assert(running_diffuse_event_to_update == nullptr && "Cannot be executed during diffusion&react event");
+
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
   // let's iterate over regions for now,
@@ -1195,6 +1210,14 @@ void ReleaseEvent::step() {
   }
 }
 
+
+void ReleaseEvent::schedule_for_immediate_diffusion_if_needed(
+    const molecule_id_t id, const WallTileIndexPair& where_released) {
+  // NOTE: we do nto care about partitions here but we should
+  if (running_diffuse_event_to_update != nullptr) {
+    running_diffuse_event_to_update->add_diffuse_action(DiffuseAction(id, where_released));
+  }
+}
 
 } // namespace mcell
 

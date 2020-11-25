@@ -566,6 +566,12 @@ class Model():
         ) -> None:
         pass
 
+    def release_molecules(
+            self,
+            release_site : ReleaseSite
+        ) -> None:
+        pass
+
     def get_molecule_ids(
             self,
             species : Species = None

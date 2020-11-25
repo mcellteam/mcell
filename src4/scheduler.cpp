@@ -248,7 +248,9 @@ EventExecutionInfo Scheduler::handle_next_event() {
 #ifdef DEBUG_SCHEDULER
   event->dump("");
 #endif
+  event_being_executed = event;
   event->step();
+  event_being_executed = nullptr;
 
   event_type_index_t type_index = event->type_index;
 

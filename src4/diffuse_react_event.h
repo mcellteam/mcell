@@ -161,6 +161,10 @@ public:
     time_up_to_next_barrier = time_up_to_next_barrier_;
   }
 
+  void add_diffuse_action(const DiffuseAction& action) {
+    new_diffuse_actions.push_back(action);
+  }
+
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step

@@ -83,9 +83,9 @@ static viz_mode_t convert_viz_mode(const VizMode m) {
 }
 
 
-void MCell4Converter::convert(Model* model_, World* world_) {
-  model = model_;
-  world = world_;
+void MCell4Converter::convert() {
+  assert(model != nullptr);
+  assert(world != nullptr);
 
   convert_simulation_setup();
 
@@ -1311,100 +1311,110 @@ void MCell4Converter::convert_molecule_list(
 }
 
 
+MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
+    const std::shared_ptr<API::ReleaseSite>& r) {
+
+  MCell::ReleaseEvent* rel_event = new ReleaseEvent(world);
+
+  rel_event->release_site_name = r->name;
+
+  if (!is_set(r->molecule_list)) {
+
+    assert(is_set(r->complex));
+    rel_event->species_id = get_species_id_for_complex(
+        *r->complex, S(NAME_CLASS_RELEASE_SITE) + " '" + r->name + "'");
+
+    bool is_vol = world->get_all_species().get(rel_event->species_id).is_vol();
+    rel_event->orientation = convert_orientation(r->complex->orientation, true, is_vol);
+
+    if (world->get_all_species().get(rel_event->species_id).is_surf() &&
+        rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN) {
+      throw ValueError(
+          S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
+          " releases a surface molecule but orientation is not set to a valid value.");
+    }
+
+    if (is_vol &&
+        rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
+      throw ValueError(
+          S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
+          " releases a volume molecule but orientation is set.");
+    }
+  }
+
+  rel_event->delay = r->release_time / world->config.time_unit;
+
+  // release pattern
+  if (is_set(r->release_pattern)) {
+    API::ReleasePattern rp = *r->release_pattern;
+    rel_event->number_of_trains = rp.number_of_trains;
+    rel_event->train_interval = rp.train_interval / world->config.time_unit;
+    rel_event->train_duration = rp.train_duration / world->config.time_unit;
+    rel_event->release_interval = rp.release_interval / world->config.time_unit;
+  }
+
+  // release_number_method
+  if (is_set(r->number_to_release)) {
+    rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
+    rel_event->release_number = r->number_to_release;
+  }
+  else if (is_set(r->density)) {
+    rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
+    rel_event->concentration = r->density;
+  }
+  else if (is_set(r->concentration)) {
+    rel_event->release_number_method = ReleaseNumberMethod::ConcentrationNum;
+    rel_event->concentration = r->concentration;
+  }
+  else if (is_set(r->molecule_list)) {
+    rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
+    convert_molecule_list(r->molecule_list, r->name, rel_event);
+  }
+  else {
+    throw RuntimeError(
+        S("The only supported release number type now is constant number specified with ") + NAME_NUMBER_TO_RELEASE + "."
+    );
+  }
+
+  // release_shape
+  switch (r->shape) {
+    case Shape::SPHERICAL:
+      rel_event->release_shape = ReleaseShape::SPHERICAL;
+      rel_event->location = r->location * world->config.rcp_length_unit;
+      rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
+      break;
+    case Shape::REGION_EXPR:
+    case Shape::COMPARTMENT: {
+        rel_event->release_shape = ReleaseShape::REGION;
+        convert_region_expr(*r, rel_event);
+        bool ok = rel_event->initialize_walls_for_release();
+        if (!ok) {
+          throw RuntimeError("Only simple surface regions are supported for surface releases currently, error for " + r->name + ".");
+        }
+      }
+      break;
+    case Shape::LIST:
+      rel_event->release_shape = ReleaseShape::LIST;
+      rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
+      break;
+      rel_event->release_shape = ReleaseShape::REGION;
+      break;
+    default:
+      // should be caught earlier
+      throw RuntimeError(S("The only supported shapes now are ") +
+          NAME_EV_SPHERICAL + ", " + NAME_EV_REGION_EXPR + ", " + NAME_EV_COMPARTMENT + " and " + NAME_EV_LIST + ".");
+  }
+
+  return rel_event;
+}
+
+
 void MCell4Converter::convert_release_events() {
 
   for (std::shared_ptr<API::ReleaseSite>& r: model->release_sites) {
-    MCell::ReleaseEvent* rel_event = new ReleaseEvent(world);
+    MCell::ReleaseEvent* rel_event = convert_single_release_event(r);
 
-    rel_event->release_site_name = r->name;
-
-    if (!is_set(r->molecule_list)) {
-
-      assert(is_set(r->complex));
-      rel_event->species_id = get_species_id_for_complex(
-          *r->complex, S(NAME_CLASS_RELEASE_SITE) + " '" + r->name + "'");
-
-      bool is_vol = world->get_all_species().get(rel_event->species_id).is_vol();
-      rel_event->orientation = convert_orientation(r->complex->orientation, true, is_vol);
-
-      if (world->get_all_species().get(rel_event->species_id).is_surf() &&
-          rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN) {
-        throw ValueError(
-            S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
-            " releases a surface molecule but orientation is not set to a valid value.");
-      }
-
-      if (is_vol &&
-          rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
-        throw ValueError(
-            S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
-            " releases a volume molecule but orientation is set.");
-      }
-    }
-
-    rel_event->delay = r->release_time / world->config.time_unit;
-
-    // release pattern
-    if (is_set(r->release_pattern)) {
-      API::ReleasePattern rp = *r->release_pattern;
-      rel_event->number_of_trains = rp.number_of_trains;
-      rel_event->train_interval = rp.train_interval / world->config.time_unit;
-      rel_event->train_duration = rp.train_duration / world->config.time_unit;
-      rel_event->release_interval = rp.release_interval / world->config.time_unit;
-    }
-
-    // release_number_method
-    if (is_set(r->number_to_release)) {
-      rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
-      rel_event->release_number = r->number_to_release;
-    }
-    else if (is_set(r->density)) {
-      rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
-      rel_event->concentration = r->density;
-    }
-    else if (is_set(r->concentration)) {
-      rel_event->release_number_method = ReleaseNumberMethod::ConcentrationNum;
-      rel_event->concentration = r->concentration;
-    }
-    else if (is_set(r->molecule_list)) {
-      rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
-      convert_molecule_list(r->molecule_list, r->name, rel_event);
-    }
-    else {
-      throw RuntimeError(
-          S("The only supported release number type now is constant number specified with ") + NAME_NUMBER_TO_RELEASE + "."
-      );
-    }
-
-    // release_shape
-    switch (r->shape) {
-      case Shape::SPHERICAL:
-        rel_event->release_shape = ReleaseShape::SPHERICAL;
-        rel_event->location = r->location * world->config.rcp_length_unit;
-        rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
-        break;
-      case Shape::REGION_EXPR:
-      case Shape::COMPARTMENT: {
-          rel_event->release_shape = ReleaseShape::REGION;
-          convert_region_expr(*r, rel_event);
-          bool ok = rel_event->initialize_walls_for_release();
-          if (!ok) {
-            throw RuntimeError("Only simple surface regions are supported for surface releases currently, error for " + r->name + ".");
-          }
-        }
-        break;
-      case Shape::LIST:
-        rel_event->release_shape = ReleaseShape::LIST;
-        rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
-        break;
-        rel_event->release_shape = ReleaseShape::REGION;
-        break;
-      default:
-        // should be caught earlier
-        throw RuntimeError(S("The only supported shapes now are ") +
-            NAME_EV_SPHERICAL + ", " + NAME_EV_REGION_EXPR + ", " + NAME_EV_COMPARTMENT + " and " + NAME_EV_LIST + ".");
-    }
-
+    // schedule it
     rel_event->update_event_time_for_next_scheduled_time();
     world->scheduler.schedule_event(rel_event);
   }

@@ -72,7 +72,18 @@ Model:
       type: str
       default: unset
      
-  
+  # --- state modification ---
+  - name: release_molecules
+    doc: | 
+       Performs immediate release based on the definition of the release site argument.
+       The ReleaseSite.release_time must not be in the past and should be withing the current iteration.
+       The ReleaseEvent must not use a release_pattern because this is an immediate release and it is not 
+       scheduled into the global scheduler. 
+       
+    params:
+    - name: release_site
+      type: ReleaseSite*
+    
   # --- introspection ---
 
   # TODO: can we make some faster interface? however, we do not want to be bound to 

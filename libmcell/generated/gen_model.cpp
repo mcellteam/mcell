@@ -117,6 +117,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("dump_internal_state", &Model::dump_internal_state)
       .def("export_data_model", &Model::export_data_model, py::arg("file") = STR_UNSET)
       .def("export_viz_data_model", &Model::export_viz_data_model, py::arg("file") = STR_UNSET)
+      .def("release_molecules", &Model::release_molecules, py::arg("release_site"))
       .def("get_molecule_ids", &Model::get_molecule_ids, py::arg("species") = nullptr)
       .def("get_molecule", &Model::get_molecule, py::arg("id"))
       .def("get_vertex", &Model::get_vertex, py::arg("object"), py::arg("vertex_index"))

@@ -70,10 +70,20 @@ class SurfaceClass;
 
 class MCell4Converter {
 public:
+  MCell4Converter(Model* model_, World* world_) :
+    model(model_), world(world_){
+  }
+
+  // convert all items in Model into the World representation
   // throws exception if anything went wrong
   // modifies model as well where it stores information for cases
   // when a value such a reaction rate was updated by the user
-  void convert(Model* model_, World* world_);
+  void convert();
+
+  // converter can be also used to convert individual objects
+  // throws exception if anything went wrong
+  MCell::ReleaseEvent* convert_single_release_event(
+      const std::shared_ptr<API::ReleaseSite>& r);
 
 private:
   species_id_t get_species_id(API::Species& s, const std::string class_name, const std::string object_name);
