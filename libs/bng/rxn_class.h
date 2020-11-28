@@ -235,6 +235,7 @@ private:
 
 
 typedef small_vector<RxnClass*> RxnClassesVector;
+typedef std::set<RxnClass*> RxnClassesSet;
 
 } /* namespace BNG */
 

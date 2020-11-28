@@ -444,6 +444,10 @@ public:
     rxn_classes_where_used.insert(rxn_class);
   }
 
+  std::set<RxnClass*> get_rxn_classed_where_used() const {
+    return rxn_classes_where_used;
+  }
+
   void reset_rxn_classes_where_used() {
     rxn_classes_where_used.clear();
   }
@@ -467,7 +471,8 @@ public:
   }
 
   // manual update of rxn rate, does nothing if the new rate is the same as existing
-  void update_rxn_rate(const float_t new_rate);
+  // returns true if the rate was updated
+  bool update_rxn_rate(const float_t new_rate);
 
   std::string to_str(
       const bool with_rate_constant = true, const bool with_name = true, const bool with_id = true) const;

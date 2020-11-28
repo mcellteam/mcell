@@ -214,6 +214,8 @@ public:
 
   bool check_for_overlapped_walls();
 
+  void reset_unimol_rxn_times(const BNG::rxn_rule_id_t rxn_rule_id);
+
 private:
   // called in init_simulation
   void recompute_species_flags();

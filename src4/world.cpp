@@ -418,6 +418,35 @@ bool World::check_for_overlapped_walls() {
 }
 
 
+void World::reset_unimol_rxn_times(const BNG::rxn_rule_id_t rxn_rule_id) {
+  // get all affected species
+  const BNG::RxnRule* rxn = get_all_rxns().get(rxn_rule_id);
+  assert(rxn->is_unimol());
+
+  set<species_id_t> affected_species;
+  const auto& users = rxn->get_rxn_classed_where_used();
+  for (const auto& u: users) {
+    assert(u->specific_reactants.size() == 1);
+    affected_species.insert(u->specific_reactants[0].species_id);
+  }
+
+  // and then reset unimol time for each molecule of that species
+  for (Partition& p: partitions) {
+    for (Molecule& m: p.get_molecules()) {
+      if (affected_species.count(m.species_id) != 0) {
+        // new unimol time will be computed when the molecule is diffused
+        // the next time (we cannot change it right away for molecules that
+        // have longer timestep anyway because they were already diffused to the future)
+        m.unimol_rx_time = TIME_INVALID;
+        m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
+        m.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+      }
+    }
+  }
+}
+
+
+
 std::string World::export_releases_to_bngl_seed_species(
     std::ostream& parameters, std::ostream& seed_species) const {
   seed_species << BNG::BEGIN_SEED_SPECIES << "\n";

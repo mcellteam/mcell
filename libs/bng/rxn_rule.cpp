@@ -1884,11 +1884,11 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 }
 
 
-void RxnRule::update_rxn_rate(const float_t new_rate) {
+bool RxnRule::update_rxn_rate(const float_t new_rate) {
 
   // skip if rate is the same
   if (base_rate_constant == new_rate) {
-    return;
+    return false;
   }
 
   // update the rate
@@ -1900,6 +1900,8 @@ void RxnRule::update_rxn_rate(const float_t new_rate) {
     // no need to recompute products again
     user->init_rxn_pathways_and_rates(true);
   }
+
+  return true;
 }
 
 

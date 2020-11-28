@@ -123,6 +123,21 @@ std::string ReactionRule::get_canonical_name() const {
 }
 
 
+void ReactionRule::update_reaction_rate(const BNG::rxn_rule_id_t rxn_rule_id, const float_t new_rate) {
+  assert(is_initialized());
+
+  if (world->scheduler.get_event_being_executed() != nullptr) {
+    throw ValueError("Reaction rates cannot be changed in callbacks or in between of iterations.");
+  }
+
+  BNG::RxnRule* rxn = world->get_all_rxns().get(rxn_rule_id);
+  bool updated = rxn->update_rxn_rate(new_rate);
+  if (updated && rxn->is_unimol()) {
+    world->reset_unimol_rxn_times(rxn_rule_id);
+  }
+}
+
+
 void ReactionRule::set_fwd_rate(const float_t new_fwd_rate_) {
   if (!is_set(new_fwd_rate_)) {
     throw ValueError(S("Attribute ") + NAME_FWD_RATE + " must be set to a different value than " +
@@ -130,9 +145,7 @@ void ReactionRule::set_fwd_rate(const float_t new_fwd_rate_) {
   }
 
   if (is_initialized()) {
-    // update the existing rule
-    BNG::RxnRule* rxn = world->get_all_rxns().get(fwd_rxn_rule_id);
-    rxn->update_rxn_rate(new_fwd_rate_);
+    update_reaction_rate(fwd_rxn_rule_id, new_fwd_rate_);
     cached_data_are_uptodate = false;
     fwd_rate = new_fwd_rate_;
   }
@@ -141,6 +154,7 @@ void ReactionRule::set_fwd_rate(const float_t new_fwd_rate_) {
     fwd_rate = new_fwd_rate_;
   }
 }
+
 
 void ReactionRule::set_rev_rate(const float_t new_rev_rate_) {
   if (is_initialized()) {
@@ -152,8 +166,7 @@ void ReactionRule::set_rev_rate(const float_t new_rev_rate_) {
 
     // update the existing rule
     release_assert(rev_rxn_rule_id != BNG::RXN_RULE_ID_INVALID);
-    BNG::RxnRule* rxn = world->get_all_rxns().get(rev_rxn_rule_id);
-    rxn->update_rxn_rate(new_rev_rate_);
+    update_reaction_rate(rev_rxn_rule_id, new_rev_rate_);
     cached_data_are_uptodate = false;
     rev_rate = new_rev_rate_;
   }

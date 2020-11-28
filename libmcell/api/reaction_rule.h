@@ -109,6 +109,9 @@ public:
   BNG::rxn_rule_id_t fwd_rxn_rule_id;
   BNG::rxn_rule_id_t rev_rxn_rule_id;
   World* world;
+
+private:
+  void update_reaction_rate(const BNG::rxn_rule_id_t rxn_rule_id, const float_t new_rate);
 };
 
 } // namespace API
