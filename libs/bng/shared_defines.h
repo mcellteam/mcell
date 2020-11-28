@@ -60,6 +60,7 @@ namespace BNGCommon {
 #if FLOAT_T_BYTES == 8
 typedef double float_t;
 #elif FLOAT_T_BYTES == 4
+//typedef float float_t;
 #  error "Base type float32 is not supported yet"
 typedef float float_t;
 #else
@@ -148,7 +149,7 @@ static inline float_t floor_f(const float_t a) {
 #if FLOAT_T_BYTES == 8
   return floor(a);
 #else
-  return floorf(a, n);
+  return floorf(a);
 #endif
 }
 
@@ -157,7 +158,7 @@ static inline float_t round_f(const float_t a) {
 #if FLOAT_T_BYTES == 8
   return round(a);
 #else
-  return roundf(a, n);
+  return roundf(a);
 #endif
 }
 

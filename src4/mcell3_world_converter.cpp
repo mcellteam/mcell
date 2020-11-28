@@ -318,8 +318,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     sp_len = world->config.partition_edge_length / world->config.num_subpartitions_per_partition;
   }
 
-  Vec3 partition0_llf_microns = world->config.partition0_llf * s->length_unit;
-  Vec3 partition0_urb_microns = partition0_llf_microns + (world->config.partition_edge_length * s->length_unit);
+  Vec3 partition0_llf_microns = world->config.partition0_llf * Vec3(s->length_unit);
+  Vec3 partition0_urb_microns = partition0_llf_microns + Vec3(world->config.partition_edge_length * s->length_unit);
   mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ], with %d subpartitions per dimension",
       partition0_llf_microns.x, partition0_llf_microns.y, partition0_llf_microns.z,
       partition0_urb_microns.x, partition0_urb_microns.y, partition0_urb_microns.z,
