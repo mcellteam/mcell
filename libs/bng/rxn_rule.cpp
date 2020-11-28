@@ -1884,6 +1884,20 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 }
 
 
+void RxnRule::update_rxn_rate(const float_t new_rate) {
+
+  // update the rate
+  base_rate_constant = new_rate;
+
+  // notify parents that update is needed
+  for (RxnClass* user: rxn_classes_where_used) {
+    // NOTE: this can be done more efficiently if needed,
+    // no need to recompute products again
+    user->init_rxn_pathways_and_rates(true);
+  }
+}
+
+
 std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name, const bool with_id) const {
   stringstream ss;
   if (with_name) {

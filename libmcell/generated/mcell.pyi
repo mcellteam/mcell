@@ -572,6 +572,14 @@ class Model():
         ) -> None:
         pass
 
+    def set_reaction_rule_rate(
+            self,
+            reaction_rule : ReactionRule,
+            new_fwd_rate : float = None,
+            new_rev_rate : float = None
+        ) -> None:
+        pass
+
     def get_molecule_ids(
             self,
             species : Species = None

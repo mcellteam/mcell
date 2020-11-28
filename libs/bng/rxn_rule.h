@@ -466,6 +466,9 @@ public:
     }
   }
 
+  // manual update of rxn rate
+  void update_rxn_rate(const float_t new_rate);
+
   std::string to_str(
       const bool with_rate_constant = true, const bool with_name = true, const bool with_id = true) const;
   std::string reactants_to_str() const;

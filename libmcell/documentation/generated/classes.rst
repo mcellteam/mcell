@@ -760,6 +760,21 @@ Methods:
   | scheduled into the global scheduler.
 
 
+* | **set_reaction_rule_rate**
+
+   * | reaction_rule: ReactionRule
+   * | new_fwd_rate: float = None
+     | If set, sets the new forward rate.
+
+   * | new_rev_rate: float = None
+     | If set, sets the new reverse rate.
+     | Reaction must be reversible if set. Please note that reversible reaction 
+     | rules loaded from BNGL are internally split into their forward and reverse variants.
+
+
+  | Change reaction rate of a reaction rule.
+
+
 * | **get_molecule_ids**
 
    * | species: Species = None

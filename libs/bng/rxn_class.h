@@ -209,13 +209,14 @@ public:
   static void dump_array(const std::vector<RxnClass>& vec);
   void dump(const std::string ind = "") const;
 
-private:
-
   // initializes pathways, called automatically once rates of
   // products of this rxn class are needed, called on-demand
   // because computing even initial pathways without specific product species
   // for complex (and long) reactants may be costly)
+  // used also when rates are updated
   void init_rxn_pathways_and_rates(const bool force_update = false);
+
+private:
 
   void define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index);
 

@@ -76,6 +76,8 @@ public:
 
   void release_molecules(std::shared_ptr<ReleaseSite> release_site) override;
 
+  void set_reaction_rule_rate(std::shared_ptr<ReactionRule> reaction_rule, const float_t new_fwd_rate = FLT_UNSET, const float_t new_rev_rate = FLT_UNSET) override;
+
   std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
   std::shared_ptr<Molecule> get_molecule(const int id) override;
 

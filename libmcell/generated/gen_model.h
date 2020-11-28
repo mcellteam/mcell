@@ -103,6 +103,7 @@ public:
   virtual void export_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void export_viz_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void release_molecules(std::shared_ptr<ReleaseSite> release_site) = 0;
+  virtual void set_reaction_rule_rate(std::shared_ptr<ReactionRule> reaction_rule, const float_t new_fwd_rate = FLT_UNSET, const float_t new_rev_rate = FLT_UNSET) = 0;
   virtual std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) = 0;
   virtual std::shared_ptr<Molecule> get_molecule(const int id) = 0;
   virtual Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) = 0;
