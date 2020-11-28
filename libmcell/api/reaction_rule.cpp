@@ -24,6 +24,8 @@
 #include "api/reaction_rule.h"
 #include "bng/bngl_names.h"
 
+#include "world.h"
+
 #include <set>
 
 using namespace std;
@@ -118,6 +120,47 @@ std::string ReactionRule::get_canonical_name() const {
   sort_by_canonical_name(p_sorted);
 
   return get_rxn_str(r_sorted, p_sorted, rev_rate, true);
+}
+
+
+void ReactionRule::set_fwd_rate(const float_t new_fwd_rate_) {
+  if (!is_set(new_fwd_rate_)) {
+    throw ValueError(S("Attribute ") + NAME_FWD_RATE + " must be set to a different value than " +
+        NAME_CV_FLT_UNSET + ".");
+  }
+
+  if (is_initialized()) {
+    // update the existing rule
+    BNG::RxnRule* rxn = world->get_all_rxns().get(fwd_rxn_rule_id);
+    rxn->update_rxn_rate(new_fwd_rate_);
+    cached_data_are_uptodate = false;
+    fwd_rate = new_fwd_rate_;
+  }
+  else {
+    cached_data_are_uptodate = false;
+    fwd_rate = new_fwd_rate_;
+  }
+}
+
+void ReactionRule::set_rev_rate(const float_t new_rev_rate_) {
+  if (is_initialized()) {
+    // TODO: add test
+    if (is_set(rev_rate) && !is_set(new_rev_rate_)) {
+      throw ValueError(S("Attribute ") + NAME_REV_RATE + " must be set to a different value than " +
+          NAME_CV_FLT_UNSET + " is this " + NAME_CLASS_REACTION_RULE + " was initialized as a reversible reaction.");
+    }
+
+    // update the existing rule
+    release_assert(rev_rxn_rule_id != BNG::RXN_RULE_ID_INVALID);
+    BNG::RxnRule* rxn = world->get_all_rxns().get(rev_rxn_rule_id);
+    rxn->update_rxn_rate(new_rev_rate_);
+    cached_data_are_uptodate = false;
+    rev_rate = new_rev_rate_;
+  }
+  else {
+    cached_data_are_uptodate = false;
+    rev_rate = new_rev_rate_;
+  }
 }
 
 } // namespace API

@@ -353,6 +353,12 @@ ReactionRule:
   - name: fwd_rate
     type: float
     default: unset # must be set, but C++ ordering of arguments requires that all defaults are at the end
+    doc: |
+      May be changed after model initialization. 
+      Setting of value is ignored if the rate does not change. 
+      If the new value differs from previous, updates all information related 
+      to the new rate including recomputation of reaction times for molecules if this is a
+      unimolecular reaction.       
     
   - name: rev_name
     type: str
@@ -362,7 +368,10 @@ ReactionRule:
   - name: rev_rate
     type: float
     default: unset
-    doc: Reverse reactions rate, reaction is unidirectional when not specified 
+    doc: |
+      Reverse reactions rate, reaction is unidirectional when not specified.
+      May be changed after model initialization, in the case behaves the same was as for 
+      changing the 'fwd_rate'. 
     
   - name: variable_rate
     type: List[List[float]]

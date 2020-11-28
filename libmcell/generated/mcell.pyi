@@ -1,6 +1,10 @@
 from typing import List, Dict, Callable, Any
 from enum import Enum
 
+INT32_MAX = 2147483647 # do not use this constant in your code
+
+FLT_MAX = 3.40282346638528859812e+38 # do not use this constant in your code
+
 # "forward" declarations to make the type hints valid
 class Complex():
     pass
@@ -154,6 +158,8 @@ ALL_SURFACE_MOLECULES = 'ALL_SURFACE_MOLECULES'
 MOLECULE_ID_INVALID = -1
 NUMBER_OF_TRAINS_UNLIMITED = -1
 TIME_INFINITY = 1e140
+INT_UNSET = INT32_MAX
+FLT_UNSET = FLT_MAX
 
 
 class Complex():
@@ -569,14 +575,6 @@ class Model():
     def release_molecules(
             self,
             release_site : ReleaseSite
-        ) -> None:
-        pass
-
-    def set_reaction_rule_rate(
-            self,
-            reaction_rule : ReactionRule,
-            new_fwd_rate : float = None,
-            new_rev_rate : float = None
         ) -> None:
         pass
 

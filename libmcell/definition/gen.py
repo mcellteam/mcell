@@ -1389,6 +1389,9 @@ def generate_constants_header(constants_items, enums_items):
         f.write('#define ' + guard + '\n\n')
         
         f.write('#include <string>\n')
+        f.write('#include <climits>\n')
+        f.write('#include <cfloat>\n')
+
         f.write('#include "api/globals.h"\n')
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
@@ -1698,6 +1701,9 @@ def generate_pyi_file(data_classes):
         
         f.write('from typing import List, Dict, Callable, Any\n')
         f.write('from enum import Enum\n\n')
+        
+        f.write('INT32_MAX = 2147483647 # do not use this constant in your code\n\n')
+        f.write('FLT_MAX = 3.40282346638528859812e+38 # do not use this constant in your code\n\n')
         
         f.write('# "forward" declarations to make the type hints valid\n')
         for key, value in sorted(data_classes.items()):

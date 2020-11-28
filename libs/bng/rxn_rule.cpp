@@ -1886,6 +1886,11 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 
 void RxnRule::update_rxn_rate(const float_t new_rate) {
 
+  // skip if rate is the same
+  if (base_rate_constant == new_rate) {
+    return;
+  }
+
   // update the rate
   base_rate_constant = new_rate;
 

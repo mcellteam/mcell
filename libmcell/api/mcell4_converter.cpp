@@ -858,6 +858,9 @@ void MCell4Converter::convert_rxns() {
     if (is_reversible) {
       r->rev_rxn_rule_id = world->get_all_rxns().add_and_finalize(rxn_rev);
     }
+
+    // the ReactionRule object also need the world pointer
+    r->world = world;
   }
 }
 

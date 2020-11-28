@@ -175,44 +175,6 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
 }
 
 
-void Model::set_reaction_rule_rate(std::shared_ptr<ReactionRule> reaction_rule, const float_t new_fwd_rate, const float_t new_rev_rate) {
-  string method_name = S(NAME_CLASS_MODEL) + "." + NAME_SET_REACTION_RULE_RATE;
-
-  if (!initialized) {
-    throw RuntimeError(S("Model must be initialized before calling ") + method_name + ".");
-  }
-
-  if (!is_set(reaction_rule)) {
-    throw ValueError(S("Argument ") + NAME_REACTION_RULE + " must be set.");
-  }
-
-  if (!is_set(new_fwd_rate) && !is_set(new_rev_rate)) {
-    warns() << "Call to " << method_name << " is ignored because none of the rates were set.";
-    return;
-  }
-
-  if (reaction_rule->fwd_rxn_rule_id == BNG::RXN_RULE_ID_INVALID) {
-    throw ValueError(S(NAME_REACTION_RULE) + " passed as argument to " + method_name + " is not present in the model.");
-  }
-
-  if (is_set(new_rev_rate) && reaction_rule->rev_rxn_rule_id == BNG::RXN_RULE_ID_INVALID) {
-    throw ValueError(S(NAME_REACTION_RULE) + " passed as argument to " + method_name + " is not reversible " +
-        "cannot set new reversible rate.");
-  }
-
-
-  if (is_set(new_fwd_rate)) {
-    BNG::RxnRule* rxn = world->get_all_rxns().get(reaction_rule->fwd_rxn_rule_id);
-    rxn->update_rxn_rate(new_fwd_rate);
-  }
-
-  if (is_set(new_rev_rate)) {
-    BNG::RxnRule* rxn = world->get_all_rxns().get(reaction_rule->rev_rxn_rule_id);
-    rxn->update_rxn_rate(new_rev_rate);
-  }
-}
-
-
 std::vector<int> Model::get_molecule_ids(std::shared_ptr<Species> species) {
   // NOTE: not very efficient
   std::vector<int> res;
@@ -377,6 +339,8 @@ std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
       res.push_back(pair);
     }
   }
+
+  // TODO: also update the API copy of the geometry
 
   return res;
 }

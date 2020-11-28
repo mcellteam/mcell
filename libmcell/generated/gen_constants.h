@@ -24,6 +24,8 @@
 #define API_GEN_CONSTANTS
 
 #include <string>
+#include <climits>
+#include <cfloat>
 #include "api/globals.h"
 
 namespace MCell {
@@ -42,6 +44,8 @@ const std::string ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 const int MOLECULE_ID_INVALID = -1;
 const int NUMBER_OF_TRAINS_UNLIMITED = -1;
 const float_t TIME_INFINITY = 1e140;
+const int INT_UNSET = INT32_MAX;
+const float_t FLT_UNSET = FLT_MAX;
 
 enum class Orientation {
   DOWN = -1,

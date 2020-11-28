@@ -466,7 +466,7 @@ public:
     }
   }
 
-  // manual update of rxn rate
+  // manual update of rxn rate, does nothing if the new rate is the same as existing
   void update_rxn_rate(const float_t new_rate);
 
   std::string to_str(

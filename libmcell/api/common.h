@@ -48,8 +48,6 @@ static std::string S(const char* s) {
   return std::string(s);
 }
 
-const float_t FLT_UNSET = FLT_MAX;
-const int INT_UNSET = INT32_MAX;
 const long long LONG_UNSET = INT64_MAX;
 const Vec3 VEC3_UNSET(POS_INVALID);
 const void* const PTR_UNSET = nullptr;

@@ -138,6 +138,14 @@ Constants
 * | **MOLECULE_ID_INVALID**: int = -1
 * | **NUMBER_OF_TRAINS_UNLIMITED**: int = -1
 * | **TIME_INFINITY**: float = 1e140
+* | **INT_UNSET**: int = INT32_MAX
+  | This is a special integer value that means that an argument was not set, 
+  | its value is 2147483647.
+
+* | **FLT_UNSET**: float = FLT_MAX
+  | This is a special floating point value that means that an argument was not set, 
+  | its value is 3.40282346638528859812e+38F.
+
 
 
 **************************
@@ -760,21 +768,6 @@ Methods:
   | scheduled into the global scheduler.
 
 
-* | **set_reaction_rule_rate**
-
-   * | reaction_rule: ReactionRule
-   * | new_fwd_rate: float = None
-     | If set, sets the new forward rate.
-
-   * | new_rev_rate: float = None
-     | If set, sets the new reverse rate.
-     | Reaction must be reversible if set. Please note that reversible reaction 
-     | rules loaded from BNGL are internally split into their forward and reverse variants.
-
-
-  | Change reaction rate of a reaction rule.
-
-
 * | **get_molecule_ids**
 
    * | species: Species = None
@@ -1278,12 +1271,19 @@ Attributes:
 * | **products**: List[Complex] = None
 
 * | **fwd_rate**: float = None
+  | May be changed after model initialization. 
+  | Setting of value is ignored if the rate does not change. 
+  | If the new value differs from previous, updates all information related 
+  | to the new rate including recomputation of reaction times for molecules if this is a
+  | unimolecular reaction.
 
 * | **rev_name**: str = None
   | Name of the reaction in reverse direction.
 
 * | **rev_rate**: float = None
-  | Reverse reactions rate, reaction is unidirectional when not specified
+  | Reverse reactions rate, reaction is unidirectional when not specified.
+  | May be changed after model initialization, in the case behaves the same was as for 
+  | changing the 'fwd_rate'.
 
 * | **variable_rate**: List[List[float]] = None
   | Variable rate is applicable only for irreversible reactions. Members fwd_rate and rev_rate 

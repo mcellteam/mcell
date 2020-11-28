@@ -28,6 +28,9 @@
 #include "bng/bng.h"
 
 namespace MCell {
+
+class World;
+
 namespace API {
 
 class ReactionRule: public GenReactionRule {
@@ -81,6 +84,9 @@ public:
     return to_bngl_str_w_orientation();
   }
 
+  void set_fwd_rate(const float_t new_fwd_rate_) override;
+  void set_rev_rate(const float_t new_rev_rate_) override;
+
   // added methods
   bool is_reversible() const {
     return is_set(rev_rate);
@@ -95,8 +101,14 @@ public:
   bool warn_if_adding_identical_object() const { return true; }
 
   // simulation engine mapping
+  bool is_initialized() const {
+    assert((fwd_rxn_rule_id == BNG::RXN_RULE_ID_INVALID) == (world == nullptr) &&
+        "When initialized, both values must be set");
+    return world != nullptr;
+  }
   BNG::rxn_rule_id_t fwd_rxn_rule_id;
   BNG::rxn_rule_id_t rev_rxn_rule_id;
+  World* world;
 };
 
 } // namespace API

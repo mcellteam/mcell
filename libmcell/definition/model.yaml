@@ -83,26 +83,6 @@ Model:
     params:
     - name: release_site
       type: ReleaseSite*
-  
-  - name: set_reaction_rule_rate
-    doc: |
-       Change reaction rate of a reaction rule.
-    params:  
-    - name: reaction_rule
-      type: ReactionRule*
-      
-    - name: new_fwd_rate
-      type: float
-      default: unset
-      doc: If set, sets the new forward rate.
-
-    - name: new_rev_rate
-      type: float
-      default: unset
-      doc: |
-         If set, sets the new reverse rate.
-         Reaction must be reversible if set. Please note that reversible reaction 
-         rules loaded from BNGL are internally split into their forward and reverse variants.   
     
   # --- introspection ---
 

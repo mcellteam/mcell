@@ -65,7 +65,21 @@ constants:
   - name: TIME_INFINITY
     type: float
     value: 1e140
+
+  - name: INT_UNSET
+    type: int
+    value: INT32_MAX
+    doc: | 
+      This is a special integer value that means that an argument was not set, 
+      its value is 2147483647.
     
+  - name: FLT_UNSET
+    type: float
+    value: FLT_MAX
+    doc: | 
+      This is a special floating point value that means that an argument was not set, 
+      its value is 3.40282346638528859812e+38F.
+        
 enums:
   - name: Orientation
     doc: Orientation of a Complex.
