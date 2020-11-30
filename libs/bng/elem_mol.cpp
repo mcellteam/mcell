@@ -10,15 +10,15 @@
 
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
-#include "bng/mol_type.h"
 #include "bng/cplx.h"
+#include "elem_mol_type.h"
 
 using namespace std;
 
 namespace BNG {
 
 static bool state_bond_less(
-    const BNGData& bng_data, const ComponentInstance& ci1, const ComponentInstance& ci2) {
+    const BNGData& bng_data, const Component& ci1, const Component& ci2) {
 
   // bond
   if (ci1.bond_value != ci2.bond_value) {
@@ -40,11 +40,11 @@ class CanonicalComponentComparator {
 public:
   // need to pass bng data for state names
   // and also molecule type because we do not know to which mol type the components belong
-  CanonicalComponentComparator(const BNGData& bng_data_, const MolType& mt_)
+  CanonicalComponentComparator(const BNGData& bng_data_, const ElemMolType& mt_)
     : bng_data(bng_data_), mt(mt_) {
   }
 
-  bool operator()(const ComponentInstance& ci1, const ComponentInstance& ci2) {
+  bool operator()(const Component& ci1, const Component& ci2) {
     // we must maintain the order of components if they have the same name
     if (ci1.component_type_id != ci2.component_type_id) {
       // different components - the ordering is given by the order in the molecule
@@ -69,7 +69,7 @@ public:
 
 private:
   const BNGData& bng_data;
-  const MolType& mt;
+  const ElemMolType& mt;
 };
 
 
@@ -80,7 +80,7 @@ public:
     : bng_data(bng_data_) {
   }
 
-  bool operator()(const ComponentInstance& ci1, const ComponentInstance& ci2) {
+  bool operator()(const Component& ci1, const Component& ci2) {
     // component name
     if (ci1.component_type_id != ci2.component_type_id) {
       return bng_data.get_component_type(ci1.component_type_id).name <
@@ -95,7 +95,7 @@ private:
 };
 
 // ------------- ComponentInstance -------------
-std::string ComponentInstance::to_str(const BNGData& bng_data) const {
+std::string Component::to_str(const BNGData& bng_data) const {
   stringstream ss;
 
   const ComponentType& ct = bng_data.get_component_type(component_type_id);
@@ -122,18 +122,18 @@ std::string ComponentInstance::to_str(const BNGData& bng_data) const {
   return ss.str();
 }
 
-void ComponentInstance::dump(const BNGData& bng_data, const string& ind) const {
+void Component::dump(const BNGData& bng_data, const string& ind) const {
   cout << ind << to_str(bng_data) << "\n";
 }
 
 
 // ------------- MoleculeInstance -------------
 
-bool MolInstance::is_fully_qualified(const BNGData& bng_data) const {
+bool ElemMol::is_fully_qualified(const BNGData& bng_data) const {
   multiset<component_type_id_t> this_inst_components;
   multiset<component_type_id_t> mol_type_components;
 
-  for (const ComponentInstance& ci: component_instances) {
+  for (const Component& ci: components) {
     component_type_id_t ct_id = ci.component_type_id;
     this_inst_components.insert(ct_id);
     // if a component has a state, it must be set
@@ -142,7 +142,7 @@ bool MolInstance::is_fully_qualified(const BNGData& bng_data) const {
     }
   }
 
-  for (component_type_id_t ct_id: bng_data.get_molecule_type(mol_type_id).component_type_ids) {
+  for (component_type_id_t ct_id: bng_data.get_elem_mol_type(elem_mol_type_id).component_type_ids) {
     mol_type_components.insert(ct_id);
   }
 
@@ -151,22 +151,22 @@ bool MolInstance::is_fully_qualified(const BNGData& bng_data) const {
 }
 
 
-void MolInstance::canonicalize(const BNGData& bng_data) {
+void ElemMol::canonicalize(const BNGData& bng_data) {
   // sort components first
-  CanonicalComponentComparator comp_cmp(bng_data, bng_data.get_molecule_type(mol_type_id));
-  sort(component_instances.begin(), component_instances.end(), comp_cmp);
+  CanonicalComponentComparator comp_cmp(bng_data, bng_data.get_elem_mol_type(elem_mol_type_id));
+  sort(components.begin(), components.end(), comp_cmp);
 }
 
 
-void MolInstance::sort_components_by_name(const BNGData& bng_data) {
+void ElemMol::sort_components_by_name(const BNGData& bng_data) {
   ComponentNameComparator name_cmp(bng_data);
-  sort(component_instances.begin(), component_instances.end(), name_cmp);
+  sort(components.begin(), components.end(), name_cmp);
 }
 
 // TODO: component sorting overlaps with MolType::canonicalize
-void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
+void ElemMol::finalize_flags_and_sort_components(const BNGData& bng_data) {
 
-  const MolType& mt = bng_data.get_molecule_type(mol_type_id);
+  const ElemMolType& mt = bng_data.get_elem_mol_type(elem_mol_type_id);
 
   // copy flags from molecule type
   set_flags(mt.get_flags());
@@ -178,30 +178,30 @@ void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
   // sort components according to the order in molecule instance so that
   // all molecule instances are either identical or when used as patterns, they
   // can be easily compared
-  if (component_instances.size() > 1) {
+  if (components.size() > 1) {
 
     vector<bool> used_component_instances;
-    used_component_instances.resize(component_instances.size(), false);
-    small_vector<ComponentInstance> new_component_instances;
+    used_component_instances.resize(components.size(), false);
+    small_vector<Component> new_component_instances;
 
     for (size_t template_index = 0; template_index < mt.component_type_ids.size(); template_index++) {
       // try to find component that matches the current template position
       size_t instance_index;
-      for (instance_index = 0; instance_index < component_instances.size(); instance_index++) {
+      for (instance_index = 0; instance_index < components.size(); instance_index++) {
         if (!used_component_instances[instance_index] &&
-            component_instances[instance_index].component_type_id == mt.component_type_ids[template_index]) {
+            components[instance_index].component_type_id == mt.component_type_ids[template_index]) {
           break;
         }
       }
-      if (instance_index < component_instances.size()) {
+      if (instance_index < components.size()) {
         // found
         used_component_instances[instance_index] = true;
-        new_component_instances.push_back(component_instances[instance_index]);
+        new_component_instances.push_back(components[instance_index]);
       }
     }
 
     // update the component instance array
-    component_instances = new_component_instances;
+    components = new_component_instances;
   }
 }
 
@@ -209,21 +209,21 @@ void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
 // this is a method used when computing rxn rate multiplier,
 // we transform this mol instance pattern in a similar one only
 // each added component has any state and any bond specifier
-void MolInstance::insert_missing_components_as_any_state_pattern(const BNGData& bng_data) {
+void ElemMol::insert_missing_components_as_any_state_pattern(const BNGData& bng_data) {
   assert(is_finalized() && "Components must be sorted");
 
-  const MolType& mt = bng_data.get_molecule_type(mol_type_id);
+  const ElemMolType& mt = bng_data.get_elem_mol_type(elem_mol_type_id);
 
   size_t instance_index = 0;
   for (size_t template_index = 0; template_index < mt.component_type_ids.size(); template_index++) {
     component_type_id_t template_component_id = mt.component_type_ids[template_index];
-    if (instance_index < component_instances.size() &&
-        component_instances[instance_index].component_type_id != template_component_id) {
+    if (instance_index < components.size() &&
+        components[instance_index].component_type_id != template_component_id) {
       // missing - need to insert
-      ComponentInstance ci = ComponentInstance(template_component_id);
+      Component ci = Component(template_component_id);
       ci.state_id = STATE_ID_DONT_CARE;
       ci.bond_value = BOND_VALUE_ANY;
-      component_instances.push_back(ci);
+      components.push_back(ci);
     }
     else {
       // ok, present
@@ -236,43 +236,43 @@ void MolInstance::insert_missing_components_as_any_state_pattern(const BNGData& 
 }
 
 
-std::string MolInstance::to_str(const BNGData& bng_data) const {
+std::string ElemMol::to_str(const BNGData& bng_data) const {
   stringstream ss;
-  const MolType& mt = bng_data.get_molecule_type(mol_type_id);
+  const ElemMolType& mt = bng_data.get_elem_mol_type(elem_mol_type_id);
 
   ss << mt.name;
-  if (!component_instances.empty()) {
+  if (!components.empty()) {
     ss << "(";
   }
 
   bool first_component = true;
-  for (size_t i = 0; i < component_instances.size(); i++) {
+  for (size_t i = 0; i < components.size(); i++) {
 
     if (!first_component) {
       ss << ",";
     }
 
-    ss << component_instances[i].to_str(bng_data);
+    ss << components[i].to_str(bng_data);
 
     first_component = false;
   }
-  if (!component_instances.empty()) {
+  if (!components.empty()) {
     ss << ")";
   }
   return ss.str();
 }
 
 
-void MolInstance::dump(const BNGData& bng_data, const bool for_diff, const std::string ind) const {
+void ElemMol::dump(const BNGData& bng_data, const bool for_diff, const std::string ind) const {
   if (!for_diff) {
     cout << to_str(bng_data);
   }
   else {
-    const MolType& mt = bng_data.get_molecule_type(mol_type_id);
-    cout << ind << "mol_type_id: " << mol_type_id << " (" << mt.name << ")\n";
+    const ElemMolType& mt = bng_data.get_elem_mol_type(elem_mol_type_id);
+    cout << ind << "mol_type_id: " << elem_mol_type_id << " (" << mt.name << ")\n";
     cout << ind << "flags: " << BaseSpeciesCplxMolFlag::to_str() << "\n";
     cout << ind << "components: \n";
-    for (const ComponentInstance& ci: component_instances) {
+    for (const Component& ci: components) {
       ci.dump(bng_data, ind + "  ");
     }
   }

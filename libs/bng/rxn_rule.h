@@ -491,15 +491,15 @@ private:
   void compute_reactants_products_mapping();
 
   bool check_components_mapping(
-      const MolInstance& first_mi,
-      const MolInstance& second_mi,
+      const ElemMol& first_mi,
+      const ElemMol& second_mi,
       const char* msg,
       std::ostream& out
   );
 
   bool check_components_states(
-      const MolInstance& prod_mi,
-      const MolInstance& pat_mi,
+      const ElemMol& prod_mi,
+      const ElemMol& pat_mi,
       std::ostream& out
   );
 

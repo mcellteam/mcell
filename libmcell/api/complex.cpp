@@ -50,7 +50,7 @@ const std::string& Complex::get_canonical_name() const {
   if (num_errors != 0) {
     throw RuntimeError("While creating canonical name for a Complex, could not parse '" + bngl_str + "'.");
   }
-  assert(!cplx_inst.mol_instances.empty());
+  assert(!cplx_inst.elem_mols.empty());
 
   // create canonical name
   // we don't care that the complex may not be fully qualified, we cannot know this at this point

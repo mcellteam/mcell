@@ -65,7 +65,7 @@ void BNGEngine::export_molecule_types_as_bngl(std::ostream& out_parameters, std:
   out_molecule_types << BEGIN_MOLECULE_TYPES << "\n";
 
   out_parameters << "\n" << BNG::IND << "# diffusion constants\n";
-  for (const MolType& mt: data.get_molecule_types()) {
+  for (const ElemMolType& mt: data.get_elem_mol_types()) {
     if (mt.is_reactive_surface() || is_species_superclass(mt.name)) {
       continue;
     }

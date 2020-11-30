@@ -2062,8 +2062,8 @@ int DiffuseReactEvent::outcome_products_random(
     #ifndef NDEBUG
       // check that the second reactant is a reactive surface
       assert(rxn->reactants[1].is_simple());
-      BNG::mol_type_id_t mol_type_id = rxn->reactants[1].get_simple_species_mol_type_id();
-      const BNG::MolType& mt = p.bng_engine.get_data().get_molecule_type(mol_type_id);
+      BNG::elem_mol_type_id_t mol_type_id = rxn->reactants[1].get_simple_species_mol_type_id();
+      const BNG::ElemMolType& mt = p.bng_engine.get_data().get_elem_mol_type(mol_type_id);
       assert(mt.is_reactive_surface());
     #endif
   }

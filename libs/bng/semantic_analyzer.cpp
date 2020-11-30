@@ -10,7 +10,7 @@
 #include "bng/semantic_analyzer.h"
 
 #include "bng/bng_data.h"
-#include "bng/mol_type.h"
+#include "bng/elem_mol_type.h"
 #include "bng/parser_utils.h"
 #include "bng/bngl_names.h"
 
@@ -228,13 +228,13 @@ ComponentType SemanticAnalyzer::convert_component_type(
 }
 
 
-MolType SemanticAnalyzer::convert_molecule_type(
+ElemMolType SemanticAnalyzer::convert_molecule_type(
     const ASTMolNode* n,
     // when parsing single cplx we don't have the full information from the molecule types section
     // so we allow merging component types and also bonds
     const bool parsing_single_cplx
 ) {
-  MolType mt;
+  ElemMolType mt;
   mt.name = n->name;
 
   for (const ASTBaseNode* c: n->components->items) {
@@ -292,9 +292,9 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
         ctx->inc_error_count();
         continue;
       }
-      MolType mt = convert_molecule_type(n);
+      ElemMolType mt = convert_molecule_type(n);
 
-      bng_data->find_or_add_molecule_type(mt);
+      bng_data->find_or_add_elem_mol_type(mt);
     }
   }
 }
@@ -428,7 +428,7 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
   // sort by name and skip those that are already known
   map<string, vector<const ASTMolNode*>> mol_uses_with_same_name;
   for (const ASTMolNode* n: found_mol_nodes) {
-    mol_type_id_t mt_id = bng_data->find_molecule_type_id(n->name);
+    elem_mol_type_id_t mt_id = bng_data->find_elem_mol_type_id(n->name);
     if (mt_id == MOL_TYPE_ID_INVALID) {
       mol_uses_with_same_name[n->name].push_back(n);
     }
@@ -482,7 +482,7 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
     // we finally know how the components will look like, lets create it
     // component_state_names - component name and allowed states
     // max_component_count_per_all_mts - how many components per molecule type are there
-    MolType new_mt;
+    ElemMolType new_mt;
     new_mt.name = same_name_it.first;
 
     if (is_thrash_or_null(new_mt.name)) {
@@ -504,27 +504,27 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
       }
     }
 
-    bng_data->find_or_add_molecule_type(new_mt);
+    bng_data->find_or_add_elem_mol_type(new_mt);
   }
 }
 
 
-MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
+ElemMol SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
 
-  MolInstance mi;
+  ElemMol mi;
   // there is no support for surface molecules in BNGL yet, so everything must be volume molecule
   mi.set_is_vol();
 
   // process and remember ID
-  mol_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
+  elem_mol_type_id_t molecule_type_id = bng_data->find_elem_mol_type_id(m->name);
   if (molecule_type_id == MOL_TYPE_ID_INVALID) {
     errs_loc(m) << "Molecule type with name '" + m->name + "' was not defined.\n"; // test N0200
     ctx->inc_error_count();
     return mi;
   }
 
-  const MolType& mt = bng_data->get_molecule_type(molecule_type_id);
-  mi.mol_type_id = molecule_type_id;
+  const ElemMolType& mt = bng_data->get_elem_mol_type(molecule_type_id);
+  mi.elem_mol_type_id = molecule_type_id;
 
 
   // make a multiset of components type ids so that we can check that
@@ -563,7 +563,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
     remaining_component_ids.erase(remaining_component_ids.find(component_type_id));
 
     // add this component to our instance
-    mi.component_instances.push_back(ComponentInstance(component_type_id));
+    mi.components.push_back(Component(component_type_id));
 
     // state
     if (component->states->items.size() > 1) {
@@ -596,7 +596,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
       }
 
       // finally set the component's state
-      mi.component_instances[current_component_index].state_id = state_id;
+      mi.components[current_component_index].state_id = state_id;
     }
 
     // bond
@@ -608,7 +608,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
       ctx->internal_error(component->bond, "Invalid bond index");
     }
 
-    mi.component_instances.back().bond_value = b;
+    mi.components.back().bond_value = b;
 
     // need to move component index because we processed this component
     current_component_index++;
@@ -643,7 +643,7 @@ void SemanticAnalyzer::convert_cplx(
   for (const ASTMolNode* m: cplx_node->mols) {
 
     // molecule ids are based on their name
-    bng_cplx.mol_instances.push_back( convert_molecule_pattern(m) );
+    bng_cplx.elem_mols.push_back( convert_molecule_pattern(m) );
     if (ctx->get_error_count() != 0) {
       return;
     }
@@ -651,10 +651,10 @@ void SemanticAnalyzer::convert_cplx(
 
   // semantic checks on bonds validity
   map<bond_value_t, vector<uint> > bond_value_to_molecule_index;
-  for (uint i = 0; i < bng_cplx.mol_instances.size(); i++) {
-    const MolInstance& mi = bng_cplx.mol_instances[i];
+  for (uint i = 0; i < bng_cplx.elem_mols.size(); i++) {
+    const ElemMol& mi = bng_cplx.elem_mols[i];
 
-    for (const ComponentInstance& compi: mi.component_instances) {
+    for (const Component& compi: mi.components) {
       if (compi.bond_has_numeric_value()) {
         // remember molecule index in this complex for a given bond
         bond_value_to_molecule_index[compi.bond_value].push_back(i);
@@ -975,15 +975,15 @@ void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxNode* cplx_
 
   for (const ASTMolNode* mol: cplx_node->mols) {
     // was this molecule type already defined?
-    mol_type_id_t mt_id = bng_data->find_molecule_type_id(mol->name);
+    elem_mol_type_id_t mt_id = bng_data->find_elem_mol_type_id(mol->name);
     if (mt_id == MOL_TYPE_ID_INVALID) {
       // no, simply add as a new one
-      MolType mt = convert_molecule_type(mol, true);
-      bng_data->find_or_add_molecule_type(mt);
+      ElemMolType mt = convert_molecule_type(mol, true);
+      bng_data->find_or_add_elem_mol_type(mt);
     }
     else {
       // yes - extend existing components definitions
-      MolType& mt = bng_data->get_molecule_type(mt_id);
+      ElemMolType& mt = bng_data->get_elem_mol_type(mt_id);
 
       // for each component of the new cplx
       for (const ASTBaseNode* c: mol->components->items) {

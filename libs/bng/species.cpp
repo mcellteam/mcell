@@ -117,9 +117,9 @@ void Species::update_rxn_and_custom_flags(
   // SPECIES_MOL_FLAG_CANT_INITIATE == target_only
   const BNGData& bng_data = all_species.get_bng_data();
   bool all_mols_are_cant_initiate = true;
-  for (const MolInstance& mi: mol_instances) {
+  for (const ElemMol& mi: elem_mols) {
     all_mols_are_cant_initiate = all_mols_are_cant_initiate &&
-        bng_data.get_molecule_type(mi.mol_type_id).has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
+        bng_data.get_elem_mol_type(mi.elem_mol_type_id).has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
   }
   set_flag(SPECIES_MOL_FLAG_CANT_INITIATE, all_mols_are_cant_initiate);
 
@@ -225,9 +225,9 @@ void Species::update_space_and_time_step(const BNGConfig& config) {
 
 
 void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& config) {
-  if (mol_instances.size() == 1) {
+  if (elem_mols.size() == 1) {
     // nothing to compute if we have just one molecule instance
-    const MolType& mt = data.get_molecule_type(mol_instances[0].mol_type_id);
+    const ElemMolType& mt = data.get_elem_mol_type(elem_mols[0].elem_mol_type_id);
     D = mt.D;
     assert(D != FLT_INVALID);
     custom_space_step = mt.custom_space_step;
@@ -235,8 +235,8 @@ void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& co
   }
   else {
     // check for custom steps that are not supported yet for complexes
-    for (const MolInstance& mi: mol_instances) {
-      const MolType& mt = data.get_molecule_type(mi.mol_type_id);
+    for (const ElemMol& mi: elem_mols) {
+      const ElemMolType& mt = data.get_elem_mol_type(mi.elem_mol_type_id);
       release_assert(mt.custom_space_step == 0 && mt.custom_time_step == 0 &&
           "Custom time and space steps are not yet supported for complexes having more than one elementary molecule"
       );
@@ -260,9 +260,9 @@ void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& co
       // in this case combine only the 2D subunits to derive the 2D diffusion constant
       bool is_immobile = false;
       float_t acc = 0;
-      for (const MolInstance& mi: mol_instances) {
+      for (const ElemMol& mi: elem_mols) {
         if (mi.is_surf()) {
-          float_t mol_type_D = data.get_molecule_type(mi.mol_type_id).D;
+          float_t mol_type_D = data.get_elem_mol_type(mi.elem_mol_type_id).D;
 
           // if diffusion constant of any 2D member is zero (i.e. is immobile) then whole complex should be immobile
           if (mol_type_D == 0) {
@@ -287,9 +287,9 @@ void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& co
       // 3D combining rule: compute cuberoot of the sum of the cubes
       bool is_immobile = false;
       float_t acc = 0;
-      for (const MolInstance& mi: mol_instances) {
+      for (const ElemMol& mi: elem_mols) {
         assert(!mi.is_surf());
-        float_t mol_type_D = data.get_molecule_type(mi.mol_type_id).D;
+        float_t mol_type_D = data.get_elem_mol_type(mi.elem_mol_type_id).D;
 
         //  if diffusion constant of any 3D member is zero (i.e. is immobile) then whole complex should be immobile
         if (mol_type_D == 0) {

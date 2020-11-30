@@ -10,8 +10,8 @@
 
 #include <iostream>
 
-#include "bng/mol_type.h"
-#include "bng/mol_instance.h"
+#include "bng/elem_mol_type.h"
+#include "bng/elem_mol.h"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/iteration_macros.hpp>
@@ -27,13 +27,13 @@ struct Node {
       ordering_index(INDEX_INVALID), modified_ordering_index(ordering_index) {
   }
 
-  Node(MolInstance* mol_)
+  Node(ElemMol* mol_)
     : is_mol(true), mol(mol_), component(nullptr), used_in_rxn_product(true),
       product_index(INDEX_INVALID), reactant_pattern_index(INDEX_INVALID),
       ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
   }
 
-  Node(ComponentInstance* component_)
+  Node(Component* component_)
     : is_mol(false), mol(nullptr), component(component_), used_in_rxn_product(true),
       product_index(INDEX_INVALID), reactant_pattern_index(INDEX_INVALID),
       ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
@@ -64,7 +64,7 @@ struct Node {
       assert(n2.mol != nullptr);
 
       // molecule
-      return n1.mol->mol_type_id == n2.mol->mol_type_id;
+      return n1.mol->elem_mol_type_id == n2.mol->elem_mol_type_id;
     }
     else {
       assert(!n1.is_mol && !n2.is_mol);
@@ -117,8 +117,8 @@ struct Node {
   std::string to_str(const BNGData* bng_data = nullptr) const;
 
   bool is_mol;
-  MolInstance* mol;
-  ComponentInstance* component;
+  ElemMol* mol;
+  Component* component;
 
   // for reaction handling, default is true
   bool used_in_rxn_product;

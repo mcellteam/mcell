@@ -4,8 +4,7 @@
  *  Created on: Jan 9, 2020
  *      Author: ahusar
  */
-#include "bng/mol_type.h"
-
+#include <bng/elem_mol_type.h>
 #include <iostream>
 #include <sstream>
 
@@ -33,7 +32,7 @@ void ComponentType::dump(const BNGData& bng_data) const {
 
 
 // ------------- MoleculeType -------------
-std::string MolType::to_str(const BNGData& bng_data) const {
+std::string ElemMolType::to_str(const BNGData& bng_data) const {
   stringstream out;
 
   out << name << "(";
@@ -53,7 +52,7 @@ std::string MolType::to_str(const BNGData& bng_data) const {
 }
 
 
-void MolType::dump(const BNGData& bng_data) const {
+void ElemMolType::dump(const BNGData& bng_data) const {
 
   cout << to_str(bng_data);
   cout <<

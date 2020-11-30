@@ -947,7 +947,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components
-    MolType mol_type;
+    ElemMolType mol_type;
     mol_type.name = new_species.name; // name of the mol type is the same as for our species
     mol_type.D = spec->D;
     if (spec->custom_time_step_from_mdl < 0) {
@@ -970,11 +970,11 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     else {
       assert(false);
     }
-    mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
+    elem_mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_elem_mol_type(mol_type);
 
-    MolInstance mol_inst;
-    mol_inst.mol_type_id = mol_type_id;
-    new_species.mol_instances.push_back(mol_inst);
+    ElemMol mol_inst;
+    mol_inst.elem_mol_type_id = mol_type_id;
+    new_species.elem_mols.push_back(mol_inst);
 
     // and finally let's add our new species
     new_species.finalize();

@@ -24,8 +24,8 @@ set(SOURCE_FILES
 	bng_engine.cpp
 	bng_config.cpp
 	cplx.cpp
-	mol_instance.cpp
-	mol_type.cpp
+	elem_mol.cpp
+	elem_mol_type.cpp
 	parser_utils.cpp
 	parser.cpp
 	rxn_class.cpp

@@ -264,11 +264,11 @@ bool RxnRule::matching_may_produce_multiple_identical_results() const {
 bool RxnRule::may_modify_more_than_one_identical_component() const {
 
   for (const Cplx& reactant: reactants) {
-    for (const MolInstance& mi: reactant.mol_instances) {
-      const MolType& mt = bng_data->get_molecule_type(mi.mol_type_id);
+    for (const ElemMol& mi: reactant.elem_mols) {
+      const ElemMolType& mt = bng_data->get_elem_mol_type(mi.elem_mol_type_id);
 
       // for each component of the pattern
-      for (const ComponentInstance& ci: mi.component_instances) {
+      for (const Component& ci: mi.components) {
         // how many times is this component type used in the molecule type template
         if (mt.get_component_uses_count(ci.component_type_id) > 1) {
           return true;
@@ -282,19 +282,19 @@ bool RxnRule::may_modify_more_than_one_identical_component() const {
 
 
 struct MolCompInfo {
-  MolCompInfo(const vertex_descriptor_t desc_, const MolInstance* mi_)
+  MolCompInfo(const vertex_descriptor_t desc_, const ElemMol* mi_)
     : desc(desc_), already_matched(false), mi(mi_), ci(nullptr) {
   }
-  MolCompInfo(const vertex_descriptor_t desc_, const ComponentInstance* ci_)
+  MolCompInfo(const vertex_descriptor_t desc_, const Component* ci_)
     : desc(desc_), already_matched(false), mi(nullptr), ci(ci_) {
   }
 
-  const MolInstance* get_mi() const {
+  const ElemMol* get_mi() const {
     assert(mi != nullptr);
     return mi;
   }
 
-  const ComponentInstance* get_ci() const {
+  const Component* get_ci() const {
     assert(ci != nullptr);
     return ci;
   }
@@ -304,8 +304,8 @@ struct MolCompInfo {
   vector<int> matching_score;
   bool already_matched;
 private:
-  const MolInstance* mi;
-  const ComponentInstance* ci;
+  const ElemMol* mi;
+  const Component* ci;
 };
 
 
@@ -344,8 +344,8 @@ static void get_all_component_instances_of_mol_from_graph(
 
 
 static int get_component_instance_matching_score(
-    const ComponentInstance& ci1,
-    const ComponentInstance& ci2
+    const Component& ci1,
+    const Component& ci2
 ) {
   if (ci1.component_type_id != ci2.component_type_id) {
     return 0; // not a match
@@ -365,25 +365,25 @@ static int get_component_instance_matching_score(
 }
 
 
-static int get_mol_instance_matching_score(const MolInstance& pat, const MolInstance& prod) {
-  if (pat.mol_type_id != prod.mol_type_id) {
+static int get_mol_instance_matching_score(const ElemMol& pat, const ElemMol& prod) {
+  if (pat.elem_mol_type_id != prod.elem_mol_type_id) {
     return -1;
   }
   int res = 0;
 
   // add a lot of points if we have the same number of components
-  if (pat.component_instances.size() == prod.component_instances.size()) {
-    res += pat.component_instances.size();
+  if (pat.components.size() == prod.components.size()) {
+    res += pat.components.size();
   }
 
   // and add points for each matching component, they are ordered according to
   // the MolType
   // TODO: probably use the same approach for matching components that is done later
-  for (size_t i = 0; i < pat.component_instances.size(); i++) {
-    const ComponentInstance& pat_compi = pat.component_instances[i];
+  for (size_t i = 0; i < pat.components.size(); i++) {
+    const Component& pat_compi = pat.components[i];
 
-    if (i < prod.component_instances.size()) {
-      res += get_component_instance_matching_score(pat_compi, prod.component_instances[i]);
+    if (i < prod.components.size()) {
+      res += get_component_instance_matching_score(pat_compi, prod.components[i]);
     }
   }
 
@@ -760,8 +760,8 @@ static void apply_rxn_on_reactants_graph(
 
     if (!prod_node.is_mol) {
       assert(!reac_node.is_mol);
-      const ComponentInstance& prod_ci = *prod_node.component;
-      ComponentInstance& reac_ci = *reac_node.component;
+      const Component& prod_ci = *prod_node.component;
+      Component& reac_ci = *reac_node.component;
 
       // update state
       if (prod_ci.state_is_set() && prod_ci.state_id != reac_ci.state_id) {
@@ -936,11 +936,11 @@ static bool convert_graph_component_to_product_cplx_inst(
       continue;
     }
 
-    cplx.mol_instances.push_back(*mol.mol);
-    MolInstance& mi = cplx.mol_instances.back();
+    cplx.elem_mols.push_back(*mol.mol);
+    ElemMol& mi = cplx.elem_mols.back();
 
     // we will recreate components because they might have changed
-    mi.component_instances.clear();
+    mi.components.clear();
 
     // for each of its components
     boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
@@ -951,8 +951,8 @@ static bool convert_graph_component_to_product_cplx_inst(
       const Node& comp = index[comp_desc];
       assert(!comp.is_mol && "Only a component may be connected to a molecule.");
 
-      mi.component_instances.push_back(*comp.component); // we use state as it its
-      ComponentInstance& compi = mi.component_instances.back();
+      mi.components.push_back(*comp.component); // we use state as it its
+      Component& compi = mi.components.back();
 
       // we need to set bonds
       Graph::vertex_descriptor bound_comp_desc = get_bond_target(graph, comp_desc, false);
@@ -1448,11 +1448,11 @@ bool RxnRule::get_assigned_simple_cplx_reactant_for_product(const uint product_i
 }
 
 
-static size_t find_mol_instance_with_address(const CplxVector& cplx_vex, const MolInstance* mi_addr) {
+static size_t find_mol_instance_with_address(const CplxVector& cplx_vex, const ElemMol* mi_addr) {
   for (size_t i = 0; i < cplx_vex.size(); i++) {
     const Cplx& ci = cplx_vex[i];
-    for (size_t k = 0; k < ci.mol_instances.size(); k++) {
-      if (mi_addr == &ci.mol_instances[k]) {
+    for (size_t k = 0; k < ci.elem_mols.size(); k++) {
+      if (mi_addr == &ci.elem_mols[k]) {
         return i;
       }
     }
@@ -1555,23 +1555,23 @@ void RxnRule::compute_reactants_products_mapping() {
 
 
 bool RxnRule::check_components_mapping(
-    const MolInstance& first_mi,
-    const MolInstance& second_mi,
+    const ElemMol& first_mi,
+    const ElemMol& second_mi,
     const char* msg,
     std::ostream& out
 ) {
   // TODO: use computed component ordering from products_to_patterns_mapping
   // maybe store vertex descriptor along with molecule and component instances
   bool ok = true;
-  for (size_t i = 0; i < first_mi.component_instances.size(); i++) {
-    const ComponentInstance& first_compi = first_mi.component_instances[i];
+  for (size_t i = 0; i < first_mi.components.size(); i++) {
+    const Component& first_compi = first_mi.components[i];
 
-    if (i >= second_mi.component_instances.size() ||
-        second_mi.component_instances[i].component_type_id != first_compi.component_type_id
+    if (i >= second_mi.components.size() ||
+        second_mi.components[i].component_type_id != first_compi.component_type_id
     ) {
       out <<
           "Molecule " << msg << ": Component(s) " <<
-          bng_data->get_component_type(first_mi.component_instances[i].component_type_id).name <<
+          bng_data->get_component_type(first_mi.components[i].component_type_id).name <<
           " missing from molecule " <<
           second_mi.to_str(*bng_data) << ".";
       ok = false;
@@ -1583,19 +1583,19 @@ bool RxnRule::check_components_mapping(
 
 
 bool RxnRule::check_components_states(
-    const MolInstance& prod_mi,
-    const MolInstance& pat_mi,
+    const ElemMol& prod_mi,
+    const ElemMol& pat_mi,
     std::ostream& out
 ) {
   // TODO: use computed component ordering from products_to_patterns_mapping
   bool ok = true;
-  for (size_t i = 0; i < prod_mi.component_instances.size(); i++) {
-    const ComponentInstance& prod_compi = prod_mi.component_instances[i];
+  for (size_t i = 0; i < prod_mi.components.size(); i++) {
+    const Component& prod_compi = prod_mi.components[i];
 
-    if (i >= pat_mi.component_instances.size() ||
-        pat_mi.component_instances[i].component_type_id == prod_compi.component_type_id
+    if (i >= pat_mi.components.size() ||
+        pat_mi.components[i].component_type_id == prod_compi.component_type_id
     ) {
-      const ComponentInstance& pat_compi = pat_mi.component_instances[i];
+      const Component& pat_compi = pat_mi.components[i];
 
       // ok, components have the same type, we need to check state
       if (pat_compi.state_is_set() && !prod_compi.state_is_set()) {
@@ -1625,11 +1625,11 @@ bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
     if (!prod_node.is_mol) {
       continue;
     }
-    const MolInstance& prod_mi = *prod_node.mol;
+    const ElemMol& prod_mi = *prod_node.mol;
 
     const Node& pat_node = patterns_index[map_it.second];
     assert(prod_node.is_mol);
-    const MolInstance& pat_mi = *pat_node.mol;
+    const ElemMol& pat_mi = *pat_node.mol;
 
     // check that this molecule uses the same components in both directions
     // the components are ordered according to the definition in MolType

@@ -5,8 +5,8 @@
  *      Author: ahusar
  */
 
-#ifndef LIBS_BNG_MOL_TYPE_H_
-#define LIBS_BNG_MOL_TYPE_H_
+#ifndef LIBS_BNG_ELEM_MOL_TYPE_H_
+#define LIBS_BNG_ELEM_MOL_TYPE_H_
 
 #include <string>
 
@@ -36,14 +36,14 @@ public:
 
 
 // Information common both to MolType and Species
-class MolTypeSpeciesCommonData {
+class ElemMolTypeSpeciesCommonData {
 public:
-  MolTypeSpeciesCommonData()
+  ElemMolTypeSpeciesCommonData()
     : D(FLT_INVALID), custom_time_step(0), custom_space_step(0),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1) {
   }
 
-  MolTypeSpeciesCommonData(const MolTypeSpeciesCommonData& other)
+  ElemMolTypeSpeciesCommonData(const ElemMolTypeSpeciesCommonData& other)
     : D(other.D),
       custom_time_step(other.custom_time_step),
       custom_space_step(other.custom_space_step),
@@ -81,9 +81,9 @@ public:
 // Molecule type determines all allowed components and states of these components.
 // It is only used to check that reactions and instantiations (releases) follow the
 // allowed components and states.
-class MolType: public BaseSpeciesCplxMolFlag, public MolTypeSpeciesCommonData {
+class ElemMolType: public BaseSpeciesCplxMolFlag, public ElemMolTypeSpeciesCommonData {
 public:
-  MolType() {
+  ElemMolType() {
     reactant_compartments.insert(COMPARTMENT_ID_ANY);
     reactant_compartments.insert(COMPARTMENT_ID_NONE);
   }
@@ -100,7 +100,7 @@ public:
     return has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
   }
 
-  bool operator ==(const MolType& mt2) const {
+  bool operator ==(const ElemMolType& mt2) const {
     // ordering of components in a molecule is important
     // two component types must have the same id, this is ensured in find_or_add_component_type
     // diffusion constant and custom time/space steps are ignored,
@@ -124,4 +124,4 @@ public:
 
 } /* namespace BNG */
 
-#endif /* LIBS_BNG_MOL_TYPE_H_ */
+#endif /* LIBS_BNG_ELEM_MOL_TYPE_H_ */

@@ -85,7 +85,7 @@ bool NFSimSpeciesUnifier::read_input_file(const std::string& input_file, const b
       ifs.close();
       return false;
     }
-    assert(!cplx_inst.mol_instances.empty());
+    assert(!cplx_inst.elem_mols.empty());
 
     // see what species it is
     BNG::Species new_species = BNG::Species(cplx_inst, bng_engine.get_data(), bng_engine.get_config(), false);

@@ -61,8 +61,8 @@ void Subsystem::load_bngl_molecule_types_and_reaction_rules(
 
 void Subsystem::convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data) {
   // elementary molecules
-  for (const BNG::MolType& mt: bng_data.get_molecule_types()) {
-    convert_molecule_type(bng_data, mt);
+  for (const BNG::ElemMolType& mt: bng_data.get_elem_mol_types()) {
+    convert_elementary_molecule_type(bng_data, mt);
   }
 
   // reaction rules
@@ -72,7 +72,7 @@ void Subsystem::convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data)
 }
 
 
-void Subsystem::convert_molecule_type(const BNG::BNGData& bng_data, const BNG::MolType& bng_mt) {
+void Subsystem::convert_elementary_molecule_type(const BNG::BNGData& bng_data, const BNG::ElemMolType& bng_mt) {
 
   const string& name = bng_mt.name;
   auto res_mt = make_shared<API::ElementaryMoleculeType>(name);
@@ -174,16 +174,16 @@ std::shared_ptr<API::Complex> Subsystem::convert_cplx(
   auto res_cplx_inst = API::Complex::make_shared_empty();
 
   // convert each molecule instance
-  for (const BNG::MolInstance& bmg_mi: bng_cplx.mol_instances) {
+  for (const BNG::ElemMol& bmg_mi: bng_cplx.elem_mols) {
 
     // find molecule type and create an instance
-    const string& mt_name = bng_data.get_molecule_type(bmg_mi.mol_type_id).name;
+    const string& mt_name = bng_data.get_elem_mol_type(bmg_mi.elem_mol_type_id).name;
     std::shared_ptr<ElementaryMoleculeType> api_emt = find_elementary_molecule_type(mt_name);
     assert(is_set(api_emt));
 
     // prepare a vector of component instances with their bonds set
     std::vector<std::shared_ptr<API::Component>> api_comp_instances;
-    for (const BNG::ComponentInstance& bng_ci: bmg_mi.component_instances) {
+    for (const BNG::Component& bng_ci: bmg_mi.components) {
       const std::string& ct_name = bng_data.get_component_type(bng_ci.component_type_id).name;
 
       // we need to define component type here, they are not global

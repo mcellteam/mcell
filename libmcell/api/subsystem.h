@@ -33,7 +33,7 @@
 #include "api/reaction_rule.h"
 
 namespace BNG {
-class MolType;
+class ElemMolType;
 class RxnRule;
 class Cplx;
 }
@@ -103,7 +103,7 @@ protected:
   void convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data);
 
 private:
-  void convert_molecule_type(const BNG::BNGData& bng_data, const BNG::MolType& bng_mt);
+  void convert_elementary_molecule_type(const BNG::BNGData& bng_data, const BNG::ElemMolType& bng_mt);
   void convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::RxnRule& bng_rr);
 };
 

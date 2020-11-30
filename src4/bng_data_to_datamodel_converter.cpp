@@ -131,7 +131,7 @@ void BngDataToDatamodelConverter::convert_molecules(Value& mcell_node) {
 
   // we are converting molecule types because that's the information we need in
   // the datamodel, we do not care about species
-  for (const MolType& mt: bng_engine->get_data().get_molecule_types()) {
+  for (const ElemMolType& mt: bng_engine->get_data().get_elem_mol_types()) {
     // - ALL_* species are ignored
     // - reactive surfaces are converted as surface classes
     // -
@@ -145,7 +145,7 @@ void BngDataToDatamodelConverter::convert_molecules(Value& mcell_node) {
 }
 
 
-void BngDataToDatamodelConverter::convert_single_mol_type(const BNG::MolType& mt, Value& molecule_node) {
+void BngDataToDatamodelConverter::convert_single_mol_type(const BNG::ElemMolType& mt, Value& molecule_node) {
 
   add_version(molecule_node, VER_DM_2018_10_16_1632);
 
@@ -295,7 +295,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
 
 
 string BngDataToDatamodelConverter::get_surface_class_name(const BNG::RxnRule& r) {
-  const string& reactant_name = bng_engine->get_data().get_molecule_type(r.reactants[0].get_simple_species_mol_type_id()).name;
+  const string& reactant_name = bng_engine->get_data().get_elem_mol_type(r.reactants[0].get_simple_species_mol_type_id()).name;
   return DMUtil::remove_surf_class_prefix(reactant_name, r.name);
 }
 
@@ -325,7 +325,7 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
     add_version(sc_item, VER_DM_2015_11_08_1756);
     CONVERSION_CHECK(rxn_rule->reactants[0].is_simple(), "Surface class reactant must be simple for now.");
 
-    const string& reactant_name = bng_engine->get_data().get_molecule_type(rxn_rule->reactants[0].get_simple_species_mol_type_id()).name;
+    const string& reactant_name = bng_engine->get_data().get_elem_mol_type(rxn_rule->reactants[0].get_simple_species_mol_type_id()).name;
     if (is_species_superclass(reactant_name)) {
       sc_item[KEY_AFFECTED_MOLS] = reactant_name;
       sc_item[KEY_MOLECULE] = "";

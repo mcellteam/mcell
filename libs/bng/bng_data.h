@@ -9,7 +9,7 @@
 #define LIBS_BNG_BNG_DATA_H_
 
 #include "bng/bng_defines.h"
-#include "bng/mol_type.h"
+#include "bng/elem_mol_type.h"
 #include "bng/rxn_rule.h"
 #include "bng/cplx.h"
 
@@ -100,7 +100,7 @@ private:
   std::vector<ComponentType> component_types;
 
   // indexed with molecule_type_id_t
-  std::vector<MolType> molecule_types;
+  std::vector<ElemMolType> elem_mol_types;
 
   // indexed with compartment_id_t
   std::vector<Compartment> compartments;
@@ -145,7 +145,7 @@ public:
 
   // may return COMPONENT_TYPE_ID_INVALID when the name was not found
   // among components allowed for this molecule type
-  component_type_id_t find_component_type_id(const MolType& mt, const std::string& name) const;
+  component_type_id_t find_component_type_id(const ElemMolType& mt, const std::string& name) const;
 
   const ComponentType& get_component_type(const component_type_id_t id) const {
     assert(id < component_types.size());
@@ -159,23 +159,23 @@ public:
 
   // -------- molecule types --------
 
-  mol_type_id_t find_or_add_molecule_type(const MolType& mt);
+  elem_mol_type_id_t find_or_add_elem_mol_type(const ElemMolType& mt);
 
   // may return MOLECULE_TYPE_ID_INVALID when the name was not found
-  mol_type_id_t find_molecule_type_id(const std::string& name) const;
+  elem_mol_type_id_t find_elem_mol_type_id(const std::string& name) const;
 
-  const MolType& get_molecule_type(const mol_type_id_t id) const {
-    assert(id < molecule_types.size());
-    return molecule_types[id];
+  const ElemMolType& get_elem_mol_type(const elem_mol_type_id_t id) const {
+    assert(id < elem_mol_types.size());
+    return elem_mol_types[id];
   }
 
-  MolType& get_molecule_type(const mol_type_id_t id) {
-    assert(id < molecule_types.size());
-    return molecule_types[id];
+  ElemMolType& get_elem_mol_type(const elem_mol_type_id_t id) {
+    assert(id < elem_mol_types.size());
+    return elem_mol_types[id];
   }
 
-  const std::vector<MolType>& get_molecule_types() const {
-    return molecule_types;
+  const std::vector<ElemMolType>& get_elem_mol_types() const {
+    return elem_mol_types;
   }
 
   // -------- compartments --------

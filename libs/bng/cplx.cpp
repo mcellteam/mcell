@@ -10,8 +10,8 @@
 
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
-#include "bng/mol_type.h"
-#include "bng/mol_instance.h"
+#include "bng/elem_mol_type.h"
+#include "bng/elem_mol.h"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/vf2_sub_graph_iso.hpp>
@@ -34,7 +34,7 @@ namespace BNG {
 // ------------------------------------ CplxInstance -------------------------
 
 bool Cplx::is_fully_qualified() const {
-  for (const MolInstance& mi: mol_instances) {
+  for (const ElemMol& mi: elem_mols) {
     if (!mi.is_fully_qualified(*bng_data)) {
       return false;
     }
@@ -61,14 +61,14 @@ bool Cplx::is_connected() const {
 
 
 void Cplx::finalize() {
-  if (mol_instances.empty()) {
+  if (elem_mols.empty()) {
     return; // empty complex, ignoring finalization
   }
 
   // volume or surface type
   bool surf_type = false;
   bool reactive_surf_type = false;
-  for (MolInstance& mp: mol_instances) {
+  for (ElemMol& mp: elem_mols) {
     // need to finalize flags - copy them from molecule type
     mp.finalize_flags_and_sort_components(*bng_data);
     // if at least one is a surface molecule then the whole cplx is surface molecule
@@ -91,12 +91,12 @@ void Cplx::finalize() {
 
   // set flag SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS
   bool is_simple = true;
-  if (mol_instances.size() > 1) {
+  if (elem_mols.size() > 1) {
     is_simple = false;
   }
   if (is_simple) {
-    for (MolInstance& mi: mol_instances) {
-      if (!mi.component_instances.empty()) {
+    for (ElemMol& mi: elem_mols) {
+      if (!mi.components.empty()) {
         is_simple = false;
         break;
       }
@@ -116,9 +116,9 @@ void Cplx::finalize() {
 
 void Cplx::update_flag_and_compartments_used_in_rxns() {
   bool is_used_with_compartment_in_rxn = true;
-  for (MolInstance& mi: mol_instances) {
+  for (ElemMol& mi: elem_mols) {
 
-    const MolType& mt = bng_data->get_molecule_type(mi.mol_type_id);
+    const ElemMolType& mt = bng_data->get_elem_mol_type(mi.elem_mol_type_id);
 
     reactant_compartments.insert(
         mt.reactant_compartments.begin(),
@@ -140,10 +140,10 @@ void Cplx::create_graph() {
   map<bond_value_t, vector<Graph::vertex_descriptor>> bonds_to_vertices_map;
 
   // add all molecules with their components and remember how they should be bound
-  for (MolInstance& mi: mol_instances) {
+  for (ElemMol& mi: elem_mols) {
     Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(&mi)), graph);
 
-    for (ComponentInstance& ci: mi.component_instances) {
+    for (Component& ci: mi.components) {
       // for patterns, only components that were explicitly listed are in component instances
 
       Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(&ci)), graph);
@@ -219,8 +219,8 @@ bool Cplx::matches_complex_fully_ignore_orientation(const Cplx& pattern) const {
 void Cplx::renumber_bonds() {
   map<bond_value_t, bond_value_t> new_bond_values;
 
-  for (MolInstance& mi: mol_instances) {
-    for (ComponentInstance& ci: mi.component_instances) {
+  for (ElemMol& mi: elem_mols) {
+    for (Component& ci: mi.components) {
       if (ci.bond_has_numeric_value()) {
         auto it = new_bond_values.find(ci.bond_value);
         if (it == new_bond_values.end()) {
@@ -244,9 +244,9 @@ void Cplx::renumber_bonds() {
 // TODO: split into multiple functions
 // https://computationalcombinatorics.wordpress.com/2012/09/20/canonical-labelings-with-nauty/
 void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
-  if (mol_instances.size() == 1) {
+  if (elem_mols.size() == 1) {
 
-    for (MolInstance& mi: mol_instances) {
+    for (ElemMol& mi: elem_mols) {
       if (!sort_components_by_name_do_not_finalize) {
         // sort components in molecules to their prescribed form
         // and in a way that the state name is ascending (we have no bonds here)
@@ -278,15 +278,15 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
   // second value is -1 if the index represents a molecule
   vector<pair<int, int>> index_to_mol_and_component_index;
   int index = 0;
-  for (int m_index = 0; m_index < (int)mol_instances.size(); m_index++) {
-    MolInstance& mi = mol_instances[m_index];
+  for (int m_index = 0; m_index < (int)elem_mols.size(); m_index++) {
+    ElemMol& mi = elem_mols[m_index];
     nodes.push_back(Node(&mi));
     int mol_index = index;
     index_to_mol_and_component_index.push_back(make_pair(m_index, -1));
     index++;
 
-    for (int c_index = 0; c_index < (int)mi.component_instances.size(); c_index++) {
-      ComponentInstance& ci = mi.component_instances[c_index];
+    for (int c_index = 0; c_index < (int)mi.components.size(); c_index++) {
+      Component& ci = mi.components[c_index];
       nodes.push_back(Node(&ci));
       component_to_mol_index[index] = mol_index;
       index_to_mol_and_component_index.push_back(make_pair(m_index, c_index));
@@ -313,14 +313,14 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
     int num_neighbors = 0;
     if (n.is_mol) {
       // for a molecule - neighbors are all edges - the indices directly follow ours
-      for (int i = 0; i < (int)n.mol->component_instances.size(); i++) {
+      for (int i = 0; i < (int)n.mol->components.size(); i++) {
         e_neighbors.push_back(index + i + 1); // need +1 because the first component is the next one
         num_neighbors++;
       }
 
       // also remember color
       // use name instead of id so that we are not dependent on the order of declatation in the BNG file
-      color_classes["M:" + bng_data->get_molecule_type(n.mol->mol_type_id).name].push_back(index);
+      color_classes["M:" + bng_data->get_elem_mol_type(n.mol->elem_mol_type_id).name].push_back(index);
     }
     else {
       // index of the component's molecule
@@ -437,7 +437,7 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
   // 4) create molecules and components in this complex from scratch
   // the numeric bonds are still ok
 
-  MolInstanceVector new_mol_instances(mol_instances.size());
+  ElemMolVector new_mol_instances(elem_mols.size());
   map<int, int> old_to_new_mol_index;
   // now go by the ordered reverse mapping and create mols
   int new_mol_index = 0;
@@ -446,8 +446,8 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
     pair<int, int> orig_mci = index_to_mol_and_component_index[index];
     if (orig_mci.second == -1) {
       // copy everything and clear components, they will be added later
-      new_mol_instances[new_mol_index] = mol_instances[orig_mci.first];
-      new_mol_instances[new_mol_index].component_instances.clear();
+      new_mol_instances[new_mol_index] = elem_mols[orig_mci.first];
+      new_mol_instances[new_mol_index].components.clear();
       old_to_new_mol_index[orig_mci.first] = new_mol_index;
       new_mol_index++;
     }
@@ -461,21 +461,21 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
       int new_mol_index = old_to_new_mol_index[orig_mci.first];
       assert(new_mol_index < (int)new_mol_instances.size());
       // copy components
-      new_mol_instances[new_mol_index].component_instances.push_back(
-          mol_instances[orig_mci.first].component_instances[orig_mci.second]
+      new_mol_instances[new_mol_index].components.push_back(
+          elem_mols[orig_mci.first].components[orig_mci.second]
       );
     }
   }
 
   // and overwrite
-  mol_instances = new_mol_instances;
+  elem_mols = new_mol_instances;
 
   // 5) renumber bonds so that they follow the new molecule ordering
   renumber_bonds();
 
   // 6) sort components in molecules back to their prescribed form
   // and in a way that the bond index is increasing
-  for (MolInstance& mi: mol_instances) {
+  for (ElemMol& mi: elem_mols) {
     if (!sort_components_by_name_do_not_finalize) {
       // sort components in molecules to their prescribed form
       // and in a way that the state name is ascending (we have no bonds here)
@@ -505,10 +505,10 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
 
 std::string Cplx::to_str(bool in_surf_reaction) const {
   stringstream ss;
-  for (size_t i = 0; i < mol_instances.size(); i++) {
-    ss << mol_instances[i].to_str(*bng_data);
+  for (size_t i = 0; i < elem_mols.size(); i++) {
+    ss << elem_mols[i].to_str(*bng_data);
 
-    if (i != mol_instances.size() - 1) {
+    if (i != elem_mols.size() - 1) {
       ss << ".";
     }
   }
@@ -560,9 +560,9 @@ void Cplx::dump(const bool for_diff, const std::string ind) const {
     }
 
     cout << ind << "mol_instances:\n";
-    for (size_t i = 0; i < mol_instances.size(); i++) {
+    for (size_t i = 0; i < elem_mols.size(); i++) {
       cout << ind << i << ":\n";
-      mol_instances[i].dump(*bng_data, true, ind + "  ");
+      elem_mols[i].dump(*bng_data, true, ind + "  ");
     }
   }
 }

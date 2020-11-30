@@ -8,7 +8,7 @@
 #ifndef LIBS_BNG_SPECIES_H_
 #define LIBS_BNG_SPECIES_H_
 
-#include "bng/mol_type.h"
+#include "bng/elem_mol_type.h"
 #include "bng/cplx.h"
 #include "bng/shared_defines.h"
 
@@ -20,7 +20,7 @@ class RxnContainer;
 
 typedef std::vector<Species> SpeciesVector;
 
-class Species: public Cplx, public MolTypeSpeciesCommonData {
+class Species: public Cplx, public ElemMolTypeSpeciesCommonData {
 public:
   species_id_t id;
   std::string name; // string representation of the complex
@@ -47,7 +47,7 @@ public:
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       rxn_flags_were_updated(false), num_instantiations(0) {
 
-    mol_instances = cplx_inst.mol_instances;
+    elem_mols = cplx_inst.elem_mols;
     // the only finalize method, but showing that we are finalizing
     // just the Cplx part of the Species
     Cplx::finalize();
@@ -61,7 +61,7 @@ public:
 
   // we need explicit copy ctor to call CplxInstance's copy ctor
   Species(const Species& other)
-    : Cplx(other), MolTypeSpeciesCommonData(other),
+    : Cplx(other), ElemMolTypeSpeciesCommonData(other),
       id(other.id), name(other.name),
       space_step(other.space_step), time_step(other.time_step),
       rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(other.num_instantiations) {

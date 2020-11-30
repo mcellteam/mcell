@@ -33,7 +33,7 @@ class Value;
 namespace BNG {
 class BNGEngine;
 class RxnRule;
-class MolType;
+class ElemMolType;
 }
 
 namespace MCell {
@@ -58,7 +58,7 @@ private:
 
   Vec3 get_next_color();
   void convert_molecules(Json::Value& mcell_node);
-  void convert_single_mol_type(const BNG::MolType& s, Json::Value& molecule_node);
+  void convert_single_mol_type(const BNG::ElemMolType& s, Json::Value& molecule_node);
 
   void convert_single_rxn_rule(const BNG::RxnRule& r, Json::Value& species_node);
   std::string get_surface_class_name(const BNG::RxnRule& r);

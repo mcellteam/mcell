@@ -55,7 +55,7 @@ public:
   bool warn_if_adding_identical_object() const { return false; }
 
   // mapping to MCell4
-  BNG::mol_type_id_t mol_type_id;
+  BNG::elem_mol_type_id_t mol_type_id;
 };
 
 } // namespace API

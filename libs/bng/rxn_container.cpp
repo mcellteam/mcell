@@ -96,8 +96,8 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
       for (Cplx& reac: rxn->reactants) {
         if (reac.has_compartment()) {
           // update molecule types
-          for (const MolInstance& mi: reac.mol_instances) {
-            MolType& mt = bng_data.get_molecule_type(mi.mol_type_id);
+          for (const ElemMol& mi: reac.elem_mols) {
+            ElemMolType& mt = bng_data.get_elem_mol_type(mi.elem_mol_type_id);
 
             mt.set_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
             // collect compartments (ignore in and out)

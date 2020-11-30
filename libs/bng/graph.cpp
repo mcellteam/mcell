@@ -29,10 +29,10 @@ string Node::to_str(const BNGData* bng_data) const {
   if (is_mol) {
     out << "m:";
     if (bng_data != nullptr) {
-      out << bng_data->get_molecule_type(mol->mol_type_id).name;
+      out << bng_data->get_elem_mol_type(mol->elem_mol_type_id).name;
     }
     else {
-      out << mol->mol_type_id;
+      out << mol->elem_mol_type_id;
     }
   }
   else {

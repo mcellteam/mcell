@@ -40,7 +40,7 @@ private:
       const ASTComponentNode* c,
       const bool allow_components_to_have_bonds = false
   );
-  MolType convert_molecule_type(
+  ElemMolType convert_molecule_type(
       const ASTMolNode* n,
       const bool parsing_single_cplx = false
   );
@@ -48,7 +48,7 @@ private:
 
   void convert_and_store_compartments();
 
-  void merge_molecule_type_definition(MolType& dstsrc, const MolType& src);
+  void merge_molecule_type_definition(ElemMolType& dstsrc, const ElemMolType& src);
   void collect_molecule_types_molecule_list(
       const ASTListNode* molecule_list,
       std::vector<const ASTMolNode*>& molecule_nodes
@@ -56,7 +56,7 @@ private:
   void collect_and_store_implicit_molecule_types();
 
 
-  MolInstance convert_molecule_pattern(const ASTMolNode* m);
+  ElemMol convert_molecule_pattern(const ASTMolNode* m);
   void convert_cplx(
       const ASTCplxNode* cplx_node,
       Cplx& pattern

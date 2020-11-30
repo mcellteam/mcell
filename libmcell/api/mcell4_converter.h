@@ -29,9 +29,9 @@
 
 namespace BNG {
 class ComponentType;
-class ComponentInstance;
-class MolType;
-class MolInstance;
+class Component;
+class ElemMolType;
+class ElemMol;
 class Cplx;
 class Species;
 }
@@ -99,10 +99,10 @@ private:
   void convert_surface_classes();
 
   BNG::component_type_id_t convert_component_type(API::ComponentType& api_ct);
-  BNG::mol_type_id_t convert_elementary_molecule_type(API::ElementaryMoleculeType& mt, const bool in_rxn_or_observables = false);
+  BNG::elem_mol_type_id_t convert_elementary_molecule_type(API::ElementaryMoleculeType& mt, const bool in_rxn_or_observables = false);
 
-  BNG::ComponentInstance convert_component_instance(API::Component& api_ci);
-  BNG::MolInstance convert_molecule_instance(API::ElementaryMolecule& mi, const bool in_rxn_or_observables = false);
+  BNG::Component convert_component_instance(API::Component& api_ci);
+  BNG::ElemMol convert_molecule_instance(API::ElementaryMolecule& mi, const bool in_rxn_or_observables = false);
   BNG::Cplx convert_complex(API::Complex& inst, const bool in_observables = false, const bool in_rxn = false);
 
   void check_surface_compartments(const BNG::RxnRule& r, BNG::compartment_id_t& surf_comp_id);

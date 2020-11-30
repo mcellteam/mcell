@@ -12,12 +12,12 @@
 
 #include "bng/bng_defines.h"
 #include "bng/base_flag.h"
-#include "bng/mol_instance.h"
 #include "bng/graph.h"
+#include "bng/elem_mol.h"
 
 namespace BNG {
 
-class MolType;
+class ElemMolType;
 class BNGData;
 
 /**
@@ -33,7 +33,7 @@ class BNGData;
  */
 class Cplx: public BaseSpeciesCplxMolFlag {
 public:
-  MolInstanceVector mol_instances;
+  ElemMolVector elem_mols;
 
 private:
   // not read from BNG yet, but proposal is on its way
@@ -58,7 +58,7 @@ public:
   }
 
   Cplx& operator =(const Cplx& other) {
-    mol_instances = other.mol_instances;
+    elem_mols = other.elem_mols;
     orientation = other.orientation;
     compartment_id = other.compartment_id;
     bng_data = other.bng_data;
@@ -107,9 +107,9 @@ public:
   // this is the only currently supported mode and it is checked in semantics analyzer
   bool is_connected() const;
 
-  mol_type_id_t get_simple_species_mol_type_id() const {
+  elem_mol_type_id_t get_simple_species_mol_type_id() const {
     assert(is_simple());
-    return mol_instances[0].mol_type_id;
+    return elem_mols[0].elem_mol_type_id;
   }
 
   orientation_t get_orientation() const {
@@ -231,12 +231,12 @@ public:
 private:
   bool matches_simple(const Cplx& other, const bool ignore_orientation = false) const {
     assert(is_simple() && other.is_simple());
-    assert(mol_instances.size() == 1 && other.mol_instances.size() == 1);
+    assert(elem_mols.size() == 1 && other.elem_mols.size() == 1);
 
     if (!ignore_orientation && orientation != other.orientation) {
       return false;
     }
-    return mol_instances[0].matches_simple(other.mol_instances[0]);
+    return elem_mols[0].matches_simple(other.elem_mols[0]);
   }
 
   bool matches_complex_pattern_ignore_orientation(const Cplx& pattern) const;

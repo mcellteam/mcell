@@ -52,7 +52,7 @@ uint MolOrRxnCountTerm::get_num_molecule_matches(
     }
   }
   else {
-    assert(!species_molecules_pattern.mol_instances.empty());
+    assert(!species_molecules_pattern.elem_mols.empty());
     auto it = species_ids_matching_pattern_w_multiplier_cache.find(m.species_id);
     if (it == species_ids_matching_pattern_w_multiplier_cache.end()) {
       return 0;

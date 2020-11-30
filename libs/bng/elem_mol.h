@@ -5,8 +5,8 @@
  *      Author: ahusar
  */
 
-#ifndef LIBS_BNG_MOL_INSTANCE_H_
-#define LIBS_BNG_MOL_INSTANCE_H_
+#ifndef LIBS_BNG_ELEM_MOL_H_
+#define LIBS_BNG_ELEM_MOL_H_
 
 #include <iostream>
 
@@ -15,7 +15,7 @@
 
 namespace BNG {
 
-class MolType;
+class ElemMolType;
 class BNGData;
 
 /**
@@ -25,13 +25,13 @@ class BNGData;
  *
  * - instances are fully specified, each component has a given state (if it has states)
  */
-class ComponentInstance {
+class Component {
 public:
-  ComponentInstance()
+  Component()
     : component_type_id(COMPONENT_TYPE_ID_INVALID), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_BOUND) {
   }
 
-  ComponentInstance(const component_type_id_t id)
+  Component(const component_type_id_t id)
     : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_BOUND) {
   }
 
@@ -50,7 +50,7 @@ public:
   //    (in cases where we do not care, the component is not listed at all)
   bond_value_t bond_value;
 
-  bool operator == (const ComponentInstance& comp2) const  {
+  bool operator == (const Component& comp2) const  {
     return
         component_type_id == comp2.component_type_id &&
         state_id == comp2.state_id &&
@@ -76,24 +76,21 @@ public:
 
 
 /**
- * Instance of a molecule type.
+ * Instance of an elementary molecule type.
+ * Named molecule type in BNGL but this might be confusing because molecules are whole complexes.
  * Similarly as ComplexSpeciesInstance, it can be used as instance and as pattern.
  */
-class MolInstance: public BaseSpeciesCplxMolFlag {
+class ElemMol: public BaseSpeciesCplxMolFlag {
 public:
   // ID of this molecule type in BNGData::molecule_types
-  mol_type_id_t mol_type_id;
+  elem_mol_type_id_t elem_mol_type_id;
 
   // has the same number of elements as MoleculeType::component_type_ids
-  // TODO: remove when switched to component graphs only
-  // TODO: only components
-  small_vector<ComponentInstance> component_instances;
-
-  // TODO LATER: mol instance ID - to track individual elementary molecules
+  small_vector<Component> components;
 
 public:
-  MolInstance()
-    : mol_type_id(MOL_TYPE_ID_INVALID) {
+  ElemMol()
+    : elem_mol_type_id(MOL_TYPE_ID_INVALID) {
   }
 
   // returns true if all components are present and their is state set
@@ -110,17 +107,17 @@ public:
   void insert_missing_components_as_any_state_pattern(const BNGData& bng_data);
 
   // returns true if this object as a pattern matches second instance
-  bool matches_simple(const MolInstance& inst) const {
-    assert(component_instances.size() == 0 && inst.component_instances.size() == 0 &&
+  bool matches_simple(const ElemMol& inst) const {
+    assert(components.size() == 0 && inst.components.size() == 0 &&
         "Method can be used only for simple complexes, i.e. without components.");
 
-    return mol_type_id == inst.mol_type_id;
+    return elem_mol_type_id == inst.elem_mol_type_id;
   }
 
-  bool operator == (const MolInstance& other) const  {
+  bool operator == (const ElemMol& other) const  {
     return
-        mol_type_id == other.mol_type_id &&
-        component_instances == other.component_instances &&
+        elem_mol_type_id == other.elem_mol_type_id &&
+        components == other.components &&
         get_flags() == other.get_flags();
   }
 
@@ -128,8 +125,8 @@ public:
   void dump(const BNGData& bng_data, const bool for_diff, const std::string ind = "") const;
 };
 
-typedef small_vector<MolInstance> MolInstanceVector;
+typedef small_vector<ElemMol> ElemMolVector;
 
 } /* namespace BNG */
 
-#endif /* LIBS_BNG_MOL_INSTANCE_H_ */
+#endif /* LIBS_BNG_ELEM_MOL_H_ */
