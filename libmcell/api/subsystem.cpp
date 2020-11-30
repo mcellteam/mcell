@@ -20,14 +20,14 @@
  *
 ******************************************************************************/
 
+#include <api/component.h>
 #include "subsystem.h"
 
 #include "bng/bng.h"
 
 #include "api/component_type.h"
-#include "api/component_instance.h"
 #include "api/elementary_molecule_type.h"
-#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule.h"
 #include "api/complex.h"
 
 #include "api/api_utils.h"
@@ -133,13 +133,13 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   for (const BNG::Cplx& inst: bng_rr.reactants) {
     // MCell3R accepts reactants with any orientation
     res_rr->reactants.push_back(
-        convert_cplx_instance_w_orientation(bng_data, inst, Orientation::ANY));
+        convert_cplx_w_orientation(bng_data, inst, Orientation::ANY));
   }
 
   for (const BNG::Cplx& inst: bng_rr.products) {
     // MCell3R always creates products with the orientation up
     res_rr->products.push_back(
-        convert_cplx_instance_w_orientation(bng_data, inst, Orientation::UP));
+        convert_cplx_w_orientation(bng_data, inst, Orientation::UP));
   }
 
   // allow reactions with identical names
@@ -167,7 +167,7 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 
 
 
-std::shared_ptr<API::Complex> Subsystem::convert_cplx_instance(
+std::shared_ptr<API::Complex> Subsystem::convert_cplx(
     const BNG::BNGData& bng_data,
     const BNG::Cplx& bng_cplx) {
 
@@ -182,14 +182,14 @@ std::shared_ptr<API::Complex> Subsystem::convert_cplx_instance(
     assert(is_set(api_emt));
 
     // prepare a vector of component instances with their bonds set
-    std::vector<std::shared_ptr<API::ComponentInstance>> api_comp_instances;
+    std::vector<std::shared_ptr<API::Component>> api_comp_instances;
     for (const BNG::ComponentInstance& bng_ci: bmg_mi.component_instances) {
       const std::string& ct_name = bng_data.get_component_type(bng_ci.component_type_id).name;
 
       // we need to define component type here, they are not global
       // and belong to the elementary molecule type
       std::shared_ptr<API::ComponentType> api_ct = vec_find_by_name(api_emt->components, ct_name);
-      auto api_comp_inst = make_shared<API::ComponentInstance>(api_ct);
+      auto api_comp_inst = make_shared<API::Component>(api_ct);
 
       if (bng_ci.state_id != BNG::STATE_ID_DONT_CARE) {
         api_comp_inst->state = bng_data.get_state_name(bng_ci.state_id);
@@ -200,7 +200,7 @@ std::shared_ptr<API::Complex> Subsystem::convert_cplx_instance(
     }
 
     // and append instantiated elementary molecule type
-    res_cplx_inst->elementary_molecule_instances.push_back(api_emt->inst(api_comp_instances));
+    res_cplx_inst->elementary_molecules.push_back(api_emt->inst(api_comp_instances));
   }
 
   // set compartment
@@ -218,12 +218,12 @@ std::shared_ptr<API::Complex> Subsystem::convert_cplx_instance(
 
 
 // sets orientation if the resulting cplx is a surface cplx
-std::shared_ptr<API::Complex> Subsystem::convert_cplx_instance_w_orientation(
+std::shared_ptr<API::Complex> Subsystem::convert_cplx_w_orientation(
     const BNG::BNGData& bng_data,
     const BNG::Cplx& bng_inst,
     const Orientation orientation) {
   shared_ptr<API::Complex> res =
-      Subsystem::convert_cplx_instance(bng_data, bng_inst);
+      Subsystem::convert_cplx(bng_data, bng_inst);
 
   // only after conversion we can know whether a molecule is of surface volume type,
   // it is determined from the diffusion constants set with MCELL_DIFFUSION_CONSTANT_*

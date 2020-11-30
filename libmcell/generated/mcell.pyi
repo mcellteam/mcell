@@ -8,7 +8,7 @@ FLT_MAX = 3.40282346638528859812e+38 # do not use this constant in your code
 # "forward" declarations to make the type hints valid
 class Complex():
     pass
-class ComponentInstance():
+class Component():
     pass
 class ComponentType():
     pass
@@ -18,7 +18,7 @@ class Count():
     pass
 class CountTerm():
     pass
-class ElementaryMoleculeInstance():
+class ElementaryMolecule():
     pass
 class ElementaryMoleculeType():
     pass
@@ -166,12 +166,12 @@ class Complex():
     def __init__(
             self,
             name : str = None,
-            elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
+            elementary_molecules : List[ElementaryMolecule] = None,
             orientation : Orientation = Orientation.DEFAULT,
             compartment_name : str = None
         ):
         self.name = name
-        self.elementary_molecule_instances = elementary_molecule_instances
+        self.elementary_molecules = elementary_molecules
         self.orientation = orientation
         self.compartment_name = compartment_name
 
@@ -186,7 +186,7 @@ class Complex():
         ) -> 'Species':
         pass
 
-class ComponentInstance():
+class Component():
     def __init__(
             self,
             component_type : ComponentType,
@@ -217,7 +217,7 @@ class ComponentType():
             self,
             state : str = STATE_UNSET,
             bond : int = BOND_UNBOUND
-        ) -> 'ComponentInstance':
+        ) -> 'Component':
         pass
 
     def to_bngl_str(
@@ -334,11 +334,11 @@ class CountTerm():
         ) -> 'CountTerm':
         pass
 
-class ElementaryMoleculeInstance():
+class ElementaryMolecule():
     def __init__(
             self,
             elementary_molecule_type : ElementaryMoleculeType,
-            components : List[ComponentInstance] = None
+            components : List[Component] = None
         ):
         self.elementary_molecule_type = elementary_molecule_type
         self.components = components
@@ -371,8 +371,8 @@ class ElementaryMoleculeType():
 
     def inst(
             self,
-            components : List[ComponentInstance] = None
-        ) -> 'ElementaryMoleculeInstance':
+            components : List[Component] = None
+        ) -> 'ElementaryMolecule':
         pass
 
     def to_bngl_str(
@@ -1036,7 +1036,7 @@ class Species():
             custom_time_step : float = None,
             custom_space_step : float = None,
             target_only : bool = False,
-            elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
+            elementary_molecules : List[ElementaryMolecule] = None,
             orientation : Orientation = Orientation.DEFAULT,
             compartment_name : str = None
         ):
@@ -1047,7 +1047,7 @@ class Species():
         self.custom_space_step = custom_space_step
         self.target_only = target_only
         self.name = name
-        self.elementary_molecule_instances = elementary_molecule_instances
+        self.elementary_molecules = elementary_molecules
         self.orientation = orientation
         self.compartment_name = compartment_name
 

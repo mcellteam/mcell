@@ -27,7 +27,7 @@
 
 #include "generated/gen_elementary_molecule_type.h"
 #include "api/common.h"
-#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule.h"
 
 namespace MCell {
 namespace API {
@@ -41,8 +41,8 @@ public:
     mol_type_id = BNG::MOL_TYPE_ID_INVALID;
   }
 
-  std::shared_ptr<ElementaryMoleculeInstance> inst(const std::vector<std::shared_ptr<ComponentInstance>> components) override {
-    return std::make_shared<ElementaryMoleculeInstance>( shared_from_this(), components);
+  std::shared_ptr<ElementaryMolecule> inst(const std::vector<std::shared_ptr<Component>> components) override {
+    return std::make_shared<ElementaryMolecule>( shared_from_this(), components);
   }
 
   bool __eq__(const ElementaryMoleculeType& other) const override;

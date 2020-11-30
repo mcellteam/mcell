@@ -22,21 +22,21 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
-#include "gen_elementary_molecule_instance.h"
-#include "api/elementary_molecule_instance.h"
-#include "api/component_instance.h"
+#include "gen_elementary_molecule.h"
+#include "api/elementary_molecule.h"
+#include "api/component.h"
 #include "api/elementary_molecule_type.h"
 
 namespace MCell {
 namespace API {
 
-void GenElementaryMoleculeInstance::check_semantics() const {
+void GenElementaryMolecule::check_semantics() const {
   if (!is_set(elementary_molecule_type)) {
     throw ValueError("Parameter 'elementary_molecule_type' must be set.");
   }
 }
 
-void GenElementaryMoleculeInstance::set_initialized() {
+void GenElementaryMolecule::set_initialized() {
   if (is_set(elementary_molecule_type)) {
     elementary_molecule_type->set_initialized();
   }
@@ -44,13 +44,13 @@ void GenElementaryMoleculeInstance::set_initialized() {
   initialized = true;
 }
 
-void GenElementaryMoleculeInstance::set_all_attributes_as_default_or_unset() {
-  class_name = "ElementaryMoleculeInstance";
+void GenElementaryMolecule::set_all_attributes_as_default_or_unset() {
+  class_name = "ElementaryMolecule";
   elementary_molecule_type = nullptr;
-  components = std::vector<std::shared_ptr<ComponentInstance>>();
+  components = std::vector<std::shared_ptr<Component>>();
 }
 
-bool GenElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& other) const {
+bool GenElementaryMolecule::__eq__(const ElementaryMolecule& other) const {
   return
     (
       (is_set(elementary_molecule_type)) ?
@@ -66,7 +66,7 @@ bool GenElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& oth
     vec_ptr_eq(components, other.components);
 }
 
-bool GenElementaryMoleculeInstance::eq_nonarray_attributes(const ElementaryMoleculeInstance& other, const bool ignore_name) const {
+bool GenElementaryMolecule::eq_nonarray_attributes(const ElementaryMolecule& other, const bool ignore_name) const {
   return
     (
       (is_set(elementary_molecule_type)) ?
@@ -82,7 +82,7 @@ bool GenElementaryMoleculeInstance::eq_nonarray_attributes(const ElementaryMolec
     true /*components*/;
 }
 
-std::string GenElementaryMoleculeInstance::to_str(const std::string ind) const {
+std::string GenElementaryMolecule::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "elementary_molecule_type=" << "(" << ((elementary_molecule_type != nullptr) ? elementary_molecule_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
@@ -90,23 +90,23 @@ std::string GenElementaryMoleculeInstance::to_str(const std::string ind) const {
   return ss.str();
 }
 
-py::class_<ElementaryMoleculeInstance> define_pybinding_ElementaryMoleculeInstance(py::module& m) {
-  return py::class_<ElementaryMoleculeInstance, std::shared_ptr<ElementaryMoleculeInstance>>(m, "ElementaryMoleculeInstance")
+py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m) {
+  return py::class_<ElementaryMolecule, std::shared_ptr<ElementaryMolecule>>(m, "ElementaryMolecule")
       .def(
           py::init<
             std::shared_ptr<ElementaryMoleculeType>,
-            const std::vector<std::shared_ptr<ComponentInstance>>
+            const std::vector<std::shared_ptr<Component>>
           >(),
           py::arg("elementary_molecule_type"),
-          py::arg("components") = std::vector<std::shared_ptr<ComponentInstance>>()
+          py::arg("components") = std::vector<std::shared_ptr<Component>>()
       )
-      .def("check_semantics", &ElementaryMoleculeInstance::check_semantics)
-      .def("__str__", &ElementaryMoleculeInstance::to_str, py::arg("ind") = std::string(""))
-      .def("__eq__", &ElementaryMoleculeInstance::__eq__, py::arg("other"))
-      .def("to_bngl_str", &ElementaryMoleculeInstance::to_bngl_str)
-      .def("dump", &ElementaryMoleculeInstance::dump)
-      .def_property("elementary_molecule_type", &ElementaryMoleculeInstance::get_elementary_molecule_type, &ElementaryMoleculeInstance::set_elementary_molecule_type)
-      .def_property("components", &ElementaryMoleculeInstance::get_components, &ElementaryMoleculeInstance::set_components)
+      .def("check_semantics", &ElementaryMolecule::check_semantics)
+      .def("__str__", &ElementaryMolecule::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &ElementaryMolecule::__eq__, py::arg("other"))
+      .def("to_bngl_str", &ElementaryMolecule::to_bngl_str)
+      .def("dump", &ElementaryMolecule::dump)
+      .def_property("elementary_molecule_type", &ElementaryMolecule::get_elementary_molecule_type, &ElementaryMolecule::set_elementary_molecule_type)
+      .def_property("components", &ElementaryMolecule::get_components, &ElementaryMolecule::set_components)
     ;
 }
 

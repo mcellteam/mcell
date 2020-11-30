@@ -30,9 +30,9 @@ namespace MCell {
 namespace API {
 
 class ElementaryMoleculeType;
-class ComponentInstance;
+class Component;
 class ComponentType;
-class ElementaryMoleculeInstance;
+class ElementaryMolecule;
 
 #define ELEMENTARY_MOLECULE_TYPE_CTOR() \
     ElementaryMoleculeType( \
@@ -155,7 +155,7 @@ public:
   }
 
   // --- methods ---
-  virtual std::shared_ptr<ElementaryMoleculeInstance> inst(const std::vector<std::shared_ptr<ComponentInstance>> components = std::vector<std::shared_ptr<ComponentInstance>>()) = 0;
+  virtual std::shared_ptr<ElementaryMolecule> inst(const std::vector<std::shared_ptr<Component>> components = std::vector<std::shared_ptr<Component>>()) = 0;
   virtual std::string to_bngl_str() const = 0;
 }; // GenElementaryMoleculeType
 

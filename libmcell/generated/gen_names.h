@@ -29,12 +29,12 @@ namespace API {
 
 const char* const NAME_CLASS_BNGL_UTILS = "bngl_utils";
 const char* const NAME_CLASS_COMPLEX = "Complex";
-const char* const NAME_CLASS_COMPONENT_INSTANCE = "ComponentInstance";
+const char* const NAME_CLASS_COMPONENT = "Component";
 const char* const NAME_CLASS_COMPONENT_TYPE = "ComponentType";
 const char* const NAME_CLASS_CONFIG = "Config";
 const char* const NAME_CLASS_COUNT = "Count";
 const char* const NAME_CLASS_COUNT_TERM = "CountTerm";
-const char* const NAME_CLASS_ELEMENTARY_MOLECULE_INSTANCE = "ElementaryMoleculeInstance";
+const char* const NAME_CLASS_ELEMENTARY_MOLECULE = "ElementaryMolecule";
 const char* const NAME_CLASS_ELEMENTARY_MOLECULE_TYPE = "ElementaryMoleculeType";
 const char* const NAME_CLASS_GEOMETRY_UTILS = "geometry_utils";
 const char* const NAME_CLASS_GEOMETRY_OBJECT = "GeometryObject";
@@ -106,9 +106,9 @@ const char* const NAME_DIFFUSION_CONSTANT_3D = "diffusion_constant_3d";
 const char* const NAME_DISPLACEMENT = "displacement";
 const char* const NAME_DUMP_INTERNAL_STATE = "dump_internal_state";
 const char* const NAME_EDGE_LENGTH = "edge_length";
-const char* const NAME_ELEMENTARY_MOLECULE_INSTANCES = "elementary_molecule_instances";
 const char* const NAME_ELEMENTARY_MOLECULE_TYPE = "elementary_molecule_type";
 const char* const NAME_ELEMENTARY_MOLECULE_TYPES = "elementary_molecule_types";
+const char* const NAME_ELEMENTARY_MOLECULES = "elementary_molecules";
 const char* const NAME_END_SIMULATION = "end_simulation";
 const char* const NAME_EVERY_N_TIMESTEPS = "every_n_timesteps";
 const char* const NAME_EXPORT_DATA_MODEL = "export_data_model";

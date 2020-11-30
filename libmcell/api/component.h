@@ -20,20 +20,23 @@
  *
 ******************************************************************************/
 
-#ifndef API_ELEMENTARY_MOLECULE_INSTANCE_H
-#define API_ELEMENTARY_MOLECULE_INSTANCE_H
+#ifndef API_COMPONENT_INSTANCE_H
+#define API_COMPONENT_INSTANCE_H
 
-#include "generated/gen_elementary_molecule_instance.h"
+#include "generated/gen_component.h"
 #include "api/common.h"
 
 namespace MCell {
 namespace API {
 
-class ElementaryMoleculeInstance: public GenElementaryMoleculeInstance {
+class Component: public GenComponent {
 public:
-  ELEMENTARY_MOLECULE_INSTANCE_CTOR()
+  COMPONENT_CTOR()
 
-  bool __eq__(const ElementaryMoleculeInstance& other) const override;
+  // default __eq__ operator is sufficient
+
+  // needed when defining a set of ComponentInstances
+  bool operator < (const Component& other) const;
 
   std::string to_bngl_str() const override;
 };
@@ -41,4 +44,4 @@ public:
 } // namespace API
 } // namespace MCell
 
-#endif // API_ELEMENTARY_MOLECULE_INSTANCE_H
+#endif // API_COMPONENT_INSTANCE_H

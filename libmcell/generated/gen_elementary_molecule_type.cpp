@@ -24,9 +24,9 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_elementary_molecule_type.h"
 #include "api/elementary_molecule_type.h"
-#include "api/component_instance.h"
+#include "api/component.h"
 #include "api/component_type.h"
-#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule.h"
 
 namespace MCell {
 namespace API {
@@ -111,7 +111,7 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def("check_semantics", &ElementaryMoleculeType::check_semantics)
       .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMoleculeType::__eq__, py::arg("other"))
-      .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<ComponentInstance>>())
+      .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<Component>>())
       .def("to_bngl_str", &ElementaryMoleculeType::to_bngl_str)
       .def("dump", &ElementaryMoleculeType::dump)
       .def_property("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name)

@@ -24,7 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_complex.h"
 #include "api/complex.h"
-#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule.h"
 #include "api/species.h"
 
 namespace MCell {
@@ -34,14 +34,14 @@ void GenComplex::check_semantics() const {
 }
 
 void GenComplex::set_initialized() {
-  vec_set_initialized(elementary_molecule_instances);
+  vec_set_initialized(elementary_molecules);
   initialized = true;
 }
 
 void GenComplex::set_all_attributes_as_default_or_unset() {
   class_name = "Complex";
   name = STR_UNSET;
-  elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
+  elementary_molecules = std::vector<std::shared_ptr<ElementaryMolecule>>();
   orientation = Orientation::DEFAULT;
   compartment_name = STR_UNSET;
 }
@@ -49,7 +49,7 @@ void GenComplex::set_all_attributes_as_default_or_unset() {
 bool GenComplex::__eq__(const Complex& other) const {
   return
     name == other.name &&
-    vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
+    vec_ptr_eq(elementary_molecules, other.elementary_molecules) &&
     orientation == other.orientation &&
     compartment_name == other.compartment_name;
 }
@@ -57,7 +57,7 @@ bool GenComplex::__eq__(const Complex& other) const {
 bool GenComplex::eq_nonarray_attributes(const Complex& other, const bool ignore_name) const {
   return
     (ignore_name || name == other.name) &&
-    true /*elementary_molecule_instances*/ &&
+    true /*elementary_molecules*/ &&
     orientation == other.orientation &&
     compartment_name == other.compartment_name;
 }
@@ -66,7 +66,7 @@ std::string GenComplex::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "elementary_molecule_instances=" << vec_ptr_to_str(elementary_molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "elementary_molecules=" << vec_ptr_to_str(elementary_molecules, ind + "  ") << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
       "compartment_name=" << compartment_name;
   return ss.str();
@@ -77,12 +77,12 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const std::vector<std::shared_ptr<ElementaryMoleculeInstance>>,
+            const std::vector<std::shared_ptr<ElementaryMolecule>>,
             const Orientation,
             const std::string&
           >(),
           py::arg("name") = STR_UNSET,
-          py::arg("elementary_molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
+          py::arg("elementary_molecules") = std::vector<std::shared_ptr<ElementaryMolecule>>(),
           py::arg("orientation") = Orientation::DEFAULT,
           py::arg("compartment_name") = STR_UNSET
       )
@@ -93,7 +93,7 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       .def("as_species", &Complex::as_species)
       .def("dump", &Complex::dump)
       .def_property("name", &Complex::get_name, &Complex::set_name)
-      .def_property("elementary_molecule_instances", &Complex::get_elementary_molecule_instances, &Complex::set_elementary_molecule_instances)
+      .def_property("elementary_molecules", &Complex::get_elementary_molecules, &Complex::set_elementary_molecules)
       .def_property("orientation", &Complex::get_orientation, &Complex::set_orientation)
       .def_property("compartment_name", &Complex::get_compartment_name, &Complex::set_compartment_name)
     ;

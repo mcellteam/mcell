@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_COMPONENT_INSTANCE_H
-#define API_GEN_COMPONENT_INSTANCE_H
+#ifndef API_GEN_COMPONENT_H
+#define API_GEN_COMPONENT_H
 
 #include "api/common.h"
 #include "api/base_data_class.h"
@@ -29,16 +29,16 @@
 namespace MCell {
 namespace API {
 
-class ComponentInstance;
+class Component;
 class ComponentType;
 
-#define COMPONENT_INSTANCE_CTOR() \
-    ComponentInstance( \
+#define COMPONENT_CTOR() \
+    Component( \
         std::shared_ptr<ComponentType> component_type_, \
         const std::string& state_ = "STATE_UNSET", \
         const int bond_ = BOND_UNBOUND \
     ) { \
-      class_name = "ComponentInstance"; \
+      class_name = "Component"; \
       component_type = component_type_; \
       state = state_; \
       bond = bond_; \
@@ -46,17 +46,17 @@ class ComponentType;
       check_semantics();\
     }
 
-class GenComponentInstance: public BaseDataClass {
+class GenComponent: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  virtual bool __eq__(const ComponentInstance& other) const;
-  virtual bool eq_nonarray_attributes(const ComponentInstance& other, const bool ignore_name = false) const;
-  bool operator == (const ComponentInstance& other) const { return __eq__(other);}
-  bool operator != (const ComponentInstance& other) const { return !__eq__(other);}
+  virtual bool __eq__(const Component& other) const;
+  virtual bool eq_nonarray_attributes(const Component& other, const bool ignore_name = false) const;
+  bool operator == (const Component& other) const { return __eq__(other);}
+  bool operator != (const Component& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -104,11 +104,11 @@ public:
 
   // --- methods ---
   virtual std::string to_bngl_str() const = 0;
-}; // GenComponentInstance
+}; // GenComponent
 
-class ComponentInstance;
-py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m);
+class Component;
+py::class_<Component> define_pybinding_Component(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_COMPONENT_INSTANCE_H
+#endif // API_GEN_COMPONENT_H

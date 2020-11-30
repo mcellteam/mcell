@@ -485,8 +485,8 @@ void MCell4Converter::convert_species() {
     new_species.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, s->target_only); // default is false
 
     // FIXME: the MolType below is created correctly only for simple species
-    release_assert(s->elementary_molecule_instances.size() <= 1 && "TODO: Complex species");
-    for (auto& mi: s->elementary_molecule_instances) {
+    release_assert(s->elementary_molecules.size() <= 1 && "TODO: Complex species");
+    for (auto& mi: s->elementary_molecules) {
       release_assert(mi->components.empty());
     }
 
@@ -643,7 +643,7 @@ BNG::component_type_id_t MCell4Converter::convert_component_type(API::ComponentT
 }
 
 
-BNG::ComponentInstance MCell4Converter::convert_component_instance(API::ComponentInstance& api_ci) {
+BNG::ComponentInstance MCell4Converter::convert_component_instance(API::Component& api_ci) {
 
   BNG::ComponentInstance res(convert_component_type(*api_ci.component_type));
 
@@ -673,12 +673,12 @@ BNG::ComponentInstance MCell4Converter::convert_component_instance(API::Componen
 }
 
 
-BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn_or_observables) {
+BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolecule& mi, const bool in_rxn_or_observables) {
   BNG::MolInstance res;
 
   res.mol_type_id = convert_elementary_molecule_type(*mi.elementary_molecule_type, in_rxn_or_observables);
 
-  for (std::shared_ptr<API::ComponentInstance>& api_ci: mi.components) {
+  for (std::shared_ptr<API::Component>& api_ci: mi.components) {
     res.component_instances.push_back(convert_component_instance(*api_ci));
   }
 
@@ -693,8 +693,8 @@ BNG::Cplx MCell4Converter::convert_complex(API::Complex& api_cplx, const bool in
   // create a temporary cplx instance that we will use for search
   BNG::Cplx bng_cplx(&world->bng_engine.get_data());
 
-  if (is_set(api_cplx.elementary_molecule_instances)) {
-    for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: api_cplx.elementary_molecule_instances) {
+  if (is_set(api_cplx.elementary_molecules)) {
+    for (std::shared_ptr<API::ElementaryMolecule>& m: api_cplx.elementary_molecules) {
       BNG::MolInstance mi = convert_molecule_instance(*m, in_observables || in_rxn);
 
       bng_cplx.mol_instances.push_back(mi);

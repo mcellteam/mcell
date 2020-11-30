@@ -519,7 +519,7 @@ def write_ctor_decl(f, class_def, class_name, append_backslash, indent_and_fix_r
         # only one, therefore all inherited attributes are its arguments
         if only_inherited:
             # we are generating ctor for the superclass of the Gen class, e.g. for GenSpecies 
-            # and we need to initialize ComplexInstance 
+            # and we need to initialize Complex 
             superclass_name = class_def[KEY_SUPERCLASS]
         else:
             # we are generating ctor for the superclass, e.g. for Species and we need to initialize 

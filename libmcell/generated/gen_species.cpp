@@ -25,7 +25,7 @@
 #include "gen_species.h"
 #include "api/species.h"
 #include "api/complex.h"
-#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule.h"
 #include "api/species.h"
 
 namespace MCell {
@@ -35,7 +35,7 @@ void GenSpecies::check_semantics() const {
 }
 
 void GenSpecies::set_initialized() {
-  vec_set_initialized(elementary_molecule_instances);
+  vec_set_initialized(elementary_molecules);
   initialized = true;
 }
 
@@ -48,7 +48,7 @@ void GenSpecies::set_all_attributes_as_default_or_unset() {
   custom_space_step = FLT_UNSET;
   target_only = false;
   name = STR_UNSET;
-  elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
+  elementary_molecules = std::vector<std::shared_ptr<ElementaryMolecule>>();
   orientation = Orientation::DEFAULT;
   compartment_name = STR_UNSET;
 }
@@ -62,7 +62,7 @@ bool GenSpecies::__eq__(const Species& other) const {
     custom_space_step == other.custom_space_step &&
     target_only == other.target_only &&
     name == other.name &&
-    vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
+    vec_ptr_eq(elementary_molecules, other.elementary_molecules) &&
     orientation == other.orientation &&
     compartment_name == other.compartment_name;
 }
@@ -76,7 +76,7 @@ bool GenSpecies::eq_nonarray_attributes(const Species& other, const bool ignore_
     custom_space_step == other.custom_space_step &&
     target_only == other.target_only &&
     (ignore_name || name == other.name) &&
-    true /*elementary_molecule_instances*/ &&
+    true /*elementary_molecules*/ &&
     orientation == other.orientation &&
     compartment_name == other.compartment_name;
 }
@@ -91,7 +91,7 @@ std::string GenSpecies::to_str(const std::string ind) const {
       "custom_space_step=" << custom_space_step << ", " <<
       "target_only=" << target_only << ", " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "elementary_molecule_instances=" << vec_ptr_to_str(elementary_molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "elementary_molecules=" << vec_ptr_to_str(elementary_molecules, ind + "  ") << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
       "compartment_name=" << compartment_name;
   return ss.str();
@@ -107,7 +107,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
             const float_t,
             const float_t,
             const bool,
-            const std::vector<std::shared_ptr<ElementaryMoleculeInstance>>,
+            const std::vector<std::shared_ptr<ElementaryMolecule>>,
             const Orientation,
             const std::string&
           >(),
@@ -117,7 +117,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::arg("custom_time_step") = FLT_UNSET,
           py::arg("custom_space_step") = FLT_UNSET,
           py::arg("target_only") = false,
-          py::arg("elementary_molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
+          py::arg("elementary_molecules") = std::vector<std::shared_ptr<ElementaryMolecule>>(),
           py::arg("orientation") = Orientation::DEFAULT,
           py::arg("compartment_name") = STR_UNSET
       )

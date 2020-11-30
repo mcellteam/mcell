@@ -22,7 +22,7 @@
 
 #include "api/complex.h"
 #include "api/species.h"
-#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule.h"
 #include "api/elementary_molecule_type.h"
 #include "bng/bng.h"
 
@@ -104,9 +104,9 @@ std::string Complex::to_bngl_str_w_orientation(bool replace_orientation_w_up_dow
     }
   }
   else {
-    for (size_t i = 0; i < elementary_molecule_instances.size(); i++) {
-      res += elementary_molecule_instances[i]->to_bngl_str();
-      if (i + 1 != elementary_molecule_instances.size()) {
+    for (size_t i = 0; i < elementary_molecules.size(); i++) {
+      res += elementary_molecules[i]->to_bngl_str();
+      if (i + 1 != elementary_molecules.size()) {
         res += ".";
       }
     }
@@ -150,7 +150,7 @@ std::string Complex::to_bngl_str_w_orientation(bool replace_orientation_w_up_dow
 
 
 bool Complex::is_surf() const {
-  for (auto em: elementary_molecule_instances) {
+  for (auto em: elementary_molecules) {
     if (is_set(em->elementary_molecule_type->diffusion_constant_2d)) {
       return true;
     }

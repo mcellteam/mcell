@@ -53,9 +53,9 @@ namespace API {
 
 class Model;
 class ComponentType;
-class ComponentInstance;
+class Component;
 class ElementaryMoleculeType;
-class ElementaryMoleculeInstance;
+class ElementaryMolecule;
 class Complex;
 class SurfaceProperty;
 class InitialSurfaceRelease;
@@ -101,8 +101,8 @@ private:
   BNG::component_type_id_t convert_component_type(API::ComponentType& api_ct);
   BNG::mol_type_id_t convert_elementary_molecule_type(API::ElementaryMoleculeType& mt, const bool in_rxn_or_observables = false);
 
-  BNG::ComponentInstance convert_component_instance(API::ComponentInstance& api_ci);
-  BNG::MolInstance convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn_or_observables = false);
+  BNG::ComponentInstance convert_component_instance(API::Component& api_ci);
+  BNG::MolInstance convert_molecule_instance(API::ElementaryMolecule& mi, const bool in_rxn_or_observables = false);
   BNG::Cplx convert_complex(API::Complex& inst, const bool in_observables = false, const bool in_rxn = false);
 
   void check_surface_compartments(const BNG::RxnRule& r, BNG::compartment_id_t& surf_comp_id);

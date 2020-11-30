@@ -25,7 +25,7 @@
 
 #include "generated/gen_component_type.h"
 #include "api/common.h"
-#include "api/component_instance.h"
+#include "api/component.h"
 
 namespace MCell {
 namespace API {
@@ -34,12 +34,12 @@ class ComponentType: public GenComponentType, public std::enable_shared_from_thi
 public:
   COMPONENT_TYPE_CTOR()
 
-  std::shared_ptr<ComponentInstance> inst(const std::string& state, const int bond) override {
-    return std::make_shared<ComponentInstance>(shared_from_this(), state, bond);
+  std::shared_ptr<Component> inst(const std::string& state, const int bond) override {
+    return std::make_shared<Component>(shared_from_this(), state, bond);
   }
 
-  std::shared_ptr<ComponentInstance> inst(const int state, const int bond) override {
-    return std::make_shared<ComponentInstance>(shared_from_this(), std::to_string(state), bond);
+  std::shared_ptr<Component> inst(const int state, const int bond) override {
+    return std::make_shared<Component>(shared_from_this(), std::to_string(state), bond);
   }
 
   bool __eq__(const ComponentType& other) const override;

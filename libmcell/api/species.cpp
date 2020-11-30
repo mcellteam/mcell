@@ -22,7 +22,7 @@
 
 #include "api/complex.h"
 #include "api/species.h"
-#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule.h"
 #include "api/elementary_molecule_type.h"
 
 using namespace std;

@@ -31,9 +31,9 @@
 #include "api/common.h"
 
 #include "api/component_type.h"
-#include "api/component_instance.h"
+#include "api/component.h"
 #include "api/elementary_molecule_type.h"
-#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule.h"
 #include "api/species.h"
 #include "api/surface_property.h"
 #include "api/surface_class.h"

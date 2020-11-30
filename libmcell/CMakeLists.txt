@@ -25,9 +25,9 @@ set(SOURCE_FILES
     api/bindings.cpp
     
     api/component_type.cpp
-    api/component_instance.cpp
+    api/component.cpp
     api/elementary_molecule_type.cpp
-    api/elementary_molecule_instance.cpp
+    api/elementary_molecule.cpp
     api/complex.cpp
     api/species.cpp
     api/reaction_rule.cpp
@@ -52,9 +52,9 @@ set(SOURCE_FILES
     api/wall.cpp
 
     generated/gen_component_type.cpp
-    generated/gen_component_instance.cpp
+    generated/gen_component.cpp
     generated/gen_elementary_molecule_type.cpp
-    generated/gen_elementary_molecule_instance.cpp
+    generated/gen_elementary_molecule.cpp
     generated/gen_complex.cpp
     generated/gen_species.cpp
     generated/gen_surface_property.cpp

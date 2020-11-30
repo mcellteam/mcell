@@ -57,9 +57,9 @@ public:
     set_all_attributes_as_default_or_unset();
 
     // set copied value, cannot use GenSpecies ctor because we need to reset the attributes
-    // warning: must be updated if ComplexInstance attributes change
+    // warning: must be updated if Complex class' attributes change
     name = cplx_inst.name;
-    elementary_molecule_instances = cplx_inst.elementary_molecule_instances;
+    elementary_molecules = cplx_inst.elementary_molecules;
     // should not be really used in Species but copying it as well for consistency
     orientation = cplx_inst.orientation;
   }
@@ -91,14 +91,14 @@ public:
     species_id = SPECIES_ID_INVALID;
 
     // not calling derived check semantics
-    if (get_num_set(name, elementary_molecule_instances) != 1) {
+    if (get_num_set(name, elementary_molecules) != 1) {
       throw ValueError(
-          S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULE_INSTANCES +
+          S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULES +
           " must be set for " + NAME_CLASS_SPECIES + ".");
     }
 
     // 1) simple species defined by name
-    if (is_set(name) && !is_set(elementary_molecule_instances) && (is_set(diffusion_constant_2d) || is_set(diffusion_constant_3d))) {
+    if (is_set(name) && !is_set(elementary_molecules) && (is_set(diffusion_constant_2d) || is_set(diffusion_constant_3d))) {
 
       if (!is_simple_species(name)) {
         throw ValueError("Only simple species can be fully defined by setting name and diffusion constant. "
@@ -126,12 +126,12 @@ public:
       );
 
       // and then molecule instance out of it
-      elementary_molecule_instances.push_back(
-          std::make_shared<ElementaryMoleculeInstance>(mt)
+      elementary_molecules.push_back(
+          std::make_shared<ElementaryMolecule>(mt)
       );
     }
     // 2) complex species defined through elementary_molecule_instances
-    else if (!elementary_molecule_instances.empty()) {
+    else if (!elementary_molecules.empty()) {
       // do semantic check
       check_no_extra_fields_are_set();
     }

@@ -23,9 +23,9 @@
 #include "mcell.h"
 
 #include "generated/gen_component_type.h"
-#include "generated/gen_component_instance.h"
+#include "generated/gen_component.h"
 #include "generated/gen_elementary_molecule_type.h"
-#include "generated/gen_elementary_molecule_instance.h"
+#include "generated/gen_elementary_molecule.h"
 #include "generated/gen_species.h"
 #include "generated/gen_surface_class.h"
 #include "generated/gen_reaction_rule.h"
@@ -181,9 +181,9 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_IVec3(m);
 
   define_pybinding_ComponentType(m);
-  define_pybinding_ComponentInstance(m);
+  define_pybinding_Component(m);
   define_pybinding_ElementaryMoleculeType(m);
-  define_pybinding_ElementaryMoleculeInstance(m);
+  define_pybinding_ElementaryMolecule(m);
   define_pybinding_Complex(m);
   define_pybinding_Species(m);
   define_pybinding_SurfaceProperty(m);

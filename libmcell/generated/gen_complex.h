@@ -30,19 +30,19 @@ namespace MCell {
 namespace API {
 
 class Complex;
-class ElementaryMoleculeInstance;
+class ElementaryMolecule;
 class Species;
 
 #define COMPLEX_CTOR() \
     Complex( \
         const std::string& name_ = STR_UNSET, \
-        const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
+        const std::vector<std::shared_ptr<ElementaryMolecule>> elementary_molecules_ = std::vector<std::shared_ptr<ElementaryMolecule>>(), \
         const Orientation orientation_ = Orientation::DEFAULT, \
         const std::string& compartment_name_ = STR_UNSET \
     ) { \
       class_name = "Complex"; \
       name = name_; \
-      elementary_molecule_instances = elementary_molecule_instances_; \
+      elementary_molecules = elementary_molecules_; \
       orientation = orientation_; \
       compartment_name = compartment_name_; \
       postprocess_in_ctor();\
@@ -63,18 +63,18 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances;
-  virtual void set_elementary_molecule_instances(const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> new_elementary_molecule_instances_) {
+  std::vector<std::shared_ptr<ElementaryMolecule>> elementary_molecules;
+  virtual void set_elementary_molecules(const std::vector<std::shared_ptr<ElementaryMolecule>> new_elementary_molecules_) {
     if (initialized) {
-      throw RuntimeError("Value 'elementary_molecule_instances' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'elementary_molecules' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     cached_data_are_uptodate = false;
-    elementary_molecule_instances = new_elementary_molecule_instances_;
+    elementary_molecules = new_elementary_molecules_;
   }
-  virtual std::vector<std::shared_ptr<ElementaryMoleculeInstance>> get_elementary_molecule_instances() const {
+  virtual std::vector<std::shared_ptr<ElementaryMolecule>> get_elementary_molecules() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return elementary_molecule_instances;
+    return elementary_molecules;
   }
 
   Orientation orientation;

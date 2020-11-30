@@ -20,56 +20,25 @@
  *
 ******************************************************************************/
 
-#include "api/elementary_molecule_instance.h"
-#include "api/elementary_molecule_type.h"
-#include "api/component_type.h"
-#include "api/component_instance.h"
-#include "api/complex.h"
+#ifndef API_ELEMENTARY_MOLECULE_INSTANCE_H
+#define API_ELEMENTARY_MOLECULE_INSTANCE_H
 
-using namespace std;
+#include "generated/gen_elementary_molecule.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
 
+class ElementaryMolecule: public GenElementaryMolecule {
+public:
+  ELEMENTARY_MOLECULE_CTOR()
 
-bool ElementaryMoleculeInstance::__eq__(const ElementaryMoleculeInstance& other) const {
+  bool __eq__(const ElementaryMolecule& other) const override;
 
-  // do we have the same mol type?
-  if (!eq_nonarray_attributes(other)) {
-    return false;
-  }
-
-  // are components the same (order does not matter)
-  std::set<ComponentInstance> s1;
-  for (auto& c: components) {
-    s1.insert(*c);
-  }
-  std::set<ComponentInstance> s2;
-  for (auto& c: other.components) {
-    s2.insert(*c);
-  }
-  return s1 == s2;
-}
-
-
-std::string ElementaryMoleculeInstance::to_bngl_str() const {
-  std::string res;
-
-  res = elementary_molecule_type->name;
-
-  if (!components.empty()) {
-    res += "(";
-    for (size_t i = 0; i < components.size(); i++) {
-      res += components[i]->to_bngl_str();
-      if (i + 1 != components.size()) {
-        res += ",";
-      }
-    }
-    res += ")";
-  }
-
-  return res;
-}
+  std::string to_bngl_str() const override;
+};
 
 } // namespace API
 } // namespace MCell
+
+#endif // API_ELEMENTARY_MOLECULE_INSTANCE_H

@@ -32,7 +32,7 @@ namespace MCell {
 namespace API {
 
 class Complex;
-class ElementaryMoleculeInstance;
+class ElementaryMolecule;
 class Species;
 
 #define SPECIES_CTOR() \
@@ -43,10 +43,10 @@ class Species;
         const float_t custom_time_step_ = FLT_UNSET, \
         const float_t custom_space_step_ = FLT_UNSET, \
         const bool target_only_ = false, \
-        const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
+        const std::vector<std::shared_ptr<ElementaryMolecule>> elementary_molecules_ = std::vector<std::shared_ptr<ElementaryMolecule>>(), \
         const Orientation orientation_ = Orientation::DEFAULT, \
         const std::string& compartment_name_ = STR_UNSET \
-    )  : GenSpecies(name_,elementary_molecule_instances_,orientation_,compartment_name_) { \
+    )  : GenSpecies(name_,elementary_molecules_,orientation_,compartment_name_) { \
       class_name = "Species"; \
       name = name_; \
       diffusion_constant_2d = diffusion_constant_2d_; \
@@ -54,7 +54,7 @@ class Species;
       custom_time_step = custom_time_step_; \
       custom_space_step = custom_space_step_; \
       target_only = target_only_; \
-      elementary_molecule_instances = elementary_molecule_instances_; \
+      elementary_molecules = elementary_molecules_; \
       orientation = orientation_; \
       compartment_name = compartment_name_; \
       postprocess_in_ctor();\
@@ -65,10 +65,10 @@ class GenSpecies: public Complex {
 public:
   GenSpecies( 
       const std::string& name_ = STR_UNSET, 
-      const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), 
+      const std::vector<std::shared_ptr<ElementaryMolecule>> elementary_molecules_ = std::vector<std::shared_ptr<ElementaryMolecule>>(), 
       const Orientation orientation_ = Orientation::DEFAULT, 
       const std::string& compartment_name_ = STR_UNSET 
-  )  : Complex(name_,elementary_molecule_instances_,orientation_,compartment_name_)  {
+  )  : Complex(name_,elementary_molecules_,orientation_,compartment_name_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;

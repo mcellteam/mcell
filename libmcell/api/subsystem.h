@@ -90,11 +90,11 @@ public:
   void dump() const;
 
   // auxiliary methods used also from InstantiationData
-  std::shared_ptr<API::Complex> convert_cplx_instance(
+  std::shared_ptr<API::Complex> convert_cplx(
       const BNG::BNGData& bng_data,
       const BNG::Cplx& bng_inst);
 
-  std::shared_ptr<API::Complex> convert_cplx_instance_w_orientation(
+  std::shared_ptr<API::Complex> convert_cplx_w_orientation(
       const BNG::BNGData& bng_data,
       const BNG::Cplx& bng_inst,
       const Orientation orientation);

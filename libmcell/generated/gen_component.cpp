@@ -22,34 +22,34 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
-#include "gen_component_instance.h"
-#include "api/component_instance.h"
+#include "gen_component.h"
+#include "api/component.h"
 #include "api/component_type.h"
 
 namespace MCell {
 namespace API {
 
-void GenComponentInstance::check_semantics() const {
+void GenComponent::check_semantics() const {
   if (!is_set(component_type)) {
     throw ValueError("Parameter 'component_type' must be set.");
   }
 }
 
-void GenComponentInstance::set_initialized() {
+void GenComponent::set_initialized() {
   if (is_set(component_type)) {
     component_type->set_initialized();
   }
   initialized = true;
 }
 
-void GenComponentInstance::set_all_attributes_as_default_or_unset() {
-  class_name = "ComponentInstance";
+void GenComponent::set_all_attributes_as_default_or_unset() {
+  class_name = "Component";
   component_type = nullptr;
   state = "STATE_UNSET";
   bond = BOND_UNBOUND;
 }
 
-bool GenComponentInstance::__eq__(const ComponentInstance& other) const {
+bool GenComponent::__eq__(const Component& other) const {
   return
     (
       (is_set(component_type)) ?
@@ -66,7 +66,7 @@ bool GenComponentInstance::__eq__(const ComponentInstance& other) const {
     bond == other.bond;
 }
 
-bool GenComponentInstance::eq_nonarray_attributes(const ComponentInstance& other, const bool ignore_name) const {
+bool GenComponent::eq_nonarray_attributes(const Component& other, const bool ignore_name) const {
   return
     (
       (is_set(component_type)) ?
@@ -83,7 +83,7 @@ bool GenComponentInstance::eq_nonarray_attributes(const ComponentInstance& other
     bond == other.bond;
 }
 
-std::string GenComponentInstance::to_str(const std::string ind) const {
+std::string GenComponent::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "component_type=" << "(" << ((component_type != nullptr) ? component_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
@@ -92,8 +92,8 @@ std::string GenComponentInstance::to_str(const std::string ind) const {
   return ss.str();
 }
 
-py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) {
-  return py::class_<ComponentInstance, std::shared_ptr<ComponentInstance>>(m, "ComponentInstance")
+py::class_<Component> define_pybinding_Component(py::module& m) {
+  return py::class_<Component, std::shared_ptr<Component>>(m, "Component")
       .def(
           py::init<
             std::shared_ptr<ComponentType>,
@@ -104,14 +104,14 @@ py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) 
           py::arg("state") = "STATE_UNSET",
           py::arg("bond") = BOND_UNBOUND
       )
-      .def("check_semantics", &ComponentInstance::check_semantics)
-      .def("__str__", &ComponentInstance::to_str, py::arg("ind") = std::string(""))
-      .def("__eq__", &ComponentInstance::__eq__, py::arg("other"))
-      .def("to_bngl_str", &ComponentInstance::to_bngl_str)
-      .def("dump", &ComponentInstance::dump)
-      .def_property("component_type", &ComponentInstance::get_component_type, &ComponentInstance::set_component_type)
-      .def_property("state", &ComponentInstance::get_state, &ComponentInstance::set_state)
-      .def_property("bond", &ComponentInstance::get_bond, &ComponentInstance::set_bond)
+      .def("check_semantics", &Component::check_semantics)
+      .def("__str__", &Component::to_str, py::arg("ind") = std::string(""))
+      .def("__eq__", &Component::__eq__, py::arg("other"))
+      .def("to_bngl_str", &Component::to_bngl_str)
+      .def("dump", &Component::dump)
+      .def_property("component_type", &Component::get_component_type, &Component::set_component_type)
+      .def_property("state", &Component::get_state, &Component::set_state)
+      .def_property("bond", &Component::get_bond, &Component::set_bond)
     ;
 }
 

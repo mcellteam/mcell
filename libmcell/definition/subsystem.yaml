@@ -10,7 +10,7 @@ ComponentType:
     default: empty
   methods:
   - name: inst
-    return_type: ComponentInstance*
+    return_type: Component*
     params:
     - name: state
       type: str
@@ -20,7 +20,7 @@ ComponentType:
       default: BOND_UNBOUND
 
   - name: inst
-    return_type: ComponentInstance*
+    return_type: Component*
     params:
     - name: state
       type: int
@@ -35,7 +35,7 @@ ComponentType:
     is_const: true       
       
       
-ComponentInstance:
+Component:
   superclass: BaseDataClass
   doc: | 
      Instance of a component belonging to a molecule instance.
@@ -106,10 +106,10 @@ ElementaryMoleculeType:
       
   methods:
   - name: inst
-    return_type: ElementaryMoleculeInstance*
+    return_type: ElementaryMolecule*
     params:
     - name: components
-      type: List[ComponentInstance*]
+      type: List[Component*]
       default: empty
 
   - name: to_bngl_str
@@ -118,14 +118,14 @@ ElementaryMoleculeType:
     is_const: true 
           
       
-ElementaryMoleculeInstance:
+ElementaryMolecule:
   superclass: BaseDataClass
   items:
   - name: elementary_molecule_type
     type: ElementaryMoleculeType*
     
   - name: components
-    type: List[ComponentInstance*]
+    type: List[Component*]
     default: empty
 
   methods:
@@ -155,8 +155,8 @@ Complex:
        the string is parsed during model initialization so the molecule types it uses
        don't have to be defined before initialization.
   
-  - name: elementary_molecule_instances
-    type: List[ElementaryMoleculeInstance*]
+  - name: elementary_molecules
+    type: List[ElementaryMolecule*]
     default: empty
     doc: Individual molecule instances contained in the complex.
 
@@ -211,10 +211,10 @@ Species:
     representation and an ElementaryMoleculeType 'A' with a given 
     diffusion constant is created as well.
     2) full definition of complex species - in this case the 
-    inherited attribute 'elementary_molecule_instances' from Complex
+    inherited attribute 'elementary_molecules' from Complex
     is used as a definition of the complex and this gives information 
     on diffusion constants of the used elementary molecules.
-    Example\: m.Species(elementary_molecule_instances=[ei1, ei2]). 
+    Example\: m.Species(elementary_molecules=[ei1, ei2]). 
     Such a definition must be added to subsystem or model.   
     3) declaration of species - in this case only 'name' in the form of 
     an BNGL string is provided. The complex instance specified by the name 
@@ -234,7 +234,7 @@ Species:
     default: unset
     doc: | 
        Name of the species in the BNGL format. 
-       One must either specify 'name' or 'elementary_molecule_instances' 
+       One must either specify 'name' or 'elementary_molecules' 
        (inherited from Complex). This argument 'name' is parsed during model 
        initialization.    
 

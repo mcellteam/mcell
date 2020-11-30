@@ -36,7 +36,7 @@ def analyze_dat_file(file_name):
         
         weight = 0.0
          
-        for mi in complex.elementary_molecule_instances:
+        for mi in complex.elementary_molecules:
             name = mi.elementary_molecule_type.name
             if name not in WEIGHTS:
                 print("Error: unknown molecular weight of " + name)

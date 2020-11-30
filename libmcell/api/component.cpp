@@ -20,7 +20,7 @@
  *
 ******************************************************************************/
 
-#include "api/component_instance.h"
+#include "api/component.h"
 #include "api/component_type.h"
 
 
@@ -29,7 +29,7 @@ using namespace std;
 namespace MCell {
 namespace API {
 
-bool ComponentInstance::operator < (const ComponentInstance& other) const {
+bool Component::operator < (const Component& other) const {
   if (name != other.name) {
     return name < other.name;
   }
@@ -42,7 +42,7 @@ bool ComponentInstance::operator < (const ComponentInstance& other) const {
 }
 
 
-std::string ComponentInstance::to_bngl_str() const {
+std::string Component::to_bngl_str() const {
   std::string res;
 
   res = component_type->name;

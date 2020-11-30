@@ -38,7 +38,7 @@ public:
   COMPLEX_CTOR()
 
   static std::shared_ptr<API::Complex> make_shared_empty() {
-    // to avoid ComplexInstance semantic check, we need to insert a dummy name
+    // to avoid Complex object semantic check, we need to insert a dummy name
     // when creating the object
     auto res_cplx_inst = std::make_shared<API::Complex>("TMP_NAME");
     res_cplx_inst->name = STR_UNSET;
@@ -75,9 +75,9 @@ public:
       return;
     }
     GenComplex::check_semantics();
-    if (get_num_set(name, elementary_molecule_instances) != 1) {
+    if (get_num_set(name, elementary_molecules) != 1) {
       throw ValueError(
-          S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULE_INSTANCES +
+          S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULES +
           " must be set for " + NAME_CLASS_COMPLEX + ".");
     }
 
@@ -97,7 +97,7 @@ public:
 
   std::shared_ptr<Species> as_species() override;
 
-  // complex instances can be only either surf or vol, there is no other option
+  // complexes can be only either surf or vol, there is no other option
   bool is_vol() const {
     return !is_surf();
   }

@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_ELEMENTARY_MOLECULE_INSTANCE_H
-#define API_GEN_ELEMENTARY_MOLECULE_INSTANCE_H
+#ifndef API_GEN_ELEMENTARY_MOLECULE_H
+#define API_GEN_ELEMENTARY_MOLECULE_H
 
 #include "api/common.h"
 #include "api/base_data_class.h"
@@ -29,33 +29,33 @@
 namespace MCell {
 namespace API {
 
-class ElementaryMoleculeInstance;
-class ComponentInstance;
+class ElementaryMolecule;
+class Component;
 class ElementaryMoleculeType;
 
-#define ELEMENTARY_MOLECULE_INSTANCE_CTOR() \
-    ElementaryMoleculeInstance( \
+#define ELEMENTARY_MOLECULE_CTOR() \
+    ElementaryMolecule( \
         std::shared_ptr<ElementaryMoleculeType> elementary_molecule_type_, \
-        const std::vector<std::shared_ptr<ComponentInstance>> components_ = std::vector<std::shared_ptr<ComponentInstance>>() \
+        const std::vector<std::shared_ptr<Component>> components_ = std::vector<std::shared_ptr<Component>>() \
     ) { \
-      class_name = "ElementaryMoleculeInstance"; \
+      class_name = "ElementaryMolecule"; \
       elementary_molecule_type = elementary_molecule_type_; \
       components = components_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
 
-class GenElementaryMoleculeInstance: public BaseDataClass {
+class GenElementaryMolecule: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  virtual bool __eq__(const ElementaryMoleculeInstance& other) const;
-  virtual bool eq_nonarray_attributes(const ElementaryMoleculeInstance& other, const bool ignore_name = false) const;
-  bool operator == (const ElementaryMoleculeInstance& other) const { return __eq__(other);}
-  bool operator != (const ElementaryMoleculeInstance& other) const { return !__eq__(other);}
+  virtual bool __eq__(const ElementaryMolecule& other) const;
+  virtual bool eq_nonarray_attributes(const ElementaryMolecule& other, const bool ignore_name = false) const;
+  bool operator == (const ElementaryMolecule& other) const { return __eq__(other);}
+  bool operator != (const ElementaryMolecule& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -73,8 +73,8 @@ public:
     return elementary_molecule_type;
   }
 
-  std::vector<std::shared_ptr<ComponentInstance>> components;
-  virtual void set_components(const std::vector<std::shared_ptr<ComponentInstance>> new_components_) {
+  std::vector<std::shared_ptr<Component>> components;
+  virtual void set_components(const std::vector<std::shared_ptr<Component>> new_components_) {
     if (initialized) {
       throw RuntimeError("Value 'components' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -82,18 +82,18 @@ public:
     cached_data_are_uptodate = false;
     components = new_components_;
   }
-  virtual std::vector<std::shared_ptr<ComponentInstance>> get_components() const {
+  virtual std::vector<std::shared_ptr<Component>> get_components() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return components;
   }
 
   // --- methods ---
   virtual std::string to_bngl_str() const = 0;
-}; // GenElementaryMoleculeInstance
+}; // GenElementaryMolecule
 
-class ElementaryMoleculeInstance;
-py::class_<ElementaryMoleculeInstance> define_pybinding_ElementaryMoleculeInstance(py::module& m);
+class ElementaryMolecule;
+py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_ELEMENTARY_MOLECULE_INSTANCE_H
+#endif // API_GEN_ELEMENTARY_MOLECULE_H
