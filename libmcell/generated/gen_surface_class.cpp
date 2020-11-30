@@ -120,7 +120,6 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
       )
       .def("check_semantics", &SurfaceClass::check_semantics)
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceClass::__eq__, py::arg("other"))
       .def("dump", &SurfaceClass::dump)
       .def_property("name", &SurfaceClass::get_name, &SurfaceClass::set_name)

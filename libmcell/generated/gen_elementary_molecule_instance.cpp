@@ -102,7 +102,6 @@ py::class_<ElementaryMoleculeInstance> define_pybinding_ElementaryMoleculeInstan
       )
       .def("check_semantics", &ElementaryMoleculeInstance::check_semantics)
       .def("__str__", &ElementaryMoleculeInstance::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &ElementaryMoleculeInstance::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMoleculeInstance::__eq__, py::arg("other"))
       .def("to_bngl_str", &ElementaryMoleculeInstance::to_bngl_str)
       .def("dump", &ElementaryMoleculeInstance::dump)

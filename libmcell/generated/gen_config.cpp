@@ -133,7 +133,6 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Config::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Config::__eq__, py::arg("other"))
       .def("dump", &Config::dump)
       .def_property("seed", &Config::get_seed, &Config::set_seed)

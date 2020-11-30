@@ -144,7 +144,6 @@ py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
           >()
       )
       .def("__str__", &ReactionInfo::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &ReactionInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionInfo::__eq__, py::arg("other"))
       .def("dump", &ReactionInfo::dump)
       .def_property("type", &ReactionInfo::get_type, &ReactionInfo::set_type)

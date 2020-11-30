@@ -182,7 +182,6 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       )
       .def("check_semantics", &SurfaceRegion::check_semantics)
       .def("__str__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
       .def("dump", &SurfaceRegion::dump)
       .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name)

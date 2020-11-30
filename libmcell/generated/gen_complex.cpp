@@ -88,7 +88,6 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       )
       .def("check_semantics", &Complex::check_semantics)
       .def("__str__", &Complex::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Complex::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Complex::__eq__, py::arg("other"))
       .def("to_bngl_str", &Complex::to_bngl_str)
       .def("as_species", &Complex::as_species)

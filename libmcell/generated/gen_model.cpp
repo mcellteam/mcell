@@ -106,7 +106,6 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
           >()
       )
       .def("__str__", &Model::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Model::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Model::__eq__, py::arg("other"))
       .def("initialize", &Model::initialize)
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))

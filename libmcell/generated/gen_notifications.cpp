@@ -73,7 +73,6 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       )
       .def("check_semantics", &Notifications::check_semantics)
       .def("__str__", &Notifications::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Notifications::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Notifications::__eq__, py::arg("other"))
       .def("dump", &Notifications::dump)
       .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level)

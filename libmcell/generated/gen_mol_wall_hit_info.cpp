@@ -91,7 +91,6 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
           >()
       )
       .def("__str__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &MolWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &MolWallHitInfo::dump)
       .def_property("molecule_id", &MolWallHitInfo::get_molecule_id, &MolWallHitInfo::set_molecule_id)

@@ -222,7 +222,6 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleaseSite::__eq__, py::arg("other"))
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)

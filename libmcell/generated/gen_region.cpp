@@ -126,7 +126,6 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
       )
       .def("check_semantics", &Region::check_semantics)
       .def("__str__", &Region::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Region::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Region::__eq__, py::arg("other"))
       .def("__add__", &Region::__add__, py::arg("other"))
       .def("__sub__", &Region::__sub__, py::arg("other"))

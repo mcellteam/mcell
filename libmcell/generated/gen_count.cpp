@@ -298,7 +298,6 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       )
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Count::__eq__, py::arg("other"))
       .def("get_current_value", &Count::get_current_value)
       .def("dump", &Count::dump)

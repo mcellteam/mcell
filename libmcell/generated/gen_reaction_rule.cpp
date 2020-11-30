@@ -106,7 +106,6 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       )
       .def("check_semantics", &ReactionRule::check_semantics)
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionRule::__eq__, py::arg("other"))
       .def("to_bngl_str", &ReactionRule::to_bngl_str)
       .def("dump", &ReactionRule::dump)

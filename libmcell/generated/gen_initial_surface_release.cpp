@@ -106,7 +106,6 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       )
       .def("check_semantics", &InitialSurfaceRelease::check_semantics)
       .def("__str__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &InitialSurfaceRelease::__eq__, py::arg("other"))
       .def("dump", &InitialSurfaceRelease::dump)
       .def_property("complex", &InitialSurfaceRelease::get_complex, &InitialSurfaceRelease::set_complex)

@@ -122,7 +122,6 @@ py::class_<WallWallHitInfo> define_pybinding_WallWallHitInfo(py::module& m) {
       )
       .def("check_semantics", &WallWallHitInfo::check_semantics)
       .def("__str__", &WallWallHitInfo::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &WallWallHitInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &WallWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &WallWallHitInfo::dump)
       .def_property("wall1", &WallWallHitInfo::get_wall1, &WallWallHitInfo::set_wall1)

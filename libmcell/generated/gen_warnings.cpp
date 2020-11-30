@@ -64,7 +64,6 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
       )
       .def("check_semantics", &Warnings::check_semantics)
       .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Warnings::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Warnings::__eq__, py::arg("other"))
       .def("dump", &Warnings::dump)
     ;

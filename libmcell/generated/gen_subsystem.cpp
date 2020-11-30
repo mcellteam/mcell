@@ -65,7 +65,6 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
           >()
       )
       .def("__str__", &Subsystem::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Subsystem::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Subsystem::__eq__, py::arg("other"))
       .def("add_species", &Subsystem::add_species, py::arg("s"))
       .def("find_species", &Subsystem::find_species, py::arg("name"))

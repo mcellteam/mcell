@@ -91,7 +91,6 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
       )
       .def("check_semantics", &ReleasePattern::check_semantics)
       .def("__str__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleasePattern::__eq__, py::arg("other"))
       .def("dump", &ReleasePattern::dump)
       .def_property("name", &ReleasePattern::get_name, &ReleasePattern::set_name)

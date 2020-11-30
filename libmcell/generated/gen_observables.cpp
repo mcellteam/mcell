@@ -58,7 +58,6 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
           >()
       )
       .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &Observables::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Observables::__eq__, py::arg("other"))
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"))
       .def("add_count", &Observables::add_count, py::arg("count"))

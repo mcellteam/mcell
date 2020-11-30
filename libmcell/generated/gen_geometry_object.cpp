@@ -211,7 +211,6 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       )
       .def("check_semantics", &GeometryObject::check_semantics)
       .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
-      .def("__repr__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &GeometryObject::__eq__, py::arg("other"))
       .def("translate", &GeometryObject::translate, py::arg("move"))
       .def("dump", &GeometryObject::dump)
