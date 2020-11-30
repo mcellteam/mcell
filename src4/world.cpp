@@ -88,6 +88,10 @@ World::~World() {
   if (!buffers_flushed) {
     flush_buffers();
   }
+
+  for (MolOrRxnCountEvent* e: unscheduled_count_events) {
+    delete e;
+  }
 }
 
 void World::init_fpu() {
@@ -129,7 +133,7 @@ void World::recompute_species_flags() {
   // certain species flags
   vector<BaseEvent*> count_events;
   scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
-  species_flags_analyzer.initialize(count_events);
+  species_flags_analyzer.initialize(count_events, unscheduled_count_events);
   get_all_species().recompute_species_flags(get_all_rxns(), &species_flags_analyzer);
 }
 

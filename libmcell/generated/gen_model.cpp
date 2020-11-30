@@ -148,6 +148,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("load_bngl_seed_species", &Model::load_bngl_seed_species, py::arg("file_name"), py::arg("subsystem"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("add_viz_output", &Model::add_viz_output, py::arg("viz_output"))
       .def("add_count", &Model::add_count, py::arg("count"))
+      .def("find_count", &Model::find_count, py::arg("name"))
       .def("load_bngl_observables", &Model::load_bngl_observables, py::arg("file_name"), py::arg("subsystem"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("dump", &Model::dump)
       .def_property("config", &Model::get_config, &Model::set_config)

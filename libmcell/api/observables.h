@@ -53,6 +53,10 @@ public:
   // uses argument method_name for this error report
   std::string get_first_viz_output_files_prefix(const char* method_name);
 
+  std::shared_ptr<Count> find_count(const std::string& name) override {
+    return vec_find_by_name(counts, name);
+  }
+
   void load_bngl_observables(
       const std::string& file_name,
       std::shared_ptr<Subsystem> subsystem,

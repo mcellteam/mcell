@@ -216,6 +216,11 @@ public:
 
   void reset_unimol_rxn_times(const BNG::rxn_rule_id_t rxn_rule_id);
 
+  // gives ownership of the event to this World object
+  void add_unscheduled_count_event(MolOrRxnCountEvent* e) {
+    unscheduled_count_events.push_back(e);
+  }
+
 private:
   // called in init_simulation
   void recompute_species_flags();
@@ -248,6 +253,8 @@ public:
   SpeciesFlagsAnalyzer species_flags_analyzer;
 
   Scheduler scheduler;
+
+  std::vector<MolOrRxnCountEvent*> unscheduled_count_events;
 
   uint64_t total_iterations; // number of iterations to simulate - move to Sim config
 

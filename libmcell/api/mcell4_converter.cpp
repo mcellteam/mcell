@@ -1675,7 +1675,18 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
     // having multiple MolOrRxnCountInfo per MolOrRxnCountEvent
     // was useful for MCell3 conversion, however for pymcell4 each count is a separate event
     count_event->add_mol_count_item(info);
-    world->scheduler.schedule_event(count_event);
+
+    // remember for get_current_value calls
+    c->count_event = count_event;
+
+    if (c->every_n_timesteps > 0) {
+      // 0 means that the event won't be ever rescheduled,
+      // if it were added to the schedule it would be executed once and then deleted
+      world->scheduler.schedule_event(count_event);
+    }
+    else {
+      world->add_unscheduled_count_event(count_event);
+    }
   }
 }
 

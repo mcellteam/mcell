@@ -23,22 +23,30 @@
 #ifndef API_COUNT_H
 #define API_COUNT_H
 
-#include "../generated/gen_count.h"
-#include "../api/common.h"
-#include "../api/count_term.h"
+#include "generated/gen_count.h"
+#include "api/common.h"
+#include "api/count_term.h"
 
 
 namespace MCell {
+
+class MolOrRxnCountEvent;
+
 namespace API {
 
 class Count: public GenCount {
 public:
   // ctor used when converting observables from BNGL
-  Count() {
+  Count(bool /*argument just to distinguish it from the generated variant*/) {
     set_all_attributes_as_default_or_unset();
+    count_event = nullptr;
   }
 
   COUNT_CTOR()
+
+  void postprocess_in_ctor() override {
+    count_event = nullptr;
+  }
 
   void check_semantics() const override {
     GenCount::check_semantics(); // calls also CountTerm::check_semantics
@@ -49,10 +57,25 @@ public:
           NAME_MOLECULES_PATTERN + " or " + NAME_REACTION_RULE + " must be set for " + NAME_CLASS_COUNT + ".");
     }
 
+    if (!is_set(file_name)) {
+      throw ValueError(S("Attribute ") + NAME_FILE_NAME + " must be set.");
+    }
+
     if (is_set(count_expression)) {
       count_expression->check_that_species_or_reaction_rule_is_set();
     }
+
+    if (every_n_timesteps < 0) {
+      throw ValueError(
+          S("The value of ") + NAME_EVERY_N_TIMESTEPS + " must be higher or equal to 0.");
+    }
   }
+
+  float_t get_current_value() override;
+
+  // count event, owned by Scheduler if every_n_timesteps > 0,
+  // owned by World if every_n_timesteps == 0
+  MolOrRxnCountEvent* count_event;
 };
 
 } // namespace API

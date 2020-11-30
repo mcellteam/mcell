@@ -38,7 +38,8 @@ class Region;
 
 #define COUNT_CTOR() \
     Count( \
-        const std::string& file_name_, \
+        const std::string& name_ = STR_UNSET, \
+        const std::string& file_name_ = STR_UNSET, \
         std::shared_ptr<CountTerm> count_expression_ = nullptr, \
         const float_t multiplier_ = 1, \
         const float_t every_n_timesteps_ = 1, \
@@ -51,6 +52,7 @@ class Region;
         std::shared_ptr<CountTerm> right_node_ = nullptr \
     )  : GenCount(species_pattern_,molecules_pattern_,reaction_rule_,region_,node_type_,left_node_,right_node_) { \
       class_name = "Count"; \
+      name = name_; \
       file_name = file_name_; \
       count_expression = count_expression_; \
       multiplier = multiplier_; \
@@ -147,6 +149,7 @@ public:
   }
 
   // --- methods ---
+  virtual float_t get_current_value() = 0;
 }; // GenCount
 
 class Count;

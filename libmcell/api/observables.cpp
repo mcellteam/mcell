@@ -102,7 +102,9 @@ void Observables::convert_observable(
     throw RuntimeError("BNGL observables with multiple patterns are not supported yet, error for " + o.name + ".");
   }
 
-  shared_ptr<API::Count> count = make_shared<Count>();
+  shared_ptr<API::Count> count = make_shared<Count>(true);
+
+  count->name = o.name;
   count->file_name = output_files_prefix + o.name + ".dat";
 
   std::shared_ptr<API::Complex> pattern =

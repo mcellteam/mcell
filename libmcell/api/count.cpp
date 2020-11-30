@@ -20,35 +20,26 @@
  *
 ******************************************************************************/
 
-#ifndef API_VIZ_OUTPUT_H
-#define API_VIZ_OUTPUT_H
+#include "api/count.h"
 
-#include "../generated/gen_viz_output.h"
-#include "../api/common.h"
+#include "mol_or_rxn_count_event.h"
 
 namespace MCell {
 namespace API {
 
-class VizOutput: public GenVizOutput {
-public:
-  VIZ_OUTPUT_CTOR()
-
-  void check_semantics() const override {
-    GenVizOutput::check_semantics();
-
-    if (all_species && !species_list.empty()) {
-      throw ValueError(S("When ") + NAME_ALL_SPECIES + " is set to true, " +
-          NAME_SPECIES_LIST + " must be empty.");
-    }
-
-    if (every_n_timesteps <= 0) {
-      throw ValueError(
-          S("The value of ") + NAME_EVERY_N_TIMESTEPS + " must be higher than 0.");
-    }
+float_t Count::get_current_value() {
+  if (count_event == nullptr) {
+    throw RuntimeError(S(NAME_CLASS_COUNT) + " with name " + name + " was not initialized.");
   }
-};
+
+  if (is_set(reaction_rule)) {
+    throw RuntimeError(S("Calling of ") + NAME_GET_CURRENT_VALUE + " to count reactions is not supported " +
+        "( counted reaction rule: " + reaction_rule->to_bngl_str() + ").");
+  }
+
+  return count_event->get_single_count_value();
+}
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_VIZ_OUTPUT_H

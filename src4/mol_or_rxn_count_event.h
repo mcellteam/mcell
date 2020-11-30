@@ -184,6 +184,9 @@ public:
 
   void step() override;
 
+  // used from MCell4 API
+  float_t get_single_count_value();
+
   // DiffuseReactEvent must execute only up to this event
   bool is_barrier() const override { return true; }
 
@@ -209,6 +212,24 @@ public:
 private:
   const CountSpeciesInfo& get_or_compute_count_species_info(const species_id_t species_id);
   void compute_count_species_info(const species_id_t species_id);
+
+  void compute_mol_count_item(
+      const Partition& p,
+      const MolOrRxnCountItem& item,
+      const Molecule& m,
+      const size_t item_index,
+      std::vector<CountItem>& count_items
+  );
+
+  void compute_rxn_count_item(
+      Partition& p,
+      const MolOrRxnCountItem& item,
+      const BNG::RxnRule* rxn,
+      const size_t item_index,
+      std::vector<CountItem>& count_items
+  );
+
+  void compute_counts(std::vector<CountItem>& count_items);
 
   // index to this array is species_id
   std::vector<CountSpeciesInfo> count_species_info;

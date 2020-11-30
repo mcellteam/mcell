@@ -27,7 +27,9 @@
 
 namespace MCell {
 
-void SpeciesFlagsAnalyzer::initialize(std::vector<BaseEvent*>& base_count_events) {
+void SpeciesFlagsAnalyzer::initialize(
+    std::vector<BaseEvent*>& base_count_events,
+    std::vector<MolOrRxnCountEvent*> unscheduled_count_events) {
 
   for (BaseEvent* event: base_count_events) {
     assert(event->type_index == EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT);
@@ -35,6 +37,9 @@ void SpeciesFlagsAnalyzer::initialize(std::vector<BaseEvent*>& base_count_events
     assert(count_event != nullptr);
     count_events.push_back(count_event);
   }
+
+  count_events.insert(count_events.begin(), unscheduled_count_events.begin(), unscheduled_count_events.end());
+
   initialized = true;
 }
 

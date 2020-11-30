@@ -258,7 +258,8 @@ class Config():
 class Count():
     def __init__(
             self,
-            file_name : str,
+            name : str = None,
+            file_name : str = None,
             count_expression : CountTerm = None,
             multiplier : float = 1,
             every_n_timesteps : float = 1,
@@ -270,6 +271,7 @@ class Count():
             left_node : CountTerm = None,
             right_node : CountTerm = None
         ):
+        self.name = name
         self.file_name = file_name
         self.count_expression = count_expression
         self.multiplier = multiplier
@@ -282,6 +284,11 @@ class Count():
         self.left_node = left_node
         self.right_node = right_node
 
+
+    def get_current_value(
+            self,
+        ) -> 'float':
+        pass
 
     def __add__(
             self,
@@ -776,6 +783,12 @@ class Model():
         ) -> None:
         pass
 
+    def find_count(
+            self,
+            name : str
+        ) -> 'Count':
+        pass
+
     def load_bngl_observables(
             self,
             file_name : str,
@@ -864,6 +877,12 @@ class Observables():
             self,
             count : Count
         ) -> None:
+        pass
+
+    def find_count(
+            self,
+            name : str
+        ) -> 'Count':
         pass
 
     def load_bngl_observables(

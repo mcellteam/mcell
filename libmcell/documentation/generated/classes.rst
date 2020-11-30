@@ -332,7 +332,12 @@ Count
 
 Attributes:
 ***********
-* | **file_name**: str
+* | **name**: str = None
+  | Name of a count may be specified when one needs to search for them later. 
+  | Also when the count is created while loading a BNGL file, its name is set.
+
+* | **file_name**: str = None
+  | File name with an optional path must be set. It is not dediuced automatically.
 
 * | **count_expression**: CountTerm = None
   | The count expression must be composed only from CountTerm objects that are added or 
@@ -345,6 +350,8 @@ Attributes:
 
 * | **every_n_timesteps**: float = 1
   | Value is truncated (floored) to an integer.
+  | If value is set to 0, this Count is used only on-demand through calls to its
+  | get_current_value method.
 
 * | **species_pattern**: Complex = None
   | Count the number of molecules that match the given complex instance pattern.
@@ -381,6 +388,15 @@ Attributes:
 
 Methods:
 *********
+* | **get_current_value**
+
+   * | return type: float
+
+
+  | Returns the current value for this count. Cannot be used to count reactions.
+  | The model must be initialized with this Count present as one of the observables.
+
+
 * | **__add__**
 
    * | op2: CountTerm
@@ -1054,6 +1070,12 @@ Methods:
 
    * | count: Count
 
+* | **find_count**
+
+   * | name: str
+   * | return type: Count
+
+
 * | **load_bngl_observables**
 
    * | file_name: str
@@ -1182,6 +1204,12 @@ Methods:
 * | **add_count**
 
    * | count: Count
+
+* | **find_count**
+
+   * | name: str
+   * | return type: Count
+
 
 * | **load_bngl_observables**
 

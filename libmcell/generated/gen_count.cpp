@@ -33,9 +33,6 @@ namespace MCell {
 namespace API {
 
 void GenCount::check_semantics() const {
-  if (!is_set(file_name)) {
-    throw ValueError("Parameter 'file_name' must be set.");
-  }
 }
 
 void GenCount::set_initialized() {
@@ -65,6 +62,7 @@ void GenCount::set_initialized() {
 
 void GenCount::set_all_attributes_as_default_or_unset() {
   class_name = "Count";
+  name = STR_UNSET;
   file_name = STR_UNSET;
   count_expression = nullptr;
   multiplier = 1;
@@ -80,6 +78,7 @@ void GenCount::set_all_attributes_as_default_or_unset() {
 
 bool GenCount::__eq__(const Count& other) const {
   return
+    name == other.name &&
     file_name == other.file_name &&
     (
       (is_set(count_expression)) ?
@@ -165,6 +164,7 @@ bool GenCount::__eq__(const Count& other) const {
 
 bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name) const {
   return
+    (ignore_name || name == other.name) &&
     file_name == other.file_name &&
     (
       (is_set(count_expression)) ?
@@ -251,6 +251,7 @@ bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name
 std::string GenCount::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
+      "name=" << name << ", " <<
       "file_name=" << file_name << ", " <<
       "\n" << ind + "  " << "count_expression=" << "(" << ((count_expression != nullptr) ? count_expression->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "multiplier=" << multiplier << ", " <<
@@ -270,6 +271,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def(
           py::init<
             const std::string&,
+            const std::string&,
             std::shared_ptr<CountTerm>,
             const float_t,
             const float_t,
@@ -281,7 +283,8 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             std::shared_ptr<CountTerm>,
             std::shared_ptr<CountTerm>
           >(),
-          py::arg("file_name"),
+          py::arg("name") = STR_UNSET,
+          py::arg("file_name") = STR_UNSET,
           py::arg("count_expression") = nullptr,
           py::arg("multiplier") = 1,
           py::arg("every_n_timesteps") = 1,
@@ -297,7 +300,9 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("__repr__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Count::__eq__, py::arg("other"))
+      .def("get_current_value", &Count::get_current_value)
       .def("dump", &Count::dump)
+      .def_property("name", &Count::get_name, &Count::set_name)
       .def_property("file_name", &Count::get_file_name, &Count::set_file_name)
       .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression)
       .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier)

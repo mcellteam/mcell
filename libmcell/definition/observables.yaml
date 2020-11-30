@@ -99,8 +99,18 @@ CountTerm:
 Count:
   superclass: CountTerm
   items:
+  - name: name
+    type: str
+    default: unset
+    doc: | 
+       Name of a count may be specified when one needs to search for them later. 
+       Also when the count is created while loading a BNGL file, its name is set.
+       
   - name: file_name
     type: str
+    default: unset
+    doc: |
+       File name with an optional path must be set. It is not dediuced automatically.
     
   - name: count_expression 
     type: CountTerm*
@@ -122,7 +132,15 @@ Count:
     default: 1
     doc: |
       Value is truncated (floored) to an integer.
+      If value is set to 0, this Count is used only on-demand through calls to its
+      get_current_value method.  
       
+  methods:
+  - name: get_current_value
+    return_type: float
+    doc: | 
+       Returns the current value for this count. Cannot be used to count reactions.
+       The model must be initialized with this Count present as one of the observables.
  
 Observables:
   doc: |
@@ -147,6 +165,12 @@ Observables:
     params:
     - name: count
       type: Count*
+      
+  - name: find_count  
+    return_type: Count*
+    params:
+    - name: name
+      type: str            
      
   - name: load_bngl_observables
     doc: | 

@@ -42,7 +42,9 @@ public:
   }
 
   // vector base_count_events may be empty
-  void initialize(std::vector<BaseEvent*>& base_count_events);
+  void initialize(
+      std::vector<BaseEvent*>& scheduled_count_events,
+      std::vector<MolOrRxnCountEvent*> unscheduled_count_events);
 
   // returns a mask of all custom flags for species,
   // used to clear any pre-existing flag values

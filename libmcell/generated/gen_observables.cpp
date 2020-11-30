@@ -62,6 +62,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       .def("__eq__", &Observables::__eq__, py::arg("other"))
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"))
       .def("add_count", &Observables::add_count, py::arg("count"))
+      .def("find_count", &Observables::find_count, py::arg("name"))
       .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("file_name"), py::arg("subsystem"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("dump", &Observables::dump)
       .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs)
