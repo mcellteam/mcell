@@ -593,7 +593,7 @@ static inline float_t len3(const Vec3& v1) {
 }
 
 static inline float_t distance3_squared(const Vec3& v1, const Vec3& v2) {
-  return len3(v1 - v2);
+  return len3_squared(v1 - v2);
 }
 
 static inline float_t distance3(const Vec3& v1, const Vec3& v2) {

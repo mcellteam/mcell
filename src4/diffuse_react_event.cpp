@@ -74,12 +74,33 @@ void DiffuseReactEvent::step() {
 }
 
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
-static bool less_time_and_id(const DiffuseAction& a1, const DiffuseAction& a2) {
+static bool cmp_mols_by_time_and_id(const Molecule& m1, const Molecule& m2) {
   // WARNING: this comparison is a bit 'shaky' - the constant 100*EPS_C there... (same in sched_util.c)
-  return (a1.scheduled_time  + 100*EPS_C < a2.scheduled_time) ||
-      (fabs(a1.scheduled_time - a2.scheduled_time) < 100*EPS_C && a1.id < a2.id);
+  return
+      (m1.diffusion_time  + 100*EPS_C < m2.diffusion_time) ||
+        (fabs(m1.diffusion_time - m2.diffusion_time) < 100*EPS_C && m1.id < m2.id);
 }
+
+class CmpDiffuseAction {
+public:
+  CmpDiffuseAction(const Partition& p_) : p(p_) {}
+  bool operator () (const DiffuseAction& a1, const DiffuseAction& a2) {
+    return cmp_mols_by_time_and_id(p.get_m(a1.id), p.get_m(a2.id));
+  }
+  const Partition& p;
+};
+
+class CmpMoleculeId {
+public:
+  CmpMoleculeId(const Partition& p_) : p(p_) {}
+  bool operator () (const molecule_id_t& id1, const molecule_id_t& id2) {
+    return cmp_mols_by_time_and_id(p.get_m(id1), p.get_m(id2));
+  }
+  const Partition& p;
+};
 #endif
+
+#define MCELL4_NOT_ORDER_BY_DELAY
 
 void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector& molecule_ids) {
 
@@ -87,6 +108,8 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // for which they were scheduled but rather simply the order in which these "microevents" were created
 
   std::vector<DiffuseAction> delayed_diffusions;
+
+#ifndef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
 
   // 1) first diffuse already existing molecules
   uint existing_mols_count = molecule_ids.size();
@@ -109,15 +132,11 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
       delayed_diffusions.push_back(DiffuseAction(id));
     }
   }
-
-
-#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
-  // merge the two arrays with actions
-  new_diffuse_actions.insert(
-      new_diffuse_actions.begin(),
-      delayed_diffusions.begin(), delayed_diffusions.end()
-  );
-  delayed_diffusions.clear();
+#else
+  for (molecule_id_t id: molecule_ids) {
+    // merge with actions
+    new_diffuse_actions.push_back(DiffuseAction(id));
+  }
 #endif
 
   // 2) mcell3 first handles diffusions of existing molecules, then the delayed diffusions
@@ -139,16 +158,13 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // they were created
   for (uint i = 0; i < new_diffuse_actions.size(); i++) {
 
-#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
-    // sort by time and id, index is still fine because we cannot schedule anything
-    // to the past
-    sort(new_diffuse_actions.begin(), new_diffuse_actions.end(), less_time_and_id);
-#endif
-
+#ifndef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
     DiffuseAction& action = new_diffuse_actions[i];
-
-#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
-    Molecule& m = p.get_m(action.id);
+#else
+    // sort by time and id and select the most immediate action,
+    // size of the new_diffuse_actions array gives us the informatio non the total count to run
+    sort(new_diffuse_actions.begin(), new_diffuse_actions.end(), CmpDiffuseAction(p));
+    DiffuseAction& action = new_diffuse_actions[0];
 #endif
 
     diffuse_single_molecule(
@@ -171,10 +187,6 @@ inline float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t
 
   // clamp to barrier time
   float_t max_time = time_up_to_next_barrier - time_from_event_start;
-
-  /*if (time_from_event_start + max_time > time_up_to_next_barrier) {
-    max_time = time_up_to_next_barrier - time_from_event_start;
-  }*/
 
   // clamp to unimol_rx time
   if (unimol_rx_time != TIME_INVALID &&

@@ -47,13 +47,13 @@
 using namespace std;
 
 // TODO: allow to enable/disable this from API, may make performance worse
-//#define ENABLE_SAFE_DIFFUSION_STEP
+#define ENABLE_SAFE_DIFFUSION_STEP
 
 namespace MCell {
 
 namespace DiffusionUtil {
 
-const float_t MULTISTEP_WORTHWHILE = 2.0;
+const float_t MULTISTEP_WORTHWHILE = 2.0; // TODO: make this tweakable through API, 2.0 is the value used in MCell3
 const float_t MULTISTEP_PERCENTILE = 0.99;
 const float_t MULTISTEP_FRACTION = 0.9;
 
@@ -154,6 +154,7 @@ safe_diffusion_step:
         *FIXME*: Add a flag to make this be very conservative or to turn
         this off entirely, aside from the TIME_STEP_MAX= directive.
 ****************************************************************************/
+// TODO: this needs to be optimized because we are losing ~7% in benchmarks
 static inline float_t get_safe_diffusion_step(
     const Partition& p,
     const BNG::Species& sp,
