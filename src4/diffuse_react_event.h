@@ -108,6 +108,7 @@ public:
   molecule_id_t id;
 
   // used to avoid rebinding for surf+vol->surf+vol reactions
+  // TODO: can be removed and replaced with Molecule::previous_wall_index?
   WallTileIndexPair where_created_this_iteration;
 };
 
@@ -163,6 +164,10 @@ public:
 
   void add_diffuse_action(const DiffuseAction& action) {
     new_diffuse_actions.push_back(action);
+  }
+
+  bool before_this_iterations_end(const float_t time) const {
+    return cmp_lt(time, event_time + periodicity_interval, EPS);
   }
 
   World* world;

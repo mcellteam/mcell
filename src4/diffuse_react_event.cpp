@@ -113,7 +113,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
 
   // 1) first diffuse already existing molecules
   uint existing_mols_count = molecule_ids.size();
-  for (uint i = 0; i < existing_mols_count; i++) {
+  for (size_t i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
 
     // here we compute both release delay and also partially sort molecules to be diffused
@@ -141,7 +141,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
 
   // 2) mcell3 first handles diffusions of existing molecules, then the delayed diffusions
   // actions created by the diffusion of all these molecules are handled later
-  for (uint i = 0; i < delayed_diffusions.size(); i++) {
+  for (size_t i = 0; i < delayed_diffusions.size(); i++) {
     const DiffuseAction& action = delayed_diffusions[i];
 
     Molecule& m = p.get_m(action.id);
@@ -156,7 +156,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // need to call .size() each iteration because the size can increase,
   // again, we are using it as a queue and we do not follow the time when
   // they were created
-  for (uint i = 0; i < new_diffuse_actions.size(); i++) {
+  for (size_t i = 0; i < new_diffuse_actions.size(); i++) {
 
 #ifndef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
     DiffuseAction& action = new_diffuse_actions[i];
@@ -164,9 +164,24 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
     // sort by time and id and select the most immediate action,
     // size of the new_diffuse_actions array gives us the informatio non the total count to run
     sort(new_diffuse_actions.begin(), new_diffuse_actions.end(), CmpDiffuseAction(p));
-    DiffuseAction& action = new_diffuse_actions[0];
-#endif
 
+    // skip all defunct molecules
+    size_t first_active;
+    for (first_active = 0; first_active < new_diffuse_actions.size(); first_active++) {
+      // stop if we already processed all molecules for this iteration
+      const Molecule& m_checked = p.get_m(new_diffuse_actions[first_active].id);
+      if (!before_this_iterations_end(m_checked.diffusion_time)) {
+        return;
+      }
+
+      // skip defunct molecules
+      if (!p.get_m(new_diffuse_actions[first_active].id).is_defunct()) {
+        break;
+      }
+    }
+    assert(first_active < new_diffuse_actions.size());
+    DiffuseAction& action = new_diffuse_actions[first_active];
+#endif
     diffuse_single_molecule(
         p, action.id,
         action.where_created_this_iteration // making a copy of this pair
@@ -222,7 +237,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 ) {
   Molecule& m_initial = p.get_m(m_id);
   float_t diffusion_start_time = m_initial.diffusion_time;
-  assert(diffusion_start_time >= event_time && diffusion_start_time <= event_time + time_up_to_next_barrier);
+  assert(diffusion_start_time >= event_time && before_this_iterations_end(diffusion_start_time));
   assert(m_initial.birthday != TIME_INVALID && m_initial.birthday <= diffusion_start_time);
 
   if (m_initial.is_defunct()) {
@@ -308,7 +323,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
         ( m_for_sched_update.unimol_rx_time != TIME_INVALID &&
             m_for_sched_update.unimol_rx_time < event_end_time
         ) ||
-        cmp_lt(m_for_sched_update.diffusion_time, event_end_time, SQRT_EPS)
+        before_this_iterations_end(m_for_sched_update.diffusion_time)
     ) {
       // reschedule molecule for this iteration because we did not use up all its time
       DiffuseAction diffuse_action(m_for_sched_update.id);
@@ -2403,11 +2418,10 @@ int DiffuseReactEvent::outcome_products_random(
       current_surf_product_position_index++;
     }
 
-    // schedule new product to be diffused this iteration
     p.get_m(new_m_id).diffusion_time = time;
-    new_diffuse_actions.push_back(
-        DiffuseAction(new_m_id, where_is_vm_created));
-
+    if (before_this_iterations_end(time)) {
+      new_diffuse_actions.push_back(DiffuseAction(new_m_id, where_is_vm_created));
+    }
 
     // refresh reacA and reacB pointers, we are added new molecules in this loop and they point to that vector
     reacA = &p.get_m(reacA_id);
