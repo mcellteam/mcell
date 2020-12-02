@@ -5258,11 +5258,12 @@ void set_inertness_and_maxtime(
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (m->get_time_step(m) > 1.0) {
-        double f = 1.0 + 0.2 * (m->t - m->birthday);
-        if (f < 1)
+        /* Birthday is in seconds */
+        double f = 1.0 + 0.2 * (m->t - m->birthday / world->time_unit);
+        if (f < 1 - EPS_C)
           mcell_internal_error("A %s molecule is scheduled to move before it "
                                "was born [birthday=%.15g, t=%.15g]",
-                               spec->sym->name, m->birthday * world->time_unit,
+                               spec->sym->name, m->birthday,
                                m->t * world->time_unit);
         if (*max_time > f) {
           *max_time = f;
