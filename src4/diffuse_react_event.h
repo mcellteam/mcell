@@ -156,7 +156,7 @@ public:
     // scheduler says to this event for how long it can execute
     // either the maximum time step (periodicity_interval) or time up to the
     // first barrier
-    assert(time_up_to_next_barrier_ > 0 && "Diffusion must advance even if a little bit");
+    release_assert(time_up_to_next_barrier_ > 0 && "Diffusion must advance even if a little bit");
     assert(cmp_eq(time_up_to_next_barrier_, round_f(time_up_to_next_barrier_)) &&
         "Time up to the next barrier is expected to be a whole number");
     time_up_to_next_barrier = time_up_to_next_barrier_;

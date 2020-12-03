@@ -60,7 +60,6 @@ class Model;
 class Callbacks;
 }
 
-
 class World {
 
 public:

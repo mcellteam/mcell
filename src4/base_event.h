@@ -59,6 +59,7 @@ const event_type_index_t EVENT_TYPE_INDEX_CLAMP_RELEASE = 490;
 const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 500;  // this event spans the whole time step
 const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;
 
+const event_type_index_t EVENT_TYPE_INDEX_BARRIER = 1000;
 
 /**
  * Base class for all events.

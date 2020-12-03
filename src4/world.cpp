@@ -1,8 +1,7 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
- * The Salk Institute for Biological Studies and
- * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ * Copyright (C) 2019, 2020 by
+ * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,6 +21,7 @@
 ******************************************************************************/
 
 #include <fenv.h> // Linux include
+#include <run_n_iterations_end_event.h>
 #include <sys/resource.h> // Linux include
 
 #include <fstream>
@@ -31,7 +31,6 @@
 
 #include "world.h"
 #include "viz_output_event.h"
-#include "simulation_end_check_event.h"
 #include "defragmentation_event.h"
 #include "rxn_class_cleanup_event.h"
 #include "species_cleanup_event.h"
@@ -191,13 +190,6 @@ void World::init_simulation() {
   event->event_time = TIME_SIMULATION_START;
   scheduler.schedule_event(event);
 
-
-  // create events that are used to check whether simulation should end
-  SimulationEndCheckEvent* sim_end_check_event = new SimulationEndCheckEvent();
-  sim_end_check_event->event_time = 0;
-  sim_end_check_event->periodicity_interval = 1; // these markers are inserted into every time step
-  scheduler.schedule_event(sim_end_check_event);
-
   // create defragmentation events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
   defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
@@ -254,6 +246,13 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 
   uint64_t& current_iteration = stats.get_current_iteration();
 
+  // create events that are used to check whether simulation should end, also serves as a barrier
+  // also serves as a simulation barrier to not to do diffusion after this point in time
+  RunNIterationsEndEvent* run_n_iterations_end_event = new RunNIterationsEndEvent();
+  run_n_iterations_end_event->event_time = current_iteration + num_iterations;
+  run_n_iterations_end_event->periodicity_interval = 1; // these markers are inserted into every time step
+  scheduler.schedule_event(run_n_iterations_end_event);
+
   if (current_iteration == 0) {
     cout << "Iterations: " << current_iteration << " of " << total_iterations << "\n";
   }
@@ -308,9 +307,9 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     // also terminate if this was the last iteration and we hit an event that represents a check for the
     // end of the simulation
     if (terminate_last_iteration_after_viz_output &&
-       current_iteration == this_run_first_iteration + num_iterations - 1 &&
        event_info.type_index == EVENT_TYPE_INDEX_SIMULATION_END_CHECK
     ) {
+      assert(current_iteration == this_run_first_iteration + num_iterations - 1);
       break;
     }
 
