@@ -50,9 +50,7 @@ public:
 #endif
 
     // check that this species does not exist already
-    if (!new_species.is_canonical()) {
-      new_species.canonicalize();
-    }
+    assert(new_species.is_canonical());
     assert(new_species.name != "");
     auto it = canonical_species_map.find(new_species.name);
 

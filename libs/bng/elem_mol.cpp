@@ -237,29 +237,34 @@ void ElemMol::insert_missing_components_as_any_state_pattern(const BNGData& bng_
 
 
 std::string ElemMol::to_str(const BNGData& bng_data) const {
-  stringstream ss;
+  std::string res;
+  to_str(bng_data, res);
+  return res;
+}
+
+
+void ElemMol::to_str(const BNGData& bng_data, std::string& res) const {
   const ElemMolType& mt = bng_data.get_elem_mol_type(elem_mol_type_id);
 
-  ss << mt.name;
+  res += mt.name;
   if (!components.empty()) {
-    ss << "(";
+    res += "(";
   }
 
   bool first_component = true;
   for (size_t i = 0; i < components.size(); i++) {
 
     if (!first_component) {
-      ss << ",";
+      res += ",";
     }
 
-    ss << components[i].to_str(bng_data);
+    res += components[i].to_str(bng_data);
 
     first_component = false;
   }
   if (!components.empty()) {
-    ss << ")";
+    res += ")";
   }
-  return ss.str();
 }
 
 

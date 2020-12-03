@@ -225,7 +225,10 @@ public:
     }
   }
 
-  std::string to_str(bool in_surf_reaction = false) const;
+  // appends to string res
+  void to_str(std::string& res, const bool in_surf_reaction = false) const;
+
+  std::string to_str(const bool in_surf_reaction = false) const;
   void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:

@@ -12,9 +12,7 @@ namespace BNG {
 species_id_t SpeciesContainer::add(const Species& new_species, const bool removable) {
 
   Species species_copy = new_species;
-  if (!species_copy.is_canonical()) {
-    species_copy.canonicalize();
-  }
+  assert(species_copy.is_canonical());
 
 #ifndef NDEBUG
   assert(find_full_match(new_species) == SPECIES_ID_INVALID && "Species must not exist");
@@ -55,7 +53,7 @@ species_id_t SpeciesContainer::add(const Species& new_species, const bool remova
   if (bng_config.rxn_and_species_report) {
     stringstream ss;
     ss <<
-        res << ": " << species_copy.to_str() <<
+        res << ": " << species_copy.name <<
         ", D=" << std::setprecision(17) << species_copy.D <<
         ", flags: " << dynamic_cast<BaseSpeciesCplxMolFlag*>(&species_copy)->to_str() << "\n";
 

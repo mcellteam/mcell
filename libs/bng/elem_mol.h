@@ -121,6 +121,9 @@ public:
         get_flags() == other.get_flags();
   }
 
+  // appends to string res
+  void to_str(const BNGData& bng_data, std::string& res) const;
+
   std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data, const bool for_diff, const std::string ind = "") const;
 };

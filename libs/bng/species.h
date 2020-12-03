@@ -56,7 +56,7 @@ public:
     }
     set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0); // TODO: can this be removed when we set it in finalize?
     finalize();
-    name = cplx_inst.to_str();
+    canonicalize(); // sets name as well
   }
 
   // we need explicit copy ctor to call CplxInstance's copy ctor
@@ -83,7 +83,8 @@ public:
   // default sorting of components is according to molecule types
   void canonicalize(const bool sort_components_by_name_do_not_finalize = false) {
     Cplx::canonicalize(sort_components_by_name_do_not_finalize); // calls also CplxInstance::finalize
-    name = to_str();
+    name = "";
+    to_str(name);
   }
 
   // sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,

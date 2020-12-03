@@ -504,12 +504,18 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
 
 
 std::string Cplx::to_str(bool in_surf_reaction) const {
-  stringstream ss;
+  std::string res;
+  to_str(res, in_surf_reaction);
+  return res;
+}
+
+
+void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
   for (size_t i = 0; i < elem_mols.size(); i++) {
-    ss << elem_mols[i].to_str(*bng_data);
+    elem_mols[i].to_str(*bng_data, res);
 
     if (i != elem_mols.size() - 1) {
-      ss << ".";
+      res += ".";
     }
   }
 
@@ -520,24 +526,23 @@ std::string Cplx::to_str(bool in_surf_reaction) const {
 
   if (no_specific_compartment) {
     if (orientation == ORIENTATION_UP) {
-      ss << "'";
+      res += "'";
     }
     else if (orientation == ORIENTATION_DOWN) {
-      ss << ",";
+      res += ",";
     }
     else if (in_surf_reaction && orientation == ORIENTATION_NONE) {
-      ss << ";";
+      res += ";";
     }
   }
   else {
     if (is_in_out_compartment_id(compartment_id)) {
-      ss << '@' << compartment_id_to_str(compartment_id);
+      res += "@" + compartment_id_to_str(compartment_id);
     }
     else {
-      ss << '@' << bng_data->get_compartment(compartment_id).name;
+      res += "@" + bng_data->get_compartment(compartment_id).name;
     }
   }
-  return ss.str();
 }
 
 
