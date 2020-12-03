@@ -246,11 +246,11 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 
   uint64_t& current_iteration = stats.get_current_iteration();
 
-  // create events that are used to check whether simulation should end, also serves as a barrier
+  // create events that are used to check whether simulation should end right after the last viz output,
   // also serves as a simulation barrier to not to do diffusion after this point in time
   RunNIterationsEndEvent* run_n_iterations_end_event = new RunNIterationsEndEvent();
   run_n_iterations_end_event->event_time = current_iteration + num_iterations;
-  run_n_iterations_end_event->periodicity_interval = 1; // these markers are inserted into every time step
+  run_n_iterations_end_event->periodicity_interval = 0; // these markers are inserted into every time step
   scheduler.schedule_event(run_n_iterations_end_event);
 
   if (current_iteration == 0) {
@@ -336,16 +336,15 @@ void World::flush_buffers() {
 }
 
 
-void World::end_simulation(const bool run_up_to_last_count_and_viz_count_events, const bool print_final_report) {
+void World::end_simulation(const bool print_final_report) {
   if (simulation_ended) {
     // already called, do nothing
     return;
   }
 
-  if (run_up_to_last_count_and_viz_count_events) {
-    // executes all
-    run_n_iterations(1, determine_output_frequency(total_iterations), true);
-  }
+  // executes all events up to the last viz output,
+  // this is to produce viz output and counts for the last iteration
+  run_n_iterations(1, determine_output_frequency(total_iterations), true);
 
   flush_buffers();
 
@@ -379,10 +378,10 @@ void World::run_simulation(const bool dump_initial_state) {
 
   uint output_frequency = World::determine_output_frequency(total_iterations);
 
-  // simulating 1000 iterations means to simulate iterations 0 .. 1000
-  run_n_iterations(total_iterations + 1, output_frequency, true);
+  run_n_iterations(total_iterations, output_frequency, true);
 
-  end_simulation();
+  // runs one more iteration but only up to the last viz output
+  end_simulation(true);
 }
 
 

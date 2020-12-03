@@ -116,7 +116,7 @@ void Model::run_iterations(const float_t iterations) {
 
 void Model::end_simulation(const bool print_final_report) {
   // the first argument specifies that the last mol/rxn count and viz_output events will be run
-  world->end_simulation(true, print_final_report);
+  world->end_simulation(print_final_report);
 }
 
 

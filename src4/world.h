@@ -70,12 +70,9 @@ public:
   void run_n_iterations(
       const uint64_t num_iterations,
       const uint64_t output_frequency,
-      const bool terminate_last_iteration_after_viz_output = false // needed for exact match with MCell3, must false when used from pymcell
+      const bool terminate_last_iteration_after_viz_output = false // used when ending simulation
   );
-  void end_simulation(
-      const bool run_up_to_last_viz_and_count_events = false,
-      const bool print_final_report = true
-  );
+  void end_simulation(const bool print_final_report = true);
 
   // used by converters
   void create_initial_surface_region_release_event();
