@@ -156,37 +156,44 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // need to call .size() each iteration because the size can increase,
   // again, we are using it as a queue and we do not follow the time when
   // they were created
+#ifndef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
   for (size_t i = 0; i < new_diffuse_actions.size(); i++) {
 
-#ifndef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
     DiffuseAction& action = new_diffuse_actions[i];
-#else
-    // sort by time and id and select the most immediate action,
-    // size of the new_diffuse_actions array gives us the informatio non the total count to run
-    sort(new_diffuse_actions.begin(), new_diffuse_actions.end(), CmpDiffuseAction(p));
-
-    // skip all defunct molecules
-    size_t first_active;
-    for (first_active = 0; first_active < new_diffuse_actions.size(); first_active++) {
-      // stop if we already processed all molecules for this iteration
-      const Molecule& m_checked = p.get_m(new_diffuse_actions[first_active].id);
-      if (!before_this_iterations_end(m_checked.diffusion_time)) {
-        return;
-      }
-
-      // skip defunct molecules
-      if (!p.get_m(new_diffuse_actions[first_active].id).is_defunct()) {
-        break;
-      }
-    }
-    assert(first_active < new_diffuse_actions.size());
-    DiffuseAction& action = new_diffuse_actions[first_active];
-#endif
     diffuse_single_molecule(
         p, action.id,
         action.where_created_this_iteration // making a copy of this pair
     );
   }
+#else
+  for (size_t i = 0; i < new_diffuse_actions.size(); i++) {
+
+    // find the closest event that we did not process yet
+    uint best_index = UINT_INVALID;
+    float_t best_time = TIME_FOREVER;
+    for (size_t k = 0; k < new_diffuse_actions.size(); k++) {
+      molecule_id_t id = new_diffuse_actions[k].id;
+      if (id == MOLECULE_ID_INVALID) {
+        continue;
+      }
+      const Molecule& m = p.get_m(id);
+      if (m.diffusion_time < best_time) {
+        best_index = k;
+        best_time = m.diffusion_time;
+      }
+    }
+    assert(best_index != UINT_INVALID);
+
+    DiffuseAction& action = new_diffuse_actions[best_index];
+    diffuse_single_molecule(
+        p, action.id,
+        action.where_created_this_iteration // making a copy of this pair
+    );
+
+    // invalidate this action
+    new_diffuse_actions[best_index].id = MOLECULE_ID_INVALID;
+  }
+#endif
 
   new_diffuse_actions.clear();
 }
@@ -312,30 +319,54 @@ void DiffuseReactEvent::diffuse_single_molecule(
   // update time for which the molecule should be scheduled next
   Molecule& m_for_sched_update = p.get_m(m_id);
   if (!m_for_sched_update.is_defunct()) {
-    m_for_sched_update.diffusion_time += max_time;
     float_t event_end_time = p.stats.get_current_iteration() + 1;
-    // - for MCell3 compatibility purposes, we must not keep any unimol rxn for the next iteration
-    //   so we use precise comparison here
-    // - on the other hand, we do not want to simulate diffusion for a tiny amount of time,
-    //   so we use tolerance when checking whether we should keep diffusion itself for
-    //   the next time, the error accumulation can be quite big, therefore we are using SQRT_EPS
-    if (
-        ( m_for_sched_update.unimol_rx_time != TIME_INVALID &&
-            m_for_sched_update.unimol_rx_time < event_end_time
-        ) ||
-        before_this_iterations_end(m_for_sched_update.diffusion_time)
-    ) {
-      // reschedule molecule for this iteration because we did not use up all its time
-      DiffuseAction diffuse_action(m_for_sched_update.id);
-      new_diffuse_actions.push_back(diffuse_action);
+
+    const Species& species = world->get_all_species().get(m_for_sched_update.species_id);
+
+    // TODO: for some reason, MCell3 calls diffusion of non-diffusible surface molecules,
+    //       this is not needed since they cannot react but for compatibility we must keep this behavior
+    if (species.can_diffuse() || species.has_flag(SPECIES_FLAG_CAN_SURFSURF)) {
+      m_for_sched_update.diffusion_time += max_time;
+      // - for MCell3 compatibility purposes, we must not keep any unimol rxn for the next iteration
+      //   so we use precise comparison here
+      // - on the other hand, we do not want to simulate diffusion for a tiny amount of time,
+      //   so we use tolerance when checking whether we should keep diffusion itself for
+      //   the next time, the error accumulation can be quite big, therefore we are using SQRT_EPS
+      if (
+          ( m_for_sched_update.unimol_rx_time != TIME_INVALID &&
+              m_for_sched_update.unimol_rx_time < event_end_time
+          ) ||
+          before_this_iterations_end(m_for_sched_update.diffusion_time)
+      ) {
+        // reschedule molecule for this iteration because we did not use up all its time
+        DiffuseAction diffuse_action(m_for_sched_update.id);
+        new_diffuse_actions.push_back(diffuse_action);
+      }
+      else {
+        // round diffusion_time to a whole number if it is close to it,
+        // this did not give any error for the test that were available when this
+        // code was implemented
+        float_t rounded_dt = round_f(m_for_sched_update.diffusion_time);
+        if (cmp_eq(m_for_sched_update.diffusion_time, rounded_dt, SQRT_EPS)) {
+          m_for_sched_update.diffusion_time = rounded_dt;
+        }
+      }
     }
     else {
-      // round diffusion_time to a whole number if it is close to it,
-      // this did not give any error for the test that were available when this
-      // code was implemented
-      float_t rounded_dt = round_f(m_for_sched_update.diffusion_time);
-      if (cmp_eq(m_for_sched_update.diffusion_time, rounded_dt, SQRT_EPS)) {
-        m_for_sched_update.diffusion_time = rounded_dt;
+      // cannot diffuse
+      if (m_for_sched_update.unimol_rx_time != TIME_INVALID) {
+        // schedule for its unimol rxn
+        m_for_sched_update.diffusion_time = m_for_sched_update.unimol_rx_time;
+
+        // reschedule molecule for unimol rxn this iteration
+        if (m_for_sched_update.unimol_rx_time < event_end_time) {
+          DiffuseAction diffuse_action(m_for_sched_update.id);
+          new_diffuse_actions.push_back(diffuse_action);
+        }
+      }
+      else {
+        // no need to schedule at all
+        m_for_sched_update.diffusion_time = TIME_FOREVER;
       }
     }
   }
