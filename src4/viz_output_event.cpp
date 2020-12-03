@@ -301,7 +301,13 @@ void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
   viz_output[KEY_EXPORT_ALL] = should_visualize_all_species();
   viz_output[KEY_START] = f_to_str(event_time);
   viz_output[KEY_ALL_ITERATIONS] = cmp_eq(periodicity_interval, 1.0);
-  viz_output[KEY_STEP] = f_to_str(periodicity_interval);
+  if (periodicity_interval == 0) {
+    warns() << "Viz output periodicity is 0, this is not supported by MDL, exporting it as 1e6.\n";
+    viz_output[KEY_STEP] = f_to_str(1e6);
+  }
+  else {
+    viz_output[KEY_STEP] = f_to_str(periodicity_interval);
+  }
   viz_output[KEY_END] = to_string(world->total_iterations);
 
 }

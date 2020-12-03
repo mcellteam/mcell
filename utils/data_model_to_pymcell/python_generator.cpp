@@ -1132,7 +1132,11 @@ void PythonGenerator::generate_viz_outputs(
     gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
   }
 
-
+  if (viz_output[KEY_STEP].asString() == "0") {
+    cout << "Viz output specification has periodicity (" << NAME_EVERY_N_TIMESTEPS << ") value 0. "
+        << "This is probably caused by conversion from MDL where the number of simulated iterations "
+        << "lower than the actual periodicity. It is not possible to determine the periodicity in this case.\n";
+  }
   gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
 
   // ignoring KEY_END

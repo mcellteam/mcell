@@ -27,6 +27,7 @@ VizOutput:
     default: 1
     doc: |
       Value is truncated (floored) to an integer.
+      Value 0 means that the viz output is ran only once at iteration 0. 
     
 
 CountTerm:

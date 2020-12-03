@@ -23,8 +23,8 @@
 #ifndef API_VIZ_OUTPUT_H
 #define API_VIZ_OUTPUT_H
 
-#include "../generated/gen_viz_output.h"
-#include "../api/common.h"
+#include "generated/gen_viz_output.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
@@ -41,9 +41,9 @@ public:
           NAME_SPECIES_LIST + " must be empty.");
     }
 
-    if (every_n_timesteps <= 0) {
+    if (every_n_timesteps < 0) {
       throw ValueError(
-          S("The value of ") + NAME_EVERY_N_TIMESTEPS + " must be higher than 0.");
+          S("The value of ") + NAME_EVERY_N_TIMESTEPS + " must not be less than 0.");
     }
   }
 };
