@@ -214,8 +214,12 @@ public:
   bool mol_instances_are_fully_maintained;
 
   // caching
-  uint_set<species_id_t> species_applicable_as_reactants;
-  uint_set<species_id_t> species_not_applicable_as_reactants;
+  // TODO: we are keeping here all the species from the past, might use some cleanup with species cleanup as well
+  uint_set<species_id_t> species_applicable_as_any_reactant; // same as species_applicable_as_reactant[0] for unimol rxns
+  uint_set<species_id_t> species_applicable_as_reactant[2]; // [1] is empty for unimol rxns
+
+  uint_set<species_id_t> species_not_applicable_as_any_reactant; // same as species_applicable_as_reactant1 for unimol rxns
+  uint_set<species_id_t> species_not_applicable_as_reactant[2]; // [1] is empty for unimol rxns
 
 private:
   // variable reaction rate constants, sorted by time
@@ -234,7 +238,7 @@ private:
       const std::vector<species_id_t>& reactant_species,
       const float_t pb_factor,
       RxnClassPathwayVector& pathways
-  ) const;
+  );
 
 public:
   // - method used when RxnClass is being created
@@ -247,7 +251,7 @@ public:
       const species_id_t reactant_b_species_id,
       const float_t pb_factor,
       RxnClassPathwayVector& pathways
-  ) const;
+  );
 
 
   void define_rxn_pathway_using_mapping(
@@ -386,15 +390,17 @@ public:
     }
   }
 
-  // returns reactant index, -1 if inst cannot be a reactant
-  int get_reactant_index(const Cplx& cplx, const SpeciesContainer& all_species);
-
   void get_bimol_reactant_indices(
-      const Cplx& reac0,
-      const Cplx& reac1,
-      std::vector<std::pair<uint, uint>>& reac_indices) const;
+      const species_id_t id1, const species_id_t id2,
+      const SpeciesContainer& all_species,
+      std::vector<std::pair<uint, uint>>& reac_indices);
+
+  void get_reactant_indices(
+      const species_id_t species_id, const SpeciesContainer& all_species,
+      std::vector<uint>& indices);
 
   // returns true if species 'id' matches one of the reactants
+  // updates local cache
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
 
   // returns true if both species can be used as separate reactants for a bimol rxn
@@ -481,6 +487,11 @@ public:
   void dump(const bool for_diff = false, const std::string ind = "", std::ostream& out = std::cout) const;
 
 private:
+  // use other methods that provide caching instead
+  void get_reactant_indices_uncached(
+        const Cplx& cplx, const SpeciesContainer& all_species,
+        std::vector<uint>& indices) const;
+
   void create_patterns_graph();
   void create_products_graph();
 

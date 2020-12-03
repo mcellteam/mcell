@@ -84,9 +84,10 @@ void Species::update_rxn_and_custom_flags(
     // second reactant - we must not define new species for reactant here
     // because adding it to the species array might invalidate *this,
     // we must analyze the cplx
-    int my_index = rxn->get_reactant_index(*this, all_species);
-    assert(my_index == 0 || my_index == 1);
-    int second_index = (my_index + 1) % 2;
+    std::vector<uint> indices;
+    rxn->get_reactant_indices(id, all_species, indices);
+    assert(!indices.empty() && (indices[0] == 0 || indices[0] == 1));
+    int second_index = (indices[0] + 1) % 2;
 
     const Cplx& second_reactant = rxn->reactants[second_index];
 

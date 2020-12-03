@@ -420,7 +420,7 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
   sort(rxn_rule_ids.begin(), rxn_rule_ids.end());
   for (rxn_rule_id_t id: rxn_rule_ids) {
 
-    const RxnRule* rxn = all_rxns.get(id);
+    RxnRule* rxn = all_rxns.get(id);
     rxn->define_rxn_pathways_for_specific_reactants(
         all_species,
         bng_config,

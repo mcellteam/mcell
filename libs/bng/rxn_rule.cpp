@@ -93,7 +93,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
     const species_id_t reactant_b_species_id,
     const float_t pb_factor,
     RxnClassPathwayVector& pathways
-) const {
+) {
 
   if (is_simple()) {
     RxnProductsVector product_species;
@@ -1099,7 +1099,7 @@ void RxnRule::create_products_for_complex_rxn(
     const std::vector<species_id_t>& reactant_species,
     const float_t pb_factor,
     RxnClassPathwayVector& pathways
-) const {
+) {
 
   // the result of this function is cached in rxnclass
   assert(reactant_species.size() == reactants.size());
@@ -1130,7 +1130,7 @@ void RxnRule::create_products_for_complex_rxn(
     // figure out which reactant pattern matches which input reactant
     vector<pair<uint, uint>> reac_indices;
     get_bimol_reactant_indices(
-        *input_reactants[0], *input_reactants[1],
+        reactant_species[0], reactant_species[1], all_species,
         reac_indices
     );
     release_assert(reac_indices.size() == 1 || reac_indices.size() == 2);
@@ -1700,40 +1700,62 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
   }
 }
 
-// returns -1 if the species cannot be a reactant
-// returns 0 if this is an unimol rxn or it is the first reactant of a bimol reaction
-// returns 1 if this is the second reactant of a bimol reaction
-// FIXME: may return 0 for both bimol reactants, check all places where this may be important
-//   preferably remove this function
-int RxnRule::get_reactant_index(const Cplx& cplx, const SpeciesContainer& all_species) {
+void RxnRule::get_reactant_indices(
+    const species_id_t species_id, const SpeciesContainer& all_species,
+    std::vector<uint>& indices
+) {
+  // update cache
+  if (!species_can_be_reactant(species_id, all_species)) {
+    return;
+  }
+
+  for (uint i = 0; i < reactants.size(); i++) {
+    if (species_applicable_as_reactant[i].count(species_id)) {
+      indices.push_back(i);
+    }
+  }
+}
+
+// stores indices where reactant can be applied into array indices (0 or 1)
+void RxnRule::get_reactant_indices_uncached(
+    const Cplx& cplx, const SpeciesContainer& all_species,
+    std::vector<uint>& indices) const {
+
   for (size_t i = 0; i < reactants.size(); i++) {
     const Cplx& reactant = reactants[i];
     if (cplx.matches_pattern(reactant, true)) { // reactant is the pattern to be matched
-      return i;
+      indices.push_back(i);
     }
   }
-  return -1;
 }
 
 
 // returns the possible mappings using which patterns can be matched onto a reactant
+// TODO: replace with get_reactant_indices
 void RxnRule::get_bimol_reactant_indices(
-    const Cplx& reac0,
-    const Cplx& reac1,
-    std::vector<std::pair<uint, uint>>& reac_indices) const {
+    const species_id_t id1, const species_id_t id2,
+    const SpeciesContainer& all_species,
+    std::vector<std::pair<uint, uint>>& reac_indices) {
+
   assert(is_bimol());
 
-  bool m00 = reac0.matches_pattern(reactants[0], true);
-  bool m01 = reac0.matches_pattern(reactants[1], true);
-  bool m10 = reac1.matches_pattern(reactants[0], true);
-  bool m11 = reac1.matches_pattern(reactants[1], true);
+  // update cache to be sure
+  species_can_be_reactant(id1, all_species);
+  species_can_be_reactant(id2, all_species);
 
-  if (m00 && m11) {
+  bool id1_matches[2] = {false, false};
+  bool id2_matches[2] = {false, false};
+  for (size_t i = 0; i < reactants.size(); i++) {
+    id1_matches[i] = species_applicable_as_reactant[i].count(id1) != 0;
+    id2_matches[i] = species_applicable_as_reactant[i].count(id2) != 0;
+  }
+
+  if (id1_matches[0] && id2_matches[1]) {
     // order fits
     reac_indices.push_back(make_pair(0u, 1u));
   }
 
-  if (m01 && m10) {
+  if (id1_matches[1] && id2_matches[0]) {
     // order is switched (may be true even if order fits)
     reac_indices.push_back(make_pair(1u, 0u));
   }
@@ -1742,29 +1764,37 @@ void RxnRule::get_bimol_reactant_indices(
 
 bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species) {
 
-  // check caches first
-  if (species_applicable_as_reactants.count(id) != 0) {
+  // check caches first - if we processed this species
+  if (species_applicable_as_any_reactant.count(id) != 0) {
     return true;
   }
-  if (species_not_applicable_as_reactants.count(id) != 0) {
+  if (species_not_applicable_as_any_reactant.count(id) != 0) {
     return false;
   }
 
   // need to check whether the complex instance can be a reactant
   const Cplx& inst = all_species.get_as_cplx(id);
 
-  int index = get_reactant_index(inst, all_species);
-  assert(index >= -1 && index <= 1);
-  bool matches = index != -1;
+  std::vector<uint> indices;
+  get_reactant_indices_uncached(inst, all_species, indices);
 
-  if (matches) {
-    species_applicable_as_reactants.insert_unique(id);
+  if (!indices.empty()) {
+    species_applicable_as_any_reactant.insert_unique(id);
+    for (uint i: indices) {
+      species_applicable_as_reactant[i].insert_unique(id);
+    }
+
+    return true;
   }
   else {
-    species_not_applicable_as_reactants.insert_unique(id);
-  }
+    species_not_applicable_as_any_reactant.insert_unique(id);
+    species_not_applicable_as_reactant[0].insert_unique(id);
+    if (is_bimol()) {
+      species_not_applicable_as_reactant[1].insert_unique(id);
+    }
 
-  return matches;
+    return false;
+  }
 }
 
 
@@ -1774,7 +1804,7 @@ bool RxnRule::species_can_be_bimol_reactants(
 ) {
   assert(is_bimol());
 
-  // check whether either of the species can be reactant
+  // check whether either of the species can be reactant, also initializes cache
   if (!species_can_be_reactant(id1, all_species)) {
     return false;
   }
@@ -1782,16 +1812,12 @@ bool RxnRule::species_can_be_bimol_reactants(
     return false;
   }
 
-  // need to find out whether both can be used at the same time
-  const Cplx& inst1 = all_species.get_as_cplx(id1);
-  const Cplx& inst2 = all_species.get_as_cplx(id2);
-
   // which reactants match id1?
   bool id1_matches[2] = {false, false};
   bool id2_matches[2] = {false, false};
   for (size_t i = 0; i < reactants.size(); i++) {
-    id1_matches[i] = inst1.matches_pattern(reactants[i], true);
-    id2_matches[i] = inst2.matches_pattern(reactants[i], true);
+    id1_matches[i] = species_applicable_as_reactant[i].count(id1) != 0;
+    id2_matches[i] = species_applicable_as_reactant[i].count(id2) != 0;
   }
 
   // there must be direct or crossed covering of the reactants, i.e.
@@ -1835,8 +1861,8 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
 
   const Cplx& cplx = all_species.get_as_cplx(id);
   return
-      cplx.matches_pattern(reactants[0], true) &&
-      cplx.matches_pattern(reactants[1], true);
+      species_applicable_as_reactant[0].count(id) != 0 &&
+      species_applicable_as_reactant[1].count(id) != 0;
 }
 
 
