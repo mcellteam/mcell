@@ -33,30 +33,36 @@ public:
       max_time_step(1.0) {
   }
 
+  ~SpeciesContainer() {
+  	for (Species* s: species) {
+      delete s;
+    }
+  }
 
   const BNGData& get_bng_data() const {
     return bng_data;
   }
 
+private:
+  void canonicalize_species_if_needed(Species* new_species) {
+    assert(new_species->is_finalized());
+    if (!new_species->is_canonical()) {
+      new_species->canonicalize();
+    }
+    assert(new_species->name != "");
+  }
 
+public:
+  // makes a copy of the passed species object
   species_id_t find_or_add(Species& new_species, const bool removable = false) {
-    assert(new_species.is_finalized());
-
-    species_id_t res = SPECIES_ID_INVALID;
-
-#ifdef DEBUG_CPLX_MATCHING
-    std::cout << "Looking for new species:\n";
-    new_species.dump(bng_data);
-#endif
+    canonicalize_species_if_needed(&new_species);
 
     // check that this species does not exist already
-    assert(new_species.is_canonical());
-    assert(new_species.name != "");
     auto it = canonical_species_map.find(new_species.name);
-
     if (it == canonical_species_map.end()) {
-      // add if not found
-      res = add(new_species, removable);
+      // make a copy and add if not found
+      Species* new_species_copy = new Species(new_species);
+      species_id_t res = add(new_species_copy, removable);
       return res;
     }
     else {
@@ -65,7 +71,28 @@ public:
     }
   }
 
-  species_id_t add(const Species& new_species, const bool removable = false);
+  // SpeciesContainer takes ownership of the Species object
+  // copying of species can be expensive so some variants rather use pointers
+  species_id_t find_or_add_delete_if_exist(Species*& new_species, const bool removable = false) {
+    canonicalize_species_if_needed(new_species);
+
+    // check that this species does not exist already
+    auto it = canonical_species_map.find(new_species->name);
+    if (it == canonical_species_map.end()) {
+      // make a copy and add if not found
+      species_id_t res = add(new_species, removable);
+      return res;
+    }
+    else {
+      // we already have this species, get rid of them
+      delete new_species;
+      new_species = nullptr;
+      // and return id if found
+      return it->second;
+    }
+  }
+
+  species_id_t add(Species* new_species, const bool removable = false);
 
   void remove(const species_id_t id);
 
@@ -74,9 +101,9 @@ public:
   species_id_t find(const Species& species_to_find) {
     // simple equality comparison for now, some hashing will be needed
     // TODO: use canonical_species_map
-    for (const Species& s: species) {
-      if (species_to_find.matches_fully_ignore_name_id_and_flags(s)) {
-        return s.id;
+    for (const Species* s: species) {
+      if (species_to_find.matches_fully_ignore_name_id_and_flags(*s)) {
+        return s->id;
       }
     }
     return SPECIES_ID_INVALID;
@@ -84,9 +111,9 @@ public:
 
   species_id_t find_full_match(const Cplx& cplx) const {
     // simple equality comparison for now, some hashing will be needed
-    for (const Species& s: species) {
-      if (s.cplx_matches_fully_ignore_orientation_and_flags(cplx)) {
-        return s.id;
+    for (const Species* s: species) {
+      if (s->cplx_matches_fully_ignore_orientation_and_flags(cplx)) {
+        return s->id;
       }
     }
     return SPECIES_ID_INVALID;
@@ -94,9 +121,9 @@ public:
 
   species_id_t find_by_name(const std::string& name) const {
     // TODO: use canonical_species_map
-    for (const Species& s: species) {
-      if (s.name == name) {
-        return s.id;
+    for (const Species* s: species) {
+      if (s->name == name) {
+        return s->id;
       }
     }
     return SPECIES_ID_INVALID;
@@ -108,7 +135,7 @@ public:
     species_index_t index = species_id_to_index_mapping[id];
     assert(index != SPECIES_INDEX_INVALID);
     assert(index < species.size());
-    Species& res = species[index];
+    Species& res = *species[index];
     assert(!res.is_defunct());
     return res;
   }
@@ -119,7 +146,7 @@ public:
     species_index_t index = species_id_to_index_mapping[id];
     assert(index != SPECIES_INDEX_INVALID);
     assert(index < species.size());
-    const Species& res = species[index];
+    const Species& res = *species[index];
     assert(!res.is_defunct());
     return res;
   }
@@ -149,6 +176,11 @@ public:
 
   SpeciesVector& get_species_vector() {
     return species;
+  }
+
+  // to be used only in specific cases
+  const std::vector<species_index_t>& get_species_id_to_index_mapping_vector() const {
+    return species_id_to_index_mapping;
   }
 
   void set_all_molecules_species_id(species_id_t id) {
@@ -186,8 +218,9 @@ public:
   // that the flags update method may query to set other flags unrelated to
   // the BNG engine itself
   void recompute_species_flags(RxnContainer& all_rxns, BaseCustomFlagsAnalyzer* flags_analyzer = nullptr) {
-    for (Species& sp: species) {
-      sp.update_rxn_and_custom_flags(*this, all_rxns, flags_analyzer);
+    for (Species* sp: species) {
+      release_assert(sp != nullptr);
+      sp->update_rxn_and_custom_flags(*this, all_rxns, flags_analyzer);
     }
   }
 

@@ -18,13 +18,12 @@ string BNGEngine::get_stats_report() const {
   stringstream res;
 
   uint num_active_species = 0;
-  for (const Species& s: all_species.get_species_vector()) {
-    if (s.was_instantiated()) {
+  for (const Species* s: all_species.get_species_vector()) {
+    release_assert(s != nullptr);
+    if (s->was_instantiated()) {
       num_active_species++;
     }
   }
-
-
 
   res << "[" <<
       "active species " << num_active_species <<

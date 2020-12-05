@@ -9,16 +9,14 @@ using namespace std;
 
 namespace BNG {
 
-species_id_t SpeciesContainer::add(const Species& new_species, const bool removable) {
-
-  Species species_copy = new_species;
-  assert(species_copy.is_canonical());
+species_id_t SpeciesContainer::add(Species* new_species, const bool removable) {
+  release_assert(new_species != nullptr);
 
 #ifndef NDEBUG
-  assert(find_full_match(new_species) == SPECIES_ID_INVALID && "Species must not exist");
+  assert(find_full_match(*new_species) == SPECIES_ID_INVALID && "Species must not exist");
   // we also don't want species with the same name
-  for (const Species& s: species) {
-    assert(s.name != new_species.name && "Adding species with identical name");
+  for (const Species* s: species) {
+    assert(s->name != new_species->name && "Adding species with identical name");
   }
 #endif
 
@@ -29,42 +27,44 @@ species_id_t SpeciesContainer::add(const Species& new_species, const bool remova
   species_id_to_index_mapping.push_back(species.size());
   assert(species_id_to_index_mapping.size() == next_species_id);
 
-  species.push_back(species_copy);
-  // TODO: clean this up, the usage of species.back() or species_copy is weird
-  species.back().id = res;
+  new_species->id = res;
 
   // and also store canonical name for fast search
-  assert(species_copy.is_canonical());
-  canonical_species_map[species_copy.name] = res;
+  assert(new_species->is_canonical());
+  canonical_species_map[new_species->name] = res;
 
   if (removable) {
-    species.back().set_is_removable();
+    species.back()->set_is_removable();
   }
 
   // update maximal time step if needed
-  if (max_time_step < species_copy.time_step) {
-    max_time_step = species_copy.time_step;
+  if (max_time_step < new_species->time_step) {
+    max_time_step = new_species->time_step;
   }
 
   if (bng_config.bng_verbosity_level >= 2) {
-    std::cout << "BNG: Defined new species " << species_copy.name << " with id " << res << "\n";
+    std::cout << "BNG: Defined new species " << new_species->name << " with id " << res << "\n";
   }
 
   if (bng_config.rxn_and_species_report) {
     stringstream ss;
     ss <<
-        res << ": " << species_copy.name <<
-        ", D=" << std::setprecision(17) << species_copy.D <<
-        ", flags: " << dynamic_cast<BaseSpeciesCplxMolFlag*>(&species_copy)->to_str() << "\n";
+        res << ": " << new_species->name <<
+        ", D=" << std::setprecision(17) << new_species->D <<
+        ", flags: " << dynamic_cast<BaseSpeciesCplxMolFlag*>(new_species)->to_str() << "\n";
 
     append_to_report(bng_config.get_species_report_file_name(), ss.str());
   }
+
+  // finally store our species
+  species.push_back(new_species);
 
   return res;
 }
 
 
 void SpeciesContainer::remove(const species_id_t id) {
+
   Species& s = get(id);
   assert(s.is_removable());
 
@@ -86,25 +86,29 @@ void SpeciesContainer::defragment() {
   typedef SpeciesVector::iterator sit_t;
   sit_t it_end = species.end();
 
+  // collect all defunct species for later
+
   // find first defunct molecule
-  sit_t it_first_defunct =  find_if(species.begin(), it_end, [](const Species & s) -> bool { return s.is_defunct(); });
+  sit_t it_first_defunct =  find_if(species.begin(), it_end, [](const Species* s) -> bool { return s->is_defunct(); });
   sit_t it_copy_destination = it_first_defunct;
 
 
   while (it_first_defunct != it_end) {
 
     // then find the next one that is not defunct (might be it_end)
-    sit_t it_next_funct = find_if(it_first_defunct, it_end, [](const Species & m) -> bool { return !m.is_defunct(); });
+    sit_t it_next_funct = find_if(it_first_defunct, it_end, [](const Species* s) -> bool { return !s->is_defunct(); });
 
     // then again, find following defunct molecule
-    sit_t it_second_defunct = find_if(it_next_funct, it_end, [](const Species & m) -> bool { return m.is_defunct(); });
+    sit_t it_second_defunct = find_if(it_next_funct, it_end, [](const Species* s) -> bool { return s->is_defunct(); });
 
-    // items between it_first_defunct and it_next_funct will be removed
-    // we will set their ids in volume_molecules_id_to_index_mapping as invalid
+    // items between it_first_defunct and it_next_funct will be deleted
+    // we will set their ids in species_id_to_index_mapping as invalid
     for (sit_t it_update_mapping = it_first_defunct; it_update_mapping != it_next_funct; it_update_mapping++) {
-      const Species& vm = *it_update_mapping;
-      assert(vm.is_defunct());
-      species_id_to_index_mapping[vm.id] = SPECIES_ID_INVALID;
+      const Species* s = *it_update_mapping;
+      assert(s->is_defunct());
+      species_id_to_index_mapping[s->id] = SPECIES_ID_INVALID;
+      delete s;
+      *it_update_mapping = nullptr;      
     }
 
     // move data: from, to, into position
@@ -120,18 +124,19 @@ void SpeciesContainer::defragment() {
 
   // remove everything after it_copy_destination
   if (removed != 0) {
-    species.resize(species.size() - removed, Species(bng_data));
+    species.resize(species.size() - removed);
   }
 
   // update mapping
   size_t new_count = species.size();
   for (size_t i = 0; i < new_count; i++) {
-    const Species& s = species[i];
-    if (s.is_defunct()) {
+    const Species* s = species[i];
+    release_assert(s != nullptr);
+    if (s->is_defunct()) {
       break;
     }
-    // correct index because the molecule could have been moved
-    species_id_to_index_mapping[s.id] = i;
+    // correct index because the species could have been moved
+    species_id_to_index_mapping[s->id] = i;
   }
 }
 

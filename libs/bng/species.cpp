@@ -327,6 +327,7 @@ void Species::dump(const BNGData& bng_data, const string ind) const {
 }
 
 
+// TODO: do not use a template here
 template <typename T>
 vector<size_t> sort_indexes(const T &v) {
 
@@ -339,7 +340,7 @@ vector<size_t> sort_indexes(const T &v) {
   // to avoid unnecessary index re-orderings
   // when v contains elements of equal values
   stable_sort(idx.begin(), idx.end(),
-       [&v](size_t i1, size_t i2) {return v[i1].name < v[i2].name;});
+       [&v](size_t i1, size_t i2) {return v[i1]->name < v[i2]->name;});
 
   return idx;
 }
@@ -353,13 +354,13 @@ void Species::dump_array(const BNGData& bng_data, const SpeciesVector& vec, cons
     vector<size_t> sorted_indices = sort_indexes(vec);
     for (auto i: sorted_indices) {
       cout << i << ":\n";
-      vec[i].dump(bng_data, "  ");
+      vec[i]->dump(bng_data, "  ");
     }
   }
   else {
     for (size_t i = 0; i < vec.size(); i++) {
       cout << i << ":\n";
-      vec[i].dump(bng_data, "  ");
+      vec[i]->dump(bng_data, "  ");
     }
   }
 }

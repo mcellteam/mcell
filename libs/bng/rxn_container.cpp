@@ -119,8 +119,8 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
   }
 
   // and also update all existing species
-  for (Species& s: all_species.get_species_vector()) {
-    s.update_flag_and_compartments_used_in_rxns();
+  for (Species* s: all_species.get_species_vector()) {
+    s->update_flag_and_compartments_used_in_rxns();
   }
 }
 
@@ -274,12 +274,13 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
       species_index_t num_species = all_species.get_species_vector().size();
       for (species_index_t i = 0; i < num_species; i++) {
         // reading directly from the species array, not using id
-        const Species& species = all_species.get_species_vector()[i];
-        species_id_t species_id2 = species.id;
+        const Species* species = all_species.get_species_vector()[i];
+        assert(species != nullptr);
+        species_id_t species_id2 = species->id;
 
         // TODO: simplify condition - is_species_superclass check does not have to be there
         if (!for_all_known_species &&
-            !species.was_instantiated()  &&
+            !species->was_instantiated()  &&
             !(reac1.species_id == species_id2) && // we would miss A+A type reactions
             !all_species.is_species_superclass(species_id2)) {
           // we do not care about molecules that do not exist yet, however we must process superclasses

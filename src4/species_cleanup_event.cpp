@@ -41,35 +41,41 @@ void SpeciesCleanupEvent::dump(const string ind) const {
 
 
 void SpeciesCleanupEvent::step() {
+
   // remove all rxn classes and all caches
   world->get_all_rxns().reset_caches();
 
-  // for all species
-  for (BNG::Species& sp: world->get_all_species().get_species_vector()) {
+  for (BNG::Species* sp: world->get_all_species().get_species_vector()) {
+    release_assert(sp != nullptr);
+
     // num_instantiations tells us that there are no molecules of these species
     // is_removable - species were created on the fly
-    if (sp.get_num_instantiations() == 0 && sp.is_removable()) {
+    if (sp->get_num_instantiations() == 0 && sp->is_removable()) {
 
       // tell partitions that this species is not known anymore
-      if (sp.is_vol()) {
+      if (sp->is_vol()) {
         for (Partition& p: world->get_partitions()) {
-          p.remove_from_known_vol_species(sp.id);
+          p.remove_from_known_vol_species(sp->id);
         }
       }
 
       if (world->config.rxn_and_species_report) {
         stringstream ss;
-        ss << sp.id << ": " << sp.to_str() << " - removed\n";
+        ss << sp->id << ": " << sp->to_str() << " - removed\n";
         BNG::append_to_report(world->config.get_species_report_file_name(), ss.str());
       }
 
-      // disable this species
-      world->get_all_species().remove(sp.id);
+      // delete this species
+      world->get_all_species().remove(sp->id);
     }
   }
 
-  // physically remove species
+  // cleanup the species array, we must remove nullptrs from the species array
   world->get_all_species().defragment();
+
+  for (BNG::Species* sp: world->get_all_species().get_species_vector()) {
+    release_assert(sp != nullptr);
+  }
 }
 
 

@@ -18,7 +18,7 @@ class Species;
 class SpeciesContainer;
 class RxnContainer;
 
-typedef std::vector<Species> SpeciesVector;
+typedef std::vector<Species*> SpeciesVector;
 
 class Species: public Cplx, public ElemMolTypeSpeciesCommonData {
 public:
