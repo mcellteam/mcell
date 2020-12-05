@@ -141,16 +141,22 @@ void Cplx::create_graph() {
 
   map<bond_value_t, small_vector<Graph::vertex_descriptor>> bonds_to_vertices_map;
 
+  // reserve some space for vertices, edges are stored using list
+  graph.m_vertices.reserve(elem_mols.size() * 8);
+
   // add all molecules with their components and remember how they should be bound
   for (ElemMol& mi: elem_mols) {
     Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(&mi)), graph);
 
     for (Component& ci: mi.components) {
       // for patterns, only components that were explicitly listed are in component instances
-
       Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(&ci)), graph);
 
       // connect the component to its molecule
+      // TODO OPTIMIZATION:
+      //  - boost::add_edge is pretty slow (25% of time for the SynGAP model)
+      //  - it almost seems that we would need a different graph representation to optimize it,
+      //    the internal adjacency_list's EdgeList must be a list and it cannot be pre-allocated
       boost::add_edge(mol_desc, comp_desc, graph);
 
       // and remember its bond

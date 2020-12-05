@@ -142,8 +142,9 @@ std::ostream & operator<<(std::ostream &out, const Node& n);
 // molecule instance/pattern is a node in the complex graph, edge is a bond
 typedef boost::property<boost::vertex_name_t, Node, boost::property< boost::vertex_index_t, int > > MtVertexProperty;
 
-// NOTE: we can experiment which underlying types are more efficient (vecS/listS/setS...)
-// we are not using any edge property
+// one can choose different underlying types (vecS/listS/setS...) but
+// vecS seems to be the most efficient
+// last 7th unlisted argument EdgeList must be listS (default) otherwise it is not possible to remove edges
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, MtVertexProperty> Graph;
 
 typedef boost::property_map<Graph, boost::vertex_name_t >::type VertexNameMap;
