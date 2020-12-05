@@ -60,51 +60,53 @@ bool Cplx::is_connected() const {
 }
 
 
-void Cplx::finalize() {
+void Cplx::finalize(const bool init_flags_and_compartments) {
   if (elem_mols.empty()) {
     return; // empty complex, ignoring finalization
   }
 
-  // volume or surface type
-  bool surf_type = false;
-  bool reactive_surf_type = false;
-  for (ElemMol& mp: elem_mols) {
-    // need to finalize flags - copy them from molecule type
-    mp.finalize_flags_and_sort_components(*bng_data);
-    // if at least one is a surface molecule then the whole cplx is surface molecule
-    if (mp.is_surf()) {
-      surf_type = true;
-    }
+  if (init_flags_and_compartments) {
+    // volume or surface type
+    bool surf_type = false;
+    bool reactive_surf_type = false;
+    for (ElemMol& mp: elem_mols) {
+      // need to finalize flags - copy them from molecule type
+      mp.finalize_flags_and_sort_components(*bng_data);
+      // if at least one is a surface molecule then the whole cplx is surface molecule
+      if (mp.is_surf()) {
+        surf_type = true;
+      }
 
-    // if at least one is a reactive surface then the whole cplx is reactive surface
-    if (mp.is_reactive_surface()) {
-      reactive_surf_type = true;
-    }
-  }
-  if (surf_type) {
-    release_assert(!reactive_surf_type && "Species cannot be both reactive surface and surface molecule.");
-    set_flag(SPECIES_CPLX_MOL_FLAG_SURF);
-  }
-  else if (reactive_surf_type) {
-    set_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
-  }
-
-  // set flag SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS
-  bool is_simple = true;
-  if (elem_mols.size() > 1) {
-    is_simple = false;
-  }
-  if (is_simple) {
-    for (ElemMol& mi: elem_mols) {
-      if (!mi.components.empty()) {
-        is_simple = false;
-        break;
+      // if at least one is a reactive surface then the whole cplx is reactive surface
+      if (mp.is_reactive_surface()) {
+        reactive_surf_type = true;
       }
     }
-  }
-  set_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
+    if (surf_type) {
+      release_assert(!reactive_surf_type && "Species cannot be both reactive surface and surface molecule.");
+      set_flag(SPECIES_CPLX_MOL_FLAG_SURF);
+    }
+    else if (reactive_surf_type) {
+      set_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
+    }
 
-  update_flag_and_compartments_used_in_rxns();
+    // set flag SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS
+    bool is_simple = true;
+    if (elem_mols.size() > 1) {
+      is_simple = false;
+    }
+    if (is_simple) {
+      for (ElemMol& mi: elem_mols) {
+        if (!mi.components.empty()) {
+          is_simple = false;
+          break;
+        }
+      }
+    }
+    set_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
+
+    update_flag_and_compartments_used_in_rxns();
+  }
 
   // we need graphs even for simple complexes because they can be used in reaction patterns
   graph.clear();
@@ -137,7 +139,7 @@ void Cplx::create_graph() {
 
   // convert molecule instances and their bonds into the boost graph representation
 
-  map<bond_value_t, vector<Graph::vertex_descriptor>> bonds_to_vertices_map;
+  map<bond_value_t, small_vector<Graph::vertex_descriptor>> bonds_to_vertices_map;
 
   // add all molecules with their components and remember how they should be bound
   for (ElemMol& mi: elem_mols) {

@@ -62,12 +62,15 @@ public:
     orientation = other.orientation;
     compartment_id = other.compartment_id;
     bng_data = other.bng_data;
+    reactant_compartments = other.reactant_compartments;
 
     set_flags(other.get_flags());
 
     // copy ctor is needed because we must recreate graph that has pointers to
     // molecule and complex instances, finalize also sets some flags
-    finalize();
+    if (other.is_finalized()) {
+      finalize(false);
+    }
 
     return *this;
   }
@@ -75,7 +78,7 @@ public:
 
   // must be called after initialization, sets up flags
   // also creates graphs for non-simple complexes
-  void finalize();
+  void finalize(const bool init_flags_and_compartments = true);
 
   // called automatically from finalize but needed elsewhere as well
   void update_flag_and_compartments_used_in_rxns();
