@@ -49,7 +49,15 @@ namespace MCell {
 void dump_cumm_area_and_pwall_index_pairs(
     const std::vector<CummAreaPWallIndexPair>& cumm_area_and_pwall_index_pairs, const std::string ind) {
   cout << ind << "cumm_area_and_pwall_index_pairs:\n";
-  for (size_t i = 0; i < cumm_area_and_pwall_index_pairs.size(); i++) {
+  size_t max = cumm_area_and_pwall_index_pairs.size();
+#ifdef NDEBUG
+  if (max > 4) {
+    cout << ind << "Printing only the first 4 of " << max << "\n";
+    max = 4;
+  }
+#endif
+
+  for (size_t i = 0; i < max; i++) {
     cout << ind << i << ": ";
     const CummAreaPWallIndexPair& area_wall = cumm_area_and_pwall_index_pairs[i];
     cout <<

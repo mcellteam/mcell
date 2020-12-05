@@ -72,6 +72,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
 																				{ "mcell4", 0, 0, 'n'},
 																				{ "dump_mcell3", 0, 0, 't'},
 																				{ "dump_mcell4", 0, 0, 'o'},
+																				{ "dump_mcell4_with_geometry", 0, 0, 'g'},
                                         { "mdl2datamodel4", 0, 0, 'u'},
                                         { "mdl2datamodel4viz", 0, 0, 'a'},
                                         { NULL, 0, 0, 0 } };
@@ -104,7 +105,8 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-rules rules_file_name] run in MCell-R mode\n"
 			"     [-mcell4]                run new experimental MCell 4 version\n"
       "     [-dump_mcell3]           dump initial MCell 3 state for MCell 4 development\n"
-			"     [-dump_mcell4]           dump initial MCell 4 state\n"
+			"     [-dump_mcell4]           dump initial MCell 4 state without geometry\n"
+      "     [-dump_mcell4_with_geometry] dump initial MCell 4 state with geometry\n"
       "     [-mdl2datamodel4]        convert MDL to datamodel using mcell 4 state, the resulting file will be called 'data_model.json'\n"
       "     [-mdl2datamodel4viz]     convert MDL to datamodel using mcell 4 state, only for visualization purposes the resulting file will be called 'data_model_viz.json'\n"
       "\n");
@@ -358,6 +360,10 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'o':
       vol->dump_mcell4 = 1;
+      break;
+
+    case 'g':
+      vol->dump_mcell4_with_geometry = 1;
       break;
 
     case 'u':

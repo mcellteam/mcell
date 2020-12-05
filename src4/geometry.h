@@ -176,6 +176,8 @@ public:
       Json::Value& initial_region_molecules
   ) const;
 
+  void dump(const std::string ind) const;
+
   species_id_t species_id;
   orientation_t orientation;
   bool const_num_not_density;
@@ -310,7 +312,7 @@ public:
     return !initial_region_molecules.empty();
   }
 
-  void dump(const std::string ind) const;
+  void dump(const std::string ind, const bool with_geometry = false) const;
   static void dump_array(const std::vector<Region>& vec);
   void to_data_model(const Partition& p, Json::Value& modify_surface_region) const;
 

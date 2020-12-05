@@ -947,7 +947,7 @@ public:
   }
 
   void remove_from_known_vol_species(const species_id_t species_id);
-  void dump();
+  void dump(const bool with_geometry = false);
   void to_data_model(Json::Value& mcell) const;
 
   // ------------ Pymcell4 API ------------

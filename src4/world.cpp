@@ -366,14 +366,14 @@ void World::end_simulation(const bool print_final_report) {
 }
 
 
-void World::run_simulation(const bool dump_initial_state) {
+void World::run_simulation(const bool dump_initial_state, const bool dump_with_geometry) {
 
   // do initialization, also insert
   // defragmentation and end simulation event
   init_simulation();
 
   if (dump_initial_state) {
-    dump();
+    dump(dump_with_geometry);
   }
 
   uint output_frequency = World::determine_output_frequency(total_iterations);
@@ -385,7 +385,7 @@ void World::run_simulation(const bool dump_initial_state) {
 }
 
 
-void World::dump() {
+void World::dump(const bool with_geometry) {
   config.dump();
   stats.dump();
 
@@ -396,7 +396,7 @@ void World::dump() {
 
   // partitions
   for (Partition& p: partitions) {
-    p.dump();
+    p.dump(with_geometry);
   }
 
   scheduler.dump();

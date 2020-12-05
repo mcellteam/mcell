@@ -548,6 +548,17 @@ void InitialRegionMolecules::to_data_model(
 }
 
 
+void InitialRegionMolecules::dump(const std::string ind) const {
+  cout << ind <<
+      "species_id: " << species_id <<
+      ", orientation: " << orientation <<
+      ", const_num_not_density: " << const_num_not_density <<
+      ", release_num: " << release_num <<
+      ", release_density: " << release_density <<
+      "\n";
+}
+
+
 void Region::init_from_whole_geom_object(const GeometryObject& obj) {
   name = obj.name + REGION_ALL_SUFFIX_W_COMMA;
   geometry_object_id = obj.id;
@@ -838,18 +849,25 @@ bool Region::is_point_inside(Partition& p, const Vec3& pos) {
 }
 
 
-void Region::dump(const std::string ind) const {
+void Region::dump(const std::string ind, const bool with_geometry) const {
   cout << ind << "Region : " <<
       "name:" << name <<
       ", species_id: " << ((species_id == SPECIES_ID_INVALID) ? string("invalid") : to_string(species_id)) <<
       "\n";
 
-  for (auto& wall_it: walls_and_edges) {
-    cout << ind << "  " << "wall " << wall_it.first << ", region edges: {";
-    for (auto& edge: wall_it.second) {
-      cout << edge << ", ";
+  cout << ind << "  "  << "initial_region_molecules :\n";
+  for (const auto& initial_mols: initial_region_molecules) {
+    initial_mols.dump(ind + "    ");
+  }
+
+  if (with_geometry) {
+    for (auto& wall_it: walls_and_edges) {
+      cout << ind << "  " << "wall " << wall_it.first << ", region edges: {";
+      for (auto& edge: wall_it.second) {
+        cout << edge << ", ";
+      }
+      cout << "}\n";
     }
-    cout << "}\n";
   }
 }
 

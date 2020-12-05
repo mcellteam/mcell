@@ -2033,7 +2033,14 @@ void RxnRule::dump(
     cout << ind << "variable_rates.size: " << base_variable_rates.size() << "\n";
 
     if (!base_variable_rates.empty()) {
-      for (size_t i = 0; i < base_variable_rates.size(); i++) {
+      size_t max = base_variable_rates.size();
+      #ifdef NDEBUG
+        if (max > 10) {
+          cout << ind << "Printing only the first 10 out of " << max << "\n";
+          max = 10;
+        }
+      #endif
+      for (size_t i = 0; i < max; i++) {
         cout << ind + "  " << "t: " << base_variable_rates[i].time << ", r: " << base_variable_rates[i].rate_constant << "\n";
       }
     }

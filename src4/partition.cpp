@@ -343,21 +343,27 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
 }
 
 
-void Partition::dump() {
-  GeometryObject::dump_array(*this, geometry_objects);
+void Partition::dump(const bool with_geometry) {
+  if (with_geometry) {
+    GeometryObject::dump_array(*this, geometry_objects);
+  }
 
   Region::dump_array(regions);
 
-  for (size_t i = 0; i < walls_per_subpart.size(); i++) {
-    if (!walls_per_subpart[i].empty()) {
-      Vec3 llf, urb;
-      get_subpart_llf_point(i, llf);
-      urb = llf + Vec3(config.subpartition_edge_length);
+#ifndef NDEBUG
+  if (with_geometry) {
+    for (size_t i = 0; i < walls_per_subpart.size(); i++) {
+      if (!walls_per_subpart[i].empty()) {
+        Vec3 llf, urb;
+        get_subpart_llf_point(i, llf);
+        urb = llf + Vec3(config.subpartition_edge_length);
 
-      cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n";
-      //walls_per_subpart[i].dump("Indices contained in a subpartition");
+        cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n";
+        //walls_per_subpart[i].dump("Indices contained in a subpartition");
+      }
     }
   }
+#endif
 }
 
 

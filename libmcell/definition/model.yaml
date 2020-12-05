@@ -49,6 +49,7 @@ Model:
       type: Observables*
       
   - name: dump_internal_state
+    todo: all 'with' geometry option 
     doc: Prints out the simulation engine's internal state, mainly for debugging.      
       
   - name: export_data_model

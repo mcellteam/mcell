@@ -66,7 +66,7 @@ public:
   World(API::Callbacks& callbacks_);
   ~World();
   void init_simulation();
-  void run_simulation(const bool dump_initial_state = false);
+  void run_simulation(const bool dump_initial_state = false, const bool dump_with_geometry = false);
   void run_n_iterations(
       const uint64_t num_iterations,
       const uint64_t output_frequency,
@@ -154,7 +154,7 @@ public:
     return res;
   }
 
-  void dump();
+  void dump(const bool with_geometry = false);
 
   // returns empty string if everything went well, nonempty string with error message
   std::string export_to_bngl(const std::string& file_name) const;

@@ -111,7 +111,8 @@ int main(int argc, char **argv) {
       return 0;
 		}
 
-    mcell4_run_simulation(state->dump_mcell4);
+    mcell4_run_simulation(
+        state->dump_mcell4 || state->dump_mcell4_with_geometry, state->dump_mcell4_with_geometry);
 
     mcell4_delete_world();
   }

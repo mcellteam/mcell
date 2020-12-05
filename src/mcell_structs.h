@@ -1419,6 +1419,7 @@ struct volume {
   int use_mcell4;
   int dump_mcell3;
   int dump_mcell4;
+  int dump_mcell4_with_geometry;
   int mdl2datamodel4;
   int mdl2datamodel4_only_viz;
 

@@ -33,8 +33,8 @@ bool mcell4_convert_mcell3_volume(volume* s) {
 }
 
 
-bool mcell4_run_simulation(const bool dump_initial_state) {
-  g_converter.world->run_simulation(dump_initial_state);
+bool mcell4_run_simulation(const bool dump_initial_state, const bool dump_with_geometry) {
+  g_converter.world->run_simulation(dump_initial_state, dump_with_geometry);
   return true;
 }
 
