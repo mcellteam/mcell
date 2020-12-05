@@ -262,6 +262,24 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
   }
   Json::Value& release_pattern_list = define_release_patterns[KEY_RELEASE_PATTERN_LIST];
 
+  string name;
+  if (release_pattern_name != "") {
+    // should be usually set when rel pat is needed
+    name = release_pattern_name;
+  }
+  else {
+    name = RELEASE_PATTERN_PREFIX + release_site_name;
+  }
+
+  // the current pattern may be already present, skip it in this case,
+  // release patterns must have unique names, checked while MDL is parsed
+  // TODO: is this true also for MCell4?
+  for (Json::ArrayIndex i = 0; i < release_pattern_list.size(); i++) {
+    if (release_pattern_list[i][KEY_NAME].asString() == release_pattern_name) {
+      return name;
+    }
+  }
+
   Json::Value release_pattern_item;
 
   DMUtil::add_version(release_pattern_item, VER_DM_2018_01_11_1330);
@@ -272,14 +290,7 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
   release_pattern_item[KEY_TRAIN_DURATION] = f_to_str(train_duration * world->config.time_unit);
   release_pattern_item[KEY_RELEASE_INTERVAL] = f_to_str(release_interval * world->config.time_unit);
 
-  string name;
-  if (release_pattern_name != "") {
-    // should be usually set when rel pat is needed
-    name = release_pattern_name;
-  }
-  else {
-    name = RELEASE_PATTERN_PREFIX + release_site_name;
-  }
+
   release_pattern_item[KEY_NAME] = name;
   release_pattern_item[KEY_DESCRIPTION] = "";
 
