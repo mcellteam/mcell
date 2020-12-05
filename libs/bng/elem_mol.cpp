@@ -94,32 +94,37 @@ private:
   const BNGData& bng_data;
 };
 
-// ------------- ComponentInstance -------------
-std::string Component::to_str(const BNGData& bng_data) const {
-  stringstream ss;
+// ------------- Component -------------
 
+std::string Component::to_str(const BNGData& bng_data) const {
+  std::string res;
+  to_str(bng_data, res);
+  return res;
+}
+
+
+void Component::to_str(const BNGData& bng_data, std::string& res) const {
   const ComponentType& ct = bng_data.get_component_type(component_type_id);
-  ss << ct.name;
+  res += ct.name;
 
   assert(state_id != STATE_ID_INVALID);
   if (state_id != STATE_ID_DONT_CARE) {
-    ss << "~" << bng_data.get_state_name(state_id);
+    res += "~" + bng_data.get_state_name(state_id);
   }
 
   assert(state_id != BOND_VALUE_INVALID);
   if (bond_value == BOND_VALUE_BOUND) {
-    ss << "!" + BOND_STR_BOUND;
+    res += "!" + BOND_STR_BOUND;
   }
   else if (bond_value == BOND_VALUE_ANY) {
-    ss << "!" + BOND_STR_ANY;
+    res += "!" + BOND_STR_ANY;
   }
   else if (bond_value == BOND_VALUE_UNBOUND) {
     // nothing to print
   }
   else {
-    ss << "!"  << bond_value;
+    res += "!"  + to_string(bond_value);
   }
-  return ss.str();
 }
 
 void Component::dump(const BNGData& bng_data, const string& ind) const {
@@ -258,7 +263,7 @@ void ElemMol::to_str(const BNGData& bng_data, std::string& res) const {
       res += ",";
     }
 
-    res += components[i].to_str(bng_data);
+    components[i].to_str(bng_data, res);
 
     first_component = false;
   }

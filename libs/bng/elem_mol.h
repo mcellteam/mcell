@@ -70,6 +70,7 @@ public:
     return state_id != STATE_ID_DONT_CARE;
   }
 
+  void to_str(const BNGData& bng_data, std::string& res) const;
   std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data, const std::string& ind = "") const;
 };
