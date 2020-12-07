@@ -73,34 +73,6 @@ void DiffuseReactEvent::step() {
   }
 }
 
-#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
-static bool cmp_mols_by_time_and_id(const Molecule& m1, const Molecule& m2) {
-  // WARNING: this comparison is a bit 'shaky' - the constant 100*EPS_C there... (same in sched_util.c)
-  return
-      (m1.diffusion_time  + 100*EPS_C < m2.diffusion_time) ||
-        (fabs(m1.diffusion_time - m2.diffusion_time) < 100*EPS_C && m1.id < m2.id);
-}
-
-class CmpDiffuseAction {
-public:
-  CmpDiffuseAction(const Partition& p_) : p(p_) {}
-  bool operator () (const DiffuseAction& a1, const DiffuseAction& a2) {
-    return cmp_mols_by_time_and_id(p.get_m(a1.id), p.get_m(a2.id));
-  }
-  const Partition& p;
-};
-
-class CmpMoleculeId {
-public:
-  CmpMoleculeId(const Partition& p_) : p(p_) {}
-  bool operator () (const molecule_id_t& id1, const molecule_id_t& id2) {
-    return cmp_mols_by_time_and_id(p.get_m(id1), p.get_m(id2));
-  }
-  const Partition& p;
-};
-#endif
-
-#define MCELL4_NOT_ORDER_BY_DELAY
 
 void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector& molecule_ids) {
 
