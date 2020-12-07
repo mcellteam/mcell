@@ -856,6 +856,14 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << "\n";
 
   generate_config(out);
+
+  out <<
+    "# user-defined model configuration\n" <<
+    "if os.path.exists('" << CUSTOMIZATION <<  ".py'):\n" <<
+    "    import " << CUSTOMIZATION << "\n" <<
+    "    if '" << CUSTOM_CONFIG << "' in dir(" << CUSTOMIZATION << "):\n"
+    "        " << CUSTOMIZATION << "." << CUSTOM_CONFIG << "(" << MODEL << ")\n";
+
   out << "\n";
 
   out << make_section_comment("add components");
@@ -867,6 +875,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << "\n";
 
   out << make_section_comment("initialization and execution");
+
   gen_method_call(out, MODEL, NAME_INITIALIZE);
   out << "\n";
 
