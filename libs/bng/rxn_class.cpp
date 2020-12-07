@@ -479,6 +479,14 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
     append_to_report(bng_config.get_warnings_report_file_name(), ss.str() + "\n" + to_str());
   }
 
+  if (is_unimol() && max_fixed_p > MAX_UNIMOL_RXN_PROBABILITY) {
+    errs() << "Unimolecular reaction class probability is " + f_to_str(max_fixed_p) +
+        " which is higher than the maximum allowed value " + f_to_str(MAX_UNIMOL_RXN_PROBABILITY) << ". " <<
+        "Terminating simulation because this would cause simulation to slow down or stop completely and is probably not what was expected. " <<
+        "Please check your reaction rates in reaction class:\n" << to_str() << "\n";
+    exit(1);
+  }
+
   pathways_and_rates_initialized = true;
 }
 

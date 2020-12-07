@@ -125,8 +125,6 @@ const float_t MIN_WALL_GAP = 1e-4; // 1 angstrom
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
-const float_t MINIMIM_UNIMOLECULAR_TIME = 1e-10;
-
 const float_t MESH_DISTINCTIVE_EPS = EPS;
 
 // ---------------------------------- configurable constants----------------------------------

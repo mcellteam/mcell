@@ -1534,16 +1534,8 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
     return;
   }
 
+  // there is a check when computing the reaction rate to make sure that the time is reasonably higher than 0
   float_t time_from_now = RxnUtil::compute_unimol_lifetime(p, world->rng, rxn_class, current_time, m);
-
-  if (time_from_now < MINIMIM_UNIMOLECULAR_TIME) {
-    // TODO OPTIMIZATION: this might be better to check elsewhere (e.g. when the rate is computed) for performance reasons
-    errs() << "Scheduled unimolecular reaction time from now is " + f_to_str(time_from_now) +
-        " which is lower than the minimal allowed value " + f_to_str(MINIMIM_UNIMOLECULAR_TIME) << ". " <<
-        "Terminating simulation because this would cause simulation to slow down or stop completely and is probably not what was expected. " <<
-        "Please check your reaction rates in reaction class:\n" << rxn_class->to_str() << "\n";
-    exit(1);
-  }
 
   float_t scheduled_time = current_time + time_from_now;
 
