@@ -16,6 +16,9 @@ const char* const INSTANTIATION = "instantiation";
 const char* const OBSERVABLES = "observables";
 const char* const MODEL = "model";
 
+const char* const CUSTOMIZATION = "customization";
+const char* const CUSTOM_CONFIG = "custom_config";
+
 const char* const PY_EXT = ".py";
 const char* const BNGL_EXT = ".bngl";
 
