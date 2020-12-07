@@ -46,8 +46,9 @@
 
 using namespace std;
 
-// TODO: allow to enable/disable this from API, may make performance worse
-#define ENABLE_SAFE_DIFFUSION_STEP
+// this makes performance worse in benchmarks, also making it configurable through API
+// blocks several optimization opportunities and make causes up to 4% performance drop
+//#define ENABLE_SAFE_DIFFUSION_STEP
 
 namespace MCell {
 
@@ -129,7 +130,7 @@ static inline void pick_vol_displacement(const BNG::Species& sp, const float_t s
 }
 
 
-
+#ifdef ENABLE_SAFE_DIFFUSION_STEP
 /****************************************************************************
 safe_diffusion_step:
   In: vm: molecule that is moving
@@ -169,32 +170,6 @@ static inline float_t get_safe_diffusion_step(
   d2_nearmax = sp.space_step * p.config.radial_3d_step[(int)(p.config.num_radial_subdivisions * MULTISTEP_PERCENTILE)];
   d2_nearmax *= d2_nearmax;
 
-  if (sp.has_flag(BNG::SPECIES_FLAG_CAN_VOLVOL) && !sp.has_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE) ) {
-
-    // get the closest distance to any molecule that can react
-    const uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(vm.v.subpart_index, vm.species_id);
-    for (molecule_id_t subpart_vm_id: sp_reactants) {
-      const Molecule& subpart_vm = p.get_m(subpart_vm_id);
-      assert(subpart_vm.is_vol());
-
-      float_t md2 = distance3_squared(vm.v.pos, subpart_vm.v.pos);
-
-      if (md2 < d2min) {
-        d2min = md2;
-      }
-    }
-  }
-
-  // get the closest distance to a wall in this subpart
-  const WallsInSubpart& wall_ids = p.get_subpart_wall_indices(vm.v.subpart_index);
-  for (wall_index_t wi: wall_ids) {
-    const Wall& w = p.get_wall(wi);
-
-    float_t wd2 = dot(w.normal, vm.v.pos) - w.distance_to_origin;
-    wd2 *= wd2;
-    if (wd2 < d2min)
-      d2min = wd2;
-  }
 
   float_t subpart_side_length = p.config.subpartition_edge_length;
   IVec3 subpart_indices;
@@ -239,6 +214,38 @@ static inline float_t get_safe_diffusion_step(
     d2min = d2;
   }
 
+  if (d2min < d2_nearmax) {
+    return 1.0;
+  }
+
+  if (sp.has_flag(BNG::SPECIES_FLAG_CAN_VOLVOL) && !sp.has_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE) ) {
+
+    // get the closest distance to any molecule that can react
+    const uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(vm.v.subpart_index, vm.species_id);
+    for (molecule_id_t subpart_vm_id: sp_reactants) {
+      const Molecule& subpart_vm = p.get_m(subpart_vm_id);
+      assert(subpart_vm.is_vol());
+
+      float_t md2 = distance3_squared(vm.v.pos, subpart_vm.v.pos);
+
+      if (md2 < d2min) {
+        d2min = md2;
+      }
+    }
+  }
+
+  // get the closest distance to a wall in this subpart
+  const WallsInSubpart& wall_ids = p.get_subpart_wall_indices(vm.v.subpart_index);
+  for (wall_index_t wi: wall_ids) {
+    const Wall& w = p.get_wall(wi);
+
+    float_t wd2 = dot(w.normal, vm.v.pos) - w.distance_to_origin;
+    wd2 *= wd2;
+    if (wd2 < d2min)
+      d2min = wd2;
+  }
+
+
 #ifdef MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
   return 1.5;
 #else
@@ -255,7 +262,7 @@ static inline float_t get_safe_diffusion_step(
   return steps;
 #endif
 }
-
+#endif
 
 
 /*************************************************************************
