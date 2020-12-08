@@ -285,7 +285,7 @@ private:
   void init_surf_mols_by_number(
       Partition& p, const Region& reg, const InitialRegionMolecules& info);
   void init_surf_mols_by_density(
-      Partition& p, const Region& reg, Wall& w, std::map<species_id_t, uint>& num_released_per_species);
+      Partition& p, Wall& w, std::map<species_id_t, uint>& num_released_per_species);
   void release_initial_molecules_onto_surf_regions();
 
   void schedule_for_immediate_diffusion_if_needed(

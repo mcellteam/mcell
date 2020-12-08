@@ -1066,7 +1066,7 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, con
 
 
 void ReleaseEvent::init_surf_mols_by_density(
-    Partition& p, const Region& reg, Wall& w,
+    Partition& p, Wall& w,
     map<species_id_t, uint>& num_released_per_species
 ) {
   if (!w.has_initialized_grid()) {
@@ -1078,21 +1078,22 @@ void ReleaseEvent::init_surf_mols_by_density(
 
   vector<pair<float_t, InitialRegionMolecules>> prob_info_pairs;
 
-  // in MCell3, this is done for all mod surf regions at once,
-  // we might need to mix this was well...
-  // first implementation just 1
-  for (const InitialRegionMolecules& info: reg.initial_region_molecules) {
-    if (!info.is_release_by_density()) {
-      // skip num, they will be handled later
-      continue;
+  // do for all surface regions of a wall at once
+  for (region_index_t reg_index: w.regions) {
+    const Region& reg = p.get_region(reg_index);
+    for (const InitialRegionMolecules& info: reg.initial_region_molecules) {
+      if (!info.is_release_by_density()) {
+        // skip release by number, they will be handled later
+        continue;
+      }
+
+      tot_prob += (w.area * info.release_density) / (w.grid.num_tiles * world->config.grid_density);
+
+      // make an array with cummulative probs
+      prob_info_pairs.push_back(make_pair(tot_prob, info));
+
+      tot_density += info.release_density;
     }
-
-    tot_prob += (w.area * info.release_density) / (w.grid.num_tiles * world->config.grid_density);
-
-    // make an array with cummulative probs
-    prob_info_pairs.push_back(make_pair(tot_prob, info));
-
-    tot_density += info.release_density;
   }
 
   if (tot_density > world->config.grid_density) {
@@ -1140,29 +1141,36 @@ void ReleaseEvent::init_surf_mols_by_density(
 }
 
 
+// based on init_wall_surf_mols
 void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
   release_assert(running_diffuse_event_to_update == nullptr && "Cannot be executed during diffusion&react event");
 
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
-  // let's iterate over regions for now,
-  // MCell3 might have a it a bit different but this should be ok
+  // first collect all walls that are affected
+  vector<wall_index_t> walls;
+  for (const Wall& w: p.get_walls()) {
+    for (region_index_t reg_index: w.regions) {
+      const Region& reg = p.get_region(reg_index);
+      if (reg.has_initial_molecules()) {
+        walls.push_back(w.index);
+        break;
+      }
+    }
+  }
+
+  map<species_id_t, uint> num_released_per_species;
+  for (wall_index_t wi: walls) {
+    Wall& w = p.get_wall(wi);
+    init_surf_mols_by_density(p, w, num_released_per_species);
+  }
+  for (auto it: num_released_per_species) {
+    cout <<
+        "Released " << it.second << " " << world->get_all_species().get(it.first).name << " onto surface regions " <<
+        "at iteration " << world->get_current_iteration() << " (specified with density).\n";
+  }
+
   for (const Region& reg: p.get_regions()) {
-    if (!reg.has_initial_molecules()) {
-      continue;
-    }
-
-    map<species_id_t, uint> num_released_per_species;
-    for (auto wall_edge_it: reg.walls_and_edges) {
-      Wall& w = p.get_wall(wall_edge_it.first);
-      init_surf_mols_by_density(p, reg, w, num_released_per_species);
-    }
-    for (auto it: num_released_per_species) {
-      cout
-        << "Released " << it.second << " " << world->get_all_species().get(it.first).name << " on region \"" << reg.name << "\""
-        << " at iteration " << world->get_current_iteration() << " (specified with density).\n";
-    }
-
     // for each specifies initial molecules
     for (const InitialRegionMolecules& info: reg.initial_region_molecules) {
       if (!info.is_release_by_num()) {
