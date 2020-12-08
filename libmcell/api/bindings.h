@@ -28,7 +28,7 @@ namespace API {
 
 // used to detect Ctrl-C signal from the user,
 // throws an exception if so
-void check_ctrl_c(const float_t  current_time);
+void check_ctrl_c(const float_t current_time, void* arg);
 
 }
 }

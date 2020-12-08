@@ -37,15 +37,18 @@ class PeriodicCallEvent: public BaseEvent {
 public:
   PeriodicCallEvent(World* /*world_*/)
     : BaseEvent(EVENT_TYPE_INDEX_PERIODIC_CALL),
-      function_ptr(nullptr) {
+      function_ptr(nullptr),
+      function_arg(nullptr) {
   }
 
   // pointer to a function to be periodically called
-  void (*function_ptr)(float_t);
+  void (*function_ptr)(float_t, void*);
+
+  void* function_arg;
 
   void step() override {
     assert(function_ptr != nullptr);
-    function_ptr(event_time);
+    function_ptr(event_time, function_arg);
   }
 
   void dump(const std::string ind) const override {

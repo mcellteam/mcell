@@ -64,6 +64,8 @@
 
 #include "generated/gen_constants.h"
 
+#include "world.h"
+
 
 #if __cplusplus < 201402L
 #error "Pybind11 overload requires at least C++14"
@@ -226,9 +228,13 @@ PYBIND11_MODULE(mcell, m) {
 }
 
 
-void check_ctrl_c(const float_t current_time) {
+void check_ctrl_c(const float_t current_time, void* arg) {
   if (PyErr_CheckSignals() != 0) {
-    std::cout << " Caught Ctrl-C signal in iteration " << current_time << ".\n";
+    std::cout << "Caught Ctrl-C signal in iteration " << current_time << ".\n";
+    std::cout << "Flushing buffers.\n";
+    release_assert(arg != nullptr);
+    ((World*)arg)->flush_buffers();
+
     throw py::error_already_set();
   }
 }
