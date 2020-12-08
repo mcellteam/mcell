@@ -234,6 +234,9 @@ void World::init_simulation() {
         "when computing reaction probability factor in exact-disk.\n";
   }
 
+  // start memory check timer
+  memory_limit_checker.start_timed_check(this, config.memory_limit_gb);
+
   simulation_initialized = true;
 }
 
@@ -343,6 +346,9 @@ void World::flush_buffers() {
 
 
 void World::end_simulation(const bool print_final_report) {
+  // we do not want to check memory anymore
+  memory_limit_checker.stop_timed_check();
+
   if (simulation_ended) {
     // already called, do nothing
     return;

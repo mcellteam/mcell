@@ -154,6 +154,7 @@ const char* const NAME_LOAD_BNGL_OBSERVABLES = "load_bngl_observables";
 const char* const NAME_LOAD_BNGL_PARAMETERS = "load_bngl_parameters";
 const char* const NAME_LOAD_BNGL_SEED_SPECIES = "load_bngl_seed_species";
 const char* const NAME_LOCATION = "location";
+const char* const NAME_MEMORY_LIMIT_GB = "memory_limit_gb";
 const char* const NAME_MODE = "mode";
 const char* const NAME_MOLECULE_ID = "molecule_id";
 const char* const NAME_MOLECULE_LIST = "molecule_list";

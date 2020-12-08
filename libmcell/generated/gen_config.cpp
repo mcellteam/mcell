@@ -49,6 +49,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   total_iterations_hint = 1000000;
   check_overlapped_walls = true;
   sort_molecules = false;
+  memory_limit_gb = 64;
 }
 
 bool GenConfig::__eq__(const Config& other) const {
@@ -64,7 +65,8 @@ bool GenConfig::__eq__(const Config& other) const {
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations_hint == other.total_iterations_hint &&
     check_overlapped_walls == other.check_overlapped_walls &&
-    sort_molecules == other.sort_molecules;
+    sort_molecules == other.sort_molecules &&
+    memory_limit_gb == other.memory_limit_gb;
 }
 
 bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_name) const {
@@ -80,7 +82,8 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations_hint == other.total_iterations_hint &&
     check_overlapped_walls == other.check_overlapped_walls &&
-    sort_molecules == other.sort_molecules;
+    sort_molecules == other.sort_molecules &&
+    memory_limit_gb == other.memory_limit_gb;
 }
 
 std::string GenConfig::to_str(const std::string ind) const {
@@ -97,7 +100,8 @@ std::string GenConfig::to_str(const std::string ind) const {
       "subpartition_dimension=" << subpartition_dimension << ", " <<
       "total_iterations_hint=" << total_iterations_hint << ", " <<
       "check_overlapped_walls=" << check_overlapped_walls << ", " <<
-      "sort_molecules=" << sort_molecules;
+      "sort_molecules=" << sort_molecules << ", " <<
+      "memory_limit_gb=" << memory_limit_gb;
   return ss.str();
 }
 
@@ -116,7 +120,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const float_t,
             const float_t,
             const bool,
-            const bool
+            const bool,
+            const int
           >(),
           py::arg("seed") = 1,
           py::arg("time_step") = 1e-6,
@@ -129,7 +134,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("subpartition_dimension") = 0.5,
           py::arg("total_iterations_hint") = 1000000,
           py::arg("check_overlapped_walls") = true,
-          py::arg("sort_molecules") = false
+          py::arg("sort_molecules") = false,
+          py::arg("memory_limit_gb") = 64
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
@@ -147,6 +153,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("total_iterations_hint", &Config::get_total_iterations_hint, &Config::set_total_iterations_hint)
       .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls)
       .def_property("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules)
+      .def_property("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb)
     ;
 }
 

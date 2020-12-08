@@ -45,6 +45,7 @@
 #include "counted_volumes_util.h"
 #include "legacy_callback_info.h"
 #include "species_flags_analyzer.h"
+#include "memory_limit_checker.h"
 
 #include "logging.h"
 
@@ -217,6 +218,8 @@ public:
     unscheduled_count_events.push_back(e);
   }
 
+  void flush_buffers();
+
 private:
   // called in init_simulation
   void recompute_species_flags();
@@ -225,8 +228,6 @@ private:
   void init_counted_volumes();
 
   void initialization_to_data_model(Json::Value& mcell_node) const;
-
-  void flush_buffers();
 
   void export_data_layout() const;
 
@@ -260,6 +261,9 @@ private:
   PartitionVector partitions;
 
   CountBufferVector count_buffers;
+
+  // periodic check of used memory using timer
+  MemoryLimitChecker memory_limit_checker;
 
   // global ID counters
   wall_id_t next_wall_id;

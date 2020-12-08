@@ -1,0 +1,7 @@
+Cloned on Dec 8 2020 from 
+https://github.com/eglimi/cpptime.git
+
+Commit 5387c4a.
+
+Used for periodic check of memory consumption.
+Added tests/mem_test.cpp as a prototype for this feature.

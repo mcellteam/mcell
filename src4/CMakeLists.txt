@@ -36,6 +36,7 @@ set(SRC4_SOURCE_FILES
     grid_position.cpp
     geometry.cpp
     species_flags_analyzer.cpp
+    memory_limit_checker.cpp
     world.cpp
     simulation_config.cpp
     counted_volumes_util.cpp

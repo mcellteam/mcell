@@ -239,7 +239,8 @@ class Config():
             subpartition_dimension : float = 0.5,
             total_iterations_hint : float = 1000000,
             check_overlapped_walls : bool = True,
-            sort_molecules : bool = False
+            sort_molecules : bool = False,
+            memory_limit_gb : int = 64
         ):
         self.seed = seed
         self.time_step = time_step
@@ -253,6 +254,7 @@ class Config():
         self.total_iterations_hint = total_iterations_hint
         self.check_overlapped_walls = check_overlapped_walls
         self.sort_molecules = sort_molecules
+        self.memory_limit_gb = memory_limit_gb
 
 
 class Count():

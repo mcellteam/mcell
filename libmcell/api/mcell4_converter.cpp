@@ -375,6 +375,8 @@ void MCell4Converter::convert_simulation_setup() {
   // this option in MCell3 was removed in MCell4
   world->config.use_expanded_list = true;
 
+  world->config.memory_limit_gb = config.memory_limit_gb;
+
   // compute other constants and initialize reporting (if enabled)
   world->config.init();
 }

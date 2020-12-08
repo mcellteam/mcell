@@ -45,6 +45,7 @@ public:
     randomize_smol_pos(false),
     check_overlapped_walls(true),
     sort_mols_by_subpart(false),
+    memory_limit_gb(-1),
     has_intersecting_counted_objects(false) {
   }
 
@@ -73,6 +74,8 @@ public:
   bool check_overlapped_walls; /* Check geometry for overlapped walls? */
 
   bool sort_mols_by_subpart;
+
+  int memory_limit_gb; // -1 means that limit is disabled
 
   // initialized in World::init_counted_volumes
   // also tells whether waypoints in a partition were initialized

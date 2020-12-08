@@ -44,7 +44,8 @@ class Config;
         const float_t subpartition_dimension_ = 0.5, \
         const float_t total_iterations_hint_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
-        const bool sort_molecules_ = false \
+        const bool sort_molecules_ = false, \
+        const int memory_limit_gb_ = 64 \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
@@ -59,6 +60,7 @@ class Config;
       total_iterations_hint = total_iterations_hint_; \
       check_overlapped_walls = check_overlapped_walls_; \
       sort_molecules = sort_molecules_; \
+      memory_limit_gb = memory_limit_gb_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -243,6 +245,20 @@ public:
   virtual bool get_sort_molecules() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return sort_molecules;
+  }
+
+  int memory_limit_gb;
+  virtual void set_memory_limit_gb(const int new_memory_limit_gb_) {
+    if (initialized) {
+      throw RuntimeError("Value 'memory_limit_gb' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    memory_limit_gb = new_memory_limit_gb_;
+  }
+  virtual int get_memory_limit_gb() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return memory_limit_gb;
   }
 
   // --- methods ---
