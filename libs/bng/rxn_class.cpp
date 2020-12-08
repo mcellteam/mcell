@@ -19,6 +19,14 @@ using namespace std;
 
 namespace BNG {
 
+RxnClass::~RxnClass() {
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    RxnRule* rxn = all_rxns.get(id);
+    rxn->remove_rxn_class_where_used(this);
+  }
+}
+
+
 // might need to be different for NFsim
 // not sure if this belongs here
 float_t RxnClass::get_reactant_space_step(const uint reactant_index) const {
@@ -591,5 +599,6 @@ void RxnClass::dump_array(const vector<RxnClass>& vec) {
 void RxnClass::dump(const std::string ind) const {
   cout << to_str(ind);
 }
+
 
 } /* namespace BNG */

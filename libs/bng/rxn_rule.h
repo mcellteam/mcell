@@ -230,16 +230,6 @@ private:
   // update all classes if this reaction's rate constant changes
   std::set<RxnClass*> rxn_classes_where_used;
 
-private:
-  // BNGL style reaction handling is implemented in this method
-  void create_products_for_complex_rxn(
-      SpeciesContainer& all_species,
-      const BNGConfig& bng_config,
-      const std::vector<species_id_t>& reactant_species,
-      const float_t pb_factor,
-      RxnClassPathwayVector& pathways
-  );
-
 public:
   // - method used when RxnClass is being created
   // - defines new species when needed and might invalidate Species references
@@ -450,12 +440,17 @@ public:
     rxn_classes_where_used.insert(rxn_class);
   }
 
-  std::set<RxnClass*> get_rxn_classed_where_used() const {
+  const std::set<RxnClass*>& get_rxn_classed_where_used() const {
     return rxn_classes_where_used;
   }
 
   void reset_rxn_classes_where_used() {
     rxn_classes_where_used.clear();
+  }
+
+  void remove_rxn_class_where_used(RxnClass* rxn_class) {
+    assert(rxn_classes_where_used.count(rxn_class) != 0);
+    rxn_classes_where_used.erase(rxn_class);
   }
 
   // returns false when there are no variable rates or we already processed all scheduled times
@@ -487,6 +482,15 @@ public:
   void dump(const bool for_diff = false, const std::string ind = "", std::ostream& out = std::cout) const;
 
 private:
+  // BNGL style reaction handling is implemented in this method
+  void create_products_for_complex_rxn(
+      SpeciesContainer& all_species,
+      const BNGConfig& bng_config,
+      const std::vector<species_id_t>& reactant_species,
+      const float_t pb_factor,
+      RxnClassPathwayVector& pathways
+  );
+
   // use other methods that provide caching instead
   void get_reactant_indices_uncached(
         const Cplx& cplx, const SpeciesContainer& all_species,
