@@ -72,6 +72,7 @@ World::World(API::Callbacks& callbacks_)
     simulation_ended(false),
     buffers_flushed(false),
     previous_progress_report_time({0, 0}),
+    it1_start_time_set(false),
     previous_iteration(0)
 {
   config.partition_edge_length = FLT_INVALID;
@@ -218,7 +219,6 @@ void World::init_simulation() {
   // initialize timing
   previous_progress_report_time = {0, 0};
 
-  rusage sim_start_time;
   reset_rusage(&sim_start_time);
   getrusage(RUSAGE_SELF, &sim_start_time);
 
@@ -263,6 +263,12 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     // current_iteration corresponds to the number of executed time steps
     float_t time = scheduler.get_next_event_time();
     current_iteration = (uint64_t)time;
+
+    if (current_iteration == 1 && previous_iteration == 0) {
+      it1_start_time_set = true;
+      reset_rusage(&it1_start_time);
+      getrusage(RUSAGE_SELF, &it1_start_time);
+    }
 
 #ifdef DEBUG_SCHEDULER
     cout << "Before it: " << current_iteration << ", time: " << time << "\n";
@@ -360,6 +366,10 @@ void World::end_simulation(const bool print_final_report) {
     cout << "Simulation CPU time = "
       << tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  "(user) and "
       << tosecs(run_time.ru_stime) - tosecs(sim_start_time.ru_stime) <<  "(system)\n";
+    cout << "Simulation CPU time without iteration 0 = "
+      << tosecs(run_time.ru_utime) - tosecs(it1_start_time.ru_utime) <<  "(user) and "
+      << tosecs(run_time.ru_stime) - tosecs(it1_start_time.ru_stime) <<  "(system)\n";
+
   }
 
   simulation_ended = true;
@@ -392,7 +402,6 @@ void World::dump(const bool with_geometry) {
   bng_engine.get_data().dump();
   get_all_species().dump();
   get_all_rxns().dump(true);
-
 
   // partitions
   for (Partition& p: partitions) {

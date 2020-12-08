@@ -365,7 +365,21 @@ mcell_run_simulation(MCELL_STATE *world) {
 
   long long frequency = mcell_determine_output_frequency(world);
   int status = 0;
+  world->it1_time_set = 0;
   while (world->current_iterations <= world->iterations) {
+    if (world->current_iterations == 1) {
+      // for a better comparison, we are also reporting when 1st iteration
+      // started
+      struct rusage it1_time;
+      getrusage(RUSAGE_SELF, &it1_time);
+
+      world->u_it1_time.tv_sec = it1_time.ru_utime.tv_sec;
+      world->u_it1_time.tv_usec = it1_time.ru_utime.tv_usec;
+      world->s_it1_time.tv_sec = it1_time.ru_stime.tv_sec;
+      world->s_it1_time.tv_usec = it1_time.ru_stime.tv_usec;
+      world->it1_time_set = 1;
+    }
+
     // XXX: A return status of 1 from mcell_run_iterations does not
     // indicate an error but is used to break out of the loop.
     // This behavior is non-conformant and should be changed.
@@ -800,6 +814,17 @@ mcell_print_final_statistics(MCELL_STATE *world) {
 
     mcell_log("Simulation CPU time = %f (user) and %f (system)",
               u_run_time - u_init_time, s_run_time - s_init_time);
+
+    if (world->it1_time_set) {
+      double u_it1_time = world->u_it1_time.tv_sec +
+                    (world->u_it1_time.tv_usec / MAX_TARGET_TIMESTEP);
+      double s_it1_time = world->s_it1_time.tv_sec +
+                    (world->s_it1_time.tv_usec / MAX_TARGET_TIMESTEP);
+
+      mcell_log("Simulation CPU time without iteration 0 = %f (user) and %f (system)",
+                u_run_time - u_it1_time, s_run_time - s_it1_time);
+    }
+
     t_end = time(NULL);
     mcell_log("Total wall clock time = %ld seconds",
               (long)difftime(t_end, world->t_start));

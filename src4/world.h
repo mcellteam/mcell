@@ -279,6 +279,8 @@ private:
   // several variables to report simulation time
   timeval previous_progress_report_time;
   rusage sim_start_time;
+  bool it1_start_time_set;
+  rusage it1_start_time; // time when 1st iteration started
 
   // and to nicely report simulation progress
   uint64_t previous_iteration;

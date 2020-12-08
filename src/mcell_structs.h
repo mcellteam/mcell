@@ -1403,6 +1403,9 @@ struct volume {
   /* resource usage during initialization */
   struct timeval u_init_time;    /* user time */
   struct timeval s_init_time;    /* system time */
+  int it1_time_set;
+  struct timeval u_it1_time;    /* user time when iteration 1 started */
+  struct timeval s_it1_time;    /* system time when iteration 1 started */
   time_t t_start;                /* global start time */
   byte reaction_prob_limit_flag; /* checks whether there is at least one
                                     reaction with probability greater
