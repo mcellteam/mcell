@@ -280,4 +280,5 @@ void Scheduler::to_data_model(Json::Value& mcell_node) const {
   calendar.to_data_model(mcell_node);
 }
 
+
 } // namespace mcell

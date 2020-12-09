@@ -718,4 +718,24 @@ void Partition::to_data_model(Json::Value& mcell) const {
   }
 }
 
+
+void Partition::print_periodic_stats() const {
+
+  long long total_reactants = 0;
+  for (const auto& subpart_reacts: volume_molecule_reactants_per_subpart) {
+    for (const auto& per_species: subpart_reacts) {
+      total_reactants += per_species.size();
+    }
+  }
+
+  std::cout <<
+      "Partition: molecules.size() = " << molecules.size() << "\n" <<
+      "Partition: molecule_id_to_index_map.size() = " << molecule_id_to_index_map.size() << "\n" <<
+      "Partition: next_molecule_id = " << next_molecule_id << "\n" <<
+      "Partition: known_vol_species.size() = " << known_vol_species.size() << "\n" <<
+      "Partition: volume_molecule_reactants_per_subpart total size = " << total_reactants << "\n";
+ // how to dump volume_molecule_reactants_per_subpart?
+}
+
+
 } // namespace mcell

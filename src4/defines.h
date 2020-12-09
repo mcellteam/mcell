@@ -734,6 +734,9 @@ static inline void guard_zero_div(Vec3& val) {
   }
 }
 
+// some utilities
+uint64_t get_mem_usage();
+
 /*
  * Stats collected during simulation, contains also number of the current iteration
  */

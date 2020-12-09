@@ -39,25 +39,29 @@ void GenNotifications::set_all_attributes_as_default_or_unset() {
   class_name = "Notifications";
   bng_verbosity_level = 0;
   rxn_and_species_report = true;
+  simulation_stats_every_n_iterations = 0;
 }
 
 bool GenNotifications::__eq__(const Notifications& other) const {
   return
     bng_verbosity_level == other.bng_verbosity_level &&
-    rxn_and_species_report == other.rxn_and_species_report;
+    rxn_and_species_report == other.rxn_and_species_report &&
+    simulation_stats_every_n_iterations == other.simulation_stats_every_n_iterations;
 }
 
 bool GenNotifications::eq_nonarray_attributes(const Notifications& other, const bool ignore_name) const {
   return
     bng_verbosity_level == other.bng_verbosity_level &&
-    rxn_and_species_report == other.rxn_and_species_report;
+    rxn_and_species_report == other.rxn_and_species_report &&
+    simulation_stats_every_n_iterations == other.simulation_stats_every_n_iterations;
 }
 
 std::string GenNotifications::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "bng_verbosity_level=" << bng_verbosity_level << ", " <<
-      "rxn_and_species_report=" << rxn_and_species_report;
+      "rxn_and_species_report=" << rxn_and_species_report << ", " <<
+      "simulation_stats_every_n_iterations=" << simulation_stats_every_n_iterations;
   return ss.str();
 }
 
@@ -66,10 +70,12 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def(
           py::init<
             const int,
-            const bool
+            const bool,
+            const int
           >(),
           py::arg("bng_verbosity_level") = 0,
-          py::arg("rxn_and_species_report") = true
+          py::arg("rxn_and_species_report") = true,
+          py::arg("simulation_stats_every_n_iterations") = 0
       )
       .def("check_semantics", &Notifications::check_semantics)
       .def("__str__", &Notifications::to_str, py::arg("ind") = std::string(""))
@@ -77,6 +83,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def("dump", &Notifications::dump)
       .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level)
       .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report)
+      .def_property("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations)
     ;
 }
 

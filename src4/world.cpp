@@ -40,6 +40,7 @@
 #include "datamodel_defines.h"
 #include "bng_data_to_datamodel_converter.h"
 #include "diffuse_react_event.h"
+#include "periodic_call_event.h"
 
 #include "api/mol_wall_hit_info.h"
 #include "api/geometry_object.h"
@@ -58,6 +59,12 @@ static double tousecs(timeval& t) {
 
 static double tosecs(timeval& t) {
   return (double)t.tv_sec + (double)t.tv_usec/USEC_IN_SEC;
+}
+
+
+static void print_periodic_stats_func(float_t time, void* world) {
+  release_assert(world != nullptr);
+  ((World*)world)->print_periodic_stats();
 }
 
 
@@ -214,6 +221,16 @@ void World::init_simulation() {
     sort_event->event_time = 0;
     sort_event->periodicity_interval = SORT_MOLS_BY_SUBPART_PERIODICITY;
     scheduler.schedule_event(sort_event);
+  }
+
+  // simulation statistics, mostly for development purposes
+  if (config.simulation_stats_every_n_iterations > 0) {
+    PeriodicCallEvent* stats_event = new PeriodicCallEvent(this);
+    stats_event->function_ptr = print_periodic_stats_func;
+    stats_event->function_arg = this;
+    stats_event->event_time = 0;
+    stats_event->periodicity_interval = config.simulation_stats_every_n_iterations;
+    scheduler.schedule_event(stats_event);
   }
 
   // initialize timing
@@ -398,6 +415,17 @@ void World::run_simulation(const bool dump_initial_state, const bool dump_with_g
 
   // runs one more iteration but only up to the last viz output
   end_simulation(true);
+}
+
+
+void World::print_periodic_stats() const {
+  cout << "--- Periodic Stats ---\n";
+  cout << "World: stats.current_iteration = " << stats.get_current_iteration() << "\n";
+  scheduler.print_periodic_stats();
+  bng_engine.print_periodic_stats();
+  get_partition(PARTITION_ID_INITIAL).print_periodic_stats();
+  cout << "Memory: " << get_mem_usage() << " kB\n";
+  cout << "----------------------\n";
 }
 
 

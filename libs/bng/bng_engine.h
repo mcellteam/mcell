@@ -84,6 +84,11 @@ public:
       std::ostream& out_reaction_rules,
       const float_t volume_um3) const;
 
+  void print_periodic_stats() const {
+    all_species.print_periodic_stats();
+    all_rxns.print_periodic_stats();
+  }
+
 private:
 
   // when all_mol_types is false, no superclass species neither

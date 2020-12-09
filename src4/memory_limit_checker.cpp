@@ -44,24 +44,6 @@ MemoryLimitChecker::~MemoryLimitChecker() {
 }
 
 
-static long int get_mem_usage() {
-
-  int who = RUSAGE_SELF;
-  struct rusage usage;
-  int ret;
-
-  ret = getrusage(who,&usage);
-
-  if (ret == 0) {
-    return usage.ru_maxrss;
-  }
-  else {
-    // ignoring fail
-    return 0;
-  }
-}
-
-
 void MemoryLimitChecker::start_timed_check(
     World* world_, const int limit_gb_, const bool exit_when_over_limit_) {
 
@@ -82,9 +64,9 @@ void MemoryLimitChecker::start_timed_check(
       seconds(0),
       [this](CppTime::timer_id) {
 
-          long int usage = get_mem_usage(); // returns value in kB
+          uint64_t usage = get_mem_usage(); // returns value in kB
 
-          if (usage > this->limit_gb * KB_IN_GB) {
+          if ((long long)usage > this->limit_gb * KB_IN_GB) {
 
             // skip if we are currently executing MolRxnCountEvent because this can mean
             // that flushed buffers are in an inconsistent state, this should be rare

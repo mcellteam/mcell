@@ -79,4 +79,23 @@ void SimulationStats::dump() {
   float_t diffusion_cummtime;
 }
 
+
+uint64_t get_mem_usage() {
+
+  int who = RUSAGE_SELF;
+  struct rusage usage;
+  int ret;
+
+  ret = getrusage(who,&usage);
+
+  if (ret == 0) {
+    return usage.ru_maxrss;
+  }
+  else {
+    // ignoring fail
+    return 0;
+  }
+}
+
+
 } // namespace mcell

@@ -245,6 +245,8 @@ public:
 
   bool has_bimol_vol_rxns() const;
 
+  void print_periodic_stats() const;
+
   void dump(const bool including_rxn_rules = false) const;
 
 private:

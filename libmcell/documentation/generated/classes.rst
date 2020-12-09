@@ -1187,6 +1187,9 @@ Attributes:
   | Simulation generates files rxn_report_SEED.txt species_report_SEED.txt that contain
   | details on reaction classes and species that were created based on reaction rules.
 
+* | **simulation_stats_every_n_iterations**: int = 0
+  | When set to a value other than 0, internal simulation stats will be printed.
+
 Observables
 ===========
 

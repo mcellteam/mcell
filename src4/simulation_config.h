@@ -46,6 +46,7 @@ public:
     check_overlapped_walls(true),
     sort_mols_by_subpart(false),
     memory_limit_gb(-1),
+    simulation_stats_every_n_iterations(0),
     has_intersecting_counted_objects(false) {
   }
 
@@ -77,10 +78,11 @@ public:
 
   int memory_limit_gb; // -1 means that limit is disabled
 
+  int simulation_stats_every_n_iterations;
+
   // initialized in World::init_counted_volumes
   // also tells whether waypoints in a partition were initialized
   bool has_intersecting_counted_objects;
-
 
   void init() {
     BNGConfig::init();

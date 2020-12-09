@@ -155,6 +155,8 @@ public:
     return res;
   }
 
+  void print_periodic_stats() const;
+
   void dump(const bool with_geometry = false);
 
   // returns empty string if everything went well, nonempty string with error message

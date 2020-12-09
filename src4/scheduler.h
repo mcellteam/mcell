@@ -82,6 +82,11 @@ public:
       const event_type_index_t event_type_index, std::vector<const BaseEvent*>& events) const;
 
   float_t get_time_up_to_next_barrier(const float_t current_time, const float_t max_time_step) const;
+
+  void print_periodic_stats() const {
+    std::cout << "Calendar: queue.size() = " << queue.size() << "\n";
+  }
+
 private:
   float_t get_first_bucket_start_time() {
     assert(queue.size() != 0);
@@ -146,6 +151,10 @@ public:
 
   BaseEvent* get_event_being_executed() {
     return event_being_executed;
+  }
+
+  void print_periodic_stats() const {
+    calendar.print_periodic_stats();
   }
 
 private:

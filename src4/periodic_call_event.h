@@ -21,8 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_DEFRAGMENTATION_EVENT_H_
-#define SRC4_DEFRAGMENTATION_EVENT_H_
+#ifndef SRC4_PERIODIC_CALL_EVENT_H_
+#define SRC4_PERIODIC_CALL_EVENT_H_
 
 #include "base_event.h"
 
@@ -61,4 +61,4 @@ public:
 
 } // namespace mcell
 
-#endif // SRC4_DEFRAGMENTATION_EVENT_H_
+#endif // SRC4_PERIODIC_CALL_EVENT_H_

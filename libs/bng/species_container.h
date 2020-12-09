@@ -231,6 +231,13 @@ public:
   // cleans-up the species vector by removing all species that are set as defunct
   void defragment();
 
+  void print_periodic_stats() const {
+    std::cout <<
+        "SpeciesContainer: next_species_id = " << next_species_id << "\n" <<
+        "SpeciesContainer: species_id_to_index_mapping.size() = " <<
+        species_id_to_index_mapping.size() << "\n";
+  }
+
   void dump() const;
 
 private:

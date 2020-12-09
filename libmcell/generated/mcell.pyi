@@ -853,10 +853,12 @@ class Notifications():
     def __init__(
             self,
             bng_verbosity_level : int = 0,
-            rxn_and_species_report : bool = True
+            rxn_and_species_report : bool = True,
+            simulation_stats_every_n_iterations : int = 0
         ):
         self.bng_verbosity_level = bng_verbosity_level
         self.rxn_and_species_report = rxn_and_species_report
+        self.simulation_stats_every_n_iterations = simulation_stats_every_n_iterations
 
 
 class Observables():

@@ -34,11 +34,13 @@ class Notifications;
 #define NOTIFICATIONS_CTOR() \
     Notifications( \
         const int bng_verbosity_level_ = 0, \
-        const bool rxn_and_species_report_ = true \
+        const bool rxn_and_species_report_ = true, \
+        const int simulation_stats_every_n_iterations_ = 0 \
     ) { \
       class_name = "Notifications"; \
       bng_verbosity_level = bng_verbosity_level_; \
       rxn_and_species_report = rxn_and_species_report_; \
+      simulation_stats_every_n_iterations = simulation_stats_every_n_iterations_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -83,6 +85,20 @@ public:
   virtual bool get_rxn_and_species_report() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return rxn_and_species_report;
+  }
+
+  int simulation_stats_every_n_iterations;
+  virtual void set_simulation_stats_every_n_iterations(const int new_simulation_stats_every_n_iterations_) {
+    if (initialized) {
+      throw RuntimeError("Value 'simulation_stats_every_n_iterations' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    simulation_stats_every_n_iterations = new_simulation_stats_every_n_iterations_;
+  }
+  virtual int get_simulation_stats_every_n_iterations() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return simulation_stats_every_n_iterations;
   }
 
   // --- methods ---

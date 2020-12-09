@@ -209,6 +209,7 @@ const char* const NAME_S = "s";
 const char* const NAME_SC = "sc";
 const char* const NAME_SEED = "seed";
 const char* const NAME_SHAPE = "shape";
+const char* const NAME_SIMULATION_STATS_EVERY_N_ITERATIONS = "simulation_stats_every_n_iterations";
 const char* const NAME_SITE_DIAMETER = "site_diameter";
 const char* const NAME_SITE_RADIUS = "site_radius";
 const char* const NAME_SORT_MOLECULES = "sort_molecules";
