@@ -67,6 +67,9 @@ void SpeciesCleanupEvent::step() {
 
       // delete this species
       world->get_all_species().remove(sp->id);
+
+      // and also from caches used by RxnRules
+      world->get_all_rxns().remove_species_id_references(sp->id);
     }
   }
 

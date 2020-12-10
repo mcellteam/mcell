@@ -730,7 +730,7 @@ void Partition::print_periodic_stats() const {
 
   std::cout <<
       "Partition: molecules.size() = " << molecules.size() << "\n" <<
-      "Partition: molecule_id_to_index_map.size() = " << molecule_id_to_index_map.size() << "\n" <<
+      "Partition: molecule_id_to_index_mapping.size() = " << molecule_id_to_index_mapping.size() << "\n" <<
       "Partition: next_molecule_id = " << next_molecule_id << "\n" <<
       "Partition: known_vol_species.size() = " << known_vol_species.size() << "\n" <<
       "Partition: volume_molecule_reactants_per_subpart total size = " << total_reactants << "\n";

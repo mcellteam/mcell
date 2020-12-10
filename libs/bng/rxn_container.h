@@ -215,6 +215,8 @@ public:
   // frees up memory taken up by the species' rxn classes that is no longer needed
   void remove_bimol_rxn_classes(const species_id_t reac1_species_id);
 
+  void remove_species_id_references(const species_id_t id);
+
   // returns nullptr if reaction rule was not found
   RxnRule* find_rxn_rule_by_name(const std::string& name) {
     for (RxnRule* rxn_rule: rxn_rules) {

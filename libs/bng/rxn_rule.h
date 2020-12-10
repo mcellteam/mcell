@@ -453,6 +453,8 @@ public:
     rxn_classes_where_used.erase(rxn_class);
   }
 
+  void remove_species_id_references(const species_id_t id);
+
   // returns false when there are no variable rates or we already processed all scheduled times
   bool may_update_rxn_rate() const {
     return next_variable_rate_index < base_variable_rates.size();

@@ -461,6 +461,19 @@ void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id)
 }
 
 
+void RxnContainer::remove_species_id_references(const species_id_t id) {
+  // this method is currently used only from SpeciesCleanupEvent
+  // we are assuming that there are rxn classes that use this species
+  // were removed
+  release_assert(species_processed_for_unimol_rxn_classes.count(id) == 0);
+  release_assert(species_processed_for_bimol_rxn_classes.count(id) == 0);
+
+  for (RxnRule* rxn: rxn_rules) {
+    rxn->remove_species_id_references(id);
+  }
+}
+
+
 bool RxnContainer::has_bimol_vol_rxns() const {
   for (const BNG::RxnRule* r: rxn_rules) {
     if (r->is_bimol_vol_rxn()) {

@@ -1867,6 +1867,17 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
 }
 
 
+void RxnRule::remove_species_id_references(const species_id_t id) {
+  // this rxn rule might not have seen this species
+  species_applicable_as_any_reactant.erase(id);
+  species_applicable_as_reactant[0].erase(id);
+  species_applicable_as_reactant[1].erase(id);
+  species_not_applicable_as_any_reactant.erase(id);
+  species_not_applicable_as_reactant[0].erase(id);
+  species_not_applicable_as_reactant[1].erase(id);
+}
+
+
 bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClass* requester) {
   if (!may_update_rxn_rate()) {
     return false;

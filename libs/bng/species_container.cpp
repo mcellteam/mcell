@@ -64,6 +64,7 @@ species_id_t SpeciesContainer::add(Species* new_species, const bool removable) {
 
 
 void SpeciesContainer::remove(const species_id_t id) {
+  // NOTE: does not remove this species from RxnContainer or anywhere else
 
   Species& s = get(id);
   assert(s.is_removable());
