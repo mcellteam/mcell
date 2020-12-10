@@ -35,6 +35,12 @@
 
 #include <iostream>
 
+// use gperftools to print a snapshot of heap, can be displayed with
+// pprof mcell.so mem<N>.dump -gv
+// MCell must be built with -DENABLE_GPERFTOOLS=ON otherwise
+// linking fails with undefined symbol MallocExtension::instance()
+//#define PROFILE_MEMORY
+
 // when enabled, mcell3 produces identical result to the mcell master branch
 #define MCELL3_IDENTICAL
 #define MCELL4_IDENTICAL

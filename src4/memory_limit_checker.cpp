@@ -26,6 +26,10 @@
 #include "memory_limit_checker.h"
 #include "world.h"
 
+#ifdef PROFILE_MEMORY
+#include "libs/gperftools/src/gperftools/malloc_extension.h"
+#endif
+
 using namespace CppTime;
 using namespace std;
 using namespace std::chrono;
@@ -59,10 +63,26 @@ void MemoryLimitChecker::start_timed_check(
   limit_gb = limit_gb_;
   exit_when_over_limit = exit_when_over_limit_;
 
+#ifdef PROFILE_MEMORY
+  static int counter = 0;
+#endif
+
   timer = new Timer();
   created_timer_id = timer->add(
       seconds(0),
       [this](CppTime::timer_id) {
+
+#ifdef PROFILE_MEMORY
+          const std::string outfile = "mem" + std::to_string(counter) + ".dump";
+          counter++;
+          std::string data;
+          MallocExtension::instance()->GetHeapSample(&data);
+          ofstream out;
+          out.open(outfile);
+          out.write(data.c_str(), data.size());
+          cout << "Written mem profile to " << outfile << "\n";
+          out.close();
+#endif
 
           uint64_t usage = get_mem_usage(); // returns value in kB
 

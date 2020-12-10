@@ -113,12 +113,14 @@ if (ENABLE_GPERFTOOLS)
   # pybind11 ignores CMAKE_SHARED_LINKER_FLAGS so we must put the -L args to CXX flags as well 
   SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/ ${CMAKE_INCLUDE_GPERF_FLAGS}")
-  SET(CMAKE_LD_GPERF_FLAGS "${CMAKE_INCLUDE_GPERF_FLAGS} -lprofiler")
+  SET(CMAKE_LD_GPERF_FLAGS "${CMAKE_INCLUDE_GPERF_FLAGS} -lprofiler -ltcmalloc")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
   SET(GPERFTOOLS_LIB "profiler")
+  SET(GPERFTOOLS_MCELLSO_DEP "tcmalloc")
 else()
   SET(GPERFTOOLS_LIB "")
+  SET(GPERFTOOLS_MCELLSO_DEP "")  
 endif()
 	
 if (ENABLE_SANITIZER)
@@ -392,10 +394,10 @@ pybind11_add_module(mcell4_so MODULE
     libmcell/api/exports.cpp
 )
 
-add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
+add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib ${GPERFTOOLS_MCELLSO_DEP})
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB}
+    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP}
 )
 set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(mcell4_so PROPERTIES PREFIX "")
