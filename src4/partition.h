@@ -46,8 +46,6 @@ typedef std::map<counted_volume_index_t, uint> CountInGeomObjectMap;
 typedef std::map<wall_index_t, uint> CountOnWallMap;
 typedef uint_set<wall_index_t> WallsInSubpart; 
 
-typedef uint_dense_hash_map<molecule_id_t, molecule_index_t> MoleculeIdToIndexMap;
-
 // class used to hold potential reactants of given species in a single subpart
 // performance critical, therefore we are using a vector for now,
 // we will probably need to change it in the future by deriving it from
@@ -167,22 +165,22 @@ public:
 
   Molecule& get_m(const molecule_id_t id) {
     assert(id != MOLECULE_ID_INVALID);
-    assert(molecule_id_to_index_map.count(id) != 0);
+    assert(id < molecule_id_to_index_mapping.size());
 
     // code works with molecule ids, but they need to be converted to indices to the volume_molecules vector
     // because we need to defragment the contents
-    uint32_t vm_vec_index = molecule_id_to_index_map.find(id)->second;
+    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
     assert(vm_vec_index != MOLECULE_INDEX_INVALID);
     return molecules[vm_vec_index];
   }
 
   const Molecule& get_m(const molecule_id_t id) const {
     assert(id != MOLECULE_ID_INVALID);
-    assert(molecule_id_to_index_map.count(id) != 0);
+    assert(id < molecule_id_to_index_mapping.size());
 
     // code works with molecule ids, but they need to be converted to indices to the volume_molecules vector
     // because we need to defragment the contents
-    uint32_t vm_vec_index = molecule_id_to_index_map.find(id)->second;
+    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
     assert(vm_vec_index != MOLECULE_INDEX_INVALID);
     return molecules[vm_vec_index];
   }
@@ -432,11 +430,11 @@ private:
     // large enough to hold indices for all molecules that were ever created,
     // we will need to reuse ids or compress it later
     uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
-    molecule_id_to_index_map[molecule_id] = next_molecule_array_index;
-
-    /*if (molecule_id_to_index_mapping.size() % 1000000 == 0) {
-      std::cout << "SIZE " << molecule_id_to_index_mapping.size() << "\n";
-    }*/
+    molecule_id_to_index_mapping.push_back(next_molecule_array_index);
+    assert(
+        molecule_id_to_index_mapping.size() == next_molecule_id
+        && "Mapping array must have value for every molecule index"
+    );
 
     // This is the only place where we insert molecules into volume_molecules,
     // although this array size can be decreased in defragmentation
@@ -563,8 +561,8 @@ public:
   }
   
 
-  MoleculeIdToIndexMap& get_molecule_id_to_index_map() {
-      return molecule_id_to_index_map;
+  std::vector<molecule_index_t>& get_molecule_id_to_index_mapping() {
+    return molecule_id_to_index_mapping;
   }
   
   // ---------------------------------- geometry ----------------------------------
@@ -960,14 +958,7 @@ public:
     if (id == MOLECULE_ID_INVALID) {
       return false;
     }
-
-    auto it = molecule_id_to_index_map.find(id);
-
-    if (it == molecule_id_to_index_map.end()) {
-      return false;
-    }
-
-    uint32_t vm_vec_index = it->second;
+    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
     if (vm_vec_index == MOLECULE_INDEX_INVALID) {
       return false;
     }
@@ -987,9 +978,7 @@ private:
   std::vector<Molecule> molecules;
 
   // contains mapping of molecule ids to indices to the molecules array
-  //std::vector<molecule_index_t> molecule_id_to_index_mapping;
-
-  MoleculeIdToIndexMap molecule_id_to_index_map;
+  std::vector<molecule_index_t> molecule_id_to_index_mapping;
 
   // id of the next molecule to be created
   // TODO_LATER: move to World

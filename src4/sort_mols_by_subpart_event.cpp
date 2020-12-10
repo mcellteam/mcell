@@ -99,14 +99,13 @@ void SortMolsBySubpartEvent::step() {
     sort(molecules.begin(), molecules.end(), SubpartComparatorForMol(mempart_indices));
 
     // and update their indices in the molecule_id_to_index_mapping
-    MoleculeIdToIndexMap& molecule_id_to_index_map = p.get_molecule_id_to_index_map();
+    std::vector<molecule_index_t>& molecule_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
     for (size_t i = 0; i < molecules.size(); i++) {
       const Molecule& m = molecules[i];
-      assert(molecule_id_to_index_map.count(m.id) != 0);
-      molecule_id_to_index_map[m.id] = i;
+      assert(molecule_id_to_index_mapping.size() < m.id);
+      molecule_id_to_index_mapping[m.id] = i;
     }
   }
-
 }
 
 } /* namespace mcell */

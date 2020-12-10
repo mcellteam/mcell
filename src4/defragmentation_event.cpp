@@ -49,7 +49,7 @@ void DefragmentationEvent::step() {
     }
 
     // remove defunct molecules in the molecules array
-    MoleculeIdToIndexMap& molecule_id_to_index_map = p.get_molecule_id_to_index_map();
+    vector<molecule_index_t>& molecule_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
 
 #ifdef DEBUG_DEFRAGMENTATION
     cout << "Defragmentation before sort:\n";
@@ -74,11 +74,14 @@ void DefragmentationEvent::step() {
       vmit_t it_second_defunct = find_if(it_next_funct, it_end, [](const Molecule & m) -> bool { return m.is_defunct(); });
 
       // items between it_first_defunct and it_next_funct will be removed
+      // for debug mode, we will set their ids in volume_molecules_id_to_index_mapping as invalid
+#ifndef NDEBUG
       for (vmit_t it_update_mapping = it_first_defunct; it_update_mapping != it_next_funct; it_update_mapping++) {
         const Molecule& vm = *it_update_mapping;
         assert(vm.is_defunct());
-        molecule_id_to_index_map.erase(vm.id);
+        molecule_id_to_index_mapping[vm.id] = MOLECULE_INDEX_INVALID;
       }
+#endif
 
       // move data: from, to, into position
       std::copy(it_next_funct, it_second_defunct, it_copy_destination);
@@ -109,7 +112,7 @@ void DefragmentationEvent::step() {
         break;
       }
       // correct index because the molecule could have been moved
-      molecule_id_to_index_map[vm.id] = i;
+      molecule_id_to_index_mapping[vm.id] = i;
     }
   }
 }
