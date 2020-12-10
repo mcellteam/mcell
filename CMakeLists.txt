@@ -394,7 +394,7 @@ pybind11_add_module(mcell4_so MODULE
     libmcell/api/exports.cpp
 )
 
-add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib ${GPERFTOOLS_MCELLSO_DEP})
+add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
     PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP}

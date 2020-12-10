@@ -39,7 +39,9 @@
 // pprof mcell.so mem<N>.dump -gv
 // MCell must be built with -DENABLE_GPERFTOOLS=ON otherwise
 // linking fails with undefined symbol MallocExtension::instance()
-//#define PROFILE_MEMORY
+#ifdef WITHGPERFTOOLS
+#define PROFILE_MEMORY
+#endif
 
 // when enabled, mcell3 produces identical result to the mcell master branch
 #define MCELL3_IDENTICAL
