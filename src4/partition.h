@@ -102,6 +102,13 @@ public:
   void clear_set(const species_id_t key) {
     if (key < this->size()) {
       (*this)[key].clear();
+      // also free used memory, clear does not free it 
+#ifdef NDEBUG
+      (*this)[key].shrink_to_fit();
+#else
+      uint_set<molecule_id_t> tmp;
+      (*this)[key].swap(tmp);
+#endif      
     }
   }
 
