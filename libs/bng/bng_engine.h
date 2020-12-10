@@ -85,6 +85,7 @@ public:
       const float_t volume_um3) const;
 
   void print_periodic_stats() const {
+    std::cout << "BNG report: " << get_stats_report() << "\n";
     all_species.print_periodic_stats();
     all_rxns.print_periodic_stats();
   }
