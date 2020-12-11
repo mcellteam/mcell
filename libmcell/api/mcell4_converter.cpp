@@ -370,7 +370,7 @@ void MCell4Converter::convert_simulation_setup() {
   float_t partition_edge_length_enlarged = world->config.partition_edge_length + max3(llf_moved);
   world->config.partition_edge_length = ceil_to_multiple(partition_edge_length_enlarged, sp_len);
 
-  world->config.num_subpartitions_per_partition =
+  world->config.num_subpartitions_per_partition_edge =
       round_f(world->config.partition_edge_length / sp_len);
 
   // this option in MCell3 was removed in MCell4

@@ -192,7 +192,7 @@ void Partition::apply_vertex_moves_per_object(
   //    we would first collect all moves and do them later, however we are creating temporary walls,
   //    so remembering them would be more complicated.
   VolumeMoleculeMoveInfoVector volume_molecule_moves;
-  uint_set<molecule_id_t> already_moved_volume_molecules;
+  MoleculeIdsSet already_moved_volume_molecules;
   SurfaceMoleculeMoveInfoVector surface_molecule_moves;
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
@@ -483,7 +483,7 @@ void Partition::initialize_all_waypoints() {
   // by regions when detecting whether a point is inside
 
   // each center of a subpartition has a waypoint
-  uint num_waypoints_per_dimension = config.num_subpartitions_per_partition;
+  uint num_waypoints_per_dimension = config.num_subpartitions_per_partition_edge;
 
   mcell_log("Initializing %d waypoints... ", powu(num_waypoints_per_dimension, 3));
 
@@ -669,18 +669,17 @@ void Partition::remove_from_known_vol_species(const species_id_t species_id) {
   }
   known_vol_species.erase(species_id);
 
-  for (SpeciesReactantsMap& reac_map: volume_molecule_reactants_per_subpart) {
-    reac_map.clear_set(species_id);
-  }
+  volume_molecule_reactants_per_species.remove_reactant_sets_for_species(species_id);
 }
 
 
 void Partition::shrink_all_volume_molecule_reactants_per_subpart() {
-  for (SpeciesReactantsMap& reac_map: volume_molecule_reactants_per_subpart) {
-    for (uint_set<molecule_id_t>& s: reac_map) {
+  // TODO if needed
+  /*for (SpeciesReactantsMap& reac_map: volume_molecule_reactants_per_subpart) {
+    for (MoleculeIdsSet& s: reac_map) {
       s.shrink();
     }
-  }
+  }*/
 }
 
 
@@ -729,12 +728,14 @@ void Partition::to_data_model(Json::Value& mcell) const {
 
 void Partition::print_periodic_stats() const {
 
+  // TODO
   long long total_reactants = 0;
+  /*
   for (const auto& subpart_reacts: volume_molecule_reactants_per_subpart) {
     for (const auto& per_species: subpart_reacts) {
       total_reactants += per_species.size();
     }
-  }
+  }*/
 
   std::cout <<
       "Partition: molecules.size() = " << molecules.size() << "\n" <<

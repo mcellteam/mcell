@@ -272,7 +272,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     // and how many subparts per dimension
     // the roundin is needed because we can get a result like .99999999 from the division
-    world->config.num_subpartitions_per_partition = round_f(world->config.partition_edge_length / sp_len);
+    world->config.num_subpartitions_per_partition_edge = round_f(world->config.partition_edge_length / sp_len);
 
 #if 0
     // simply choose the largest abs value from all the values
@@ -285,7 +285,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
     assert(s->num_subparts > 0);
-    world->config.num_subpartitions_per_partition = get_even_higher_or_same_value(s->num_subparts);
+    world->config.num_subpartitions_per_partition_edge = get_even_higher_or_same_value(s->num_subparts);
 #endif
   }
   else {
@@ -310,12 +310,12 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     // nx_parts counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
     int max_n_p_parts = max3_i(IVec3(s->nx_parts, s->ny_parts, s->nz_parts));
-    world->config.num_subpartitions_per_partition = get_even_higher_or_same_value(max_n_p_parts - 3);
+    world->config.num_subpartitions_per_partition_edge = get_even_higher_or_same_value(max_n_p_parts - 3);
 
     world->config.partition0_llf = Vec3(-world->config.partition_edge_length/2);
 
     // temporary, for the check after init
-    sp_len = world->config.partition_edge_length / world->config.num_subpartitions_per_partition;
+    sp_len = world->config.partition_edge_length / world->config.num_subpartitions_per_partition_edge;
   }
 
   Vec3 partition0_llf_microns = world->config.partition0_llf * Vec3(s->length_unit);
@@ -323,7 +323,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ], with %d subpartitions per dimension",
       partition0_llf_microns.x, partition0_llf_microns.y, partition0_llf_microns.z,
       partition0_urb_microns.x, partition0_urb_microns.y, partition0_urb_microns.z,
-      (int)world->config.num_subpartitions_per_partition
+      (int)world->config.num_subpartitions_per_partition_edge
   );
 
   world->config.randomize_smol_pos = s->randomize_smol_pos; // set in MDL using negated value of CENTER_MOLECULES_ON_GRID

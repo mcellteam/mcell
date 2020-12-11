@@ -50,64 +50,147 @@ typedef uint_set<wall_index_t> WallsInSubpart;
 // performance critical, therefore we are using a vector for now,
 // we will probably need to change it in the future by deriving it from
 //   std::map<species_id_t, uint_set<molecule_id_t> >,
-class SpeciesReactantsMap:
-    // vector is indexed by species_id
-    public std::vector<uint_set<molecule_id_t> > {
-
+class SubpartReactantsSet {
 public:
-  // key must exist
-  void erase_existing(const species_id_t key, const molecule_id_t id) {
-    assert(key < this->size());
-    (*this)[key].erase_existing(id);
+  SubpartReactantsSet(const uint num_subparts) {
+    sets_per_subpart.resize(num_subparts, nullptr);
   }
 
-  void erase(const species_id_t key, const molecule_id_t id) {
-    if (key >= this->size()) {
+  ~SubpartReactantsSet() {
+    for (MoleculeIdsSet* s: sets_per_subpart) {
+      // check for nullptr is really not needed, mainly to show that
+      // some items are not allocated
+      if (s != nullptr) {
+        delete s;
+      }
+    }
+  }
+
+  // subpart must exist
+  void erase_existing(const subpart_index_t subpart_index, const molecule_id_t id) {
+    assert(subpart_index < sets_per_subpart.size());
+    assert(sets_per_subpart[subpart_index] != nullptr);
+    sets_per_subpart[subpart_index]->erase_existing(id);
+  }
+
+  void erase(const subpart_index_t subpart_index, const molecule_id_t id) {
+    assert(subpart_index < sets_per_subpart.size());
+    if (sets_per_subpart[subpart_index] == nullptr) {
       return;
     }
-    (*this)[key].erase(id);
+    sets_per_subpart[subpart_index]->erase(id);
   }
 
   // key is created if it does not exist
-  void insert_unique(const species_id_t key, const molecule_id_t id) {
-    if (key >= this->size()) {
-      // resize vector
-      this->resize(key + 1);
+  void insert_unique(const subpart_index_t subpart_index, const molecule_id_t id) {
+    assert(subpart_index < sets_per_subpart.size());
+    allocate_set_if_needed(subpart_index);
+    sets_per_subpart[subpart_index]->insert_unique(id);
+  }
+
+  void insert(const subpart_index_t subpart_index, const molecule_id_t id) {
+    assert(subpart_index < sets_per_subpart.size());
+    allocate_set_if_needed(subpart_index);
+    sets_per_subpart[subpart_index]->insert(id);
+  }
+
+  bool contains(const subpart_index_t subpart_index, const molecule_id_t id) const {
+    assert(subpart_index < sets_per_subpart.size());
+    if (sets_per_subpart[subpart_index] == nullptr) {
+      return false;
     }
-    (*this)[key].insert_unique(id);
+    return sets_per_subpart[subpart_index]->count(id) != 0;
   }
 
-  void insert(const species_id_t key, const molecule_id_t id) {
-    if (key >= this->size()) {
-      // resize vector
-      this->resize(key + 1);
-    }
-    (*this)[key].insert(id);
-  }
-
-  bool contains(const species_id_t key, const molecule_id_t id) const {
-    return (*this)[key].count(id) != 0;
-  }
-
-  const uint_set<molecule_id_t>& get_contained_set(const species_id_t key) const {
-    if (key >= this->size()) {
-      // not present, simply return an empty set
+  const MoleculeIdsSet& get_contained_set(const subpart_index_t subpart_index) const {
+    // when calling this method, this container may be empty, i.e. initialized with 0 subparts
+    if (subpart_index >= sets_per_subpart.size() || sets_per_subpart[subpart_index] == nullptr) {
       return empty_set;
     }
     else {
-      return (*this)[key];
+      return *sets_per_subpart[subpart_index];
     }
   }
 
-  void clear_set(const species_id_t key) {
-    if (key < this->size()) {
-      (*this)[key].clear();
-      (*this)[key].shrink();
+  void clear_set(const subpart_index_t subpart_index) {
+    assert(subpart_index < sets_per_subpart.size());
+    if (sets_per_subpart[subpart_index] == nullptr) {
+      return;
+    }
+    delete sets_per_subpart[subpart_index];
+    sets_per_subpart[subpart_index] = nullptr;
+  }
+
+private:
+  void allocate_set_if_needed(const subpart_index_t subpart_index) {
+    assert(subpart_index < sets_per_subpart.size());
+    if (sets_per_subpart[subpart_index] == nullptr) {
+      sets_per_subpart[subpart_index] = new MoleculeIdsSet();
+    }
+  }
+
+  // vector is indexed by subpart_index_t
+  std::vector<MoleculeIdsSet*> sets_per_subpart;
+
+  MoleculeIdsSet empty_set;
+};
+
+
+// container that holds SubpartReactantsSet for each species
+class SpeciesSubpartReactantsSet {
+public:
+  SpeciesSubpartReactantsSet(const uint num_subparts_) :
+    empty_subpart_reactants_set(0),
+    num_subparts(num_subparts_) {
+  }
+
+  ~SpeciesSubpartReactantsSet() {
+    for (auto& subpart_sets: subparts_reactant_sets_per_species) {
+      if (subpart_sets != nullptr) {
+        delete subpart_sets;
+      }
+    }
+  }
+
+  void remove_reactant_sets_for_species(const species_id_t species_id) {
+    if (species_id >= subparts_reactant_sets_per_species.size()) {
+      return;
+    }
+    if (subparts_reactant_sets_per_species[species_id] != nullptr) {
+      delete subparts_reactant_sets_per_species[species_id];
+      subparts_reactant_sets_per_species[species_id] = nullptr;
+    }
+  }
+
+  SubpartReactantsSet& get_subparts_reactants_for_species(const species_id_t species_id) {
+    if (species_id >= subparts_reactant_sets_per_species.size()) {
+      subparts_reactant_sets_per_species.resize(species_id + 1, nullptr);
+    }
+    if (subparts_reactant_sets_per_species[species_id] == nullptr) {
+      subparts_reactant_sets_per_species[species_id] = new SubpartReactantsSet(num_subparts);
+    }
+    return *subparts_reactant_sets_per_species[species_id];
+  }
+
+  const SubpartReactantsSet& get_subparts_reactants_for_species(const species_id_t species_id) const {
+    if (species_id >= subparts_reactant_sets_per_species.size() ||
+        subparts_reactant_sets_per_species[species_id] == nullptr) {
+      return empty_subpart_reactants_set;
+    }
+    else {
+      return *subparts_reactant_sets_per_species[species_id];
     }
   }
 
 private:
-  uint_set<molecule_id_t> empty_set;
+
+  // indexed by species_id, grows dynamically as number of species grows
+  std::vector<SubpartReactantsSet*> subparts_reactant_sets_per_species;
+
+  SubpartReactantsSet empty_subpart_reactants_set;
+
+  // used when constructing SubpartReactantsSet
+  uint num_subparts;
 };
 
 
@@ -133,6 +216,7 @@ public:
   )
     : origin_corner(origin_corner_),
       next_molecule_id(0),
+      volume_molecule_reactants_per_species(config_.num_subpartitions),
       id(id_),
       config(config_),
       bng_engine(bng_engine_),
@@ -151,9 +235,7 @@ public:
     );
 
     // pre-allocate volume_molecules arrays and also volume_molecule_indices_per_time_step
-    uint32_t num_subparts = powu(config.num_subpartitions_per_partition, 3);
-    volume_molecule_reactants_per_subpart.resize(num_subparts);
-    walls_per_subpart.resize(num_subparts);
+    walls_per_subpart.resize(config.num_subpartitions);
 
     // create an empty counted volume
     CountedVolume counted_volume_outside_all;
@@ -215,7 +297,7 @@ public:
   }
 
   bool is_subpart_index_in_range(const int index) const {
-    return index >= 0 && index < (int)config.num_subpartitions_per_partition;
+    return index >= 0 && index < (int)config.num_subpartitions_per_partition_edge;
   }
 
   void get_subpart_3d_indices(const Vec3& pos, IVec3& res) const {
@@ -228,14 +310,14 @@ public:
 
   subpart_index_t get_subpart_index_from_3d_indices(const IVec3& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
-    assert(indices.x < (int)config.num_subpartitions_per_partition);
-    assert(indices.y < (int)config.num_subpartitions_per_partition);
-    assert(indices.z < (int)config.num_subpartitions_per_partition);
+    assert(indices.x < (int)config.num_subpartitions_per_partition_edge);
+    assert(indices.y < (int)config.num_subpartitions_per_partition_edge);
+    assert(indices.z < (int)config.num_subpartitions_per_partition_edge);
     // this recomputation can be slow when done often, but we need subpart indices to be continuous
     return
         indices.x +
-        indices.y * config.num_subpartitions_per_partition +
-        indices.z * config.num_subpartitions_per_partition_squared;
+        indices.y * config.num_subpartitions_per_partition_edge +
+        indices.z * config.num_subpartitions_per_partition_edge_squared;
   }
 
   subpart_index_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
@@ -244,11 +326,11 @@ public:
 
 
   void get_subpart_3d_indices_from_index(const subpart_index_t index, IVec3& indices) const {
-    uint32_t dim = config.num_subpartitions_per_partition;
+    uint32_t dim = config.num_subpartitions_per_partition_edge;
     // example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)
     indices.x = index % dim;
     indices.y = (index / dim) % dim;
-    indices.z = (index / config.num_subpartitions_per_partition_squared) % dim;
+    indices.z = (index / config.num_subpartitions_per_partition_edge_squared) % dim;
   }
 
   subpart_index_t get_subpart_index(const Vec3& pos) const {
@@ -290,6 +372,9 @@ public:
       return;
     }
 
+    SubpartReactantsSet& reactant_sets_per_subpart =
+        volume_molecule_reactants_per_species.get_subparts_reactants_for_species(new_species_id);
+
     // let's go through all molecules and update whether they can react with our new species
     for (const Molecule& m: molecules) {
       if (!m.is_vol() || m.is_defunct()) {
@@ -297,7 +382,6 @@ public:
       }
 
       assert(m.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
-      SpeciesReactantsMap& subpart_reactants_sp = volume_molecule_reactants_per_subpart[m.v.reactant_subpart_index];
 
       // check if any rxn matches the molecule that we are checking
       for (const auto& second_reactant_info: *rxns_classes_map) { 
@@ -314,7 +398,7 @@ public:
         if (m.species_id == second_species_id) {
           // this mapping may already exist because the new_species_id was known
           // when 'm' was added
-          subpart_reactants_sp.insert(new_species_id, m.id);
+          reactant_sets_per_subpart.insert(m.v.reactant_subpart_index, m.id);
         }
       }
     }
@@ -347,10 +431,6 @@ public:
       return;
     }
 
-    // these are all the sets of indices of reactants for this particular subpartition
-    SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.reactant_subpart_index];
-    SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
-
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info: *rxns_classes_map) {
       species_id_t second_species_id = second_reactant_info.first;
@@ -372,20 +452,23 @@ public:
         continue;
       }
 
+      SubpartReactantsSet& second_reactant_sets_per_subpart =
+          volume_molecule_reactants_per_species.get_subparts_reactants_for_species(second_species_id);
+
       if (removing) {
-        subpart_reactants_orig_sp.erase_existing(second_species_id, vm.id);
+        second_reactant_sets_per_subpart.erase_existing(vm.v.reactant_subpart_index, vm.id);
       }
       if (adding) {
-        subpart_reactants_new_sp.insert_unique(second_species_id, vm.id);
+        second_reactant_sets_per_subpart.insert_unique(vm.v.subpart_index, vm.id);
       }
     }
 
 #ifdef DEBUG_EXTRA_CHECKS
     // check that we don't have any defunct mols
     if (!adding && removing) {
-      for (auto subpart_vec: volume_molecule_reactants_per_subpart) {
-        for (auto species_reactants: subpart_vec) {
-          for (molecule_id_t id: species_reactants) {
+      for (auto species_vec: volume_molecule_reactants_per_subpart) {
+        for (auto subpart_reactants: species_vec) {
+          for (molecule_id_t id: subpart_reactants) {
             assert(!get_m(id).is_defunct());
           }
         }
@@ -398,8 +481,8 @@ public:
 
 
   void update_molecule_reactants_map(Molecule& vm) {
-    assert(vm.v.subpart_index < volume_molecule_reactants_per_subpart.size());
-    assert(vm.v.reactant_subpart_index < volume_molecule_reactants_per_subpart.size());
+    assert(vm.v.subpart_index < config.num_subpartitions);
+    assert(vm.v.reactant_subpart_index < config.num_subpartitions);
     if (vm.v.subpart_index == vm.v.reactant_subpart_index) {
       return; // nothing to do
     }
@@ -546,9 +629,10 @@ public:
     return opposite_corner;
   }
 
-  const uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) const {
-    assert(subpart_index < volume_molecule_reactants_per_subpart.size());
-    return volume_molecule_reactants_per_subpart[subpart_index].get_contained_set(species_id);
+  const MoleculeIdsSet& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) const {
+    assert(subpart_index < config.num_subpartitions);
+    return volume_molecule_reactants_per_species.
+        get_subparts_reactants_for_species(species_id).get_contained_set(subpart_index);
   }
 
 
@@ -987,8 +1071,8 @@ private:
   // TODO_LATER: move to World
   molecule_id_t next_molecule_id;
 
-  // indexed with subpartition index, only for vol-vol reactions
-  std::vector<SpeciesReactantsMap> volume_molecule_reactants_per_subpart;
+  // indexed with species_id
+  SpeciesSubpartReactantsSet volume_molecule_reactants_per_species;
 
   // set that remembers which species we already saw, used to update
   // volume_molecule_reactants_per_subpart when needed

@@ -166,6 +166,7 @@ typedef uint molecule_id_t;
 const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
 typedef std::vector<molecule_id_t> MoleculeIdsVector;
+typedef uint_set<molecule_id_t> MoleculeIdsSet;
 
 // molecule index is index into partition's molecules array, indices and ids are
 // identical until the first defragmentation that shuffles molecules in the molecules array

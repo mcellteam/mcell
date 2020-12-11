@@ -731,7 +731,7 @@ RayTraceState ray_trace_vol(
 
     for (subpart_index_t subpart_index: crossed_subparts_for_molecules) {
       // get cached reacting molecules for this SP
-      const uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
+      const MoleculeIdsSet& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
 
       // for each molecule in this SP
       for (molecule_id_t colliding_vm_id: sp_reactants) {

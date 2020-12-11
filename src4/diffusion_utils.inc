@@ -221,7 +221,7 @@ static inline float_t get_safe_diffusion_step(
   if (sp.has_flag(BNG::SPECIES_FLAG_CAN_VOLVOL) && !sp.has_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE) ) {
 
     // get the closest distance to any molecule that can react
-    const uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(vm.v.subpart_index, vm.species_id);
+    const MoleculeIdsSet& sp_reactants = p.get_volume_molecule_reactants(vm.v.subpart_index, vm.species_id);
     for (molecule_id_t subpart_vm_id: sp_reactants) {
       const Molecule& subpart_vm = p.get_m(subpart_vm_id);
       assert(subpart_vm.is_vol());

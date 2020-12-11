@@ -204,7 +204,7 @@ static void dump_blender_display_code(
 static void collect_volume_molecules_moved_due_to_moving_wall(
     Partition& p,
     const wall_index_t moved_wall_index, const WallMoveInfo& move_info,
-    uint_set<molecule_id_t>& already_moved_molecules,
+    MoleculeIdsSet& already_moved_molecules,
     VolumeMoleculeMoveInfoVector& molecule_moves
 ) {
 

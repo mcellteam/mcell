@@ -84,7 +84,7 @@ World::World(API::Callbacks& callbacks_)
     previous_iteration(0)
 {
   config.partition_edge_length = FLT_INVALID;
-  config.num_subpartitions_per_partition = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
+  config.num_subpartitions_per_partition_edge = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 
   // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
   // uninitialized variable
@@ -190,7 +190,7 @@ void World::init_simulation() {
   init_counted_volumes();
 
   cout <<
-      "Partition contains " <<  config.num_subpartitions_per_partition << "^3 subpartitions, " <<
+      "Partition contains " <<  config.num_subpartitions_per_partition_edge << "^3 subpartitions, " <<
       "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 

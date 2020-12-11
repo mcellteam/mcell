@@ -170,8 +170,8 @@ static void raycast_with_endpoints(
 
   // computing subpart index using get_subpart_index_from_3d_indices every time is rather expensive
   const int subpart_x_addend = dir.x;
-  const int subpart_y_addend = dir.y * p.config.num_subpartitions_per_partition;
-  const int subpart_z_addend = dir.z * p.config.num_subpartitions_per_partition_squared;
+  const int subpart_y_addend = dir.y * p.config.num_subpartitions_per_partition_edge;
+  const int subpart_z_addend = dir.z * p.config.num_subpartitions_per_partition_edge_squared;
 
   IVec3 indices;
   p.get_subpart_3d_indices(pt1, indices);

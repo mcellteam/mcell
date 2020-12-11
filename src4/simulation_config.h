@@ -36,8 +36,9 @@ public:
   SimulationConfig() :
     vacancy_search_dist2(FLT_INVALID),
     partition_edge_length(FLT_INVALID),
-    num_subpartitions_per_partition(UINT_INVALID),
-    num_subpartitions_per_partition_squared(UINT_INVALID),
+    num_subpartitions_per_partition_edge(UINT_INVALID),
+    num_subpartitions_per_partition_edge_squared(UINT_INVALID),
+    num_subpartitions(UINT_INVALID),
     subpartition_edge_length(FLT_INVALID),
     subpartition_edge_length_rcp(FLT_INVALID),
     num_radial_subdivisions(1024),
@@ -58,8 +59,9 @@ public:
   Vec3 partition0_llf;
 
   float_t partition_edge_length; // TODO: rename to side
-  uint num_subpartitions_per_partition; // TODO: rename to subpart...
-  uint num_subpartitions_per_partition_squared;
+  uint num_subpartitions_per_partition_edge; // TODO: rename to subpart...
+  uint num_subpartitions_per_partition_edge_squared;
+  uint num_subpartitions; // == num_subpartitions_per_partition_edge^3
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 

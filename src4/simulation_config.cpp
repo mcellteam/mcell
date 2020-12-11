@@ -31,9 +31,10 @@ namespace MCell {
 
 void SimulationConfig::init_subpartition_edge_length() {
   release_assert(partition_edge_length > 0);
-  subpartition_edge_length = partition_edge_length / (float_t)num_subpartitions_per_partition;
+  subpartition_edge_length = partition_edge_length / (float_t)num_subpartitions_per_partition_edge;
   subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
-  num_subpartitions_per_partition_squared = powu(num_subpartitions_per_partition, 2);
+  num_subpartitions_per_partition_edge_squared = powu(num_subpartitions_per_partition_edge, 2);
+  num_subpartitions = powu(num_subpartitions_per_partition_edge, 3);
 }
 
 
@@ -122,8 +123,8 @@ void SimulationConfig::dump() {
   cout << "SimulationConfig:\n";
   cout << "  vacancy_search_dist2: \t\t" << vacancy_search_dist2 << " [float_t] \t\t\n";
   cout << "  partition_edge_length: \t\t" << partition_edge_length << " [float_t] \t\t\n";
-  cout << "  num_subpartitions_per_partition: \t\t" << num_subpartitions_per_partition << " [uint] \t\t\n";
-  cout << "  num_subpartitions_per_partition_squared: \t\t" << num_subpartitions_per_partition_squared << " [uint] \t\t\n";
+  cout << "  num_subpartitions_per_partition: \t\t" << num_subpartitions_per_partition_edge << " [uint] \t\t\n";
+  cout << "  num_subpartitions_per_partition_squared: \t\t" << num_subpartitions_per_partition_edge_squared << " [uint] \t\t\n";
   cout << "  subpartition_edge_length: \t\t" << subpartition_edge_length << " [float_t] \t\t\n";
   cout << "  subpartition_edge_length_rcp: \t\t" << subpartition_edge_length_rcp << " [float_t] \t\t\n";
   cout << "  use_expanded_list: \t\t" << use_expanded_list << " [bool] \t\t\n";
