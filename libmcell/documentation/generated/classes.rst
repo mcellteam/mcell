@@ -327,7 +327,7 @@ Attributes:
   | Enables sorting of molecules for diffusion, this may improve cache locality.
   | Produces different results when enabled.
 
-* | **memory_limit_gb**: int = 64
+* | **memory_limit_gb**: int = -1
   | Sets memory limit in GB for simulation run. 
   | When this limit is hit, all buffers are flushed and simulation is terminated with an error.
 

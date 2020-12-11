@@ -240,7 +240,7 @@ class Config():
             total_iterations_hint : float = 1000000,
             check_overlapped_walls : bool = True,
             sort_molecules : bool = False,
-            memory_limit_gb : int = 64
+            memory_limit_gb : int = -1
         ):
         self.seed = seed
         self.time_step = time_step

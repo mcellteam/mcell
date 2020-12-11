@@ -49,7 +49,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   total_iterations_hint = 1000000;
   check_overlapped_walls = true;
   sort_molecules = false;
-  memory_limit_gb = 64;
+  memory_limit_gb = -1;
 }
 
 bool GenConfig::__eq__(const Config& other) const {
@@ -135,7 +135,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("total_iterations_hint") = 1000000,
           py::arg("check_overlapped_walls") = true,
           py::arg("sort_molecules") = false,
-          py::arg("memory_limit_gb") = 64
+          py::arg("memory_limit_gb") = -1
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))

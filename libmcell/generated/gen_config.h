@@ -45,7 +45,7 @@ class Config;
         const float_t total_iterations_hint_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
         const bool sort_molecules_ = false, \
-        const int memory_limit_gb_ = 64 \
+        const int memory_limit_gb_ = -1 \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
