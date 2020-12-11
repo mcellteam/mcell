@@ -102,13 +102,7 @@ public:
   void clear_set(const species_id_t key) {
     if (key < this->size()) {
       (*this)[key].clear();
-      // also free used memory, clear does not free it 
-#ifdef NDEBUG
-      (*this)[key].shrink_to_fit();
-#else
-      uint_set<molecule_id_t> tmp;
-      (*this)[key].swap(tmp);
-#endif      
+      (*this)[key].shrink();
     }
   }
 
@@ -954,6 +948,8 @@ public:
   }
 
   void remove_from_known_vol_species(const species_id_t species_id);
+
+  void shrink_all_volume_molecule_reactants_per_subpart();
 
   void print_periodic_stats() const;
 

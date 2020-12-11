@@ -137,6 +137,10 @@ const uint RXN_CLASS_CLEANUP_PERIODICITY = 100;
 
 const uint SPECIES_CLEANUP_PERIODICITY = 2000;
 
+// TODO: make this configurable so that we can run tests
+const uint PARTITION_SHRINK_PERIODICITY = 10000;
+
+
 const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we have just one partition
 const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;

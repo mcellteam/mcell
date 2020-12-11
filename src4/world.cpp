@@ -32,6 +32,7 @@
 #include "world.h"
 #include "viz_output_event.h"
 #include "defragmentation_event.h"
+#include "partition_shrink_event.h"
 #include "rxn_class_cleanup_event.h"
 #include "species_cleanup_event.h"
 #include "sort_mols_by_subpart_event.h"
@@ -203,6 +204,11 @@ void World::init_simulation() {
   defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
   defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
+
+  PartitionShrinkEvent* partition_shrink_event = new PartitionShrinkEvent(this);
+  partition_shrink_event->event_time = PARTITION_SHRINK_PERIODICITY;
+  partition_shrink_event->periodicity_interval = PARTITION_SHRINK_PERIODICITY;
+  scheduler.schedule_event(partition_shrink_event);
 
   // create rxn class cleanup events
   RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);

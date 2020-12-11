@@ -675,6 +675,14 @@ void Partition::remove_from_known_vol_species(const species_id_t species_id) {
 }
 
 
+void Partition::shrink_all_volume_molecule_reactants_per_subpart() {
+  for (SpeciesReactantsMap& reac_map: volume_molecule_reactants_per_subpart) {
+    for (uint_set<molecule_id_t>& s: reac_map) {
+      s.shrink();
+    }
+  }
+}
+
 
 void Partition::to_data_model(Json::Value& mcell) const {
 

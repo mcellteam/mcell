@@ -28,7 +28,9 @@ void RxnContainer::reset_caches() {
   rxn_classes.clear();
 
   species_processed_for_bimol_rxn_classes.clear();
+  species_processed_for_bimol_rxn_classes.shrink();
   species_processed_for_unimol_rxn_classes.clear();
+  species_processed_for_bimol_rxn_classes.shrink();
   unimol_rxn_class_map.clear();
   bimol_rxn_class_map.clear();
 

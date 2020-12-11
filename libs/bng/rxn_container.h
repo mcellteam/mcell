@@ -40,7 +40,7 @@ typedef BimolRxnClassesMap::iterator BimolSpeciesIt;
 typedef std::set<RxnClass*> RxnClassPtrSet;
 typedef std::vector<RxnRule*> RxnRuleVector;
 
-typedef std::set<species_id_t> SpeciesIdSet;
+typedef uint_set<species_id_t> SpeciesIdSet;
 
 static inline BNG::RxnClass* get_rxn_class_for_any_compartment(
     const BNG::CompartmentRxnClassesMap& compartment_rxn_classes_map) {

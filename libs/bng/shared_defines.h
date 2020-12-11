@@ -307,6 +307,16 @@ public:
     this->erase(id_or_index);
   }
 
+  void shrink() {
+#ifdef NDEBUG
+      // INDEXER_WA must be disabled for this to compile
+      this->shrink_to_fit();
+#else
+      base_flat_set<molecule_id_t> tmp = *this;
+      this->swap(tmp);
+#endif
+  }
+
   void dump(const std::string comment = "") const;
 };
 

@@ -228,6 +228,7 @@ private:
 
   // maintain information on where this reaction was used in order to
   // update all classes if this reaction's rate constant changes
+  // TODO: check that this does not grow too much
   std::set<RxnClass*> rxn_classes_where_used;
 
 public:
