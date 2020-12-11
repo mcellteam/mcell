@@ -511,7 +511,7 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
 
   out << make_section_comment("instantiation data");
 
-  gen_ctor_call(out, INSTANTIATION, NAME_CLASS_INSTANTIATION_DATA, false);
+  gen_ctor_call(out, INSTANTIATION, NAME_CLASS_INSTANTIATION, false);
   for (const string& s: geometry_objects) {
     gen_method_call(out, INSTANTIATION, NAME_ADD_GEOMETRY_OBJECT, s);
   }
@@ -868,7 +868,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
 
   out << make_section_comment("add components");
   gen_method_call(out, MODEL, NAME_ADD_SUBSYSTEM, get_module_name(SUBSYSTEM) + "." + SUBSYSTEM);
-  gen_method_call(out, MODEL, NAME_ADD_INSTANTIATION_DATA, get_module_name(INSTANTIATION) + "." + INSTANTIATION);
+  gen_method_call(out, MODEL, NAME_ADD_INSTANTIATION, get_module_name(INSTANTIATION) + "." + INSTANTIATION);
   if (observables_generated) {
     gen_method_call(out, MODEL, NAME_ADD_OBSERVABLES, get_module_name(OBSERVABLES) + "." + OBSERVABLES);
   }

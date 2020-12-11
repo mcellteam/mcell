@@ -28,7 +28,7 @@
 #include "api/count.h"
 #include "api/elementary_molecule_type.h"
 #include "api/geometry_object.h"
-#include "api/instantiation_data.h"
+#include "api/instantiation.h"
 #include "api/mol_wall_hit_info.h"
 #include "api/molecule.h"
 #include "api/notifications.h"
@@ -111,7 +111,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("end_simulation", &Model::end_simulation, py::arg("print_final_report") = true)
       .def("add_subsystem", &Model::add_subsystem, py::arg("subsystem"))
-      .def("add_instantiation_data", &Model::add_instantiation_data, py::arg("instantiation_data"))
+      .def("add_instantiation", &Model::add_instantiation, py::arg("instantiation"))
       .def("add_observables", &Model::add_observables, py::arg("observables"))
       .def("dump_internal_state", &Model::dump_internal_state)
       .def("export_data_model", &Model::export_data_model, py::arg("file") = STR_UNSET)

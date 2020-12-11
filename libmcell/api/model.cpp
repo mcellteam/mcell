@@ -63,11 +63,11 @@ void Model::add_subsystem(std::shared_ptr<Subsystem> subsystem) {
 }
 
 
-void Model::add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) {
-  error_if_initialized(NAME_CLASS_INSTANTIATION_DATA);
+void Model::add_instantiation(std::shared_ptr<Instantiation> instantiation) {
+  error_if_initialized(NAME_CLASS_INSTANTIATION);
 
-  append_vec_to_vec(release_sites, instantiation_data->release_sites);
-  append_vec_to_vec(geometry_objects, instantiation_data->geometry_objects);
+  append_vec_to_vec(release_sites, instantiation->release_sites);
+  append_vec_to_vec(geometry_objects, instantiation->geometry_objects);
 }
 
 
@@ -424,7 +424,7 @@ void Model::load_bngl(
   convert_bng_data_to_subsystem_data(bng_data);
 
   // needs subsystem data created in the last step
-  convert_bng_data_to_instantiation_data(bng_data, *this, default_release_region);
+  convert_bng_data_to_instantiation(bng_data, *this, default_release_region);
 
   convert_bng_data_to_observables_data(bng_data, *this, observables_files_prefix);
 }
@@ -442,7 +442,7 @@ void Model::export_to_bngl(const std::string& file_name) {
 }
 
 
-// overrides from derived classes Subsystem, InstantiationData, and Observables,
+// overrides from derived classes Subsystem, Instantiation, and Observables,
 // in .cpp because implementation in .h file would need too many headers to be included
 void Model::add_species(std::shared_ptr<Species> s) {
   error_if_initialized(NAME_CLASS_SPECIES);
@@ -461,12 +461,12 @@ void Model::add_surface_class(std::shared_ptr<SurfaceClass> sc) {
 
 void Model::add_release_site(std::shared_ptr<ReleaseSite> s) {
   error_if_initialized(NAME_CLASS_RELEASE_SITE);
-  InstantiationData::add_release_site(s);
+  Instantiation::add_release_site(s);
 }
 
 void Model::add_geometry_object(std::shared_ptr<GeometryObject> o) {
   error_if_initialized(NAME_CLASS_GEOMETRY_OBJECT);
-  InstantiationData::add_geometry_object(o);
+  Instantiation::add_geometry_object(o);
 }
 
 void Model::add_viz_output(std::shared_ptr<VizOutput> viz_output) {

@@ -174,7 +174,7 @@ InitialSurfaceRelease:
       only one of number_to_release and density can be set.
       
       
-InstantiationData:
+Instantiation:
   items:
   - name: release_sites
     type: List[ReleaseSite*]

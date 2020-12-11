@@ -30,7 +30,7 @@
 #include "api/reaction_info.h"
 #include "api/warnings.h"
 #include "api/subsystem.h"
-#include "api/instantiation_data.h"
+#include "api/instantiation.h"
 #include "api/observables.h"
 
 namespace MCell {
@@ -41,7 +41,7 @@ class Config;
 class Count;
 class ElementaryMoleculeType;
 class GeometryObject;
-class InstantiationData;
+class Instantiation;
 class MolWallHitInfo;
 class Molecule;
 class Notifications;
@@ -58,7 +58,7 @@ class Wall;
 class WallWallHitInfo;
 class Warnings;
 
-class GenModel: public Subsystem, public InstantiationData, public Observables {
+class GenModel: public Subsystem, public Instantiation, public Observables {
 public:
   virtual ~GenModel() {}
   virtual bool __eq__(const Model& other) const;
@@ -97,7 +97,7 @@ public:
   virtual void run_iterations(const float_t iterations) = 0;
   virtual void end_simulation(const bool print_final_report = true) = 0;
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
-  virtual void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) = 0;
+  virtual void add_instantiation(std::shared_ptr<Instantiation> instantiation) = 0;
   virtual void add_observables(std::shared_ptr<Observables> observables) = 0;
   virtual void dump_internal_state() = 0;
   virtual void export_data_model(const std::string& file = STR_UNSET) = 0;

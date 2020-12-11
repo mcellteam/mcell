@@ -89,7 +89,7 @@ public:
   // added manually
   void dump() const;
 
-  // auxiliary methods used also from InstantiationData
+  // auxiliary methods used also from Instantiation
   std::shared_ptr<API::Complex> convert_cplx(
       const BNG::BNGData& bng_data,
       const BNG::Cplx& bng_inst);

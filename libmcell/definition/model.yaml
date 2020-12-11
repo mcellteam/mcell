@@ -1,5 +1,5 @@
 Model:
-  superclasses: [Subsystem, InstantiationData, Observables]
+  superclasses: [Subsystem, Instantiation, Observables]
   
   items:
   - name: config
@@ -38,10 +38,10 @@ Model:
     - name: subsystem
       type: Subsystem*
       
-  - name: add_instantiation_data
+  - name: add_instantiation
     params:
-    - name: instantiation_data
-      type: InstantiationData*
+    - name: instantiation
+      type: Instantiation*
 
   - name: add_observables
     params:

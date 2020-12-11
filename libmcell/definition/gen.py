@@ -1274,7 +1274,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         f.write(NAMESPACES_END + '\n\n')
         
 
-# class Model provides the same methods as Subsystem and InstantiationData, 
+# class Model provides the same methods as Subsystem and Instantiation, 
 # this function copies the definition for pybind11 API generation
 def inherit_from_superclasses(data_classes, class_name, class_def):
     

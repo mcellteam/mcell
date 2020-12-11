@@ -26,7 +26,7 @@ class GeometryObject():
     pass
 class InitialSurfaceRelease():
     pass
-class InstantiationData():
+class Instantiation():
     pass
 class Model():
     pass
@@ -446,7 +446,7 @@ class InitialSurfaceRelease():
         self.density = density
 
 
-class InstantiationData():
+class Instantiation():
     def __init__(
             self,
             release_sites : List[ReleaseSite] = None,
@@ -552,9 +552,9 @@ class Model():
         ) -> None:
         pass
 
-    def add_instantiation_data(
+    def add_instantiation(
             self,
-            instantiation_data : InstantiationData
+            instantiation : Instantiation
         ) -> None:
         pass
 

@@ -27,8 +27,7 @@
 #include "api/common.h"
 #include "api/globals.h"
 #include "api/subsystem.h"
-#include "api/instantiation_data.h"
-#include "api/instantiation_data.h"
+#include "api/instantiation.h"
 #include "api/observables.h"
 #include "api/config.h"
 #include "api/warnings.h"
@@ -62,7 +61,7 @@ public:
   void end_simulation(const bool print_final_report = true) override;
 
   void add_subsystem(std::shared_ptr<Subsystem> subsystem) override;
-  void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) override;
+  void add_instantiation(std::shared_ptr<Instantiation> instantiation) override;
   void add_observables(std::shared_ptr<Observables> observables) override;
 
   void dump_internal_state() override;
@@ -113,7 +112,7 @@ public:
 
   void export_to_bngl(const std::string& file_name) override;
 
-  // overrides from derived classes Subsystem, InstantiationData, and Observables
+  // overrides from derived classes Subsystem, Instantiation, and Observables
   void add_species(std::shared_ptr<Species> s) override;
   void add_reaction_rule(std::shared_ptr<ReactionRule> r) override;
 

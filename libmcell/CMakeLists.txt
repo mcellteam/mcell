@@ -36,7 +36,7 @@ set(SOURCE_FILES
     api/count.cpp
     
     api/subsystem.cpp
-    api/instantiation_data.cpp
+    api/instantiation.cpp
     api/observables.cpp
     api/model.cpp
     
@@ -69,7 +69,7 @@ set(SOURCE_FILES
     generated/gen_release_pattern.cpp
     generated/gen_molecule_release_info.cpp
     generated/gen_release_site.cpp
-    generated/gen_instantiation_data.cpp
+    generated/gen_instantiation.cpp
     
     generated/gen_count_term.cpp
     generated/gen_count.cpp

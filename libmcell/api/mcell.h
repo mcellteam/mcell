@@ -47,8 +47,6 @@
 #include "api/release_pattern.h"
 #include "api/molecule_release_info.h"
 #include "api/release_site.h"
-#include "api/instantiation_data.h"
-
 #include "api/count_term.h"
 #include "api/count.h"
 #include "api/viz_output.h"
@@ -71,5 +69,6 @@
 
 #include "api/shared_structs.h"
 #include "complex.h"
+#include "instantiation.h"
 
 #endif // API_MCELL_H

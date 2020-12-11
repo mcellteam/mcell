@@ -20,7 +20,7 @@
  *
 ******************************************************************************/
 
-#include "api/instantiation_data.h"
+#include "api/instantiation.h"
 
 #include <algorithm>
 #include "bng/bng.h"
@@ -41,12 +41,12 @@ namespace API {
 const char* const RELEASE_SITE_PREFIX = "rel_";
 
 
-void InstantiationData::dump() const {
+void Instantiation::dump() const {
   std::cout << to_str() << "\n";
 }
 
 
-std::shared_ptr<GeometryObject> InstantiationData::find_volume_compartment(const std::string& name) {
+std::shared_ptr<GeometryObject> Instantiation::find_volume_compartment(const std::string& name) {
   for (auto o: geometry_objects) {
     if (o->is_bngl_compartment) {
       if (o->name == name) {
@@ -58,7 +58,7 @@ std::shared_ptr<GeometryObject> InstantiationData::find_volume_compartment(const
 }
 
 
-std::shared_ptr<GeometryObject> InstantiationData::find_surface_compartment(const std::string& name) {
+std::shared_ptr<GeometryObject> Instantiation::find_surface_compartment(const std::string& name) {
   for (auto o: geometry_objects) {
     if (o->is_bngl_compartment) {
       if (is_set(o->surface_compartment_name) && o->surface_compartment_name == name) {
@@ -70,7 +70,7 @@ std::shared_ptr<GeometryObject> InstantiationData::find_surface_compartment(cons
 }
 
 
-void InstantiationData::load_bngl_seed_species(
+void Instantiation::load_bngl_seed_species(
     const std::string& file_name,
     std::shared_ptr<Subsystem> subsystem,
     std::shared_ptr<Region> default_release_region,
@@ -85,11 +85,11 @@ void InstantiationData::load_bngl_seed_species(
 
   // now convert everything we parsed into the API classes so that the user can
   // inspect or manipulate it if needed
-  convert_bng_data_to_instantiation_data(bng_data, *subsystem, default_release_region);
+  convert_bng_data_to_instantiation(bng_data, *subsystem, default_release_region);
 }
 
 
-void InstantiationData::convert_bng_data_to_instantiation_data(
+void Instantiation::convert_bng_data_to_instantiation(
     const BNG::BNGData& bng_data,
     Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
@@ -102,7 +102,7 @@ void InstantiationData::convert_bng_data_to_instantiation_data(
 }
 
 
-void InstantiationData::convert_compartments(const BNG::BNGData& bng_data) {
+void Instantiation::convert_compartments(const BNG::BNGData& bng_data) {
 
   if (bng_data.get_compartments().empty()) {
     return;
@@ -141,7 +141,7 @@ void InstantiationData::convert_compartments(const BNG::BNGData& bng_data) {
 }
 
 
-void InstantiationData::convert_single_seed_species_to_release_site(
+void Instantiation::convert_single_seed_species_to_release_site(
     const BNG::BNGData& bng_data,
     const BNG::SeedSpecies& bng_ss,
     Subsystem& subsystem,
@@ -212,7 +212,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
 }
 
 
-std::shared_ptr<Region> InstantiationData::get_compartment_region(const std::string& name) {
+std::shared_ptr<Region> Instantiation::get_compartment_region(const std::string& name) {
   std::shared_ptr<GeometryObject> obj;
 
   // first try if it is a volume compartment

@@ -20,27 +20,27 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_INSTANTIATION_DATA_H
-#define API_GEN_INSTANTIATION_DATA_H
+#ifndef API_GEN_INSTANTIATION_H
+#define API_GEN_INSTANTIATION_H
 
 #include "api/common.h"
 
 namespace MCell {
 namespace API {
 
-class InstantiationData;
+class Instantiation;
 class GeometryObject;
 class Region;
 class ReleaseSite;
 class Subsystem;
 
-class GenInstantiationData {
+class GenInstantiation {
 public:
-  virtual ~GenInstantiationData() {}
-  virtual bool __eq__(const InstantiationData& other) const;
-  virtual bool eq_nonarray_attributes(const InstantiationData& other, const bool ignore_name = false) const;
-  bool operator == (const InstantiationData& other) const { return __eq__(other);}
-  bool operator != (const InstantiationData& other) const { return !__eq__(other);}
+  virtual ~GenInstantiation() {}
+  virtual bool __eq__(const Instantiation& other) const;
+  virtual bool eq_nonarray_attributes(const Instantiation& other, const bool ignore_name = false) const;
+  bool operator == (const Instantiation& other) const { return __eq__(other);}
+  bool operator != (const Instantiation& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---
@@ -68,11 +68,11 @@ public:
   virtual std::shared_ptr<GeometryObject> find_volume_compartment(const std::string& name) = 0;
   virtual std::shared_ptr<GeometryObject> find_surface_compartment(const std::string& name) = 0;
   virtual void load_bngl_seed_species(const std::string& file_name, std::shared_ptr<Subsystem> subsystem, std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
-}; // GenInstantiationData
+}; // GenInstantiation
 
-class InstantiationData;
-py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m);
+class Instantiation;
+py::class_<Instantiation> define_pybinding_Instantiation(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_INSTANTIATION_DATA_H
+#endif // API_GEN_INSTANTIATION_H

@@ -20,10 +20,10 @@
  *
 ******************************************************************************/
 
-#ifndef API_INSTANTIATION_DATA_H
-#define API_INSTANTIATION_DATA_H
+#ifndef API_INSTANTIATION_H
+#define API_INSTANTIATION_H
 
-#include "generated/gen_instantiation_data.h"
+#include "generated/gen_instantiation.h"
 #include "api/common.h"
 #include "api/api_utils.h"
 #include "api/release_site.h"
@@ -39,7 +39,7 @@ namespace API {
 
 class Subsystem;
 
-class InstantiationData: public GenInstantiationData {
+class Instantiation: public GenInstantiation {
 public:
 
   // from generated template
@@ -78,7 +78,7 @@ public:
   std::shared_ptr<Region> get_compartment_region(const std::string& name);
 
 protected:
-  void convert_bng_data_to_instantiation_data(
+  void convert_bng_data_to_instantiation(
       const BNG::BNGData& bng_data,
       Subsystem& subsystem,
       std::shared_ptr<Region> default_release_region);
@@ -97,4 +97,4 @@ private:
 } // namespace API
 } // namespace MCell
 
-#endif // API_INSTANTIATION_DATA_H
+#endif // API_INSTANTIATION_H

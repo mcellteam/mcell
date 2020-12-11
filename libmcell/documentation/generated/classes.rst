@@ -625,8 +625,8 @@ Attributes:
   | Density of molecules to be released onto a region,
   | only one of number_to_release and density can be set.
 
-InstantiationData
-=================
+Instantiation
+=============
 
 Attributes:
 ***********
@@ -746,9 +746,9 @@ Methods:
 
    * | subsystem: Subsystem
 
-* | **add_instantiation_data**
+* | **add_instantiation**
 
-   * | instantiation_data: InstantiationData
+   * | instantiation: Instantiation
 
 * | **add_observables**
 

@@ -38,7 +38,7 @@
 #include "generated/gen_release_pattern.h"
 #include "generated/gen_molecule_release_info.h"
 #include "generated/gen_release_site.h"
-#include "generated/gen_instantiation_data.h"
+#include "generated/gen_instantiation.h"
 
 #include "generated/gen_count_term.h"
 #include "generated/gen_count.h"
@@ -201,7 +201,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_InitialSurfaceRelease(m);
   define_pybinding_SurfaceRegion(m);
   define_pybinding_GeometryObject(m);
-  define_pybinding_InstantiationData(m);
+  define_pybinding_Instantiation(m);
 
   define_pybinding_CountTerm(m);
   define_pybinding_Count(m);
