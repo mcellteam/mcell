@@ -38,7 +38,7 @@ public:
   }
 
   void finalize(const BNGConfig& config, const bool do_update_diffusion_constant = true) {
-    Cplx::finalize(); // FIXME get rid of one of these calls
+    canonicalize(); // sets name as well, calls also Cplx::finalize
     set_flag(SPECIES_FLAG_CAN_DIFFUSE, D != 0);
     if (is_reactive_surface()) {
       // surfaces are always assumed to be instantiated
@@ -48,7 +48,6 @@ public:
       update_diffusion_constant(*bng_data, config);
     }
     set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0); // TODO: can this be removed when we set it in finalize?
-    canonicalize(); // sets name as well
   }
 
   // create species from a complex instance
