@@ -40,7 +40,7 @@
 // MCell must be built with -DENABLE_GPERFTOOLS=ON otherwise
 // linking fails with undefined symbol MallocExtension::instance()
 #ifdef WITHGPERFTOOLS
-#define PROFILE_MEMORY
+//#define PROFILE_MEMORY
 #endif
 
 // when enabled, mcell3 produces identical result to the mcell master branch
