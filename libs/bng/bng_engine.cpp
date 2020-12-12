@@ -10,9 +10,18 @@
 #include "bng/bng_engine.h"
 #include "bng/bngl_names.h"
 
+#define BOOST_POOL_NO_MT
+#include <boost/pool/pool_alloc.hpp>
+#undef BOOST_POOL_NO_MT
+
 using namespace std;
 
 namespace BNG {
+
+BNGEngine::~BNGEngine() {
+  // clear memory allocated by fast_pool_allocator_tag in Graph
+  boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(int)>::purge_memory();
+}
 
 string BNGEngine::get_stats_report() const {
   stringstream res;

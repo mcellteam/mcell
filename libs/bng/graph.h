@@ -15,6 +15,26 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/iteration_macros.hpp>
+#define BOOST_POOL_NO_MT
+#include <boost/pool/pool_alloc.hpp>
+#undef BOOST_POOL_NO_MT
+
+namespace boost {
+  // NOTE: not sure if we need to put this really into the boost namespace
+  struct pool_listS { };
+
+  // examples of allocators usage are here: https://theboostcpplibraries.com/boost.pool
+  template <class ValueType>
+  struct container_gen<pool_listS, ValueType> {
+    typedef std::list<ValueType, boost::fast_pool_allocator<ValueType>> type;
+  };
+
+  template <>
+  struct parallel_edge_traits<pool_listS> {
+    typedef allow_parallel_edge_tag type; };
+
+}
+
 
 namespace BNG {
 
@@ -145,7 +165,11 @@ typedef boost::property<boost::vertex_name_t, Node, boost::property< boost::vert
 // one can choose different underlying types (vecS/listS/setS...) but
 // vecS seems to be the most efficient
 // last 7th unlisted argument EdgeList must be listS (default) otherwise it is not possible to remove edges
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, MtVertexProperty> Graph;
+typedef boost::adjacency_list<
+    boost::vecS, boost::vecS, boost::undirectedS, MtVertexProperty,
+    boost::no_property, boost::no_property,
+    boost::pool_listS
+    > Graph;
 
 typedef boost::property_map<Graph, boost::vertex_name_t >::type VertexNameMap;
 
