@@ -43,9 +43,10 @@ typedef std::function<void(std::shared_ptr<API::MolWallHitInfo>, pybind11::objec
 typedef std::function<void(std::shared_ptr<API::ReactionInfo>, pybind11::object)>
   rxn_callback_function_t;
 
-// not generated
-// TODO: allow multiple callbacks
-class Callbacks {
+// PYBIND11_EXPORT  is needed otherwise compiler warns:
+// 'MCell::API::Callbacks’  declared with greater visibility than the type of its
+// field 'MCell::API::Callbacks::mol_wall_hit_context'
+class PYBIND11_EXPORT Callbacks {
 public:
   // model_ is nullptr in MDL mode
   Callbacks(Model* model_);
