@@ -1333,7 +1333,7 @@ void RxnRule::create_products_for_complex_rxn(
     // iterating over map sorted by product indices
     for (ProductSpeciesPtrWIndices& product_w_indices: product_cplxs) {
       // need to transform cplx into species id, the possibly new species will be removable
-      product_w_indices.product_species->initialize(bng_config);
+      product_w_indices.product_species->finalize(bng_config);
       species_id_t species_id = all_species.find_or_add_delete_if_exist(
           product_w_indices.product_species, true);
 
@@ -1402,7 +1402,7 @@ void RxnRule::define_rxn_pathway_using_mapping(
   // we are not setting the resulting compartment, neither orientation
   for (ProductSpeciesPtrWIndices& product_w_indices: product_cplxs) {
     // need to transform cplx into species id, the possibly new species will be removable
-    product_w_indices.product_species->initialize(bng_config);
+    product_w_indices.product_species->finalize(bng_config);
     species_id_t species_id = all_species.find_or_add_delete_if_exist(
         product_w_indices.product_species, true);
 

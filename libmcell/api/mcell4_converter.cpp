@@ -514,7 +514,7 @@ void MCell4Converter::convert_species() {
 
     new_species.elem_mols.push_back(mol_inst);
 
-    new_species.finalize();
+    new_species.finalize(world->config);
     species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
 
     // remember which species we created
@@ -612,7 +612,7 @@ void MCell4Converter::convert_surface_classes() {
     BNG::ElemMol mol_inst;
     mol_inst.elem_mol_type_id = mol_type_id;
     sc_species.elem_mols.push_back(mol_inst);
-    sc_species.finalize();
+    sc_species.finalize(world->config);
 
     species_id_t new_species_id = world->get_all_species().find_or_add(sc_species);
 
