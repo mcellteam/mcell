@@ -75,7 +75,7 @@ static void set_graph_reactant_pattern_indices(Graph& g, const uint index_to_set
 
 
 static bool less_product_cplxs_by_rxn_rule_index(
-    const ProductCplxWIndices& a1, const ProductCplxWIndices& a2
+    const ProductSpeciesPtrWIndices& a1, const ProductSpeciesPtrWIndices& a2
 ) {
   assert(!a1.rule_product_indices.empty() && !a2.rule_product_indices.empty());
 
@@ -110,7 +110,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
         species_id = all_species.find_or_add_delete_if_exist(new_species);
         assert(species_id != SPECIES_ID_INVALID);
       }
-      product_species.push_back(ProductSpeciesWIndices(species_id, i));
+      product_species.push_back(ProductSpeciesIdWIndices(species_id, i));
     }
 
     float_t prob;
@@ -901,7 +901,7 @@ static bool convert_graph_component_to_product_cplx_inst(
     Graph& graph,
     const vector<int>& graph_components,
     const int graph_component_index,
-    Cplx& cplx,
+    Species* species,
     std::set<uint>& product_indices
 ) {
   product_indices.clear();
@@ -937,8 +937,8 @@ static bool convert_graph_component_to_product_cplx_inst(
       continue;
     }
 
-    cplx.elem_mols.push_back(*mol.mol);
-    ElemMol& mi = cplx.elem_mols.back();
+    species->elem_mols.push_back(*mol.mol);
+    ElemMol& mi = species->elem_mols.back();
 
     // we will recreate components because they might have changed
     mi.components.clear();
@@ -976,8 +976,6 @@ static bool convert_graph_component_to_product_cplx_inst(
 
   } // for each vertex
 
-  cplx.finalize();
-
   return true;
 }
 
@@ -1002,7 +1000,7 @@ static void create_products_from_reactants_graph(
   );
 
   for (int i = 0; i < num_graph_components; i++) {
-    Cplx product_cplx(bng_data);
+    Species* product_species = new Species(*bng_data);
 
     // some reactants may have been removed,
     // also, products still may be connected even though thet are disconnected on the right-hand side of the
@@ -1013,13 +1011,16 @@ static void create_products_from_reactants_graph(
     std::set<uint> product_indices;
     bool is_rxn_product =
         convert_graph_component_to_product_cplx_inst(
-            reactants_graph, graph_components, i, product_cplx, product_indices);
+            reactants_graph, graph_components, i, product_species, product_indices);
 
     if (is_rxn_product) {
       release_assert(!product_indices.empty());
 
       // remember product with its indices
-      created_products.push_back(ProductCplxWIndices(product_cplx, product_indices));
+      created_products.push_back(ProductSpeciesPtrWIndices(product_species, product_indices));
+    }
+    else {
+      delete product_species;
     }
   }
 }
@@ -1314,14 +1315,14 @@ void RxnRule::create_products_for_complex_rxn(
   #ifdef DEBUG_CPLX_MATCHING
     cout << "Resulting products:\n";
     for (auto& c: created_product_sets.back()) {
-      c.product_cplx.dump(false);
+      c.product_species.dump(false);
       cout << "\n";
     }
   #endif
 
   }
 
-  // and convert resulting complexes to species
+  // and convert resulting complexes represented by Species* to species ids
   for (ProductCplxWIndicesVector& product_cplxs: created_product_sets) {
     // define the products as species
     RxnProductsVector product_species;
@@ -1330,12 +1331,15 @@ void RxnRule::create_products_for_complex_rxn(
     sort(product_cplxs.begin(), product_cplxs.end(), less_product_cplxs_by_rxn_rule_index);
 
     // iterating over map sorted by product indices
-    for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
+    for (ProductSpeciesPtrWIndices& product_w_indices: product_cplxs) {
       // need to transform cplx into species id, the possibly new species will be removable
-      Species* new_species = new Species(product_w_indices.product_cplx, *bng_data, bng_config);
-      species_id_t species_id = all_species.find_or_add_delete_if_exist(new_species, true);
+      product_w_indices.product_species->initialize(bng_config);
+      species_id_t species_id = all_species.find_or_add_delete_if_exist(
+          product_w_indices.product_species, true);
+
       assert(species_id != SPECIES_ID_INVALID);
-      product_species.push_back(ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices));
+      product_species.push_back(
+          ProductSpeciesIdWIndices(species_id, product_w_indices.rule_product_indices));
     }
 
     assert(pb_factor != 0);
@@ -1396,13 +1400,15 @@ void RxnRule::define_rxn_pathway_using_mapping(
 
   // and cplx instances into species
   // we are not setting the resulting compartment, neither orientation
-  for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
+  for (ProductSpeciesPtrWIndices& product_w_indices: product_cplxs) {
     // need to transform cplx into species id, the possibly new species will be removable
-    Species new_species = Species(product_w_indices.product_cplx, *bng_data, bng_config);
-    species_id_t species_id = all_species.find_or_add(new_species, true);
+    product_w_indices.product_species->initialize(bng_config);
+    species_id_t species_id = all_species.find_or_add_delete_if_exist(
+        product_w_indices.product_species, true);
+
     assert(species_id != SPECIES_ID_INVALID);
     pathway.product_species_w_indices.push_back(
-        ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices)
+        ProductSpeciesIdWIndices(species_id, product_w_indices.rule_product_indices)
     );
   }
 

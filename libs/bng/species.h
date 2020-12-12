@@ -37,6 +37,28 @@ public:
       rxn_flags_were_updated(false), num_instantiations(0) {
   }
 
+  void initialize(const BNGConfig& config, const bool do_update_diffusion_constant = true) {
+    // the only finalize method, but showing that we are finalizing
+    // just the Cplx part of the Species
+    Cplx::finalize();
+    if (do_update_diffusion_constant) {
+      update_diffusion_constant(*bng_data, config);
+    }
+    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0); // TODO: can this be removed when we set it in finalize?
+    finalize();
+    canonicalize(); // sets name as well
+  }
+
+  // TODO: why is this called from the Species ctor, can we remove it?
+  void finalize() {
+    Cplx::finalize(); // FIXME get rid of one of these calls
+    set_flag(SPECIES_FLAG_CAN_DIFFUSE, D != 0);
+    if (is_reactive_surface()) {
+      // surfaces are always assumed to be instantiated
+      set_flag(SPECIES_FLAG_WAS_INSTANTIATED);
+    }
+  }
+
   // create species from a complex instance
   // id is not set and name is determined automatically
   Species(
@@ -48,15 +70,7 @@ public:
       rxn_flags_were_updated(false), num_instantiations(0) {
 
     elem_mols = cplx_inst.elem_mols;
-    // the only finalize method, but showing that we are finalizing
-    // just the Cplx part of the Species
-    Cplx::finalize();
-    if (do_update_diffusion_constant) {
-      update_diffusion_constant(data, config);
-    }
-    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0); // TODO: can this be removed when we set it in finalize?
-    finalize();
-    canonicalize(); // sets name as well
+    initialize(config, do_update_diffusion_constant);
   }
 
   // we need explicit copy ctor to call CplxInstance's copy ctor
@@ -69,16 +83,6 @@ public:
 
   // TODO: maybe an assignment operator is needed, e.g. in the CplxInstance case, the copy ctor was not
   // called all the time (not sure why...) and assignment operator was needed to fix an issue
-
-  // TODO: why is this called from the Species ctor, can we remove it?
-  void finalize() {
-    Cplx::finalize();
-    set_flag(SPECIES_FLAG_CAN_DIFFUSE, D != 0);
-    if (is_reactive_surface()) {
-      // surfaces are always assumed to be instantiated
-      set_flag(SPECIES_FLAG_WAS_INSTANTIATED);
-    }
-  }
 
   // default sorting of components is according to molecule types
   void canonicalize(const bool sort_components_by_name_do_not_finalize = false) {

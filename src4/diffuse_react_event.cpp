@@ -1764,7 +1764,7 @@ int DiffuseReactEvent::find_surf_product_positions(
   surf_pos_reacA_is_used = keep_reacA;
 
   uint needed_surface_positions = 0;
-  for (const ProductSpeciesWIndices& prod: actual_products) {
+  for (const ProductSpeciesIdWIndices& prod: actual_products) {
     if (p.get_all_species().get(prod.product_species_id).is_surf()) {
       needed_surface_positions++;
     }
@@ -2227,7 +2227,7 @@ int DiffuseReactEvent::outcome_products_random(
   }
 
   for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
-    const ProductSpeciesWIndices& actual_product = actual_products[product_index];
+    const ProductSpeciesIdWIndices& actual_product = actual_products[product_index];
 
     // first we must check whether we are mapping a single product onto multiple complexes from the right-had side of the rule
     assert(!actual_product.rule_product_indices.empty());

@@ -255,7 +255,7 @@ private:
   // TODO: not sure of the internal representation really changes, might have
   // impact on parallel execution
   mutable Graph graph;
-
+protected:
   const BNGData* bng_data; // needed mainly for dumps and debugging
 };
 

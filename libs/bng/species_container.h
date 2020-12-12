@@ -81,6 +81,7 @@ public:
     if (it == canonical_species_map.end()) {
       // make a copy and add if not found
       species_id_t res = add(new_species, removable);
+      new_species = nullptr; // take over ownership
       return res;
     }
     else {

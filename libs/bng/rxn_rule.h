@@ -28,14 +28,14 @@ class RxnClass;
  * remains as a whole, one resulting product corresponds to multiple
  * products of the rxn rule.
  */
-class ProductSpeciesWIndices {
+class ProductSpeciesIdWIndices {
 public:
-  ProductSpeciesWIndices()
+  ProductSpeciesIdWIndices()
     : product_species_id(SPECIES_ID_INVALID) {
   }
 
   // usual case - one product per rxn rule product
-  ProductSpeciesWIndices(
+  ProductSpeciesIdWIndices(
       const species_id_t product_species_id_,
       const uint product_index)
     : product_species_id(product_species_id_) {
@@ -43,7 +43,7 @@ public:
   }
 
   // general case
-  ProductSpeciesWIndices(
+  ProductSpeciesIdWIndices(
       const species_id_t product_species_id_,
       const std::set<uint>& rule_product_indices_)
     : product_species_id(product_species_id_),
@@ -55,30 +55,32 @@ public:
   std::set<uint> rule_product_indices;
 };
 
-typedef std::vector<ProductSpeciesWIndices> RxnProductsVector;
+typedef std::vector<ProductSpeciesIdWIndices> RxnProductsVector;
 
 /**
  * Similar as ProductSpeciesWIndices, only uses cplx inst instead of species id.
  */
-class ProductCplxWIndices {
+class ProductSpeciesPtrWIndices {
 public:
-  ProductCplxWIndices(
-      const Cplx& product_cplx_,
+  ProductSpeciesPtrWIndices(
+      Species* product_species_,
       const std::set<uint>& rule_product_indices_)
-    : product_cplx(product_cplx_),
+    : product_species(product_species_),
       rule_product_indices(rule_product_indices_) {
   }
 
-  Cplx product_cplx;
+  // does not own this object
+  Species* product_species;
+
   // must use container with guaranteed order
   std::set<uint> rule_product_indices;
 };
 
-typedef std::vector<ProductCplxWIndices> ProductCplxWIndicesVector;
+typedef std::vector<ProductSpeciesPtrWIndices> ProductCplxWIndicesVector;
 
 // - first dimension are individual products that a rxn rule can produce
 // - second dimension are individual products
-typedef std::vector<std::vector<ProductCplxWIndices>> ProductSetsVector;
+typedef std::vector<std::vector<ProductSpeciesPtrWIndices>> ProductSetsVector;
 
 
 // TODO: some of these classes rather belong to rxn_class.h
