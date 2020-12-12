@@ -1726,7 +1726,7 @@ void MCell4Converter::add_ctrl_c_termination_event() {
   event->event_time = 0;
   event->periodicity_interval = 1;
   event->function_ptr = check_ctrl_c;
-  event->function_arg = this;
+  event->function_arg = world;
 
   world->scheduler.schedule_event(event);
 }
