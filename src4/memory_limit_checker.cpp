@@ -26,9 +26,7 @@
 #include "memory_limit_checker.h"
 #include "world.h"
 
-#ifdef PROFILE_MEMORY
 #include "libs/gperftools/src/gperftools/malloc_extension.h"
-#endif
 
 using namespace CppTime;
 using namespace std;

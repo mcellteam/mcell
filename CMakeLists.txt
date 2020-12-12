@@ -117,10 +117,8 @@ if (ENABLE_GPERFTOOLS)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
   SET(GPERFTOOLS_LIB "profiler")
-  SET(GPERFTOOLS_MCELLSO_DEP "tcmalloc")
 else()
   SET(GPERFTOOLS_LIB "")
-  SET(GPERFTOOLS_MCELLSO_DEP "")  
 endif()
 	
 if (ENABLE_SANITIZER)
@@ -129,7 +127,22 @@ if (ENABLE_SANITIZER)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
 endif()
 
-
+#if (CMAKE_BUILD_TYPE STREQUAL "Release")
+#  SET(GPERFTOOLS_MCELLSO_DEP "tcmalloc")
+#  SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
+#  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_INCLUDE_GPERF_FLAGS} -ltcmalloc")
+#  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_INCLUDE_GPERF_FLAGS} -ltcmalloc")
+#  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/libtcmalloc.so.4 ${CMAKE_CURRENT_BINARY_DIR}/lib/libtcmalloc.so.4 COPYONLY)
+#  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/libtcmalloc.so.4.5.3 ${CMAKE_CURRENT_BINARY_DIR}/lib/libtcmalloc.so.4.5.3 COPYONLY)
+#else()
+#  SET(GPERFTOOLS_MCELLSO_DEP "tcmalloc_debug")
+#  SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
+#  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_INCLUDE_GPERF_FLAGS} -ltcmalloc_debug")
+#  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_INCLUDE_GPERF_FLAGS} -ltcmalloc_debug")
+#  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/libtcmalloc_debug.so.4 ${CMAKE_CURRENT_BINARY_DIR}/lib/libtcmalloc_debug.so.4 COPYONLY)
+#  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/libtcmalloc_debug.so.4.5.3 ${CMAKE_CURRENT_BINARY_DIR}/lib/libtcmalloc_debug.so.4.5.3 COPYONLY)
+#endif()
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ ${CMAKE_INCLUDE_GPERF_FLAGS}")
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
@@ -137,7 +150,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
 include_directories(
   "${CMAKE_SOURCE_DIR}/src" 
-  "${CMAKE_SOURCE_DIR}/src4"   
+  "${CMAKE_SOURCE_DIR}/src4"   all
   "${CMAKE_CURRENT_BINARY_DIR}/deps" 
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
