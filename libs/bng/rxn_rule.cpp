@@ -988,6 +988,7 @@ static void create_products_from_reactants_graph(
     ProductCplxWIndicesVector& created_products
 ) {
   created_products.clear();
+  created_products.reserve(2);
 
   // the output of the algorithm is recorded in the component property map comp,
   // which will contain numbers giving the component number assigned to each vertex
@@ -1362,6 +1363,7 @@ void RxnRule::define_rxn_pathway_using_mapping(
   // we need to make a copy of the reactants because we will be modifying them
   // a new graph will have its ordering indices cleared
   vector<Cplx> input_reactants_copy;
+  input_reactants_copy.reserve(2);
   for (species_id_t s_id: reactant_species) {
     input_reactants_copy.push_back(all_species.get(s_id));
   }
