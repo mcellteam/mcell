@@ -230,7 +230,7 @@ void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& co
     // nothing to compute if we have just one molecule instance
     const ElemMolType& mt = data.get_elem_mol_type(elem_mols[0].elem_mol_type_id);
     D = mt.D;
-    assert(D != FLT_INVALID);
+    assert(is_reactive_surface() || D != FLT_INVALID);
     custom_space_step = mt.custom_space_step;
     custom_time_step = mt.custom_time_step;
   }

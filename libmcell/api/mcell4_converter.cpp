@@ -600,7 +600,7 @@ void MCell4Converter::convert_surface_classes() {
     // sets steps to 0
     sc_species.space_step = 0;
     sc_species.time_step = 0;
-    sc_species.D = 0;
+    sc_species.D = FLT_INVALID; // diffusion constant has no meaning for surface classes
 
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components
