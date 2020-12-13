@@ -63,7 +63,7 @@ private:
 
   void generate_parameters();
 
-  void generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
+  std::string generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
 
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
   std::vector<IdLoc> generate_reaction_rules(std::ostream& out);
@@ -83,7 +83,7 @@ private:
 
   void generate_config(std::ostream& out);
   void generate_model(const bool print_failed_marker);
-
+  void generate_customization();
 private:
   BNGLGenerator* bng_gen;
   std::ofstream bng_out;

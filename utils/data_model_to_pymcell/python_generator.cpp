@@ -1269,7 +1269,7 @@ void PythonGenerator::generate_single_count(
 void PythonGenerator::generate_all_bngl_reaction_rules_used_in_observables(std::ostream& out) {
 
   // bngl_reaction_rules_used_in_observables are initialized in MCell4Generator::generate_reaction_rules
-  out << "# declaration of rxn rules defined in BNGL and used in counts\n";
+  out << "# ---- declaration of rxn rules defined in BNGL and used in counts ----\n";
   for (string& name: data.bngl_reaction_rules_used_in_observables) {
     out <<
       name << " = " << get_module_name_w_prefix(data.output_files_prefix, SUBSYSTEM) << "." <<
@@ -1352,9 +1352,7 @@ void PythonGenerator::generate_surface_classes_assignments(ostream& out) {
       string surf_class_name = modify_surface_regions_item[KEY_SURF_CLASS_NAME].asString();
       out << obj_or_region_name << "." << NAME_SURFACE_CLASS << " = " << surf_class_name << "\n";
     }
-
   }
-  out << "\n";
 }
 
 

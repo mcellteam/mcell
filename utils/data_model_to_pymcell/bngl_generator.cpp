@@ -152,8 +152,8 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
 
   python_out <<
       "# set additional information about species and molecule types that cannot be stored in BNGL,\n"
-      "# elementary molecule types are already in the subsystem or model after they were loaded from BNGL\n"
-      "def set_bngl_molecule_types_info(subsystem):\n";
+      "# elementary molecule types are already in the subsystem after they were loaded from BNGL\n"
+      "def " << SET_BNGL_MOLECULE_TYPES_INFO << "(subsystem):\n";
 
   Value& define_molecules = get_node(data.mcell, KEY_DEFINE_MOLECULES);
   check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
@@ -170,8 +170,6 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
     generate_bngl_mol_type(molecule_list_item);
     generate_python_mol_type_info(python_out, molecule_list_item);
   }
-
-  python_out << "\n";
   bng_out << BNG::END_MOLECULE_TYPES << "\n\n";
 }
 

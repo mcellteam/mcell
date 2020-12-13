@@ -94,6 +94,7 @@ bool MCell4Generator::generate(
   // create generators
   if (data.bng_mode) {
     open_and_check_file(MODEL, bng_out, false, true);
+    bng_out << GENERATED_WARNING;
     bng_gen = new BNGLGenerator(
         get_filename(data.output_files_prefix, MODEL, BNGL_EXT), bng_out, data);
   }
@@ -108,6 +109,7 @@ bool MCell4Generator::generate(
   CHECK(generate_instantiation(geometry_names), failed);
   CHECK(generate_observables(cellblender_viz), failed);
   CHECK(generate_model(failed), failed);
+  CHECK(generate_customization(), failed);
 
   // delete generators
   if (data.bng_mode) {
@@ -140,7 +142,7 @@ void MCell4Generator::check_scripting() {
 void MCell4Generator::generate_parameters() {
   ofstream out;
   open_and_check_file(PARAMETERS, out);
-
+  out << GENERATED_WARNING << "\n";
   out << MCELL_IMPORT;
   out << make_section_comment("model parameters");
 
@@ -158,32 +160,20 @@ void MCell4Generator::generate_parameters() {
   out << PARAM_ITERATIONS << " = " << data.mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
   out << PARAM_TIME_STEP << " = " << data.mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
   out << PARAM_DUMP << " = " << (data.debug_mode ? "True" : "False") << "\n";
-  out << PARAM_EXPORT_DATA_MODEL << " = " << "True\n";
+  out << PARAM_EXPORT_DATA_MODEL << " = True\n";
+  out << PARAM_SEED << " = 1 # may be overwritten based on commandline arguments\n";
   out << "\n";
-
-  out <<
-      "# do not use the variable " PARAM_SEED " directly,\n"
-      "# Python on import creates copies that do not reflect the current value\n"
-      PARAM_SEED << " = 1\n"
-      "\n"
-      "def " FUNCTION_UPDATE_SEED "(new_value):\n"
-      "    global " PARAM_SEED "\n"
-      "    " PARAM_SEED " = new_value\n"
-      "\n"
-      "def " FUNCTION_GET_SEED "():\n"
-      "    return " PARAM_SEED "\n"
-      "\n";
 
   out.close();
 }
 
 
-void MCell4Generator::generate_species_and_mol_types(
+std::string MCell4Generator::generate_species_and_mol_types(
     ostream& out, vector<SpeciesOrMolType>& species_and_mt_info) {
 
   // skip if there are no species/mol types
   if (!data.mcell.isMember(KEY_DEFINE_MOLECULES)) {
-    return;
+    return "";
   }
 
   if (data.bng_mode) {
@@ -195,18 +185,13 @@ void MCell4Generator::generate_species_and_mol_types(
     //   subsystem, the new file can be called bngl_molecule_types_info.py
     // - all this extra information should be put preferably into the BNGL file
     //   but for now we would like it to be BNGL compatible and parsing comments or MCELL_ parameters is not really nice
-    ofstream mt_info_out;
-    open_and_check_file(BNGL_MOLECULE_TYPES_INFO, mt_info_out);
-    mt_info_out << MCELL_IMPORT;
-    mt_info_out << make_import(PARAMETERS);
-    mt_info_out << "\n";
-
+    stringstream mt_info_out;
     bng_gen->generate_mol_types(mt_info_out);
-
-    mt_info_out.close();
+    return mt_info_out.str();
   }
   else {
     python_gen->generate_species_and_mol_types(out, species_and_mt_info);
+    return "";
   }
 }
 
@@ -399,16 +384,15 @@ void MCell4Generator::analyze_and_generate_bngl_compartments(std::ostream& out) 
 void MCell4Generator::generate_subsystem() {
   ofstream out;
   open_and_check_file(SUBSYSTEM, out);
+  out << GENERATED_WARNING << "\n";
 
   out << MCELL_IMPORT;
   out << make_import(PARAMETERS);
-  if (data.bng_mode) {
-    out << make_import(BNGL_MOLECULE_TYPES_INFO);
-  }
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
 
-  generate_species_and_mol_types(out, data.all_species_and_mol_type_names);
+  string bngl_mol_types_initialization =
+      generate_species_and_mol_types(out, data.all_species_and_mol_type_names);
 
   analyze_and_generate_bngl_compartments(out);
 
@@ -417,6 +401,7 @@ void MCell4Generator::generate_subsystem() {
 
   data.all_reaction_rules_names = generate_reaction_rules(out);
 
+  out << make_section_comment("create subsystem object and add components");
   gen_ctor_call(out, SUBSYSTEM, NAME_CLASS_SUBSYSTEM, false);
   for (SpeciesOrMolType& info: data.all_species_and_mol_type_names) {
     if (info.is_species) {
@@ -440,13 +425,15 @@ void MCell4Generator::generate_subsystem() {
     // there is a single bngl file because later it will contain all the information needed
     // to run in it BioNetGen
     out << "\n# load subsystem information from bngl file\n";
+
     gen_method_call(
         out, SUBSYSTEM,
         NAME_LOAD_BNGL_MOLECULE_TYPES_AND_REACTION_RULES,
         "'" + get_filename(data.output_files_prefix, MODEL, BNGL_EXT) + "'"
     );
-    out << "# set additional information such as diffusion constants for loaded elementary molecule types\n";
-    out << "set_bngl_molecule_types_info(" << SUBSYSTEM << ")\n";
+    out << "\n" << bngl_mol_types_initialization;
+
+    out << SET_BNGL_MOLECULE_TYPES_INFO << "(" << SUBSYSTEM << ")\n";
   }
 
   out.close();
@@ -469,6 +456,7 @@ vector<string> MCell4Generator::generate_geometry() {
 
   ofstream out;
   open_and_check_file(GEOMETRY, out);
+  out << GENERATED_WARNING << "\n";
 
   out << MCELL_IMPORT;
 
@@ -487,6 +475,7 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
 
   ofstream out;
   open_and_check_file(INSTANTIATION, out);
+  out << GENERATED_WARNING << "\n";
 
   out << MCELL_IMPORT;
   out << make_import(PARAMETERS);
@@ -509,7 +498,7 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
   out << make_section_comment("compartments assignment");
   python_gen->generate_compartment_assignments(out);
 
-  out << make_section_comment("instantiation data");
+  out << make_section_comment("create instantiation object and add components");
 
   gen_ctor_call(out, INSTANTIATION, NAME_CLASS_INSTANTIATION, false);
   for (const string& s: geometry_objects) {
@@ -693,6 +682,7 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
 
   ofstream out;
   open_and_check_file(OBSERVABLES, out);
+  out << GENERATED_WARNING << "\n";
 
   out << MCELL_IMPORT;
   out << make_import(PARAMETERS);
@@ -709,6 +699,8 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
   vector<string> counts;
   bool has_bngl_observables;
   generate_counts(out, counts, has_bngl_observables);
+
+  out << make_section_comment("create observables object and add components");
 
   gen_ctor_call(out, OBSERVABLES, NAME_CLASS_OBSERVABLES, false);
   for (const string& s: viz_outputs) {
@@ -740,9 +732,10 @@ void MCell4Generator::generate_config(ostream& out) {
   out << make_section_comment("configuration");
 
   // using values from generated parameters.py
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, PARAM_TIME_STEP);
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, S(FUNCTION_GET_SEED) + "()");
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, PARAM_ITERATIONS);
+  string params_module = get_module_name(PARAMETERS);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, params_module + "." + PARAM_TIME_STEP);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, params_module + "." + PARAM_SEED);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, params_module + "." + PARAM_ITERATIONS);
   out << "\n";
   gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT, true);
   out << "\n";
@@ -824,6 +817,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   open_and_check_file(MODEL, out);
 
   out << INTERPRETER;
+  out << GENERATED_WARNING << "\n";
 
   if (print_failed_marker) {
     out <<
@@ -832,17 +826,25 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   }
 
   out << BASE_MODEL_IMPORTS;
+  out << MODEL_PATH_SETUP;
+  out << "\n";
   out << MCELL_PATH_SETUP;
-
+  out << "\n";
   out << MCELL_IMPORT;
 
-  out << make_import(PARAMETERS);
+  string parameters_module = get_module_name(PARAMETERS);
+  string customization_module = get_module_name(CUSTOMIZATION);
 
   out <<
-      "\n"
-      "if len(sys.argv) == 3 and sys.argv[1] == '-seed\':\n"
-      "    # overwrite value of seed defined in module " + get_module_name(PARAMETERS) + "\n"
-      "    " FUNCTION_UPDATE_SEED "(int(sys.argv[2]))\n\n";
+      "# parameters are intentionally not imported using from ... import *\n" <<
+      "# because we may need to make changes to the module's variables\n" <<
+      IMPORT << " " << parameters_module << "\n\n";
+
+  out << get_customization_import(customization_module);
+  out << "\n";
+
+  out << get_argparse_w_customization(parameters_module, customization_module);
+  out << "\n";
 
   out << IMPORT << " " << get_module_name(SUBSYSTEM) << "\n";
   out << IMPORT << " " << get_module_name(INSTANTIATION) << "\n";
@@ -857,12 +859,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
 
   generate_config(out);
 
-  out <<
-    "# user-defined model configuration\n" <<
-    "if os.path.exists('" << CUSTOMIZATION <<  ".py'):\n" <<
-    "    import " << CUSTOMIZATION << "\n" <<
-    "    if '" << CUSTOM_CONFIG << "' in dir(" << CUSTOMIZATION << "):\n"
-    "        " << CUSTOMIZATION << "." << CUSTOM_CONFIG << "(" << MODEL << ")\n";
+  out << get_user_defined_configuration(customization_module);
 
   out << "\n";
 
@@ -876,22 +873,59 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
 
   out << make_section_comment("initialization and execution");
 
+  out <<
+      "if " << customization_module << " and '" << CUSTOM_INIT_AND_RUN << "' in dir(" << customization_module << "):\n" <<
+      IND4 << customization_module << "." << CUSTOM_INIT_AND_RUN << "(" << MODEL << ")\n" <<
+      "else:\n"
+  ;
+
+  out << IND4;
   gen_method_call(out, MODEL, NAME_INITIALIZE);
   out << "\n";
 
-  out << "if " << PARAM_DUMP << ":\n";
-  out << IND;
+  out << IND4 << "if " << parameters_module << "." << PARAM_DUMP << ":\n";
+  out << IND8;
   gen_method_call(out, MODEL, NAME_DUMP_INTERNAL_STATE);
   out << "\n";
 
   // method export_data_model uses target directory from viz_outputs
-  out << "if " << PARAM_EXPORT_DATA_MODEL << " and " << MODEL << "." << NAME_VIZ_OUTPUTS << ":\n";
-  out << IND;
+  out << IND4 << "if " << parameters_module << "." << PARAM_EXPORT_DATA_MODEL << " and " << MODEL << "." << NAME_VIZ_OUTPUTS << ":\n";
+  out << IND8;
   gen_method_call(out, MODEL, NAME_EXPORT_DATA_MODEL);
   out << "\n";
 
-  gen_method_call(out, MODEL, NAME_RUN_ITERATIONS, PARAM_ITERATIONS);
+  out << IND4;
+  gen_method_call(out, MODEL, NAME_RUN_ITERATIONS, parameters_module + "." + PARAM_ITERATIONS);
+  out << IND4;
   gen_method_call(out, MODEL, NAME_END_SIMULATION);
+}
+
+
+void MCell4Generator::generate_customization() {
+  // check if file exists, do not overwrite
+  string cust_filename = get_filename(data.output_files_prefix, CUSTOMIZATION, PY_EXT);
+  ifstream tmp;
+  tmp.open(cust_filename);
+  if (tmp.is_open()) {
+    // TODO: test
+    cout << "Message: custom file " + cust_filename + " already exists, keeping it as it is.\n";
+    tmp.close();
+    return;
+  }
+
+  ofstream out;
+  open_and_check_file(CUSTOMIZATION, out);
+
+  out <<
+      "# This file hooks to override default MCell4 model\n"
+      "# code behavior for models generated from CellBlender\n";
+
+  out << MCELL_IMPORT;
+  out << IMPORT << " " << get_module_name(PARAMETERS) << "\n\n";
+
+  out << TEMPLATE_CUSTOM_ARGPARSE_AND_PARAMETERS << "\n";
+  out << TEMPLATE_CUSTOM_CONFIG << "\n";
+  out << TEMPLATE_CUSTOM_INIT_AND_RUN << "\n";
 }
 
 
