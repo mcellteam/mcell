@@ -1110,6 +1110,12 @@ void PythonGenerator::generate_viz_outputs(
   Value& viz_output = mcell[KEY_VIZ_OUTPUT];
   check_version(KEY_VIZ_OUTPUT, viz_output, VER_DM_2014_10_24_1638);
 
+  // species_list
+  vector<string> viz_species = get_species_to_visualize();
+  if (!viz_output[KEY_EXPORT_ALL].asBool() && viz_species.empty()) {
+    return; // nothing to generate
+  }
+
   string name = VIZ_OUTPUT_NAME; // there is only one in datamodel now
   viz_output_names.push_back(name);
 
@@ -1124,11 +1130,7 @@ void PythonGenerator::generate_viz_outputs(
   gen_param(out, NAME_OUTPUT_FILES_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
 
   // species_list
-  if (viz_output[KEY_EXPORT_ALL].asBool()) {
-    gen_param(out, NAME_ALL_SPECIES, true, true);
-  }
-  else {
-    vector<string> viz_species = get_species_to_visualize();
+  if (!viz_output[KEY_EXPORT_ALL].asBool() && !viz_species.empty()) {
     gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
   }
 

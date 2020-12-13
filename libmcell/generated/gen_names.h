@@ -77,7 +77,6 @@ const char* const NAME_ADD_SURFACE_CLASS = "add_surface_class";
 const char* const NAME_ADD_VERTEX_MOVE = "add_vertex_move";
 const char* const NAME_ADD_VIZ_OUTPUT = "add_viz_output";
 const char* const NAME_AFFECTED_COMPLEX_PATTERN = "affected_complex_pattern";
-const char* const NAME_ALL_SPECIES = "all_species";
 const char* const NAME_APPLY_VERTEX_MOVES = "apply_vertex_moves";
 const char* const NAME_AREA = "area";
 const char* const NAME_AS_SPECIES = "as_species";

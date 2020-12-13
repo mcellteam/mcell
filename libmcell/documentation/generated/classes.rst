@@ -1771,10 +1771,7 @@ Attributes:
 * | **output_files_prefix**: str
 
 * | **species_list**: List[Species] = None
-  | When empty and all_species is false, empty files will be generated
-
-* | **all_species**: bool = False
-  | Visualize all species
+  | Specifies a list of species to be visualized, when empty, all_species will be generated.
 
 * | **mode**: VizMode = VizMode.ASCII
 

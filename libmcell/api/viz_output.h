@@ -36,11 +36,6 @@ public:
   void check_semantics() const override {
     GenVizOutput::check_semantics();
 
-    if (all_species && !species_list.empty()) {
-      throw ValueError(S("When ") + NAME_ALL_SPECIES + " is set to true, " +
-          NAME_SPECIES_LIST + " must be empty.");
-    }
-
     if (every_n_timesteps < 0) {
       throw ValueError(
           S("The value of ") + NAME_EVERY_N_TIMESTEPS + " must not be less than 0.");

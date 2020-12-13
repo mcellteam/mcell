@@ -36,14 +36,12 @@ class Species;
     VizOutput( \
         const std::string& output_files_prefix_, \
         const std::vector<std::shared_ptr<Species>> species_list_ = std::vector<std::shared_ptr<Species>>(), \
-        const bool all_species_ = false, \
         const VizMode mode_ = VizMode::ASCII, \
         const float_t every_n_timesteps_ = 1 \
     ) { \
       class_name = "VizOutput"; \
       output_files_prefix = output_files_prefix_; \
       species_list = species_list_; \
-      all_species = all_species_; \
       mode = mode_; \
       every_n_timesteps = every_n_timesteps_; \
       postprocess_in_ctor();\
@@ -90,20 +88,6 @@ public:
   virtual std::vector<std::shared_ptr<Species>> get_species_list() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return species_list;
-  }
-
-  bool all_species;
-  virtual void set_all_species(const bool new_all_species_) {
-    if (initialized) {
-      throw RuntimeError("Value 'all_species' of object with name " + name + " (class " + class_name + ") "
-                         "cannot be set after model was initialized.");
-    }
-    cached_data_are_uptodate = false;
-    all_species = new_all_species_;
-  }
-  virtual bool get_all_species() const {
-    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return all_species;
   }
 
   VizMode mode;

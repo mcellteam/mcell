@@ -1713,11 +1713,8 @@ void MCell4Converter::convert_viz_output_events() {
             get_species_id(*s, NAME_CLASS_VIZ_OUTPUT, NAME_SPECIES_LIST));
       }
     }
-    else if (v->all_species) {
-      viz_event->visualize_all_species = true;
-    }
     else {
-      // empty, files will be created but there will be nothing to visualize
+      viz_event->visualize_all_species = true;
     }
 
     world->scheduler.schedule_event(viz_event);
