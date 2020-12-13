@@ -272,9 +272,10 @@ void MCell4Converter::convert_simulation_setup() {
 
   float_t llf_partition_dimension_diff = 0;
 
-  // TODO: should we be modifying the values user provided?
+  // TODO: simplify this code to set origin and partition dimensions
 
   float_t auto_partition_dimension = max3(urb_w_margin) - min3(llf_w_margin);
+  bool auto_origin_set = false;
   if (!is_set(config.initial_partition_origin) && auto_partition_dimension > config.partition_dimension) {
     cout <<
         "Info: Value of " << NAME_CLASS_MODEL << "." << NAME_CONFIG << "." << NAME_PARTITION_DIMENSION <<
@@ -285,6 +286,11 @@ void MCell4Converter::convert_simulation_setup() {
     // we need to move the origin, if specified, by half of this increment
     llf_partition_dimension_diff =
         -(world->config.partition_edge_length - (config.partition_dimension / length_unit)) / 2;
+
+    // place origin to the llf of the bounding box
+    world->config.partition0_llf = (llf - Vec3(PARTITION_EDGE_EXTRA_MARGIN_UM)) / Vec3(length_unit);
+
+    auto_origin_set = true;
   }
   else if (is_set(config.initial_partition_origin) &&
       (config.initial_partition_origin[0] > llf_w_margin.x ||
@@ -323,16 +329,14 @@ void MCell4Converter::convert_simulation_setup() {
 
     world->config.partition_edge_length =
         (config.partition_dimension + llf_partition_dimension_diff + max_urb_diff)/ length_unit;
+
     // we need to move the origin, if specified, by half of this increment
-
-    Vec3 new_origin = origin - Vec3(llf_partition_dimension_diff);
-
     cout <<
         "Info: Value of " << NAME_INITIAL_PARTITION_ORIGIN << " " << origin <<
         " does not provide enough margin"
         " for model's geometry bounding box lower, left, front point " << llf << " "
         " and upper, right, back " << urb << "."
-        " Moving the origin to " << new_origin << " and increasing " <<
+        " Moving the origin to " << origin - Vec3(llf_partition_dimension_diff) << " and increasing " <<
         NAME_PARTITION_DIMENSION << " to " <<
         world->config.partition_edge_length * length_unit << ".\n";
   }
@@ -343,11 +347,11 @@ void MCell4Converter::convert_simulation_setup() {
   if (is_set(config.initial_partition_origin)) {
     // origin set manually
     world->config.partition0_llf =
-        (Vec3(config.initial_partition_origin) - Vec3(llf_partition_dimension_diff))/ Vec3(length_unit);
+        (Vec3(config.initial_partition_origin) - Vec3(llf_partition_dimension_diff)) / Vec3(length_unit);
   }
-  else {
+  else if (!auto_origin_set) {
     // place the partition to the center
-    world->config.partition0_llf = -Vec3(world->config.partition_edge_length) / Vec3(2);
+	  world->config.partition0_llf = -Vec3(world->config.partition_edge_length) / Vec3(2);
   }
 
   // align the origin to a multiple of subpartition length

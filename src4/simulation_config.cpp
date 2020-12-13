@@ -121,15 +121,24 @@ void SimulationConfig::init_radial_steps() {
 void SimulationConfig::dump() {
   BNGConfig::dump();
   cout << "SimulationConfig:\n";
-  cout << "  vacancy_search_dist2: \t\t" << vacancy_search_dist2 << " [float_t] \t\t\n";
-  cout << "  partition_edge_length: \t\t" << partition_edge_length << " [float_t] \t\t\n";
-  cout << "  num_subpartitions_per_partition: \t\t" << num_subpartitions_per_partition_edge << " [uint] \t\t\n";
-  cout << "  num_subpartitions_per_partition_squared: \t\t" << num_subpartitions_per_partition_edge_squared << " [uint] \t\t\n";
-  cout << "  subpartition_edge_length: \t\t" << subpartition_edge_length << " [float_t] \t\t\n";
-  cout << "  subpartition_edge_length_rcp: \t\t" << subpartition_edge_length_rcp << " [float_t] \t\t\n";
-  cout << "  use_expanded_list: \t\t" << use_expanded_list << " [bool] \t\t\n";
-  cout << "  randomize_smol_pos: \t\t" << randomize_smol_pos << " [bool] \t\t\n";
+#define DUMP_ATTR(A) cout << "  " #A ": \t\t" << A << "t\n"
+  DUMP_ATTR(vacancy_search_dist2);
+  DUMP_ATTR(partition0_llf);
+  DUMP_ATTR(partition_edge_length);
+  DUMP_ATTR(num_subpartitions_per_partition_edge);
+  DUMP_ATTR(num_subpartitions_per_partition_edge_squared);
+  DUMP_ATTR(num_subpartitions);
+  DUMP_ATTR(subpartition_edge_length);
+  DUMP_ATTR(subpartition_edge_length_rcp);
+  DUMP_ATTR(num_radial_subdivisions);
+  DUMP_ATTR(use_expanded_list);
+  DUMP_ATTR(randomize_smol_pos);
+  DUMP_ATTR(check_overlapped_walls);
+  DUMP_ATTR(sort_mols_by_subpart);
+  DUMP_ATTR(memory_limit_gb);
+  DUMP_ATTR(simulation_stats_every_n_iterations);
+  DUMP_ATTR(has_intersecting_counted_objects);
+#undef DUMP_ATTR
 }
-
 
 } // namespace MCell
