@@ -45,8 +45,6 @@ public:
       {
   }
 
-  ~BNGEngine();
-
   std::string get_stats_report() const;
 
   bool matches_ignore_orientation(

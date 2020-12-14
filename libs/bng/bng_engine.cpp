@@ -18,11 +18,6 @@ using namespace std;
 
 namespace BNG {
 
-BNGEngine::~BNGEngine() {
-  // clear memory allocated by fast_pool_allocator_tag in Graph
-  boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(int)>::purge_memory();
-}
-
 string BNGEngine::get_stats_report() const {
   stringstream res;
 

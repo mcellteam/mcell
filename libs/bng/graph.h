@@ -24,6 +24,14 @@ namespace boost {
   struct pool_listS { };
 
   // examples of allocators usage are here: https://theboostcpplibraries.com/boost.pool
+  // TODO: figure out whether we need to use purge_memory
+  //
+  // note from https://www.boost.org/doc/libs/1_65_0/libs/pool/doc/html/boost/fast_pool_allocator.html:
+  // The underlying singleton_pool used by the this allocator constructs a pool instance
+  // that is never freed. This means that memory allocated by the allocator can be still
+  // used after main() has completed, but may mean that some memory checking programs will
+  // complain about leaks.
+
   template <class ValueType>
   struct container_gen<pool_listS, ValueType> {
     typedef std::list<ValueType, boost::fast_pool_allocator<ValueType>> type;
@@ -31,7 +39,8 @@ namespace boost {
 
   template <>
   struct parallel_edge_traits<pool_listS> {
-    typedef allow_parallel_edge_tag type; };
+    typedef allow_parallel_edge_tag type; 
+  };
 
 }
 
