@@ -26,23 +26,23 @@ productively.
 Instead, see the "How can I reduce the build time?" question in the "Frequently asked questions"
 section of the documentation for good practice on splitting binding code over multiple files.
 */
-std::list<std::function<void(py::module_ &)>> &initializers() {
-    static std::list<std::function<void(py::module_ &)>> inits;
+std::list<std::function<void(py::module &)>> &initializers() {
+    static std::list<std::function<void(py::module &)>> inits;
     return inits;
 }
 
 test_initializer::test_initializer(Initializer init) {
-    initializers().emplace_back(init);
+    initializers().push_back(init);
 }
 
 test_initializer::test_initializer(const char *submodule_name, Initializer init) {
-    initializers().emplace_back([=](py::module_ &parent) {
+    initializers().push_back([=](py::module &parent) {
         auto m = parent.def_submodule(submodule_name);
         init(m);
     });
 }
 
-void bind_ConstructorStats(py::module_ &m) {
+void bind_ConstructorStats(py::module &m) {
     py::class_<ConstructorStats>(m, "ConstructorStats")
         .def("alive", &ConstructorStats::alive)
         .def("values", &ConstructorStats::values)
@@ -88,4 +88,6 @@ PYBIND11_MODULE(pybind11_tests, m) {
 
     for (const auto &initializer : initializers())
         initializer(m);
+
+    if (!py::hasattr(m, "have_eigen")) m.attr("have_eigen") = false;
 }

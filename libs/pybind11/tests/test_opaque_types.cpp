@@ -11,14 +11,10 @@
 #include <pybind11/stl.h>
 #include <vector>
 
-// IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures
-//
-// This also deliberately doesn't use the below StringList type alias to test
-// that MAKE_OPAQUE can handle a type containing a `,`.  (The `std::allocator`
-// bit is just the default `std::vector` allocator).
-PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
+using StringList = std::vector<std::string>;
 
-using StringList = std::vector<std::string, std::allocator<std::string>>;
+/* IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures */
+PYBIND11_MAKE_OPAQUE(StringList);
 
 TEST_SUBMODULE(opaque_types, m) {
     // test_string_list
@@ -60,14 +56,8 @@ TEST_SUBMODULE(opaque_types, m) {
     m.def("get_null_str_value", [](char *ptr) { return reinterpret_cast<std::intptr_t>(ptr); });
 
     m.def("return_unique_ptr", []() -> std::unique_ptr<StringList> {
-        auto *result = new StringList();
+        StringList *result = new StringList();
         result->push_back("some value");
         return std::unique_ptr<StringList>(result);
     });
-
-    // test unions
-    py::class_<IntFloat>(m, "IntFloat")
-        .def(py::init<>())
-        .def_readwrite("i", &IntFloat::i)
-        .def_readwrite("f", &IntFloat::f);
 }

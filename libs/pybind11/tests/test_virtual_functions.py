@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 import pytest
 
-import env  # noqa: F401
-
-m = pytest.importorskip("pybind11_tests.virtual_functions")
-from pybind11_tests import ConstructorStats  # noqa: E402
+from pybind11_tests import virtual_functions as m
+from pybind11_tests import ConstructorStats
 
 
 def test_override(capture, msg):
@@ -14,18 +11,18 @@ def test_override(capture, msg):
             self.data = "Hello world"
 
         def run(self, value):
-            print("ExtendedExampleVirt::run(%i), calling parent.." % value)
+            print('ExtendedExampleVirt::run(%i), calling parent..' % value)
             return super(ExtendedExampleVirt, self).run(value + 1)
 
         def run_bool(self):
-            print("ExtendedExampleVirt::run_bool()")
+            print('ExtendedExampleVirt::run_bool()')
             return False
 
         def get_string1(self):
             return "override1"
 
         def pure_virtual(self):
-            print("ExtendedExampleVirt::pure_virtual(): %s" % self.data)
+            print('ExtendedExampleVirt::pure_virtual(): %s' % self.data)
 
     class ExtendedExampleVirt2(ExtendedExampleVirt):
         def __init__(self, state):
@@ -37,30 +34,21 @@ def test_override(capture, msg):
     ex12 = m.ExampleVirt(10)
     with capture:
         assert m.runExampleVirt(ex12, 20) == 30
-    assert (
-        capture
-        == """
+    assert capture == """
         Original implementation of ExampleVirt::run(state=10, value=20, str1=default1, str2=default2)
     """  # noqa: E501 line too long
-    )
 
     with pytest.raises(RuntimeError) as excinfo:
         m.runExampleVirtVirtual(ex12)
-    assert (
-        msg(excinfo.value)
-        == 'Tried to call pure virtual function "ExampleVirt::pure_virtual"'
-    )
+    assert msg(excinfo.value) == 'Tried to call pure virtual function "ExampleVirt::pure_virtual"'
 
     ex12p = ExtendedExampleVirt(10)
     with capture:
         assert m.runExampleVirt(ex12p, 20) == 32
-    assert (
-        capture
-        == """
+    assert capture == """
         ExtendedExampleVirt::run(20), calling parent..
         Original implementation of ExampleVirt::run(state=11, value=21, str1=override1, str2=default2)
     """  # noqa: E501 line too long
-    )
     with capture:
         assert m.runExampleVirtBool(ex12p) is False
     assert capture == "ExtendedExampleVirt::run_bool()"
@@ -71,19 +59,16 @@ def test_override(capture, msg):
     ex12p2 = ExtendedExampleVirt2(15)
     with capture:
         assert m.runExampleVirt(ex12p2, 50) == 68
-    assert (
-        capture
-        == """
+    assert capture == """
         ExtendedExampleVirt::run(50), calling parent..
         Original implementation of ExampleVirt::run(state=17, value=51, str1=override1, str2=override2)
     """  # noqa: E501 line too long
-    )
 
     cstats = ConstructorStats.get(m.ExampleVirt)
     assert cstats.alive() == 3
     del ex12, ex12p, ex12p2
     assert cstats.alive() == 0
-    assert cstats.values() == ["10", "11", "17"]
+    assert cstats.values() == ['10', '11', '17']
     assert cstats.copy_constructions == 0
     assert cstats.move_constructions >= 0
 
@@ -94,7 +79,6 @@ def test_alias_delay_initialization1(capture):
     If we just create and use an A instance directly, the trampoline initialization is
     bypassed and we only initialize an A() instead (for performance reasons).
     """
-
     class B(m.A):
         def __init__(self):
             super(B, self).__init__()
@@ -116,15 +100,12 @@ def test_alias_delay_initialization1(capture):
         m.call_f(b)
         del b
         pytest.gc_collect()
-    assert (
-        capture
-        == """
+    assert capture == """
         PyA.PyA()
         PyA.f()
         In python f()
         PyA.~PyA()
     """
-    )
 
 
 def test_alias_delay_initialization2(capture):
@@ -134,7 +115,6 @@ def test_alias_delay_initialization2(capture):
     performance penalty, it also allows us to do more things with the trampoline
     class such as defining local variables and performing construction/destruction.
     """
-
     class B2(m.A2):
         def __init__(self):
             super(B2, self).__init__()
@@ -152,9 +132,7 @@ def test_alias_delay_initialization2(capture):
         m.call_f(a3)
         del a3
         pytest.gc_collect()
-    assert (
-        capture
-        == """
+    assert capture == """
         PyA2.PyA2()
         PyA2.f()
         A2.f()
@@ -164,7 +142,6 @@ def test_alias_delay_initialization2(capture):
         A2.f()
         PyA2.~PyA2()
     """
-    )
 
     # Python subclass version
     with capture:
@@ -172,23 +149,18 @@ def test_alias_delay_initialization2(capture):
         m.call_f(b2)
         del b2
         pytest.gc_collect()
-    assert (
-        capture
-        == """
+    assert capture == """
         PyA2.PyA2()
         PyA2.f()
         In python B2.f()
         PyA2.~PyA2()
     """
-    )
 
 
 # PyPy: Reference count > 1 causes call with noncopyable instance
 # to fail in ncv1.print_nc()
-@pytest.mark.xfail("env.PYPY")
-@pytest.mark.skipif(
-    not hasattr(m, "NCVirt"), reason="NCVirt does not work on Intel/PGI/NVCC compilers"
-)
+@pytest.unsupported_on_pypy
+@pytest.mark.skipif(not hasattr(m, "NCVirt"), reason="NCVirt test broken on ICPC")
 def test_move_support():
     class NCVirtExt(m.NCVirt):
         def get_noncopyable(self, a, b):
@@ -227,8 +199,8 @@ def test_move_support():
     del ncv1, ncv2
     assert nc_stats.alive() == 0
     assert mv_stats.alive() == 0
-    assert nc_stats.values() == ["4", "9", "9", "9"]
-    assert mv_stats.values() == ["4", "5", "7", "7"]
+    assert nc_stats.values() == ['4', '9', '9', '9']
+    assert mv_stats.values() == ['4', '5', '7', '7']
     assert nc_stats.copy_constructions == 0
     assert mv_stats.copy_constructions == 1
     assert nc_stats.move_constructions >= 0
@@ -237,7 +209,6 @@ def test_move_support():
 
 def test_dispatch_issue(msg):
     """#159: virtual function dispatch has problems with similar-named functions"""
-
     class PyClass1(m.DispatchIssue):
         def dispatch(self):
             return "Yay.."
@@ -246,10 +217,7 @@ def test_dispatch_issue(msg):
         def dispatch(self):
             with pytest.raises(RuntimeError) as excinfo:
                 super(PyClass2, self).dispatch()
-            assert (
-                msg(excinfo.value)
-                == 'Tried to call pure virtual function "Base::dispatch"'
-            )
+            assert msg(excinfo.value) == 'Tried to call pure virtual function "Base::dispatch"'
 
             p = PyClass1()
             return m.dispatch_issue_go(p)
@@ -365,7 +333,7 @@ def test_inherited_virtuals():
 
     class DT(m.D_Tpl):
         def say_something(self, times):
-            return "DT says:" + (" quack" * times)
+            return "DT says:" + (' quack' * times)
 
         def unlucky_number(self):
             return 1234
@@ -381,7 +349,7 @@ def test_inherited_virtuals():
 
     class DT2(DT):
         def say_something(self, times):
-            return "DT2: " + ("QUACK" * times)
+            return "DT2: " + ('QUACK' * times)
 
         def unlucky_number(self):
             return -3

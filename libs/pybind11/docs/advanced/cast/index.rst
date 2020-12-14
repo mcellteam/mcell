@@ -1,5 +1,3 @@
-.. _type-conversions:
-
 Type conversions
 ################
 
@@ -41,3 +39,4 @@ the last case of the above list.
    chrono
    eigen
    custom
+

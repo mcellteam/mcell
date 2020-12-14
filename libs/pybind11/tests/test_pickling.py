@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
 import pytest
-
-import env  # noqa: F401
-
 from pybind11_tests import pickling as m
 
 try:
@@ -25,7 +21,7 @@ def test_roundtrip(cls_name):
     assert p2.extra2() == p.extra2()
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.unsupported_on_pypy
 @pytest.mark.parametrize("cls_name", ["PickleableWithDict", "PickleableWithDictNew"])
 def test_roundtrip_with_dict(cls_name):
     cls = getattr(m, cls_name)
@@ -38,10 +34,3 @@ def test_roundtrip_with_dict(cls_name):
     assert p2.value == p.value
     assert p2.extra == p.extra
     assert p2.dynamic == p.dynamic
-
-
-def test_enum_pickle():
-    from pybind11_tests import enums as e
-
-    data = pickle.dumps(e.EOne, 2)
-    assert e.EOne == pickle.loads(data)
