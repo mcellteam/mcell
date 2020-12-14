@@ -1,6 +1,40 @@
 CHANGELOG
 ===============================================================================
 
+Changes in MCell 4.0.internal.7
+-------------------------------------------------------------------------------
+
+API changes that break backwards compatibility:
+  * renamed class Instantiation to InstantiationData to make it consistentt 
+    - simply rename InstantiationData to Instantiation
+  * removed VizOutput species attribute all_species, entering empty species_list means to visualize all species
+    - remove the line “all_species = True,” from VizOutput constructor arguments
+
+Planned changes:
+  * Original MCell3 python API (PyMCell) is deprecated and will be removed in one of the following releases  
+
+New features:
+  * custom time step
+  * immediate release of molecules during timestep
+  * reaction callbacks
+  * reaction rates changing during simulation
+  * obtaining observable value during simulation
+  * export of model to BNGL that can be run both with MCell and BioNetGen (limited, only one geometry object may be present)
+  * hooks in cellblender-generated code for model customization
+
+Other major changes:
+  * checks when adding identical objects to model
+     - addition of identical objects is ignored with a warning
+     - cannot add two objects with the same name but different contents
+  * many performance and memory optimizations
+  * flushing buffers when Ctrl-C is caught by MCell
+
+
+Changes in MCell 4.0.internal.6 and older
+-------------------------------------------------------------------------------
+* Base Python MCell4 support, too many changes to list here
+
+
 Changes in MCell 3.5.1
 -------------------------------------------------------------------------------
 
