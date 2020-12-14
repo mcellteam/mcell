@@ -43,7 +43,7 @@ namespace API {
 
 class Complex;
 
-class Subsystem: public GenSubsystem, public std::enable_shared_from_this<Subsystem> {
+class Subsystem: public GenSubsystem {
 public:
   // from generated template
   void add_species(std::shared_ptr<Species> s) override {
