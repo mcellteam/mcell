@@ -52,6 +52,8 @@ int parse_bngl_file(
   int errors = ctx->get_error_count();
 
   BNG::delete_parser_context();
+  fflush(bnglin); // valgrind reports memory leak without this flush call
+  fclose(bnglin);
   bngllex_destroy();
 
   return errors;
