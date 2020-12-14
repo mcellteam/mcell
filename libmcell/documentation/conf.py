@@ -21,6 +21,11 @@ project = 'MCell 4'
 copyright = '2020, Salk Institute'
 author = 'Salk Institute'
 
+import os
+basedir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(basedir, '..', '..', 'src', 'version.txt'), 'r') as f:
+    version = f.readline().strip()
+
 
 # -- General configuration ---------------------------------------------------
 

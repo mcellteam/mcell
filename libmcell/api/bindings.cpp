@@ -65,6 +65,7 @@
 #include "generated/gen_constants.h"
 
 #include "world.h"
+#include "version.h"
 
 
 #if __cplusplus < 201402L
@@ -174,6 +175,9 @@ void define_pybinding_IVec3(py::module& m) {
 
 // all define_binding_* functions are called here
 PYBIND11_MODULE(mcell, m) {
+
+  // version
+  m.attr("__version__") = py::str(MCELL_VERSION);
 
   // some classes use enums, must be defined first
   define_pybinding_enums(m);
