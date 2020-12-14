@@ -15,6 +15,7 @@ Planned changes:
 
 New features:
   * custom time step
+  * concentration clamp
   * immediate release of molecules during timestep
   * reaction callbacks
   * reaction rates changing during simulation
