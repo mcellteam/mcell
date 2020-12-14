@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from widget_module import Widget
 
 

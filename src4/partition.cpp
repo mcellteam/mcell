@@ -243,7 +243,7 @@ void Partition::apply_vertex_moves_per_object(
   // mcell3 compatibility - sort surface_molecule_moves by id in order to
   // use the same grid locations as in mcell3, not really needed for correctness
   sort( surface_molecule_moves.begin(), surface_molecule_moves.end(),
-      [ ]( const auto& lhs, const auto& rhs )
+      [ ]( const SurfaceMoleculeMoveInfo& lhs, const SurfaceMoleculeMoveInfo& rhs )
       {
         return lhs.molecule_id < rhs.molecule_id;
       }

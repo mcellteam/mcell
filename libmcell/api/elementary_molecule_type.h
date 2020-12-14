@@ -47,7 +47,7 @@ public:
 
   bool __eq__(const ElementaryMoleculeType& other) const override;
 
-  virtual std::string to_bngl_str() const;
+  std::string to_bngl_str() const override;
 
   // added methods
   std::string get_canonical_name() const;

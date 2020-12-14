@@ -61,9 +61,8 @@ double get_elem(Eigen::Ref<const Eigen::MatrixXd> m) { return m(2, 1); };
 // reference is referencing rows/columns correctly).
 template <typename MatrixArgType> Eigen::MatrixXd adjust_matrix(MatrixArgType m) {
     Eigen::MatrixXd ret(m);
-    for (int c = 0; c < m.cols(); c++)
-        for (int r = 0; r < m.rows(); r++)
-            ret(r, c) += 10*r + 100*c;  // NOLINT(clang-analyzer-core.uninitialized.Assign)
+    for (int c = 0; c < m.cols(); c++) for (int r = 0; r < m.rows(); r++)
+        ret(r, c) += 10*r + 100*c;
     return ret;
 }
 
@@ -87,6 +86,8 @@ TEST_SUBMODULE(eigen, m) {
     using FourColMatrixR = Eigen::Matrix<float, Eigen::Dynamic, 4>;
     using SparseMatrixR = Eigen::SparseMatrix<float, Eigen::RowMajor>;
     using SparseMatrixC = Eigen::SparseMatrix<float>;
+
+    m.attr("have_eigen") = true;
 
     // various tests
     m.def("double_col", [](const Eigen::VectorXf &x) -> Eigen::VectorXf { return 2.0f * x; });
@@ -123,7 +124,7 @@ TEST_SUBMODULE(eigen, m) {
     // This one accepts a matrix of any stride:
     m.def("add_any", [](py::EigenDRef<Eigen::MatrixXd> x, int r, int c, double v) { x(r,c) += v; });
 
-    // Return mutable references (numpy maps into eigen variables)
+    // Return mutable references (numpy maps into eigen varibles)
     m.def("get_cm_ref", []() { return Eigen::Ref<Eigen::MatrixXd>(get_cm()); });
     m.def("get_rm_ref", []() { return Eigen::Ref<MatrixXdR>(get_rm()); });
     // The same references, but non-mutable (numpy maps into eigen variables, but is !writeable)
@@ -256,7 +257,7 @@ TEST_SUBMODULE(eigen, m) {
     m.def("dense_copy_r", [](const DenseMatrixR &m) -> DenseMatrixR { return m; });
     m.def("dense_copy_c", [](const DenseMatrixC &m) -> DenseMatrixC { return m; });
     // test_sparse, test_sparse_signature
-    m.def("sparse_r", [mat]() -> SparseMatrixR { return Eigen::SparseView<Eigen::MatrixXf>(mat); }); //NOLINT(clang-analyzer-core.uninitialized.UndefReturn)
+    m.def("sparse_r", [mat]() -> SparseMatrixR { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_c", [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_copy_r", [](const SparseMatrixR &m) -> SparseMatrixR { return m; });
     m.def("sparse_copy_c", [](const SparseMatrixC &m) -> SparseMatrixC { return m; });
@@ -318,11 +319,11 @@ TEST_SUBMODULE(eigen, m) {
     // a new array (np.ones(10)) increases the chances that the temp array will be garbage
     // collected and/or that its memory will be overridden with different values.
     m.def("get_elem_direct", [](Eigen::Ref<const Eigen::VectorXd> v) {
-        py::module_::import("numpy").attr("ones")(10);
+        py::module::import("numpy").attr("ones")(10);
         return v(5);
     });
     m.def("get_elem_indirect", [](std::vector<Eigen::Ref<const Eigen::VectorXd>> v) {
-        py::module_::import("numpy").attr("ones")(10);
+        py::module::import("numpy").attr("ones")(10);
         return v[0](5);
     });
 }

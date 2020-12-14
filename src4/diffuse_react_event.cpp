@@ -348,7 +348,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 void sort_collisions_by_time(CollisionsVector& molecule_collisions) {
   sort( molecule_collisions.begin(), molecule_collisions.end(),
-      [ ]( const auto& lhs, const auto& rhs )
+      [ ]( const Collision& lhs, const Collision& rhs )
       {
         assert((lhs.type != CollisionType::VOLMOL_SURFMOL && lhs.type != CollisionType::SURFMOL_SURFMOL) &&
             "Ray trace can return only vol-wall or vol-vol collisions");
