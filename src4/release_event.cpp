@@ -181,6 +181,7 @@ RegionExprNode* ReleaseEvent::create_new_region_expr_node_leaf(const region_id_t
   RegionExprNode* res = new RegionExprNode;
   res->op = RegionExprOperator::Leaf;
   res->region_id = region_id;
+  all_region_expr_nodes.push_back(res);
   return res;
 }
 
@@ -192,6 +193,7 @@ RegionExprNode* ReleaseEvent::create_new_region_expr_node_op(
   res->op = op;
   res->left = left;
   res->right = right;
+  all_region_expr_nodes.push_back(res);
   return res;
 }
 

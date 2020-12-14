@@ -89,10 +89,14 @@ public:
       left(nullptr), right(nullptr) {
   }
 
+  ~RegionExprNode() {
+    // children are contained in ReleaseEvent::all_region_expr_nodes,
+    // and are deleted when ReleaseEvent is destroyed
+  }
+
   RegionExprOperator op;
 
   region_id_t region_id;
-  //std::string region_name; // name of the region into which we should release the molecules
 
   RegionExprNode* left;
   RegionExprNode* right;
