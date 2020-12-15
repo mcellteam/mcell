@@ -130,6 +130,10 @@ void Model::export_data_model_viz_or_full(
     const bool only_for_visualization,
     const char* method_name) {
 
+  if (world == nullptr) {
+    throw RuntimeError(S("Model must be initialized before a call to ") + NAME_EXPORT_DATA_MODEL + ".");
+  }
+
   if (is_set(file)) {
     world->export_data_model(file, only_for_visualization);
   }
