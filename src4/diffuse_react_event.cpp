@@ -1354,7 +1354,9 @@ bool DiffuseReactEvent::react_2D_intermembrane(
 
   // which subpart are we in?
   // we check walls whose part is in the current subpartition, not the neighbors
-  subpart_index_t subpart_index = p.get_subpart_index(reac1_pos3d);
+  IVec3 subpart_indices;
+  p.get_subpart_3d_indices(reac1_pos3d, subpart_indices);
+  subpart_index_t subpart_index = p.get_subpart_index_from_3d_indices(subpart_indices);
 
   // with what species we may react? (this should be cached)
   const BNG::ReactantRxnClassesMap* rxns_classes_map =
@@ -1382,10 +1384,30 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   typedef pair<molecule_id_t, float_t> IdDist2Pair;
   small_vector<IdDist2Pair> reactants_dist2;
 
-  // for each wall in this subpart
-  const WallsInSubpart& walls = p.get_subpart_wall_indices(subpart_index);
-  for (wall_index_t wi: walls) {
+  // get neighboring subparts - this is necessary because
+  // subpartitioning can put a boundary right between membranes
+  SubpartIndicesSet subpart_indices_set;
+  CollisionUtil::collect_neighboring_subparts(
+      p, reac1_pos3d, subpart_indices, p.config.intermembrane_rx_radius_3d, p.config.subpartition_edge_length,
+      subpart_indices_set
+  );
+  // and include current subpart
+  subpart_indices_set.insert(subpart_index);
+
+  // collect walls (this can be also somehow pre-computed)
+  uint_set<wall_index_t> wall_indices;
+  for (subpart_index_t si: subpart_indices_set) {
+    // for each wall in this subpart that belongs to a different object
+    const WallsInSubpart& subpart_wall_indices = p.get_subpart_wall_indices(subpart_index);
+    wall_indices.insert(subpart_wall_indices.begin(), subpart_wall_indices.end());
+  }
+
+  for (wall_index_t wi: wall_indices) {
     const Wall& w2 = p.get_wall(wi);
+    if (w2.object_id == w1.object_id) {
+      continue;
+    }
+
     const Grid& g = w2.grid;
     if (!g.is_initialized() || g.get_num_occupied_tiles() == 0) {
       continue;
@@ -1415,6 +1437,10 @@ bool DiffuseReactEvent::react_2D_intermembrane(
     }
   }
 
+  if (reactants_dist2.empty()) {
+    return true;
+  }
+
   // sort potential reactants by distance
   sort(reactants_dist2.begin(), reactants_dist2.end(),
       [ ]( const IdDist2Pair& lhs, const IdDist2Pair& rhs ) {
@@ -1423,17 +1449,61 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   );
 
   // and similarly as in diffuse_volume_molecule, evaluate each potential collision
-  /*for (const IdDist2Pair& collision: reactants_dist2) {
-    if (collide_and_react_intermembrane(
-          p, collision,
-          t_steps, r_rate_factor, elapsed_molecule_time)
-    ) {
-      // molecule was destroyed
-      was_defunct = true;
-      break;
+
+  // collision_time is the same as for surf mols,
+  // TODO: not sure if correct, this molecule has already diffused and newly created
+  // molecules birthdays will be this one
+  float_t collision_time = diffusion_start_time;
+
+  bool was_defunct = false;
+  for (const IdDist2Pair& id_dist2_pair: reactants_dist2) {
+    Molecule& sm2 = p.get_m(id_dist2_pair.first);
+
+    // get what reaction should happen
+    RxnClassesVector matching_rxn_classes;
+    RxnUtil::trigger_bimolecular(
+        p.bng_engine, sm, sm2, ORIENTATION_NONE, ORIENTATION_NONE, matching_rxn_classes);
+
+    if (matching_rxn_classes.empty()) {
+      assert(false && "We already filtered-out molcules that can react");
+      continue;
     }
-  }*/
-  return true;
+
+    int selected_pathway_index;
+    int rxn_class_index;
+    if (matching_rxn_classes.size() == 1) {
+      selected_pathway_index = RxnUtil::test_bimolecular(
+          matching_rxn_classes[0], world->rng,
+          sm, sm2,
+          // TODO: not sure what to put as scaling coeff
+          1,
+          0, // local prob factor
+          collision_time);
+
+        // there is just one possible class == one pair of reactants
+        rxn_class_index = 0;
+    }
+    else {
+      release_assert(false && "Multiple rxn classes for intermembrane rxns are not supported yet");
+    }
+
+    if (selected_pathway_index < RX_LEAST_VALID_PATHWAY) {
+      continue; // No reaction
+    }
+
+    Collision collision = Collision(
+        CollisionType::INTERMEMBRANE_SURFMOL_SURFMOL,
+        &p, sm.id, collision_time,
+        sm2.id,
+        matching_rxn_classes[rxn_class_index]
+    );
+
+    /* run the reaction */
+    int outcome_bimol_result = outcome_bimolecular(
+        p, collision, selected_pathway_index, collision_time
+    );
+  }
+  return !was_defunct;
 }
 
 

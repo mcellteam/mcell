@@ -360,7 +360,11 @@ ReactionRule:
         * [M^-1*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule 
                       and a surface (molecule), 
         * [um^2*N^-1*s^-1] bimolecular reactions between two surface molecules on the same surface, and
-        * [N^-1*s^-1] bimolecular reactions between two surface molecules on different objects (experimental). 
+        * [N^-1*s^-1] bimolecular reactions between two surface molecules on different objects 
+          (this is a highly experimental feature and the unit will likely change in the future, 
+           not sure if probability is computed correctly, it works the way that the surface molecule 
+           is first diffused and then a potential collisions within the distance of Config.intermembrane_interaction_radius
+           are evaluated). 
       Here, M is the molarity of the solution and N the number of reactants.
       May be changed after model initialization. 
       Setting of value is ignored if the rate does not change. 
@@ -392,6 +396,7 @@ ReactionRule:
     type: bool
     default: false
     doc: |
+      Experimental, see addintinal explanation in 'fwd' rate.
       Then set to true, this is a special type of surface-surface reaction that 
       allows for two surface molecules to react when they are on different geometrical objects. 
       This support is limited for now, the reaction rule must be in the form of A + B -> C + D 

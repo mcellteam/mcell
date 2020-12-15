@@ -1316,8 +1316,14 @@ Attributes:
   | The units of the reaction rate for uni- and bimolecular reactions are
   |   \* [s^-1] for unimolecular reactions,
   |   \* [M^-1\*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule 
-  |                 and a surface (molecule) or between two surface molecules on different surfaces, and
-  |   \* [um^2\*N^-1\*s^-1] bimolecular reactions between two surface molecules on the same surface. 
+  |                 and a surface (molecule), 
+  |   \* [um^2\*N^-1\*s^-1] bimolecular reactions between two surface molecules on the same surface, and
+  |   \* [N^-1\*s^-1] bimolecular reactions between two surface molecules on different objects 
+  |     (this is a highly experimental feature and the unit will likely change in the future, 
+  |      not sure if probability is computed correctly, it works the way that the surface molecule 
+  |      is first diffused and then a potential collisions within the distance of Config.intermembrane_interaction_radius
+  |      are evaluated). 
+  | Here, M is the molarity of the solution and N the number of reactants.
   | May be changed after model initialization. 
   | Setting of value is ignored if the rate does not change. 
   | If the new value differs from previous, updates all information related 
@@ -1337,6 +1343,7 @@ Attributes:
   | must not be set. The array passed as this argument must have as its items a pair of floats (time, rate).
 
 * | **is_intermembrane_surface_reaction**: bool = False
+  | Experimental, see addintinal explanation in 'fwd' rate.
   | Then set to true, this is a special type of surface-surface reaction that 
   | allows for two surface molecules to react when they are on different geometrical objects. 
   | This support is limited for now, the reaction rule must be in the form of A + B -> C + D 

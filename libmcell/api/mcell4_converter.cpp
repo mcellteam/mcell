@@ -853,6 +853,10 @@ void MCell4Converter::convert_rxns() {
     if (r->is_intermembrane_surface_reaction) {
       check_intermembrane_surface_reaction(rxn);
       rxn.set_is_intermembrane_surf_rxn();
+      // orientation is ANY in this case, we might need to update it later
+      // TODO: add warning if user specified explicit orientation
+      rxn.reactants[0].set_orientation(ORIENTATION_NONE);
+      rxn.reactants[1].set_orientation(ORIENTATION_NONE);
     }
 
     string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn);
@@ -877,6 +881,8 @@ void MCell4Converter::convert_rxns() {
 
       if (r->is_intermembrane_surface_reaction) {
         rxn.set_is_intermembrane_surf_rxn();
+        rxn.reactants[0].set_orientation(ORIENTATION_NONE);
+        rxn.reactants[1].set_orientation(ORIENTATION_NONE);
       }
 
       rxn_rev.finalize();
