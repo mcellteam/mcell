@@ -53,7 +53,7 @@ def create_argparse():
         help='arguments file where each line contains arguments passed to the main model file, '
              'model must make sure that the output directories are different for different arguments')
     parser.add_argument('-j', '--max-cores', type=int, 
-        help='sets maximum number of cores for running, default is all if -s is not used')
+        help='sets maximum number of cores for running, default is all if -j is not used')
     parser.add_argument('main_model_file',  
         help='sets path to the MCell4 model')
     return parser
@@ -83,7 +83,7 @@ def process_opts():
             sys.exit(1)
          
     if args.max_cores:
-        seed.max_cores = args.max_cores
+        opts.max_cores = args.max_cores
         
     if args.main_model_file:
         if os.path.exists(args.main_model_file): 
