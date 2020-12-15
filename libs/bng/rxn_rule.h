@@ -370,6 +370,14 @@ public:
     }
   }
 
+  void set_is_intermembrane_surf_rxn() {
+    set_flag(RXN_FLAG_INTERMEMBRANE);
+  }
+
+  bool is_intermembrane_surf_rxn() const {
+    return has_flag(RXN_FLAG_INTERMEMBRANE);
+  }
+
   bool reactants_use_compartments() const {
     if (is_unimol()) {
       return reactants[0].has_compartment();

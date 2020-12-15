@@ -289,7 +289,13 @@ Attributes:
   | Diffusing volume molecules will interact with each other when
   | they get within N microns of each other. The default is
   | 1/sqrt(PI \* Sigma_s) where Sigma_s is the surface grid density 
-  | (default or userspecified)
+  | (default or user-specified).
+
+* | **intermembrane_interaction_radius**: float = None
+  | Diffusing surface molecules will interact with surface molecules on other
+  | walls when they get within N microns of each other. The default is
+  | 1/sqrt(PI \* Sigma_s) where Sigma_s is the surface grid density 
+  | (default or user-specified).
 
 * | **vacancy_search_distance**: float = 10
   | Normally, a reaction will not proceed on a surface unless there
@@ -1306,6 +1312,12 @@ Attributes:
 * | **products**: List[Complex] = None
 
 * | **fwd_rate**: float = None
+  | Rates have following units\: unimolecular [s^-1], volume bimolecular [M^-1\*s^-1], 
+  | The units of the reaction rate for uni- and bimolecular reactions are
+  |   \* [s^-1] for unimolecular reactions,
+  |   \* [M^-1\*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule 
+  |                 and a surface (molecule) or between two surface molecules on different surfaces, and
+  |   \* [um^2\*N^-1\*s^-1] bimolecular reactions between two surface molecules on the same surface. 
   | May be changed after model initialization. 
   | Setting of value is ignored if the rate does not change. 
   | If the new value differs from previous, updates all information related 
@@ -1323,6 +1335,13 @@ Attributes:
 * | **variable_rate**: List[List[float]] = None
   | Variable rate is applicable only for irreversible reactions. Members fwd_rate and rev_rate 
   | must not be set. The array passed as this argument must have as its items a pair of floats (time, rate).
+
+* | **is_intermembrane_surface_reaction**: bool = False
+  | Then set to true, this is a special type of surface-surface reaction that 
+  | allows for two surface molecules to react when they are on different geometrical objects. 
+  | This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
+  | where all reactants and products must be surface molecules and 
+  | their orientation must be 'any' (default).
 
 
 Methods:

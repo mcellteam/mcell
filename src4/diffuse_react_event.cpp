@@ -1161,6 +1161,12 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
     sm_still_exists = react_2D_all_neighbors(p, sm, t_steps, diffusion_start_time);
   }
 
+  // NOTE: surf-surf reactions on the same wall have higher priority,
+  // this must be randomized once intermembrane rxns will be more used
+  if (sm_still_exists && species.has_flag(SPECIES_FLAG_CAN_INTERMEMBRANE_SURFSURF) && !species.cant_initiate()) {
+    sm_still_exists = react_2D_intermembrane(p, sm, t_steps, diffusion_start_time);
+  }
+
   if (sm_still_exists) {
     // reactions in react_2D_all_neighbors could have invalidated the molecules array
     Molecule& new_m_ref = p.get_m(sm_id);
@@ -1336,8 +1342,99 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 }
 
 
+bool DiffuseReactEvent::react_2D_intermembrane(
+    Partition& p, Molecule& sm,
+    const float_t t_steps, const float_t diffusion_start_time
+) {
+  const Wall& w1 = p.get_wall(sm.s.wall_index);
+  const Vec3& w1_vert0 = p.get_wall_vertex(w1, 0);
 
+  // get 3d position
+  Vec3 reac1_pos3d = GeometryUtil::uv2xyz(sm.s.pos, w1, w1_vert0);
 
+  // which subpart are we in?
+  // we check walls whose part is in the current subpartition, not the neighbors
+  subpart_index_t subpart_index = p.get_subpart_index(reac1_pos3d);
+
+  // with what species we may react? (this should be cached)
+  const BNG::ReactantRxnClassesMap* rxns_classes_map =
+      p.get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(sm.species_id);
+  if (rxns_classes_map == nullptr || rxns_classes_map->empty()) {
+    assert(false && "No rxns");
+    return true;
+  }
+
+  uint_set<species_id_t> reacting_species;
+  for (const auto& second_reactant_info: *rxns_classes_map) {
+    const BNG::RxnClass* rxn_class =
+        BNG::get_rxn_class_for_any_compartment(second_reactant_info.second);
+
+    if (!rxn_class->is_intermembrane_surf_surf_rxn_class()) {
+      continue;
+    }
+
+    species_id_t second_species_id = second_reactant_info.first;
+    reacting_species.insert(second_species_id);
+  }
+
+  float_t rxn_radius2 = p.config.intermembrane_rx_radius_3d * p.config.intermembrane_rx_radius_3d;
+
+  typedef pair<molecule_id_t, float_t> IdDist2Pair;
+  small_vector<IdDist2Pair> reactants_dist2;
+
+  // for each wall in this subpart
+  const WallsInSubpart& walls = p.get_subpart_wall_indices(subpart_index);
+  for (wall_index_t wi: walls) {
+    const Wall& w2 = p.get_wall(wi);
+    const Grid& g = w2.grid;
+    if (!g.is_initialized() || g.get_num_occupied_tiles() == 0) {
+      continue;
+    }
+    const Vec3& w2_vert0 = p.get_wall_vertex(w2, 0);
+
+    // not really efficient, goes through all tiles
+    small_vector<molecule_id_t> molecule_ids;
+    g.get_contained_molecules(molecule_ids);
+    assert(molecule_ids.size() == g.get_num_occupied_tiles());
+
+    for (molecule_id_t reac2_id: molecule_ids) {
+      const Molecule& reac2 = p.get_m(reac2_id);
+      assert(reac2.is_surf());
+      if (reacting_species.count(reac2.species_id) == 0) {
+        continue;
+      }
+
+      // compute distance
+      Vec3 reac2_pos3d = GeometryUtil::uv2xyz(reac2.s.pos, w2, w2_vert0);
+      float_t dist2 = len3_squared(reac1_pos3d - reac2_pos3d);
+      if (dist2 > rxn_radius2) {
+        continue;
+      }
+
+      reactants_dist2.push_back(make_pair(reac2_id, dist2));
+    }
+  }
+
+  // sort potential reactants by distance
+  sort(reactants_dist2.begin(), reactants_dist2.end(),
+      [ ]( const IdDist2Pair& lhs, const IdDist2Pair& rhs ) {
+        return lhs.second < rhs.second;
+      }
+  );
+
+  // and similarly as in diffuse_volume_molecule, evaluate each potential collision
+  /*for (const IdDist2Pair& collision: reactants_dist2) {
+    if (collide_and_react_intermembrane(
+          p, collision,
+          t_steps, r_rate_factor, elapsed_molecule_time)
+    ) {
+      // molecule was destroyed
+      was_defunct = true;
+      break;
+    }
+  }*/
+  return true;
+}
 
 
 /*************************************************************************

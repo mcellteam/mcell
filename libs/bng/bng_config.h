@@ -61,6 +61,7 @@ public:
       rcp_length_unit(0),
       grid_density(0),
       rx_radius_3d(0),
+      intermembrane_rx_radius_3d(0),
       rxn_and_species_report(true),
       bng_verbosity_level(0) {
   }
@@ -76,6 +77,7 @@ public:
   BNGCommon::float_t rcp_length_unit;
   BNGCommon::float_t grid_density;
   BNGCommon::float_t rx_radius_3d;
+  BNGCommon::float_t intermembrane_rx_radius_3d;
 
   // generate report files during simulation
   bool rxn_and_species_report;

@@ -252,6 +252,15 @@ void MCell4Converter::convert_simulation_setup() {
     world->config.rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
   }
 
+  if (is_set(config.intermembrane_interaction_radius)) {
+    // NOTE: mcell3 does not convert the unit of the interaction radius in parser which
+    // seems a bit weird
+    world->config.intermembrane_rx_radius_3d = config.intermembrane_interaction_radius / length_unit;
+  }
+  else {
+    world->config.intermembrane_rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
+  }
+
   float_t vacancy_search_dist = config.vacancy_search_distance / length_unit; // Convert units
   world->config.vacancy_search_dist2 = vacancy_search_dist * vacancy_search_dist; // and take square
 
@@ -777,6 +786,19 @@ BNG::Cplx MCell4Converter::convert_complex(API::Complex& api_cplx, const bool in
 }
 
 
+void MCell4Converter::check_intermembrane_surface_reaction(const BNG::RxnRule& rxn) {
+  if (rxn.reactants.size() !=2 || rxn.products.size() != 2) {
+    throw ValueError("Intermembrane reaction must have exactly 2 reactants and 2 products, error for " +
+        rxn.to_str() + ".");
+  }
+
+  if (!rxn.reactants[0].is_surf() || !rxn.reactants[1].is_surf() ||
+      !rxn.products[0].is_surf() || !rxn.products[1].is_surf()) {
+      throw ValueError("Intermembrane reaction's reactants and products must be all surface complexes, error for " +
+          rxn.to_str() + ".");
+  }
+}
+
 
 void MCell4Converter::convert_rxns() {
   BNG::BNGData& bng_data = world->bng_engine.get_data();
@@ -825,7 +847,14 @@ void MCell4Converter::convert_rxns() {
       rxn.append_product(product);
     }
 
+    // sets also flags for reactants and products
     rxn.finalize();
+
+    if (r->is_intermembrane_surface_reaction) {
+      check_intermembrane_surface_reaction(rxn);
+      rxn.set_is_intermembrane_surf_rxn();
+    }
+
     string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn);
     if (error_msg != "") {
       throw ValueError(error_msg);
@@ -845,6 +874,10 @@ void MCell4Converter::convert_rxns() {
       rxn_rev.base_rate_constant = r->rev_rate;
       rxn_rev.reactants = rxn.products;
       rxn_rev.products = rxn.reactants;
+
+      if (r->is_intermembrane_surface_reaction) {
+        rxn.set_is_intermembrane_surf_rxn();
+      }
 
       rxn_rev.finalize();
       string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn_rev);

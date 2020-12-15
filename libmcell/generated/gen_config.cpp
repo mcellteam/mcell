@@ -41,6 +41,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   time_step = 1e-6;
   surface_grid_density = 10000;
   interaction_radius = FLT_UNSET;
+  intermembrane_interaction_radius = FLT_UNSET;
   vacancy_search_distance = 10;
   center_molecules_on_grid = false;
   initial_partition_origin = std::vector<float_t>();
@@ -58,6 +59,7 @@ bool GenConfig::__eq__(const Config& other) const {
     time_step == other.time_step &&
     surface_grid_density == other.surface_grid_density &&
     interaction_radius == other.interaction_radius &&
+    intermembrane_interaction_radius == other.intermembrane_interaction_radius &&
     vacancy_search_distance == other.vacancy_search_distance &&
     center_molecules_on_grid == other.center_molecules_on_grid &&
     initial_partition_origin == other.initial_partition_origin &&
@@ -75,6 +77,7 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     time_step == other.time_step &&
     surface_grid_density == other.surface_grid_density &&
     interaction_radius == other.interaction_radius &&
+    intermembrane_interaction_radius == other.intermembrane_interaction_radius &&
     vacancy_search_distance == other.vacancy_search_distance &&
     center_molecules_on_grid == other.center_molecules_on_grid &&
     true /*initial_partition_origin*/ &&
@@ -93,6 +96,7 @@ std::string GenConfig::to_str(const std::string ind) const {
       "time_step=" << time_step << ", " <<
       "surface_grid_density=" << surface_grid_density << ", " <<
       "interaction_radius=" << interaction_radius << ", " <<
+      "intermembrane_interaction_radius=" << intermembrane_interaction_radius << ", " <<
       "vacancy_search_distance=" << vacancy_search_distance << ", " <<
       "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
       "initial_partition_origin=" << vec_nonptr_to_str(initial_partition_origin, ind + "  ") << ", " <<
@@ -114,6 +118,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const float_t,
             const float_t,
             const float_t,
+            const float_t,
             const bool,
             const std::vector<float_t>,
             const float_t,
@@ -127,6 +132,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("time_step") = 1e-6,
           py::arg("surface_grid_density") = 10000,
           py::arg("interaction_radius") = FLT_UNSET,
+          py::arg("intermembrane_interaction_radius") = FLT_UNSET,
           py::arg("vacancy_search_distance") = 10,
           py::arg("center_molecules_on_grid") = false,
           py::arg("initial_partition_origin") = std::vector<float_t>(),
@@ -145,6 +151,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step)
       .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density)
       .def_property("interaction_radius", &Config::get_interaction_radius, &Config::set_interaction_radius)
+      .def_property("intermembrane_interaction_radius", &Config::get_intermembrane_interaction_radius, &Config::set_intermembrane_interaction_radius)
       .def_property("vacancy_search_distance", &Config::get_vacancy_search_distance, &Config::set_vacancy_search_distance)
       .def_property("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid)
       .def_property("initial_partition_origin", &Config::get_initial_partition_origin, &Config::set_initial_partition_origin)

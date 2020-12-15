@@ -27,7 +27,17 @@ Config:
       Diffusing volume molecules will interact with each other when
       they get within N microns of each other. The default is
       1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density 
-      (default or userspecified)
+      (default or user-specified).
+
+  - name: intermembrane_interaction_radius
+    type: float
+    default: unset
+    min: 0
+    doc: |
+      Diffusing surface molecules will interact with surface molecules on other
+      walls when they get within N microns of each other. The default is
+      1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density 
+      (default or user-specified). 
 
   - name: vacancy_search_distance
     type: float

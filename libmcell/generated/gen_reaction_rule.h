@@ -40,7 +40,8 @@ class Complex;
         const float_t fwd_rate_ = FLT_UNSET, \
         const std::string& rev_name_ = STR_UNSET, \
         const float_t rev_rate_ = FLT_UNSET, \
-        const std::vector<std::vector<float_t>> variable_rate_ = std::vector<std::vector<float_t>>() \
+        const std::vector<std::vector<float_t>> variable_rate_ = std::vector<std::vector<float_t>>(), \
+        const bool is_intermembrane_surface_reaction_ = false \
     ) { \
       class_name = "ReactionRule"; \
       name = name_; \
@@ -50,6 +51,7 @@ class Complex;
       rev_name = rev_name_; \
       rev_rate = rev_rate_; \
       variable_rate = variable_rate_; \
+      is_intermembrane_surface_reaction = is_intermembrane_surface_reaction_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -150,6 +152,20 @@ public:
   virtual std::vector<std::vector<float_t>> get_variable_rate() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return variable_rate;
+  }
+
+  bool is_intermembrane_surface_reaction;
+  virtual void set_is_intermembrane_surface_reaction(const bool new_is_intermembrane_surface_reaction_) {
+    if (initialized) {
+      throw RuntimeError("Value 'is_intermembrane_surface_reaction' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    is_intermembrane_surface_reaction = new_is_intermembrane_surface_reaction_;
+  }
+  virtual bool get_is_intermembrane_surface_reaction() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return is_intermembrane_surface_reaction;
   }
 
   // --- methods ---

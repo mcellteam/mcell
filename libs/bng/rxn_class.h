@@ -94,8 +94,9 @@ private:
   // owned by the simulation engine
   const BNGConfig& bng_config;
 
-  // flag for optimized testing of this rxn class
+  // flags for optimized testing of this rxn class
   bool bimol_vol_rxn_flag;
+  bool intermembrane_surf_surf_rxn_flag;
 
   // flag for initialization of pathways on-demand
   bool pathways_and_rates_initialized;
@@ -106,7 +107,8 @@ public:
       const Reactant& reactant1, const Reactant& reactant2 = Reactant(SPECIES_ID_INVALID, COMPARTMENT_ID_ANY))
     : type(RxnType::Invalid), max_fixed_p(FLT_INVALID),
       all_rxns(all_rxns_), all_species(all_species_), bng_config(bng_config_),
-      bimol_vol_rxn_flag(false), pathways_and_rates_initialized(false)
+      bimol_vol_rxn_flag(false), intermembrane_surf_surf_rxn_flag(false),
+      pathways_and_rates_initialized(false)
     {
     assert(reactant1.species_id != SPECIES_ID_INVALID);
     specific_reactants.push_back(reactant1);
@@ -188,6 +190,10 @@ public:
       debug_check_bimol_vol_rxn_flag();
     #endif
     return bimol_vol_rxn_flag;
+  }
+
+  bool is_intermembrane_surf_surf_rxn_class() const {
+    return intermembrane_surf_surf_rxn_flag;
   }
 
   bool is_absorb_region_border() const {

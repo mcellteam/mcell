@@ -232,6 +232,7 @@ class Config():
             time_step : float = 1e-6,
             surface_grid_density : float = 10000,
             interaction_radius : float = None,
+            intermembrane_interaction_radius : float = None,
             vacancy_search_distance : float = 10,
             center_molecules_on_grid : bool = False,
             initial_partition_origin : List[float] = None,
@@ -246,6 +247,7 @@ class Config():
         self.time_step = time_step
         self.surface_grid_density = surface_grid_density
         self.interaction_radius = interaction_radius
+        self.intermembrane_interaction_radius = intermembrane_interaction_radius
         self.vacancy_search_distance = vacancy_search_distance
         self.center_molecules_on_grid = center_molecules_on_grid
         self.initial_partition_origin = initial_partition_origin
@@ -935,7 +937,8 @@ class ReactionRule():
             fwd_rate : float = None,
             rev_name : str = None,
             rev_rate : float = None,
-            variable_rate : List[List[float]] = None
+            variable_rate : List[List[float]] = None,
+            is_intermembrane_surface_reaction : bool = False
         ):
         self.name = name
         self.reactants = reactants
@@ -944,6 +947,7 @@ class ReactionRule():
         self.rev_name = rev_name
         self.rev_rate = rev_rate
         self.variable_rate = variable_rate
+        self.is_intermembrane_surface_reaction = is_intermembrane_surface_reaction
 
 
     def to_bngl_str(

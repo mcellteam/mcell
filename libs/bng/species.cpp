@@ -81,6 +81,10 @@ void Species::update_rxn_and_custom_flags(
       set_flag(SPECIES_FLAG_HAS_BIMOL_VOL_RXN);
     }
 
+    if (rxn->is_intermembrane_surf_rxn()) {
+      set_flag(SPECIES_FLAG_CAN_INTERMEMBRANE_SURFSURF);
+    }
+
     // second reactant - we must not define new species for reactant here
     // because adding it to the species array might invalidate *this,
     // we must analyze the cplx

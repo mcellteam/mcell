@@ -37,6 +37,7 @@ class Config;
         const float_t time_step_ = 1e-6, \
         const float_t surface_grid_density_ = 10000, \
         const float_t interaction_radius_ = FLT_UNSET, \
+        const float_t intermembrane_interaction_radius_ = FLT_UNSET, \
         const float_t vacancy_search_distance_ = 10, \
         const bool center_molecules_on_grid_ = false, \
         const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
@@ -52,6 +53,7 @@ class Config;
       time_step = time_step_; \
       surface_grid_density = surface_grid_density_; \
       interaction_radius = interaction_radius_; \
+      intermembrane_interaction_radius = intermembrane_interaction_radius_; \
       vacancy_search_distance = vacancy_search_distance_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
       initial_partition_origin = initial_partition_origin_; \
@@ -133,6 +135,20 @@ public:
   virtual float_t get_interaction_radius() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return interaction_radius;
+  }
+
+  float_t intermembrane_interaction_radius;
+  virtual void set_intermembrane_interaction_radius(const float_t new_intermembrane_interaction_radius_) {
+    if (initialized) {
+      throw RuntimeError("Value 'intermembrane_interaction_radius' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    intermembrane_interaction_radius = new_intermembrane_interaction_radius_;
+  }
+  virtual float_t get_intermembrane_interaction_radius() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return intermembrane_interaction_radius;
   }
 
   float_t vacancy_search_distance;

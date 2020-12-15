@@ -47,6 +47,7 @@ void GenReactionRule::set_all_attributes_as_default_or_unset() {
   rev_name = STR_UNSET;
   rev_rate = FLT_UNSET;
   variable_rate = std::vector<std::vector<float_t>>();
+  is_intermembrane_surface_reaction = false;
 }
 
 bool GenReactionRule::__eq__(const ReactionRule& other) const {
@@ -57,7 +58,8 @@ bool GenReactionRule::__eq__(const ReactionRule& other) const {
     fwd_rate == other.fwd_rate &&
     rev_name == other.rev_name &&
     rev_rate == other.rev_rate &&
-    variable_rate == other.variable_rate;
+    variable_rate == other.variable_rate &&
+    is_intermembrane_surface_reaction == other.is_intermembrane_surface_reaction;
 }
 
 bool GenReactionRule::eq_nonarray_attributes(const ReactionRule& other, const bool ignore_name) const {
@@ -68,7 +70,8 @@ bool GenReactionRule::eq_nonarray_attributes(const ReactionRule& other, const bo
     fwd_rate == other.fwd_rate &&
     rev_name == other.rev_name &&
     rev_rate == other.rev_rate &&
-    true /*variable_rate*/;
+    true /*variable_rate*/ &&
+    is_intermembrane_surface_reaction == other.is_intermembrane_surface_reaction;
 }
 
 std::string GenReactionRule::to_str(const std::string ind) const {
@@ -80,7 +83,8 @@ std::string GenReactionRule::to_str(const std::string ind) const {
       "fwd_rate=" << fwd_rate << ", " <<
       "rev_name=" << rev_name << ", " <<
       "rev_rate=" << rev_rate << ", " <<
-      "variable_rate=" << vec_nonptr_to_str(variable_rate, ind + "  ");
+      "variable_rate=" << vec_nonptr_to_str(variable_rate, ind + "  ") << ", " <<
+      "is_intermembrane_surface_reaction=" << is_intermembrane_surface_reaction;
   return ss.str();
 }
 
@@ -94,7 +98,8 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
             const float_t,
             const std::string&,
             const float_t,
-            const std::vector<std::vector<float_t>>
+            const std::vector<std::vector<float_t>>,
+            const bool
           >(),
           py::arg("name") = STR_UNSET,
           py::arg("reactants") = std::vector<std::shared_ptr<Complex>>(),
@@ -102,7 +107,8 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
           py::arg("fwd_rate") = FLT_UNSET,
           py::arg("rev_name") = STR_UNSET,
           py::arg("rev_rate") = FLT_UNSET,
-          py::arg("variable_rate") = std::vector<std::vector<float_t>>()
+          py::arg("variable_rate") = std::vector<std::vector<float_t>>(),
+          py::arg("is_intermembrane_surface_reaction") = false
       )
       .def("check_semantics", &ReactionRule::check_semantics)
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
@@ -116,6 +122,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       .def_property("rev_name", &ReactionRule::get_rev_name, &ReactionRule::set_rev_name)
       .def_property("rev_rate", &ReactionRule::get_rev_rate, &ReactionRule::set_rev_rate)
       .def_property("variable_rate", &ReactionRule::get_variable_rate, &ReactionRule::set_variable_rate)
+      .def_property("is_intermembrane_surface_reaction", &ReactionRule::get_is_intermembrane_surface_reaction, &ReactionRule::set_is_intermembrane_surface_reaction)
     ;
 }
 

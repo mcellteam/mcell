@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2019,2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -254,6 +254,11 @@ private:
       Molecule& sm,
       const float_t time, // same argument as t passed in mcell3 (come up with a better name)
       const float_t diffusion_start_time // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
+  );
+
+  bool react_2D_intermembrane(
+      Partition& p, Molecule& sm,
+      const float_t t_steps, const float_t diffusion_start_time
   );
 
   // ---------------------------------- reactions ----------------------------------

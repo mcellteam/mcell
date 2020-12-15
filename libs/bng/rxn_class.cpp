@@ -217,8 +217,9 @@ float_t RxnClass::compute_pb_factor() const {
 
   /* determine reaction probability by proper conversion of the reaction rate constant */
   assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
-  if (specific_reactants.size() == 1) {
-    // unimolecular
+  if (specific_reactants.size() == 1 || is_intermembrane_surf_surf_rxn_class()) {
+    // unimolecular or
+    // experimental surf-surf on different objects
     pb_factor = bng_config.time_unit;
   }
   else if (num_surf_reactants >= 1 || num_surfaces == 1) {
@@ -373,7 +374,16 @@ void RxnClass::add_rxn_rule_no_update(RxnRule* r) {
     bimol_vol_rxn_flag = r->is_bimol_vol_rxn();
   }
   else {
+    // this should not normally happen
     assert(bimol_vol_rxn_flag == r->is_bimol_vol_rxn());
+  }
+
+  if (rxn_rule_ids.empty()) {
+    intermembrane_surf_surf_rxn_flag = r->is_intermembrane_surf_rxn();
+  }
+  else {
+    release_assert(intermembrane_surf_surf_rxn_flag == r->is_intermembrane_surf_rxn() &&
+        "Intermembrane and other reactions cannot be mixed in a single rxn class");
   }
 
   // check that the rule was not added already,
