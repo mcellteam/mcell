@@ -71,8 +71,14 @@ const char* const BASE_MODEL_IMPORTS =
     "import os\n\n"
 ;
 
+const char* const IMPORT_OS =
+    "import os\n"
+;
+
+#define MODEL_PATH "MODEL_PATH"
+
 const char* const MODEL_PATH_SETUP =
-    "MODEL_PATH = os.path.dirname(os.path.abspath(__file__))\n"
+    MODEL_PATH " = os.path.dirname(os.path.abspath(__file__))\n"
 ;
 
 const char* const MCELL_PATH_SETUP =
@@ -101,10 +107,10 @@ const char* const MCELL_IMPORT = "import mcell as m\n\n";
 
 static std::string get_customization_import(const std::string& customization_module) {
   return
-      "if os.path.exists(os.path.join('" + customization_module + ".py')):\n"
-      "    import " CUSTOMIZATION "\n"
+      std::string("if os.path.exists(os.path.join('") + MODEL_PATH + ", " + customization_module + ".py')):\n"
+      "    import " + customization_module + "\n"
       "else:\n"
-      "    " CUSTOMIZATION " = None\n"
+      "    " + customization_module + " = None\n"
   ;
 }
 
@@ -136,6 +142,12 @@ static std::string get_user_defined_configuration(const std::string& customizati
       "    " + customization_module + "." + CUSTOM_CONFIG + "(" + MODEL + ")\n"
   ;
 }
+
+static std::string get_abs_path(const std::string file) {
+  return std::string("os.path.join(") + MODEL_PATH + ", '" + file + "')";
+}
+
+
 
 const char* const REGION_ALL_NAME = "ALL";
 const char* const REGION_ALL_SUFFIX = "[ALL]";

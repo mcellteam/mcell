@@ -143,7 +143,9 @@ void MCell4Generator::generate_parameters() {
   ofstream out;
   open_and_check_file(PARAMETERS, out);
   out << GENERATED_WARNING << "\n";
+  out << IMPORT_OS;
   out << MCELL_IMPORT;
+  out << MODEL_PATH_SETUP << "\n";
   out << make_section_comment("model parameters");
 
   if (data.mcell.isMember(KEY_PARAMETER_SYSTEM)) {
@@ -386,7 +388,10 @@ void MCell4Generator::generate_subsystem() {
   open_and_check_file(SUBSYSTEM, out);
   out << GENERATED_WARNING << "\n";
 
+  out << IMPORT_OS;
   out << MCELL_IMPORT;
+  out << MODEL_PATH_SETUP << "\n";
+
   out << make_import(PARAMETERS);
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
@@ -429,7 +434,7 @@ void MCell4Generator::generate_subsystem() {
     gen_method_call(
         out, SUBSYSTEM,
         NAME_LOAD_BNGL_MOLECULE_TYPES_AND_REACTION_RULES,
-        "'" + get_filename(data.output_files_prefix, MODEL, BNGL_EXT) + "'"
+        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT))
     );
     out << "\n" << bngl_mol_types_initialization;
 
@@ -684,7 +689,10 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
   open_and_check_file(OBSERVABLES, out);
   out << GENERATED_WARNING << "\n";
 
+  out << IMPORT_OS;
   out << MCELL_IMPORT;
+  out << MODEL_PATH_SETUP << "\n";
+
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
   if (geometry_generated) {
@@ -714,8 +722,8 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
     gen_method_call(
         out, OBSERVABLES,
         NAME_LOAD_BNGL_OBSERVABLES,
-        "'" + get_filename(data.output_files_prefix, MODEL, BNGL_EXT) + "', " +
-        get_module_name(SUBSYSTEM) + ", " +
+        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)) + ", " +
+        SUBSYSTEM + ", " +
         "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'"
     );
 
@@ -914,7 +922,7 @@ void MCell4Generator::generate_customization() {
   }
 
   ofstream out;
-  open_and_check_file(CUSTOMIZATION, out);
+  open_and_check_file(cust_filename, out);
 
   out <<
       "# This file hooks to override default MCell4 model\n"
