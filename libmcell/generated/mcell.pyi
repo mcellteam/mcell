@@ -28,6 +28,8 @@ class InitialSurfaceRelease():
     pass
 class Instantiation():
     pass
+class Introspection():
+    pass
 class Model():
     pass
 class MolWallHitInfo():
@@ -503,6 +505,52 @@ class Instantiation():
         ) -> None:
         pass
 
+class Introspection():
+    def __init__(
+            self,
+        ):
+        pass
+
+    def get_molecule_ids(
+            self,
+            species : Species = None
+        ) -> 'List[int]':
+        pass
+
+    def get_molecule(
+            self,
+            id : int
+        ) -> 'Molecule':
+        pass
+
+    def get_vertex(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Wall':
+        pass
+
+    def get_vertex_unit_normal(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall_unit_normal(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Vec3':
+        pass
+
 class Model():
     def __init__(
             self,
@@ -587,46 +635,6 @@ class Model():
             self,
             release_site : ReleaseSite
         ) -> None:
-        pass
-
-    def get_molecule_ids(
-            self,
-            species : Species = None
-        ) -> 'List[int]':
-        pass
-
-    def get_molecule(
-            self,
-            id : int
-        ) -> 'Molecule':
-        pass
-
-    def get_vertex(
-            self,
-            object : GeometryObject,
-            vertex_index : int
-        ) -> 'Vec3':
-        pass
-
-    def get_wall(
-            self,
-            object : GeometryObject,
-            wall_index : int
-        ) -> 'Wall':
-        pass
-
-    def get_vertex_unit_normal(
-            self,
-            object : GeometryObject,
-            vertex_index : int
-        ) -> 'Vec3':
-        pass
-
-    def get_wall_unit_normal(
-            self,
-            object : GeometryObject,
-            wall_index : int
-        ) -> 'Vec3':
         pass
 
     def add_vertex_move(
@@ -800,6 +808,46 @@ class Model():
             output_files_prefix : str = '',
             parameter_overrides : Dict[str, float] = None
         ) -> None:
+        pass
+
+    def get_molecule_ids(
+            self,
+            species : Species = None
+        ) -> 'List[int]':
+        pass
+
+    def get_molecule(
+            self,
+            id : int
+        ) -> 'Molecule':
+        pass
+
+    def get_vertex(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Wall':
+        pass
+
+    def get_vertex_unit_normal(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall_unit_normal(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Vec3':
         pass
 
 class MolWallHitInfo():

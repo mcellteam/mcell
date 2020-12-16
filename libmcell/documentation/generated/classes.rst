@@ -698,102 +698,14 @@ Methods:
 
 
 
-Model
-=====
+Introspection
+=============
 
-Attributes:
-***********
-* | **config**: Config = Config()
-
-* | **warnings**: Warnings = Warnings()
-
-* | **notifications**: Notifications = Notifications()
-
-* | **species**: List[Species] = None
-
-* | **reaction_rules**: List[ReactionRule] = None
-
-* | **surface_classes**: List[SurfaceClass] = None
-
-* | **elementary_molecule_types**: List[ElementaryMoleculeType] = None
-  | Used mainly when a BNGL file is loaded, if BNGL species is defined through 
-  | Python API, this array is populated automatically
-
-* | **release_sites**: List[ReleaseSite] = None
-
-* | **geometry_objects**: List[GeometryObject] = None
-
-* | **viz_outputs**: List[VizOutput] = None
-
-* | **counts**: List[Count] = None
+This class is used only as a base class to Model, it is not provided through API. Provides methods to introspect simulation state.
 
 
 Methods:
 *********
-* | **initialize**
-
-
-* | **run_iterations**
-
-   * | iterations: float
-     | Number of iterations to run. Value is truncated to an integer.
-
-
-* | **end_simulation**
-
-   * | print_final_report: bool = True
-
-  | Generates the last visualization and reaction output (if they were defined), then
-  | flushes all buffers and optionally prints simulation report. 
-  | Buffers are also flushed when the Model object is destroyed.
-
-
-* | **add_subsystem**
-
-   * | subsystem: Subsystem
-
-* | **add_instantiation**
-
-   * | instantiation: Instantiation
-
-* | **add_observables**
-
-   * | observables: Observables
-
-* | **dump_internal_state**
-
-
-  | Prints out the simulation engine's internal state, mainly for debugging.
-
-
-* | **export_data_model**
-
-   * | file: str = None
-
-  | If file is not set, then uses the first VizOutput to determine the target directory 
-  | and creates name using the current iteration. Fails if argument file is not set and there is no VizOutput.
-  | Must be called after initialization.
-  | Always exports the current state, i.e. with the current . 
-  | Events (ReleaseSites and VizOutputs) with scheduled time other than zero cannot be imported correectly yet.
-
-
-* | **export_viz_data_model**
-
-   * | file: str = None
-
-  | Same as export_data_model, only the created data model will contain only information required for visualization in CellBlender. This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential compatibility issues.
-
-
-* | **release_molecules**
-
-   * | release_site: ReleaseSite
-
-  | Performs immediate release based on the definition of the release site argument.
-  | The ReleaseSite.release_time must not be in the past and should be withing the current iteration.
-  | The ReleaseEvent must not use a release_pattern because this is an immediate release and it is not 
-  | scheduled into the global scheduler.
-
-
 * | **get_molecule_ids**
 
    * | species: Species = None
@@ -860,6 +772,107 @@ Methods:
 
 
   | Returns wall normal converted to a unit vector of length 1um.
+
+
+
+Model
+=====
+
+Attributes:
+***********
+* | **config**: Config = Config()
+
+* | **warnings**: Warnings = Warnings()
+
+* | **notifications**: Notifications = Notifications()
+
+* | **species**: List[Species] = None
+
+* | **reaction_rules**: List[ReactionRule] = None
+
+* | **surface_classes**: List[SurfaceClass] = None
+
+* | **elementary_molecule_types**: List[ElementaryMoleculeType] = None
+  | Used mainly when a BNGL file is loaded, if BNGL species is defined through 
+  | Python API, this array is populated automatically
+
+* | **release_sites**: List[ReleaseSite] = None
+
+* | **geometry_objects**: List[GeometryObject] = None
+
+* | **viz_outputs**: List[VizOutput] = None
+
+* | **counts**: List[Count] = None
+
+
+Methods:
+*********
+* | **initialize**
+
+
+  | Initializes model, initialization blocks most of changes to 
+  | contained components (the attributes
+
+
+* | **run_iterations**
+
+   * | iterations: float
+     | Number of iterations to run. Value is truncated to an integer.
+
+
+* | **end_simulation**
+
+   * | print_final_report: bool = True
+
+  | Generates the last visualization and reaction output (if they were defined), then
+  | flushes all buffers and optionally prints simulation report. 
+  | Buffers are also flushed when the Model object is destroyed.
+
+
+* | **add_subsystem**
+
+   * | subsystem: Subsystem
+
+* | **add_instantiation**
+
+   * | instantiation: Instantiation
+
+* | **add_observables**
+
+   * | observables: Observables
+
+* | **dump_internal_state**
+
+
+  | Prints out the simulation engine's internal state, mainly for debugging.
+
+
+* | **export_data_model**
+
+   * | file: str = None
+
+  | If file is not set, then uses the first VizOutput to determine the target directory 
+  | and creates name using the current iteration. Fails if argument file is not set and there is no VizOutput.
+  | Must be called after initialization.
+  | Always exports the current state, i.e. with the current . 
+  | Events (ReleaseSites and VizOutputs) with scheduled time other than zero cannot be imported correectly yet.
+
+
+* | **export_viz_data_model**
+
+   * | file: str = None
+
+  | Same as export_data_model, only the created data model will contain only information required for visualization in CellBlender. This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential compatibility issues.
+
+
+* | **release_molecules**
+
+   * | release_site: ReleaseSite
+
+  | Performs immediate release based on the definition of the release site argument.
+  | The ReleaseSite.release_time must not be in the past and should be withing the current iteration.
+  | The ReleaseEvent must not use a release_pattern because this is an immediate release and it is not 
+  | scheduled into the global scheduler.
 
 
 * | **add_vertex_move**
@@ -1099,6 +1112,74 @@ Methods:
 
   | Loads section observables from a BNGL file and creates Count objects according to it.
   | All elementary molecule types used in the seed species section must be defined in subsystem.
+
+
+* | **get_molecule_ids**
+
+   * | species: Species = None
+   * | return type: List[int]
+
+
+  | Returns a list of ids of molecules of given Species existing in the simulated environment,
+  | if the argument species is not set, returns list of all molecules.
+
+
+* | **get_molecule**
+
+   * | id: int
+   * | return type: Molecule
+
+
+  | Returns a molecule from the simulated environment, None if the molecule does not exist
+
+
+* | **get_vertex**
+
+   * | object: GeometryObject
+   * | vertex_index: int
+     | This is the index of the vertex in object's walls (wall_list).
+
+   * | return type: Vec3
+
+
+  | Returns coordinates of a vertex.
+
+
+* | **get_wall**
+
+   * | object: GeometryObject
+   * | wall_index: int
+     | This is the index of the wall in object's walls (wall_list).
+
+   * | return type: Wall
+
+
+  | Returns information about a wall belonging to a given object.
+
+
+* | **get_vertex_unit_normal**
+
+   * | object: GeometryObject
+   * | vertex_index: int
+     | This is the index of the vertex in object's vertex_list.
+
+   * | return type: Vec3
+
+
+  | Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
+  | This represents the unit vector pointing outwards from the vertex.
+
+
+* | **get_wall_unit_normal**
+
+   * | object: GeometryObject
+   * | wall_index: int
+     | This is the index of the vertex in object's walls (wall_list).
+
+   * | return type: Vec3
+
+
+  | Returns wall normal converted to a unit vector of length 1um.
 
 
 

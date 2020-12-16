@@ -32,6 +32,7 @@
 #include "api/subsystem.h"
 #include "api/instantiation.h"
 #include "api/observables.h"
+#include "api/introspection.h"
 
 namespace MCell {
 namespace API {
@@ -58,7 +59,7 @@ class Wall;
 class WallWallHitInfo;
 class Warnings;
 
-class GenModel: public Subsystem, public Instantiation, public Observables {
+class GenModel: public Subsystem, public Instantiation, public Observables, public Introspection {
 public:
   virtual ~GenModel() {}
   virtual bool __eq__(const Model& other) const;
@@ -103,12 +104,6 @@ public:
   virtual void export_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void export_viz_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void release_molecules(std::shared_ptr<ReleaseSite> release_site) = 0;
-  virtual std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) = 0;
-  virtual std::shared_ptr<Molecule> get_molecule(const int id) = 0;
-  virtual Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) = 0;
-  virtual std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
-  virtual Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) = 0;
-  virtual Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
   virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement) = 0;
   virtual std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) = 0;
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;

@@ -101,6 +101,8 @@ void Model::initialize() {
 
   world->init_simulation();
 
+  initialize_introspection(this);
+
   initialized = true;
 }
 
@@ -176,121 +178,6 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
   // and execute the release
   rel_event->release_immediatelly(diffuse_event);
   delete rel_event;
-}
-
-
-std::vector<int> Model::get_molecule_ids(std::shared_ptr<Species> species) {
-  // NOTE: not very efficient
-  std::vector<int> res;
-
-  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  std::vector<MCell::Molecule>& molecules = p.get_molecules();
-  for (MCell::Molecule& m: molecules) {
-    if (m.is_defunct()) {
-      continue;
-    }
-
-    if (is_set(species) && species->species_id == m.species_id) {
-      res.push_back(m.id);
-    }
-    else {
-      res.push_back(m.id);
-    }
-  }
-
-  return res;
-}
-
-
-std::shared_ptr<API::Molecule> Model::get_molecule(const int id) {
-  std::shared_ptr<API::Molecule> res;
-  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  if (!p.does_molecule_exist(id)) {
-    throw RuntimeError("Molecule with id " + to_string(id) + " does not exist.");
-  }
-  MCell::Molecule& m = p.get_m(id);
-  if (m.is_defunct()) {
-    throw RuntimeError("Molecule with id " + to_string(id) + " was removed.");
-  }
-
-  res = make_shared<API::Molecule>();
-  res->id = m.id;
-  if (m.is_surf()) {
-    // TODO: res->pos3d
-    res->orientation = convert_orientation(m.s.orientation);
-  }
-  else {
-    res->pos3d = m.v.pos * Vec3(world->config.length_unit);
-    res->orientation = Orientation::NONE;
-  }
-  res->world = world;
-  res->set_initialized();
-
-  return res;
-}
-
-
-Vec3 Model::get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) {
-  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  return
-      p.get_geometry_vertex(object->get_partition_vertex_index(vertex_index)) *
-      Vec3(world->config.length_unit);
-}
-
-
-std::shared_ptr<Wall> Model::get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) {
-  object->check_is_initialized();
-
-  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
-
-  auto res = make_shared<Wall>();
-  res->geometry_object = object;
-  res->wall_index = wall_index;
-  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    res->vertices.push_back(p.get_geometry_vertex(w.vertex_indices[i]) * Vec3(world->config.length_unit));
-  }
-  res->area = w.area * world->config.length_unit * world->config.length_unit;
-  res->unit_normal = w.normal;
-  assert(cmp_eq(len3(res->unit_normal), 1));
-  res->is_movable = w.is_movable;
-  res->world = world;
-  return res;
-}
-
-
-Vec3 Model::get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) {
-  object->check_is_initialized();
-
-  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-
-  const std::vector<wall_index_t>& walls = p.get_walls_using_vertex(object->get_partition_vertex_index(vertex_index));
-
-  if (walls.empty()) {
-    throw RuntimeError("Internal error: there are no walls that use vertex with index " +
-        to_string(vertex_index) + " of object " + object->name + ".");
-  }
-
-  Vec3 normals_sum = Vec3(0);
-  for (wall_index_t wi: walls) {
-    const MCell::Wall& w = p.get_wall(wi);
-    // wall normals are already unit vectors so we can just sum them
-    normals_sum = normals_sum + w.normal;
-  }
-
-  return normals_sum / Vec3(len3(normals_sum));
-}
-
-
-Vec3 Model::get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) {
-  object->check_is_initialized();
-
-  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
-
-  // the value is is already normalized
-  assert(cmp_eq(len3(w.normal), 1));
-  return w.normal;
 }
 
 

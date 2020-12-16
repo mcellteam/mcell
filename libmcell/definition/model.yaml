@@ -1,5 +1,5 @@
 Model:
-  superclasses: [Subsystem, Instantiation, Observables]
+  superclasses: [Subsystem, Instantiation, Observables, Introspection]
   
   items:
   - name: config
@@ -13,9 +13,12 @@ Model:
   - name: notifications
     type: Notifications
     default: Notifications()
-    
+
   methods:
   - name: initialize
+    doc: | 
+      Initializes model, initialization blocks most of changes to 
+      contained components (the attributes 
 
   - name: run_iterations
     params:
@@ -84,71 +87,7 @@ Model:
     params:
     - name: release_site
       type: ReleaseSite*
-    
-  # --- introspection ---
 
-  # TODO: can we make some faster interface? however, we do not want to be bound to 
-  # the internal implementation and we must abstract away the partitions      
-  - name: get_molecule_ids
-    doc: | 
-      Returns a list of ids of molecules of given Species existing in the simulated environment,
-      if the argument species is not set, returns list of all molecules.      
-    return_type: List[int]
-    params:
-    - name: species
-      type: Species*
-      default: unset
-  
-  - name: get_molecule
-    doc: Returns a molecule from the simulated environment, None if the molecule does not exist 
-    return_type: Molecule*
-    params: 
-    - name: id
-      type: int
-  
-  # --- geometry ---
-  - name: get_vertex
-    doc: Returns coordinates of a vertex.
-    return_type: Vec3 
-    params:
-    - name: object
-      type: GeometryObject*
-    - name: vertex_index
-      type: int 
-      doc: This is the index of the vertex in object's walls (wall_list).
-      
-  - name: get_wall
-    doc: Returns information about a wall belonging to a given object.
-    return_type: Wall* 
-    params:
-    - name: object
-      type: GeometryObject*
-    - name: wall_index
-      type: int 
-      doc: This is the index of the wall in object's walls (wall_list).
-      
-  - name: get_vertex_unit_normal
-    doc: | 
-       Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
-       This represents the unit vector pointing outwards from the vertex.
-    return_type: Vec3
-    params:
-    - name: object
-      type: GeometryObject*
-    - name: vertex_index
-      type: int 
-      doc: This is the index of the vertex in object's vertex_list.
-
-  - name: get_wall_unit_normal
-    doc: Returns wall normal converted to a unit vector of length 1um.
-    return_type: Vec3
-    params:
-    - name: object
-      type: GeometryObject*
-    - name: wall_index
-      type: int 
-      doc: This is the index of the vertex in object's walls (wall_list).
-    
   # --- dynamic geometry ---
       
   - name: add_vertex_move

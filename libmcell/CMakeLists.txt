@@ -50,6 +50,7 @@ set(SOURCE_FILES
     
     api/molecule.cpp
     api/wall.cpp
+    api/introspection.cpp
 
     generated/gen_component_type.cpp
     generated/gen_component.cpp
@@ -84,6 +85,7 @@ set(SOURCE_FILES
     generated/gen_molecule.cpp
     generated/gen_wall.cpp
     generated/gen_wall_wall_hit_info.cpp
+    generated/gen_introspection.cpp
     
     generated/gen_mol_wall_hit_info.cpp
     generated/gen_reaction_info.cpp

@@ -60,6 +60,7 @@
 #include "api/molecule.h"
 #include "api/wall.h"
 #include "api/wall_wall_hit_info.h"
+#include "api/introspection.h"
 
 #include "api/mol_wall_hit_info.h"
 #include "api/reaction_info.h"

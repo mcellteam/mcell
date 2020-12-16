@@ -40,6 +40,7 @@ const char* const NAME_CLASS_GEOMETRY_UTILS = "geometry_utils";
 const char* const NAME_CLASS_GEOMETRY_OBJECT = "GeometryObject";
 const char* const NAME_CLASS_INITIAL_SURFACE_RELEASE = "InitialSurfaceRelease";
 const char* const NAME_CLASS_INSTANTIATION = "Instantiation";
+const char* const NAME_CLASS_INTROSPECTION = "Introspection";
 const char* const NAME_CLASS_MODEL = "Model";
 const char* const NAME_CLASS_MOLECULE = "Molecule";
 const char* const NAME_CLASS_MOLECULE_RELEASE_INFO = "MoleculeReleaseInfo";

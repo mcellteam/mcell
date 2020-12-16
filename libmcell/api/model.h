@@ -34,6 +34,7 @@
 #include "api/notifications.h"
 #include "api/shared_structs.h"
 #include "api/callbacks.h"
+#include "api/introspection.h"
 
 namespace MCell {
 
@@ -74,15 +75,6 @@ public:
   }
 
   void release_molecules(std::shared_ptr<ReleaseSite> release_site) override;
-
-  std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
-  std::shared_ptr<Molecule> get_molecule(const int id) override;
-
-  Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
-  std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) override;
-  Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
-  Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) override;
-
 
   void add_vertex_move(
       std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement
@@ -139,6 +131,9 @@ public:
   void dump() const;
 
   const World* get_world() const {
+    return world;
+  }
+  World* get_world() {
     return world;
   }
 

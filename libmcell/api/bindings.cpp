@@ -54,6 +54,8 @@
 
 #include "generated/gen_molecule.h"
 #include "generated/gen_wall.h"
+#include "generated/gen_introspection.h"
+
 #include "generated/gen_mol_wall_hit_info.h"
 
 #include "generated/gen_wall_wall_hit_info.h"
