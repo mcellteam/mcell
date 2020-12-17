@@ -1361,6 +1361,10 @@ Attributes:
   | is the molecule that was hit.
   | IDs can be used to obtain location of the molecules. The position of the first molecule obtained through 
   | model.get_molecule() is the position of the diffusing molecule before the collision.
+  | All the reactants are removed after return from this callback, unless they are kept by the reaction such as in A + B -> A + C.
+
+* | **product_ids**: List[int]
+  | IDs of reaction product molecules.
 
 * | **reaction_rule**: ReactionRule
   | Reaction rule of the reaction.

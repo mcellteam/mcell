@@ -966,6 +966,7 @@ class ReactionInfo():
             self,
             type : ReactionType,
             reactant_ids : List[int],
+            product_ids : List[int],
             reaction_rule : ReactionRule,
             time : float,
             pos3d : Vec3,
@@ -975,6 +976,7 @@ class ReactionInfo():
         ):
         self.type = type
         self.reactant_ids = reactant_ids
+        self.product_ids = product_ids
         self.reaction_rule = reaction_rule
         self.time = time
         self.pos3d = pos3d

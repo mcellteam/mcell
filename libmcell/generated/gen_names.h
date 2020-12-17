@@ -182,6 +182,7 @@ const char* const NAME_POS2D = "pos2d";
 const char* const NAME_POS3D = "pos3d";
 const char* const NAME_POS3D_BEFORE_HIT = "pos3d_before_hit";
 const char* const NAME_PRINT_FINAL_REPORT = "print_final_report";
+const char* const NAME_PRODUCT_IDS = "product_ids";
 const char* const NAME_PRODUCTS = "products";
 const char* const NAME_PROPERTIES = "properties";
 const char* const NAME_R = "r";
