@@ -41,7 +41,7 @@ const int DEFAULT_COUNT_BUFFER_SIZE = 10000;
 const std::string ALL_MOLECULES = "ALL_MOLECULES";
 const std::string ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const std::string ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
-const int MOLECULE_ID_INVALID = -1;
+const int ID_INVALID = -1;
 const int NUMBER_OF_TRAINS_UNLIMITED = -1;
 const float_t TIME_INFINITY = 1e140;
 const int INT_UNSET = INT32_MAX;
@@ -223,6 +223,23 @@ static inline  std::ostream& operator << (std::ostream& out, const ReactionType 
     case ReactionType::VOLUME_VOLUME: out << "ReactionType.VOLUME_VOLUME (3)"; break;
     case ReactionType::VOLUME_SURFACE: out << "ReactionType.VOLUME_SURFACE (4)"; break;
     case ReactionType::SURFACE_SURFACE: out << "ReactionType.SURFACE_SURFACE (5)"; break;
+  }
+  return out;
+};
+
+
+enum class MoleculeType {
+  UNSET = 0,
+  VOLUME = 1,
+  SURFACE = 2
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const MoleculeType v) {
+  switch (v) {
+    case MoleculeType::UNSET: out << "MoleculeType.UNSET (0)"; break;
+    case MoleculeType::VOLUME: out << "MoleculeType.VOLUME (1)"; break;
+    case MoleculeType::SURFACE: out << "MoleculeType.SURFACE (2)"; break;
   }
   return out;
 };

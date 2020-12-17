@@ -80,7 +80,7 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
     info->geometry_object = model->get_geometry_object_with_id(info->geometry_object_id);
     assert(is_set(info->geometry_object));
     assert(info->partition_wall_index >= info->geometry_object->first_wall_index);
-    info->wall_index = info->partition_wall_index - info->geometry_object->first_wall_index;
+    info->wall_index = info->geometry_object->get_object_wall_index(info->partition_wall_index);
     info->pos2d = info->pos2d * Vec2(model->get_world()->config.length_unit);
   }
 
@@ -88,7 +88,7 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
     info->geometry_object_surf_reac2 = model->get_geometry_object_with_id(info->geometry_object_id_surf_reac2);
     assert(is_set(info->geometry_object_surf_reac2));
     assert(info->partition_wall_index_surf_reac2 >= info->geometry_object_surf_reac2->first_wall_index);
-    info->wall_index_surf_reac2 = info->partition_wall_index_surf_reac2 - info->geometry_object_surf_reac2->first_wall_index;
+    info->wall_index_surf_reac2 = info->geometry_object_surf_reac2->get_object_wall_index(info->partition_wall_index_surf_reac2);
     info->pos2d_surf_reac2 = info->pos2d_surf_reac2 * Vec2(model->get_world()->config.length_unit);
   }
 

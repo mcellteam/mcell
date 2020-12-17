@@ -145,6 +145,11 @@ class ReactionType(Enum):
     VOLUME_SURFACE = 4
     SURFACE_SURFACE = 5
 
+class MoleculeType(Enum):
+    UNSET = 0
+    VOLUME = 1
+    SURFACE = 2
+
 
 
 STATE_UNSET = 'STATE_UNSET'
@@ -157,7 +162,7 @@ DEFAULT_COUNT_BUFFER_SIZE = 10000
 ALL_MOLECULES = 'ALL_MOLECULES'
 ALL_VOLUME_MOLECULES = 'ALL_VOLUME_MOLECULES'
 ALL_SURFACE_MOLECULES = 'ALL_SURFACE_MOLECULES'
-MOLECULE_ID_INVALID = -1
+ID_INVALID = -1
 NUMBER_OF_TRAINS_UNLIMITED = -1
 TIME_INFINITY = 1e140
 INT_UNSET = INT32_MAX
@@ -873,15 +878,23 @@ class MolWallHitInfo():
 class Molecule():
     def __init__(
             self,
-            id : int = MOLECULE_ID_INVALID,
-            species : Species = None,
+            id : int = ID_INVALID,
+            type : MoleculeType = MoleculeType.UNSET,
+            species_id : int = ID_INVALID,
             pos3d : Vec3 = None,
-            orientation : Orientation = Orientation.NOT_SET
+            orientation : Orientation = Orientation.NOT_SET,
+            pos2d : Vec2 = None,
+            geometry_object : GeometryObject = None,
+            wall_index : int = -1
         ):
         self.id = id
-        self.species = species
+        self.type = type
+        self.species_id = species_id
         self.pos3d = pos3d
         self.orientation = orientation
+        self.pos2d = pos2d
+        self.geometry_object = geometry_object
+        self.wall_index = wall_index
 
 
     def remove(

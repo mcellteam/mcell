@@ -50,6 +50,7 @@ static std::string S(const char* s) {
 
 const long long LONG_UNSET = INT64_MAX;
 const Vec3 VEC3_UNSET(POS_INVALID);
+const Vec2 VEC2_UNSET(POS_INVALID);
 const void* const PTR_UNSET = nullptr;
 const std::string STR_UNSET = "unset";
 
@@ -67,6 +68,9 @@ static inline bool is_set(const long long a) {
 }
 static inline bool is_set(const Vec3& a) {
   return a != VEC3_UNSET;
+}
+static inline bool is_set(const Vec2& a) {
+  return a != VEC2_UNSET;
 }
 static inline bool is_set(const void* a) {
   return a != PTR_UNSET;

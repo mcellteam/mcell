@@ -107,6 +107,16 @@ ReactionType
 * | **VOLUME_SURFACE** = 4
 * | **SURFACE_SURFACE** = 5
 
+MoleculeType
+============
+
+
+  | Used in molecule introspection.
+
+* | **UNSET** = 0
+* | **VOLUME** = 1
+* | **SURFACE** = 2
+
 
 
 Constants
@@ -135,7 +145,7 @@ Constants
 * | **AllMolecules**: Species = AllMolecules
 * | **AllVolumeMolecules**: Species = AllVolumeMolecules
 * | **AllSurfaceMolecules**: Species = AllSurfaceMolecules
-* | **MOLECULE_ID_INVALID**: int = -1
+* | **ID_INVALID**: int = -1
 * | **NUMBER_OF_TRAINS_UNLIMITED**: int = -1
 * | **TIME_INFINITY**: float = 1e140
 * | **INT_UNSET**: int = INT32_MAX
@@ -1218,19 +1228,32 @@ during simulation.
 
 Attributes:
 ***********
-* | **id**: int = MOLECULE_ID_INVALID
+* | **id**: int = ID_INVALID
   | Unique id of this molecule
 
-* | **species**: Species = None
+* | **type**: MoleculeType = MoleculeType.UNSET
+
+* | **species_id**: int = ID_INVALID
+  | Species id of this molecule.
 
 * | **pos3d**: Vec3 = None
-  | TODO - Right now, contains only position of this is a volume molecule 
-  | Contains position in space both for surface and volume molecules,
-  | it won't be possible to change it for surface molecules.
+  | Contains position of a molecule in 3D space.
 
 * | **orientation**: Orientation = Orientation.NOT_SET
   | Contains orientation for surface molecule. Volume molecules 
   | have always orientation set to Orientation.NONE.
+
+* | **pos2d**: Vec2 = None
+  | Set only for surface molecules.
+
+* | **geometry_object**: GeometryObject = None
+  | Set only for surface molecules.
+  | Object on whose surface is the molecule located.
+
+* | **wall_index**: int = -1
+  | Set only for surface molecules.
+  | Index of wall belonging to the geometry_object where is the 
+  | molecule located.
 
 
 Methods:

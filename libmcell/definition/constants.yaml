@@ -54,7 +54,7 @@ constants:
     type: Species
     value: AllSurfaceMolecules # object from api/globals.cpp
 
-  - name: MOLECULE_ID_INVALID
+  - name: ID_INVALID
     type: int
     value: -1 
     
@@ -207,5 +207,14 @@ enums:
       value: 4
     - name: SURFACE_SURFACE
       value: 5
-    
+      
+  - name: MoleculeType
+    doc: Used in molecule introspection.
+    values:
+    - name: UNSET
+      value: 0
+    - name: VOLUME
+      value: 1
+    - name: SURFACE
+      value: 2
       

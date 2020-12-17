@@ -35,6 +35,13 @@ struct Vec2;
 
 namespace GeometryUtil {
 
+// some commonly used utilities for which one does not need to
+// include the whole geometry_utils.inc
+static inline Vec3 uv2xyz(const Vec2& a, const Wall& w, const Vec3& wall_vert0) {
+  return Vec3(a.u) * w.unit_u + Vec3(a.v) * w.unit_v + wall_vert0;
+}
+
+
 // only the needed functions for now
 
 static float_t closest_interior_point(

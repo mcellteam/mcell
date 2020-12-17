@@ -46,13 +46,6 @@ namespace MCell {
 
 namespace GeometryUtil {
 
-// several commonly used geometry utilities,
-// rest of these utilities is in
-static Vec3 uv2xyz(const Vec2& a, const Wall& w, const Vec3& wall_vert0) {
-  return Vec3(a.u) * w.unit_u + Vec3(a.v) * w.unit_v + wall_vert0;
-}
-
-
 static Vec2 xyz2uv(const Partition& p, const Vec3& a, const Wall& w) {
   Vec2 res;
 

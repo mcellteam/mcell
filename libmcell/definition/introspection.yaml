@@ -10,21 +10,23 @@ Molecule:
   items:
   - name: id
     type: int
-    default: MOLECULE_ID_INVALID
+    default: ID_INVALID
     doc: Unique id of this molecule
      
-  - name: species
-    type: Species*
-    default: unset
+  - name: type
+    type: MoleculeType
+    default: MoleculeType.UNSET
     
+  - name: species_id
+    type: int
+    default: ID_INVALID
+    doc: Species id of this molecule.
+     
   - name: pos3d
     type: Vec3
     default: unset
     doc: |
-      TODO - Right now, contains only position of this is a volume molecule 
-      Contains position in space both for surface and volume molecules,
-      it won't be possible to change it for surface molecules.
-       
+      Contains position of a molecule in 3D space.        
       
   - name: orientation
     type: Orientation
@@ -33,6 +35,27 @@ Molecule:
       Contains orientation for surface molecule. Volume molecules 
       have always orientation set to Orientation.NONE.
       
+  - name: pos2d
+    type: Vec2 
+    default: unset
+    doc: |
+      Set only for surface molecules.
+              
+  - name: geometry_object
+    type: GeometryObject*
+    default: unset
+    doc: |
+       Set only for surface molecules.
+       Object on whose surface is the molecule located.
+     
+  - name: wall_index
+    type: int
+    default: -1
+    doc: |
+       Set only for surface molecules.
+       Index of wall belonging to the geometry_object where is the 
+       molecule located. 
+          
   methods:
   - name: remove
     # TODO: better name?

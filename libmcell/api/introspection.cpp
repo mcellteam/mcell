@@ -25,10 +25,12 @@
 #include "api/model.h"
 #include "api/api_utils.h"
 #include "api/molecule.h"
-#include "api/geometry_object.h"
 #include "api/wall.h"
+#include "api/geometry_object.h"
 
 #include "world.h"
+#include "src4/geometry_utils.h" // TODO: we should rename the src4 directory
+
 
 using namespace std;
 
@@ -79,9 +81,18 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
 
   res = make_shared<API::Molecule>();
   res->id = m.id;
+  res->species_id = m.species_id;
   if (m.is_surf()) {
-    // TODO: res->pos3d
+    const MCell::Wall& w = p.get_wall(m.s.wall_index);
+    const Vec3& w_vert0 = p.get_wall_vertex(w, 0);
+
+    res->pos2d = m.s.pos * Vec2(world->config.length_unit);
+    res->pos3d = GeometryUtil::uv2xyz(m.s.pos, w, w_vert0) * Vec3(world->config.length_unit);
     res->orientation = convert_orientation(m.s.orientation);
+
+    res->geometry_object = model->get_geometry_object_with_id(w.object_id);
+    assert(is_set(res->geometry_object));
+    res->wall_index = m.s.wall_index - res->geometry_object->first_wall_index;
   }
   else {
     res->pos3d = m.v.pos * Vec3(world->config.length_unit);
