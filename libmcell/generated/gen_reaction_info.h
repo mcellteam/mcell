@@ -58,6 +58,14 @@ public:
     return reactant_ids;
   }
 
+  std::vector<int> product_ids;
+  virtual void set_product_ids(const std::vector<int> new_product_ids_) {
+    product_ids = new_product_ids_;
+  }
+  virtual std::vector<int> get_product_ids() const {
+    return product_ids;
+  }
+
   std::shared_ptr<ReactionRule> reaction_rule;
   virtual void set_reaction_rule(std::shared_ptr<ReactionRule> new_reaction_rule_) {
     reaction_rule = new_reaction_rule_;

@@ -2130,7 +2130,8 @@ void DiffuseReactEvent::handle_rxn_callback(
     const BNG::RxnRule* rxn,
     // reac1 is the diffused molecule and reac2 is the optional second reactant
     const Molecule* reac1,
-    const Molecule* reac2
+    const Molecule* reac2,
+    const small_vector<molecule_id_t>& product_ids
 ) {
 
   // check callback (reactive surface are ignored)
@@ -2163,6 +2164,8 @@ void DiffuseReactEvent::handle_rxn_callback(
     if (reac2 != nullptr) {
       info->reactant_ids.push_back(reac2->id);
     }
+
+    info->product_ids.insert(info->product_ids.begin(), product_ids.begin(), product_ids.end());
 
     info->time = time;
     info->rxn_rule_id = rxn->id;
@@ -2280,8 +2283,6 @@ int DiffuseReactEvent::outcome_products_random(
     reacB = &p.get_m(collision.colliding_molecule_id);
   }
 
-  handle_rxn_callback(p, collision, time, rxn, reacA, reacB);
-
   if (num_mol_reactants == 2) {
     if (reacA->is_surf()) {
       surf_reac = reacA;
@@ -2386,6 +2387,8 @@ int DiffuseReactEvent::outcome_products_random(
     product_orientations.resize(rxn->products.size(), ORIENTATION_NONE);
   }
 
+  small_vector<molecule_id_t> product_ids;
+
   for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
     const ProductSpeciesIdWIndices& actual_product = actual_products[product_index];
 
@@ -2418,6 +2421,8 @@ int DiffuseReactEvent::outcome_products_random(
       bool ok = rxn->get_assigned_simple_cplx_reactant_for_product(single_rxn_product_index, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
+      Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
+
       if (rxn->reactants[reactant_index].get_orientation() != product_orientation) {
         // initiator volume molecule passes through wall?
         // any surf mol -> set new orient
@@ -2442,6 +2447,9 @@ int DiffuseReactEvent::outcome_products_random(
           assert(false);
         }
       }
+
+      // reactant was kept
+      product_ids.push_back(reactant->id);
 
       continue;
     }
@@ -2578,11 +2586,15 @@ int DiffuseReactEvent::outcome_products_random(
       new_diffuse_actions.push_back(DiffuseAction(new_m_id, where_is_vm_created));
     }
 
+    product_ids.push_back(new_m_id);
+
     // refresh reacA and reacB pointers, we are added new molecules in this loop and they point to that vector
     reacA = &p.get_m(reacA_id);
     reacB = (reacB_id != MOLECULE_ID_INVALID) ? &p.get_m(reacB_id) : nullptr;
     surf_reac = (surf_reac_id != MOLECULE_ID_INVALID) ? &p.get_m(surf_reac_id) : nullptr;
   } // end for - product creation
+
+  handle_rxn_callback(p, collision, time, rxn, reacA, reacB, product_ids);
 
   // we might need to swap info on which reactant was kept
   if (reactants_swapped) {

@@ -152,8 +152,9 @@ Model:
       
   - name: register_reaction_callback
     doc: | 
-       Allows to intercept unimolecular and bimolecular reactions happening in volume.
-       It is allowed to do state modifications except for removing reacting molecules.  
+       Defines a function to be called when a reaction was processed.
+       It is allowed to do state modifications except for removing reacting molecules, 
+       they will be removed automatically after return from this callback.  
     params: 
     - name: function
       type: std::function<void(std::shared_ptr<ReactionInfo>, py::object)>

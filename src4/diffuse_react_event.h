@@ -303,7 +303,8 @@ private:
       const float_t time,
       const BNG::RxnRule* rxn,
       const Molecule* reac1,
-      const Molecule* reac2
+      const Molecule* reac2,
+      const small_vector<molecule_id_t>& product_ids
   );
 
   int outcome_products_random(
