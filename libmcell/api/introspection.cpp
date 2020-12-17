@@ -86,6 +86,7 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
     const MCell::Wall& w = p.get_wall(m.s.wall_index);
     const Vec3& w_vert0 = p.get_wall_vertex(w, 0);
 
+    res->type = MoleculeType::SURFACE;
     res->pos2d = m.s.pos * Vec2(world->config.length_unit);
     res->pos3d = GeometryUtil::uv2xyz(m.s.pos, w, w_vert0) * Vec3(world->config.length_unit);
     res->orientation = convert_orientation(m.s.orientation);
@@ -95,6 +96,7 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
     res->wall_index = m.s.wall_index - res->geometry_object->first_wall_index;
   }
   else {
+    res->type = MoleculeType::VOLUME;
     res->pos3d = m.v.pos * Vec3(world->config.length_unit);
     res->orientation = Orientation::NONE;
   }
