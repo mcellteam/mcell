@@ -1359,6 +1359,8 @@ Attributes:
   | IDs of the reacting molecules, contains 1 ID for a unimolecular reaction, 2 IDs for a bimolecular reaction.
   | For a bimolecular reaction, the first ID is always the molecule that was diffused and the second one 
   | is the molecule that was hit.
+  | IDs can be used to obtain location of the molecules. The position of the first molecule obtained through 
+  | model.get_molecule() is the position of the diffusing molecule before the collision.
 
 * | **reaction_rule**: ReactionRule
   | Reaction rule of the reaction.
@@ -1388,19 +1390,6 @@ Attributes:
   | specific meaning depends on the reaction type\:
   | - unimolecular reaction - position of the reacting molecule,
   | - volume-surface and surface-surface reaction - position of the second reactant.
-
-* | **geometry_object_surf_reac2**: GeometryObject = None
-  | Set only for surface-surface reactions.
-  | Object on whose surface was the second surface reactant located when reaction occured.
-
-* | **wall_index_surf_reac2**: int = -1
-  | Set only for surface-surface reactions
-  | Index of wall belonging to the geometry_object where the
-  | second surface reactant located when reaction occured.
-
-* | **pos2d_surf_reac2**: Vec2 = None
-  | Set only for surface-surface reactions.
-  | Specifies 2d UV coordinates of the second reactant.
 
 ReactionRule
 ============

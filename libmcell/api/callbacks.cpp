@@ -84,14 +84,6 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
     info->pos2d = info->pos2d * Vec2(model->get_world()->config.length_unit);
   }
 
-  if (info->geometry_object_id_surf_reac2 != GEOMETRY_OBJECT_ID_INVALID) {
-    info->geometry_object_surf_reac2 = model->get_geometry_object_with_id(info->geometry_object_id_surf_reac2);
-    assert(is_set(info->geometry_object_surf_reac2));
-    assert(info->partition_wall_index_surf_reac2 >= info->geometry_object_surf_reac2->first_wall_index);
-    info->wall_index_surf_reac2 = info->geometry_object_surf_reac2->get_object_wall_index(info->partition_wall_index_surf_reac2);
-    info->pos2d_surf_reac2 = info->pos2d_surf_reac2 * Vec2(model->get_world()->config.length_unit);
-  }
-
   // call the actual callback
   rxn_callback_function(info, rxn_context);
 }

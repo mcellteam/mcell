@@ -2184,13 +2184,6 @@ void DiffuseReactEvent::handle_rxn_callback(
       info->pos2d = first_surf_reac->s.pos;
       info->geometry_object_id = p.get_wall(first_surf_reac->s.wall_index).object_id;
       info->partition_wall_index = first_surf_reac->s.wall_index;
-
-      if (info->type == API::ReactionType::SURFACE_SURFACE)  {
-        // use the second surface reactant for the second surface location
-        info->pos2d_surf_reac2 = reac2->s.pos;
-        info->geometry_object_id_surf_reac2 = p.get_wall(reac2->s.wall_index).object_id;
-        info->partition_wall_index_surf_reac2 = reac2->s.wall_index;
-      }
     }
 
     world->get_callbacks().do_rxn_callback(info);
