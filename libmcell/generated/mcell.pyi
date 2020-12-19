@@ -642,6 +642,14 @@ class Model():
         ) -> None:
         pass
 
+    def run_reaction(
+            self,
+            reaction_rule : ReactionRule,
+            reactant_ids : List[int],
+            time : float
+        ) -> None:
+        pass
+
     def add_vertex_move(
             self,
             object : GeometryObject,

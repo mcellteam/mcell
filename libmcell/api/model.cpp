@@ -40,6 +40,10 @@
 #include "world.h"
 #include "diffuse_react_event.h"
 #include "release_event.h"
+#include "rxn_utils.inc"
+#include "molecule.h"
+
+#include "bng/rxn_class.h"
 
 
 using namespace std;
@@ -146,6 +150,10 @@ void Model::export_data_model_viz_or_full(
 
 
 void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
+  if (!initialized) {
+    throw RuntimeError(S("Model must be initialized before calling ") + NAME_RELEASE_MOLECULES + ".");
+  }
+
   // check that time is now or in the future
   float_t iteration_start_time = world->stats.get_current_iteration() * world->config.time_unit;
   if (release_site->release_time < iteration_start_time) {
@@ -178,6 +186,87 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
   // and execute the release
   rel_event->release_immediatelly(diffuse_event);
   delete rel_event;
+}
+
+
+void Model::run_reaction(
+    std::shared_ptr<ReactionRule> reaction_rule,
+    const std::vector<int> reactant_ids,
+    const float_t time) {
+  if (!initialized) {
+    throw RuntimeError(S("Model must be initialized before calling ") + NAME_RUN_REACTION + ".");
+  }
+
+  if (reaction_rule->reactants.size() != reactant_ids.size()) {
+    throw RuntimeError("Reaction expects " + to_string(reaction_rule->reactants.size()) +
+        " reactants but " + to_string(reactant_ids.size()) + " reactants were provided.");
+  }
+
+  if (reaction_rule->fwd_rxn_rule_id == BNG::RXN_RULE_ID_INVALID) {
+    throw RuntimeError("Reaction rule is not present in model and was not initialized.");
+  }
+
+  if (reaction_rule->rev_rxn_rule_id != BNG::RXN_RULE_ID_INVALID) {
+    throw RuntimeError(S("Method ") + NAME_RUN_REACTION + " can be used only with irreversible reactions.");
+  }
+
+  const BNG::RxnRule* rxn = world->get_all_rxns().get(reaction_rule->fwd_rxn_rule_id);
+
+  if (!rxn->is_unimol()) {
+    throw RuntimeError(S("Method ") + NAME_RUN_REACTION + " currently supports only unimolecular reactions.");
+  }
+
+  MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  molecule_id_t id1 = reactant_ids[0];
+  if (!p.does_molecule_exist(id1)) {
+    throw RuntimeError("Molecule with id " + to_string(id1) + " does not exist.");
+  }
+  MCell::Molecule& m1 = p.get_m(id1);
+  if (m1.is_defunct()) {
+    throw RuntimeError("Molecule with id " + to_string(id1) + " was removed.");
+  }
+
+  if (rxn->is_unimol()) {
+    // check if the requested rxn is applicable for our reactant
+    // also determine pathway index
+    BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(m1.as_reactant());
+    rxn_class->init_rxn_pathways_and_rates(); // initialize if needed
+    rxn_class_pathway_index_t index = 0;
+    while (index < (rxn_class_pathway_index_t)rxn_class->get_num_pathways() &&
+        rxn_class->get_rxn_for_pathway(index)->id != rxn->id) {
+      index++;
+    }
+
+    if (index >= (rxn_class_pathway_index_t)rxn_class->get_num_pathways()) {
+      const BNG::Species& species = world->get_all_species().get(m1.species_id);
+      throw RuntimeError("Reaction rule " + reaction_rule->to_bngl_str() +
+          " cannot be applied on molecule with species " + species.name);
+    }
+
+    // if we are in a callback, we are probably in a diffuse react event
+    BaseEvent* current_event = world->scheduler.get_event_being_executed();
+    DiffuseReactEvent* diffuse_react_event;
+    bool using_temporary_event;
+    if (current_event->type_index == EVENT_TYPE_INDEX_DIFFUSE_REACT) {
+      diffuse_react_event = dynamic_cast<DiffuseReactEvent*>(current_event);
+      using_temporary_event = false;
+    }
+    else {
+      // otherwise we will instantiate a new event
+      diffuse_react_event = new DiffuseReactEvent(world);
+      using_temporary_event = true;
+    }
+
+    diffuse_react_event->outcome_unimolecular(p, m1, time / world->config.time_unit, rxn_class, index);
+
+    if (using_temporary_event) {
+      delete diffuse_react_event;
+    }
+  }
+  else {
+    // TODO
+    release_assert(false);
+  }
 }
 
 

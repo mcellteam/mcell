@@ -87,7 +87,28 @@ Model:
     params:
     - name: release_site
       type: ReleaseSite*
-
+      
+  - name: run_reaction
+    doc: | 
+      Run a single reaction on reactants. Callbacks will be called if they are registered for the given reaction.
+      Note\: only unimolecular reactions are currently supported.  
+    params:
+    - name: reaction_rule
+      type: ReactionRule*
+      doc: Reaction rule to run.
+      
+    - name: reactant_ids
+      type: List[int]
+      doc: | 
+        The number of reactants for a unimolecular reaction must be 1 and for a bimolecular reaction must be 2.
+        Reactants for a bimolecular reaction do not have to be listed in the same order as in the reaction rule definition. 
+    
+    - name: time
+      type: float
+      doc: |
+        Precise time in seconds when this reaction occurs. Important to know for how long the products
+        will be diffused when they are created in a middle of a time step. 
+      
   # --- dynamic geometry ---
       
   - name: add_vertex_move

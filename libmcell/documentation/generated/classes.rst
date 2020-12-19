@@ -885,6 +885,24 @@ Methods:
   | scheduled into the global scheduler.
 
 
+* | **run_reaction**
+
+   * | reaction_rule: ReactionRule
+     | Reaction rule to run.
+
+   * | reactant_ids: List[int]
+     | The number of reactants for a unimolecular reaction must be 1 and for a bimolecular reaction must be 2.
+     | Reactants for a bimolecular reaction do not have to be listed in the same order as in the reaction rule definition.
+
+   * | time: float
+     | Precise time in seconds when this reaction occurs. Important to know for how long the products
+     | will be diffused when they are created in a middle of a time step.
+
+
+  | Run a single reaction on reactants. Callbacks will be called if they are registered for the given reaction.
+  | Note\: only unimolecular reactions are currently supported.
+
+
 * | **add_vertex_move**
 
    * | object: GeometryObject
@@ -954,8 +972,9 @@ Methods:
      | The callback function will be called whenever is this reaction rule applied.
 
 
-  | Allows to intercept unimolecular and bimolecular reactions happening in volume.
-  | It is allowed to do state modifications except for removing reacting molecules.
+  | Defines a function to be called when a reaction was processed.
+  | It is allowed to do state modifications except for removing reacting molecules, 
+  | they will be removed automatically after return from this callback.
 
 
 * | **load_bngl**
@@ -1364,7 +1383,8 @@ Attributes:
   | All the reactants are removed after return from this callback, unless they are kept by the reaction such as in A + B -> A + C.
 
 * | **product_ids**: List[int]
-  | IDs of reaction product molecules.
+  | IDs of reaction product molecules. They already exist in the simulated system together with reactants, however reactants 
+  | will be removed after return from this callback.
 
 * | **reaction_rule**: ReactionRule
   | Reaction rule of the reaction.

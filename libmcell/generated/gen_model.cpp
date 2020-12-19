@@ -117,6 +117,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("export_data_model", &Model::export_data_model, py::arg("file") = STR_UNSET)
       .def("export_viz_data_model", &Model::export_viz_data_model, py::arg("file") = STR_UNSET)
       .def("release_molecules", &Model::release_molecules, py::arg("release_site"))
+      .def("run_reaction", &Model::run_reaction, py::arg("reaction_rule"), py::arg("reactant_ids"), py::arg("time"))
       .def("add_vertex_move", &Model::add_vertex_move, py::arg("object"), py::arg("vertex_index"), py::arg("displacement"))
       .def("apply_vertex_moves", &Model::apply_vertex_moves, py::arg("collect_wall_wall_hits") = false)
       .def("register_mol_wall_hit_callback", &Model::register_mol_wall_hit_callback, py::arg("function"), py::arg("context"), py::arg("object") = nullptr, py::arg("species") = nullptr)

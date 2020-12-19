@@ -2129,8 +2129,8 @@ void DiffuseReactEvent::handle_rxn_callback(
     const float_t time,
     const BNG::RxnRule* rxn,
     // reac1 is the diffused molecule and reac2 is the optional second reactant
-    const Molecule* reac1,
-    const Molecule* reac2,
+    const Molecule* reacA,
+    const Molecule* reacB,
     const small_vector<molecule_id_t>& product_ids
 ) {
 
@@ -2138,7 +2138,19 @@ void DiffuseReactEvent::handle_rxn_callback(
   if (world->get_callbacks().needs_rxn_callback(rxn->id) && !rxn->is_reactive_surface_rxn()) {
     shared_ptr<API::ReactionInfo> info = make_shared<API::ReactionInfo>();
 
-    assert(reac1->id == collision.diffused_molecule_id);
+    const Molecule* reac1;
+    const Molecule* reac2;
+
+    // first reactant id that we are sending back must be always the diffusing molecule
+    if (reacA->id == collision.diffused_molecule_id) {
+      reac1 = reacA;
+      reac2 = reacB;
+    }
+    else {
+      assert(reacB != nullptr);
+      reac1 = reacB;
+      reac2 = reacA;
+    }
     assert(reac2 == nullptr || reac2->id == collision.colliding_molecule_id);
 
     // determine type
@@ -2594,6 +2606,7 @@ int DiffuseReactEvent::outcome_products_random(
     surf_reac = (surf_reac_id != MOLECULE_ID_INVALID) ? &p.get_m(surf_reac_id) : nullptr;
   } // end for - product creation
 
+  // this is a safe point where we can manipulate contents of this event
   handle_rxn_callback(p, collision, time, rxn, reacA, reacB, product_ids);
 
   // we might need to swap info on which reactant was kept

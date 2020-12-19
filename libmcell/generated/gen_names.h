@@ -205,6 +205,7 @@ const char* const NAME_REV_NAME = "rev_name";
 const char* const NAME_REV_RATE = "rev_rate";
 const char* const NAME_RIGHT_NODE = "right_node";
 const char* const NAME_RUN_ITERATIONS = "run_iterations";
+const char* const NAME_RUN_REACTION = "run_reaction";
 const char* const NAME_RXN_AND_SPECIES_REPORT = "rxn_and_species_report";
 const char* const NAME_S = "s";
 const char* const NAME_SC = "sc";

@@ -125,6 +125,10 @@ public:
     return rxn_rule_ids.size();
   }
 
+  uint get_num_pathways() const {
+    return pathways.size();
+  }
+
   // first query for the max probability or for rxn rate update usually causes
   // rxn pathways to be initialized
   float_t get_max_fixed_p() {

@@ -170,6 +170,16 @@ public:
     return cmp_lt(time, event_time + periodicity_interval, EPS);
   }
 
+  // used also directly from MCell API
+  // returns true if molecule survived
+  bool outcome_unimolecular(
+      Partition& p,
+      Molecule& vm,
+      const float_t scheduled_time,
+      BNG::RxnClass* rxn_class,
+      const rxn_class_pathway_index_t pathway_index
+  );
+
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
@@ -288,14 +298,6 @@ private:
       const float_t time
   );
 
-	// returns true if molecule survived
-  bool outcome_unimolecular(
-      Partition& p,
-      Molecule& vm,
-      const float_t scheduled_time,
-      BNG::RxnClass* rxn_class,
-      const rxn_class_pathway_index_t pathway_index
-  );
 
   void handle_rxn_callback(
       Partition& p,

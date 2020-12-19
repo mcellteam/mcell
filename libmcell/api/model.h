@@ -76,6 +76,11 @@ public:
 
   void release_molecules(std::shared_ptr<ReleaseSite> release_site) override;
 
+  void run_reaction(
+      std::shared_ptr<ReactionRule> reaction_rule,
+      const std::vector<int> reactant_ids,
+      const float_t time) override;
+
   void add_vertex_move(
       std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement
   ) override;
