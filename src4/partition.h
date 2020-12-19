@@ -1045,8 +1045,11 @@ public:
     if (id == MOLECULE_ID_INVALID) {
       return false;
     }
-    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
-    if (vm_vec_index == MOLECULE_INDEX_INVALID) {
+    if (id >= molecule_id_to_index_mapping.size()) {
+      return false;
+    }
+    molecule_index_t index = molecule_id_to_index_mapping[id];
+    if (index == MOLECULE_INDEX_INVALID) {
       return false;
     }
     return !get_m(id).is_defunct();

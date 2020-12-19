@@ -528,6 +528,12 @@ class Introspection():
         ) -> 'Molecule':
         pass
 
+    def get_species_name(
+            self,
+            species_id : int
+        ) -> 'str':
+        pass
+
     def get_vertex(
             self,
             object : GeometryObject,
@@ -833,6 +839,12 @@ class Model():
             self,
             id : int
         ) -> 'Molecule':
+        pass
+
+    def get_species_name(
+            self,
+            species_id : int
+        ) -> 'str':
         pass
 
     def get_vertex(
