@@ -34,7 +34,7 @@ void GenMoleculeReleaseInfo::check_semantics() const {
     throw ValueError("Parameter 'complex' must be set.");
   }
   if (!is_set(location)) {
-    throw ValueError("Parameter 'location' must be set.");
+    throw ValueError("Parameter 'location' must be set and the value must not be an empty list.");
   }
 }
 

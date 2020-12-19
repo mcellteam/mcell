@@ -37,7 +37,7 @@ void GenWall::check_semantics() const {
     throw ValueError("Parameter 'wall_index' must be set.");
   }
   if (!is_set(vertices)) {
-    throw ValueError("Parameter 'vertices' must be set.");
+    throw ValueError("Parameter 'vertices' must be set and the value must not be an empty list.");
   }
   if (!is_set(area)) {
     throw ValueError("Parameter 'area' must be set.");

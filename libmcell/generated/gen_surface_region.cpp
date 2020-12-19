@@ -36,7 +36,7 @@ void GenSurfaceRegion::check_semantics() const {
     throw ValueError("Parameter 'name' must be set.");
   }
   if (!is_set(wall_indices)) {
-    throw ValueError("Parameter 'wall_indices' must be set.");
+    throw ValueError("Parameter 'wall_indices' must be set and the value must not be an empty list.");
   }
 }
 

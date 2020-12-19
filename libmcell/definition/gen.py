@@ -909,9 +909,12 @@ def generate_class_template(class_name, class_def):
         f.write('#endif // ' + guard + '\n')
         
         
-def write_is_set_check(f, name):
+def write_is_set_check(f, name, is_list):
     f.write('  if (!is_set(' + name + ')) {\n')
-    f.write('    throw ValueError("Parameter \'' + name + '\' must be set.");\n')
+    f.write('    throw ValueError("Parameter \'' + name + '\' must be set')
+    if is_list:
+        f.write(' and the value must not be an empty list')            
+    f.write('.");\n')
     f.write('  }\n')
   
 
@@ -919,7 +922,7 @@ def write_check_semantics_implemetation(f, class_name, items):
     f.write(RET_TYPE_CHECK_SEMANTICS + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_CHECK_SEMANTICS + ' {\n') 
     for attr in items:
         if KEY_DEFAULT not in attr:
-            write_is_set_check(f, attr[KEY_NAME])
+            write_is_set_check(f, attr[KEY_NAME], is_yaml_list_type(attr[KEY_TYPE]))
     f.write('}\n\n')    
     
         

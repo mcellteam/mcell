@@ -37,10 +37,10 @@ void GenGeometryObject::check_semantics() const {
     throw ValueError("Parameter 'name' must be set.");
   }
   if (!is_set(vertex_list)) {
-    throw ValueError("Parameter 'vertex_list' must be set.");
+    throw ValueError("Parameter 'vertex_list' must be set and the value must not be an empty list.");
   }
   if (!is_set(wall_list)) {
-    throw ValueError("Parameter 'wall_list' must be set.");
+    throw ValueError("Parameter 'wall_list' must be set and the value must not be an empty list.");
   }
 }
 
