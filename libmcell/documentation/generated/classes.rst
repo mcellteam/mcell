@@ -735,6 +735,15 @@ Methods:
   | Returns a molecule from the simulated environment, None if the molecule does not exist
 
 
+* | **get_species_name**
+
+   * | species_id: int
+   * | return type: str
+
+
+  | Returns a string representing canonical species name in the BNGL format.
+
+
 * | **get_vertex**
 
    * | object: GeometryObject
@@ -1165,6 +1174,15 @@ Methods:
   | Returns a molecule from the simulated environment, None if the molecule does not exist
 
 
+* | **get_species_name**
+
+   * | species_id: int
+   * | return type: str
+
+
+  | Returns a string representing canonical species name in the BNGL format.
+
+
 * | **get_vertex**
 
    * | object: GeometryObject
@@ -1257,6 +1275,7 @@ Attributes:
 
 * | **species_id**: int = ID_INVALID
   | Species id of this molecule.
+  | The id value is only temporary and can be invalidated by simulating an iteration.
 
 * | **pos3d**: Vec3 = None
   | Contains position of a molecule in 3D space.

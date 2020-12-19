@@ -152,6 +152,22 @@ public:
     return res;
   }
 
+  bool does_species_exist(const molecule_id_t id) {
+    if (id == SPECIES_ID_INVALID) {
+      return false;
+    }
+    if (id >= species_id_to_index_mapping.size()) {
+      return false;
+    }
+    species_index_t index = species_id_to_index_mapping[id];
+    if (index == SPECIES_INDEX_INVALID) {
+      return false;
+    }
+    const Species* res = species[index];
+    assert(res != nullptr);
+    return !res->is_defunct();
+  }
+
   // for debugging
   bool is_valid_id(const species_id_t id) const {
     return

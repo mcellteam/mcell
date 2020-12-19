@@ -44,7 +44,6 @@ void Introspection::initialize_introspection(Model* model_) {
 }
 
 
-
 std::vector<int> Introspection::get_molecule_ids(std::shared_ptr<Species> species) {
   // NOTE: not very efficient
   std::vector<int> res;
@@ -75,9 +74,7 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
     throw RuntimeError("Molecule with id " + to_string(id) + " does not exist.");
   }
   MCell::Molecule& m = p.get_m(id);
-  if (m.is_defunct()) {
-    throw RuntimeError("Molecule with id " + to_string(id) + " was removed.");
-  }
+  assert(!m.is_defunct() && "is_defunct is checked already by does_molecule_exist()");
 
   res = make_shared<API::Molecule>();
   res->id = m.id;
@@ -104,6 +101,14 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
   res->set_initialized();
 
   return res;
+}
+
+
+std::string Introspection::get_species_name(const int species_id) {
+  if (!world->get_all_species().is_valid_id(species_id)) {
+    throw RuntimeError("Species with id " + to_string(species_id) + " does not exist.");
+  }
+  return world->get_all_species().get(species_id).name;
 }
 
 

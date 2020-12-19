@@ -47,6 +47,8 @@ public:
   std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
   std::shared_ptr<Molecule> get_molecule(const int id) override;
 
+  std::string get_species_name(const int species_id) override;
+
   Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
   std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) override;
 

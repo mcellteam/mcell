@@ -58,6 +58,7 @@ py::class_<Introspection> define_pybinding_Introspection(py::module& m) {
       .def("__eq__", &Introspection::__eq__, py::arg("other"))
       .def("get_molecule_ids", &Introspection::get_molecule_ids, py::arg("species") = nullptr)
       .def("get_molecule", &Introspection::get_molecule, py::arg("id"))
+      .def("get_species_name", &Introspection::get_species_name, py::arg("species_id"))
       .def("get_vertex", &Introspection::get_vertex, py::arg("object"), py::arg("vertex_index"))
       .def("get_wall", &Introspection::get_wall, py::arg("object"), py::arg("wall_index"))
       .def("get_vertex_unit_normal", &Introspection::get_vertex_unit_normal, py::arg("object"), py::arg("vertex_index"))

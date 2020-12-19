@@ -132,6 +132,7 @@ const char* const NAME_GEOMETRY_OBJECTS = "geometry_objects";
 const char* const NAME_GET_CURRENT_VALUE = "get_current_value";
 const char* const NAME_GET_MOLECULE = "get_molecule";
 const char* const NAME_GET_MOLECULE_IDS = "get_molecule_ids";
+const char* const NAME_GET_SPECIES_NAME = "get_species_name";
 const char* const NAME_GET_VERTEX = "get_vertex";
 const char* const NAME_GET_VERTEX_UNIT_NORMAL = "get_vertex_unit_normal";
 const char* const NAME_GET_WALL = "get_wall";

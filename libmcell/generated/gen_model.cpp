@@ -146,6 +146,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("load_bngl_observables", &Model::load_bngl_observables, py::arg("file_name"), py::arg("subsystem"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("get_molecule_ids", &Model::get_molecule_ids, py::arg("species") = nullptr)
       .def("get_molecule", &Model::get_molecule, py::arg("id"))
+      .def("get_species_name", &Model::get_species_name, py::arg("species_id"))
       .def("get_vertex", &Model::get_vertex, py::arg("object"), py::arg("vertex_index"))
       .def("get_wall", &Model::get_wall, py::arg("object"), py::arg("wall_index"))
       .def("get_vertex_unit_normal", &Model::get_vertex_unit_normal, py::arg("object"), py::arg("vertex_index"))

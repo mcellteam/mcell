@@ -797,6 +797,8 @@ void MCell4Converter::check_intermembrane_surface_reaction(const BNG::RxnRule& r
       throw ValueError("Intermembrane reaction's reactants and products must be all surface complexes, error for " +
           rxn.to_str() + ".");
   }
+
+  // TODO: check compartments?
 }
 
 
