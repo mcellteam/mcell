@@ -264,7 +264,9 @@ void World::init_simulation() {
 }
 
 
-void World::run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency, const bool terminate_last_iteration_after_viz_output) {
+void World::run_n_iterations(const uint64_t num_iterations, const bool terminate_last_iteration_after_viz_output) {
+
+  uint64_t output_frequency = determine_output_frequency(total_iterations);
 
   if (!simulation_initialized) {
     init_simulation();
@@ -379,7 +381,7 @@ void World::end_simulation(const bool print_final_report) {
 
   // executes all events up to the last viz output,
   // this is to produce viz output and counts for the last iteration
-  run_n_iterations(1, determine_output_frequency(total_iterations), true);
+  run_n_iterations(1, true);
 
   flush_buffers();
 
@@ -415,9 +417,7 @@ void World::run_simulation(const bool dump_initial_state, const bool dump_with_g
     dump(dump_with_geometry);
   }
 
-  uint output_frequency = World::determine_output_frequency(total_iterations);
-
-  run_n_iterations(total_iterations, output_frequency, true);
+  run_n_iterations(total_iterations, true);
 
   // runs one more iteration but only up to the last viz output
   end_simulation(true);

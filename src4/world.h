@@ -70,7 +70,6 @@ public:
   void run_simulation(const bool dump_initial_state = false, const bool dump_with_geometry = false);
   void run_n_iterations(
       const uint64_t num_iterations,
-      const uint64_t output_frequency,
       const bool terminate_last_iteration_after_viz_output = false // used when ending simulation
   );
   void end_simulation(const bool print_final_report = true);

@@ -115,8 +115,7 @@ void Model::run_iterations(const float_t iterations) {
   if (world == nullptr) {
     throw RuntimeError("Model was not initialized, call Model.initialize() first");
   }
-  uint output_frequency = World::determine_output_frequency(iterations);
-  world->run_n_iterations(iterations, output_frequency, false);
+  world->run_n_iterations(iterations, false);
 }
 
 
