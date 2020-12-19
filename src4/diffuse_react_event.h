@@ -177,7 +177,8 @@ public:
       Molecule& vm,
       const float_t scheduled_time,
       BNG::RxnClass* rxn_class,
-      const rxn_class_pathway_index_t pathway_index
+      const rxn_class_pathway_index_t pathway_index,
+      MoleculeIdsVector* optional_product_ids = nullptr
   );
 
   World* world;
@@ -306,7 +307,7 @@ private:
       const BNG::RxnRule* rxn,
       const Molecule* reac1,
       const Molecule* reac2,
-      const small_vector<molecule_id_t>& product_ids
+      const MoleculeIdsVector& product_ids
   );
 
   int outcome_products_random(
@@ -315,7 +316,8 @@ private:
       const float_t remaining_time_step,
       const rxn_class_pathway_index_t pathway_index,
       bool& keep_reacA,
-      bool& keep_reacB
+      bool& keep_reacB,
+      MoleculeIdsVector* optional_product_ids = nullptr
   );
 
   void pick_unimol_rxn_class_and_set_rxn_time(

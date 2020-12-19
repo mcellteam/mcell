@@ -189,7 +189,7 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
 }
 
 
-void Model::run_reaction(
+std::vector<int> Model::run_reaction(
     std::shared_ptr<ReactionRule> reaction_rule,
     const std::vector<int> reactant_ids,
     const float_t time) {
@@ -226,6 +226,7 @@ void Model::run_reaction(
     throw RuntimeError("Molecule with id " + to_string(id1) + " was removed.");
   }
 
+  std::vector<int> res;
   if (rxn->is_unimol()) {
     // check if the requested rxn is applicable for our reactant
     // also determine pathway index
@@ -257,16 +258,21 @@ void Model::run_reaction(
       using_temporary_event = true;
     }
 
-    diffuse_react_event->outcome_unimolecular(p, m1, time / world->config.time_unit, rxn_class, index);
+    MoleculeIdsVector product_ids;
+    diffuse_react_event->outcome_unimolecular(p, m1, time / world->config.time_unit, rxn_class, index, &product_ids);
 
     if (using_temporary_event) {
       delete diffuse_react_event;
     }
+
+    res.insert(res.begin(), product_ids.begin(), product_ids.end());
   }
   else {
     // TODO
     release_assert(false);
   }
+
+  return res;
 }
 
 

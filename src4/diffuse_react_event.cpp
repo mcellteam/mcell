@@ -2131,7 +2131,7 @@ void DiffuseReactEvent::handle_rxn_callback(
     // reac1 is the diffused molecule and reac2 is the optional second reactant
     const Molecule* reacA,
     const Molecule* reacB,
-    const small_vector<molecule_id_t>& product_ids
+    const MoleculeIdsVector& product_ids
 ) {
 
   // check callback (reactive surface are ignored)
@@ -2215,7 +2215,8 @@ int DiffuseReactEvent::outcome_products_random(
     const float_t time,
     const rxn_class_pathway_index_t pathway_index,
     bool& keep_reacA,
-    bool& keep_reacB
+    bool& keep_reacB,
+    MoleculeIdsVector* optional_product_ids
 ) {
   assert(collision.is_mol_mol_reaction() ||
       collision.is_unimol_reaction() ||
@@ -2399,7 +2400,7 @@ int DiffuseReactEvent::outcome_products_random(
     product_orientations.resize(rxn->products.size(), ORIENTATION_NONE);
   }
 
-  small_vector<molecule_id_t> product_ids;
+  MoleculeIdsVector product_ids;
 
   for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
     const ProductSpeciesIdWIndices& actual_product = actual_products[product_index];
@@ -2609,6 +2610,10 @@ int DiffuseReactEvent::outcome_products_random(
   // this is a safe point where we can manipulate contents of this event
   handle_rxn_callback(p, collision, time, rxn, reacA, reacB, product_ids);
 
+  if (optional_product_ids != nullptr) {
+    *optional_product_ids = product_ids;
+  }
+
   // we might need to swap info on which reactant was kept
   if (reactants_swapped) {
     bool tmp = keep_reacA;
@@ -2628,7 +2633,8 @@ bool DiffuseReactEvent::outcome_unimolecular(
     Molecule& m,
     const float_t scheduled_time,
     RxnClass* rxn_class,
-    const rxn_class_pathway_index_t pathway_index
+    const rxn_class_pathway_index_t pathway_index,
+    MoleculeIdsVector* optional_product_ids
 ) {
   molecule_id_t id = m.id;
 
@@ -2656,7 +2662,8 @@ bool DiffuseReactEvent::outcome_unimolecular(
     bool ignoredA, ignoredB;
     // creates new molecule(s) as output of the unimolecular reaction
     // !! might invalidate references (we might reorder defuncting and outcome call later)
-    int outcome_res = outcome_products_random(p, collision, scheduled_time, pathway_index, ignoredA, ignoredB);
+    int outcome_res = outcome_products_random(
+        p, collision, scheduled_time, pathway_index, ignoredA, ignoredB, optional_product_ids);
     assert(outcome_res == RX_A_OK || outcome_res == RX_BLOCKED);
 
     Molecule& m_new_ref = p.get_m(id);

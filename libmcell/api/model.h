@@ -76,7 +76,7 @@ public:
 
   void release_molecules(std::shared_ptr<ReleaseSite> release_site) override;
 
-  void run_reaction(
+  std::vector<int> run_reaction(
       std::shared_ptr<ReactionRule> reaction_rule,
       const std::vector<int> reactant_ids,
       const float_t time) override;

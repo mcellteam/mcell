@@ -647,7 +647,7 @@ class Model():
             reaction_rule : ReactionRule,
             reactant_ids : List[int],
             time : float
-        ) -> None:
+        ) -> 'List[int]':
         pass
 
     def add_vertex_move(

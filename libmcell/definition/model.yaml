@@ -91,7 +91,9 @@ Model:
   - name: run_reaction
     doc: | 
       Run a single reaction on reactants. Callbacks will be called if they are registered for the given reaction.
-      Note\: only unimolecular reactions are currently supported.  
+      Returns a list of product IDs.
+      Note\: only unimolecular reactions are currently supported.
+    return_type: List[int]
     params:
     - name: reaction_rule
       type: ReactionRule*

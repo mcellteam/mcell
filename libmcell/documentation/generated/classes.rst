@@ -898,8 +898,11 @@ Methods:
      | Precise time in seconds when this reaction occurs. Important to know for how long the products
      | will be diffused when they are created in a middle of a time step.
 
+   * | return type: List[int]
+
 
   | Run a single reaction on reactants. Callbacks will be called if they are registered for the given reaction.
+  | Returns a list of product IDs.
   | Note\: only unimolecular reactions are currently supported.
 
 
