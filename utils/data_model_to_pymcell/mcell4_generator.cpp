@@ -922,7 +922,7 @@ void MCell4Generator::generate_customization() {
   }
 
   ofstream out;
-  open_and_check_file(cust_filename, out);
+  open_and_check_file(CUSTOMIZATION, out);
 
   out <<
       "# This file hooks to override default MCell4 model\n"
