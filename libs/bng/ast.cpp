@@ -166,8 +166,8 @@ void ASTObservableNode::dump(const std::string ind) const {
   cout << ind << "  name:" << name << "\n";
   cout << ind << "  cplx_patterns:\n";
   for (ASTBaseNode* n: cplx_patterns->items) {
-    const ASTListNode* l = to_list_node(n);
-    l->dump(ind + IND4);
+    const ASTCplxNode* cplx = to_cplx_node(n);
+    cplx->dump(ind + IND4);
   }
   ASTBaseNode::dump(ind);
 }
