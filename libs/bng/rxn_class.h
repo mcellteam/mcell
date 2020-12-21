@@ -145,7 +145,7 @@ public:
   const RxnProductsVector& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) {
     release_assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
 
-    assert(pathway_index < pathways.size());
+    assert((size_t)pathway_index < pathways.size());
 
     if (pathways[pathway_index].products_are_defined) {
       return pathways[pathway_index].product_species_w_indices;

@@ -1868,7 +1868,6 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
     return false;
   }
 
-  const Cplx& cplx = all_species.get_as_cplx(id);
   return
       species_applicable_as_reactant[0].count(id) != 0 &&
       species_applicable_as_reactant[1].count(id) != 0;
