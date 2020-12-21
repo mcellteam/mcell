@@ -1952,7 +1952,7 @@ bool RxnRule::update_rxn_rate(const float_t new_rate) {
 
 std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name, const bool with_id) const {
   stringstream ss;
-  if (with_name) {
+  if (with_name && name != "") {
     ss << name << ": ";
   }
 

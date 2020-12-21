@@ -258,9 +258,11 @@ public:
   void dump() const;
 
 private:
+  void dump_parameters() const;
   void dump_molecule_types() const;
-  void dump_reaction_rules() const;
+  void dump_compartments() const;
   void dump_seed_species() const;
+  void dump_reaction_rules() const;
 };
 
 } /* namespace BNG2 */

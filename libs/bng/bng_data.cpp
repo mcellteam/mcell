@@ -166,11 +166,22 @@ rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
 }
 
 
+void BNGData::dump_parameters() const {
+  cout << BEGIN_PARAMETERS << "\n";
+
+  for (const auto& param_value_pair: parameters) {
+    cout << IND << param_value_pair.first << " " << param_value_pair.second << "\n";
+  }
+
+  cout << END_PARAMETERS << "\n";
+}
+
+
 void BNGData::dump_molecule_types() const {
   cout << BEGIN_MOLECULE_TYPES << "\n";
 
   for (const ElemMolType& mt: elem_mol_types) {
-    cout << "  ";
+    cout << IND;
     mt.dump(*this);
     cout << "\n";
   }
@@ -179,11 +190,38 @@ void BNGData::dump_molecule_types() const {
 }
 
 
+void BNGData::dump_seed_species() const {
+  cout <<  BEGIN_SEED_SPECIES << "\n";
+
+  for (const SeedSpecies& ss: seed_species) {
+    cout <<
+        IND << ss.cplx.to_str(true) << " " << ss.count << "\n";
+  }
+
+  cout << END_SEED_SPECIES << "\n";
+}
+
+
+void BNGData::dump_compartments() const {
+  cout <<  BEGIN_COMPARTMENTS << "\n";
+
+  for (const Compartment& c: compartments) {
+    cout << IND << c.name << " " << (c.is_3d ? 3 : 2) << " " << c.get_volume();
+    if (c.parent_compartment_id != COMPARTMENT_ID_INVALID) {
+      cout << " " << get_compartment(c.parent_compartment_id).name;
+    }
+    cout << "\n";
+  }
+
+  cout << END_COMPARTMENTS << "\n";
+}
+
+
 void BNGData::dump_reaction_rules() const {
   cout << BEGIN_REACTION_RULES << "\n";
 
   for (const RxnRule& rr: rxn_rules) {
-    cout << "  ";
+    cout << IND;
     rr.dump();
     cout << "\n";
   }
@@ -192,22 +230,13 @@ void BNGData::dump_reaction_rules() const {
 }
 
 
-void BNGData::dump_seed_species() const {
-  cout <<  BEGIN_SEED_SPECIES << "\n";
-
-  for (const SeedSpecies& ss: seed_species) {
-    cout <<
-        "  " << ss.cplx.to_str(true) << " " << ss.count << "\n";
-  }
-
-  cout << END_SEED_SPECIES << "\n";
-}
-
 void BNGData::dump() const {
-  // TODO: dump alsop the rest
+
+  dump_parameters();
   dump_molecule_types();
-  dump_reaction_rules();
+  dump_compartments();
   dump_seed_species();
+  dump_reaction_rules();
 }
 
 } /* namespace BNG2 */
