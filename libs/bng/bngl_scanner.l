@@ -32,12 +32,25 @@ I ([0-9]+)
 
     /* comments and whitespaces */
 
-"#"[^\n]*"\n"   { /* line comment */ /*bngllineno++;*/ }
+"#"[^\n]*"\n"   { /* line comment */ LOC(); return TOK_NL; }
 [ \t]+          ; /* whitespaces are ignored, not sure if this is correct */ 
-"\n"            { /*bngllineno++;*/ }
+"\n"            { LOC(); return TOK_NL; }
 "\r"            ; /* Windows end line character is ignored */
-"\\"			; /* Ignoring backslash used to cancel newline for now */
-
+"\\\n"			; /* Canceling newline preceded by backslash */
+<<EOF>>         {   
+                  // we must return newline for EOF only once otherwise 
+                  // the parsing won't end  
+                  if (g_ctx->get_eof_returned_as_newline()) {
+                    return 0;
+                  }
+                  else {
+                    g_ctx->set_eof_returned_as_newline();
+                    LOC();
+                    return TOK_NL;
+                  }
+                }
+                
+                
     /* keywords */
      
 "begin"         { LOC(); return TOK_BEGIN; }

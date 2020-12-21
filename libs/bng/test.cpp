@@ -52,25 +52,32 @@ int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) 
   return errors != 0;
 }
 
-//extern int bngldebug;
+extern int bngldebug;
 
 int main(int argc, const char* argv[]) {
 
   if ((argc == 2 && strcmp(argv[1], "-h") == 0) || (argc != 2 && argc != 3)) {
-    cerr << "Expected input file as argument, second optional arg (-a or -b) enables AST or BNG dump\n";
+    cerr << "Expected input file as argument, second optional arg (-a or -b) enables AST or BNG dump, or -g to enable parsing debug\n";
     return 1;
   }
 
   bool dump_ast = false;
   bool dump_bng = false;
-  if (argc == 3 && string(argv[2]) == "-a") {
-    dump_ast = true;
+  if (argc == 3) {
+    if (string(argv[2]) == "-a") {
+      dump_ast = true;
+    }
+    else if (string(argv[2]) == "-b") {
+      dump_bng = true;
+    }
+    else if (argc == 3 && string(argv[2]) == "-g") {
+      bngldebug = 1;
+    }
+    else {
+      cerr << "Invalid argument.\n";
+      return 1;
+    }
   }
-  if (argc == 3 && string(argv[2]) == "-b") {
-    dump_bng = true;
-  }
-
-  //bngldebug = 1;
 
   return parse_bngl(argv[1], dump_ast, dump_bng);
 }

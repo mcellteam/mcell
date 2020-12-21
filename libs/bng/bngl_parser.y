@@ -1,7 +1,6 @@
-// FIXMEs: 
-// 1) BNGL (BNG2.pl) requires whitespace to be precisely defined,
-//    need to update the parser and tests
-// 2) Parentheses are not required for molecule types and molecule instances
+// Deviations from official BNGL parser  
+// - whitespace (except for newline) is ignored:
+//   e.g. it is allowed to write "begin     parameters" 
 
 
 // for top of bngl_parser.hpp
@@ -48,7 +47,7 @@ namespace BNG {
 // one also needs to set bngldebug to 1
 // extern int bngldebug;
 // bngldebug = 1;
-//%debug
+%debug
 
 // write out a header file containing the token defines 
 %defines
@@ -74,7 +73,7 @@ namespace BNG {
 // end reaction rules
 //
 %glr-parser
-%expect 6
+%expect 4
 
 %union {
   const char* str;
@@ -89,6 +88,7 @@ namespace BNG {
   BNG::ASTCplxNode* cplx_node;
 }
 
+%token TOK_NL "newline"
 %token TOK_BEGIN "begin"
 %token TOK_END "end"
 %token TOK_MODEL "model"
@@ -116,17 +116,22 @@ namespace BNG {
 %token TOK_ARG_ASSIGN  "=>"
 
 %type <expr_node> expr
-%type <str_node> bond_maybe_empty
+%type <str_node> bond_instance_maybe_empty
 %type <str_node> component_state 
-%type <component_node> component
-%type <list_node> component_state_list_maybe_empty
-%type <list_node> component_state_list
-%type <list_node> component_list_maybe_empty
-%type <list_node> component_list
-%type <mol_node> mol
+%type <component_node> component_type
+%type <component_node> component_instance
+%type <list_node> component_type_state_list_maybe_empty
+%type <list_node> component_instance_state_maybe_empty
+%type <list_node> component_type_state_list
+%type <list_node> component_type_list_maybe_empty
+%type <list_node> component_instance_list_maybe_empty
+%type <list_node> component_type_list
+%type <list_node> component_instance_list
+%type <mol_node> molecule_type
+%type <mol_node> molecule_instance
 %type <str_node> molecule_compartment
-%type <list_node> molecule_list_maybe_empty
-%type <list_node> mol_list
+%type <list_node> molecule_types_list_maybe_empty
+%type <list_node> molecule_types_list
 %type <str_node> rxn_rule_name_maybe_empty
 %type <list_node> rxn_rule_side_or_zero
 %type <list_node> rxn_rule_side
@@ -135,7 +140,7 @@ namespace BNG {
 %type <list_node> cplx_list
 %type <cplx_node> cplx
 %type <cplx_node> cplx_no_compartment
-%type <str_node> cplx_compartment
+%type <str_node> compartment_for_cplx_maybe_empty
 
 // operator associativities and precendences
 // unary minus has really lower precendence than power 
@@ -147,39 +152,62 @@ namespace BNG {
 %%
 
 // TODO: error recovery 
+// TODO: rename according to the grammar
 start_bngl:
-      model_sections action_section  // default mode to parse BNGL file
+      nls_maybe_empty model_sections_list_maybe_empty // default mode to parse BNGL file
       
-    | TOK_SINGLE_CPLX cplx {  // single complex to be parsed, prefixed by a unique string
+    | TOK_SINGLE_CPLX cplx TOK_NL {  // single complex to be parsed, prefixed by a unique string, scanner adds a newline
     	g_ctx->single_cplx = $2;
     }
-    // empty file
-    | 
+;
+
+nls_maybe_empty:
+      nls
+    | /* empty */
+;    
+
+nls:
+      nls TOK_NL
+    | TOK_NL
+;    
+
+model_sections_list_maybe_empty:
+      model_sections_list
+    | /* empty */
+;
+
+model_sections_list:
+      model_sections_list model_sections
+    | model_sections
 ;
 
 model_sections:
-	  section_list 
-	| TOK_BEGIN TOK_MODEL section_list TOK_END TOK_MODEL
+	  section nls
+	| TOK_BEGIN TOK_MODEL nls section_list_maybe_empty TOK_END TOK_MODEL nls 
+;
 
+section_list_maybe_empty:
+      section_list
+    | /* empty */
+;    
+    
 section_list:
-      section_list section
-    | section
+      section_list section nls
+    | section nls
 ;
  
-action_section:
-      action_call_list_maybe_empty
-    | TOK_BEGIN TOK_ACTIONS action_call_list_maybe_empty TOK_END TOK_ACTIONS
-     
 section:
-      TOK_BEGIN TOK_PARAMETERS parameter_list_maybe_empty TOK_END TOK_PARAMETERS
-    | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
-        g_ctx->symtab.insert_molecule_declarations($4, g_ctx);
+      TOK_BEGIN TOK_PARAMETERS nls parameter_list_maybe_empty TOK_END TOK_PARAMETERS
+    | TOK_BEGIN TOK_MOLECULE TOK_TYPES nls molecule_types_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES{
+        g_ctx->symtab.insert_molecule_declarations($5, g_ctx);
       }
-    | TOK_BEGIN TOK_COMPARTMENTS compartment_list_maybe_empty TOK_END TOK_COMPARTMENTS    
-    | TOK_BEGIN TOK_REACTION TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
-    | TOK_BEGIN TOK_SEED TOK_SPECIES seed_species_list_maybe_empty TOK_END TOK_SEED TOK_SPECIES
-    | TOK_BEGIN TOK_SPECIES seed_species_list_maybe_empty TOK_END TOK_SPECIES
-    | TOK_BEGIN TOK_OBSERVABLES observables_list_maybe_empty TOK_END TOK_OBSERVABLES
+    | TOK_BEGIN TOK_COMPARTMENTS nls compartment_list_maybe_empty TOK_END TOK_COMPARTMENTS
+    | TOK_BEGIN TOK_REACTION TOK_RULES nls rxn_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
+    | TOK_BEGIN TOK_SEED TOK_SPECIES nls seed_species_list_maybe_empty TOK_END TOK_SEED TOK_SPECIES
+    | TOK_BEGIN TOK_SPECIES nls seed_species_list_maybe_empty TOK_END TOK_SPECIES
+    | TOK_BEGIN TOK_OBSERVABLES nls observables_list_maybe_empty TOK_END TOK_OBSERVABLES
+    | TOK_BEGIN TOK_ACTIONS nls action_call_list_maybe_empty TOK_END TOK_ACTIONS
+    | action_call    
 ;
 
 // ---------------- parameters ------------------- 
@@ -194,85 +222,76 @@ parameter_list:
 ;
       
 parameter:
-      TOK_ID expr {
+      TOK_ID expr nls {
         g_ctx->symtab.insert($1, $2, g_ctx);
       }
-    | TOK_ID '=' expr {
+    | TOK_ID '=' expr nls {
         g_ctx->symtab.insert($1, $3, g_ctx);
       }
 ;
       
 // ---------------- molecules -------------------     
-molecule_list_maybe_empty:
-      mol_list
+molecule_types_list_maybe_empty:
+      molecule_types_list
     | /* empty */ {
         $$ = g_ctx->new_list_node();
       }
 ;
 
 // left recursion is preferred 
-mol_list:
-      mol_list mol {
+molecule_types_list:
+      molecule_types_list molecule_type {
         $1->append($2);
         $$ = $1;
       }
-    | mol {
+    | molecule_type {
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
 // fully general specification, might contain information on bonds, checked later in semantic checks 
-mol:
-      TOK_ID '(' component_list_maybe_empty ')' molecule_compartment {
-        $$ = g_ctx->new_molecule_node($1, $3, $5, @1);    
+molecule_type:
+      TOK_ID '(' component_type_list_maybe_empty ')' nls {
+        $$ = g_ctx->new_molecule_node($1, $3, nullptr, @1);    
       }
-    | TOK_ID molecule_compartment {
+    | TOK_ID nls {
         // no components neither parentheses
-        $$ = g_ctx->new_molecule_node($1, g_ctx->new_list_node(), $2, @1);    
+        $$ = g_ctx->new_molecule_node($1, g_ctx->new_list_node(), nullptr, @1);    
       }
 ;
 
-molecule_compartment:
-      '@' TOK_ID {
-        $$ = g_ctx->new_str_node($2, @2);
-      }
-    | /* empty */ {
-        $$ = nullptr;
-      }
-;
-
-component_list_maybe_empty:
-      component_list
+component_type_list_maybe_empty:
+      component_type_list
     | /* empty */ {
         $$ = g_ctx->new_list_node();
       }
 ;
 
-component_list:
-      component_list ',' component {
+component_type_list:
+      component_type_list ',' component_type {
         $1->append($3);
         $$ = $1;
       }
-    | component {
+    | component_type {
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
-component:
-      TOK_ID component_state_list_maybe_empty bond_maybe_empty {
-        $$ = g_ctx->new_component_node($1, $2, $3, @1);
+component_type:
+      TOK_ID component_type_state_list_maybe_empty {
+        $$ = g_ctx->new_component_node($1, $2, g_ctx->new_empty_str_node(), @1);
       }
 ; 
 
-component_state_list_maybe_empty:
-      component_state_list
+component_type_state_list_maybe_empty:
+      component_type_state_list
     | /* empty */ {
         $$ = g_ctx->new_list_node();
       }
 ;
     
-component_state_list:
-      component_state_list component_state {
+component_type_state_list:
+      component_type_state_list component_state {
         $1->append($2);
         $$ = $1;
       }
@@ -290,21 +309,7 @@ component_state:
       }
 ;
 
-bond_maybe_empty:
-      '!' TOK_LLONG {
-        $$ = g_ctx->new_str_node($2, @2);
-      }
-    | '!' '+' {
-        $$ = g_ctx->new_str_node(BNG::BOND_STR_BOUND, @2);
-      }
-    | '!' '?' {
-        $$ = g_ctx->new_str_node(BNG::BOND_STR_ANY, @2);
-      }      
-    | /* empty */ {
-        $$ = g_ctx->new_empty_str_node();
-    }
-;
-    
+ 
 // ---------------- compartments -------------------    
 compartment_list_maybe_empty:
 	  compartment_list
@@ -317,12 +322,12 @@ compartment_list:
 ;
 
 compartment_decl:
-      TOK_ID TOK_LLONG expr TOK_ID {
+      TOK_ID TOK_LLONG expr TOK_ID nls {
         g_ctx->add_compartment(
             g_ctx->new_compartment_node($1, $2, $3, $4, @1)
         );
     }
-    | TOK_ID TOK_LLONG expr {
+    | TOK_ID TOK_LLONG expr nls {
         g_ctx->add_compartment(
             g_ctx->new_compartment_node($1, $2, $3, "", @1)
         );
@@ -341,7 +346,7 @@ rxn_rule_list:
 ;
 
 rxn_rule:
-      rxn_rule_name_maybe_empty rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates {
+      rxn_rule_name_maybe_empty rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates nls {
          
         BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4, $5);
         g_ctx->add_rxn_rule(n);
@@ -412,8 +417,7 @@ seed_species_list:
 ;
 
 seed_species_item:
-      cplx expr {
-
+      cplx expr nls {
         BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($1, $2); 
         g_ctx->add_seed_species(n);
       }
@@ -422,12 +426,12 @@ seed_species_item:
 
 // similar to rxn_rule_side only contains one complex
 cplx: 
-      cplx_compartment cplx_no_compartment {
+      compartment_for_cplx_maybe_empty cplx_no_compartment {
         $2->compartment = $1;
         $$ = $2;
       }
 
-cplx_compartment:
+compartment_for_cplx_maybe_empty:
       '@' TOK_ID ':' {
         $$ = g_ctx->new_str_node($2, @2);
       }
@@ -437,14 +441,84 @@ cplx_compartment:
 ;
 
 cplx_no_compartment:
-      cplx_no_compartment '.' mol {
+      cplx_no_compartment '.' molecule_instance {
         $1->append($3);
         $$ = $1;
       }
-    | mol {
+    | molecule_instance {
         $$ = g_ctx->new_cplx_node($1);
       }
 ;
+
+molecule_instance:
+      TOK_ID '(' component_instance_list_maybe_empty ')' molecule_compartment {
+        $$ = g_ctx->new_molecule_node($1, $3, $5, @1);    
+      }
+    | TOK_ID molecule_compartment {
+        // no components neither parentheses
+        $$ = g_ctx->new_molecule_node($1, g_ctx->new_list_node(), $2, @1);    
+      }
+;
+
+molecule_compartment:
+      '@' TOK_ID {
+        $$ = g_ctx->new_str_node($2, @2);
+      }
+    | /* empty */ {
+        $$ = nullptr;
+      }
+;
+
+component_instance_list_maybe_empty:
+      component_instance_list
+    | /* empty */ {
+        $$ = g_ctx->new_list_node();
+      }
+;
+
+component_instance_list:
+      component_instance_list ',' component_instance {
+        $1->append($3);
+        $$ = $1;
+      }
+    | component_instance {
+        $$ = g_ctx->new_list_node()->append($1);
+      }
+;
+
+component_instance:
+      TOK_ID component_instance_state_maybe_empty bond_instance_maybe_empty {
+        $$ = g_ctx->new_component_node($1, $2, $3, @1);
+      }
+; 
+
+component_instance_state_maybe_empty:
+      '~' TOK_ID {
+        $$ = g_ctx->new_list_node()->append(g_ctx->new_str_node($2, @2));
+      }
+    | '~' TOK_LLONG {
+        $$ = g_ctx->new_list_node()->append(g_ctx->new_str_node($2, @2));
+      }
+    | /* empty */ {
+        $$ = g_ctx->new_list_node();
+      }
+;
+
+bond_instance_maybe_empty:
+      '!' TOK_LLONG {
+        $$ = g_ctx->new_str_node($2, @2);
+      }
+    | '!' '+' {
+        $$ = g_ctx->new_str_node(BNG::BOND_STR_BOUND, @2);
+      }
+    | '!' '?' {
+        $$ = g_ctx->new_str_node(BNG::BOND_STR_ANY, @2);
+      }      
+    | /* empty */ {
+        $$ = g_ctx->new_empty_str_node();
+    }
+;
+   
       
 // ---------------- observables ---------------------
       
@@ -459,7 +533,7 @@ observables_list:
 ;
       
 observables_item:
-      TOK_ID TOK_ID cplx_list {
+      TOK_ID TOK_ID cplx_list nls {
         BNG::ASTObservableNode* n = g_ctx->new_observable_node($1, $2, $3, @1); 
         g_ctx->add_observable(n);
       }
@@ -474,7 +548,7 @@ cplx_list:
       }
       
 // ---------------- action calls ------------------
-// ignored
+// ignored for now
 
 action_call_list_maybe_empty:
       action_call_list
@@ -482,8 +556,8 @@ action_call_list_maybe_empty:
 ;
 
 action_call_list:
-      action_call_list action_call
-    | action_call
+      action_call_list action_call nls
+    | action_call nls
 ;
 
 action_call:

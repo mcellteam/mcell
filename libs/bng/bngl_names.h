@@ -53,4 +53,4 @@ const char* const MCELL_COMPARTMENT_DOWN = "@_DOWN_";
 
 } // namespace BNG
 
-#endif LIBS_BNG_BNGL_NAMES_H_
+#endif // LIBS_BNG_BNGL_NAMES_H_

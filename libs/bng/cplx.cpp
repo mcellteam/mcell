@@ -17,6 +17,7 @@
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 #include <boost/graph/connected_components.hpp>
 
+#define NAUTY_CPU_DEFINED // silence a warning
 #include "nauty/traces.h"
 #include "nauty/nausparse.h"
 
@@ -117,7 +118,6 @@ void Cplx::finalize(const bool init_flags_and_compartments) {
 
 
 void Cplx::update_flag_and_compartments_used_in_rxns() {
-  bool is_used_with_compartment_in_rxn = true;
   for (ElemMol& mi: elem_mols) {
 
     const ElemMolType& mt = bng_data->get_elem_mol_type(mi.elem_mol_type_id);

@@ -159,7 +159,7 @@ void ASTSeedSpeciesNode::dump(const std::string ind) const {
 }
 
 
-// ------------------------------- ASTSeedSpeciesNode ------------------------
+// ------------------------------- ASTObservableNode ------------------------
 void ASTObservableNode::dump(const std::string ind) const {
   cout << ind << "observable item:\n";
   cout << ind << "  type:" << type << "\n";

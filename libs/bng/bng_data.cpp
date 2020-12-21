@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "bng/bng_data.h"
+#include "bng/bngl_names.h"
 
 using namespace std;
 
@@ -166,7 +167,7 @@ rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
 
 
 void BNGData::dump_molecule_types() const {
-  cout << "begin molecule types\n";
+  cout << BEGIN_MOLECULE_TYPES << "\n";
 
   for (const ElemMolType& mt: elem_mol_types) {
     cout << "  ";
@@ -174,12 +175,12 @@ void BNGData::dump_molecule_types() const {
     cout << "\n";
   }
 
-  cout << "end molecule types\n";
+  cout << END_MOLECULE_TYPES << "\n";
 }
 
 
 void BNGData::dump_reaction_rules() const {
-  cout << "begin reaction rules\n";
+  cout << BEGIN_REACTION_RULES << "\n";
 
   for (const RxnRule& rr: rxn_rules) {
     cout << "  ";
@@ -187,13 +188,26 @@ void BNGData::dump_reaction_rules() const {
     cout << "\n";
   }
 
-  cout << "end reaction rules\n";
+  cout << END_REACTION_RULES << "\n";
 }
 
 
+void BNGData::dump_seed_species() const {
+  cout <<  BEGIN_SEED_SPECIES << "\n";
+
+  for (const SeedSpecies& ss: seed_species) {
+    cout <<
+        "  " << ss.cplx.to_str(true) << " " << ss.count << "\n";
+  }
+
+  cout << END_SEED_SPECIES << "\n";
+}
+
 void BNGData::dump() const {
+  // TODO: dump alsop the rest
   dump_molecule_types();
   dump_reaction_rules();
+  dump_seed_species();
 }
 
 } /* namespace BNG2 */

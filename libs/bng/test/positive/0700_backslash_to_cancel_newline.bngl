@@ -1,0 +1,14 @@
+# OK
+
+begin model
+
+begin molecule types
+    A(a,b~0~1)
+end molecule types
+
+begin seed species
+    A(a!1,b~0).\
+    A(a!1,b~0)  10
+end seed species
+
+end model

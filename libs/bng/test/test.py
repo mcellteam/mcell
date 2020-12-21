@@ -92,8 +92,7 @@ def run_tests(test_app):
 if __name__ == '__main__':
     
     if len(sys.argv) == 2:
-        test_dir = sys.argv[1]
-        test_app = os.path.join(test_dir, 'libs', 'bng', 'test_bng')
+        test_app = os.path.abspath(sys.argv[1])
     else:     
         test_app = DEFAULT_TEST_APP
         
