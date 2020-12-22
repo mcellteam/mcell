@@ -14,13 +14,17 @@ STARTING_NONTERM = '$accept'
 EMPTY_TERMINAL = '%empty'
 
 # hardcoded mapping from flex patterns into terminal names used in bison
-PATTERN_TO_TERM_NAME = { 
+PATTERN_NAME_TO_TERM_NAME = { 
     'ID': '"identifier"',
     'R': '"floating point constant"',
     'I': '"integer constant"',
     'STR': '"string literal"'
 }
 
+
+TERM_NAME_TO_PATTERN = {
+    '"newline"': '\\n'
+}
 
 # rules containing these terminals will be ignored
 IGNORED_TERMS = [ '!CPLX' ]
@@ -84,7 +88,7 @@ def parse_flex_patterns(flex_file):
     
     # all the pattern names must be found
     patterns = {}
-    for name in PATTERN_TO_TERM_NAME.keys():
+    for name in PATTERN_NAME_TO_TERM_NAME.keys():
         patterns[name] = None
     
     with open(flex_file, 'r') as f: 
@@ -191,17 +195,26 @@ def parse_bison_grammar(file_name):
     return g
 
 
+def check_contained_in_terminals(term_name, grammar, hardcoded_container_name):
+    if term_name not in grammar.terminals:
+        grammar.dump()
+        error("Terminal '" + term_name + "' that has a custom pattern was not found in grammar, " +
+              "this means that the grammar was either not correctly parsed or became inconsistent " +
+              "with harcoded information in " + hardcoded_container_name + ".")
+
+
 def update_grammar_terms(grammar, patterns):
-    for pat_name,term_name in PATTERN_TO_TERM_NAME.items():
-        if term_name not in grammar.terminals:
-            grammar.dump()
-            error("Terminal '" + term_name + "' that has a custom pattern was not found in grammar, " +
-                  "this means that the grammar was either not correctly parsed or became inconsistent " +
-                  "with harcoded information in PATTERN_TO_TERM_NAME.")
+    for pat_name,term_name in PATTERN_NAME_TO_TERM_NAME.items():
+        check_contained_in_terminals(term_name, grammar, 'PATTERN_NAME_TO_TERM_NAME')
 
         # set pattern loaded from flex file
         grammar.terminals[term_name] = patterns[pat_name]
-    
+
+    for term_name,pat in TERM_NAME_TO_PATTERN.items():
+        check_contained_in_terminals(term_name, grammar, 'TERM_NAME_TO_PATTERN')
+            
+        grammar.terminals[term_name] = pat
+
 
 def load_grammar(flex_file, bison_file):
     if not os.path.exists(WORK_DIR):
