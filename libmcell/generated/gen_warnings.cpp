@@ -69,6 +69,15 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
     ;
 }
 
+std::string GenWarnings::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenWarnings(\n";
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
 } // namespace API
 } // namespace MCell
 

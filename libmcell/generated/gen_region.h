@@ -58,6 +58,9 @@ public:
   bool operator != (const Region& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+
+
   // --- attributes ---
   RegionNodeType node_type;
   virtual void set_node_type(const RegionNodeType new_node_type_) {

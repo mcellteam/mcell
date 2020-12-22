@@ -166,6 +166,80 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
     ;
 }
 
+std::string GenModel::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenModel(\n";
+  if (config != Config()) {
+    ss << "  config = " << config.export_to_python(out) << ",\n";
+  }
+  if (warnings != Warnings()) {
+    ss << "  warnings = " << warnings.export_to_python(out) << ",\n";
+  }
+  if (notifications != Notifications()) {
+    ss << "  notifications = " << notifications.export_to_python(out) << ",\n";
+  }
+  if (species != std::vector<std::shared_ptr<Species>>()) {
+    ss << "  species = " << export_vec_species(out) << ",\n";
+  }
+  if (reaction_rules != std::vector<std::shared_ptr<ReactionRule>>()) {
+    ss << "  reaction_rules = " << export_vec_reaction_rules(out) << ",\n";
+  }
+  if (surface_classes != std::vector<std::shared_ptr<SurfaceClass>>()) {
+    ss << "  surface_classes = " << export_vec_surface_classes(out) << ",\n";
+  }
+  if (elementary_molecule_types != std::vector<std::shared_ptr<ElementaryMoleculeType>>()) {
+    ss << "  elementary_molecule_types = " << export_vec_elementary_molecule_types(out) << ",\n";
+  }
+  if (release_sites != std::vector<std::shared_ptr<ReleaseSite>>()) {
+    ss << "  release_sites = " << export_vec_release_sites(out) << ",\n";
+  }
+  if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>()) {
+    ss << "  geometry_objects = " << export_vec_geometry_objects(out) << ",\n";
+  }
+  if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>()) {
+    ss << "  viz_outputs = " << export_vec_viz_outputs(out) << ",\n";
+  }
+  if (counts != std::vector<std::shared_ptr<Count>>()) {
+    ss << "  counts = " << export_vec_counts(out) << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenModel::export_vec_species(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenModel::export_vec_reaction_rules(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenModel::export_vec_surface_classes(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenModel::export_vec_release_sites(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenModel::export_vec_geometry_objects(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenModel::export_vec_viz_outputs(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenModel::export_vec_counts(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

@@ -77,6 +77,7 @@ public:
 
   // empty implementation, to be overridden in actual derived classes
   virtual std::string to_str(const std::string ind="") const {
+    assert(false);
     return "String dump for a derived class is not implemented.";
   }
 
@@ -86,6 +87,11 @@ public:
     initialized = false;
     cached_data_are_uptodate = false;
   };
+
+  virtual std::string export_to_python(std::ostream& out) const {
+    assert(false);
+    return "Export to Python for a derived class is not implemented.";
+  }
 
   // calls virtual method, usually no need to override
   virtual void dump() const {

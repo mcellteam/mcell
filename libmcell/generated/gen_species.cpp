@@ -135,6 +135,49 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
     ;
 }
 
+std::string GenSpecies::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenSpecies(\n";
+  if (name != STR_UNSET) {
+    ss << "  name = " << name << ",\n";
+  }
+  if (diffusion_constant_2d != FLT_UNSET) {
+    ss << "  diffusion_constant_2d = " << diffusion_constant_2d << ",\n";
+  }
+  if (diffusion_constant_3d != FLT_UNSET) {
+    ss << "  diffusion_constant_3d = " << diffusion_constant_3d << ",\n";
+  }
+  if (custom_time_step != FLT_UNSET) {
+    ss << "  custom_time_step = " << custom_time_step << ",\n";
+  }
+  if (custom_space_step != FLT_UNSET) {
+    ss << "  custom_space_step = " << custom_space_step << ",\n";
+  }
+  if (target_only != false) {
+    ss << "  target_only = " << target_only << ",\n";
+  }
+  if (name != STR_UNSET) {
+    ss << "  name = " << name << ",\n";
+  }
+  if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>()) {
+    ss << "  elementary_molecules = " << export_vec_elementary_molecules(out) << ",\n";
+  }
+  if (orientation != Orientation::DEFAULT) {
+    ss << "  orientation = " << orientation << ",\n";
+  }
+  if (compartment_name != STR_UNSET) {
+    ss << "  compartment_name = " << compartment_name << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenSpecies::export_vec_elementary_molecules(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

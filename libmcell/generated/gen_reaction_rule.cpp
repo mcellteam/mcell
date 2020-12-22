@@ -126,6 +126,51 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
     ;
 }
 
+std::string GenReactionRule::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenReactionRule(\n";
+  if (name != STR_UNSET) {
+    ss << "  name = " << name << ",\n";
+  }
+  if (reactants != std::vector<std::shared_ptr<Complex>>()) {
+    ss << "  reactants = " << export_vec_reactants(out) << ",\n";
+  }
+  if (products != std::vector<std::shared_ptr<Complex>>()) {
+    ss << "  products = " << export_vec_products(out) << ",\n";
+  }
+  if (fwd_rate != FLT_UNSET) {
+    ss << "  fwd_rate = " << fwd_rate << ",\n";
+  }
+  if (rev_name != STR_UNSET) {
+    ss << "  rev_name = " << rev_name << ",\n";
+  }
+  if (rev_rate != FLT_UNSET) {
+    ss << "  rev_rate = " << rev_rate << ",\n";
+  }
+  if (variable_rate != std::vector<std::vector<float_t>>()) {
+    ss << "  variable_rate = " << export_vec_variable_rate(out) << ",\n";
+  }
+  if (is_intermembrane_surface_reaction != false) {
+    ss << "  is_intermembrane_surface_reaction = " << is_intermembrane_surface_reaction << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenReactionRule::export_vec_reactants(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenReactionRule::export_vec_products(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenReactionRule::export_vec_variable_rate(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

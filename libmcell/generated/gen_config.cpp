@@ -164,6 +164,61 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
     ;
 }
 
+std::string GenConfig::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenConfig(\n";
+  if (seed != 1) {
+    ss << "  seed = " << seed << ",\n";
+  }
+  if (time_step != 1e-6) {
+    ss << "  time_step = " << time_step << ",\n";
+  }
+  if (surface_grid_density != 10000) {
+    ss << "  surface_grid_density = " << surface_grid_density << ",\n";
+  }
+  if (interaction_radius != FLT_UNSET) {
+    ss << "  interaction_radius = " << interaction_radius << ",\n";
+  }
+  if (intermembrane_interaction_radius != FLT_UNSET) {
+    ss << "  intermembrane_interaction_radius = " << intermembrane_interaction_radius << ",\n";
+  }
+  if (vacancy_search_distance != 10) {
+    ss << "  vacancy_search_distance = " << vacancy_search_distance << ",\n";
+  }
+  if (center_molecules_on_grid != false) {
+    ss << "  center_molecules_on_grid = " << center_molecules_on_grid << ",\n";
+  }
+  if (initial_partition_origin != std::vector<float_t>()) {
+    ss << "  initial_partition_origin = " << export_vec_initial_partition_origin(out) << ",\n";
+  }
+  if (partition_dimension != 10) {
+    ss << "  partition_dimension = " << partition_dimension << ",\n";
+  }
+  if (subpartition_dimension != 0.5) {
+    ss << "  subpartition_dimension = " << subpartition_dimension << ",\n";
+  }
+  if (total_iterations_hint != 1000000) {
+    ss << "  total_iterations_hint = " << total_iterations_hint << ",\n";
+  }
+  if (check_overlapped_walls != true) {
+    ss << "  check_overlapped_walls = " << check_overlapped_walls << ",\n";
+  }
+  if (sort_molecules != false) {
+    ss << "  sort_molecules = " << sort_molecules << ",\n";
+  }
+  if (memory_limit_gb != -1) {
+    ss << "  memory_limit_gb = " << memory_limit_gb << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

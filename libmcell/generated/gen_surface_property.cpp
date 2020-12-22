@@ -111,6 +111,24 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
     ;
 }
 
+std::string GenSurfaceProperty::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenSurfaceProperty(\n";
+  if (type != SurfacePropertyType::UNSET) {
+    ss << "  type = " << type << ",\n";
+  }
+  if (is_set(affected_complex_pattern)) {
+    ss << "  affected_complex_pattern = " << affected_complex_pattern->export_to_python(out) << ",\n";
+  }
+  if (concentration != FLT_UNSET) {
+    ss << "  concentration = " << concentration << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
 } // namespace API
 } // namespace MCell
 

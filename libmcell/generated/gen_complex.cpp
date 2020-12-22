@@ -99,6 +99,31 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
     ;
 }
 
+std::string GenComplex::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenComplex(\n";
+  if (name != STR_UNSET) {
+    ss << "  name = " << name << ",\n";
+  }
+  if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>()) {
+    ss << "  elementary_molecules = " << export_vec_elementary_molecules(out) << ",\n";
+  }
+  if (orientation != Orientation::DEFAULT) {
+    ss << "  orientation = " << orientation << ",\n";
+  }
+  if (compartment_name != STR_UNSET) {
+    ss << "  compartment_name = " << compartment_name << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenComplex::export_vec_elementary_molecules(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

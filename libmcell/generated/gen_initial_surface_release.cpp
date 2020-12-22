@@ -114,6 +114,22 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
     ;
 }
 
+std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenInitialSurfaceRelease(\n";
+  ss << "  complex = " << complex->export_to_python(out) << ",\n";
+  if (number_to_release != INT_UNSET) {
+    ss << "  number_to_release = " << number_to_release << ",\n";
+  }
+  if (density != FLT_UNSET) {
+    ss << "  density = " << density << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
 } // namespace API
 } // namespace MCell
 

@@ -80,6 +80,10 @@ public:
   bool operator != (const Config& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+  virtual std::string export_vec_initial_partition_origin(std::ostream& out) const;
+
+
   // --- attributes ---
   int seed;
   virtual void set_seed(const int new_seed_) {

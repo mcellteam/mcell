@@ -85,6 +85,13 @@ public:
   bool operator != (const GeometryObject& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  virtual std::string export_to_python(std::ostream& out) const;
+  virtual std::string export_vec_vertex_list(std::ostream& out) const;
+  virtual std::string export_vec_wall_list(std::ostream& out) const;
+  virtual std::string export_vec_surface_regions(std::ostream& out) const;
+  virtual std::string export_vec_initial_surface_releases(std::ostream& out) const;
+
+
   // --- attributes ---
   std::vector<std::vector<float_t>> vertex_list;
   virtual void set_vertex_list(const std::vector<std::vector<float_t>> new_vertex_list_) {

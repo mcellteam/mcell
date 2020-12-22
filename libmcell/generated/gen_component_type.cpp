@@ -87,6 +87,23 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
     ;
 }
 
+std::string GenComponentType::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenComponentType(\n";
+  ss << "  name = " << name << ",\n";
+  if (states != std::vector<std::string>()) {
+    ss << "  states = " << export_vec_states(out) << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenComponentType::export_vec_states(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

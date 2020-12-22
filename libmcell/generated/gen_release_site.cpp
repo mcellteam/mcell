@@ -241,6 +241,59 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
     ;
 }
 
+std::string GenReleaseSite::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenReleaseSite(\n";
+  ss << "  name = " << name << ",\n";
+  if (is_set(complex)) {
+    ss << "  complex = " << complex->export_to_python(out) << ",\n";
+  }
+  if (molecule_list != std::vector<std::shared_ptr<MoleculeReleaseInfo>>()) {
+    ss << "  molecule_list = " << export_vec_molecule_list(out) << ",\n";
+  }
+  if (release_time != 0) {
+    ss << "  release_time = " << release_time << ",\n";
+  }
+  if (is_set(release_pattern)) {
+    ss << "  release_pattern = " << release_pattern->export_to_python(out) << ",\n";
+  }
+  if (shape != Shape::UNSET) {
+    ss << "  shape = " << shape << ",\n";
+  }
+  if (is_set(region)) {
+    ss << "  region = " << region->export_to_python(out) << ",\n";
+  }
+  if (location != VEC3_UNSET) {
+    ss << "  location = " << location << ",\n";
+  }
+  if (site_diameter != 0) {
+    ss << "  site_diameter = " << site_diameter << ",\n";
+  }
+  if (site_radius != FLT_UNSET) {
+    ss << "  site_radius = " << site_radius << ",\n";
+  }
+  if (number_to_release != FLT_UNSET) {
+    ss << "  number_to_release = " << number_to_release << ",\n";
+  }
+  if (density != FLT_UNSET) {
+    ss << "  density = " << density << ",\n";
+  }
+  if (concentration != FLT_UNSET) {
+    ss << "  concentration = " << concentration << ",\n";
+  }
+  if (release_probability != FLT_UNSET) {
+    ss << "  release_probability = " << release_probability << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

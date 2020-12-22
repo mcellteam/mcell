@@ -161,6 +161,7 @@ EXT_H = 'h'
 GEN_CLASS_PREFIX = 'Gen'
 BASE_DATA_CLASS = 'BaseDataClass'
 BASE_INTROSPECTION_CLASS = 'BaseIntrospectionClass'
+CLASS_NAME_MODEL = 'Model'
 
 CTOR_POSTPROCESS = 'postprocess_in_ctor'
 RET_CTOR_POSTPROCESS = 'void' 
@@ -179,7 +180,14 @@ RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'
 DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
 DECL_TO_STR = 'to_str(const std::string ind) const'
+
+RET_TYPE_EXPORT_TO_PYTHON = 'std::string' 
+DECL_EXPORT_TO_PYTHON = 'export_to_python(std::ostream& out) const'
+#CUSTOM_EXPORT_PREFIX = 'custom_export_'
+EXPORT_VEC_PREFIX = 'export_vec_'
+
 KEYWORD_OVERRIDE = 'override'
+KEYWORD_VIRTUAL = 'virtual'
   
 CLASS_NAME_ATTR = 'class_name'
 CACHED_DATA_ARE_UPTODATE_ATTR = 'cached_data_are_uptodate'
@@ -288,6 +296,7 @@ def get_first_inner_type(t):
     else: 
         return t    
 
+# returns true also for enums
 def is_base_yaml_type(t):
     return \
         t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
@@ -297,7 +306,9 @@ def is_base_yaml_type(t):
         (is_yaml_list_type(t) and is_base_yaml_type(get_inner_list_type(t))) or \
         (is_yaml_dict_type(t) and is_base_yaml_type(get_inner_dict_key_type(t)) and is_base_yaml_type(get_inner_dict_value_type(t)))
 
-
+def is_base_yaml_typexx(t):xx
+    
+    
 def is_yaml_ptr_type(t):
     if t == YAML_TYPE_PY_OBJECT:
         return False
@@ -690,7 +701,7 @@ def has_superclass_other_than_base(class_def):
         return False
     
     
-def write_gen_class(f, class_def, class_name):
+def write_gen_class(f, class_def, class_name, decls):
     gen_class_name = GEN_CLASS_PREFIX + class_name
     f.write('class ' + gen_class_name)
     
@@ -730,7 +741,9 @@ def write_gen_class(f, class_def, class_name):
     override = KEYWORD_OVERRIDE if has_single_superclass(class_def) else ''
     f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + override + ';\n\n')
     
-        
+    if decls:
+        f.write(decls + '\n\n')
+    
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
     for attr in items:
@@ -832,7 +845,7 @@ def write_forward_decls(f, class_def, class_name):
     f.write('\n')
 
     
-def generate_class_header(class_name, class_def):
+def generate_class_header(class_name, class_def, decls):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f)
@@ -864,10 +877,11 @@ def generate_class_header(class_name, class_def):
             write_ctor_define(f, class_def, class_name)
         
         if def_type == VALUE_CLASS:
-            write_gen_class(f, class_def, class_name)
+            write_gen_class(f, class_def, class_name, decls)
         
             f.write('class ' + class_name + ';\n')
         elif def_type == VALUE_SUBMODULE:
+            assert decls == ''
             f.write('namespace ' + class_name + ' {\n\n')
             # submodules have only functions
             methods = class_def[KEY_METHODS]
@@ -902,7 +916,10 @@ def generate_class_template(class_name, class_def):
         
         f.write('class ' + class_name + ': public ' + GEN_CLASS_PREFIX + class_name + ' {\n')
         f.write('public:\n')
-        f.write('  ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '()\n')
+        f.write('  ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '()\n\n')
+        if has_single_superclass(class_def):
+            f.write('  // defined in generated file\n') 
+        f.write('  ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + DECL_EXPORT_TO_PYTHON + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         f.write('};\n\n')
         
         f.write(NAMESPACES_END + '\n\n')
@@ -930,7 +947,7 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + ' {\n')
 
     # TODO: config etc from Model
-    if class_name == "Model":
+    if class_name == CLASS_NAME_MODEL:
         f.write('  #if 0 // not generated correctly yet\n')
 
     f.write('  std::stringstream ss;\n')
@@ -986,6 +1003,90 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
         f.write('  #endif\n')
     
     f.write('}\n\n')                
+
+
+def write_vec_export(f, gen_class_name, item):
+    
+    name_w_args = \
+        EXPORT_VEC_PREFIX + item[KEY_NAME] + \
+        '(std::ostream& out) const'
+    decl = '  virtual ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + name_w_args + ';\n'
+    f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + name_w_args + " {\n")
+    f.write('  return ""; //TODO\n')
+    # TODO
+    
+    f.write('}\n\n')
+    return decl 
+
+
+def write_export_to_python_implementation(f, class_name, class_def):
+    items = class_def[KEY_ITEMS]
+    
+    # declaration
+    if KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] == BASE_DATA_CLASS:
+        override = ' ' + KEYWORD_OVERRIDE
+        virtual = ''
+    else:
+        override = ''
+        virtual = KEYWORD_VIRTUAL + ' ' 
+
+    gen_class_name = GEN_CLASS_PREFIX + class_name
+    decl_main = '  ' + virtual + RET_TYPE_EXPORT_TO_PYTHON + ' ' + DECL_EXPORT_TO_PYTHON + override + ';\n'
+    f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + DECL_EXPORT_TO_PYTHON + " {\n")
+    
+    export_vecs_to_define = []
+    
+    # TODO create name if it does not exist/is not set 
+    if KEY_NAME not in items:
+        f.write('  std::string name = "TODO";\n')
+        
+    res_name = ATTR_NAME_NAME
+    
+    f.write('  std::stringstream ss;\n')
+    out = '  ss << '
+    out_ind = '  ' + out
+    f.write(out + res_name + ' << " = ' + gen_class_name + '(\\n";\n')
+    for item in items:
+        type = item[KEY_TYPE]
+        name = item[KEY_NAME]
+
+        if KEY_DEFAULT in item:
+            if is_yaml_ptr_type(type):
+                f.write('  if (is_set(' + name + ')) {\n')
+            else:
+                f.write('  if (' + name + ' != ' + get_default_or_unset_value(item) + ') {\n')
+            f.write('  ')  
+            
+        f.write(out + '"  ' + name + ' = " << ')
+                    
+        #f.write(CUSTOM_EXPORT_PREFIX + name + '(out) << ",\\n";\n')
+        if is_yaml_list_type(type):
+            f.write(EXPORT_VEC_PREFIX + name + '(out) << ",\\n";\n')
+            export_vecs_to_define.append(item)
+        elif is_yaml_ptr_type(type):
+            f.write(name + '->export_to_python(out) << ",\\n";\n')
+        elif not is_base_yaml_type(type) and type not in g_enums:
+            f.write(name + '.export_to_python(out) << ",\\n";\n')
+        else:
+            # using operators << for enums
+            f.write(name + ' << ",\\n";\n')
+            
+        if KEY_DEFAULT in item:
+            f.write('  }\n')
+            
+    f.write(out + '")\\n\\n";\n')
+    f.write('  out << ss.str();\n')
+    f.write('  return ' + res_name + ';\n')
+    f.write('}\n\n')
+    
+    # also define export vec methods
+    decls_export_vec = ''
+    for item in export_vecs_to_define:
+        decls_export_vec += write_vec_export(f, gen_class_name, item)
+    
+    # return string that contains declaration of export methods, this will be later used in 
+    # .h file generation
+    return decl_main + decls_export_vec
 
 
 def write_operator_equal_body(f, class_name, class_def, skip_arrays_and_name=False):
@@ -1242,6 +1343,8 @@ def write_set_all_default_or_unset(f, class_name, class_def):
 
             
 def generate_class_implementation_and_bindings(class_name, class_def):
+    # returns a list of methods to be declared 
+    decls = ''
     with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
         def_type = class_def[KEY_TYPE]
         
@@ -1273,9 +1376,15 @@ def generate_class_implementation_and_bindings(class_name, class_def):
             write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         
         write_pybind11_bindings(f, class_name, class_def)
+
+        # we do not need export for introsce
+        if class_name == CLASS_NAME_MODEL or \
+            (KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] != BASE_INTROSPECTION_CLASS):
+            decls += write_export_to_python_implementation(f, class_name, class_def);
         
         f.write(NAMESPACES_END + '\n\n')
         
+    return decls 
 
 # class Model provides the same methods as Subsystem and Instantiation, 
 # this function copies the definition for pybind11 API generation
@@ -1331,8 +1440,8 @@ def generate_class_files(data_classes, class_name, class_def):
 
     class_def_w_inheritances = inherit_from_superclasses(data_classes, class_name, class_def)
     
-    generate_class_header(class_name, class_def_w_inheritances)
-    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances)
+    decls = generate_class_implementation_and_bindings(class_name, class_def_w_inheritances)
+    generate_class_header(class_name, class_def_w_inheritances, decls)
     
     generate_class_template(class_name, class_def_w_inheritances)
     

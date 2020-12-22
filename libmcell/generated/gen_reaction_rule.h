@@ -69,6 +69,12 @@ public:
   bool operator != (const ReactionRule& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+  virtual std::string export_vec_reactants(std::ostream& out) const;
+  virtual std::string export_vec_products(std::ostream& out) const;
+  virtual std::string export_vec_variable_rate(std::ostream& out) const;
+
+
   // --- attributes ---
   std::vector<std::shared_ptr<Complex>> reactants;
   virtual void set_reactants(const std::vector<std::shared_ptr<Complex>> new_reactants_) {

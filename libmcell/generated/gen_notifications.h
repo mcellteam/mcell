@@ -58,6 +58,9 @@ public:
   bool operator != (const Notifications& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+
+
   // --- attributes ---
   int bng_verbosity_level;
   virtual void set_bng_verbosity_level(const int new_bng_verbosity_level_) {

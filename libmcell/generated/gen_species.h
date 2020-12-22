@@ -81,6 +81,10 @@ public:
   bool operator != (const Species& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  virtual std::string export_to_python(std::ostream& out) const;
+  virtual std::string export_vec_elementary_molecules(std::ostream& out) const;
+
+
   // --- attributes ---
   float_t diffusion_constant_2d;
   virtual void set_diffusion_constant_2d(const float_t new_diffusion_constant_2d_) {

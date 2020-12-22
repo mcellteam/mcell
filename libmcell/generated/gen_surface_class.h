@@ -71,6 +71,10 @@ public:
   bool operator != (const SurfaceClass& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  virtual std::string export_to_python(std::ostream& out) const;
+  virtual std::string export_vec_properties(std::ostream& out) const;
+
+
   // --- attributes ---
   std::vector<std::shared_ptr<SurfaceProperty>> properties;
   virtual void set_properties(const std::vector<std::shared_ptr<SurfaceProperty>> new_properties_) {

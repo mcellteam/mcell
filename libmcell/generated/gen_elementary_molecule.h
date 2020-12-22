@@ -58,6 +58,10 @@ public:
   bool operator != (const ElementaryMolecule& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+  virtual std::string export_vec_components(std::ostream& out) const;
+
+
   // --- attributes ---
   std::shared_ptr<ElementaryMoleculeType> elementary_molecule_type;
   virtual void set_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> new_elementary_molecule_type_) {

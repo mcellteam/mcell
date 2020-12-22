@@ -59,6 +59,9 @@ public:
   bool operator != (const InitialSurfaceRelease& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+
+
   // --- attributes ---
   std::shared_ptr<Complex> complex;
   virtual void set_complex(std::shared_ptr<Complex> new_complex_) {

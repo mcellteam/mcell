@@ -124,6 +124,38 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
     ;
 }
 
+std::string GenElementaryMoleculeType::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenElementaryMoleculeType(\n";
+  ss << "  name = " << name << ",\n";
+  if (components != std::vector<std::shared_ptr<ComponentType>>()) {
+    ss << "  components = " << export_vec_components(out) << ",\n";
+  }
+  if (diffusion_constant_2d != FLT_UNSET) {
+    ss << "  diffusion_constant_2d = " << diffusion_constant_2d << ",\n";
+  }
+  if (diffusion_constant_3d != FLT_UNSET) {
+    ss << "  diffusion_constant_3d = " << diffusion_constant_3d << ",\n";
+  }
+  if (custom_time_step != FLT_UNSET) {
+    ss << "  custom_time_step = " << custom_time_step << ",\n";
+  }
+  if (custom_space_step != FLT_UNSET) {
+    ss << "  custom_space_step = " << custom_space_step << ",\n";
+  }
+  if (target_only != false) {
+    ss << "  target_only = " << target_only << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenElementaryMoleculeType::export_vec_components(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

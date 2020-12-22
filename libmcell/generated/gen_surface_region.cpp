@@ -191,6 +191,40 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
     ;
 }
 
+std::string GenSurfaceRegion::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenSurfaceRegion(\n";
+  ss << "  name = " << name << ",\n";
+  ss << "  wall_indices = " << export_vec_wall_indices(out) << ",\n";
+  if (is_set(surface_class)) {
+    ss << "  surface_class = " << surface_class->export_to_python(out) << ",\n";
+  }
+  if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>()) {
+    ss << "  initial_surface_releases = " << export_vec_initial_surface_releases(out) << ",\n";
+  }
+  if (node_type != RegionNodeType::UNSET) {
+    ss << "  node_type = " << node_type << ",\n";
+  }
+  if (is_set(left_node)) {
+    ss << "  left_node = " << left_node->export_to_python(out) << ",\n";
+  }
+  if (is_set(right_node)) {
+    ss << "  right_node = " << right_node->export_to_python(out) << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

@@ -91,6 +91,9 @@ public:
   bool operator != (const Count& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  virtual std::string export_to_python(std::ostream& out) const;
+
+
   // --- attributes ---
   std::string file_name;
   virtual void set_file_name(const std::string& new_file_name_) {

@@ -110,6 +110,21 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
     ;
 }
 
+std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenMoleculeReleaseInfo(\n";
+  ss << "  complex = " << complex->export_to_python(out) << ",\n";
+  ss << "  location = " << export_vec_location(out) << ",\n";
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

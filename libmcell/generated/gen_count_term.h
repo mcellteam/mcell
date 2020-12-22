@@ -69,6 +69,9 @@ public:
   bool operator != (const CountTerm& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+
+
   // --- attributes ---
   std::shared_ptr<Complex> species_pattern;
   virtual void set_species_pattern(std::shared_ptr<Complex> new_species_pattern_) {

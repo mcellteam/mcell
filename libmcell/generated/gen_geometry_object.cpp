@@ -225,6 +225,58 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
     ;
 }
 
+std::string GenGeometryObject::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenGeometryObject(\n";
+  ss << "  name = " << name << ",\n";
+  ss << "  vertex_list = " << export_vec_vertex_list(out) << ",\n";
+  ss << "  wall_list = " << export_vec_wall_list(out) << ",\n";
+  if (is_bngl_compartment != false) {
+    ss << "  is_bngl_compartment = " << is_bngl_compartment << ",\n";
+  }
+  if (surface_compartment_name != STR_UNSET) {
+    ss << "  surface_compartment_name = " << surface_compartment_name << ",\n";
+  }
+  if (surface_regions != std::vector<std::shared_ptr<SurfaceRegion>>()) {
+    ss << "  surface_regions = " << export_vec_surface_regions(out) << ",\n";
+  }
+  if (is_set(surface_class)) {
+    ss << "  surface_class = " << surface_class->export_to_python(out) << ",\n";
+  }
+  if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>()) {
+    ss << "  initial_surface_releases = " << export_vec_initial_surface_releases(out) << ",\n";
+  }
+  if (node_type != RegionNodeType::UNSET) {
+    ss << "  node_type = " << node_type << ",\n";
+  }
+  if (is_set(left_node)) {
+    ss << "  left_node = " << left_node->export_to_python(out) << ",\n";
+  }
+  if (is_set(right_node)) {
+    ss << "  right_node = " << right_node->export_to_python(out) << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenGeometryObject::export_vec_vertex_list(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenGeometryObject::export_vec_wall_list(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenGeometryObject::export_vec_surface_regions(std::ostream& out) const {
+  return ""; //TODO
+}
+
+std::string GenGeometryObject::export_vec_initial_surface_releases(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

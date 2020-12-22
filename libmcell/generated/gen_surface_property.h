@@ -59,6 +59,9 @@ public:
   bool operator != (const SurfaceProperty& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+
+
   // --- attributes ---
   SurfacePropertyType type;
   virtual void set_type(const SurfacePropertyType new_type_) {

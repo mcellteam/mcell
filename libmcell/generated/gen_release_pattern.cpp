@@ -101,6 +101,30 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
     ;
 }
 
+std::string GenReleasePattern::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenReleasePattern(\n";
+  if (name != STR_UNSET) {
+    ss << "  name = " << name << ",\n";
+  }
+  if (release_interval != TIME_INFINITY) {
+    ss << "  release_interval = " << release_interval << ",\n";
+  }
+  if (train_duration != TIME_INFINITY) {
+    ss << "  train_duration = " << train_duration << ",\n";
+  }
+  if (train_interval != TIME_INFINITY) {
+    ss << "  train_interval = " << train_interval << ",\n";
+  }
+  if (number_of_trains != 1) {
+    ss << "  number_of_trains = " << number_of_trains << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
 } // namespace API
 } // namespace MCell
 

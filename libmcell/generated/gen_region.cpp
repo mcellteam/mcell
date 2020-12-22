@@ -137,6 +137,24 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
     ;
 }
 
+std::string GenRegion::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenRegion(\n";
+  if (node_type != RegionNodeType::UNSET) {
+    ss << "  node_type = " << node_type << ",\n";
+  }
+  if (is_set(left_node)) {
+    ss << "  left_node = " << left_node->export_to_python(out) << ",\n";
+  }
+  if (is_set(right_node)) {
+    ss << "  right_node = " << right_node->export_to_python(out) << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
 } // namespace API
 } // namespace MCell
 

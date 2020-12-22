@@ -110,6 +110,23 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
     ;
 }
 
+std::string GenElementaryMolecule::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenElementaryMolecule(\n";
+  ss << "  elementary_molecule_type = " << elementary_molecule_type->export_to_python(out) << ",\n";
+  if (components != std::vector<std::shared_ptr<Component>>()) {
+    ss << "  components = " << export_vec_components(out) << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenElementaryMolecule::export_vec_components(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

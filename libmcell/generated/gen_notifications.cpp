@@ -87,6 +87,24 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
     ;
 }
 
+std::string GenNotifications::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenNotifications(\n";
+  if (bng_verbosity_level != 0) {
+    ss << "  bng_verbosity_level = " << bng_verbosity_level << ",\n";
+  }
+  if (rxn_and_species_report != true) {
+    ss << "  rxn_and_species_report = " << rxn_and_species_report << ",\n";
+  }
+  if (simulation_stats_every_n_iterations != 0) {
+    ss << "  simulation_stats_every_n_iterations = " << simulation_stats_every_n_iterations << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
 } // namespace API
 } // namespace MCell
 

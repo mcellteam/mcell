@@ -115,6 +115,22 @@ py::class_<Component> define_pybinding_Component(py::module& m) {
     ;
 }
 
+std::string GenComponent::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenComponent(\n";
+  ss << "  component_type = " << component_type->export_to_python(out) << ",\n";
+  if (state != "STATE_UNSET") {
+    ss << "  state = " << state << ",\n";
+  }
+  if (bond != BOND_UNBOUND) {
+    ss << "  bond = " << bond << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
 } // namespace API
 } // namespace MCell
 

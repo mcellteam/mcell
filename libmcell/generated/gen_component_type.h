@@ -57,6 +57,10 @@ public:
   bool operator != (const ComponentType& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+  virtual std::string export_vec_states(std::ostream& out) const;
+
+
   // --- attributes ---
   std::vector<std::string> states;
   virtual void set_states(const std::vector<std::string> new_states_) {

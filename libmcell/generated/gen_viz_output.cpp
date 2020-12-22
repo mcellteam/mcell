@@ -99,6 +99,29 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
     ;
 }
 
+std::string GenVizOutput::export_to_python(std::ostream& out) const {
+  std::string name = "TODO";
+  std::stringstream ss;
+  ss << name << " = GenVizOutput(\n";
+  ss << "  output_files_prefix = " << output_files_prefix << ",\n";
+  if (species_list != std::vector<std::shared_ptr<Species>>()) {
+    ss << "  species_list = " << export_vec_species_list(out) << ",\n";
+  }
+  if (mode != VizMode::ASCII) {
+    ss << "  mode = " << mode << ",\n";
+  }
+  if (every_n_timesteps != 1) {
+    ss << "  every_n_timesteps = " << every_n_timesteps << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return name;
+}
+
+std::string GenVizOutput::export_vec_species_list(std::ostream& out) const {
+  return ""; //TODO
+}
+
 } // namespace API
 } // namespace MCell
 

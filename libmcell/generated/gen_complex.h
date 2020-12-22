@@ -62,6 +62,10 @@ public:
   bool operator != (const Complex& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
+  std::string export_to_python(std::ostream& out) const override;
+  virtual std::string export_vec_elementary_molecules(std::ostream& out) const;
+
+
   // --- attributes ---
   std::vector<std::shared_ptr<ElementaryMolecule>> elementary_molecules;
   virtual void set_elementary_molecules(const std::vector<std::shared_ptr<ElementaryMolecule>> new_elementary_molecules_) {

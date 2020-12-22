@@ -68,6 +68,17 @@ public:
   bool operator != (const Model& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
+  virtual std::string export_to_python(std::ostream& out) const;
+  virtual std::string export_vec_species(std::ostream& out) const;
+  virtual std::string export_vec_reaction_rules(std::ostream& out) const;
+  virtual std::string export_vec_surface_classes(std::ostream& out) const;
+  virtual std::string export_vec_elementary_molecule_types(std::ostream& out) const;
+  virtual std::string export_vec_release_sites(std::ostream& out) const;
+  virtual std::string export_vec_geometry_objects(std::ostream& out) const;
+  virtual std::string export_vec_viz_outputs(std::ostream& out) const;
+  virtual std::string export_vec_counts(std::ostream& out) const;
+
+
   // --- attributes ---
   Config config;
   virtual void set_config(const Config& new_config_) {
