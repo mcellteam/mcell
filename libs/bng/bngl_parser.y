@@ -61,7 +61,7 @@ namespace BNG {
 %locations
 
 // One shift-reduce conflict is expected, the reason is that 
-// the beginning of the molecule types section is resolved
+// the beginning of the molecule types block is resolved
 // only after the first molecule type declaration is parsed as shown here.
 // So we need to use GLR parser that is able to do arbitrary lookahead.
 //
@@ -154,7 +154,7 @@ namespace BNG {
 // TODO: error recovery 
 // TODO: rename according to the grammar
 start_bngl:
-      nls_maybe_empty model_sections_list_maybe_empty // default mode to parse BNGL file
+      nls_maybe_empty model_blocks_list_maybe_empty // default mode to parse BNGL file
       
     | TOK_SINGLE_CPLX cplx TOK_NL {  // single complex to be parsed, prefixed by a unique string, scanner adds a newline
     	g_ctx->single_cplx = $2;
@@ -171,32 +171,32 @@ nls:
     | TOK_NL
 ;    
 
-model_sections_list_maybe_empty:
-      model_sections_list
+model_blocks_list_maybe_empty:
+      model_blocks_list
     | /* empty */
 ;
 
-model_sections_list:
-      model_sections_list model_sections
-    | model_sections
+model_blocks_list:
+      model_blocks_list model_blocks
+    | model_blocks
 ;
 
-model_sections:
-	  section nls
-	| TOK_BEGIN TOK_MODEL nls section_list_maybe_empty TOK_END TOK_MODEL nls 
+model_blocks:
+	  block nls
+	| TOK_BEGIN TOK_MODEL nls block_list_maybe_empty TOK_END TOK_MODEL nls 
 ;
 
-section_list_maybe_empty:
-      section_list
+block_list_maybe_empty:
+      block_list
     | /* empty */
 ;    
     
-section_list:
-      section_list section nls
-    | section nls
+block_list:
+      block_list block nls
+    | block nls
 ;
  
-section:
+block:
       TOK_BEGIN TOK_PARAMETERS nls parameter_list_maybe_empty TOK_END TOK_PARAMETERS
     | TOK_BEGIN TOK_MOLECULE TOK_TYPES nls molecule_types_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES{
         g_ctx->symtab.insert_molecule_declarations($5, g_ctx);
@@ -217,17 +217,19 @@ parameter_list_maybe_empty:
 ;
 
 parameter_list:
-      parameter_list parameter
-    | parameter
+      parameter_list parameter_defn
+    | parameter_defn
 ;
       
-parameter:
-      TOK_ID expr nls {
-        g_ctx->symtab.insert($1, $2, g_ctx);
-      }
-    | TOK_ID '=' expr nls {
+parameter_defn:
+      TOK_ID eq_maybe_empty expr nls {
         g_ctx->symtab.insert($1, $3, g_ctx);
       }
+;
+
+eq_maybe_empty:
+      '='
+    | /* empty */     
 ;
       
 // ---------------- molecules -------------------     
