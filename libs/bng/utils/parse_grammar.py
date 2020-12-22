@@ -146,6 +146,9 @@ def parse_rule(line, lhs_nonterminal, g):
         g.rules[lhs_nonterminal] = []
     
     rhs = items[2:]
+    
+    if len(rhs) == 1 and rhs[0] == EMPTY_TERMINAL:
+        rhs = []
 
     # add terminals
     ignored = False 
