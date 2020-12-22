@@ -24,9 +24,10 @@
 /* Set up function name prefixes and output file name */
 %option prefix="bngl"
 
-ID       [a-zA-Z_][a-zA-Z0-9_]*
+ID [a-zA-Z_][a-zA-Z0-9_]*
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
 I ([0-9]+)
+STR \"([^\\\"]|\\.)*\"
 
 %%
 
@@ -74,7 +75,7 @@ I ([0-9]+)
 {R}             { LOC(); bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; } /* must contain decimal point */
 {I}             { LOC(); bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
 {ID}            { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_ID; }
-\"([^\\\"]|\\.)*\" { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_STR; } 
+{STR}           { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_STR; } 
                         
     /* other characters */
     
