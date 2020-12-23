@@ -202,7 +202,7 @@ block_list:
  
 block:
       TOK_BEGIN TOK_PARAMETERS nls parameter_list_maybe_empty TOK_END TOK_PARAMETERS
-    | TOK_BEGIN TOK_MOLECULE TOK_TYPES nls molecule_types_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES{
+    | TOK_BEGIN TOK_MOLECULE TOK_TYPES nls molecule_types_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
         g_ctx->symtab.insert_molecule_declarations($5, g_ctx);
       }
     | TOK_BEGIN TOK_COMPARTMENTS nls compartment_list_maybe_empty TOK_END TOK_COMPARTMENTS
@@ -357,7 +357,7 @@ rxn_rule_list:
 ;
 
 rxn_rule:
-      rxn_rule_name_maybe_empty rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates {
+      rxn_rule_name_maybe_empty rxn_rule_side_or_zero rxn_rule_direction rxn_rule_side_or_zero rates {
          
         BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4, $5);
         g_ctx->add_rxn_rule(n);
@@ -381,7 +381,9 @@ rxn_rule_side_or_zero:
         }
         // 0 is the same as molecule name Null and Thrash, we will create a complex with a single molecule 
         $$ = g_ctx->new_list_node()->append(
-        	g_ctx->new_molecule_node("Null", g_ctx->new_list_node(), nullptr, @1)
+                 g_ctx->new_cplx_node(
+        	         g_ctx->new_molecule_node("Null", g_ctx->new_list_node(), nullptr, @1)
+        	     )
        	);
       }
 ;

@@ -701,7 +701,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(
       if (is_thrash_or_null(m->name)) {
         if (reactants_side) {
           errs_loc(m) <<
-              "Null/Trash product cannot be used on the reactants side of a reeaction rule.\n"; // test XXX
+              "Null/Trash product cannot be used on the reactants side of a reaction rule.\n"; // test XXX
           ctx->inc_error_count();
           return;
         }
