@@ -1,5 +1,5 @@
 # FAIL
-# OUTPUT: error: syntax error, unexpected <->, expecting identifier
+# OUTPUT: error: syntax error, unexpected newline
 
 begin parameters
    kp 0.00001
@@ -11,5 +11,5 @@ begin molecule types
 end molecule types
 
 begin reaction rules
-  <-> A(a) kp, km
+  A(a) ->   kp
 end reaction rules

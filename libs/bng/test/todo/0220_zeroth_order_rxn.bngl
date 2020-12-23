@@ -1,5 +1,6 @@
-# FAIL
-# OUTPUT: error: syntax error, unexpected <->, expecting identifier
+# OK
+#
+# NOTE: B(a) is defined automatically 
 
 begin parameters
    kp 0.00001
@@ -11,5 +12,5 @@ begin molecule types
 end molecule types
 
 begin reaction rules
-  <-> A(a) kp, km
+  0 <-> A(a!1).A(a!1) kp, km
 end reaction rules

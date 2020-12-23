@@ -21,6 +21,7 @@ begin observables
     Species   SpecComplex A(b!+)
     Molecules Atotal A()
 end observables
+end model
 
 generate_network({overwrite=>1})
 simulate_ode({suffix=>"ode",t_end=>10,n_steps=>100})
