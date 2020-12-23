@@ -21,6 +21,8 @@
 ******************************************************************************/
 
 #include "api/python_exporter.h"
+#include "api/python_export_constants.h"
+#include "api/python_export_utils.h"
 #include "api/model.h"
 #include "world.h"
 
@@ -37,7 +39,26 @@ PythonExporter::PythonExporter(Model* model_) :
 
 
 void PythonExporter::save_checkpoint(const std::string& dir) {
+  // parameters
+  // - includes rng state
 
+  // subsystem
+
+
+  // geometry
+
+  // instantiation
+
+  // observables
+
+  // molecules
+  // - volume
+  // - surface
+
+  // model
+  // - config
+  // - warnings
+  // - notifications
 }
 
 

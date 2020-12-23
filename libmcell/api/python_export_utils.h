@@ -23,6 +23,8 @@
 #ifndef LIBMCELL_API_PYTHON_EXPORT_UTILS_H_
 #define LIBMCELL_API_PYTHON_EXPORT_UTILS_H_
 
+#include <exception>
+
 #include "defines.h"
 
 namespace MCell {
@@ -47,9 +49,16 @@ private:
   std::map<std::string, uint> counters;
 };
 
+typedef std::invalid_argument ConversionError;
 
 // replace all characters that cannot be present in an identifier
 std::string fix_id(const std::string& str);
+
+std::string get_filename(const std::string& output_files_prefix, const std::string file_suffix, const char* ext);
+
+void open_and_check_file_w_prefix(
+    const std::string& output_files_prefix, const std::string file_suffix, std::ofstream& out,
+    const bool for_append = false, const bool bngl = false);
 
 } // namespace API
 } // namespace MCell

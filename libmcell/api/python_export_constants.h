@@ -1,10 +1,11 @@
 
-#ifndef SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_
-#define SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_
+#ifndef LIBMCELL_API_PYTHON_EXPORT_CONSTANTS_H_
+#define LIBMCELL_API_PYTHON_EXPORT_CONSTANTS_H_
 
 #include "datamodel_defines.h"
 
 namespace MCell {
+namespace API {
 
 const int FLOAT_OUT_PRECISION = 15; // this is the precision that is used by mdl_to_data_model.py script
 
@@ -103,8 +104,6 @@ const char* const MCELL_PATH_SETUP =
 
 const char* const MCELL_IMPORT = "import mcell as m\n\n";
 
-#define C
-
 static std::string get_customization_import(const std::string& customization_module) {
   return
       std::string("if os.path.exists(os.path.join('") + MODEL_PATH + ", " + customization_module + ".py')):\n"
@@ -195,6 +194,7 @@ const char* const TEMPLATE_CUSTOM_INIT_AND_RUN =
     "\"\"\"\n"
 ;
 
+} // namespace API
 } // namespace MCell
 
-#endif // SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_
+#endif // LIBMCELL_API_PYTHON_EXPORT_CONSTANTS_H_

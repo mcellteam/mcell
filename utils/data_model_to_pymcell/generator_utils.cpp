@@ -23,41 +23,12 @@
 #include <fstream>
 
 #include "generator_utils.h"
-#include "generator_constants.h"
+#include "api/python_export_constants.h"
 #include "api/compartment_utils.h"
 
+using namespace MCell::API;
+
 namespace MCell {
-
-string get_filename(const string& output_files_prefix, const string file_suffix, const char* ext) {
-  if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
-    return output_files_prefix + file_suffix + ext;
-  }
-  else {
-    return output_files_prefix + "_" + file_suffix + ext;
-  }
-}
-
-
-void open_and_check_file_w_prefix(
-    const string& output_files_prefix, const string file_suffix, ofstream& out,
-    const bool for_append, const bool bngl) {
-
-  string file_name = get_filename(output_files_prefix, file_suffix, (bngl) ? BNGL_EXT : PY_EXT);
-
-  if (for_append) {
-    cout << "Appending to " + file_name + ".\n";
-    out.open(file_name, ios::app);
-  }
-  else {
-    cout << "Generating file " + file_name + ".\n";
-    out.open(file_name);
-  }
-  out.precision(FLOAT_OUT_PRECISION);
-  if (!out.is_open()) {
-    throw ConversionError("Could not open file '" + file_name + "' for writing.");
-  }
-}
-
 
 std::string get_module_name_w_prefix(const std::string& output_files_prefix, const std::string file_suffix) {
 

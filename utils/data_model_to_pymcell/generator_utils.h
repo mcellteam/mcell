@@ -28,30 +28,27 @@
 #ifndef SRC4_PYMCELLCONVERTER_GENERATOR_UTILS_H_
 #define SRC4_PYMCELLCONVERTER_GENERATOR_UTILS_H_
 
-#include <exception>
 #include <iostream>
 #include <string>
 #include <cassert>
 #include <regex>
 
 #include "libmcell/generated/gen_names.h"
-#include "libmcell/api/common.h"
-#include "libmcell/api/api_utils.h"
-#include "libmcell/api/python_export_utils.h"
 #include "include/datamodel_defines.h"
+#include "libmcell/api/api_utils.h"
+#include "libmcell/api/python_export_constants.h"
+#include "libmcell/api/python_export_utils.h"
+#include "libmcell/api/common.h"
 
-#include "generator_constants.h"
 #include "generator_structs.h"
 
 using namespace std;
 
 namespace MCell {
 
-using Json::Value;
-using API::S;
-using API::fix_id;
+using namespace API;
 
-typedef invalid_argument ConversionError;
+using Json::Value;
 
 // using exceptions to
 
@@ -75,12 +72,6 @@ typedef invalid_argument ConversionError;
   } while (0)
 
 #define ERROR(msg) throw ConversionError(S("Error: ") + msg + " (function " + __FUNCTION__ + ")")
-
-std::string get_filename(const std::string& output_files_prefix, const std::string file_suffix, const char* ext);
-
-void open_and_check_file_w_prefix(
-    const std::string& output_files_prefix, const std::string file_suffix, std::ofstream& out,
-    const bool for_append = false, const bool bngl = false);
 
 std::string get_module_name_w_prefix(const std::string& output_files_prefix, const std::string file_suffix);
 
