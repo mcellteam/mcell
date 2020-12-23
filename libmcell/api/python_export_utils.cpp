@@ -20,7 +20,7 @@
  *
 ******************************************************************************/
 
-#include "api/python_export.h"
+#include "api/python_export_utils.h"
 
 namespace MCell {
 namespace API {

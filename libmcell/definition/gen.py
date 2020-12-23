@@ -212,7 +212,7 @@ CONSTANT_VALUE_PREFIX = 'CV_'
 
 INCLUDE_API_MCELL_H = '#include "api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "api/common.h"'
-INCLUDE_API_PYTHON_EXPORT_H = '#include "api/python_export.h"'
+INCLUDE_API_PYTHON_EXPORT_H = '#include "api/python_export_utils.h"'
 INCLUDE_API_BASE_DATA_CLASS_H = '#include "api/base_data_class.h"'
 INCLUDE_API_BASE_INTROSPECTION_CLASS_H = '#include "api/base_introspection_class.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
@@ -1451,8 +1451,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         
         f.write('#include <sstream>\n')
         f.write('#include "libs/pybind11/include/pybind11/stl.h"\n')
-        f.write('#include "api/python_export.h"\n')
-
+        f.write(INCLUDE_API_PYTHON_EXPORT_H + '\n')
 
         # includes for our class
         f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')

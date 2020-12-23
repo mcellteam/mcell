@@ -22,7 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
-#include "api/python_export.h"
+#include "api/python_export_utils.h"
 #include "gen_component_type.h"
 #include "api/component_type.h"
 #include "api/component.h"

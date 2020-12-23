@@ -37,7 +37,7 @@
 #include "libmcell/generated/gen_names.h"
 #include "libmcell/api/common.h"
 #include "libmcell/api/api_utils.h"
-#include "libmcell/api/python_export.h"
+#include "libmcell/api/python_export_utils.h"
 #include "include/datamodel_defines.h"
 
 #include "generator_constants.h"

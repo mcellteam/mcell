@@ -37,6 +37,10 @@ void define_pybinding_constants(py::module& m) {
   m.attr("ALL_MOLECULES") = py::str(ALL_MOLECULES);
   m.attr("ALL_VOLUME_MOLECULES") = py::str(ALL_VOLUME_MOLECULES);
   m.attr("ALL_SURFACE_MOLECULES") = py::str(ALL_SURFACE_MOLECULES);
+  m.attr("DEFAULT_CHECKPOINTS_DIR") = py::str(DEFAULT_CHECKPOINTS_DIR);
+  m.attr("DEFAULT_SEED_DIR_PREFIX") = py::str(DEFAULT_SEED_DIR_PREFIX);
+  m.attr("DEFAULT_SEED_DIR_DIGITS") = py::int_(DEFAULT_SEED_DIR_DIGITS);
+  m.attr("DEFAULT_ITERATION_DIR_PREFIX") = py::str(DEFAULT_ITERATION_DIR_PREFIX);
   m.attr("AllMolecules") = py::object(py::cast(AllMolecules));
   m.attr("AllVolumeMolecules") = py::object(py::cast(AllVolumeMolecules));
   m.attr("AllSurfaceMolecules") = py::object(py::cast(AllSurfaceMolecules));

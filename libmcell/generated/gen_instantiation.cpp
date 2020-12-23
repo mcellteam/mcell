@@ -22,7 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
-#include "api/python_export.h"
+#include "api/python_export_utils.h"
 #include "gen_instantiation.h"
 #include "api/instantiation.h"
 #include "api/geometry_object.h"

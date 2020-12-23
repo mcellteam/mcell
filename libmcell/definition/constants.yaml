@@ -40,7 +40,23 @@ constants:
   - name: ALL_SURFACE_MOLECULES
     type: str
     value: "ALL_SURFACE_MOLECULES"
+    
+  - name: DEFAULT_CHECKPOINTS_DIR
+    type: str
+    value: "checkpoints"
+
+  - name: DEFAULT_SEED_DIR_PREFIX
+    type: str
+    value: "seed_"
+
+  - name: DEFAULT_SEED_DIR_DIGITS
+    type: int
+    value: 5
   
+  - name: DEFAULT_ITERATION_DIR_PREFIX
+    type: str
+    value: "it_"
+    
   # TODO: maybe rename to AllSpecies ...
   - name: AllMolecules
     type: Species

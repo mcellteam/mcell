@@ -239,3 +239,16 @@ Model:
       type: str
       doc: Output file name.
       
+  - name: save_checkpoint
+    doc: |
+       Saves current model state as checkpoint. 
+       The default directory structure is checkpoints/seed_<SEED>/it_<ITERATION>,
+       it can be changed by setting 'custom_dir'.
+    params:
+    - name: custom_dir
+      type: str
+      default: unset
+      doc: |
+         Sets custom directory where checkpoints will be stored. 
+
+      

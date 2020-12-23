@@ -22,7 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
-#include "api/python_export.h"
+#include "api/python_export_utils.h"
 #include "gen_model.h"
 #include "api/model.h"
 #include "api/config.h"
@@ -125,6 +125,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("register_reaction_callback", &Model::register_reaction_callback, py::arg("function"), py::arg("context"), py::arg("reaction_rule"))
       .def("load_bngl", &Model::load_bngl, py::arg("file_name"), py::arg("observables_files_prefix") = "", py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("export_to_bngl", &Model::export_to_bngl, py::arg("file_name"))
+      .def("save_checkpoint", &Model::save_checkpoint, py::arg("custom_dir") = STR_UNSET)
       .def("add_species", &Model::add_species, py::arg("s"))
       .def("find_species", &Model::find_species, py::arg("name"))
       .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("r"))

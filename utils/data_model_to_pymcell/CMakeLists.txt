@@ -17,7 +17,7 @@ set(SOURCE_FILES
 	python_generator.cpp
 	bngl_generator.cpp
 	generator_utils.cpp
-	../../libmcell/api/python_export.cpp
+	../../libmcell/api/python_export_utils.cpp
 )
 
 set(ALL_SOURCES

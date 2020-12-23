@@ -23,8 +23,10 @@
 #include "model.h"
 
 #include <string>
+#include <iomanip>
 
 #include "api/mcell4_converter.h"
+#include "api/python_exporter.h"
 #include "api/api_utils.h"
 #include "api/molecule.h"
 
@@ -42,6 +44,7 @@
 #include "release_event.h"
 #include "rxn_utils.inc"
 #include "molecule.h"
+#include "viz_output_event.h"
 
 #include "bng/rxn_class.h"
 
@@ -420,6 +423,33 @@ void Model::export_to_bngl(const std::string& file_name) {
   if (err_msg != "") {
     throw RuntimeError("BNGL export failed: " + err_msg);
   }
+}
+
+
+void Model::save_checkpoint(const std::string& custom_dir) {
+  if (!initialized) {
+    throw RuntimeError(S("Model must be initialized for ") + NAME_SAVE_CHECKPOINT + ".");
+  }
+
+  // prepare output directory name
+  string dir;
+  if (is_set(custom_dir)) {
+    dir = custom_dir;
+  }
+  else {
+    stringstream seed_num;
+    seed_num << setfill('0') << std::setw(DEFAULT_SEED_DIR_DIGITS) << config.seed;
+
+    // TODO: move the VizOutputEvent::iterations_to_string to some utilities
+    dir =
+        std::string(DEFAULT_CHECKPOINTS_DIR) + BNG::PATH_SEPARATOR +
+        DEFAULT_SEED_DIR_PREFIX + seed_num.str() +
+        DEFAULT_ITERATION_DIR_PREFIX +
+        VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), config.total_iterations_hint);
+  }
+
+  PythonExporter exporter(this);
+  exporter.save_checkpoint(dir);
 }
 
 

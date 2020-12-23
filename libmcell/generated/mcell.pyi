@@ -162,6 +162,10 @@ DEFAULT_COUNT_BUFFER_SIZE = 10000
 ALL_MOLECULES = 'ALL_MOLECULES'
 ALL_VOLUME_MOLECULES = 'ALL_VOLUME_MOLECULES'
 ALL_SURFACE_MOLECULES = 'ALL_SURFACE_MOLECULES'
+DEFAULT_CHECKPOINTS_DIR = 'checkpoints'
+DEFAULT_SEED_DIR_PREFIX = 'seed_'
+DEFAULT_SEED_DIR_DIGITS = 5
+DEFAULT_ITERATION_DIR_PREFIX = 'it_'
 ID_INVALID = -1
 NUMBER_OF_TRAINS_UNLIMITED = -1
 TIME_INFINITY = 1e140
@@ -699,6 +703,12 @@ class Model():
     def export_to_bngl(
             self,
             file_name : str
+        ) -> None:
+        pass
+
+    def save_checkpoint(
+            self,
+            custom_dir : str = None
         ) -> None:
         pass
 

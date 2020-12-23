@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef LIBMCELL_API_PYTHON_EXPORT_H_
-#define LIBMCELL_API_PYTHON_EXPORT_H_
+#ifndef LIBMCELL_API_PYTHON_EXPORT_UTILS_H_
+#define LIBMCELL_API_PYTHON_EXPORT_UTILS_H_
 
 #include "defines.h"
 
@@ -29,6 +29,7 @@ namespace MCell {
 namespace API {
 
 class BaseDataClass;
+
 
 // class used to hold data when exporting objects to Python, e.g. for checkpointing
 class PythonExportContext {
@@ -46,10 +47,11 @@ private:
   std::map<std::string, uint> counters;
 };
 
+
 // replace all characters that cannot be present in an identifier
 std::string fix_id(const std::string& str);
 
 } // namespace API
 } // namespace MCell
 
-#endif /* LIBMCELL_API_PYTHON_EXPORT_H_ */
+#endif /* LIBMCELL_API_PYTHON_EXPORT_UTILS_H_ */

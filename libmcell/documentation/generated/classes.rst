@@ -142,6 +142,10 @@ Constants
 * | **ALL_MOLECULES**: str = ALL_MOLECULES
 * | **ALL_VOLUME_MOLECULES**: str = ALL_VOLUME_MOLECULES
 * | **ALL_SURFACE_MOLECULES**: str = ALL_SURFACE_MOLECULES
+* | **DEFAULT_CHECKPOINTS_DIR**: str = checkpoints
+* | **DEFAULT_SEED_DIR_PREFIX**: str = seed_
+* | **DEFAULT_SEED_DIR_DIGITS**: int = 5
+* | **DEFAULT_ITERATION_DIR_PREFIX**: str = it_
 * | **AllMolecules**: Species = AllMolecules
 * | **AllVolumeMolecules**: Species = AllVolumeMolecules
 * | **AllSurfaceMolecules**: Species = AllSurfaceMolecules
@@ -1015,6 +1019,17 @@ Methods:
   | Exports all defined species, reaction rules and applicable observables
   | as a BNGL file. 
   | Limited currrently to exactly one volume compartment and volume reactions.
+
+
+* | **save_checkpoint**
+
+   * | custom_dir: str = None
+     | Sets custom directory where checkpoints will be stored.
+
+
+  | Saves current model state as checkpoint. 
+  | The default directory structure is checkpoints/seed_<SEED>/it_<ITERATION>,
+  | it can be changed by setting 'custom_dir'.
 
 
 * | **add_species**

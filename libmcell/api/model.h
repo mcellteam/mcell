@@ -35,6 +35,7 @@
 #include "api/shared_structs.h"
 #include "api/callbacks.h"
 #include "api/introspection.h"
+#include "api/geometry_object.h"
 
 namespace MCell {
 
@@ -108,6 +109,8 @@ public:
   ) override;
 
   void export_to_bngl(const std::string& file_name) override;
+
+  void save_checkpoint(const std::string& custom_dir = STR_UNSET) override;
 
   // overrides from derived classes Subsystem, Instantiation, and Observables
   void add_species(std::shared_ptr<Species> s) override;

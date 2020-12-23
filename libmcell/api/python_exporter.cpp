@@ -20,19 +20,26 @@
  *
 ******************************************************************************/
 
-#include <sstream>
-#include "libs/pybind11/include/pybind11/stl.h"
-#include "api/python_export_utils.h"
-#include "gen_bngl_utils.h"
+#include "api/python_exporter.h"
+#include "api/model.h"
+#include "world.h"
 
 namespace MCell {
 namespace API {
 
-void define_pybinding_bngl_utils(py::module& m) {
-  m.def_submodule("bngl_utils")
-      .def("load_bngl_parameters", &bngl_utils::load_bngl_parameters, py::arg("file_name"), py::arg("parameter_overrides") = std::map<std::string, float_t>())
-    ;
+PythonExporter::PythonExporter(Model* model_) :
+  model(model_) {
+
+  assert(model != nullptr);
+  world = model->get_world();
+  assert(world != nullptr);
 }
+
+
+void PythonExporter::save_checkpoint(const std::string& dir) {
+
+}
+
 
 } // namespace API
 } // namespace MCell
