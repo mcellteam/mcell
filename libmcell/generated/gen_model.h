@@ -70,14 +70,14 @@ public:
   std::string to_str(const std::string ind="") const ;
 
   virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_species(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_release_sites(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_counts(std::ostream& out, PythonExportContext& ctx) const;
+  virtual std::string export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
 
 
   // --- attributes ---

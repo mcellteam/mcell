@@ -196,7 +196,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << "  center_molecules_on_grid = " << center_molecules_on_grid << ",\n";
   }
   if (initial_partition_origin != std::vector<float_t>()) {
-    ss << "  initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx) << ",\n";
+    ss << "  initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx, exported_name) << ",\n";
   }
   if (partition_dimension != 10) {
     ss << "  partition_dimension = " << partition_dimension << ",\n";
@@ -221,8 +221,23 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   return exported_name;
 }
 
-std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_initial_partition_origin";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < initial_partition_origin.size(); i++) {
+    const auto& item = initial_partition_origin[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    ss << item << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

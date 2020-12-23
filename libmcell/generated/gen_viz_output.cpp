@@ -111,7 +111,7 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
   ss << exported_name << " = VizOutput(\n";
   ss << "  output_files_prefix = " << output_files_prefix << ",\n";
   if (species_list != std::vector<std::shared_ptr<Species>>()) {
-    ss << "  species_list = " << export_vec_species_list(out, ctx) << ",\n";
+    ss << "  species_list = " << export_vec_species_list(out, ctx, exported_name) << ",\n";
   }
   if (mode != VizMode::ASCII) {
     ss << "  mode = " << mode << ",\n";
@@ -124,8 +124,24 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
   return exported_name;
 }
 
-std::string GenVizOutput::export_vec_species_list(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenVizOutput::export_vec_species_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_species_list";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < species_list.size(); i++) {
+    const auto& item = species_list[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

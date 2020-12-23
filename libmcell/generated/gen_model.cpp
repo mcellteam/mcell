@@ -182,64 +182,192 @@ std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& c
     ss << "  notifications = " << notifications.export_to_python(out, ctx) << ",\n";
   }
   if (species != std::vector<std::shared_ptr<Species>>()) {
-    ss << "  species = " << export_vec_species(out, ctx) << ",\n";
+    ss << "  species = " << export_vec_species(out, ctx, exported_name) << ",\n";
   }
   if (reaction_rules != std::vector<std::shared_ptr<ReactionRule>>()) {
-    ss << "  reaction_rules = " << export_vec_reaction_rules(out, ctx) << ",\n";
+    ss << "  reaction_rules = " << export_vec_reaction_rules(out, ctx, exported_name) << ",\n";
   }
   if (surface_classes != std::vector<std::shared_ptr<SurfaceClass>>()) {
-    ss << "  surface_classes = " << export_vec_surface_classes(out, ctx) << ",\n";
+    ss << "  surface_classes = " << export_vec_surface_classes(out, ctx, exported_name) << ",\n";
   }
   if (elementary_molecule_types != std::vector<std::shared_ptr<ElementaryMoleculeType>>()) {
-    ss << "  elementary_molecule_types = " << export_vec_elementary_molecule_types(out, ctx) << ",\n";
+    ss << "  elementary_molecule_types = " << export_vec_elementary_molecule_types(out, ctx, exported_name) << ",\n";
   }
   if (release_sites != std::vector<std::shared_ptr<ReleaseSite>>()) {
-    ss << "  release_sites = " << export_vec_release_sites(out, ctx) << ",\n";
+    ss << "  release_sites = " << export_vec_release_sites(out, ctx, exported_name) << ",\n";
   }
   if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>()) {
-    ss << "  geometry_objects = " << export_vec_geometry_objects(out, ctx) << ",\n";
+    ss << "  geometry_objects = " << export_vec_geometry_objects(out, ctx, exported_name) << ",\n";
   }
   if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>()) {
-    ss << "  viz_outputs = " << export_vec_viz_outputs(out, ctx) << ",\n";
+    ss << "  viz_outputs = " << export_vec_viz_outputs(out, ctx, exported_name) << ",\n";
   }
   if (counts != std::vector<std::shared_ptr<Count>>()) {
-    ss << "  counts = " << export_vec_counts(out, ctx) << ",\n";
+    ss << "  counts = " << export_vec_counts(out, ctx, exported_name) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
   return exported_name;
 }
 
-std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_species";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < species.size(); i++) {
+    const auto& item = species[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_reaction_rules";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < reaction_rules.size(); i++) {
+    const auto& item = reaction_rules[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_surface_classes";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < surface_classes.size(); i++) {
+    const auto& item = surface_classes[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_elementary_molecule_types";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < elementary_molecule_types.size(); i++) {
+    const auto& item = elementary_molecule_types[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_release_sites";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < release_sites.size(); i++) {
+    const auto& item = release_sites[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_geometry_objects";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < geometry_objects.size(); i++) {
+    const auto& item = geometry_objects[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_viz_outputs";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < viz_outputs.size(); i++) {
+    const auto& item = viz_outputs[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenModel::export_vec_counts(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenModel::export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_counts";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < counts.size(); i++) {
+    const auto& item = counts[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

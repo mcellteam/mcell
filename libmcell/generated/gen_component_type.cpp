@@ -99,15 +99,30 @@ std::string GenComponentType::export_to_python(std::ostream& out, PythonExportCo
   ss << exported_name << " = ComponentType(\n";
   ss << "  name = " << name << ",\n";
   if (states != std::vector<std::string>()) {
-    ss << "  states = " << export_vec_states(out, ctx) << ",\n";
+    ss << "  states = " << export_vec_states(out, ctx, exported_name) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
   return exported_name;
 }
 
-std::string GenComponentType::export_vec_states(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenComponentType::export_vec_states(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_states";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < states.size(); i++) {
+    const auto& item = states[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    ss << item << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

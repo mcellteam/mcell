@@ -139,7 +139,7 @@ std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportCon
   ss << exported_name << " = SurfaceClass(\n";
   ss << "  name = " << name << ",\n";
   if (properties != std::vector<std::shared_ptr<SurfaceProperty>>()) {
-    ss << "  properties = " << export_vec_properties(out, ctx) << ",\n";
+    ss << "  properties = " << export_vec_properties(out, ctx, exported_name) << ",\n";
   }
   if (type != SurfacePropertyType::UNSET) {
     ss << "  type = " << type << ",\n";
@@ -155,8 +155,24 @@ std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportCon
   return exported_name;
 }
 
-std::string GenSurfaceClass::export_vec_properties(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenSurfaceClass::export_vec_properties(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_properties";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < properties.size(); i++) {
+    const auto& item = properties[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

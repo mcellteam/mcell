@@ -122,15 +122,31 @@ std::string GenElementaryMolecule::export_to_python(std::ostream& out, PythonExp
   ss << exported_name << " = ElementaryMolecule(\n";
   ss << "  elementary_molecule_type = " << elementary_molecule_type->export_to_python(out, ctx) << ",\n";
   if (components != std::vector<std::shared_ptr<Component>>()) {
-    ss << "  components = " << export_vec_components(out, ctx) << ",\n";
+    ss << "  components = " << export_vec_components(out, ctx, exported_name) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
   return exported_name;
 }
 
-std::string GenElementaryMolecule::export_vec_components(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenElementaryMolecule::export_vec_components(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_components";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < components.size(); i++) {
+    const auto& item = components[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

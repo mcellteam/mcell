@@ -82,7 +82,7 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
-  virtual std::string export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx) const;
+  virtual std::string export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
 
 
   // --- attributes ---

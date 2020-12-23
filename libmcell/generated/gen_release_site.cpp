@@ -256,7 +256,7 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
     ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
   }
   if (molecule_list != std::vector<std::shared_ptr<MoleculeReleaseInfo>>()) {
-    ss << "  molecule_list = " << export_vec_molecule_list(out, ctx) << ",\n";
+    ss << "  molecule_list = " << export_vec_molecule_list(out, ctx, exported_name) << ",\n";
   }
   if (release_time != 0) {
     ss << "  release_time = " << release_time << ",\n";
@@ -296,8 +296,24 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   return exported_name;
 }
 
-std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_molecule_list";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < molecule_list.size(); i++) {
+    const auto& item = molecule_list[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

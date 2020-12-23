@@ -1022,13 +1022,83 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
 
 def write_vec_export(f, gen_class_name, item):
     
+    item_name = item[KEY_NAME];
+    
     name_w_args = \
-        EXPORT_VEC_PREFIX + item[KEY_NAME] + '(' + EXPORT_TO_PYTHON_ARGS + ') const'
+        EXPORT_VEC_PREFIX + item_name + '(' + EXPORT_TO_PYTHON_ARGS + ', const std::string& parent_name) const'
     decl = '  virtual ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + name_w_args + ';\n'
     f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + name_w_args + " {\n")
+    
+    f.write('  std::string ' + EXPORTED_NAME + ' = parent_name + "_' + item_name + '";\n')
+    
+    f.write('  std::stringstream ss;\n')
+    out = '  ss << '
+    f.write(out + EXPORTED_NAME + ' << " = [\\n";\n')
+
+    type = item[KEY_TYPE]
+    assert is_yaml_list_type(type)
+    
+    inner_type = get_inner_list_type(type)
+
+    f.write(
+        '  for (size_t i = 0; i < ' + item_name + '.size(); i++) {\n' +
+        '    const auto& item = ' + item_name + '[i];\n' +
+        '    if (i == 0) {\n' +
+        '    ' + out + '"  ";\n' +
+        '    }\n' +
+        '    else if (i % 16 == 0) {\n' +
+        '    ' + out + '"\\n  ";\n' +
+        '    }\n'
+    )
+    
+    if is_yaml_list_type(inner_type):
+        # special case for 2D arrays, they hold int or float
+        f.write(
+            '  ' + out + '"[";\n' +
+            '    for (const auto& value: item) {\n' +
+            '    ' + out + 'value << ", ";\n' + 
+            '    }\n' +
+            '  ' + out + '"], ";\n'            
+        )
+    elif not is_base_yaml_type(inner_type) and inner_type not in g_enums:
+        # array of API objects
+        f.write(
+            '    std::string name = item->export_to_python(out, ctx);\n' + 
+            '  ' + out + 'name << ", ";\n'
+        )
+    else:
+        # array of simple type
+        f.write('  ' + out + 'item << ", ";\n')
+
+    f.write('  }\n')
+        
+    f.write(out + '"]\\n\\n";\n')
+    f.write('  out << ss.str();\n')
+    f.write('  return ' + EXPORTED_NAME + ';\n')
+    """
+      for (const auto& item: elementary_molecules) {
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << ']';
+  out << ss.str();
+  return ss.str();
+      
+        f.write(EXPORT_VEC_PREFIX + name + '(out, ' + CTX + ') << ",\\n";\n')
+        export_vecs_to_define.append(item)
+    elif is_yaml_ptr_type(type):
+        f.write(name + '->export_to_python(out, ' + CTX + ') << ",\\n";\n')
+    elif not is_base_yaml_type(type) and type not in g_enums:
+        f.write(name + '.export_to_python(out, ' + CTX + ') << ",\\n";\n')
+    else:
+        # using operators << for enums
+        f.write(name + ' << ",\\n";\n')
+            
     f.write('  return ""; //TODO\n')
     # TODO
     
+    return decl 
+    """
     f.write('}\n\n')
     return decl 
 
@@ -1073,7 +1143,6 @@ def write_export_to_python_implementation(f, class_name, class_def):
     
     f.write('  std::stringstream ss;\n')
     out = '  ss << '
-    out_ind = '  ' + out
     f.write(out + EXPORTED_NAME + ' << " = ' + class_name + '(\\n";\n')
     for item in items:
         type = item[KEY_TYPE]
@@ -1090,7 +1159,7 @@ def write_export_to_python_implementation(f, class_name, class_def):
                     
         #f.write(CUSTOM_EXPORT_PREFIX + name + '(out) << ",\\n";\n')
         if is_yaml_list_type(type):
-            f.write(EXPORT_VEC_PREFIX + name + '(out, ' + CTX + ') << ",\\n";\n')
+            f.write(EXPORT_VEC_PREFIX + name + '(out, ' + CTX + ', ' + EXPORTED_NAME + ') << ",\\n";\n')
             export_vecs_to_define.append(item)
         elif is_yaml_ptr_type(type):
             f.write(name + '->export_to_python(out, ' + CTX + ') << ",\\n";\n')

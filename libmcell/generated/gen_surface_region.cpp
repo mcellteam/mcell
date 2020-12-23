@@ -202,12 +202,12 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
   std::stringstream ss;
   ss << exported_name << " = SurfaceRegion(\n";
   ss << "  name = " << name << ",\n";
-  ss << "  wall_indices = " << export_vec_wall_indices(out, ctx) << ",\n";
+  ss << "  wall_indices = " << export_vec_wall_indices(out, ctx, exported_name) << ",\n";
   if (is_set(surface_class)) {
     ss << "  surface_class = " << surface_class->export_to_python(out, ctx) << ",\n";
   }
   if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>()) {
-    ss << "  initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx) << ",\n";
+    ss << "  initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx, exported_name) << ",\n";
   }
   if (node_type != RegionNodeType::UNSET) {
     ss << "  node_type = " << node_type << ",\n";
@@ -223,12 +223,43 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
   return exported_name;
 }
 
-std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_wall_indices";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < wall_indices.size(); i++) {
+    const auto& item = wall_indices[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    ss << item << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_initial_surface_releases";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < initial_surface_releases.size(); i++) {
+    const auto& item = initial_surface_releases[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

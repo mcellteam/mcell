@@ -113,7 +113,7 @@ std::string GenComplex::export_to_python(std::ostream& out, PythonExportContext&
     ss << "  name = " << name << ",\n";
   }
   if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>()) {
-    ss << "  elementary_molecules = " << export_vec_elementary_molecules(out, ctx) << ",\n";
+    ss << "  elementary_molecules = " << export_vec_elementary_molecules(out, ctx, exported_name) << ",\n";
   }
   if (orientation != Orientation::DEFAULT) {
     ss << "  orientation = " << orientation << ",\n";
@@ -126,8 +126,24 @@ std::string GenComplex::export_to_python(std::ostream& out, PythonExportContext&
   return exported_name;
 }
 
-std::string GenComplex::export_vec_elementary_molecules(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenComplex::export_vec_elementary_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_elementary_molecules";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < elementary_molecules.size(); i++) {
+    const auto& item = elementary_molecules[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

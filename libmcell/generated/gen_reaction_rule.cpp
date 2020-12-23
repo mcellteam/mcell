@@ -140,10 +140,10 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
     ss << "  name = " << name << ",\n";
   }
   if (reactants != std::vector<std::shared_ptr<Complex>>()) {
-    ss << "  reactants = " << export_vec_reactants(out, ctx) << ",\n";
+    ss << "  reactants = " << export_vec_reactants(out, ctx, exported_name) << ",\n";
   }
   if (products != std::vector<std::shared_ptr<Complex>>()) {
-    ss << "  products = " << export_vec_products(out, ctx) << ",\n";
+    ss << "  products = " << export_vec_products(out, ctx, exported_name) << ",\n";
   }
   if (fwd_rate != FLT_UNSET) {
     ss << "  fwd_rate = " << fwd_rate << ",\n";
@@ -155,7 +155,7 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
     ss << "  rev_rate = " << rev_rate << ",\n";
   }
   if (variable_rate != std::vector<std::vector<float_t>>()) {
-    ss << "  variable_rate = " << export_vec_variable_rate(out, ctx) << ",\n";
+    ss << "  variable_rate = " << export_vec_variable_rate(out, ctx, exported_name) << ",\n";
   }
   if (is_intermembrane_surface_reaction != false) {
     ss << "  is_intermembrane_surface_reaction = " << is_intermembrane_surface_reaction << ",\n";
@@ -165,16 +165,67 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
   return exported_name;
 }
 
-std::string GenReactionRule::export_vec_reactants(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenReactionRule::export_vec_reactants(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_reactants";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < reactants.size(); i++) {
+    const auto& item = reactants[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenReactionRule::export_vec_products(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenReactionRule::export_vec_products(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_products";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < products.size(); i++) {
+    const auto& item = products[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
-std::string GenReactionRule::export_vec_variable_rate(std::ostream& out, PythonExportContext& ctx) const {
-  return ""; //TODO
+std::string GenReactionRule::export_vec_variable_rate(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  std::string exported_name = parent_name + "_variable_rate";
+  std::stringstream ss;
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < variable_rate.size(); i++) {
+    const auto& item = variable_rate[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    ss << "[";
+    for (const auto& value: item) {
+      ss << value << ", ";
+    }
+    ss << "], ";
+  }
+  ss << "]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API
