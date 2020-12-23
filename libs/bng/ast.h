@@ -30,6 +30,7 @@ namespace BNG {
 class ParserContext;
 class ASTExprNode;
 class ASTRxnRuleNode;
+class ASTListNode;
 
 
 enum class NodeType {
@@ -60,7 +61,9 @@ enum class ExprType {
   Sub,
   Mul,
   Div,
-  Pow
+  Pow,
+
+  FunctionCall
 };
 
 
@@ -146,7 +149,7 @@ class ASTExprNode: public ASTBaseNode {
 public:
   ASTExprNode()
     : expr_type(ExprType::Invalid),
-      left(nullptr), right(nullptr), dbl(0), llong(0) {
+      left(nullptr), right(nullptr), args(nullptr), dbl(0), llong(0) {
     node_type = NodeType::Expr;
   }
   void dump(const std::string ind) const override;
@@ -174,6 +177,10 @@ public:
 
   void set_right(ASTExprNode* right_) {
     right = right_;
+  }
+
+  void set_function_arguments(ASTListNode* args_) {
+    args = args_;
   }
 
   void set_type(const ExprType op) {
@@ -239,6 +246,7 @@ public:
 private:
   ASTExprNode* left;
   ASTExprNode* right;
+  ASTListNode* args; // list of ASTExprNode*
   std::string id;
   double dbl;
   long long llong;
@@ -455,6 +463,12 @@ public:
       ASTExprNode* left,
       const ExprType op,
       ASTExprNode* right,
+      const BNGLLTYPE& loc
+  );
+
+  ASTExprNode* new_expr_node(
+      const std::string& function_name,
+      ASTListNode* arguments,
       const BNGLLTYPE& loc
   );
 

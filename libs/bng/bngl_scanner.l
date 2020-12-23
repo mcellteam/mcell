@@ -66,6 +66,7 @@ STR \"([^\\\"]|\\.)*\"
 "seed"          { LOC(); return TOK_SEED; }
 "species"       { LOC(); return TOK_SPECIES; }
 "observables"   { LOC(); return TOK_OBSERVABLES; }
+"functions"     { LOC(); return TOK_FUNCTIONS; }
 "actions"       { LOC(); return TOK_ACTIONS; }
 
 "!CPLX" 		{ LOC(); return TOK_SINGLE_CPLX; }

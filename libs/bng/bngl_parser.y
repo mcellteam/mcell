@@ -73,7 +73,7 @@ namespace BNG {
 // end reaction rules
 //
 %glr-parser
-%expect 4
+%expect 5
 
 %union {
   const char* str;
@@ -101,6 +101,7 @@ namespace BNG {
 %token TOK_SEED "seed"
 %token TOK_SPECIES "species"
 %token TOK_OBSERVABLES "observables"
+%token TOK_FUNCTIONS "functions"
 %token TOK_ACTIONS "actions"
 
 // special token to switch parser to mode where it parses a single complex
@@ -141,6 +142,9 @@ namespace BNG {
 %type <cplx_node> cplx
 %type <cplx_node> cplx_no_compartment
 %type <str_node> compartment_for_cplx_maybe_empty
+%type <str> compartment_parent_maybe_empty
+%type <list_node> expr_list_maybe_empty
+%type <list_node> expr_list
 
 // operator associativities and precendences
 // unary minus has really lower precendence than power 
@@ -206,8 +210,9 @@ block:
     | TOK_BEGIN TOK_SEED TOK_SPECIES nls seed_species_list_maybe_empty TOK_END TOK_SEED TOK_SPECIES
     | TOK_BEGIN TOK_SPECIES nls seed_species_list_maybe_empty TOK_END TOK_SPECIES
     | TOK_BEGIN TOK_OBSERVABLES nls observables_list_maybe_empty TOK_END TOK_OBSERVABLES
-    | TOK_BEGIN TOK_ACTIONS nls action_call_list_maybe_empty TOK_END TOK_ACTIONS
-    | action_call    
+    | TOK_BEGIN TOK_FUNCTIONS nls functions_list_maybe_empty TOK_END TOK_FUNCTIONS 
+    | TOK_BEGIN TOK_ACTIONS nls actions_list_maybe_empty TOK_END TOK_ACTIONS
+    | action 
 ;
 
 // ---------------- parameters ------------------- 
@@ -217,12 +222,12 @@ parameter_list_maybe_empty:
 ;
 
 parameter_list:
-      parameter_list parameter_defn
-    | parameter_defn
+      parameter_list parameter_defn nls
+    | parameter_defn nls
 ;
       
 parameter_defn:
-      TOK_ID eq_maybe_empty expr nls {
+      TOK_ID eq_maybe_empty expr {
         g_ctx->symtab.insert($1, $3, g_ctx);
       }
 ;
@@ -242,21 +247,21 @@ molecule_types_list_maybe_empty:
 
 // left recursion is preferred 
 molecule_types_list:
-      molecule_types_list molecule_type {
+      molecule_types_list molecule_type nls {
         $1->append($2);
         $$ = $1;
       }
-    | molecule_type {
+    | molecule_type nls {
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
 // fully general specification, might contain information on bonds, checked later in semantic checks 
 molecule_type:
-      TOK_ID '(' component_type_list_maybe_empty ')' nls {
+      TOK_ID '(' component_type_list_maybe_empty ')' {
         $$ = g_ctx->new_molecule_node($1, $3, nullptr, @1);    
       }
-    | TOK_ID nls {
+    | TOK_ID {
         // no components neither parentheses
         $$ = g_ctx->new_molecule_node($1, g_ctx->new_list_node(), nullptr, @1);    
       }
@@ -319,22 +324,26 @@ compartment_list_maybe_empty:
 ;
     
 compartment_list:
-      compartment_list compartment_decl
-	| compartment_decl
+      compartment_list compartment_decl nls
+	| compartment_decl nls
 ;
 
 compartment_decl:
-      TOK_ID TOK_LLONG expr TOK_ID nls {
+      TOK_ID TOK_LLONG expr compartment_parent_maybe_empty {
         g_ctx->add_compartment(
             g_ctx->new_compartment_node($1, $2, $3, $4, @1)
         );
     }
-    | TOK_ID TOK_LLONG expr nls {
-        g_ctx->add_compartment(
-            g_ctx->new_compartment_node($1, $2, $3, "", @1)
-        );
-    }
 ;    
+
+compartment_parent_maybe_empty:
+      TOK_ID {
+        $$ = $1;
+      }
+    | /* empty */ {
+        $$ = "";
+      }
+;      
 	    
 // ---------------- rxn_rules ------------------- 
 rxn_rule_list_maybe_empty:
@@ -343,12 +352,12 @@ rxn_rule_list_maybe_empty:
 ;
 
 rxn_rule_list:
-      rxn_rule_list rxn_rule 
-    | rxn_rule 
+      rxn_rule_list rxn_rule nls  
+    | rxn_rule nls 
 ;
 
 rxn_rule:
-      rxn_rule_name_maybe_empty rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates nls {
+      rxn_rule_name_maybe_empty rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates {
          
         BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4, $5);
         g_ctx->add_rxn_rule(n);
@@ -414,12 +423,12 @@ seed_species_list_maybe_empty:
 ;
 
 seed_species_list:
-      seed_species_list seed_species_item 
-    | seed_species_item
+      seed_species_list seed_species_item nls 
+    | seed_species_item nls
 ;
 
 seed_species_item:
-      cplx expr nls {
+      cplx expr {
         BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($1, $2); 
         g_ctx->add_seed_species(n);
       }
@@ -530,12 +539,12 @@ observables_list_maybe_empty:
 ;
 
 observables_list:
-      observables_list observables_item 
-    | observables_item
+      observables_list observables_item nls 
+    | observables_item nls
 ;
       
 observables_item:
-      TOK_ID TOK_ID cplx_list nls {
+      TOK_ID TOK_ID cplx_list {
         BNG::ASTObservableNode* n = g_ctx->new_observable_node($1, $2, $3, @1); 
         g_ctx->add_observable(n);
       }
@@ -549,26 +558,69 @@ cplx_list:
     	$$ = g_ctx->new_list_node()->append($1);
       }
       
-// ---------------- action calls ------------------
-// ignored for now
+// ---------------- functions ------------------
+// only parsed, ignored for now
 
-action_call_list_maybe_empty:
-      action_call_list
+functions_list_maybe_empty:
+      functions_list
     | /* empty */
 ;
 
-action_call_list:
-      action_call_list action_call nls
-    | action_call nls
+functions_list:
+      functions_list function_defn nls
+    | function_defn nls
 ;
 
-action_call:
-      TOK_ID '(' arg_list_maybe_empty ')' maybe_semicolon
+function_defn:
+      TOK_ID function_args_in_parens_maybe_empty eq_maybe_empty expr
+;      
+
+function_args_in_parens_maybe_empty:
+      '(' function_args_list_maybe_empty ')' 
+    | /* empty */
+;                    
+
+function_args_list_maybe_empty:
+      function_args_list
+    | /* empty */
+;
+
+function_args_list:
+      function_args_list ',' TOK_ID
+    | TOK_ID
+;
+   
+      
+// ---------------- action calls ------------------
+// only parsed, ignored for now
+
+actions_list_maybe_empty:
+      actions_list
+    | /* empty */
+;
+
+actions_list:
+      actions_list action nls
+    | action nls
+;
+
+action:
+      TOK_ID '(' arg_list_maybe_empty ')' maybe_semicolon 
+;
 
 arg_list_maybe_empty:
-      '{' action_arg_list '}'
-    | function_arg_list
+      '{' action_arg_in_braces_list '}'
+    | action_arg_list
     | /* empty */
+;
+
+action_arg_in_braces_list:
+      action_arg_in_braces_list ',' action_arg_in_braces
+    | action_arg_in_braces
+;
+
+action_arg_in_braces:
+      id_incl_keywords TOK_ARG_ASSIGN expr_or_str
 ;
 
 action_arg_list:
@@ -577,15 +629,6 @@ action_arg_list:
 ;
 
 action_arg:
-      id_incl_keywords TOK_ARG_ASSIGN expr_or_str
-;
-
-function_arg_list:
-      function_arg_list ',' function_arg
-    | function_arg
-;
-
-function_arg:
       expr_or_str
 ;
 
@@ -616,12 +659,12 @@ expr_or_str:
     | TOK_STR      
 ;
       
-// ---------------- expressions --------------------- 
+// ---------------- expressions ---------------------
 expr:
       TOK_ID                        { $$ = g_ctx->new_id_node($1, @1); } 
     | TOK_DBL                       { $$ = g_ctx->new_dbl_node($1, @1); } 
     | TOK_LLONG                     { $$ = g_ctx->new_llong_node($1, @1); }
-    | '(' expr ')'                  { $$ = $2; } 
+    | '(' expr ')'                  { $$ = $2; }
     | expr '+' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Add, $3, @2); }
     | expr '-' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Sub, $3, @2); }
     | expr '*' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Mul, $3, @2); }
@@ -629,7 +672,28 @@ expr:
     | expr '^' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Pow, $3, @2); }
     | '+' expr %prec UNARYPLUS      { $$ = g_ctx->new_expr_node($2, BNG::ExprType::UnaryPlus, nullptr, @1); }
     | '-' expr %prec UNARYMINUS     { $$ = g_ctx->new_expr_node($2, BNG::ExprType::UnaryMinus, nullptr, @1); }
+    | TOK_ID '(' expr_list_maybe_empty ')'  { $$ = g_ctx->new_expr_node($1, $3, @1); }
 ;
+   
+expr_list_maybe_empty:
+      expr_list {
+        $$ = $1;
+      }
+    | /* empty */ {
+        $$ = g_ctx->new_list_node();
+      }
+;    
+
+expr_list:
+      expr_list ',' expr {
+        $1->append($3);
+        $$ = $1;
+      }
+    | expr {
+        $$ = g_ctx->new_list_node()->append($1);
+      }
+;    
+ 
     
 %%
 
