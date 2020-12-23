@@ -1,0 +1,41 @@
+begin parameters
+    
+    NA_um3 6.022e8
+        
+    VOLUME_UM3 = 0.25^3
+end parameters
+
+begin molecule types
+    a
+    b
+    c
+    d
+    e
+end molecule types
+
+begin compartments
+    CP 3 VOLUME_UM3
+end compartments
+
+begin seed species
+   a@CP 1000
+   b@CP 1000
+   d@CP 1000  
+end seed species
+
+begin observables
+   Molecules c c
+   Molecules e e
+end observables
+
+begin functions
+    num_c c
+end functions
+
+begin reaction rules
+    a + b -> c 1e7 / NA_um3  # BNG divides the rate further by the compartment volume
+    d_to_e: d -> e num_c
+end reaction rules
+
+generate_network({overwrite=>1})
+simulate({method=>"ode",t_end=>1e-3,n_steps=>1000})

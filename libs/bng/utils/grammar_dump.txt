@@ -1,0 +1,255 @@
+*** starting nonterminal ***
+$accept
+
+*** terminals ***
+"newline": '\n'
+"begin": 'begin'
+"model": 'model'
+"end": 'end'
+"parameters": 'parameters'
+"molecule": 'molecule'
+"types": 'types'
+"compartments": 'compartments'
+"reaction": 'reaction'
+"rules": 'rules'
+"seed": 'seed'
+"species": 'species'
+"observables": 'observables'
+"actions": 'actions'
+"identifier": '[a-zA-Z_][a-zA-Z0-9_]*'
+'=': '='
+'(': '('
+')': ')'
+',': ','
+'~': '~'
+"integer constant": '([0-9]+)'
+':': ':'
+'+': '+'
+"->": '->'
+"<->": '<->'
+'@': '@'
+'.': '.'
+'!': '!'
+'?': '?'
+'{': '{'
+'}': '}'
+"=>": '=>'
+';': ';'
+"string literal": '\"([^\\\"]|\\.)*\"'
+"floating point constant": '([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)'
+'-': '-'
+'*': '*'
+'/': '/'
+'^': '^'
+
+*** rules ***
+$accept->
+    start_bngl $end
+start_bngl->
+    nls_maybe_empty model_sections_list_maybe_empty
+nls_maybe_empty->
+    nls
+    /* empty */
+nls->
+    nls "newline"
+    "newline"
+model_sections_list_maybe_empty->
+    model_sections_list
+    /* empty */
+model_sections_list->
+    model_sections_list model_sections
+    model_sections
+model_sections->
+    section nls
+    "begin" "model" nls section_list_maybe_empty "end" "model" nls
+section_list_maybe_empty->
+    section_list
+    /* empty */
+section_list->
+    section_list section nls
+    section nls
+section->
+    "begin" "parameters" nls parameter_list_maybe_empty "end" "parameters"
+    "begin" "molecule" "types" nls molecule_types_list_maybe_empty "end" "molecule" "types"
+    "begin" "compartments" nls compartment_list_maybe_empty "end" "compartments"
+    "begin" "reaction" "rules" nls rxn_rule_list_maybe_empty "end" "reaction" "rules"
+    "begin" "seed" "species" nls seed_species_list_maybe_empty "end" "seed" "species"
+    "begin" "species" nls seed_species_list_maybe_empty "end" "species"
+    "begin" "observables" nls observables_list_maybe_empty "end" "observables"
+    "begin" "actions" nls action_call_list_maybe_empty "end" "actions"
+    action_call
+parameter_list_maybe_empty->
+    parameter_list
+    /* empty */
+parameter_list->
+    parameter_list parameter
+    parameter
+parameter->
+    "identifier" maybe_eq expr nls
+    "identifier" expr nls
+maybe_eq->
+    '='
+    /*empty*/
+molecule_types_list_maybe_empty->
+    molecule_types_list
+    /* empty */
+molecule_types_list->
+    molecule_types_list molecule_type
+    molecule_type
+molecule_type->
+    "identifier" '(' component_type_list_maybe_empty ')' nls
+    "identifier" nls
+component_type_list_maybe_empty->
+    component_type_list
+    /* empty */
+component_type_list->
+    component_type_list ',' component_type
+    component_type
+component_type->
+    "identifier" component_type_state_list_maybe_empty
+component_type_state_list_maybe_empty->
+    component_type_state_list
+    /* empty */
+component_type_state_list->
+    component_type_state_list component_state
+    component_state
+component_state->
+    '~' "identifier"
+    '~' "integer constant"
+compartment_list_maybe_empty->
+    compartment_list
+    /* empty */
+compartment_list->
+    compartment_list compartment_decl
+    compartment_decl
+compartment_decl->
+    "identifier" "integer constant" expr "identifier" nls
+    "identifier" "integer constant" expr nls
+rxn_rule_list_maybe_empty->
+    rxn_rule_list
+    /* empty */
+rxn_rule_list->
+    rxn_rule_list rxn_rule
+    rxn_rule
+rxn_rule->
+    rxn_rule_name_maybe_empty rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates nls
+rxn_rule_name_maybe_empty->
+    "identifier" ':'
+    /* empty */
+rxn_rule_side_or_zero->
+    rxn_rule_side
+    "integer constant"
+rxn_rule_side->
+    rxn_rule_side '+' cplx
+    cplx
+rxn_rule_direction->
+    "->"
+    "<->"
+rates->
+    rates ',' expr
+    expr
+seed_species_list_maybe_empty->
+    seed_species_list
+    /* empty */
+seed_species_list->
+    seed_species_list seed_species_item
+    seed_species_item
+seed_species_item->
+    cplx expr nls
+cplx->
+    compartment_for_cplx_maybe_empty cplx_no_compartment
+compartment_for_cplx_maybe_empty->
+    '@' "identifier" ':'
+    /* empty */
+cplx_no_compartment->
+    cplx_no_compartment '.' molecule_instance
+    molecule_instance
+molecule_instance->
+    "identifier" '(' component_instance_list_maybe_empty ')' molecule_compartment
+    "identifier" molecule_compartment
+molecule_compartment->
+    '@' "identifier"
+    /* empty */
+component_instance_list_maybe_empty->
+    component_instance_list
+    /* empty */
+component_instance_list->
+    component_instance_list ',' component_instance
+    component_instance
+component_instance->
+    "identifier" component_instance_state_maybe_empty bond_instance_maybe_empty
+component_instance_state_maybe_empty->
+    '~' "identifier"
+    '~' "integer constant"
+    /* empty */
+bond_instance_maybe_empty->
+    '!' "integer constant"
+    '!' '+'
+    '!' '?'
+    /* empty */
+observables_list_maybe_empty->
+    observables_list
+    /* empty */
+observables_list->
+    observables_list observables_item
+    observables_item
+observables_item->
+    "identifier" "identifier" cplx_list nls
+cplx_list->
+    cplx_list ',' cplx
+    cplx
+action_call_list_maybe_empty->
+    action_call_list
+    /* empty */
+action_call_list->
+    action_call_list action_call nls
+    action_call nls
+action_call->
+    "identifier" '(' arg_list_maybe_empty ')' maybe_semicolon
+arg_list_maybe_empty->
+    '{' action_arg_list '}'
+    function_arg_list
+    /* empty */
+action_arg_list->
+    action_arg_list ',' action_arg
+    action_arg
+action_arg->
+    id_incl_keywords "=>" expr_or_str
+function_arg_list->
+    function_arg_list ',' function_arg
+    function_arg
+function_arg->
+    expr_or_str
+id_incl_keywords->
+    "identifier"
+    "begin"
+    "end"
+    "model"
+    "parameters"
+    "molecule"
+    "types"
+    "compartments"
+    "reaction"
+    "rules"
+    "seed"
+    "species"
+    "observables"
+    "actions"
+maybe_semicolon->
+    ';'
+    /* empty */
+expr_or_str->
+    expr
+    "string literal"
+expr->
+    "identifier"
+    "floating point constant"
+    "integer constant"
+    '(' expr ')'
+    expr '+' expr
+    expr '-' expr
+    expr '*' expr
+    expr '/' expr
+    expr '^' expr
+    '+' expr
+    '-' expr

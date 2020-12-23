@@ -1,3 +1,5 @@
+# FAIL
+
 # NFSim reports:
 # ERROR!  You created a reaction (_R1) that deletes a molecule, but you did not use
 # the 'DeleteMolecules' keyword.  Thus, conforming with BNGL specification, this rule will not

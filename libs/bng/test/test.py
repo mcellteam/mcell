@@ -33,10 +33,8 @@ def run_single_test(test_app, test_file, extra_args):
         
         if '# FAIL' in line:
             expected_ec = 1 # exit code 1
-        elif '# OK' in line:
-            expected_ec = 0
         else:
-            utils.fatal_error(test_file + ": First line must be either '# FAIL' or '# OK'")
+            expected_ec = 0
 
         line = f.readline()
         while line.startswith('# OUTPUT:'):
@@ -73,6 +71,7 @@ def run_tests(test_app, extra_args):
     
     tests = get_test_files('negative')
     tests += get_test_files('positive')
+    tests += get_test_files('bng_validate')
     tests.sort()
     for t in tests:
         ok = run_single_test(test_app, t, extra_args)
