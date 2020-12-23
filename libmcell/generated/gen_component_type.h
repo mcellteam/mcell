@@ -31,6 +31,7 @@ namespace API {
 
 class ComponentType;
 class Component;
+class PythonExportContext;
 
 #define COMPONENT_TYPE_CTOR() \
     ComponentType( \
@@ -57,8 +58,8 @@ public:
   bool operator != (const ComponentType& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  std::string export_to_python(std::ostream& out) const override;
-  virtual std::string export_vec_states(std::ostream& out) const;
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
+  virtual std::string export_vec_states(std::ostream& out, PythonExportContext& ctx) const;
 
 
   // --- attributes ---

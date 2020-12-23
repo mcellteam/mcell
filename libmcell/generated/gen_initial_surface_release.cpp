@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_initial_surface_release.h"
 #include "api/initial_surface_release.h"
 #include "api/complex.h"
@@ -114,11 +115,16 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
     ;
 }
 
-std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "initial_surface_release_" + std::to_string(ctx.postinc_counter("initial_surface_release"));
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenInitialSurfaceRelease(\n";
-  ss << "  complex = " << complex->export_to_python(out) << ",\n";
+  ss << exported_name << " = InitialSurfaceRelease(\n";
+  ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
   if (number_to_release != INT_UNSET) {
     ss << "  number_to_release = " << number_to_release << ",\n";
   }
@@ -127,7 +133,7 @@ std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out) const 
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
 } // namespace API

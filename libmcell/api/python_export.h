@@ -20,20 +20,36 @@
  *
 ******************************************************************************/
 
-#include <sstream>
-#include "libs/pybind11/include/pybind11/stl.h"
-#include "api/python_export.h"
-#include "gen_bngl_utils.h"
+#ifndef LIBMCELL_API_PYTHON_EXPORT_H_
+#define LIBMCELL_API_PYTHON_EXPORT_H_
+
+#include "defines.h"
 
 namespace MCell {
 namespace API {
 
-void define_pybinding_bngl_utils(py::module& m) {
-  m.def_submodule("bngl_utils")
-      .def("load_bngl_parameters", &bngl_utils::load_bngl_parameters, py::arg("file_name"), py::arg("parameter_overrides") = std::map<std::string, float_t>())
-    ;
-}
+class BaseDataClass;
+
+// class used to hold data when exporting objects to Python, e.g. for checkpointing
+class PythonExportContext {
+public:
+  bool already_exported(const BaseDataClass* obj) const;
+  std::string get_exported_name(const BaseDataClass* obj) const;
+  void add_exported(const BaseDataClass* obj, const std::string& name);
+
+  // returns current counter value (starts at 0) and increments counter for the current
+  // class
+  uint postinc_counter(const std::string& underscored_class_name);
+private:
+  std::map<const BaseDataClass*, std::string> exported_objects;
+
+  std::map<std::string, uint> counters;
+};
+
+// replace all characters that cannot be present in an identifier
+std::string fix_id(const std::string& str);
 
 } // namespace API
 } // namespace MCell
 
+#endif /* LIBMCELL_API_PYTHON_EXPORT_H_ */

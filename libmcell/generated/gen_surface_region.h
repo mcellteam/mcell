@@ -34,6 +34,7 @@ class SurfaceRegion;
 class InitialSurfaceRelease;
 class Region;
 class SurfaceClass;
+class PythonExportContext;
 
 #define SURFACE_REGION_CTOR() \
     SurfaceRegion( \
@@ -76,9 +77,9 @@ public:
   bool operator != (const SurfaceRegion& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  virtual std::string export_to_python(std::ostream& out) const;
-  virtual std::string export_vec_wall_indices(std::ostream& out) const;
-  virtual std::string export_vec_initial_surface_releases(std::ostream& out) const;
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const;
+  virtual std::string export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx) const;
+  virtual std::string export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx) const;
 
 
   // --- attributes ---

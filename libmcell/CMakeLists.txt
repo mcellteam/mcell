@@ -47,6 +47,7 @@ set(SOURCE_FILES
     api/globals.cpp
     api/mcell4_converter.cpp
     api/callbacks.cpp
+    api/python_export.cpp
     
     api/molecule.cpp
     api/wall.cpp

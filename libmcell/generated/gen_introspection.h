@@ -33,6 +33,7 @@ class GeometryObject;
 class Molecule;
 class Species;
 class Wall;
+class PythonExportContext;
 
 class GenIntrospection {
 public:

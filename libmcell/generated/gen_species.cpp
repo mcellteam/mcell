@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_species.h"
 #include "api/species.h"
 #include "api/complex.h"
@@ -135,10 +136,15 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
     ;
 }
 
-std::string GenSpecies::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = fix_id(name);
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenSpecies(\n";
+  ss << exported_name << " = Species(\n";
   if (name != STR_UNSET) {
     ss << "  name = " << name << ",\n";
   }
@@ -161,7 +167,7 @@ std::string GenSpecies::export_to_python(std::ostream& out) const {
     ss << "  name = " << name << ",\n";
   }
   if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>()) {
-    ss << "  elementary_molecules = " << export_vec_elementary_molecules(out) << ",\n";
+    ss << "  elementary_molecules = " << export_vec_elementary_molecules(out, ctx) << ",\n";
   }
   if (orientation != Orientation::DEFAULT) {
     ss << "  orientation = " << orientation << ",\n";
@@ -171,10 +177,10 @@ std::string GenSpecies::export_to_python(std::ostream& out) const {
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenSpecies::export_vec_elementary_molecules(std::ostream& out) const {
+std::string GenSpecies::export_vec_elementary_molecules(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

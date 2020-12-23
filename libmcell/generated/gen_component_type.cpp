@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_component_type.h"
 #include "api/component_type.h"
 #include "api/component.h"
@@ -87,20 +88,25 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
     ;
 }
 
-std::string GenComponentType::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenComponentType::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = fix_id(name);
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenComponentType(\n";
+  ss << exported_name << " = ComponentType(\n";
   ss << "  name = " << name << ",\n";
   if (states != std::vector<std::string>()) {
-    ss << "  states = " << export_vec_states(out) << ",\n";
+    ss << "  states = " << export_vec_states(out, ctx) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenComponentType::export_vec_states(std::ostream& out) const {
+std::string GenComponentType::export_vec_states(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

@@ -33,6 +33,7 @@ class GeometryObject;
 class Region;
 class ReleaseSite;
 class Subsystem;
+class PythonExportContext;
 
 class GenInstantiation {
 public:

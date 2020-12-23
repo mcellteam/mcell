@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_region.h"
 #include "api/region.h"
 #include "api/region.h"
@@ -137,22 +138,27 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
     ;
 }
 
-std::string GenRegion::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenRegion::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "region_" + std::to_string(ctx.postinc_counter("region"));
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenRegion(\n";
+  ss << exported_name << " = Region(\n";
   if (node_type != RegionNodeType::UNSET) {
     ss << "  node_type = " << node_type << ",\n";
   }
   if (is_set(left_node)) {
-    ss << "  left_node = " << left_node->export_to_python(out) << ",\n";
+    ss << "  left_node = " << left_node->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(right_node)) {
-    ss << "  right_node = " << right_node->export_to_python(out) << ",\n";
+    ss << "  right_node = " << right_node->export_to_python(out, ctx) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
 } // namespace API

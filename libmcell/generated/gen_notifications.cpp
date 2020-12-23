@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_notifications.h"
 #include "api/notifications.h"
 
@@ -87,10 +88,15 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
     ;
 }
 
-std::string GenNotifications::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenNotifications::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "notifications_" + std::to_string(ctx.postinc_counter("notifications"));
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenNotifications(\n";
+  ss << exported_name << " = Notifications(\n";
   if (bng_verbosity_level != 0) {
     ss << "  bng_verbosity_level = " << bng_verbosity_level << ",\n";
   }
@@ -102,7 +108,7 @@ std::string GenNotifications::export_to_python(std::ostream& out) const {
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
 } // namespace API

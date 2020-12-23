@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_molecule_release_info.h"
 #include "api/molecule_release_info.h"
 #include "api/complex.h"
@@ -110,18 +111,23 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
     ;
 }
 
-std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "molecule_release_info_" + std::to_string(ctx.postinc_counter("molecule_release_info"));
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenMoleculeReleaseInfo(\n";
-  ss << "  complex = " << complex->export_to_python(out) << ",\n";
-  ss << "  location = " << export_vec_location(out) << ",\n";
+  ss << exported_name << " = MoleculeReleaseInfo(\n";
+  ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
+  ss << "  location = " << export_vec_location(out, ctx) << ",\n";
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out) const {
+std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

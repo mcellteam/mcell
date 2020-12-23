@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_release_pattern.h"
 #include "api/release_pattern.h"
 
@@ -101,10 +102,15 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
     ;
 }
 
-std::string GenReleasePattern::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenReleasePattern::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = fix_id(name);
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenReleasePattern(\n";
+  ss << exported_name << " = ReleasePattern(\n";
   if (name != STR_UNSET) {
     ss << "  name = " << name << ",\n";
   }
@@ -122,7 +128,7 @@ std::string GenReleasePattern::export_to_python(std::ostream& out) const {
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
 } // namespace API

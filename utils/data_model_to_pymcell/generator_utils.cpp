@@ -334,42 +334,6 @@ string fix_param_id(const std::string& str) {
 }
 
 
-string fix_id(const std::string& str) {
-  string res;
-  for (char c: str) {
-    if (c == '+') {
-      res += "_plus_";
-    }
-    else if (c == '-') {
-      res += "_minus_";
-    }
-    else if (c == '?') {
-      res += "_anybond_";
-    }
-    else if (c == '!') {
-      res += "_bond_";
-    }
-    else if (c == '(') {
-      res += "_ps_";
-    }
-    else if (c == ')') {
-      res += "_pe_";
-    }
-    else if (
-        c == ' ' || c == '.' || c == '_' ||
-        c == ',' || c == '~') {
-      res += "_";
-    }
-    else if (isalnum(c)) {
-      res += c;
-    }
-    // ignoring the rest of the characters
-  }
-  return res;
-}
-
-
-
 string reaction_name_to_id(const string& json_name) {
   string res_name = json_name;
   replace(res_name.begin(), res_name.end(), ' ', '_');

@@ -31,6 +31,7 @@ namespace API {
 
 class VizOutput;
 class Species;
+class PythonExportContext;
 
 #define VIZ_OUTPUT_CTOR() \
     VizOutput( \
@@ -61,8 +62,8 @@ public:
   bool operator != (const VizOutput& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  std::string export_to_python(std::ostream& out) const override;
-  virtual std::string export_vec_species_list(std::ostream& out) const;
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
+  virtual std::string export_vec_species_list(std::ostream& out, PythonExportContext& ctx) const;
 
 
   // --- attributes ---

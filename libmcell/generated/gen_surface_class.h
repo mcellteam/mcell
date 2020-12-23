@@ -33,6 +33,7 @@ namespace API {
 class SurfaceClass;
 class Complex;
 class SurfaceProperty;
+class PythonExportContext;
 
 #define SURFACE_CLASS_CTOR() \
     SurfaceClass( \
@@ -71,8 +72,8 @@ public:
   bool operator != (const SurfaceClass& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  virtual std::string export_to_python(std::ostream& out) const;
-  virtual std::string export_vec_properties(std::ostream& out) const;
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const;
+  virtual std::string export_vec_properties(std::ostream& out, PythonExportContext& ctx) const;
 
 
   // --- attributes ---

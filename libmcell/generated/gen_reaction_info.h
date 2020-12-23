@@ -31,6 +31,7 @@ namespace API {
 class ReactionInfo;
 class GeometryObject;
 class ReactionRule;
+class PythonExportContext;
 
 class GenReactionInfo {
 public:

@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_viz_output.h"
 #include "api/viz_output.h"
 #include "api/species.h"
@@ -99,13 +100,18 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
     ;
 }
 
-std::string GenVizOutput::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "viz_output_" + std::to_string(ctx.postinc_counter("viz_output"));
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenVizOutput(\n";
+  ss << exported_name << " = VizOutput(\n";
   ss << "  output_files_prefix = " << output_files_prefix << ",\n";
   if (species_list != std::vector<std::shared_ptr<Species>>()) {
-    ss << "  species_list = " << export_vec_species_list(out) << ",\n";
+    ss << "  species_list = " << export_vec_species_list(out, ctx) << ",\n";
   }
   if (mode != VizMode::ASCII) {
     ss << "  mode = " << mode << ",\n";
@@ -115,10 +121,10 @@ std::string GenVizOutput::export_to_python(std::ostream& out) const {
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenVizOutput::export_vec_species_list(std::ostream& out) const {
+std::string GenVizOutput::export_vec_species_list(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

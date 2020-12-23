@@ -30,6 +30,7 @@ import yaml
 import re
 from datetime import datetime
 from copy import copy
+from pyexpat import model
 
 VERBOSE = False # may be overridden by argument -v 
 
@@ -182,7 +183,11 @@ DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
 DECL_TO_STR = 'to_str(const std::string ind) const'
 
 RET_TYPE_EXPORT_TO_PYTHON = 'std::string' 
-DECL_EXPORT_TO_PYTHON = 'export_to_python(std::ostream& out) const'
+
+CTX = 'ctx'
+EXPORTED_NAME = 'exported_name'
+EXPORT_TO_PYTHON_ARGS = 'std::ostream& out, PythonExportContext& ' + CTX
+DECL_EXPORT_TO_PYTHON = 'export_to_python(' + EXPORT_TO_PYTHON_ARGS + ') const'
 #CUSTOM_EXPORT_PREFIX = 'custom_export_'
 EXPORT_VEC_PREFIX = 'export_vec_'
 
@@ -207,6 +212,7 @@ CONSTANT_VALUE_PREFIX = 'CV_'
 
 INCLUDE_API_MCELL_H = '#include "api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "api/common.h"'
+INCLUDE_API_PYTHON_EXPORT_H = '#include "api/python_export.h"'
 INCLUDE_API_BASE_DATA_CLASS_H = '#include "api/base_data_class.h"'
 INCLUDE_API_BASE_INTROSPECTION_CLASS_H = '#include "api/base_introspection_class.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
@@ -480,6 +486,13 @@ def get_default_or_unset_value_py(attr):
             #    res = get_cpp_bool_string(res)
     
     return PY_NONE
+
+
+def has_item_w_name(items, item_name):
+    for item in items:
+        if item_name == item[KEY_NAME]:
+            return True
+    return False
 
 
 def write_generated_notice(f):
@@ -842,6 +855,8 @@ def write_forward_decls(f, class_def, class_name):
     for t in types:
         f.write('class ' + t + ';\n')
         
+    f.write('class PythonExportContext;\n')
+        
     f.write('\n')
 
     
@@ -1008,8 +1023,7 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
 def write_vec_export(f, gen_class_name, item):
     
     name_w_args = \
-        EXPORT_VEC_PREFIX + item[KEY_NAME] + \
-        '(std::ostream& out) const'
+        EXPORT_VEC_PREFIX + item[KEY_NAME] + '(' + EXPORT_TO_PYTHON_ARGS + ') const'
     decl = '  virtual ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + name_w_args + ';\n'
     f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + name_w_args + " {\n")
     f.write('  return ""; //TODO\n')
@@ -1036,16 +1050,31 @@ def write_export_to_python_implementation(f, class_name, class_def):
     
     export_vecs_to_define = []
     
-    # TODO create name if it does not exist/is not set 
-    if KEY_NAME not in items:
-        f.write('  std::string name = "TODO";\n')
+    if class_name != CLASS_NAME_MODEL:
+        f.write(
+            '  if (' + CTX + '.already_exported(this)) {\n' +
+            '    return ' + CTX + '.get_exported_name(this);\n' +
+            '  }\n'
+        )
         
-    res_name = ATTR_NAME_NAME
+        # name generation 
+        f.write('  std::string ' + EXPORTED_NAME + ' = ') 
+        if not has_item_w_name(items, ATTR_NAME_NAME):
+            name_underscored = get_underscored(class_name)
+            f.write('"' + name_underscored + '_" + ' + 
+                    'std::to_string(' + CTX + '.postinc_counter("' + name_underscored + '"));\n')
+        else:
+            f.write('fix_id(name);\n')
+            
+        f.write('  ' + CTX + '.add_exported(this, ' + EXPORTED_NAME + ');\n\n')
+    else:
+        f.write('  std::string ' + EXPORTED_NAME + ' = "model";\n\n') 
+        
     
     f.write('  std::stringstream ss;\n')
     out = '  ss << '
     out_ind = '  ' + out
-    f.write(out + res_name + ' << " = ' + gen_class_name + '(\\n";\n')
+    f.write(out + EXPORTED_NAME + ' << " = ' + class_name + '(\\n";\n')
     for item in items:
         type = item[KEY_TYPE]
         name = item[KEY_NAME]
@@ -1061,12 +1090,12 @@ def write_export_to_python_implementation(f, class_name, class_def):
                     
         #f.write(CUSTOM_EXPORT_PREFIX + name + '(out) << ",\\n";\n')
         if is_yaml_list_type(type):
-            f.write(EXPORT_VEC_PREFIX + name + '(out) << ",\\n";\n')
+            f.write(EXPORT_VEC_PREFIX + name + '(out, ' + CTX + ') << ",\\n";\n')
             export_vecs_to_define.append(item)
         elif is_yaml_ptr_type(type):
-            f.write(name + '->export_to_python(out) << ",\\n";\n')
+            f.write(name + '->export_to_python(out, ' + CTX + ') << ",\\n";\n')
         elif not is_base_yaml_type(type) and type not in g_enums:
-            f.write(name + '.export_to_python(out) << ",\\n";\n')
+            f.write(name + '.export_to_python(out, ' + CTX + ') << ",\\n";\n')
         else:
             # using operators << for enums
             f.write(name + ' << ",\\n";\n')
@@ -1076,7 +1105,7 @@ def write_export_to_python_implementation(f, class_name, class_def):
             
     f.write(out + '")\\n\\n";\n')
     f.write('  out << ss.str();\n')
-    f.write('  return ' + res_name + ';\n')
+    f.write('  return ' + EXPORTED_NAME + ';\n')
     f.write('}\n\n')
     
     # also define export vec methods
@@ -1353,6 +1382,8 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         
         f.write('#include <sstream>\n')
         f.write('#include "libs/pybind11/include/pybind11/stl.h"\n')
+        f.write('#include "api/python_export.h"\n')
+
 
         # includes for our class
         f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')

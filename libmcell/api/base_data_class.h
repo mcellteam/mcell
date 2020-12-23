@@ -28,6 +28,7 @@
 namespace MCell {
 namespace API {
 
+class PythonExportContext;
 
 // base class for all classes that hold the model input data
 class BaseDataClass {
@@ -88,7 +89,7 @@ public:
     cached_data_are_uptodate = false;
   };
 
-  virtual std::string export_to_python(std::ostream& out) const {
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const {
     assert(false);
     return "Export to Python for a derived class is not implemented.";
   }

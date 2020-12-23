@@ -30,6 +30,7 @@ namespace MCell {
 namespace API {
 
 class ReleasePattern;
+class PythonExportContext;
 
 #define RELEASE_PATTERN_CTOR() \
     ReleasePattern( \
@@ -62,7 +63,7 @@ public:
   bool operator != (const ReleasePattern& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  std::string export_to_python(std::ostream& out) const override;
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
 
 
   // --- attributes ---

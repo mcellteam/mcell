@@ -37,6 +37,7 @@
 #include "libmcell/generated/gen_names.h"
 #include "libmcell/api/common.h"
 #include "libmcell/api/api_utils.h"
+#include "libmcell/api/python_export.h"
 #include "include/datamodel_defines.h"
 
 #include "generator_constants.h"
@@ -48,6 +49,7 @@ namespace MCell {
 
 using Json::Value;
 using API::S;
+using API::fix_id;
 
 typedef invalid_argument ConversionError;
 
@@ -155,9 +157,6 @@ static string fix_dots_in_simple_species(const string& s) {
 }
 
 string fix_param_id(const std::string& str);
-
-string fix_id(const std::string& str);
-
 
 // replaces '.' with '_' and does potentially other conversions
 static string make_id(const string& s) {

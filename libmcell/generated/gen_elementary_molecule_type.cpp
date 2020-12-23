@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_elementary_molecule_type.h"
 #include "api/elementary_molecule_type.h"
 #include "api/component.h"
@@ -124,13 +125,18 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
     ;
 }
 
-std::string GenElementaryMoleculeType::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenElementaryMoleculeType::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = fix_id(name);
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenElementaryMoleculeType(\n";
+  ss << exported_name << " = ElementaryMoleculeType(\n";
   ss << "  name = " << name << ",\n";
   if (components != std::vector<std::shared_ptr<ComponentType>>()) {
-    ss << "  components = " << export_vec_components(out) << ",\n";
+    ss << "  components = " << export_vec_components(out, ctx) << ",\n";
   }
   if (diffusion_constant_2d != FLT_UNSET) {
     ss << "  diffusion_constant_2d = " << diffusion_constant_2d << ",\n";
@@ -149,10 +155,10 @@ std::string GenElementaryMoleculeType::export_to_python(std::ostream& out) const
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenElementaryMoleculeType::export_vec_components(std::ostream& out) const {
+std::string GenElementaryMoleculeType::export_vec_components(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

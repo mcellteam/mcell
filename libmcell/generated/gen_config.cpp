@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_config.h"
 #include "api/config.h"
 
@@ -164,10 +165,15 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
     ;
 }
 
-std::string GenConfig::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "config_" + std::to_string(ctx.postinc_counter("config"));
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenConfig(\n";
+  ss << exported_name << " = Config(\n";
   if (seed != 1) {
     ss << "  seed = " << seed << ",\n";
   }
@@ -190,7 +196,7 @@ std::string GenConfig::export_to_python(std::ostream& out) const {
     ss << "  center_molecules_on_grid = " << center_molecules_on_grid << ",\n";
   }
   if (initial_partition_origin != std::vector<float_t>()) {
-    ss << "  initial_partition_origin = " << export_vec_initial_partition_origin(out) << ",\n";
+    ss << "  initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx) << ",\n";
   }
   if (partition_dimension != 10) {
     ss << "  partition_dimension = " << partition_dimension << ",\n";
@@ -212,10 +218,10 @@ std::string GenConfig::export_to_python(std::ostream& out) const {
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out) const {
+std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

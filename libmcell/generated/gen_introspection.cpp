@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_introspection.h"
 #include "api/introspection.h"
 #include "api/geometry_object.h"

@@ -35,6 +35,7 @@ class Complex;
 class CountTerm;
 class ReactionRule;
 class Region;
+class PythonExportContext;
 
 #define COUNT_CTOR() \
     Count( \
@@ -91,7 +92,7 @@ public:
   bool operator != (const Count& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  virtual std::string export_to_python(std::ostream& out) const;
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const;
 
 
   // --- attributes ---

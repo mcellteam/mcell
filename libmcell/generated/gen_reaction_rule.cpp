@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_reaction_rule.h"
 #include "api/reaction_rule.h"
 #include "api/complex.h"
@@ -126,18 +127,23 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
     ;
 }
 
-std::string GenReactionRule::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = fix_id(name);
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenReactionRule(\n";
+  ss << exported_name << " = ReactionRule(\n";
   if (name != STR_UNSET) {
     ss << "  name = " << name << ",\n";
   }
   if (reactants != std::vector<std::shared_ptr<Complex>>()) {
-    ss << "  reactants = " << export_vec_reactants(out) << ",\n";
+    ss << "  reactants = " << export_vec_reactants(out, ctx) << ",\n";
   }
   if (products != std::vector<std::shared_ptr<Complex>>()) {
-    ss << "  products = " << export_vec_products(out) << ",\n";
+    ss << "  products = " << export_vec_products(out, ctx) << ",\n";
   }
   if (fwd_rate != FLT_UNSET) {
     ss << "  fwd_rate = " << fwd_rate << ",\n";
@@ -149,25 +155,25 @@ std::string GenReactionRule::export_to_python(std::ostream& out) const {
     ss << "  rev_rate = " << rev_rate << ",\n";
   }
   if (variable_rate != std::vector<std::vector<float_t>>()) {
-    ss << "  variable_rate = " << export_vec_variable_rate(out) << ",\n";
+    ss << "  variable_rate = " << export_vec_variable_rate(out, ctx) << ",\n";
   }
   if (is_intermembrane_surface_reaction != false) {
     ss << "  is_intermembrane_surface_reaction = " << is_intermembrane_surface_reaction << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenReactionRule::export_vec_reactants(std::ostream& out) const {
+std::string GenReactionRule::export_vec_reactants(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenReactionRule::export_vec_products(std::ostream& out) const {
+std::string GenReactionRule::export_vec_products(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenReactionRule::export_vec_variable_rate(std::ostream& out) const {
+std::string GenReactionRule::export_vec_variable_rate(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

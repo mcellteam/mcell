@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_model.h"
 #include "api/model.h"
 #include "api/config.h"
@@ -166,77 +167,78 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
     ;
 }
 
-std::string GenModel::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  std::string exported_name = "model";
+
   std::stringstream ss;
-  ss << name << " = GenModel(\n";
+  ss << exported_name << " = Model(\n";
   if (config != Config()) {
-    ss << "  config = " << config.export_to_python(out) << ",\n";
+    ss << "  config = " << config.export_to_python(out, ctx) << ",\n";
   }
   if (warnings != Warnings()) {
-    ss << "  warnings = " << warnings.export_to_python(out) << ",\n";
+    ss << "  warnings = " << warnings.export_to_python(out, ctx) << ",\n";
   }
   if (notifications != Notifications()) {
-    ss << "  notifications = " << notifications.export_to_python(out) << ",\n";
+    ss << "  notifications = " << notifications.export_to_python(out, ctx) << ",\n";
   }
   if (species != std::vector<std::shared_ptr<Species>>()) {
-    ss << "  species = " << export_vec_species(out) << ",\n";
+    ss << "  species = " << export_vec_species(out, ctx) << ",\n";
   }
   if (reaction_rules != std::vector<std::shared_ptr<ReactionRule>>()) {
-    ss << "  reaction_rules = " << export_vec_reaction_rules(out) << ",\n";
+    ss << "  reaction_rules = " << export_vec_reaction_rules(out, ctx) << ",\n";
   }
   if (surface_classes != std::vector<std::shared_ptr<SurfaceClass>>()) {
-    ss << "  surface_classes = " << export_vec_surface_classes(out) << ",\n";
+    ss << "  surface_classes = " << export_vec_surface_classes(out, ctx) << ",\n";
   }
   if (elementary_molecule_types != std::vector<std::shared_ptr<ElementaryMoleculeType>>()) {
-    ss << "  elementary_molecule_types = " << export_vec_elementary_molecule_types(out) << ",\n";
+    ss << "  elementary_molecule_types = " << export_vec_elementary_molecule_types(out, ctx) << ",\n";
   }
   if (release_sites != std::vector<std::shared_ptr<ReleaseSite>>()) {
-    ss << "  release_sites = " << export_vec_release_sites(out) << ",\n";
+    ss << "  release_sites = " << export_vec_release_sites(out, ctx) << ",\n";
   }
   if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>()) {
-    ss << "  geometry_objects = " << export_vec_geometry_objects(out) << ",\n";
+    ss << "  geometry_objects = " << export_vec_geometry_objects(out, ctx) << ",\n";
   }
   if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>()) {
-    ss << "  viz_outputs = " << export_vec_viz_outputs(out) << ",\n";
+    ss << "  viz_outputs = " << export_vec_viz_outputs(out, ctx) << ",\n";
   }
   if (counts != std::vector<std::shared_ptr<Count>>()) {
-    ss << "  counts = " << export_vec_counts(out) << ",\n";
+    ss << "  counts = " << export_vec_counts(out, ctx) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenModel::export_vec_species(std::ostream& out) const {
+std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenModel::export_vec_reaction_rules(std::ostream& out) const {
+std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenModel::export_vec_surface_classes(std::ostream& out) const {
+std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out) const {
+std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenModel::export_vec_release_sites(std::ostream& out) const {
+std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenModel::export_vec_geometry_objects(std::ostream& out) const {
+std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenModel::export_vec_viz_outputs(std::ostream& out) const {
+std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenModel::export_vec_counts(std::ostream& out) const {
+std::string GenModel::export_vec_counts(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

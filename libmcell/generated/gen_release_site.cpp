@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_release_site.h"
 #include "api/release_site.h"
 #include "api/complex.h"
@@ -241,28 +242,33 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
     ;
 }
 
-std::string GenReleaseSite::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = fix_id(name);
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenReleaseSite(\n";
+  ss << exported_name << " = ReleaseSite(\n";
   ss << "  name = " << name << ",\n";
   if (is_set(complex)) {
-    ss << "  complex = " << complex->export_to_python(out) << ",\n";
+    ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
   }
   if (molecule_list != std::vector<std::shared_ptr<MoleculeReleaseInfo>>()) {
-    ss << "  molecule_list = " << export_vec_molecule_list(out) << ",\n";
+    ss << "  molecule_list = " << export_vec_molecule_list(out, ctx) << ",\n";
   }
   if (release_time != 0) {
     ss << "  release_time = " << release_time << ",\n";
   }
   if (is_set(release_pattern)) {
-    ss << "  release_pattern = " << release_pattern->export_to_python(out) << ",\n";
+    ss << "  release_pattern = " << release_pattern->export_to_python(out, ctx) << ",\n";
   }
   if (shape != Shape::UNSET) {
     ss << "  shape = " << shape << ",\n";
   }
   if (is_set(region)) {
-    ss << "  region = " << region->export_to_python(out) << ",\n";
+    ss << "  region = " << region->export_to_python(out, ctx) << ",\n";
   }
   if (location != VEC3_UNSET) {
     ss << "  location = " << location << ",\n";
@@ -287,10 +293,10 @@ std::string GenReleaseSite::export_to_python(std::ostream& out) const {
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out) const {
+std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

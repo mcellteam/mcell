@@ -30,6 +30,7 @@ namespace MCell {
 namespace API {
 
 class Region;
+class PythonExportContext;
 
 #define REGION_CTOR() \
     Region( \
@@ -58,7 +59,7 @@ public:
   bool operator != (const Region& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  std::string export_to_python(std::ostream& out) const override;
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
 
 
   // --- attributes ---

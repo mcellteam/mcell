@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_count.h"
 #include "api/count.h"
 #include "api/complex.h"
@@ -309,10 +310,15 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
     ;
 }
 
-std::string GenCount::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = fix_id(name);
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenCount(\n";
+  ss << exported_name << " = Count(\n";
   if (name != STR_UNSET) {
     ss << "  name = " << name << ",\n";
   }
@@ -320,7 +326,7 @@ std::string GenCount::export_to_python(std::ostream& out) const {
     ss << "  file_name = " << file_name << ",\n";
   }
   if (is_set(count_expression)) {
-    ss << "  count_expression = " << count_expression->export_to_python(out) << ",\n";
+    ss << "  count_expression = " << count_expression->export_to_python(out, ctx) << ",\n";
   }
   if (multiplier != 1) {
     ss << "  multiplier = " << multiplier << ",\n";
@@ -329,29 +335,29 @@ std::string GenCount::export_to_python(std::ostream& out) const {
     ss << "  every_n_timesteps = " << every_n_timesteps << ",\n";
   }
   if (is_set(species_pattern)) {
-    ss << "  species_pattern = " << species_pattern->export_to_python(out) << ",\n";
+    ss << "  species_pattern = " << species_pattern->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(molecules_pattern)) {
-    ss << "  molecules_pattern = " << molecules_pattern->export_to_python(out) << ",\n";
+    ss << "  molecules_pattern = " << molecules_pattern->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(reaction_rule)) {
-    ss << "  reaction_rule = " << reaction_rule->export_to_python(out) << ",\n";
+    ss << "  reaction_rule = " << reaction_rule->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(region)) {
-    ss << "  region = " << region->export_to_python(out) << ",\n";
+    ss << "  region = " << region->export_to_python(out, ctx) << ",\n";
   }
   if (node_type != ExprNodeType::LEAF) {
     ss << "  node_type = " << node_type << ",\n";
   }
   if (is_set(left_node)) {
-    ss << "  left_node = " << left_node->export_to_python(out) << ",\n";
+    ss << "  left_node = " << left_node->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(right_node)) {
-    ss << "  right_node = " << right_node->export_to_python(out) << ",\n";
+    ss << "  right_node = " << right_node->export_to_python(out, ctx) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
 } // namespace API

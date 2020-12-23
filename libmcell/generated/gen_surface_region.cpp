@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_surface_region.h"
 #include "api/surface_region.h"
 #include "api/initial_surface_release.h"
@@ -191,37 +192,42 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
     ;
 }
 
-std::string GenSurfaceRegion::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = fix_id(name);
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenSurfaceRegion(\n";
+  ss << exported_name << " = SurfaceRegion(\n";
   ss << "  name = " << name << ",\n";
-  ss << "  wall_indices = " << export_vec_wall_indices(out) << ",\n";
+  ss << "  wall_indices = " << export_vec_wall_indices(out, ctx) << ",\n";
   if (is_set(surface_class)) {
-    ss << "  surface_class = " << surface_class->export_to_python(out) << ",\n";
+    ss << "  surface_class = " << surface_class->export_to_python(out, ctx) << ",\n";
   }
   if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>()) {
-    ss << "  initial_surface_releases = " << export_vec_initial_surface_releases(out) << ",\n";
+    ss << "  initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx) << ",\n";
   }
   if (node_type != RegionNodeType::UNSET) {
     ss << "  node_type = " << node_type << ",\n";
   }
   if (is_set(left_node)) {
-    ss << "  left_node = " << left_node->export_to_python(out) << ",\n";
+    ss << "  left_node = " << left_node->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(right_node)) {
-    ss << "  right_node = " << right_node->export_to_python(out) << ",\n";
+    ss << "  right_node = " << right_node->export_to_python(out, ctx) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
-std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out) const {
+std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 
-std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out) const {
+std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx) const {
   return ""; //TODO
 }
 

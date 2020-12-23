@@ -31,6 +31,7 @@ namespace API {
 
 class Molecule;
 class GeometryObject;
+class PythonExportContext;
 
 #define MOLECULE_CTOR_NOARGS() \
     Molecule( \

@@ -31,6 +31,7 @@ namespace API {
 
 class Wall;
 class GeometryObject;
+class PythonExportContext;
 
 #define WALL_CTOR_NOARGS() \
     Wall( \

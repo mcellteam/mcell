@@ -33,6 +33,7 @@ class ElementaryMoleculeType;
 class ReactionRule;
 class Species;
 class SurfaceClass;
+class PythonExportContext;
 
 class GenSubsystem {
 public:

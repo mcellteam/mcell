@@ -31,6 +31,7 @@ namespace API {
 
 class MoleculeReleaseInfo;
 class Complex;
+class PythonExportContext;
 
 #define MOLECULE_RELEASE_INFO_CTOR() \
     MoleculeReleaseInfo( \
@@ -57,8 +58,8 @@ public:
   bool operator != (const MoleculeReleaseInfo& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  std::string export_to_python(std::ostream& out) const override;
-  virtual std::string export_vec_location(std::ostream& out) const;
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
+  virtual std::string export_vec_location(std::ostream& out, PythonExportContext& ctx) const;
 
 
   // --- attributes ---

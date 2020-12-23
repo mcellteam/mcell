@@ -32,6 +32,7 @@ class Observables;
 class Count;
 class Subsystem;
 class VizOutput;
+class PythonExportContext;
 
 class GenObservables {
 public:

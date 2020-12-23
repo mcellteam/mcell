@@ -33,6 +33,7 @@ class ElementaryMoleculeType;
 class Component;
 class ComponentType;
 class ElementaryMolecule;
+class PythonExportContext;
 
 #define ELEMENTARY_MOLECULE_TYPE_CTOR() \
     ElementaryMoleculeType( \
@@ -69,8 +70,8 @@ public:
   bool operator != (const ElementaryMoleculeType& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  std::string export_to_python(std::ostream& out) const override;
-  virtual std::string export_vec_components(std::ostream& out) const;
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
+  virtual std::string export_vec_components(std::ostream& out, PythonExportContext& ctx) const;
 
 
   // --- attributes ---

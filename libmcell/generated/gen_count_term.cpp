@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
+#include "api/python_export.h"
 #include "gen_count_term.h"
 #include "api/count_term.h"
 #include "api/complex.h"
@@ -259,34 +260,39 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
     ;
 }
 
-std::string GenCountTerm::export_to_python(std::ostream& out) const {
-  std::string name = "TODO";
+std::string GenCountTerm::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  if (ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "count_term_" + std::to_string(ctx.postinc_counter("count_term"));
+  ctx.add_exported(this, exported_name);
+
   std::stringstream ss;
-  ss << name << " = GenCountTerm(\n";
+  ss << exported_name << " = CountTerm(\n";
   if (is_set(species_pattern)) {
-    ss << "  species_pattern = " << species_pattern->export_to_python(out) << ",\n";
+    ss << "  species_pattern = " << species_pattern->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(molecules_pattern)) {
-    ss << "  molecules_pattern = " << molecules_pattern->export_to_python(out) << ",\n";
+    ss << "  molecules_pattern = " << molecules_pattern->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(reaction_rule)) {
-    ss << "  reaction_rule = " << reaction_rule->export_to_python(out) << ",\n";
+    ss << "  reaction_rule = " << reaction_rule->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(region)) {
-    ss << "  region = " << region->export_to_python(out) << ",\n";
+    ss << "  region = " << region->export_to_python(out, ctx) << ",\n";
   }
   if (node_type != ExprNodeType::LEAF) {
     ss << "  node_type = " << node_type << ",\n";
   }
   if (is_set(left_node)) {
-    ss << "  left_node = " << left_node->export_to_python(out) << ",\n";
+    ss << "  left_node = " << left_node->export_to_python(out, ctx) << ",\n";
   }
   if (is_set(right_node)) {
-    ss << "  right_node = " << right_node->export_to_python(out) << ",\n";
+    ss << "  right_node = " << right_node->export_to_python(out, ctx) << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
-  return name;
+  return exported_name;
 }
 
 } // namespace API
