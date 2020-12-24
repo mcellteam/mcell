@@ -120,7 +120,7 @@ std::string GenSurfaceProperty::export_to_python(std::ostream& out, PythonExport
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = SurfaceProperty(\n";
+  ss << exported_name << " = m.SurfaceProperty(\n";
   if (type != SurfacePropertyType::UNSET) {
     ss << "  type = " << type << ",\n";
   }

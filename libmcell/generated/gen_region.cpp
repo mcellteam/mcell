@@ -146,7 +146,7 @@ std::string GenRegion::export_to_python(std::ostream& out, PythonExportContext& 
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = Region(\n";
+  ss << exported_name << " = m.Region(\n";
   if (node_type != RegionNodeType::UNSET) {
     ss << "  node_type = " << node_type << ",\n";
   }

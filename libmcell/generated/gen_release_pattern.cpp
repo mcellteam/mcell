@@ -106,13 +106,13 @@ std::string GenReleasePattern::export_to_python(std::ostream& out, PythonExportC
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = fix_id(name);
+  std::string exported_name = "release_pattern_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = ReleasePattern(\n";
+  ss << exported_name << " = m.ReleasePattern(\n";
   if (name != STR_UNSET) {
-    ss << "  name = " << name << ",\n";
+    ss << "  name = " << "'" << name << "'" << ",\n";
   }
   if (release_interval != TIME_INFINITY) {
     ss << "  release_interval = " << release_interval << ",\n";

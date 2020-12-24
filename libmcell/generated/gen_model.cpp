@@ -172,7 +172,7 @@ std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& c
   std::string exported_name = "model";
 
   std::stringstream ss;
-  ss << exported_name << " = Model(\n";
+  ss << exported_name << " = m.Model(\n";
   if (config != Config()) {
     ss << "  config = " << config.export_to_python(out, ctx) << ",\n";
   }
@@ -212,8 +212,9 @@ std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& c
 }
 
 std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_species";
+  // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
+  std::string exported_name = parent_name + "_species";
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < species.size(); i++) {
     const auto& item = species[i];
@@ -226,14 +227,15 @@ std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext&
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
+  ss << "\n]\n\n";
   out << ss.str();
   return exported_name;
 }
 
 std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_reaction_rules";
+  // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
+  std::string exported_name = parent_name + "_reaction_rules";
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < reaction_rules.size(); i++) {
     const auto& item = reaction_rules[i];
@@ -246,14 +248,15 @@ std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportC
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
+  ss << "\n]\n\n";
   out << ss.str();
   return exported_name;
 }
 
 std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_surface_classes";
+  // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
+  std::string exported_name = parent_name + "_surface_classes";
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < surface_classes.size(); i++) {
     const auto& item = surface_classes[i];
@@ -266,14 +269,15 @@ std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExport
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
+  ss << "\n]\n\n";
   out << ss.str();
   return exported_name;
 }
 
 std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_elementary_molecule_types";
+  // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
+  std::string exported_name = parent_name + "_elementary_molecule_types";
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < elementary_molecule_types.size(); i++) {
     const auto& item = elementary_molecule_types[i];
@@ -286,14 +290,15 @@ std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, Py
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
+  ss << "\n]\n\n";
   out << ss.str();
   return exported_name;
 }
 
 std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_release_sites";
+  // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
+  std::string exported_name = parent_name + "_release_sites";
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < release_sites.size(); i++) {
     const auto& item = release_sites[i];
@@ -306,14 +311,15 @@ std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportCo
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
+  ss << "\n]\n\n";
   out << ss.str();
   return exported_name;
 }
 
 std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_geometry_objects";
+  // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
+  std::string exported_name = parent_name + "_geometry_objects";
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < geometry_objects.size(); i++) {
     const auto& item = geometry_objects[i];
@@ -326,14 +332,15 @@ std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExpor
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
+  ss << "\n]\n\n";
   out << ss.str();
   return exported_name;
 }
 
 std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_viz_outputs";
+  // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
+  std::string exported_name = parent_name + "_viz_outputs";
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < viz_outputs.size(); i++) {
     const auto& item = viz_outputs[i];
@@ -346,14 +353,15 @@ std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportCont
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
+  ss << "\n]\n\n";
   out << ss.str();
   return exported_name;
 }
 
 std::string GenModel::export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_counts";
+  // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
+  std::string exported_name = parent_name + "_counts";
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < counts.size(); i++) {
     const auto& item = counts[i];
@@ -366,7 +374,7 @@ std::string GenModel::export_vec_counts(std::ostream& out, PythonExportContext& 
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
+  ss << "\n]\n\n";
   out << ss.str();
   return exported_name;
 }

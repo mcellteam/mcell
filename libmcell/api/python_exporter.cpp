@@ -25,6 +25,7 @@
 #include "api/python_export_utils.h"
 #include "api/model.h"
 #include "world.h"
+#include "src/util.h"
 
 namespace MCell {
 namespace API {
@@ -38,12 +39,30 @@ PythonExporter::PythonExporter(Model* model_) :
 }
 
 
-void PythonExporter::save_checkpoint(const std::string& dir) {
+void PythonExporter::open_and_check_file(
+    const std::string file_name, std::ofstream& out,
+    const bool for_append,
+    const bool bngl) {
+
+  open_and_check_file_w_prefix(output_dir, file_name, out, for_append, bngl);
+}
+
+
+void PythonExporter::save_checkpoint(const std::string& output_dir_) {
+  output_dir = output_dir_;
+  if (output_dir.back() != BNG::PATH_SEPARATOR) {
+    output_dir += BNG::PATH_SEPARATOR;
+  }
+
+  ::make_parent_dir(output_dir.c_str());
+
+  PythonExportContext ctx;
+
   // parameters
   // - includes rng state
 
   // subsystem
-
+  save_subsystem(ctx);
 
   // geometry
 
@@ -61,6 +80,15 @@ void PythonExporter::save_checkpoint(const std::string& dir) {
   // - notifications
 }
 
+
+void PythonExporter::save_subsystem(PythonExportContext& ctx) {
+  std::ofstream out_subsystem;
+  open_and_check_file(SUBSYSTEM, out_subsystem);
+  out_subsystem << MCELL_IMPORT;
+
+  model->Subsystem::export_to_python(out_subsystem, ctx);
+  out_subsystem.close();
+}
 
 } // namespace API
 } // namespace MCell

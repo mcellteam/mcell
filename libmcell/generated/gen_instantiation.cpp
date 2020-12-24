@@ -74,6 +74,64 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
     ;
 }
 
+std::string GenInstantiation::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  std::string exported_name = "instantiation";
+
+  std::stringstream ss;
+  ss << exported_name << " = m.Instantiation(\n";
+  if (release_sites != std::vector<std::shared_ptr<ReleaseSite>>()) {
+    ss << "  release_sites = " << export_vec_release_sites(out, ctx, exported_name) << ",\n";
+  }
+  if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>()) {
+    ss << "  geometry_objects = " << export_vec_geometry_objects(out, ctx, exported_name) << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenInstantiation::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name = parent_name + "_release_sites";
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < release_sites.size(); i++) {
+    const auto& item = release_sites[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenInstantiation::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name = parent_name + "_geometry_objects";
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < geometry_objects.size(); i++) {
+    const auto& item = geometry_objects[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
 } // namespace API
 } // namespace MCell
 

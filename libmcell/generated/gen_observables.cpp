@@ -70,6 +70,64 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
     ;
 }
 
+std::string GenObservables::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  std::string exported_name = "observables";
+
+  std::stringstream ss;
+  ss << exported_name << " = m.Observables(\n";
+  if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>()) {
+    ss << "  viz_outputs = " << export_vec_viz_outputs(out, ctx, exported_name) << ",\n";
+  }
+  if (counts != std::vector<std::shared_ptr<Count>>()) {
+    ss << "  counts = " << export_vec_counts(out, ctx, exported_name) << ",\n";
+  }
+  ss << ")\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenObservables::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name = parent_name + "_viz_outputs";
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < viz_outputs.size(); i++) {
+    const auto& item = viz_outputs[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenObservables::export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name = parent_name + "_counts";
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < counts.size(); i++) {
+    const auto& item = counts[i];
+    if (i == 0) {
+      ss << "  ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    std::string name = item->export_to_python(out, ctx);
+    ss << name << ", ";
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
 } // namespace API
 } // namespace MCell
 

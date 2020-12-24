@@ -163,6 +163,9 @@ GEN_CLASS_PREFIX = 'Gen'
 BASE_DATA_CLASS = 'BaseDataClass'
 BASE_INTROSPECTION_CLASS = 'BaseIntrospectionClass'
 CLASS_NAME_MODEL = 'Model'
+CLASS_NAME_SUBSYSTEM = 'Subsystem'
+CLASS_NAME_INSTANTIATION = 'Instantiation'
+CLASS_NAME_OBSERVABLES = 'Observables'
 
 CTOR_POSTPROCESS = 'postprocess_in_ctor'
 RET_CTOR_POSTPROCESS = 'void' 
@@ -188,8 +191,8 @@ CTX = 'ctx'
 EXPORTED_NAME = 'exported_name'
 EXPORT_TO_PYTHON_ARGS = 'std::ostream& out, PythonExportContext& ' + CTX
 DECL_EXPORT_TO_PYTHON = 'export_to_python(' + EXPORT_TO_PYTHON_ARGS + ') const'
-#CUSTOM_EXPORT_PREFIX = 'custom_export_'
 EXPORT_VEC_PREFIX = 'export_vec_'
+M_DOT = 'm.'
 
 KEYWORD_OVERRIDE = 'override'
 KEYWORD_VIRTUAL = 'virtual'
@@ -493,6 +496,14 @@ def has_item_w_name(items, item_name):
         if item_name == item[KEY_NAME]:
             return True
     return False
+
+
+def is_container_class(name):
+    return \
+        name == CLASS_NAME_MODEL or \
+        name == CLASS_NAME_SUBSYSTEM or \
+        name == CLASS_NAME_INSTANTIATION or \
+        name == CLASS_NAME_OBSERVABLES
 
 
 def write_generated_notice(f):
@@ -1020,7 +1031,7 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write('}\n\n')                
 
 
-def write_vec_export(f, gen_class_name, item):
+def write_vec_export(f, return_only_name, gen_class_name, item):
     
     item_name = item[KEY_NAME];
     
@@ -1029,11 +1040,20 @@ def write_vec_export(f, gen_class_name, item):
     decl = '  virtual ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + name_w_args + ';\n'
     f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + name_w_args + " {\n")
     
-    f.write('  std::string ' + EXPORTED_NAME + ' = parent_name + "_' + item_name + '";\n')
+    if return_only_name:
+        f.write('  // prints vector into \'out\' and returns name of the generated list\n')
+    else:
+        f.write('  // does not print the array itself to \'out\' and returns the whole list\n')
     
     f.write('  std::stringstream ss;\n')
     out = '  ss << '
-    f.write(out + EXPORTED_NAME + ' << " = [\\n";\n')
+    if return_only_name:
+        f.write('  std::string ' + EXPORTED_NAME + ' = parent_name + "_' + item_name + '";\n')
+        f.write(out + EXPORTED_NAME + ' << " = [\\n";\n')
+        spacing = '  '
+    else:
+        f.write(out + '"[";\n')
+        spacing = ' ' 
 
     type = item[KEY_TYPE]
     assert is_yaml_list_type(type)
@@ -1044,7 +1064,7 @@ def write_vec_export(f, gen_class_name, item):
         '  for (size_t i = 0; i < ' + item_name + '.size(); i++) {\n' +
         '    const auto& item = ' + item_name + '[i];\n' +
         '    if (i == 0) {\n' +
-        '    ' + out + '"  ";\n' +
+        '    ' + out + '"' + spacing + '";\n' +
         '    }\n' +
         '    else if (i % 16 == 0) {\n' +
         '    ' + out + '"\\n  ";\n' +
@@ -1072,33 +1092,15 @@ def write_vec_export(f, gen_class_name, item):
 
     f.write('  }\n')
         
-    f.write(out + '"]\\n\\n";\n')
-    f.write('  out << ss.str();\n')
-    f.write('  return ' + EXPORTED_NAME + ';\n')
-    """
-      for (const auto& item: elementary_molecules) {
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
-  }
-  ss << ']';
-  out << ss.str();
-  return ss.str();
-      
-        f.write(EXPORT_VEC_PREFIX + name + '(out, ' + CTX + ') << ",\\n";\n')
-        export_vecs_to_define.append(item)
-    elif is_yaml_ptr_type(type):
-        f.write(name + '->export_to_python(out, ' + CTX + ') << ",\\n";\n')
-    elif not is_base_yaml_type(type) and type not in g_enums:
-        f.write(name + '.export_to_python(out, ' + CTX + ') << ",\\n";\n')
+    if return_only_name:
+        f.write(out + '"\\n]\\n\\n";\n')
+        f.write('  out << ss.str();\n')
+        f.write('  return ' + EXPORTED_NAME + ';\n')
     else:
-        # using operators << for enums
-        f.write(name + ' << ",\\n";\n')
-            
-    f.write('  return ""; //TODO\n')
-    # TODO
-    
-    return decl 
-    """
+        f.write(out + '"]";\n')
+        f.write('  return ss.str();\n')
+        
+
     f.write('}\n\n')
     return decl 
 
@@ -1120,7 +1122,8 @@ def write_export_to_python_implementation(f, class_name, class_def):
     
     export_vecs_to_define = []
     
-    if class_name != CLASS_NAME_MODEL:
+    name_underscored = get_underscored(class_name)
+    if not is_container_class(class_name):
         f.write(
             '  if (' + CTX + '.already_exported(this)) {\n' +
             '    return ' + CTX + '.get_exported_name(this);\n' +
@@ -1130,23 +1133,27 @@ def write_export_to_python_implementation(f, class_name, class_def):
         # name generation 
         f.write('  std::string ' + EXPORTED_NAME + ' = ') 
         if not has_item_w_name(items, ATTR_NAME_NAME):
-            name_underscored = get_underscored(class_name)
             f.write('"' + name_underscored + '_" + ' + 
                     'std::to_string(' + CTX + '.postinc_counter("' + name_underscored + '"));\n')
         else:
-            f.write('fix_id(name);\n')
+            f.write('"' + name_underscored + '_" + fix_id(name);\n')
             
         f.write('  ' + CTX + '.add_exported(this, ' + EXPORTED_NAME + ');\n\n')
     else:
-        f.write('  std::string ' + EXPORTED_NAME + ' = "model";\n\n') 
+        f.write('  std::string ' + EXPORTED_NAME + ' = "' + name_underscored + '";\n\n') 
         
     
     f.write('  std::stringstream ss;\n')
     out = '  ss << '
-    f.write(out + EXPORTED_NAME + ' << " = ' + class_name + '(\\n";\n')
+    f.write(out + EXPORTED_NAME + ' << " = ' + M_DOT + class_name + '(\\n";\n')
+    processed_items = set()
     for item in items:
         type = item[KEY_TYPE]
         name = item[KEY_NAME]
+        
+        if name in processed_items:
+            continue
+        processed_items.add(name)
 
         if KEY_DEFAULT in item:
             if is_yaml_ptr_type(type):
@@ -1165,6 +1172,8 @@ def write_export_to_python_implementation(f, class_name, class_def):
             f.write(name + '->export_to_python(out, ' + CTX + ') << ",\\n";\n')
         elif not is_base_yaml_type(type) and type not in g_enums:
             f.write(name + '.export_to_python(out, ' + CTX + ') << ",\\n";\n')
+        elif type == YAML_TYPE_STR:
+            f.write('"\'" << name << "\'" << ",\\n";\n')
         else:
             # using operators << for enums
             f.write(name + ' << ",\\n";\n')
@@ -1180,7 +1189,7 @@ def write_export_to_python_implementation(f, class_name, class_def):
     # also define export vec methods
     decls_export_vec = ''
     for item in export_vecs_to_define:
-        decls_export_vec += write_vec_export(f, gen_class_name, item)
+        decls_export_vec += write_vec_export(f, is_container_class(class_name), gen_class_name, item)
     
     # return string that contains declaration of export methods, this will be later used in 
     # .h file generation
@@ -1476,8 +1485,8 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         
         write_pybind11_bindings(f, class_name, class_def)
 
-        # we do not need export for introsce
-        if class_name == CLASS_NAME_MODEL or \
+        # we do not need export for introspected classes
+        if is_container_class(class_name) or \
             (KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] != BASE_INTROSPECTION_CLASS):
             decls += write_export_to_python_implementation(f, class_name, class_def);
         

@@ -140,13 +140,13 @@ std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext&
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = fix_id(name);
+  std::string exported_name = "species_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = Species(\n";
+  ss << exported_name << " = m.Species(\n";
   if (name != STR_UNSET) {
-    ss << "  name = " << name << ",\n";
+    ss << "  name = " << "'" << name << "'" << ",\n";
   }
   if (diffusion_constant_2d != FLT_UNSET) {
     ss << "  diffusion_constant_2d = " << diffusion_constant_2d << ",\n";
@@ -163,9 +163,6 @@ std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext&
   if (target_only != false) {
     ss << "  target_only = " << target_only << ",\n";
   }
-  if (name != STR_UNSET) {
-    ss << "  name = " << name << ",\n";
-  }
   if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>()) {
     ss << "  elementary_molecules = " << export_vec_elementary_molecules(out, ctx, exported_name) << ",\n";
   }
@@ -173,7 +170,7 @@ std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext&
     ss << "  orientation = " << orientation << ",\n";
   }
   if (compartment_name != STR_UNSET) {
-    ss << "  compartment_name = " << compartment_name << ",\n";
+    ss << "  compartment_name = " << "'" << name << "'" << ",\n";
   }
   ss << ")\n\n";
   out << ss.str();
@@ -181,13 +178,13 @@ std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext&
 }
 
 std::string GenSpecies::export_vec_elementary_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_elementary_molecules";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < elementary_molecules.size(); i++) {
     const auto& item = elementary_molecules[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -195,9 +192,8 @@ std::string GenSpecies::export_vec_elementary_molecules(std::ostream& out, Pytho
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

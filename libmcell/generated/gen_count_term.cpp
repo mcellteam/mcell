@@ -268,7 +268,7 @@ std::string GenCountTerm::export_to_python(std::ostream& out, PythonExportContex
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = CountTerm(\n";
+  ss << exported_name << " = m.CountTerm(\n";
   if (is_set(species_pattern)) {
     ss << "  species_pattern = " << species_pattern->export_to_python(out, ctx) << ",\n";
   }

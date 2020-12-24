@@ -119,7 +119,7 @@ std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonEx
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = MoleculeReleaseInfo(\n";
+  ss << exported_name << " = m.MoleculeReleaseInfo(\n";
   ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
   ss << "  location = " << export_vec_location(out, ctx, exported_name) << ",\n";
   ss << ")\n\n";
@@ -128,22 +128,21 @@ std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonEx
 }
 
 std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_location";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < location.size(); i++) {
     const auto& item = location[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
     ss << item << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

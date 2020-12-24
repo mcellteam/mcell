@@ -246,12 +246,12 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = fix_id(name);
+  std::string exported_name = "release_site_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = ReleaseSite(\n";
-  ss << "  name = " << name << ",\n";
+  ss << exported_name << " = m.ReleaseSite(\n";
+  ss << "  name = " << "'" << name << "'" << ",\n";
   if (is_set(complex)) {
     ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
   }
@@ -297,13 +297,13 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
 }
 
 std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_molecule_list";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < molecule_list.size(); i++) {
     const auto& item = molecule_list[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -311,9 +311,8 @@ std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonEx
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

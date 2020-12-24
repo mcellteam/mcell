@@ -32,15 +32,25 @@ class World;
 namespace API {
 
 class Model;
+class PythonExportContext;
 
 class PythonExporter {
 public:
   PythonExporter(Model* model_);
 
-  void save_checkpoint(const std::string& dir);
+  void save_checkpoint(const std::string& output_dir_);
 private:
+  void open_and_check_file(
+      const std::string file_name, std::ofstream& out,
+      const bool for_append = false,
+      const bool bngl = false);
+
+  void save_subsystem(PythonExportContext& ctx);
+
   Model* model;
   World* world;
+
+  std::string output_dir;
 };
 
 } // namespace API

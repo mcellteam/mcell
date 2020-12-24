@@ -443,9 +443,10 @@ void Model::save_checkpoint(const std::string& custom_dir) {
     // TODO: move the VizOutputEvent::iterations_to_string to some utilities
     dir =
         std::string(DEFAULT_CHECKPOINTS_DIR) + BNG::PATH_SEPARATOR +
-        DEFAULT_SEED_DIR_PREFIX + seed_num.str() +
+        DEFAULT_SEED_DIR_PREFIX + seed_num.str() + BNG::PATH_SEPARATOR +
         DEFAULT_ITERATION_DIR_PREFIX +
-        VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), config.total_iterations_hint);
+        VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), config.total_iterations_hint) +
+        BNG::PATH_SEPARATOR;
   }
 
   PythonExporter exporter(this);

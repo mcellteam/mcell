@@ -314,16 +314,16 @@ std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& c
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = fix_id(name);
+  std::string exported_name = "count_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = Count(\n";
+  ss << exported_name << " = m.Count(\n";
   if (name != STR_UNSET) {
-    ss << "  name = " << name << ",\n";
+    ss << "  name = " << "'" << name << "'" << ",\n";
   }
   if (file_name != STR_UNSET) {
-    ss << "  file_name = " << file_name << ",\n";
+    ss << "  file_name = " << "'" << name << "'" << ",\n";
   }
   if (is_set(count_expression)) {
     ss << "  count_expression = " << count_expression->export_to_python(out, ctx) << ",\n";

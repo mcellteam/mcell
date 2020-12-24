@@ -196,12 +196,12 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = fix_id(name);
+  std::string exported_name = "surface_region_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = SurfaceRegion(\n";
-  ss << "  name = " << name << ",\n";
+  ss << exported_name << " = m.SurfaceRegion(\n";
+  ss << "  name = " << "'" << name << "'" << ",\n";
   ss << "  wall_indices = " << export_vec_wall_indices(out, ctx, exported_name) << ",\n";
   if (is_set(surface_class)) {
     ss << "  surface_class = " << surface_class->export_to_python(out, ctx) << ",\n";
@@ -224,32 +224,31 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
 }
 
 std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_wall_indices";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < wall_indices.size(); i++) {
     const auto& item = wall_indices[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
     ss << item << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_initial_surface_releases";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < initial_surface_releases.size(); i++) {
     const auto& item = initial_surface_releases[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -257,9 +256,8 @@ std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& 
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

@@ -106,7 +106,7 @@ const char* const MCELL_IMPORT = "import mcell as m\n\n";
 
 static std::string get_customization_import(const std::string& customization_module) {
   return
-      std::string("if os.path.exists(os.path.join('") + MODEL_PATH + ", " + customization_module + ".py')):\n"
+      std::string("if os.path.exists(os.path.join(") + MODEL_PATH + ", '" + customization_module + ".py')):\n"
       "    import " + customization_module + "\n"
       "else:\n"
       "    " + customization_module + " = None\n"

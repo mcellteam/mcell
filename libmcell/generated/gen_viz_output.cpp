@@ -108,8 +108,8 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = VizOutput(\n";
-  ss << "  output_files_prefix = " << output_files_prefix << ",\n";
+  ss << exported_name << " = m.VizOutput(\n";
+  ss << "  output_files_prefix = " << "'" << name << "'" << ",\n";
   if (species_list != std::vector<std::shared_ptr<Species>>()) {
     ss << "  species_list = " << export_vec_species_list(out, ctx, exported_name) << ",\n";
   }
@@ -125,13 +125,13 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
 }
 
 std::string GenVizOutput::export_vec_species_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_species_list";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < species_list.size(); i++) {
     const auto& item = species_list[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -139,9 +139,8 @@ std::string GenVizOutput::export_vec_species_list(std::ostream& out, PythonExpor
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

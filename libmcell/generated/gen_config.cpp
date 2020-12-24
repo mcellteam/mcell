@@ -173,7 +173,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = Config(\n";
+  ss << exported_name << " = m.Config(\n";
   if (seed != 1) {
     ss << "  seed = " << seed << ",\n";
   }
@@ -222,22 +222,21 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
 }
 
 std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_initial_partition_origin";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < initial_partition_origin.size(); i++) {
     const auto& item = initial_partition_origin[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
     ss << item << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

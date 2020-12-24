@@ -123,7 +123,7 @@ std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out, Python
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = InitialSurfaceRelease(\n";
+  ss << exported_name << " = m.InitialSurfaceRelease(\n";
   ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
   if (number_to_release != INT_UNSET) {
     ss << "  number_to_release = " << number_to_release << ",\n";

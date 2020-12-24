@@ -96,7 +96,7 @@ std::string GenNotifications::export_to_python(std::ostream& out, PythonExportCo
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = Notifications(\n";
+  ss << exported_name << " = m.Notifications(\n";
   if (bng_verbosity_level != 0) {
     ss << "  bng_verbosity_level = " << bng_verbosity_level << ",\n";
   }

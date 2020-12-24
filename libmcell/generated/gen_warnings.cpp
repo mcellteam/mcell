@@ -78,7 +78,7 @@ std::string GenWarnings::export_to_python(std::ostream& out, PythonExportContext
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = Warnings(\n";
+  ss << exported_name << " = m.Warnings(\n";
   ss << ")\n\n";
   out << ss.str();
   return exported_name;

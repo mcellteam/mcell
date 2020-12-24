@@ -124,10 +124,10 @@ std::string GenComponent::export_to_python(std::ostream& out, PythonExportContex
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = Component(\n";
+  ss << exported_name << " = m.Component(\n";
   ss << "  component_type = " << component_type->export_to_python(out, ctx) << ",\n";
   if (state != "STATE_UNSET") {
-    ss << "  state = " << state << ",\n";
+    ss << "  state = " << "'" << name << "'" << ",\n";
   }
   if (bond != BOND_UNBOUND) {
     ss << "  bond = " << bond << ",\n";

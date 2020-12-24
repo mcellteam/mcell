@@ -92,12 +92,12 @@ std::string GenComponentType::export_to_python(std::ostream& out, PythonExportCo
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = fix_id(name);
+  std::string exported_name = "component_type_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = ComponentType(\n";
-  ss << "  name = " << name << ",\n";
+  ss << exported_name << " = m.ComponentType(\n";
+  ss << "  name = " << "'" << name << "'" << ",\n";
   if (states != std::vector<std::string>()) {
     ss << "  states = " << export_vec_states(out, ctx, exported_name) << ",\n";
   }
@@ -107,22 +107,21 @@ std::string GenComponentType::export_to_python(std::ostream& out, PythonExportCo
 }
 
 std::string GenComponentType::export_vec_states(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_states";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < states.size(); i++) {
     const auto& item = states[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
     ss << item << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

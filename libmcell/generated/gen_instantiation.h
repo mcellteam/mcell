@@ -44,6 +44,11 @@ public:
   bool operator != (const Instantiation& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const;
+  virtual std::string export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+
+
   // --- attributes ---
   std::vector<std::shared_ptr<ReleaseSite>> release_sites;
   virtual void set_release_sites(const std::vector<std::shared_ptr<ReleaseSite>> new_release_sites_) {

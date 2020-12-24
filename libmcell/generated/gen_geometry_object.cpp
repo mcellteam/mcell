@@ -230,19 +230,19 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = fix_id(name);
+  std::string exported_name = "geometry_object_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;
-  ss << exported_name << " = GeometryObject(\n";
-  ss << "  name = " << name << ",\n";
+  ss << exported_name << " = m.GeometryObject(\n";
+  ss << "  name = " << "'" << name << "'" << ",\n";
   ss << "  vertex_list = " << export_vec_vertex_list(out, ctx, exported_name) << ",\n";
   ss << "  wall_list = " << export_vec_wall_list(out, ctx, exported_name) << ",\n";
   if (is_bngl_compartment != false) {
     ss << "  is_bngl_compartment = " << is_bngl_compartment << ",\n";
   }
   if (surface_compartment_name != STR_UNSET) {
-    ss << "  surface_compartment_name = " << surface_compartment_name << ",\n";
+    ss << "  surface_compartment_name = " << "'" << name << "'" << ",\n";
   }
   if (surface_regions != std::vector<std::shared_ptr<SurfaceRegion>>()) {
     ss << "  surface_regions = " << export_vec_surface_regions(out, ctx, exported_name) << ",\n";
@@ -268,13 +268,13 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
 }
 
 std::string GenGeometryObject::export_vec_vertex_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_vertex_list";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < vertex_list.size(); i++) {
     const auto& item = vertex_list[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -285,19 +285,18 @@ std::string GenGeometryObject::export_vec_vertex_list(std::ostream& out, PythonE
     }
     ss << "], ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 std::string GenGeometryObject::export_vec_wall_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_wall_list";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < wall_list.size(); i++) {
     const auto& item = wall_list[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -308,19 +307,18 @@ std::string GenGeometryObject::export_vec_wall_list(std::ostream& out, PythonExp
     }
     ss << "], ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 std::string GenGeometryObject::export_vec_surface_regions(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_surface_regions";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < surface_regions.size(); i++) {
     const auto& item = surface_regions[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -328,19 +326,18 @@ std::string GenGeometryObject::export_vec_surface_regions(std::ostream& out, Pyt
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 std::string GenGeometryObject::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
-  std::string exported_name = parent_name + "_initial_surface_releases";
+  // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
-  ss << exported_name << " = [\n";
+  ss << "[";
   for (size_t i = 0; i < initial_surface_releases.size(); i++) {
     const auto& item = initial_surface_releases[i];
     if (i == 0) {
-      ss << "  ";
+      ss << " ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -348,9 +345,8 @@ std::string GenGeometryObject::export_vec_initial_surface_releases(std::ostream&
     std::string name = item->export_to_python(out, ctx);
     ss << name << ", ";
   }
-  ss << "]\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API
