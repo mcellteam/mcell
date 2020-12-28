@@ -177,8 +177,10 @@ std::string GenReactionRule::export_vec_reactants(std::ostream& out, PythonExpor
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "]";
   return ss.str();
@@ -196,8 +198,10 @@ std::string GenReactionRule::export_vec_products(std::ostream& out, PythonExport
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "]";
   return ss.str();

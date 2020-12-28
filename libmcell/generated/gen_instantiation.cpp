@@ -57,7 +57,11 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
   return py::class_<Instantiation, std::shared_ptr<Instantiation>>(m, "Instantiation")
       .def(
           py::init<
-          >()
+            const std::vector<std::shared_ptr<ReleaseSite>>,
+            const std::vector<std::shared_ptr<GeometryObject>>
+          >(),
+          py::arg("release_sites") = std::vector<std::shared_ptr<ReleaseSite>>(),
+          py::arg("geometry_objects") = std::vector<std::shared_ptr<GeometryObject>>()
       )
       .def("__str__", &Instantiation::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Instantiation::__eq__, py::arg("other"))
@@ -103,8 +107,10 @@ std::string GenInstantiation::export_vec_release_sites(std::ostream& out, Python
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -124,8 +130,10 @@ std::string GenInstantiation::export_vec_geometry_objects(std::ostream& out, Pyt
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();

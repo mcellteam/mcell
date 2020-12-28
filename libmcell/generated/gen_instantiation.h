@@ -35,6 +35,15 @@ class ReleaseSite;
 class Subsystem;
 class PythonExportContext;
 
+#define INSTANTIATION_CTOR() \
+    Instantiation( \
+        const std::vector<std::shared_ptr<ReleaseSite>> release_sites_ = std::vector<std::shared_ptr<ReleaseSite>>(), \
+        const std::vector<std::shared_ptr<GeometryObject>> geometry_objects_ = std::vector<std::shared_ptr<GeometryObject>>() \
+    ) { \
+      release_sites = release_sites_; \
+      geometry_objects = geometry_objects_; \
+    }
+
 class GenInstantiation {
 public:
   virtual ~GenInstantiation() {}

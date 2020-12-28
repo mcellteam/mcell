@@ -56,7 +56,11 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
   return py::class_<Observables, std::shared_ptr<Observables>>(m, "Observables")
       .def(
           py::init<
-          >()
+            const std::vector<std::shared_ptr<VizOutput>>,
+            const std::vector<std::shared_ptr<Count>>
+          >(),
+          py::arg("viz_outputs") = std::vector<std::shared_ptr<VizOutput>>(),
+          py::arg("counts") = std::vector<std::shared_ptr<Count>>()
       )
       .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Observables::__eq__, py::arg("other"))
@@ -99,8 +103,10 @@ std::string GenObservables::export_vec_viz_outputs(std::ostream& out, PythonExpo
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -120,8 +126,10 @@ std::string GenObservables::export_vec_counts(std::ostream& out, PythonExportCon
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();

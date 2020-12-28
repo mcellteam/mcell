@@ -170,8 +170,10 @@ std::string GenElementaryMoleculeType::export_vec_components(std::ostream& out, 
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "]";
   return ss.str();

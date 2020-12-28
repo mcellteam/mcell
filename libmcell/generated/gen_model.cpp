@@ -224,8 +224,10 @@ std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext&
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -245,8 +247,10 @@ std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportC
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -266,8 +270,10 @@ std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExport
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -287,8 +293,10 @@ std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, Py
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -308,8 +316,10 @@ std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportCo
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -329,8 +339,10 @@ std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExpor
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -350,8 +362,10 @@ std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportCont
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -371,8 +385,10 @@ std::string GenModel::export_vec_counts(std::ostream& out, PythonExportContext& 
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();

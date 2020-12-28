@@ -505,6 +505,8 @@ def is_container_class(name):
         name == CLASS_NAME_INSTANTIATION or \
         name == CLASS_NAME_OBSERVABLES
 
+def is_container_class_no_model(name):
+    return is_container_class(name) and not name == CLASS_NAME_MODEL
 
 def write_generated_notice(f):
     now = datetime.now()
@@ -585,7 +587,8 @@ def write_ctor_define(f, class_def, class_name):
     f.write('{ \\\n')
 
     # initialization code
-    f.write('      ' + CLASS_NAME_ATTR + ' = "' + class_name + '"; \\\n')
+    if not is_container_class_no_model(class_name):
+        f.write('      ' + CLASS_NAME_ATTR + ' = "' + class_name + '"; \\\n')
     items = class_def[KEY_ITEMS] if KEY_ITEMS in class_def else []    
     num_items = len(items)
     for i in range(num_items):
@@ -599,8 +602,9 @@ def write_ctor_define(f, class_def, class_name):
         else:
             f.write('      ' + attr_name + ' = ' + get_default_or_unset_value(items[i]) + '; \\\n')
             
-    f.write('      ' + CTOR_POSTPROCESS + '();\\\n')    
-    f.write('      ' + CHECK_SEMANTICS + '();\\\n')
+    if not is_container_class_no_model(class_name):
+        f.write('      ' + CTOR_POSTPROCESS + '();\\\n')    
+        f.write('      ' + CHECK_SEMANTICS + '();\\\n')
     f.write('    }\n\n')    
     
     
@@ -899,7 +903,7 @@ def generate_class_header(class_name, class_def, decls):
         
         write_forward_decls(f, class_def, class_name)
         
-        if has_single_superclass(class_def): # not sure about this condition
+        if has_single_superclass(class_def) or is_container_class_no_model(class_name): 
             write_ctor_define(f, class_def, class_name)
         
         if def_type == VALUE_CLASS:
@@ -1083,8 +1087,10 @@ def write_vec_export(f, return_only_name, gen_class_name, item):
     elif not is_base_yaml_type(inner_type) and inner_type not in g_enums:
         # array of API objects
         f.write(
-            '    std::string name = item->export_to_python(out, ctx);\n' + 
-            '  ' + out + 'name << ", ";\n'
+            '    if (!item->skip_python_export()) {\n' +
+            '      std::string name = item->export_to_python(out, ctx);\n' + 
+            '    ' + out + 'name << ", ";\n' +
+            '    }\n'
         )
     else:
         # array of simple type
@@ -1360,7 +1366,7 @@ def write_pybind11_bindings(f, class_name, class_def):
     
         num_items = len(items)
         if ctor_has_args:
-            if has_single_superclass(class_def):
+            if has_single_superclass(class_def) or is_container_class_no_model(class_name):
                 # init operands
                 for i in range(num_items):
                     attr = items[i]
@@ -1377,7 +1383,7 @@ def write_pybind11_bindings(f, class_name, class_def):
         
         if ctor_has_args:    
             # init argument names and default values
-            if has_single_superclass(class_def):
+            if has_single_superclass(class_def) or is_container_class_no_model(class_name):
                 if num_items != 0:
                     f.write(',')
                 f.write('\n')
@@ -1394,7 +1400,7 @@ def write_pybind11_bindings(f, class_name, class_def):
                         f.write(',\n')
         f.write('\n')          
         f.write('      )\n')            
-        
+
         # common methods
         if has_single_superclass(class_def):
             f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')

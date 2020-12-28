@@ -45,6 +45,8 @@ class Complex;
 
 class Subsystem: public GenSubsystem {
 public:
+  SUBSYSTEM_CTOR()
+
   // from generated template
   void add_species(std::shared_ptr<Species> s) override {
     append_to_vec_canonical_name(species, s);

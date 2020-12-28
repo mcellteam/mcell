@@ -35,6 +35,19 @@ class Species;
 class SurfaceClass;
 class PythonExportContext;
 
+#define SUBSYSTEM_CTOR() \
+    Subsystem( \
+        const std::vector<std::shared_ptr<Species>> species_ = std::vector<std::shared_ptr<Species>>(), \
+        const std::vector<std::shared_ptr<ReactionRule>> reaction_rules_ = std::vector<std::shared_ptr<ReactionRule>>(), \
+        const std::vector<std::shared_ptr<SurfaceClass>> surface_classes_ = std::vector<std::shared_ptr<SurfaceClass>>(), \
+        const std::vector<std::shared_ptr<ElementaryMoleculeType>> elementary_molecule_types_ = std::vector<std::shared_ptr<ElementaryMoleculeType>>() \
+    ) { \
+      species = species_; \
+      reaction_rules = reaction_rules_; \
+      surface_classes = surface_classes_; \
+      elementary_molecule_types = elementary_molecule_types_; \
+    }
+
 class GenSubsystem {
 public:
   virtual ~GenSubsystem() {}

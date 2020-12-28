@@ -253,8 +253,10 @@ std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& 
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "]";
   return ss.str();

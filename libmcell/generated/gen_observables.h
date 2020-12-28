@@ -34,6 +34,15 @@ class Subsystem;
 class VizOutput;
 class PythonExportContext;
 
+#define OBSERVABLES_CTOR() \
+    Observables( \
+        const std::vector<std::shared_ptr<VizOutput>> viz_outputs_ = std::vector<std::shared_ptr<VizOutput>>(), \
+        const std::vector<std::shared_ptr<Count>> counts_ = std::vector<std::shared_ptr<Count>>() \
+    ) { \
+      viz_outputs = viz_outputs_; \
+      counts = counts_; \
+    }
+
 class GenObservables {
 public:
   virtual ~GenObservables() {}

@@ -84,7 +84,6 @@ public:
     }
   }
 
-
   // we are making changes, so semantic checks are here instead of in const check_semantics
   void postprocess_in_ctor() override {
     // initialization
@@ -155,6 +154,12 @@ public:
     res.compartment_name = compartment_name;
     return res;
   }
+
+  bool skip_python_export() const override {
+    return is_species_superclass();
+  }
+
+  //std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
 
   bool is_species_superclass() const {
     return BNG::is_species_superclass(name);

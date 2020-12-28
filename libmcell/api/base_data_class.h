@@ -89,6 +89,11 @@ public:
     cached_data_are_uptodate = false;
   };
 
+  // used in generated export_to_python to optionally skip export of some objects
+  virtual bool skip_python_export() const {
+    return false;
+  }
+
   virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const {
     assert(false);
     return "Export to Python for a derived class is not implemented.";

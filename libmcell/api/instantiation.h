@@ -41,6 +41,7 @@ class Subsystem;
 
 class Instantiation: public GenInstantiation {
 public:
+  INSTANTIATION_CTOR()
 
   // from generated template
   void add_release_site(std::shared_ptr<ReleaseSite> s) override {

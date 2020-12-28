@@ -63,7 +63,15 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
   return py::class_<Subsystem, std::shared_ptr<Subsystem>>(m, "Subsystem")
       .def(
           py::init<
-          >()
+            const std::vector<std::shared_ptr<Species>>,
+            const std::vector<std::shared_ptr<ReactionRule>>,
+            const std::vector<std::shared_ptr<SurfaceClass>>,
+            const std::vector<std::shared_ptr<ElementaryMoleculeType>>
+          >(),
+          py::arg("species") = std::vector<std::shared_ptr<Species>>(),
+          py::arg("reaction_rules") = std::vector<std::shared_ptr<ReactionRule>>(),
+          py::arg("surface_classes") = std::vector<std::shared_ptr<SurfaceClass>>(),
+          py::arg("elementary_molecule_types") = std::vector<std::shared_ptr<ElementaryMoleculeType>>()
       )
       .def("__str__", &Subsystem::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Subsystem::__eq__, py::arg("other"))
@@ -119,8 +127,10 @@ std::string GenSubsystem::export_vec_species(std::ostream& out, PythonExportCont
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -140,8 +150,10 @@ std::string GenSubsystem::export_vec_reaction_rules(std::ostream& out, PythonExp
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -161,8 +173,10 @@ std::string GenSubsystem::export_vec_surface_classes(std::ostream& out, PythonEx
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
@@ -182,8 +196,10 @@ std::string GenSubsystem::export_vec_elementary_molecule_types(std::ostream& out
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    std::string name = item->export_to_python(out, ctx);
-    ss << name << ", ";
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
   }
   ss << "\n]\n\n";
   out << ss.str();
