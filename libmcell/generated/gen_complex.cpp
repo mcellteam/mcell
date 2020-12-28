@@ -107,23 +107,36 @@ std::string GenComplex::export_to_python(std::ostream& out, PythonExportContext&
   std::string exported_name = "complex_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Complex(\n";
-  if (name != STR_UNSET) {
-    ss << "  name = " << "'" << name << "'" << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
   }
-  if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>()) {
-    ss << "  elementary_molecules = " << export_vec_elementary_molecules(out, ctx, exported_name) << ",\n";
+  ss << "m.Complex(" << nl;
+  if (name != STR_UNSET) {
+    ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  }
+  if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>() && !skip_vectors_export()) {
+    ss << ind << "elementary_molecules = " << export_vec_elementary_molecules(out, ctx, exported_name) << "," << nl;
   }
   if (orientation != Orientation::DEFAULT) {
-    ss << "  orientation = " << orientation << ",\n";
+    ss << ind << "orientation = " << orientation << "," << nl;
   }
   if (compartment_name != STR_UNSET) {
-    ss << "  compartment_name = " << "'" << name << "'" << ",\n";
+    ss << ind << "compartment_name = " << "'" << name << "'" << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenComplex::export_vec_elementary_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

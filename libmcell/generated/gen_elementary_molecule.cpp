@@ -118,15 +118,28 @@ std::string GenElementaryMolecule::export_to_python(std::ostream& out, PythonExp
   std::string exported_name = "elementary_molecule_" + std::to_string(ctx.postinc_counter("elementary_molecule"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.ElementaryMolecule(\n";
-  ss << "  elementary_molecule_type = " << elementary_molecule_type->export_to_python(out, ctx) << ",\n";
-  if (components != std::vector<std::shared_ptr<Component>>()) {
-    ss << "  components = " << export_vec_components(out, ctx, exported_name) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "m.ElementaryMolecule(" << nl;
+  ss << ind << "elementary_molecule_type = " << elementary_molecule_type->export_to_python(out, ctx) << "," << nl;
+  if (components != std::vector<std::shared_ptr<Component>>() && !skip_vectors_export()) {
+    ss << ind << "components = " << export_vec_components(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenElementaryMolecule::export_vec_components(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

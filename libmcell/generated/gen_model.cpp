@@ -169,46 +169,64 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
 }
 
 std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+# if 0 // not to be used
   std::string exported_name = "model";
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Model(\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Model(" << nl;
   if (config != Config()) {
-    ss << "  config = " << config.export_to_python(out, ctx) << ",\n";
+    ss << ind << "config = " << config.export_to_python(out, ctx) << "," << nl;
   }
   if (warnings != Warnings()) {
-    ss << "  warnings = " << warnings.export_to_python(out, ctx) << ",\n";
+    ss << ind << "warnings = " << warnings.export_to_python(out, ctx) << "," << nl;
   }
   if (notifications != Notifications()) {
-    ss << "  notifications = " << notifications.export_to_python(out, ctx) << ",\n";
+    ss << ind << "notifications = " << notifications.export_to_python(out, ctx) << "," << nl;
   }
-  if (species != std::vector<std::shared_ptr<Species>>()) {
-    ss << "  species = " << export_vec_species(out, ctx, exported_name) << ",\n";
+  if (species != std::vector<std::shared_ptr<Species>>() && !skip_vectors_export()) {
+    ss << ind << "species = " << export_vec_species(out, ctx, exported_name) << "," << nl;
   }
-  if (reaction_rules != std::vector<std::shared_ptr<ReactionRule>>()) {
-    ss << "  reaction_rules = " << export_vec_reaction_rules(out, ctx, exported_name) << ",\n";
+  if (reaction_rules != std::vector<std::shared_ptr<ReactionRule>>() && !skip_vectors_export()) {
+    ss << ind << "reaction_rules = " << export_vec_reaction_rules(out, ctx, exported_name) << "," << nl;
   }
-  if (surface_classes != std::vector<std::shared_ptr<SurfaceClass>>()) {
-    ss << "  surface_classes = " << export_vec_surface_classes(out, ctx, exported_name) << ",\n";
+  if (surface_classes != std::vector<std::shared_ptr<SurfaceClass>>() && !skip_vectors_export()) {
+    ss << ind << "surface_classes = " << export_vec_surface_classes(out, ctx, exported_name) << "," << nl;
   }
-  if (elementary_molecule_types != std::vector<std::shared_ptr<ElementaryMoleculeType>>()) {
-    ss << "  elementary_molecule_types = " << export_vec_elementary_molecule_types(out, ctx, exported_name) << ",\n";
+  if (elementary_molecule_types != std::vector<std::shared_ptr<ElementaryMoleculeType>>() && !skip_vectors_export()) {
+    ss << ind << "elementary_molecule_types = " << export_vec_elementary_molecule_types(out, ctx, exported_name) << "," << nl;
   }
-  if (release_sites != std::vector<std::shared_ptr<ReleaseSite>>()) {
-    ss << "  release_sites = " << export_vec_release_sites(out, ctx, exported_name) << ",\n";
+  if (release_sites != std::vector<std::shared_ptr<ReleaseSite>>() && !skip_vectors_export()) {
+    ss << ind << "release_sites = " << export_vec_release_sites(out, ctx, exported_name) << "," << nl;
   }
-  if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>()) {
-    ss << "  geometry_objects = " << export_vec_geometry_objects(out, ctx, exported_name) << ",\n";
+  if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>() && !skip_vectors_export()) {
+    ss << ind << "geometry_objects = " << export_vec_geometry_objects(out, ctx, exported_name) << "," << nl;
   }
-  if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>()) {
-    ss << "  viz_outputs = " << export_vec_viz_outputs(out, ctx, exported_name) << ",\n";
+  if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>() && !skip_vectors_export()) {
+    ss << ind << "viz_outputs = " << export_vec_viz_outputs(out, ctx, exported_name) << "," << nl;
   }
-  if (counts != std::vector<std::shared_ptr<Count>>()) {
-    ss << "  counts = " << export_vec_counts(out, ctx, exported_name) << ",\n";
+  if (counts != std::vector<std::shared_ptr<Count>>() && !skip_vectors_export()) {
+    ss << ind << "counts = " << export_vec_counts(out, ctx, exported_name) << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+#else // # if 0
+  assert(false);
+  return "";
+#endif
 }
 
 std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

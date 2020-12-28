@@ -123,18 +123,31 @@ std::string GenComponent::export_to_python(std::ostream& out, PythonExportContex
   std::string exported_name = "component_" + std::to_string(ctx.postinc_counter("component"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Component(\n";
-  ss << "  component_type = " << component_type->export_to_python(out, ctx) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Component(" << nl;
+  ss << ind << "component_type = " << component_type->export_to_python(out, ctx) << "," << nl;
   if (state != "STATE_UNSET") {
-    ss << "  state = " << "'" << name << "'" << ",\n";
+    ss << ind << "state = " << "'" << name << "'" << "," << nl;
   }
   if (bond != BOND_UNBOUND) {
-    ss << "  bond = " << bond << ",\n";
+    ss << ind << "bond = " << bond << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

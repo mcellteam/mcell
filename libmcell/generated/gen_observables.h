@@ -24,6 +24,7 @@
 #define API_GEN_OBSERVABLES_H
 
 #include "api/common.h"
+#include "api/base_export_class.h"
 
 namespace MCell {
 namespace API {
@@ -43,7 +44,7 @@ class PythonExportContext;
       counts = counts_; \
     }
 
-class GenObservables {
+class GenObservables: public BaseExportClass {
 public:
   virtual ~GenObservables() {}
   virtual bool __eq__(const Observables& other) const;

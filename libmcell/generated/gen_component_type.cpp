@@ -95,15 +95,28 @@ std::string GenComponentType::export_to_python(std::ostream& out, PythonExportCo
   std::string exported_name = "component_type_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.ComponentType(\n";
-  ss << "  name = " << "'" << name << "'" << ",\n";
-  if (states != std::vector<std::string>()) {
-    ss << "  states = " << export_vec_states(out, ctx, exported_name) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << "m.ComponentType(" << nl;
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  if (states != std::vector<std::string>() && !skip_vectors_export()) {
+    ss << ind << "states = " << export_vec_states(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenComponentType::export_vec_states(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

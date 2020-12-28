@@ -42,6 +42,48 @@ void Subsystem::dump() const {
 }
 
 
+void Subsystem::unify_and_register_elementary_molecule_types() {
+
+  // then got through Species
+  for (std::shared_ptr<Species> s: species) {
+    for (size_t i = 0; i < s->elementary_molecules.size(); i++) {
+      std::shared_ptr<ElementaryMoleculeType> emt = s->elementary_molecules[i]->elementary_molecule_type;
+
+      // do we have this exact object already?
+      auto it_ptr_eq = std::find_if(
+          elementary_molecule_types.begin(), elementary_molecule_types.end(),
+          [&emt] (const std::shared_ptr<ElementaryMoleculeType> emt_existing) {
+            return emt_existing.get() == emt.get(); // comparing pointers
+          }
+      );
+      if (it_ptr_eq != elementary_molecule_types.end()) {
+        // same object exists
+        continue;
+      }
+
+      // do we have an object with the same contents already?
+      auto it_contents_eq = std::find_if(
+          elementary_molecule_types.begin(), elementary_molecule_types.end(),
+          [&emt] (const std::shared_ptr<ElementaryMoleculeType> emt_existing) {
+            return *emt_existing == *emt; // comparing contents
+          }
+      );
+      if (it_contents_eq != elementary_molecule_types.end()) {
+        // same object exists, we must use this one and let shared_ptr ref counting
+        // destroy the previous one (creation of the EMT object to be destroyed
+        // occurs mainly when defining simple species, so the link from species to this emt
+        // is internal and not visible to the user)
+        s->elementary_molecules[i]->elementary_molecule_type = *it_contents_eq;
+      }
+      else{
+        // no such object is in the emt list, add it
+        add_elementary_molecule_type(emt);
+      }
+    }
+  }
+}
+
+
 void Subsystem::load_bngl_molecule_types_and_reaction_rules(
     const std::string& file_name,
     const std::map<std::string, float_t>& parameter_overrides) {

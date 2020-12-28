@@ -249,51 +249,64 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   std::string exported_name = "release_site_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.ReleaseSite(\n";
-  ss << "  name = " << "'" << name << "'" << ",\n";
-  if (is_set(complex)) {
-    ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
   }
-  if (molecule_list != std::vector<std::shared_ptr<MoleculeReleaseInfo>>()) {
-    ss << "  molecule_list = " << export_vec_molecule_list(out, ctx, exported_name) << ",\n";
+  ss << "m.ReleaseSite(" << nl;
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  if (is_set(complex)) {
+    ss << ind << "complex = " << complex->export_to_python(out, ctx) << "," << nl;
+  }
+  if (molecule_list != std::vector<std::shared_ptr<MoleculeReleaseInfo>>() && !skip_vectors_export()) {
+    ss << ind << "molecule_list = " << export_vec_molecule_list(out, ctx, exported_name) << "," << nl;
   }
   if (release_time != 0) {
-    ss << "  release_time = " << release_time << ",\n";
+    ss << ind << "release_time = " << release_time << "," << nl;
   }
   if (is_set(release_pattern)) {
-    ss << "  release_pattern = " << release_pattern->export_to_python(out, ctx) << ",\n";
+    ss << ind << "release_pattern = " << release_pattern->export_to_python(out, ctx) << "," << nl;
   }
   if (shape != Shape::UNSET) {
-    ss << "  shape = " << shape << ",\n";
+    ss << ind << "shape = " << shape << "," << nl;
   }
   if (is_set(region)) {
-    ss << "  region = " << region->export_to_python(out, ctx) << ",\n";
+    ss << ind << "region = " << region->export_to_python(out, ctx) << "," << nl;
   }
   if (location != VEC3_UNSET) {
-    ss << "  location = " << location << ",\n";
+    ss << ind << "location = " << location << "," << nl;
   }
   if (site_diameter != 0) {
-    ss << "  site_diameter = " << site_diameter << ",\n";
+    ss << ind << "site_diameter = " << site_diameter << "," << nl;
   }
   if (site_radius != FLT_UNSET) {
-    ss << "  site_radius = " << site_radius << ",\n";
+    ss << ind << "site_radius = " << site_radius << "," << nl;
   }
   if (number_to_release != FLT_UNSET) {
-    ss << "  number_to_release = " << number_to_release << ",\n";
+    ss << ind << "number_to_release = " << number_to_release << "," << nl;
   }
   if (density != FLT_UNSET) {
-    ss << "  density = " << density << ",\n";
+    ss << ind << "density = " << density << "," << nl;
   }
   if (concentration != FLT_UNSET) {
-    ss << "  concentration = " << concentration << ",\n";
+    ss << ind << "concentration = " << concentration << "," << nl;
   }
   if (release_probability != FLT_UNSET) {
-    ss << "  release_probability = " << release_probability << ",\n";
+    ss << ind << "release_probability = " << release_probability << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

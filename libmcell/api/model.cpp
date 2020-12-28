@@ -91,6 +91,10 @@ void Model::initialize() {
     throw RuntimeError("Model.initialize() can be called only once");
   }
 
+  // Species objects might have created their own ElementaryMoleculeType
+  // objects, we must unify it first (required for python export)
+  unify_and_register_elementary_molecule_types();
+
   world = new World(callbacks);
 
   // semantic checks are done during conversion

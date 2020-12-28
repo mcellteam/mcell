@@ -119,20 +119,33 @@ std::string GenSurfaceProperty::export_to_python(std::ostream& out, PythonExport
   std::string exported_name = "surface_property_" + std::to_string(ctx.postinc_counter("surface_property"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.SurfaceProperty(\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.SurfaceProperty(" << nl;
   if (type != SurfacePropertyType::UNSET) {
-    ss << "  type = " << type << ",\n";
+    ss << ind << "type = " << type << "," << nl;
   }
   if (is_set(affected_complex_pattern)) {
-    ss << "  affected_complex_pattern = " << affected_complex_pattern->export_to_python(out, ctx) << ",\n";
+    ss << ind << "affected_complex_pattern = " << affected_complex_pattern->export_to_python(out, ctx) << "," << nl;
   }
   if (concentration != FLT_UNSET) {
-    ss << "  concentration = " << concentration << ",\n";
+    ss << ind << "concentration = " << concentration << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

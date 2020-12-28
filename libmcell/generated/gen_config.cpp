@@ -172,53 +172,66 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   std::string exported_name = "config_" + std::to_string(ctx.postinc_counter("config"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Config(\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Config(" << nl;
   if (seed != 1) {
-    ss << "  seed = " << seed << ",\n";
+    ss << ind << "seed = " << seed << "," << nl;
   }
   if (time_step != 1e-6) {
-    ss << "  time_step = " << time_step << ",\n";
+    ss << ind << "time_step = " << time_step << "," << nl;
   }
   if (surface_grid_density != 10000) {
-    ss << "  surface_grid_density = " << surface_grid_density << ",\n";
+    ss << ind << "surface_grid_density = " << surface_grid_density << "," << nl;
   }
   if (interaction_radius != FLT_UNSET) {
-    ss << "  interaction_radius = " << interaction_radius << ",\n";
+    ss << ind << "interaction_radius = " << interaction_radius << "," << nl;
   }
   if (intermembrane_interaction_radius != FLT_UNSET) {
-    ss << "  intermembrane_interaction_radius = " << intermembrane_interaction_radius << ",\n";
+    ss << ind << "intermembrane_interaction_radius = " << intermembrane_interaction_radius << "," << nl;
   }
   if (vacancy_search_distance != 10) {
-    ss << "  vacancy_search_distance = " << vacancy_search_distance << ",\n";
+    ss << ind << "vacancy_search_distance = " << vacancy_search_distance << "," << nl;
   }
   if (center_molecules_on_grid != false) {
-    ss << "  center_molecules_on_grid = " << center_molecules_on_grid << ",\n";
+    ss << ind << "center_molecules_on_grid = " << center_molecules_on_grid << "," << nl;
   }
-  if (initial_partition_origin != std::vector<float_t>()) {
-    ss << "  initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx, exported_name) << ",\n";
+  if (initial_partition_origin != std::vector<float_t>() && !skip_vectors_export()) {
+    ss << ind << "initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx, exported_name) << "," << nl;
   }
   if (partition_dimension != 10) {
-    ss << "  partition_dimension = " << partition_dimension << ",\n";
+    ss << ind << "partition_dimension = " << partition_dimension << "," << nl;
   }
   if (subpartition_dimension != 0.5) {
-    ss << "  subpartition_dimension = " << subpartition_dimension << ",\n";
+    ss << ind << "subpartition_dimension = " << subpartition_dimension << "," << nl;
   }
   if (total_iterations_hint != 1000000) {
-    ss << "  total_iterations_hint = " << total_iterations_hint << ",\n";
+    ss << ind << "total_iterations_hint = " << total_iterations_hint << "," << nl;
   }
   if (check_overlapped_walls != true) {
-    ss << "  check_overlapped_walls = " << check_overlapped_walls << ",\n";
+    ss << ind << "check_overlapped_walls = " << check_overlapped_walls << "," << nl;
   }
   if (sort_molecules != false) {
-    ss << "  sort_molecules = " << sort_molecules << ",\n";
+    ss << ind << "sort_molecules = " << sort_molecules << "," << nl;
   }
   if (memory_limit_gb != -1) {
-    ss << "  memory_limit_gb = " << memory_limit_gb << ",\n";
+    ss << ind << "memory_limit_gb = " << memory_limit_gb << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

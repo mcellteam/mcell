@@ -24,6 +24,7 @@
 #define API_GEN_INSTANTIATION_H
 
 #include "api/common.h"
+#include "api/base_export_class.h"
 
 namespace MCell {
 namespace API {
@@ -44,7 +45,7 @@ class PythonExportContext;
       geometry_objects = geometry_objects_; \
     }
 
-class GenInstantiation {
+class GenInstantiation: public BaseExportClass {
 public:
   virtual ~GenInstantiation() {}
   virtual bool __eq__(const Instantiation& other) const;

@@ -77,11 +77,24 @@ std::string GenWarnings::export_to_python(std::ostream& out, PythonExportContext
   std::string exported_name = "warnings_" + std::to_string(ctx.postinc_counter("warnings"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Warnings(\n";
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Warnings(" << nl;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

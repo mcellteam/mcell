@@ -95,20 +95,33 @@ std::string GenNotifications::export_to_python(std::ostream& out, PythonExportCo
   std::string exported_name = "notifications_" + std::to_string(ctx.postinc_counter("notifications"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Notifications(\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Notifications(" << nl;
   if (bng_verbosity_level != 0) {
-    ss << "  bng_verbosity_level = " << bng_verbosity_level << ",\n";
+    ss << ind << "bng_verbosity_level = " << bng_verbosity_level << "," << nl;
   }
   if (rxn_and_species_report != true) {
-    ss << "  rxn_and_species_report = " << rxn_and_species_report << ",\n";
+    ss << ind << "rxn_and_species_report = " << rxn_and_species_report << "," << nl;
   }
   if (simulation_stats_every_n_iterations != 0) {
-    ss << "  simulation_stats_every_n_iterations = " << simulation_stats_every_n_iterations << ",\n";
+    ss << ind << "simulation_stats_every_n_iterations = " << simulation_stats_every_n_iterations << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

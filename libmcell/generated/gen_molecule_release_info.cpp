@@ -118,13 +118,26 @@ std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonEx
   std::string exported_name = "molecule_release_info_" + std::to_string(ctx.postinc_counter("molecule_release_info"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.MoleculeReleaseInfo(\n";
-  ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
-  ss << "  location = " << export_vec_location(out, ctx, exported_name) << ",\n";
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.MoleculeReleaseInfo(" << nl;
+  ss << ind << "complex = " << complex->export_to_python(out, ctx) << "," << nl;
+  ss << ind << "location = " << export_vec_location(out, ctx, exported_name) << "," << nl;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

@@ -24,6 +24,7 @@
 #define LIBMCELL_API_BASE_DATA_CLASS_H_
 
 #include "common.h"
+#include "base_export_class.h"
 
 namespace MCell {
 namespace API {
@@ -31,7 +32,7 @@ namespace API {
 class PythonExportContext;
 
 // base class for all classes that hold the model input data
-class BaseDataClass {
+class BaseDataClass: public BaseExportClass {
 public:
   BaseDataClass()
     : class_name(STR_UNSET), name(STR_UNSET), initialized(false), cached_data_are_uptodate(false) {
@@ -88,16 +89,6 @@ public:
     initialized = false;
     cached_data_are_uptodate = false;
   };
-
-  // used in generated export_to_python to optionally skip export of some objects
-  virtual bool skip_python_export() const {
-    return false;
-  }
-
-  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const {
-    assert(false);
-    return "Export to Python for a derived class is not implemented.";
-  }
 
   // calls virtual method, usually no need to override
   virtual void dump() const {

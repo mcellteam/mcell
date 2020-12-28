@@ -97,6 +97,16 @@ public:
 
   std::shared_ptr<Species> as_species() override;
 
+  // do not export elementary_molecules (represented by name)
+  bool skip_vectors_export() const override {
+    return true;
+  }
+
+  // export into a single line
+  bool export_as_string_without_newlines() const override {
+    return true;
+  }
+
   // complexes can be only either surf or vol, there is no other option
   bool is_vol() const {
     return !is_surf();

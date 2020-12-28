@@ -95,23 +95,36 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
 std::string GenSubsystem::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
   std::string exported_name = "subsystem";
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Subsystem(\n";
-  if (species != std::vector<std::shared_ptr<Species>>()) {
-    ss << "  species = " << export_vec_species(out, ctx, exported_name) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
   }
-  if (reaction_rules != std::vector<std::shared_ptr<ReactionRule>>()) {
-    ss << "  reaction_rules = " << export_vec_reaction_rules(out, ctx, exported_name) << ",\n";
+  ss << "m.Subsystem(" << nl;
+  if (species != std::vector<std::shared_ptr<Species>>() && !skip_vectors_export()) {
+    ss << ind << "species = " << export_vec_species(out, ctx, exported_name) << "," << nl;
   }
-  if (surface_classes != std::vector<std::shared_ptr<SurfaceClass>>()) {
-    ss << "  surface_classes = " << export_vec_surface_classes(out, ctx, exported_name) << ",\n";
+  if (reaction_rules != std::vector<std::shared_ptr<ReactionRule>>() && !skip_vectors_export()) {
+    ss << ind << "reaction_rules = " << export_vec_reaction_rules(out, ctx, exported_name) << "," << nl;
   }
-  if (elementary_molecule_types != std::vector<std::shared_ptr<ElementaryMoleculeType>>()) {
-    ss << "  elementary_molecule_types = " << export_vec_elementary_molecule_types(out, ctx, exported_name) << ",\n";
+  if (surface_classes != std::vector<std::shared_ptr<SurfaceClass>>() && !skip_vectors_export()) {
+    ss << ind << "surface_classes = " << export_vec_surface_classes(out, ctx, exported_name) << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  if (elementary_molecule_types != std::vector<std::shared_ptr<ElementaryMoleculeType>>() && !skip_vectors_export()) {
+    ss << ind << "elementary_molecule_types = " << export_vec_elementary_molecule_types(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenSubsystem::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

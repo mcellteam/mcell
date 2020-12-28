@@ -24,6 +24,7 @@
 #define API_GEN_SUBSYSTEM_H
 
 #include "api/common.h"
+#include "api/base_export_class.h"
 
 namespace MCell {
 namespace API {
@@ -48,7 +49,7 @@ class PythonExportContext;
       elementary_molecule_types = elementary_molecule_types_; \
     }
 
-class GenSubsystem {
+class GenSubsystem: public BaseExportClass {
 public:
   virtual ~GenSubsystem() {}
   virtual bool __eq__(const Subsystem& other) const;

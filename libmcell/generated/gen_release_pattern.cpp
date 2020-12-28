@@ -109,26 +109,39 @@ std::string GenReleasePattern::export_to_python(std::ostream& out, PythonExportC
   std::string exported_name = "release_pattern_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.ReleasePattern(\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.ReleasePattern(" << nl;
   if (name != STR_UNSET) {
-    ss << "  name = " << "'" << name << "'" << ",\n";
+    ss << ind << "name = " << "'" << name << "'" << "," << nl;
   }
   if (release_interval != TIME_INFINITY) {
-    ss << "  release_interval = " << release_interval << ",\n";
+    ss << ind << "release_interval = " << release_interval << "," << nl;
   }
   if (train_duration != TIME_INFINITY) {
-    ss << "  train_duration = " << train_duration << ",\n";
+    ss << ind << "train_duration = " << train_duration << "," << nl;
   }
   if (train_interval != TIME_INFINITY) {
-    ss << "  train_interval = " << train_interval << ",\n";
+    ss << ind << "train_interval = " << train_interval << "," << nl;
   }
   if (number_of_trains != 1) {
-    ss << "  number_of_trains = " << number_of_trains << ",\n";
+    ss << ind << "number_of_trains = " << number_of_trains << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

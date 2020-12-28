@@ -145,20 +145,33 @@ std::string GenRegion::export_to_python(std::ostream& out, PythonExportContext& 
   std::string exported_name = "region_" + std::to_string(ctx.postinc_counter("region"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Region(\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Region(" << nl;
   if (node_type != RegionNodeType::UNSET) {
-    ss << "  node_type = " << node_type << ",\n";
+    ss << ind << "node_type = " << node_type << "," << nl;
   }
   if (is_set(left_node)) {
-    ss << "  left_node = " << left_node->export_to_python(out, ctx) << ",\n";
+    ss << ind << "left_node = " << left_node->export_to_python(out, ctx) << "," << nl;
   }
   if (is_set(right_node)) {
-    ss << "  right_node = " << right_node->export_to_python(out, ctx) << ",\n";
+    ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

@@ -159,7 +159,10 @@ public:
     return is_species_superclass();
   }
 
-  //std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
+  // default generated variant exports all details, we do not want this because
+  // we export just the BNGL name and recompute the diffusion constant
+  // and other fields from the elementary molecule types this species uses
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
 
   bool is_species_superclass() const {
     return BNG::is_species_superclass(name);

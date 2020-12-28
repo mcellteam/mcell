@@ -132,30 +132,43 @@ std::string GenElementaryMoleculeType::export_to_python(std::ostream& out, Pytho
   std::string exported_name = "elementary_molecule_type_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.ElementaryMoleculeType(\n";
-  ss << "  name = " << "'" << name << "'" << ",\n";
-  if (components != std::vector<std::shared_ptr<ComponentType>>()) {
-    ss << "  components = " << export_vec_components(out, ctx, exported_name) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.ElementaryMoleculeType(" << nl;
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  if (components != std::vector<std::shared_ptr<ComponentType>>() && !skip_vectors_export()) {
+    ss << ind << "components = " << export_vec_components(out, ctx, exported_name) << "," << nl;
   }
   if (diffusion_constant_2d != FLT_UNSET) {
-    ss << "  diffusion_constant_2d = " << diffusion_constant_2d << ",\n";
+    ss << ind << "diffusion_constant_2d = " << diffusion_constant_2d << "," << nl;
   }
   if (diffusion_constant_3d != FLT_UNSET) {
-    ss << "  diffusion_constant_3d = " << diffusion_constant_3d << ",\n";
+    ss << ind << "diffusion_constant_3d = " << diffusion_constant_3d << "," << nl;
   }
   if (custom_time_step != FLT_UNSET) {
-    ss << "  custom_time_step = " << custom_time_step << ",\n";
+    ss << ind << "custom_time_step = " << custom_time_step << "," << nl;
   }
   if (custom_space_step != FLT_UNSET) {
-    ss << "  custom_space_step = " << custom_space_step << ",\n";
+    ss << ind << "custom_space_step = " << custom_space_step << "," << nl;
   }
   if (target_only != false) {
-    ss << "  target_only = " << target_only << ",\n";
+    ss << ind << "target_only = " << target_only << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenElementaryMoleculeType::export_vec_components(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

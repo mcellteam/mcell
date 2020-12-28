@@ -81,17 +81,30 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
 std::string GenInstantiation::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
   std::string exported_name = "instantiation";
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Instantiation(\n";
-  if (release_sites != std::vector<std::shared_ptr<ReleaseSite>>()) {
-    ss << "  release_sites = " << export_vec_release_sites(out, ctx, exported_name) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
   }
-  if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>()) {
-    ss << "  geometry_objects = " << export_vec_geometry_objects(out, ctx, exported_name) << ",\n";
+  ss << "m.Instantiation(" << nl;
+  if (release_sites != std::vector<std::shared_ptr<ReleaseSite>>() && !skip_vectors_export()) {
+    ss << ind << "release_sites = " << export_vec_release_sites(out, ctx, exported_name) << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>() && !skip_vectors_export()) {
+    ss << ind << "geometry_objects = " << export_vec_geometry_objects(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenInstantiation::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

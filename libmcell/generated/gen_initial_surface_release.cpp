@@ -122,18 +122,31 @@ std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out, Python
   std::string exported_name = "initial_surface_release_" + std::to_string(ctx.postinc_counter("initial_surface_release"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.InitialSurfaceRelease(\n";
-  ss << "  complex = " << complex->export_to_python(out, ctx) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.InitialSurfaceRelease(" << nl;
+  ss << ind << "complex = " << complex->export_to_python(out, ctx) << "," << nl;
   if (number_to_release != INT_UNSET) {
-    ss << "  number_to_release = " << number_to_release << ",\n";
+    ss << ind << "number_to_release = " << number_to_release << "," << nl;
   }
   if (density != FLT_UNSET) {
-    ss << "  density = " << density << ",\n";
+    ss << ind << "density = " << density << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

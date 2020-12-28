@@ -77,17 +77,30 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
 std::string GenObservables::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
   std::string exported_name = "observables";
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.Observables(\n";
-  if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>()) {
-    ss << "  viz_outputs = " << export_vec_viz_outputs(out, ctx, exported_name) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
   }
-  if (counts != std::vector<std::shared_ptr<Count>>()) {
-    ss << "  counts = " << export_vec_counts(out, ctx, exported_name) << ",\n";
+  ss << "m.Observables(" << nl;
+  if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>() && !skip_vectors_export()) {
+    ss << ind << "viz_outputs = " << export_vec_viz_outputs(out, ctx, exported_name) << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  if (counts != std::vector<std::shared_ptr<Count>>() && !skip_vectors_export()) {
+    ss << ind << "counts = " << export_vec_counts(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenObservables::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

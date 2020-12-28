@@ -135,24 +135,37 @@ std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportCon
   std::string exported_name = "surface_class_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.SurfaceClass(\n";
-  ss << "  name = " << "'" << name << "'" << ",\n";
-  if (properties != std::vector<std::shared_ptr<SurfaceProperty>>()) {
-    ss << "  properties = " << export_vec_properties(out, ctx, exported_name) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.SurfaceClass(" << nl;
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  if (properties != std::vector<std::shared_ptr<SurfaceProperty>>() && !skip_vectors_export()) {
+    ss << ind << "properties = " << export_vec_properties(out, ctx, exported_name) << "," << nl;
   }
   if (type != SurfacePropertyType::UNSET) {
-    ss << "  type = " << type << ",\n";
+    ss << ind << "type = " << type << "," << nl;
   }
   if (is_set(affected_complex_pattern)) {
-    ss << "  affected_complex_pattern = " << affected_complex_pattern->export_to_python(out, ctx) << ",\n";
+    ss << ind << "affected_complex_pattern = " << affected_complex_pattern->export_to_python(out, ctx) << "," << nl;
   }
   if (concentration != FLT_UNSET) {
-    ss << "  concentration = " << concentration << ",\n";
+    ss << ind << "concentration = " << concentration << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenSurfaceClass::export_vec_properties(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

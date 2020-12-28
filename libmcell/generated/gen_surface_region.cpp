@@ -199,28 +199,41 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
   std::string exported_name = "surface_region_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.SurfaceRegion(\n";
-  ss << "  name = " << "'" << name << "'" << ",\n";
-  ss << "  wall_indices = " << export_vec_wall_indices(out, ctx, exported_name) << ",\n";
-  if (is_set(surface_class)) {
-    ss << "  surface_class = " << surface_class->export_to_python(out, ctx) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
   }
-  if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>()) {
-    ss << "  initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx, exported_name) << ",\n";
+  ss << "m.SurfaceRegion(" << nl;
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  ss << ind << "wall_indices = " << export_vec_wall_indices(out, ctx, exported_name) << "," << nl;
+  if (is_set(surface_class)) {
+    ss << ind << "surface_class = " << surface_class->export_to_python(out, ctx) << "," << nl;
+  }
+  if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>() && !skip_vectors_export()) {
+    ss << ind << "initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx, exported_name) << "," << nl;
   }
   if (node_type != RegionNodeType::UNSET) {
-    ss << "  node_type = " << node_type << ",\n";
+    ss << ind << "node_type = " << node_type << "," << nl;
   }
   if (is_set(left_node)) {
-    ss << "  left_node = " << left_node->export_to_python(out, ctx) << ",\n";
+    ss << ind << "left_node = " << left_node->export_to_python(out, ctx) << "," << nl;
   }
   if (is_set(right_node)) {
-    ss << "  right_node = " << right_node->export_to_python(out, ctx) << ",\n";
+    ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

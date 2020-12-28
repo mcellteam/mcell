@@ -134,35 +134,48 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
   std::string exported_name = "reaction_rule_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.ReactionRule(\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.ReactionRule(" << nl;
   if (name != STR_UNSET) {
-    ss << "  name = " << "'" << name << "'" << ",\n";
+    ss << ind << "name = " << "'" << name << "'" << "," << nl;
   }
-  if (reactants != std::vector<std::shared_ptr<Complex>>()) {
-    ss << "  reactants = " << export_vec_reactants(out, ctx, exported_name) << ",\n";
+  if (reactants != std::vector<std::shared_ptr<Complex>>() && !skip_vectors_export()) {
+    ss << ind << "reactants = " << export_vec_reactants(out, ctx, exported_name) << "," << nl;
   }
-  if (products != std::vector<std::shared_ptr<Complex>>()) {
-    ss << "  products = " << export_vec_products(out, ctx, exported_name) << ",\n";
+  if (products != std::vector<std::shared_ptr<Complex>>() && !skip_vectors_export()) {
+    ss << ind << "products = " << export_vec_products(out, ctx, exported_name) << "," << nl;
   }
   if (fwd_rate != FLT_UNSET) {
-    ss << "  fwd_rate = " << fwd_rate << ",\n";
+    ss << ind << "fwd_rate = " << fwd_rate << "," << nl;
   }
   if (rev_name != STR_UNSET) {
-    ss << "  rev_name = " << "'" << name << "'" << ",\n";
+    ss << ind << "rev_name = " << "'" << name << "'" << "," << nl;
   }
   if (rev_rate != FLT_UNSET) {
-    ss << "  rev_rate = " << rev_rate << ",\n";
+    ss << ind << "rev_rate = " << rev_rate << "," << nl;
   }
-  if (variable_rate != std::vector<std::vector<float_t>>()) {
-    ss << "  variable_rate = " << export_vec_variable_rate(out, ctx, exported_name) << ",\n";
+  if (variable_rate != std::vector<std::vector<float_t>>() && !skip_vectors_export()) {
+    ss << ind << "variable_rate = " << export_vec_variable_rate(out, ctx, exported_name) << "," << nl;
   }
   if (is_intermembrane_surface_reaction != false) {
-    ss << "  is_intermembrane_surface_reaction = " << is_intermembrane_surface_reaction << ",\n";
+    ss << ind << "is_intermembrane_surface_reaction = " << is_intermembrane_surface_reaction << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenReactionRule::export_vec_reactants(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

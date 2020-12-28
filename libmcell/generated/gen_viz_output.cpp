@@ -107,21 +107,34 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
   std::string exported_name = "viz_output_" + std::to_string(ctx.postinc_counter("viz_output"));
   ctx.add_exported(this, exported_name);
 
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
   std::stringstream ss;
-  ss << exported_name << " = m.VizOutput(\n";
-  ss << "  output_files_prefix = " << "'" << name << "'" << ",\n";
-  if (species_list != std::vector<std::shared_ptr<Species>>()) {
-    ss << "  species_list = " << export_vec_species_list(out, ctx, exported_name) << ",\n";
+  if (!str_export) {
+    nl = "\n";
+    ind = "  ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.VizOutput(" << nl;
+  ss << ind << "output_files_prefix = " << "'" << name << "'" << "," << nl;
+  if (species_list != std::vector<std::shared_ptr<Species>>() && !skip_vectors_export()) {
+    ss << ind << "species_list = " << export_vec_species_list(out, ctx, exported_name) << "," << nl;
   }
   if (mode != VizMode::ASCII) {
-    ss << "  mode = " << mode << ",\n";
+    ss << ind << "mode = " << mode << "," << nl;
   }
   if (every_n_timesteps != 1) {
-    ss << "  every_n_timesteps = " << every_n_timesteps << ",\n";
+    ss << ind << "every_n_timesteps = " << every_n_timesteps << "," << nl;
   }
-  ss << ")\n\n";
-  out << ss.str();
-  return exported_name;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 std::string GenVizOutput::export_vec_species_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {

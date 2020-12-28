@@ -89,6 +89,12 @@ public:
   ) override;
 
   // added manually
+
+  // go through all species and make sure that
+  // 1) all identical elementary molecule type objects exist only once and
+  // 2) all are also in the elementary_molecule_types array
+  void unify_and_register_elementary_molecule_types();
+
   void dump() const;
 
   // auxiliary methods used also from Instantiation

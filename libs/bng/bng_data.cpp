@@ -206,7 +206,7 @@ void BNGData::dump_compartments() const {
   cout <<  BEGIN_COMPARTMENTS << "\n";
 
   for (const Compartment& c: compartments) {
-    cout << IND << c.name << " " << (c.is_3d ? 3 : 2) << " " << c.get_volume();
+    cout << IND << c.name << " " << (c.is_3d ? 3 : 2) << " " << (c.is_volume_set() ? c.get_volume() : FLT_INVALID);
     if (c.parent_compartment_id != COMPARTMENT_ID_INVALID) {
       cout << " " << get_compartment(c.parent_compartment_id).name;
     }
