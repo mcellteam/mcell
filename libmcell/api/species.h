@@ -41,16 +41,6 @@ class Species: public GenSpecies {
 public:
   SPECIES_CTOR()
 
-  // ctor for special ALL_*MOLECULES species
-  // overlaps with generated ctor, the only difference is the type of the argument which is
-  // const std::string&
-  Species(const char* name_)
-    : GenSpecies(name_) {
-    set_all_attributes_as_default_or_unset();
-    name = name_;
-    species_id = SPECIES_ID_INVALID;
-  }
-
   Species(Complex& cplx_inst)
     : GenSpecies(cplx_inst.to_bngl_str()),
       species_id(SPECIES_ID_INVALID) {
@@ -97,7 +87,8 @@ public:
     }
 
     // 1) simple species defined by name
-    if (is_set(name) && !is_set(elementary_molecules) && (is_set(diffusion_constant_2d) || is_set(diffusion_constant_3d))) {
+    if (is_set(name) && !is_set(elementary_molecules) &&
+        (is_set(diffusion_constant_2d) || is_set(diffusion_constant_3d))) {
 
       if (!is_simple_species(name)) {
         throw ValueError("Only simple species can be fully defined by setting name and diffusion constant. "
@@ -119,9 +110,12 @@ public:
       }
 
       // create a single ElementaryMoleculeType
+      // will be added on initialization to model's elementary_molecule_types
       auto mt = std::make_shared<ElementaryMoleculeType>(
           name, std::vector<std::shared_ptr<ComponentType>>(),
-          diffusion_constant_2d, diffusion_constant_3d
+          diffusion_constant_2d, diffusion_constant_3d,
+          custom_time_step, custom_space_step,
+          target_only
       );
 
       // and then molecule instance out of it

@@ -472,21 +472,17 @@ void MCell4Converter::convert_species() {
       new_species.custom_space_step = s->custom_space_step;
     }
 
-    bool is_vol = false;
     if (is_set(s->diffusion_constant_3d)) {
-      is_vol = true;
       new_species.D = s->diffusion_constant_3d;
       new_species.set_is_vol();
       new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
     else if (is_set(s->diffusion_constant_2d)) {
-      is_vol = false;
       new_species.D = s->diffusion_constant_2d;
       new_species.set_is_surf();
       new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
     else if (BNG::is_species_superclass(new_species.name)) {
-      is_vol = new_species.name != ALL_SURFACE_MOLECULES;
       // these values are not really used, they are initialized for comparisons
       new_species.D = 0;
       new_species.space_step = 0;
@@ -506,21 +502,10 @@ void MCell4Converter::convert_species() {
       release_assert(mi->components.empty());
     }
 
-    // we must add a complex instance as the single molecule type in the new species
-    // define a molecule type with no components
-    BNG::ElemMolType mol_type;
-    mol_type.name = new_species.name; // name of the mol type is the same as for our species
-    mol_type.D = new_species.D; // we must also set the diffusion constant - simply inherit from this simple species
-    mol_type.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, s->target_only);
-    mol_type.custom_space_step = new_species.custom_space_step;
-    mol_type.custom_time_step = new_species.custom_time_step;
-    if (is_vol) {
-      mol_type.set_is_vol();
-    }
-    else {
-      mol_type.set_is_surf();
-    }
-    BNG::elem_mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_elem_mol_type(mol_type);
+    // find elementary molecule type for our species
+    // must exist because it was added in Subsystem::unify_and_register_elementary_molecule_types
+    BNG::elem_mol_type_id_t mol_type_id = world->bng_engine.get_data().find_elem_mol_type_id(s->name);
+    release_assert(mol_type_id != BNG::MOL_TYPE_ID_INVALID);
 
     BNG::ElemMol mol_inst;
     mol_inst.elem_mol_type_id = mol_type_id;

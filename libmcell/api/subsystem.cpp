@@ -43,8 +43,7 @@ void Subsystem::dump() const {
 
 
 void Subsystem::unify_and_register_elementary_molecule_types() {
-
-  // then got through Species
+  // then go through Species
   for (std::shared_ptr<Species> s: species) {
     for (size_t i = 0; i < s->elementary_molecules.size(); i++) {
       std::shared_ptr<ElementaryMoleculeType> emt = s->elementary_molecules[i]->elementary_molecule_type;
@@ -76,7 +75,7 @@ void Subsystem::unify_and_register_elementary_molecule_types() {
         s->elementary_molecules[i]->elementary_molecule_type = *it_contents_eq;
       }
       else{
-        // no such object is in the emt list, add it
+        // no such object is in the emt list, add it (reports error if such object already exists)
         add_elementary_molecule_type(emt);
       }
     }
