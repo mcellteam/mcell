@@ -157,7 +157,7 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
     ss << ind << "fwd_rate = " << fwd_rate << "," << nl;
   }
   if (rev_name != STR_UNSET) {
-    ss << ind << "rev_name = " << "'" << name << "'" << "," << nl;
+    ss << ind << "rev_name = " << "'" << rev_name << "'" << "," << nl;
   }
   if (rev_rate != FLT_UNSET) {
     ss << ind << "rev_rate = " << rev_rate << "," << nl;

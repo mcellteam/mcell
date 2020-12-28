@@ -135,7 +135,7 @@ std::string GenComponent::export_to_python(std::ostream& out, PythonExportContex
   ss << "m.Component(" << nl;
   ss << ind << "component_type = " << component_type->export_to_python(out, ctx) << "," << nl;
   if (state != "STATE_UNSET") {
-    ss << ind << "state = " << "'" << name << "'" << "," << nl;
+    ss << ind << "state = " << "'" << state << "'" << "," << nl;
   }
   if (bond != BOND_UNBOUND) {
     ss << ind << "bond = " << bond << "," << nl;

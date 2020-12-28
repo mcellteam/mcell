@@ -117,7 +117,7 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
     ss << exported_name << " = ";
   }
   ss << "m.VizOutput(" << nl;
-  ss << ind << "output_files_prefix = " << "'" << name << "'" << "," << nl;
+  ss << ind << "output_files_prefix = " << "'" << output_files_prefix << "'" << "," << nl;
   if (species_list != std::vector<std::shared_ptr<Species>>() && !skip_vectors_export()) {
     ss << ind << "species_list = " << export_vec_species_list(out, ctx, exported_name) << "," << nl;
   }

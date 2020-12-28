@@ -250,7 +250,7 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
     ss << ind << "is_bngl_compartment = " << is_bngl_compartment << "," << nl;
   }
   if (surface_compartment_name != STR_UNSET) {
-    ss << ind << "surface_compartment_name = " << "'" << name << "'" << "," << nl;
+    ss << ind << "surface_compartment_name = " << "'" << surface_compartment_name << "'" << "," << nl;
   }
   if (surface_regions != std::vector<std::shared_ptr<SurfaceRegion>>() && !skip_vectors_export()) {
     ss << ind << "surface_regions = " << export_vec_surface_regions(out, ctx, exported_name) << "," << nl;

@@ -127,7 +127,7 @@ std::string GenComplex::export_to_python(std::ostream& out, PythonExportContext&
     ss << ind << "orientation = " << orientation << "," << nl;
   }
   if (compartment_name != STR_UNSET) {
-    ss << ind << "compartment_name = " << "'" << name << "'" << "," << nl;
+    ss << ind << "compartment_name = " << "'" << compartment_name << "'" << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

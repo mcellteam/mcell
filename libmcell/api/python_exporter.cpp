@@ -63,13 +63,14 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
   // parameters
   // - includes rng state
 
-  save_subsystem(ctx);
+  string subsystem_name = save_subsystem(ctx);
 
   string geometry_objects_name = save_geometry(ctx);
 
-  save_instantiation(ctx, geometry_objects_name);
+  string instantiation_name = save_instantiation(ctx, geometry_objects_name);
 
-  // observables
+  // need to append - some config flag?
+  string observables_name = save_observables(ctx);
 
   // molecules
   // - volume
@@ -124,6 +125,22 @@ std::string PythonExporter::save_instantiation(PythonExportContext& ctx, const s
 
   out.close();
   return INSTANTIATION;
+}
+
+
+std::string PythonExporter::save_observables(PythonExportContext& ctx) {
+  ofstream out;
+  open_and_check_file(OBSERVABLES, out);
+  out << MCELL_IMPORT;
+  out << get_import_star(SUBSYSTEM);
+  out << get_import_star(GEOMETRY);
+  out << get_import_star(INSTANTIATION);
+  out << "\n";
+
+  string res_name = model->Observables::export_to_python(out, ctx);
+
+  out.close();
+  return res_name;
 }
 
 } // namespace API

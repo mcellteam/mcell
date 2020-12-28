@@ -331,7 +331,7 @@ std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& c
     ss << ind << "name = " << "'" << name << "'" << "," << nl;
   }
   if (file_name != STR_UNSET) {
-    ss << ind << "file_name = " << "'" << name << "'" << "," << nl;
+    ss << ind << "file_name = " << "'" << file_name << "'" << "," << nl;
   }
   if (is_set(count_expression)) {
     ss << ind << "count_expression = " << count_expression->export_to_python(out, ctx) << "," << nl;

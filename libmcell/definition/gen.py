@@ -1210,7 +1210,7 @@ def write_export_to_python_implementation(f, class_name, class_def):
         elif not is_base_yaml_type(type) and type not in g_enums:
             f.write(name + '.export_to_python(out, ' + CTX + ') << "," << ' + NL + ';\n')
         elif type == YAML_TYPE_STR:
-            f.write('"\'" << name << "\'" << "," << ' + NL + ';\n')
+            f.write('"\'" << ' + name + ' << "\'" << "," << ' + NL + ';\n')
         elif type == YAML_TYPE_VEC3:
             # also other ivec*/vec2 types should be handled like this but it was not needed so far
             f.write('"' + M_DOT + CPP_TYPE_VEC3 + '" << ' + name + ' << "," << ' + NL + ';\n')
