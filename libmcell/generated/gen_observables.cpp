@@ -83,7 +83,7 @@ std::string GenObservables::export_to_python(std::ostream& out, PythonExportCont
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.Observables(" << nl;
@@ -106,12 +106,19 @@ std::string GenObservables::export_to_python(std::ostream& out, PythonExportCont
 std::string GenObservables::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
-  std::string exported_name = parent_name + "_viz_outputs";
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_viz_outputs";
+  }
+  else {
+    exported_name = "viz_outputs";
+  }
+
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < viz_outputs.size(); i++) {
     const auto& item = viz_outputs[i];
     if (i == 0) {
-      ss << "  ";
+      ss << "    ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -129,12 +136,19 @@ std::string GenObservables::export_vec_viz_outputs(std::ostream& out, PythonExpo
 std::string GenObservables::export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
-  std::string exported_name = parent_name + "_counts";
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_counts";
+  }
+  else {
+    exported_name = "counts";
+  }
+
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < counts.size(); i++) {
     const auto& item = counts[i];
     if (i == 0) {
-      ss << "  ";
+      ss << "    ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";

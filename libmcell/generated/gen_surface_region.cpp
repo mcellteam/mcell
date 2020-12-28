@@ -205,7 +205,7 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.SurfaceRegion(" << nl;

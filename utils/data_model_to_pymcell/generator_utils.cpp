@@ -293,18 +293,6 @@ string make_species_or_cplx(
 }
 
 
-string fix_param_id(const std::string& str) {
-  assert(str.size() > 0);
-  if (str[0] == '_') {
-    // underscore denotes private variables in Python
-    return "und" + str;
-  }
-  else {
-    return str;
-  }
-}
-
-
 string reaction_name_to_id(const string& json_name) {
   string res_name = json_name;
   replace(res_name.begin(), res_name.end(), ' ', '_');

@@ -323,7 +323,7 @@ std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& c
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.Count(" << nl;

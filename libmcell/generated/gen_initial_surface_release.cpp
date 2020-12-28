@@ -128,7 +128,7 @@ std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out, Python
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.InitialSurfaceRelease(" << nl;

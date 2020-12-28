@@ -101,7 +101,7 @@ std::string GenSubsystem::export_to_python(std::ostream& out, PythonExportContex
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.Subsystem(" << nl;
@@ -130,12 +130,19 @@ std::string GenSubsystem::export_to_python(std::ostream& out, PythonExportContex
 std::string GenSubsystem::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
-  std::string exported_name = parent_name + "_species";
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_species";
+  }
+  else {
+    exported_name = "species";
+  }
+
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < species.size(); i++) {
     const auto& item = species[i];
     if (i == 0) {
-      ss << "  ";
+      ss << "    ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -153,12 +160,19 @@ std::string GenSubsystem::export_vec_species(std::ostream& out, PythonExportCont
 std::string GenSubsystem::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
-  std::string exported_name = parent_name + "_reaction_rules";
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_reaction_rules";
+  }
+  else {
+    exported_name = "reaction_rules";
+  }
+
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < reaction_rules.size(); i++) {
     const auto& item = reaction_rules[i];
     if (i == 0) {
-      ss << "  ";
+      ss << "    ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -176,12 +190,19 @@ std::string GenSubsystem::export_vec_reaction_rules(std::ostream& out, PythonExp
 std::string GenSubsystem::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
-  std::string exported_name = parent_name + "_surface_classes";
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_surface_classes";
+  }
+  else {
+    exported_name = "surface_classes";
+  }
+
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < surface_classes.size(); i++) {
     const auto& item = surface_classes[i];
     if (i == 0) {
-      ss << "  ";
+      ss << "    ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -199,12 +220,19 @@ std::string GenSubsystem::export_vec_surface_classes(std::ostream& out, PythonEx
 std::string GenSubsystem::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
-  std::string exported_name = parent_name + "_elementary_molecule_types";
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_elementary_molecule_types";
+  }
+  else {
+    exported_name = "elementary_molecule_types";
+  }
+
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < elementary_molecule_types.size(); i++) {
     const auto& item = elementary_molecule_types[i];
     if (i == 0) {
-      ss << "  ";
+      ss << "    ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";

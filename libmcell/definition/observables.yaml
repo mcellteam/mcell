@@ -106,7 +106,7 @@ Count:
     type: str
     default: unset
     doc: |
-       File name with an optional path must be set. It is not dediuced automatically.
+       File name with an optional path must be set. It is not deduced automatically.
     
   - name: count_expression 
     type: CountTerm*

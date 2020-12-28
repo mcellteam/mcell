@@ -45,7 +45,9 @@ private:
       const bool for_append = false,
       const bool bngl = false);
 
-  void save_subsystem(PythonExportContext& ctx);
+  std::string save_subsystem(PythonExportContext& ctx);
+  std::string save_geometry(PythonExportContext& ctx);
+  std::string save_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name);
 
   Model* model;
   World* world;

@@ -87,7 +87,7 @@ std::string GenInstantiation::export_to_python(std::ostream& out, PythonExportCo
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.Instantiation(" << nl;
@@ -110,12 +110,19 @@ std::string GenInstantiation::export_to_python(std::ostream& out, PythonExportCo
 std::string GenInstantiation::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
-  std::string exported_name = parent_name + "_release_sites";
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_release_sites";
+  }
+  else {
+    exported_name = "release_sites";
+  }
+
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < release_sites.size(); i++) {
     const auto& item = release_sites[i];
     if (i == 0) {
-      ss << "  ";
+      ss << "    ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";
@@ -133,12 +140,19 @@ std::string GenInstantiation::export_vec_release_sites(std::ostream& out, Python
 std::string GenInstantiation::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
-  std::string exported_name = parent_name + "_geometry_objects";
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_geometry_objects";
+  }
+  else {
+    exported_name = "geometry_objects";
+  }
+
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < geometry_objects.size(); i++) {
     const auto& item = geometry_objects[i];
     if (i == 0) {
-      ss << "  ";
+      ss << "    ";
     }
     else if (i % 16 == 0) {
       ss << "\n  ";

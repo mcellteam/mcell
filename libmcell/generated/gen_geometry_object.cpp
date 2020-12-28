@@ -239,7 +239,7 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.GeometryObject(" << nl;

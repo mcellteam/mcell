@@ -255,7 +255,7 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.ReleaseSite(" << nl;
@@ -279,7 +279,7 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
     ss << ind << "region = " << region->export_to_python(out, ctx) << "," << nl;
   }
   if (location != VEC3_UNSET) {
-    ss << ind << "location = " << location << "," << nl;
+    ss << ind << "location = " << "m.Vec3" << location << "," << nl;
   }
   if (site_diameter != 0) {
     ss << ind << "site_diameter = " << site_diameter << "," << nl;

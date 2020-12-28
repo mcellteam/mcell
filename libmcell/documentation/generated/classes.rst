@@ -361,7 +361,7 @@ Attributes:
   | Also when the count is created while loading a BNGL file, its name is set.
 
 * | **file_name**: str = None
-  | File name with an optional path must be set. It is not dediuced automatically.
+  | File name with an optional path must be set. It is not deduced automatically.
 
 * | **count_expression**: CountTerm = None
   | The count expression must be composed only from CountTerm objects that are added or 

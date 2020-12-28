@@ -113,7 +113,7 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.VizOutput(" << nl;

@@ -21,6 +21,7 @@
 ******************************************************************************/
 
 #include <fstream>
+#include <regex>
 
 #include "api/python_export_utils.h"
 #include "api/python_export_constants.h"
@@ -127,6 +128,56 @@ void open_and_check_file_w_prefix(
     throw ConversionError("Could not open file '" + file_name + "' for writing.");
   }
 }
+
+
+void gen_ctor_call(std::ostream& out, std::string name, std::string class_name, bool has_params) {
+  if (name != "") {
+    out << make_id(name) << " = " << MDOT << class_name;
+  }
+  else {
+    out << MDOT << class_name;
+  }
+  if (has_params) {
+    out << "(\n";
+  }
+  else {
+    out << "()\n";
+  }
+}
+
+
+// replaces '.' with '_' and does potentially other conversions
+std::string make_id(const std::string& s) {
+  string res = s;
+  // do not do changes if the ID starts with 'm.' -> constant from
+  // the mcell module ID that cannot have dots that we need to replace in it anyway
+  if (res.size() <= 2 || (res.size() > 2 && res.substr(0, strlen(MDOT)) != MDOT)) {
+    res = fix_id(res);
+  }
+  return res;
+}
+
+
+string fix_param_id(const std::string& str) {
+  assert(str.size() > 0);
+  if (str[0] == '_') {
+    // underscore denotes private variables in Python
+    return "und" + str;
+  }
+  else {
+    return str;
+  }
+}
+
+
+void gen_param_expr(std::ostream& out, std::string name, const std::string& value, bool comma) {
+  std::string python_expr;
+  // replace operator ^ with operator ** and '_' at the beginning with 'und_'
+  python_expr = fix_param_id(regex_replace(value, regex("\\^"), "**"));
+  out << IND << name << " = " << python_expr << (comma?",":"") << "\n";
+}
+
+
 
 } // namespace API
 } // namespace MCell

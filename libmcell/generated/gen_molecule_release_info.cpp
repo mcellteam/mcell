@@ -124,7 +124,7 @@ std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonEx
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.MoleculeReleaseInfo(" << nl;

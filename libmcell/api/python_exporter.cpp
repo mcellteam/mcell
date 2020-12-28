@@ -27,6 +27,8 @@
 #include "world.h"
 #include "src/util.h"
 
+using namespace std;
+
 namespace MCell {
 namespace API {
 
@@ -61,12 +63,11 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
   // parameters
   // - includes rng state
 
-  // subsystem
   save_subsystem(ctx);
 
-  // geometry
+  string geometry_objects_name = save_geometry(ctx);
 
-  // instantiation
+  save_instantiation(ctx, geometry_objects_name);
 
   // observables
 
@@ -81,13 +82,48 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
 }
 
 
-void PythonExporter::save_subsystem(PythonExportContext& ctx) {
-  std::ofstream out_subsystem;
-  open_and_check_file(SUBSYSTEM, out_subsystem);
-  out_subsystem << MCELL_IMPORT;
+std::string PythonExporter::save_subsystem(PythonExportContext& ctx) {
+  ofstream out;
+  open_and_check_file(SUBSYSTEM, out);
+  out << MCELL_IMPORT;
 
-  model->Subsystem::export_to_python(out_subsystem, ctx);
-  out_subsystem.close();
+  string res_name = model->Subsystem::export_to_python(out, ctx);
+
+  out.close();
+  return res_name;
+}
+
+
+std::string PythonExporter::save_geometry(PythonExportContext& ctx) {
+  ofstream out;
+  open_and_check_file(GEOMETRY, out);
+  out << MCELL_IMPORT;
+
+  string res_name = model->export_vec_geometry_objects(out, ctx, "");
+
+  out.close();
+  return res_name;
+}
+
+
+std::string PythonExporter::save_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name) {
+  // prints out everything, even past releases
+  // for checkpointing, we always need to fully finish the current iteration and then start the new one
+  std::ofstream out;
+  open_and_check_file(INSTANTIATION, out);
+  out << MCELL_IMPORT;
+  out << get_import_star(GEOMETRY);
+  out << "\n";
+
+  string release_sites_name = model->export_vec_release_sites(out, ctx, "");
+
+  gen_ctor_call(out, INSTANTIATION, NAME_CLASS_INSTANTIATION);
+  gen_param_id(out, NAME_RELEASE_SITES, release_sites_name, true);
+  gen_param_id(out, NAME_GEOMETRY_OBJECTS, geometry_objects_name, false);
+  out << CTOR_END;
+
+  out.close();
+  return INSTANTIATION;
 }
 
 } // namespace API

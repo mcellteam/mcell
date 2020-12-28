@@ -1043,9 +1043,10 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
 def write_vec_export(f, return_only_name, gen_class_name, item):
     
     item_name = item[KEY_NAME];
+    PARENT_NAME = 'parent_name'
     
     name_w_args = \
-        EXPORT_VEC_PREFIX + item_name + '(' + EXPORT_TO_PYTHON_ARGS + ', const std::string& parent_name) const'
+        EXPORT_VEC_PREFIX + item_name + '(' + EXPORT_TO_PYTHON_ARGS + ', const std::string& ' + PARENT_NAME + ') const'
     decl = '  virtual ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + name_w_args + ';\n'
     f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + name_w_args + " {\n")
     
@@ -1057,9 +1058,15 @@ def write_vec_export(f, return_only_name, gen_class_name, item):
     f.write('  std::stringstream ss;\n')
     out = '  ss << '
     if return_only_name:
-        f.write('  std::string ' + EXPORTED_NAME + ' = parent_name + "_' + item_name + '";\n')
+        f.write('  std::string ' + EXPORTED_NAME + ';\n' +
+                '  if (' + PARENT_NAME + ' != ""){\n' +
+                '    ' + EXPORTED_NAME + ' = ' + PARENT_NAME + '+ "_' + item_name + '";\n' +
+                '  }\n' +
+                '  else {\n' +
+                '    ' + EXPORTED_NAME + ' = "' + item_name + '";\n' +
+                '  }\n\n')
         f.write(out + EXPORTED_NAME + ' << " = [\\n";\n')
-        spacing = '  '
+        spacing = '    '
     else:
         f.write(out + '"[";\n')
         spacing = ' ' 
@@ -1168,7 +1175,7 @@ def write_export_to_python_implementation(f, class_name, class_def):
     
     f.write('  if (!' + STR_EXPORT + ') {\n')
     f.write('    ' + NL + ' = "\\n";\n')
-    f.write('    ' + IND + ' = "  ";\n')
+    f.write('    ' + IND + ' = "    ";\n')
     f.write('  ' + out + EXPORTED_NAME + ' << " = ";\n')
     f.write('  }\n')
     
@@ -1204,6 +1211,9 @@ def write_export_to_python_implementation(f, class_name, class_def):
             f.write(name + '.export_to_python(out, ' + CTX + ') << "," << ' + NL + ';\n')
         elif type == YAML_TYPE_STR:
             f.write('"\'" << name << "\'" << "," << ' + NL + ';\n')
+        elif type == YAML_TYPE_VEC3:
+            # also other ivec*/vec2 types should be handled like this but it was not needed so far
+            f.write('"' + M_DOT + CPP_TYPE_VEC3 + '" << ' + name + ' << "," << ' + NL + ';\n')
         else:
             # using operators << for enums
             f.write(name + ' << "," << ' + NL + ';\n')
@@ -1630,12 +1640,15 @@ def write_enum_def(f, enum_def):
     f.write('};\n\n')
 
     
-    f.write('\nstatic inline  std::ostream& operator << (std::ostream& out, const ' + name + ' v) {\n')
+    f.write('\nstatic inline std::ostream& operator << (std::ostream& out, const ' + name + ' v) {\n')
     f.write('  switch (v) {\n');
     for i in range(num):
         v = values[i]
         # dumping in Python style '.' that will be most probably more common as API  
-        f.write('    case ' + name + '::' + v[KEY_NAME] + ': out << "' + name + '.' + v[KEY_NAME] + ' (' + str(v[KEY_VALUE]) + ')"; break;\n')  
+        #f.write('    case ' + name + '::' + v[KEY_NAME] + ': out << "' + name + '.' + v[KEY_NAME] + ' (' + str(v[KEY_VALUE]) + ')"; break;\n')
+        
+        # dumping as Python code  
+        f.write('    case ' + name + '::' + v[KEY_NAME] + ': out << "' + M_DOT + name + '.' + v[KEY_NAME] + '"; break;\n')
         
     f.write('  }\n')
     f.write('  return out;\n')

@@ -138,7 +138,7 @@ std::string GenElementaryMoleculeType::export_to_python(std::ostream& out, Pytho
   std::stringstream ss;
   if (!str_export) {
     nl = "\n";
-    ind = "  ";
+    ind = "    ";
     ss << exported_name << " = ";
   }
   ss << "m.ElementaryMoleculeType(" << nl;
