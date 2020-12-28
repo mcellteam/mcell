@@ -49,6 +49,12 @@ private:
   std::string save_geometry(PythonExportContext& ctx);
   std::string save_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name);
   std::string save_observables(PythonExportContext& ctx);
+  std::string save_model(
+      PythonExportContext& ctx,
+      const std::string& subsystem_name,
+      const std::string& instantiation_name,
+      const std::string& observables_name);
+
 
   Model* model;
   World* world;

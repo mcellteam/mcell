@@ -854,10 +854,10 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << get_argparse_w_customization(parameters_module, customization_module);
   out << "\n";
 
-  out << IMPORT << " " << get_module_name(SUBSYSTEM) << "\n";
-  out << IMPORT << " " << get_module_name(INSTANTIATION) << "\n";
+  out << get_import(get_module_name(SUBSYSTEM));
+  out << get_import(get_module_name(INSTANTIATION));
   if (observables_generated) {
-    out << IMPORT << " " << get_module_name(OBSERVABLES) << "\n";
+    out << get_import(get_module_name(OBSERVABLES));
   }
   out << "\n";
 

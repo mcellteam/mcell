@@ -60,8 +60,7 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
 
   PythonExportContext ctx;
 
-  // parameters
-  // - includes rng state
+  // parameters - later, once we will maintain the association,
 
   string subsystem_name = save_subsystem(ctx);
 
@@ -80,6 +79,7 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
   // - config
   // - warnings
   // - notifications
+  save_model(ctx, subsystem_name, instantiation_name, observables_name);
 }
 
 
@@ -142,6 +142,76 @@ std::string PythonExporter::save_observables(PythonExportContext& ctx) {
   out.close();
   return res_name;
 }
+
+
+std::string PythonExporter::save_model(
+    PythonExportContext& ctx,
+    const std::string& subsystem_name,
+    const std::string& instantiation_name,
+    const std::string& observables_name) {
+
+  // prints out everything, even past releases
+  // for checkpointing, we always need to fully finish the current iteration and then start the new one
+  std::ofstream out;
+  open_and_check_file(MODEL, out);
+
+  // imports
+  out << INTERPRETER;
+  out << BASE_MODEL_IMPORTS;
+  out << "\n";
+  out << MCELL_PATH_SETUP;
+  out << "\n";
+  out << MCELL_IMPORT;
+
+  // TODO: version check, warning
+
+  out << get_import(SUBSYSTEM);
+  out << get_import(INSTANTIATION);
+  out << get_import(OBSERVABLES);
+  out << "\n";
+
+  // create model object
+  gen_ctor_call(out, MODEL, NAME_CLASS_MODEL, false);
+  out << "\n";
+
+  // config, notifications, warnings
+  gen_assign(out, MODEL, NAME_CONFIG, model->config.export_to_python(out, ctx));
+  gen_assign(out, MODEL, NAME_NOTIFICATIONS, model->notifications.export_to_python(out, ctx));
+  gen_assign(out, MODEL, NAME_WARNINGS, model->warnings.export_to_python(out, ctx));
+  out << "\n";
+
+  // checkpoint-specific config
+  // - append to observables
+  // - starting iteration
+  // - time step (explicit)
+
+  // subsystem
+  string subsystem_prefix = S(SUBSYSTEM) + "." + subsystem_name + ".";
+  gen_assign(out, MODEL, NAME_SPECIES, subsystem_prefix + NAME_SPECIES);
+  gen_assign(out, MODEL, NAME_REACTION_RULES, subsystem_prefix + NAME_REACTION_RULES);
+  gen_assign(out, MODEL, NAME_SURFACE_CLASSES, subsystem_prefix + NAME_SURFACE_CLASSES);
+  gen_assign(out, MODEL, NAME_ELEMENTARY_MOLECULE_TYPES, subsystem_prefix + NAME_ELEMENTARY_MOLECULE_TYPES);
+  out << "\n";
+
+  // instantiation
+  string instantiation_prefix = S(INSTANTIATION) + "." + instantiation_name + ".";
+  gen_assign(out, MODEL, NAME_RELEASE_SITES, instantiation_prefix + NAME_RELEASE_SITES);
+  gen_assign(out, MODEL, NAME_GEOMETRY_OBJECTS, instantiation_prefix + NAME_GEOMETRY_OBJECTS);
+  out << "\n";
+
+  // observables
+  string observables_prefix = S(OBSERVABLES) + "." + observables_name + ".";
+  gen_assign(out, MODEL, NAME_VIZ_OUTPUTS, observables_prefix + NAME_VIZ_OUTPUTS);
+  gen_assign(out, MODEL, NAME_COUNTS, observables_prefix + NAME_COUNTS);
+  out << "\n";
+
+
+  // function to resume simulation
+
+  out.close();
+  return MODEL;
+}
+
 
 } // namespace API
 } // namespace MCell

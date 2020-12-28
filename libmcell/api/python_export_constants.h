@@ -146,6 +146,10 @@ static std::string get_abs_path(const std::string file) {
   return std::string("os.path.join(") + MODEL_PATH + ", '" + file + "')";
 }
 
+static std::string get_import(const std::string module) {
+  return "import " + module + "\n";
+}
+
 static std::string get_import_star(const std::string module) {
   return "from " + module + " import *\n";
 }
