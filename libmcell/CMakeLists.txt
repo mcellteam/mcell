@@ -54,6 +54,8 @@ set(SOURCE_FILES
     api/wall.cpp
     api/introspection.cpp
     
+    api/chkpt_vol_mol.cpp
+    api/chkpt_surf_mol.cpp
     api/rng_state.cpp
 
     generated/gen_component_type.cpp
@@ -94,6 +96,9 @@ set(SOURCE_FILES
     generated/gen_mol_wall_hit_info.cpp
     generated/gen_reaction_info.cpp
     
+    generated/gen_base_chkpt_mol.cpp
+    generated/gen_chkpt_vol_mol.cpp
+    generated/gen_chkpt_surf_mol.cpp
     generated/gen_rng_state.cpp
 
     generated/gen_constants.cpp

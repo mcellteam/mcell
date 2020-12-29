@@ -49,6 +49,8 @@ class PythonExportContext;
         const bool check_overlapped_walls_ = true, \
         const bool sort_molecules_ = false, \
         const int memory_limit_gb_ = -1, \
+        const uint64_t initial_iteration_ = 0, \
+        const float_t initial_time_ = 0, \
         std::shared_ptr<RngState> rng_state_ = nullptr \
     ) { \
       class_name = "Config"; \
@@ -66,6 +68,8 @@ class PythonExportContext;
       check_overlapped_walls = check_overlapped_walls_; \
       sort_molecules = sort_molecules_; \
       memory_limit_gb = memory_limit_gb_; \
+      initial_iteration = initial_iteration_; \
+      initial_time = initial_time_; \
       rng_state = rng_state_; \
       postprocess_in_ctor();\
       check_semantics();\
@@ -283,6 +287,34 @@ public:
   virtual int get_memory_limit_gb() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return memory_limit_gb;
+  }
+
+  uint64_t initial_iteration;
+  virtual void set_initial_iteration(const uint64_t new_initial_iteration_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_iteration' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    initial_iteration = new_initial_iteration_;
+  }
+  virtual uint64_t get_initial_iteration() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return initial_iteration;
+  }
+
+  float_t initial_time;
+  virtual void set_initial_time(const float_t new_initial_time_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_time' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    initial_time = new_initial_time_;
+  }
+  virtual float_t get_initial_time() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return initial_time;
   }
 
   std::shared_ptr<RngState> rng_state;

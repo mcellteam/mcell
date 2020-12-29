@@ -6,6 +6,12 @@ INT32_MAX = 2147483647 # do not use this constant in your code
 FLT_MAX = 3.40282346638528859812e+38 # do not use this constant in your code
 
 # "forward" declarations to make the type hints valid
+class BaseChkptMol():
+    pass
+class ChkptSurfMol():
+    pass
+class ChkptVolMol():
+    pass
 class Complex():
     pass
 class Component():
@@ -176,6 +182,66 @@ FLT_UNSET = FLT_MAX
 RNG_SIZE = 256
 
 
+class BaseChkptMol():
+    def __init__(
+            self,
+            id : int,
+            species : Species,
+            diffusion_time : float,
+            unimol_rx_time : float,
+            birthday : float
+        ):
+        self.id = id
+        self.species = species
+        self.diffusion_time = diffusion_time
+        self.unimol_rx_time = unimol_rx_time
+        self.birthday = birthday
+
+
+class ChkptSurfMol():
+    def __init__(
+            self,
+            pos : Vec2,
+            orientation : Orientation,
+            geometry_object : GeometryObject,
+            wall_index : int,
+            grid_tile_index : int,
+            id : int,
+            species : Species,
+            diffusion_time : float,
+            unimol_rx_time : float,
+            birthday : float
+        ):
+        self.pos = pos
+        self.orientation = orientation
+        self.geometry_object = geometry_object
+        self.wall_index = wall_index
+        self.grid_tile_index = grid_tile_index
+        self.id = id
+        self.species = species
+        self.diffusion_time = diffusion_time
+        self.unimol_rx_time = unimol_rx_time
+        self.birthday = birthday
+
+
+class ChkptVolMol():
+    def __init__(
+            self,
+            pos : Vec3,
+            id : int,
+            species : Species,
+            diffusion_time : float,
+            unimol_rx_time : float,
+            birthday : float
+        ):
+        self.pos = pos
+        self.id = id
+        self.species = species
+        self.diffusion_time = diffusion_time
+        self.unimol_rx_time = unimol_rx_time
+        self.birthday = birthday
+
+
 class Complex():
     def __init__(
             self,
@@ -256,6 +322,8 @@ class Config():
             check_overlapped_walls : bool = True,
             sort_molecules : bool = False,
             memory_limit_gb : int = -1,
+            initial_iteration : int = 0,
+            initial_time : float = 0,
             rng_state : RngState = None
         ):
         self.seed = seed
@@ -272,6 +340,8 @@ class Config():
         self.check_overlapped_walls = check_overlapped_walls
         self.sort_molecules = sort_molecules
         self.memory_limit_gb = memory_limit_gb
+        self.initial_iteration = initial_iteration
+        self.initial_time = initial_time
         self.rng_state = rng_state
 
 
@@ -468,10 +538,14 @@ class Instantiation():
     def __init__(
             self,
             release_sites : List[ReleaseSite] = None,
-            geometry_objects : List[GeometryObject] = None
+            geometry_objects : List[GeometryObject] = None,
+            checkpointed_volume_molecules : List[ChkptVolMol] = None,
+            checkpointed_surface_molecules : List[ChkptSurfMol] = None
         ):
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
+        self.checkpointed_volume_molecules = checkpointed_volume_molecules
+        self.checkpointed_surface_molecules = checkpointed_surface_molecules
 
 
     def add_release_site(
@@ -583,6 +657,8 @@ class Model():
             elementary_molecule_types : List[ElementaryMoleculeType] = None,
             release_sites : List[ReleaseSite] = None,
             geometry_objects : List[GeometryObject] = None,
+            checkpointed_volume_molecules : List[ChkptVolMol] = None,
+            checkpointed_surface_molecules : List[ChkptSurfMol] = None,
             viz_outputs : List[VizOutput] = None,
             counts : List[Count] = None
         ):
@@ -595,6 +671,8 @@ class Model():
         self.elementary_molecule_types = elementary_molecule_types
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
+        self.checkpointed_volume_molecules = checkpointed_volume_molecules
+        self.checkpointed_surface_molecules = checkpointed_surface_molecules
         self.viz_outputs = viz_outputs
         self.counts = counts
 

@@ -1,3 +1,39 @@
+
+BaseChkptMol:
+  superclass: BaseDataClass
+  doc: All times are in us (microseconds).
+  items:
+  - name: id
+    type: int
+  - name: species
+    type: Species*
+  - name: diffusion_time 
+    type: float     
+  - name: unimol_rx_time 
+    type: float     
+  - name: birthday 
+    type: float     
+
+ChkptVolMol:
+  superclass: BaseChkptMol
+  items:
+  - name: pos
+    type: Vec3
+
+ChkptSurfMol:
+  superclass: BaseChkptMol
+  items:
+  - name: pos
+    type: Vec2
+  - name: orientation
+    type: Orientation
+  - name: geometry_object
+    type: GeometryObject*
+  - name: wall_index
+    type: int
+  - name: grid_tile_index
+    type: int
+
 RngState:
   superclass: BaseDataClass
   doc: Internal checkpointing structure holding state of the random number generator.

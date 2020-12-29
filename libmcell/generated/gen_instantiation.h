@@ -30,6 +30,8 @@ namespace MCell {
 namespace API {
 
 class Instantiation;
+class ChkptSurfMol;
+class ChkptVolMol;
 class GeometryObject;
 class Region;
 class ReleaseSite;
@@ -39,10 +41,14 @@ class PythonExportContext;
 #define INSTANTIATION_CTOR() \
     Instantiation( \
         const std::vector<std::shared_ptr<ReleaseSite>> release_sites_ = std::vector<std::shared_ptr<ReleaseSite>>(), \
-        const std::vector<std::shared_ptr<GeometryObject>> geometry_objects_ = std::vector<std::shared_ptr<GeometryObject>>() \
+        const std::vector<std::shared_ptr<GeometryObject>> geometry_objects_ = std::vector<std::shared_ptr<GeometryObject>>(), \
+        const std::vector<std::shared_ptr<ChkptVolMol>> checkpointed_volume_molecules_ = std::vector<std::shared_ptr<ChkptVolMol>>(), \
+        const std::vector<std::shared_ptr<ChkptSurfMol>> checkpointed_surface_molecules_ = std::vector<std::shared_ptr<ChkptSurfMol>>() \
     ) { \
       release_sites = release_sites_; \
       geometry_objects = geometry_objects_; \
+      checkpointed_volume_molecules = checkpointed_volume_molecules_; \
+      checkpointed_surface_molecules = checkpointed_surface_molecules_; \
     }
 
 class GenInstantiation: public BaseExportClass {
@@ -57,6 +63,8 @@ public:
   virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const;
   virtual std::string export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
   virtual std::string export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_checkpointed_volume_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_checkpointed_surface_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
 
 
   // --- attributes ---
@@ -74,6 +82,22 @@ public:
   }
   virtual std::vector<std::shared_ptr<GeometryObject>> get_geometry_objects() const {
     return geometry_objects;
+  }
+
+  std::vector<std::shared_ptr<ChkptVolMol>> checkpointed_volume_molecules;
+  virtual void set_checkpointed_volume_molecules(const std::vector<std::shared_ptr<ChkptVolMol>> new_checkpointed_volume_molecules_) {
+    checkpointed_volume_molecules = new_checkpointed_volume_molecules_;
+  }
+  virtual std::vector<std::shared_ptr<ChkptVolMol>> get_checkpointed_volume_molecules() const {
+    return checkpointed_volume_molecules;
+  }
+
+  std::vector<std::shared_ptr<ChkptSurfMol>> checkpointed_surface_molecules;
+  virtual void set_checkpointed_surface_molecules(const std::vector<std::shared_ptr<ChkptSurfMol>> new_checkpointed_surface_molecules_) {
+    checkpointed_surface_molecules = new_checkpointed_surface_molecules_;
+  }
+  virtual std::vector<std::shared_ptr<ChkptSurfMol>> get_checkpointed_surface_molecules() const {
+    return checkpointed_surface_molecules;
   }
 
   // --- methods ---

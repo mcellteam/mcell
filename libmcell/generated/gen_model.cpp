@@ -25,6 +25,8 @@
 #include "api/python_export_utils.h"
 #include "gen_model.h"
 #include "api/model.h"
+#include "api/chkpt_surf_mol.h"
+#include "api/chkpt_vol_mol.h"
 #include "api/config.h"
 #include "api/count.h"
 #include "api/elementary_molecule_type.h"
@@ -60,6 +62,8 @@ bool GenModel::__eq__(const Model& other) const {
     vec_ptr_eq(elementary_molecule_types, other.elementary_molecule_types) &&
     vec_ptr_eq(release_sites, other.release_sites) &&
     vec_ptr_eq(geometry_objects, other.geometry_objects) &&
+    vec_ptr_eq(checkpointed_volume_molecules, other.checkpointed_volume_molecules) &&
+    vec_ptr_eq(checkpointed_surface_molecules, other.checkpointed_surface_molecules) &&
     vec_ptr_eq(viz_outputs, other.viz_outputs) &&
     vec_ptr_eq(counts, other.counts);
 }
@@ -75,6 +79,8 @@ bool GenModel::eq_nonarray_attributes(const Model& other, const bool ignore_name
     true /*elementary_molecule_types*/ &&
     true /*release_sites*/ &&
     true /*geometry_objects*/ &&
+    true /*checkpointed_volume_molecules*/ &&
+    true /*checkpointed_surface_molecules*/ &&
     true /*viz_outputs*/ &&
     true /*counts*/;
 }
@@ -92,6 +98,8 @@ std::string GenModel::to_str(const std::string ind) const {
       "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
       "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "checkpointed_volume_molecules=" << vec_ptr_to_str(checkpointed_volume_molecules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "checkpointed_surface_molecules=" << vec_ptr_to_str(checkpointed_surface_molecules, ind + "  ") << ", " << "\n" << ind + "  " <<
       "viz_outputs=" << vec_ptr_to_str(viz_outputs, ind + "  ") << ", " << "\n" << ind + "  " <<
       "counts=" << vec_ptr_to_str(counts, ind + "  ");
   return ss.str();
@@ -163,6 +171,8 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def_property("elementary_molecule_types", &Model::get_elementary_molecule_types, &Model::set_elementary_molecule_types)
       .def_property("release_sites", &Model::get_release_sites, &Model::set_release_sites)
       .def_property("geometry_objects", &Model::get_geometry_objects, &Model::set_geometry_objects)
+      .def_property("checkpointed_volume_molecules", &Model::get_checkpointed_volume_molecules, &Model::set_checkpointed_volume_molecules)
+      .def_property("checkpointed_surface_molecules", &Model::get_checkpointed_surface_molecules, &Model::set_checkpointed_surface_molecules)
       .def_property("viz_outputs", &Model::get_viz_outputs, &Model::set_viz_outputs)
       .def_property("counts", &Model::get_counts, &Model::set_counts)
     ;
@@ -208,6 +218,12 @@ std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& c
   }
   if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>() && !skip_vectors_export()) {
     ss << ind << "geometry_objects = " << export_vec_geometry_objects(out, ctx, exported_name) << "," << nl;
+  }
+  if (checkpointed_volume_molecules != std::vector<std::shared_ptr<ChkptVolMol>>() && !skip_vectors_export()) {
+    ss << ind << "checkpointed_volume_molecules = " << export_vec_checkpointed_volume_molecules(out, ctx, exported_name) << "," << nl;
+  }
+  if (checkpointed_surface_molecules != std::vector<std::shared_ptr<ChkptSurfMol>>() && !skip_vectors_export()) {
+    ss << ind << "checkpointed_surface_molecules = " << export_vec_checkpointed_surface_molecules(out, ctx, exported_name) << "," << nl;
   }
   if (viz_outputs != std::vector<std::shared_ptr<VizOutput>>() && !skip_vectors_export()) {
     ss << ind << "viz_outputs = " << export_vec_viz_outputs(out, ctx, exported_name) << "," << nl;
@@ -393,6 +409,66 @@ std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExpor
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < geometry_objects.size(); i++) {
     const auto& item = geometry_objects[i];
+    if (i == 0) {
+      ss << "    ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenModel::export_vec_checkpointed_volume_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_checkpointed_volume_molecules";
+  }
+  else {
+    exported_name = "checkpointed_volume_molecules";
+  }
+
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < checkpointed_volume_molecules.size(); i++) {
+    const auto& item = checkpointed_volume_molecules[i];
+    if (i == 0) {
+      ss << "    ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenModel::export_vec_checkpointed_surface_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_checkpointed_surface_molecules";
+  }
+  else {
+    exported_name = "checkpointed_surface_molecules";
+  }
+
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < checkpointed_surface_molecules.size(); i++) {
+    const auto& item = checkpointed_surface_molecules[i];
     if (i == 0) {
       ss << "    ";
     }

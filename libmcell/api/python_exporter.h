@@ -51,13 +51,14 @@ private:
   std::string save_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name);
   std::string save_observables(PythonExportContext& ctx);
   void save_simulation_state(
-      PythonExportContext& ctx, std::map<std::string, std::string>& state_variable_names);
+      PythonExportContext& ctx, std::map<std::string, std::string>& config_variable_names);
+  void save_molecules(PythonExportContext& ctx, std::ostream& out);
   std::string save_model(
       PythonExportContext& ctx,
       const std::string& subsystem_name,
       const std::string& instantiation_name,
       const std::string& observables_name,
-      const std::map<std::string, std::string>& state_variable_names);
+      const std::map<std::string, std::string>& config_variable_names);
 
 
   Model* model;

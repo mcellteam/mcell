@@ -56,6 +56,8 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   check_overlapped_walls = true;
   sort_molecules = false;
   memory_limit_gb = -1;
+  initial_iteration = 0;
+  initial_time = 0;
   rng_state = nullptr;
 }
 
@@ -75,6 +77,8 @@ bool GenConfig::__eq__(const Config& other) const {
     check_overlapped_walls == other.check_overlapped_walls &&
     sort_molecules == other.sort_molecules &&
     memory_limit_gb == other.memory_limit_gb &&
+    initial_iteration == other.initial_iteration &&
+    initial_time == other.initial_time &&
     (
       (is_set(rng_state)) ?
         (is_set(other.rng_state) ?
@@ -104,6 +108,8 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     check_overlapped_walls == other.check_overlapped_walls &&
     sort_molecules == other.sort_molecules &&
     memory_limit_gb == other.memory_limit_gb &&
+    initial_iteration == other.initial_iteration &&
+    initial_time == other.initial_time &&
     (
       (is_set(rng_state)) ?
         (is_set(other.rng_state) ?
@@ -134,6 +140,8 @@ std::string GenConfig::to_str(const std::string ind) const {
       "check_overlapped_walls=" << check_overlapped_walls << ", " <<
       "sort_molecules=" << sort_molecules << ", " <<
       "memory_limit_gb=" << memory_limit_gb << ", " <<
+      "initial_iteration=" << initial_iteration << ", " <<
+      "initial_time=" << initial_time << ", " <<
       "\n" << ind + "  " << "rng_state=" << "(" << ((rng_state != nullptr) ? rng_state->to_str(ind + "  ") : "null" ) << ")";
   return ss.str();
 }
@@ -156,6 +164,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const bool,
             const bool,
             const int,
+            const uint64_t,
+            const float_t,
             std::shared_ptr<RngState>
           >(),
           py::arg("seed") = 1,
@@ -172,6 +182,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("check_overlapped_walls") = true,
           py::arg("sort_molecules") = false,
           py::arg("memory_limit_gb") = -1,
+          py::arg("initial_iteration") = 0,
+          py::arg("initial_time") = 0,
           py::arg("rng_state") = nullptr
       )
       .def("check_semantics", &Config::check_semantics)
@@ -192,6 +204,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls)
       .def_property("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules)
       .def_property("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb)
+      .def_property("initial_iteration", &Config::get_initial_iteration, &Config::set_initial_iteration)
+      .def_property("initial_time", &Config::get_initial_time, &Config::set_initial_time)
       .def_property("rng_state", &Config::get_rng_state, &Config::set_rng_state)
     ;
 }
@@ -254,6 +268,12 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   }
   if (memory_limit_gb != -1) {
     ss << ind << "memory_limit_gb = " << memory_limit_gb << "," << nl;
+  }
+  if (initial_iteration != 0) {
+    ss << ind << "initial_iteration = " << initial_iteration << "," << nl;
+  }
+  if (initial_time != 0) {
+    ss << ind << "initial_time = " << initial_time << "," << nl;
   }
   if (is_set(rng_state)) {
     ss << ind << "rng_state = " << rng_state->export_to_python(out, ctx) << "," << nl;

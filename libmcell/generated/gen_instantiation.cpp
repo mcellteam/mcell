@@ -25,6 +25,8 @@
 #include "api/python_export_utils.h"
 #include "gen_instantiation.h"
 #include "api/instantiation.h"
+#include "api/chkpt_surf_mol.h"
+#include "api/chkpt_vol_mol.h"
 #include "api/geometry_object.h"
 #include "api/region.h"
 #include "api/release_site.h"
@@ -36,20 +38,26 @@ namespace API {
 bool GenInstantiation::__eq__(const Instantiation& other) const {
   return
     vec_ptr_eq(release_sites, other.release_sites) &&
-    vec_ptr_eq(geometry_objects, other.geometry_objects);
+    vec_ptr_eq(geometry_objects, other.geometry_objects) &&
+    vec_ptr_eq(checkpointed_volume_molecules, other.checkpointed_volume_molecules) &&
+    vec_ptr_eq(checkpointed_surface_molecules, other.checkpointed_surface_molecules);
 }
 
 bool GenInstantiation::eq_nonarray_attributes(const Instantiation& other, const bool ignore_name) const {
   return
     true /*release_sites*/ &&
-    true /*geometry_objects*/;
+    true /*geometry_objects*/ &&
+    true /*checkpointed_volume_molecules*/ &&
+    true /*checkpointed_surface_molecules*/;
 }
 
 std::string GenInstantiation::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "Instantiation" << ": " <<
       "\n" << ind + "  " << "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "checkpointed_volume_molecules=" << vec_ptr_to_str(checkpointed_volume_molecules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "checkpointed_surface_molecules=" << vec_ptr_to_str(checkpointed_surface_molecules, ind + "  ");
   return ss.str();
 }
 
@@ -58,10 +66,14 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
       .def(
           py::init<
             const std::vector<std::shared_ptr<ReleaseSite>>,
-            const std::vector<std::shared_ptr<GeometryObject>>
+            const std::vector<std::shared_ptr<GeometryObject>>,
+            const std::vector<std::shared_ptr<ChkptVolMol>>,
+            const std::vector<std::shared_ptr<ChkptSurfMol>>
           >(),
           py::arg("release_sites") = std::vector<std::shared_ptr<ReleaseSite>>(),
-          py::arg("geometry_objects") = std::vector<std::shared_ptr<GeometryObject>>()
+          py::arg("geometry_objects") = std::vector<std::shared_ptr<GeometryObject>>(),
+          py::arg("checkpointed_volume_molecules") = std::vector<std::shared_ptr<ChkptVolMol>>(),
+          py::arg("checkpointed_surface_molecules") = std::vector<std::shared_ptr<ChkptSurfMol>>()
       )
       .def("__str__", &Instantiation::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Instantiation::__eq__, py::arg("other"))
@@ -75,6 +87,8 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
       .def("dump", &Instantiation::dump)
       .def_property("release_sites", &Instantiation::get_release_sites, &Instantiation::set_release_sites)
       .def_property("geometry_objects", &Instantiation::get_geometry_objects, &Instantiation::set_geometry_objects)
+      .def_property("checkpointed_volume_molecules", &Instantiation::get_checkpointed_volume_molecules, &Instantiation::set_checkpointed_volume_molecules)
+      .def_property("checkpointed_surface_molecules", &Instantiation::get_checkpointed_surface_molecules, &Instantiation::set_checkpointed_surface_molecules)
     ;
 }
 
@@ -96,6 +110,12 @@ std::string GenInstantiation::export_to_python(std::ostream& out, PythonExportCo
   }
   if (geometry_objects != std::vector<std::shared_ptr<GeometryObject>>() && !skip_vectors_export()) {
     ss << ind << "geometry_objects = " << export_vec_geometry_objects(out, ctx, exported_name) << "," << nl;
+  }
+  if (checkpointed_volume_molecules != std::vector<std::shared_ptr<ChkptVolMol>>() && !skip_vectors_export()) {
+    ss << ind << "checkpointed_volume_molecules = " << export_vec_checkpointed_volume_molecules(out, ctx, exported_name) << "," << nl;
+  }
+  if (checkpointed_surface_molecules != std::vector<std::shared_ptr<ChkptSurfMol>>() && !skip_vectors_export()) {
+    ss << ind << "checkpointed_surface_molecules = " << export_vec_checkpointed_surface_molecules(out, ctx, exported_name) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {
@@ -151,6 +171,66 @@ std::string GenInstantiation::export_vec_geometry_objects(std::ostream& out, Pyt
   ss << exported_name << " = [\n";
   for (size_t i = 0; i < geometry_objects.size(); i++) {
     const auto& item = geometry_objects[i];
+    if (i == 0) {
+      ss << "    ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenInstantiation::export_vec_checkpointed_volume_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_checkpointed_volume_molecules";
+  }
+  else {
+    exported_name = "checkpointed_volume_molecules";
+  }
+
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < checkpointed_volume_molecules.size(); i++) {
+    const auto& item = checkpointed_volume_molecules[i];
+    if (i == 0) {
+      ss << "    ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenInstantiation::export_vec_checkpointed_surface_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_checkpointed_surface_molecules";
+  }
+  else {
+    exported_name = "checkpointed_surface_molecules";
+  }
+
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < checkpointed_surface_molecules.size(); i++) {
+    const auto& item = checkpointed_surface_molecules[i];
     if (i == 0) {
       ss << "    ";
     }

@@ -90,6 +90,7 @@ Config:
     min: 1e-6
     
   - name: total_iterations_hint
+    todo: why is this float?
     type: float
     default: 1000000
     min: 9
@@ -119,6 +120,16 @@ Config:
       Sets memory limit in GB for simulation run. 
       When this limit is hit, all buffers are flushed and simulation is terminated with an error. 
       
+  - name: initial_iteration
+    type: uint64
+    default: 0
+    doc: Initial iteration, used when resuming a checkpoint.
+      
+  - name: initial_time
+    type: float
+    default: 0
+    doc: Initial time in us, used when resuming a checkpoint.
+
   - name: rng_state
     type: RngState*
     default: unset

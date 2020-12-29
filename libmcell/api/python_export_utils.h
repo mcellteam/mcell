@@ -186,6 +186,11 @@ static void gen_param_vec3(std::ostream& out, std::string name, Json::Value& x, 
       "(" << x.asString() << ", " << y.asString() << ", " << z.asString() << ")" << (comma?",":"") << "\n";
 }
 
+template<typename T>
+static void gen_assign(std::ostream& out, std::string var_name, T value) {
+  out << var_name << " = " << value << "\n";
+}
+
 
 template<typename T>
 static void gen_assign(std::ostream& out, std::string obj_name, std::string field_name1, T value) {

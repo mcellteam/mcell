@@ -43,6 +43,12 @@ namespace py = pybind11;
 namespace MCell {
 namespace API {
 
+class Species;
+typedef std::map<species_id_t, std::shared_ptr<Species>> IdSpeciesMap;
+
+class GeometryObject;
+typedef std::map<geometry_object_id_t, std::shared_ptr<GeometryObject>> IdGeometryObjectMap;
+
 // auxiliary method to simply convert to std::string for when concatenating string
 static std::string S(const char* s) {
   return std::string(s);

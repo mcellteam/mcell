@@ -184,6 +184,16 @@ Instantiation:
     type: List[GeometryObject*]
     default: empty
 
+  - name: checkpointed_volume_molecules
+    type: List[ChkptVolMol*]
+    default: empty
+    doc: Used when resuming simulation from a checkpoint.
+
+  - name: checkpointed_surface_molecules
+    type: List[ChkptSurfMol*]
+    default: empty
+    doc: Used when resuming simulation from a checkpoint.
+
   methods:
   - name: add_release_site
     doc: Makes a copy of the release site

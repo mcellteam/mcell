@@ -78,14 +78,14 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
   // rng state,
   // starting, ending iterations, ...
   // all generated variables are prefixed with state_
-  std::map<std::string, std::string> state_variable_names;
-  save_simulation_state(ctx, state_variable_names);
+  std::map<std::string, std::string> config_variable_names;
+  save_simulation_state(ctx, config_variable_names);
 
   // model
   // - config
   // - warnings
   // - notifications
-  save_model(ctx, subsystem_name, instantiation_name, observables_name, state_variable_names);
+  save_model(ctx, subsystem_name, instantiation_name, observables_name, config_variable_names);
 }
 
 
@@ -153,7 +153,7 @@ std::string PythonExporter::save_observables(PythonExportContext& ctx) {
 // state_variable_names are indexed by Config class attribute names
 void PythonExporter::save_simulation_state(
     PythonExportContext& ctx,
-    std::map<std::string, std::string>& state_variable_names
+    std::map<std::string, std::string>& config_variable_names
 ) {
   ofstream out;
   open_and_check_file(SIMULATION_STATE, out);
@@ -163,12 +163,34 @@ void PythonExporter::save_simulation_state(
   out << "\n";
 
   // current iteration and time
+  gen_assign(out, NAME_INITIAL_ITERATION, world->stats.get_current_iteration());
+  config_variable_names[NAME_INITIAL_ITERATION] = NAME_INITIAL_ITERATION;
+
+  gen_assign(out, NAME_INITIAL_TIME, world->stats.get_current_iteration() * world->config.time_unit);
+  config_variable_names[NAME_INITIAL_TIME] = NAME_INITIAL_TIME;
+  out << "\n";
 
   // molecules
+  save_molecules(ctx, out);
 
   // rng state
   RngState rng_state = RngState(world->rng);
-  state_variable_names[NAME_RNG_STATE] = rng_state.export_to_python(out, ctx);
+  config_variable_names[NAME_RNG_STATE] = rng_state.export_to_python(out, ctx);
+}
+
+
+void PythonExporter::save_molecules(PythonExportContext& ctx, std::ostream& out) {
+
+
+  // prepare species map
+
+  // prepare geometry objects map
+
+  // for each molecule
+
+    // vol
+
+    // surf
 }
 
 
@@ -177,7 +199,7 @@ std::string PythonExporter::save_model(
     const std::string& subsystem_name,
     const std::string& instantiation_name,
     const std::string& observables_name,
-    const std::map<std::string, std::string>& state_variable_names) {
+    const std::map<std::string, std::string>& config_variable_names) {
 
   // prints out everything, even past releases
   // for checkpointing, we always need to fully finish the current iteration and then start the new one
@@ -233,15 +255,16 @@ std::string PythonExporter::save_model(
   out << "\n";
 
   // checkpoint-specific config
-  // - append to observables
-  // - starting iteration
+
   // - time step (explicit)?
-  vector<string> config_vars = { NAME_RNG_STATE };
+  vector<string> config_vars = { NAME_INITIAL_ITERATION, NAME_INITIAL_TIME, NAME_RNG_STATE };
   for (string& var: config_vars) {
-    auto it = state_variable_names.find(var);
-    release_assert(it != state_variable_names.end());
-    gen_assign(out, MODEL, NAME_CONFIG, NAME_RNG_STATE, S(SIMULATION_STATE) + "." + it->second);
+    auto it = config_variable_names.find(var);
+    release_assert(it != config_variable_names.end());
+    gen_assign(out, MODEL, NAME_CONFIG, it->first, S(SIMULATION_STATE) + "." + it->second);
   }
+
+  // - append to observables
 
 
   // resume simulation

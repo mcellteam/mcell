@@ -68,6 +68,8 @@
 #include "api/mol_wall_hit_info.h"
 #include "api/reaction_info.h"
 
+#include "api/chkpt_vol_mol.h"
+#include "api/chkpt_surf_mol.h"
 #include "api/rng_state.h"
 
 #include "generated/gen_geometry_utils.h"

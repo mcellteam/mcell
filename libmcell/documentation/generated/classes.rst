@@ -169,6 +169,65 @@ Constants
 MCell 4 Python API Classes
 **************************
 
+BaseChkptMol
+============
+
+All times are in us (microseconds).
+
+Attributes:
+***********
+* | **id**: int
+
+* | **species**: Species
+
+* | **diffusion_time**: float
+
+* | **unimol_rx_time**: float
+
+* | **birthday**: float
+
+ChkptSurfMol
+============
+
+Attributes:
+***********
+* | **pos**: Vec2
+
+* | **orientation**: Orientation
+
+* | **geometry_object**: GeometryObject
+
+* | **wall_index**: int
+
+* | **grid_tile_index**: int
+
+* | **id**: int
+
+* | **species**: Species
+
+* | **diffusion_time**: float
+
+* | **unimol_rx_time**: float
+
+* | **birthday**: float
+
+ChkptVolMol
+===========
+
+Attributes:
+***********
+* | **pos**: Vec3
+
+* | **id**: int
+
+* | **species**: Species
+
+* | **diffusion_time**: float
+
+* | **unimol_rx_time**: float
+
+* | **birthday**: float
+
 Complex
 =======
 
@@ -353,6 +412,12 @@ Attributes:
 * | **memory_limit_gb**: int = -1
   | Sets memory limit in GB for simulation run. 
   | When this limit is hit, all buffers are flushed and simulation is terminated with an error.
+
+* | **initial_iteration**: int = 0
+  | Initial iteration, used when resuming a checkpoint.
+
+* | **initial_time**: float = 0
+  | Initial time in us, used when resuming a checkpoint.
 
 * | **rng_state**: RngState = None
   | Used for checkpointing, may contain state of the random generator to be set 
@@ -662,6 +727,12 @@ Attributes:
 
 * | **geometry_objects**: List[GeometryObject] = None
 
+* | **checkpointed_volume_molecules**: List[ChkptVolMol] = None
+  | Used when resuming simulation from a checkpoint.
+
+* | **checkpointed_surface_molecules**: List[ChkptSurfMol] = None
+  | Used when resuming simulation from a checkpoint.
+
 
 Methods:
 *********
@@ -830,6 +901,12 @@ Attributes:
 * | **release_sites**: List[ReleaseSite] = None
 
 * | **geometry_objects**: List[GeometryObject] = None
+
+* | **checkpointed_volume_molecules**: List[ChkptVolMol] = None
+  | Used when resuming simulation from a checkpoint.
+
+* | **checkpointed_surface_molecules**: List[ChkptSurfMol] = None
+  | Used when resuming simulation from a checkpoint.
 
 * | **viz_outputs**: List[VizOutput] = None
 

@@ -38,6 +38,8 @@ namespace MCell {
 namespace API {
 
 class Model;
+class ChkptSurfMol;
+class ChkptVolMol;
 class Config;
 class Count;
 class ElementaryMoleculeType;
@@ -76,6 +78,8 @@ public:
   virtual std::string export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
   virtual std::string export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
   virtual std::string export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_checkpointed_volume_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_vec_checkpointed_surface_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
   virtual std::string export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
   virtual std::string export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
 

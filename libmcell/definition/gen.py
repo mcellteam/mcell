@@ -390,7 +390,6 @@ def yaml_type_to_pybind_type(t):
     
     
 def yaml_type_to_py_type(t):
-    print(t)
     assert len(t) >= 1
     if t == YAML_TYPE_UINT64:
         return YAML_TYPE_INT # not sure what should be the name
