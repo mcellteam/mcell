@@ -49,6 +49,7 @@ void define_pybinding_constants(py::module& m) {
   m.attr("TIME_INFINITY") = py::float_(TIME_INFINITY);
   m.attr("INT_UNSET") = py::int_(INT_UNSET);
   m.attr("FLT_UNSET") = py::float_(FLT_UNSET);
+  m.attr("RNG_SIZE") = py::int_(RNG_SIZE);
 }
 
 void define_pybinding_enums(py::module& m) {

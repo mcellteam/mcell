@@ -34,6 +34,7 @@
 #include "api/component.h"
 #include "api/elementary_molecule_type.h"
 #include "api/elementary_molecule.h"
+#include "api/complex.h"
 #include "api/species.h"
 #include "api/surface_property.h"
 #include "api/surface_class.h"
@@ -47,6 +48,8 @@
 #include "api/release_pattern.h"
 #include "api/molecule_release_info.h"
 #include "api/release_site.h"
+#include "api/instantiation.h"
+
 #include "api/count_term.h"
 #include "api/count.h"
 #include "api/viz_output.h"
@@ -65,11 +68,11 @@
 #include "api/mol_wall_hit_info.h"
 #include "api/reaction_info.h"
 
+#include "api/rng_state.h"
+
 #include "generated/gen_geometry_utils.h"
 #include "generated/gen_bngl_utils.h"
 
 #include "api/shared_structs.h"
-#include "complex.h"
-#include "instantiation.h"
 
 #endif // API_MCELL_H

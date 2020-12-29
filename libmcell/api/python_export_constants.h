@@ -14,6 +14,7 @@ const char* const SUBSYSTEM = "subsystem";
 const char* const GEOMETRY = "geometry";
 const char* const INSTANTIATION = "instantiation";
 const char* const OBSERVABLES = "observables";
+const char* const SIMULATION_STATE = "simulation_state";
 const char* const MODEL = "model";
 
 #define CUSTOMIZATION "customization"

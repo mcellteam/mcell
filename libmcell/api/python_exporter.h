@@ -24,6 +24,7 @@
 #define LIBMCELL_API_PYTHON_EXPORTER_H_
 
 #include <string>
+#include <map>
 
 namespace MCell {
 
@@ -49,11 +50,14 @@ private:
   std::string save_geometry(PythonExportContext& ctx);
   std::string save_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name);
   std::string save_observables(PythonExportContext& ctx);
+  void save_simulation_state(
+      PythonExportContext& ctx, std::map<std::string, std::string>& state_variable_names);
   std::string save_model(
       PythonExportContext& ctx,
       const std::string& subsystem_name,
       const std::string& instantiation_name,
-      const std::string& observables_name);
+      const std::string& observables_name,
+      const std::map<std::string, std::string>& state_variable_names);
 
 
   Model* model;

@@ -50,6 +50,7 @@ const int NUMBER_OF_TRAINS_UNLIMITED = -1;
 const float_t TIME_INFINITY = 1e140;
 const int INT_UNSET = INT32_MAX;
 const float_t FLT_UNSET = FLT_MAX;
+const int RNG_SIZE = 256;
 
 enum class Orientation {
   DOWN = -1,

@@ -160,6 +160,9 @@ Constants
   | This is a special floating point value that means that an argument was not set, 
   | its value is 3.40282346638528859812e+38F.
 
+* | **RNG_SIZE**: int = 256
+  | Size of arrays of
+
 
 
 **************************
@@ -350,6 +353,11 @@ Attributes:
 * | **memory_limit_gb**: int = -1
   | Sets memory limit in GB for simulation run. 
   | When this limit is hit, all buffers are flushed and simulation is terminated with an error.
+
+* | **rng_state**: RngState = None
+  | Used for checkpointing, may contain state of the random generator to be set 
+  | after initialization right before the first event is started. 
+  | When set, the set 'seed' value is ignored.
 
 Count
 =====
@@ -1641,6 +1649,30 @@ Attributes:
   | Only one of number_to_release, density, concentration or molecule_list can be set.
 
 * | **release_probability**: float = None
+
+RngState
+========
+
+Internal checkpointing structure holding state of the random number generator.
+
+Attributes:
+***********
+* | **randcnt**: int
+
+* | **aa**: int
+
+* | **bb**: int
+
+* | **cc**: int
+
+* | **randslr**: List[int]
+  | Must contain RNG_SIZE items.
+
+* | **mm**: List[int]
+  | Must contain RNG_SIZE items.
+
+* | **rngblocks**: int
+  | Must contain RNG_SIZE items.
 
 Species
 =======

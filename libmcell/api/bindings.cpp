@@ -61,6 +61,8 @@
 #include "generated/gen_wall_wall_hit_info.h"
 #include "generated/gen_reaction_info.h"
 
+#include "generated/gen_rng_state.h"
+
 #include "generated/gen_geometry_utils.h"
 
 
@@ -225,6 +227,8 @@ PYBIND11_MODULE(mcell, m) {
 
   define_pybinding_MolWallHitInfo(m);
   define_pybinding_ReactionInfo(m);
+
+  define_pybinding_RngState(m);
 
   // constants may reference existing types, must be "bound" later
   define_pybinding_constants(m);

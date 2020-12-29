@@ -95,7 +95,13 @@ constants:
     doc: | 
       This is a special floating point value that means that an argument was not set, 
       its value is 3.40282346638528859812e+38F.
-        
+      
+  - name: RNG_SIZE
+    type: int
+    value: 256
+    doc: |
+      Size of arrays of 
+  
 enums:
   - name: Orientation
     doc: Orientation of a Complex.

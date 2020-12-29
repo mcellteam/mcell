@@ -53,6 +53,8 @@ set(SOURCE_FILES
     api/molecule.cpp
     api/wall.cpp
     api/introspection.cpp
+    
+    api/rng_state.cpp
 
     generated/gen_component_type.cpp
     generated/gen_component.cpp
@@ -91,6 +93,8 @@ set(SOURCE_FILES
     
     generated/gen_mol_wall_hit_info.cpp
     generated/gen_reaction_info.cpp
+    
+    generated/gen_rng_state.cpp
 
     generated/gen_constants.cpp
 

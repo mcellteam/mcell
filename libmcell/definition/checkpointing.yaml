@@ -1,0 +1,22 @@
+RngState:
+  superclass: BaseDataClass
+  doc: Internal checkpointing structure holding state of the random number generator.
+  items:
+  - name: randcnt
+    type: uint64
+  - name: aa
+    type: uint64
+  - name: bb
+    type: uint64
+  - name: cc
+    type: uint64
+  - name: randslr
+    type: List[uint64]
+    doc: Must contain RNG_SIZE items.
+  - name: mm
+    type: List[uint64]
+    doc: Must contain RNG_SIZE items.
+  - name: rngblocks
+    type: uint64
+    doc: Must contain RNG_SIZE items.
+    

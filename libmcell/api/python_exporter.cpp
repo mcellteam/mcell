@@ -24,6 +24,7 @@
 #include "api/python_export_constants.h"
 #include "api/python_export_utils.h"
 #include "api/model.h"
+#include "api/rng_state.h"
 #include "world.h"
 #include "src/util.h"
 
@@ -74,12 +75,17 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
   // molecules
   // - volume
   // - surface
+  // rng state,
+  // starting, ending iterations, ...
+  // all generated variables are prefixed with state_
+  std::map<std::string, std::string> state_variable_names;
+  save_simulation_state(ctx, state_variable_names);
 
   // model
   // - config
   // - warnings
   // - notifications
-  save_model(ctx, subsystem_name, instantiation_name, observables_name);
+  save_model(ctx, subsystem_name, instantiation_name, observables_name, state_variable_names);
 }
 
 
@@ -144,11 +150,34 @@ std::string PythonExporter::save_observables(PythonExportContext& ctx) {
 }
 
 
+// state_variable_names are indexed by Config class attribute names
+void PythonExporter::save_simulation_state(
+    PythonExportContext& ctx,
+    std::map<std::string, std::string>& state_variable_names
+) {
+  ofstream out;
+  open_and_check_file(SIMULATION_STATE, out);
+  out << MCELL_IMPORT;
+  out << get_import_star(SUBSYSTEM);
+  out << get_import_star(GEOMETRY);
+  out << "\n";
+
+  // current iteration and time
+
+  // molecules
+
+  // rng state
+  RngState rng_state = RngState(world->rng);
+  state_variable_names[NAME_RNG_STATE] = rng_state.export_to_python(out, ctx);
+}
+
+
 std::string PythonExporter::save_model(
     PythonExportContext& ctx,
     const std::string& subsystem_name,
     const std::string& instantiation_name,
-    const std::string& observables_name) {
+    const std::string& observables_name,
+    const std::map<std::string, std::string>& state_variable_names) {
 
   // prints out everything, even past releases
   // for checkpointing, we always need to fully finish the current iteration and then start the new one
@@ -158,7 +187,6 @@ std::string PythonExporter::save_model(
   // imports
   out << INTERPRETER;
   out << BASE_MODEL_IMPORTS;
-  out << "\n";
   out << MCELL_PATH_SETUP;
   out << "\n";
   out << MCELL_IMPORT;
@@ -168,6 +196,7 @@ std::string PythonExporter::save_model(
   out << get_import(SUBSYSTEM);
   out << get_import(INSTANTIATION);
   out << get_import(OBSERVABLES);
+  out << get_import(SIMULATION_STATE);
   out << "\n";
 
   // create model object
@@ -176,14 +205,11 @@ std::string PythonExporter::save_model(
 
   // config, notifications, warnings
   gen_assign(out, MODEL, NAME_CONFIG, model->config.export_to_python(out, ctx));
+  out << "\n";
   gen_assign(out, MODEL, NAME_NOTIFICATIONS, model->notifications.export_to_python(out, ctx));
+  out << "\n";
   gen_assign(out, MODEL, NAME_WARNINGS, model->warnings.export_to_python(out, ctx));
   out << "\n";
-
-  // checkpoint-specific config
-  // - append to observables
-  // - starting iteration
-  // - time step (explicit)
 
   // subsystem
   string subsystem_prefix = S(SUBSYSTEM) + "." + subsystem_name + ".";
@@ -194,6 +220,7 @@ std::string PythonExporter::save_model(
   out << "\n";
 
   // instantiation
+  // TODO: do not generate past releases?
   string instantiation_prefix = S(INSTANTIATION) + "." + instantiation_name + ".";
   gen_assign(out, MODEL, NAME_RELEASE_SITES, instantiation_prefix + NAME_RELEASE_SITES);
   gen_assign(out, MODEL, NAME_GEOMETRY_OBJECTS, instantiation_prefix + NAME_GEOMETRY_OBJECTS);
@@ -205,8 +232,23 @@ std::string PythonExporter::save_model(
   gen_assign(out, MODEL, NAME_COUNTS, observables_prefix + NAME_COUNTS);
   out << "\n";
 
+  // checkpoint-specific config
+  // - append to observables
+  // - starting iteration
+  // - time step (explicit)?
+  vector<string> config_vars = { NAME_RNG_STATE };
+  for (string& var: config_vars) {
+    auto it = state_variable_names.find(var);
+    release_assert(it != state_variable_names.end());
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_RNG_STATE, S(SIMULATION_STATE) + "." + it->second);
+  }
 
-  // function to resume simulation
+
+  // resume simulation
+
+  // initialize
+  // run
+  // end
 
   out.close();
   return MODEL;

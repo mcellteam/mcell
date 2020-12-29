@@ -52,6 +52,8 @@ class ReleasePattern():
     pass
 class ReleaseSite():
     pass
+class RngState():
+    pass
 class Species():
     pass
 class Subsystem():
@@ -171,6 +173,7 @@ NUMBER_OF_TRAINS_UNLIMITED = -1
 TIME_INFINITY = 1e140
 INT_UNSET = INT32_MAX
 FLT_UNSET = FLT_MAX
+RNG_SIZE = 256
 
 
 class Complex():
@@ -252,7 +255,8 @@ class Config():
             total_iterations_hint : float = 1000000,
             check_overlapped_walls : bool = True,
             sort_molecules : bool = False,
-            memory_limit_gb : int = -1
+            memory_limit_gb : int = -1,
+            rng_state : RngState = None
         ):
         self.seed = seed
         self.time_step = time_step
@@ -268,6 +272,7 @@ class Config():
         self.check_overlapped_walls = check_overlapped_walls
         self.sort_molecules = sort_molecules
         self.memory_limit_gb = memory_limit_gb
+        self.rng_state = rng_state
 
 
 class Count():
@@ -1120,6 +1125,26 @@ class ReleaseSite():
         self.density = density
         self.concentration = concentration
         self.release_probability = release_probability
+
+
+class RngState():
+    def __init__(
+            self,
+            randcnt : int,
+            aa : int,
+            bb : int,
+            cc : int,
+            randslr : List[int],
+            mm : List[int],
+            rngblocks : int
+        ):
+        self.randcnt = randcnt
+        self.aa = aa
+        self.bb = bb
+        self.cc = cc
+        self.randslr = randslr
+        self.mm = mm
+        self.rngblocks = rngblocks
 
 
 class Species():

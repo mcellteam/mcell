@@ -48,7 +48,6 @@ static std::string S(const char* s) {
   return std::string(s);
 }
 
-const long long LONG_UNSET = INT64_MAX;
 const Vec3 VEC3_UNSET(POS_INVALID);
 const Vec2 VEC2_UNSET(POS_INVALID);
 const void* const PTR_UNSET = nullptr;
@@ -61,10 +60,10 @@ static inline bool is_set(const float_t a) {
   return a != FLT_UNSET;
 }
 static inline bool is_set(const int a) {
-  return a != INT_UNSET; // Python does not use unsigned integers
+  return a != INT_UNSET;
 }
-static inline bool is_set(const long long a) {
-  return a != LONG_UNSET; // Python does not use unsigned integers
+static inline bool is_set(const uint64_t a) {
+  return true; // all values are valid
 }
 static inline bool is_set(const Vec3& a) {
   return a != VEC3_UNSET;

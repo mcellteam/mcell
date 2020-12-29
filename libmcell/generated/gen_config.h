@@ -30,6 +30,7 @@ namespace MCell {
 namespace API {
 
 class Config;
+class RngState;
 class PythonExportContext;
 
 #define CONFIG_CTOR() \
@@ -47,7 +48,8 @@ class PythonExportContext;
         const float_t total_iterations_hint_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
         const bool sort_molecules_ = false, \
-        const int memory_limit_gb_ = -1 \
+        const int memory_limit_gb_ = -1, \
+        std::shared_ptr<RngState> rng_state_ = nullptr \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
@@ -64,6 +66,7 @@ class PythonExportContext;
       check_overlapped_walls = check_overlapped_walls_; \
       sort_molecules = sort_molecules_; \
       memory_limit_gb = memory_limit_gb_; \
+      rng_state = rng_state_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -280,6 +283,20 @@ public:
   virtual int get_memory_limit_gb() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return memory_limit_gb;
+  }
+
+  std::shared_ptr<RngState> rng_state;
+  virtual void set_rng_state(std::shared_ptr<RngState> new_rng_state_) {
+    if (initialized) {
+      throw RuntimeError("Value 'rng_state' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    rng_state = new_rng_state_;
+  }
+  virtual std::shared_ptr<RngState> get_rng_state() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return rng_state;
   }
 
   // --- methods ---
