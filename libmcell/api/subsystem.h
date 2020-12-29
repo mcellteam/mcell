@@ -90,6 +90,9 @@ public:
 
   // added manually
 
+  // may return nullptr
+  std::shared_ptr<Species> get_species_with_id(const species_id_t id);
+
   // go through all species and make sure that
   // 1) all identical elementary molecule type objects exist only once and
   // 2) all are also in the elementary_molecule_types array

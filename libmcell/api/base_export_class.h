@@ -52,6 +52,11 @@ public:
     return false;
   }
 
+  // do not check if already exported
+  virtual bool export_even_if_already_exported() const {
+    return false;
+  }
+
   // either returns the whole definition as a string or prints definition to out and
   // returns name
   virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const {

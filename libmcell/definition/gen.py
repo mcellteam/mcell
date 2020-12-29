@@ -1149,7 +1149,7 @@ def write_export_to_python_implementation(f, class_name, class_def):
     name_underscored = get_underscored(class_name)
     if not is_container_class(class_name):
         f.write(
-            '  if (' + CTX + '.already_exported(this)) {\n' +
+            '  if (!export_even_if_already_exported() && ' + CTX + '.already_exported(this)) {\n' +
             '    return ' + CTX + '.get_exported_name(this);\n' +
             '  }\n'
         )
@@ -1162,7 +1162,11 @@ def write_export_to_python_implementation(f, class_name, class_def):
         else:
             f.write('"' + name_underscored + '_" + fix_id(name);\n')
             
-        f.write('  ' + CTX + '.add_exported(this, ' + EXPORTED_NAME + ');\n\n')
+        f.write(
+            '  if (!export_even_if_already_exported()) {\n' +
+            '    ' + CTX + '.add_exported(this, ' + EXPORTED_NAME + ');\n'
+            '  }\n\n'
+        )
     else:
         f.write('  std::string ' + EXPORTED_NAME + ' = "' + name_underscored + '";\n\n') 
         

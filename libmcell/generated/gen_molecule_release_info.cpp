@@ -112,12 +112,14 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
 }
 
 std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
-  if (ctx.already_exported(this)) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
   std::string exported_name = "molecule_release_info_" + std::to_string(ctx.postinc_counter("molecule_release_info"));
-  ctx.add_exported(this, exported_name);
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
 
+  }
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

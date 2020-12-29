@@ -68,6 +68,18 @@ std::string make_id(const std::string& s);
 
 std::string fix_param_id(const std::string& str);
 
+static std::string make_section_comment(const std::string text) {
+  return BLOCK_BEGIN1 + text + BLOCK_BEGIN2 + "\n";
+}
+
+static std::string make_start_block_comment(const std::string text) {
+  return BLOCK_BEGIN1 + text + BLOCK_BEGIN2;
+}
+
+static std::string make_end_block_comment(const std::string text) {
+  return BLOCK_END1 + text + BLOCK_END2 + "\n";
+}
+
 static std::string make_enum_value(const std::string enum_name, const std::string value) {
   return MDOT + enum_name + "." + value;
 }

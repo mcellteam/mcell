@@ -24,9 +24,16 @@
 #include "api/python_export_constants.h"
 #include "api/python_export_utils.h"
 #include "api/model.h"
+#include "api/species.h"
+#include "api/geometry_object.h"
+#include "api/chkpt_vol_mol.h"
+#include "api/chkpt_surf_mol.h"
 #include "api/rng_state.h"
-#include "world.h"
+
 #include "src/util.h"
+#include "src4/world.h"
+#include "src4/partition.h"
+#include "src4/molecule.h"
 
 using namespace std;
 
@@ -171,7 +178,7 @@ void PythonExporter::save_simulation_state(
   out << "\n";
 
   // molecules
-  save_molecules(ctx, out);
+  save_molecules(out, ctx);
 
   // rng state
   RngState rng_state = RngState(world->rng);
@@ -179,18 +186,71 @@ void PythonExporter::save_simulation_state(
 }
 
 
-void PythonExporter::save_molecules(PythonExportContext& ctx, std::ostream& out) {
-
+void PythonExporter::save_molecules(std::ostream& out, PythonExportContext& ctx) {
 
   // prepare species map
+  IdSpeciesMap id_species_map;
+  for (const BNG::Species* species: world->get_all_species().get_species_vector()) {
+    assert(id_species_map.count(species->id) == 0);
+
+    if (species->get_num_instantiations() > 0) {
+      std::shared_ptr<Species> subsystem_species = model->get_species_with_id(species->id);
+      if (is_set(subsystem_species)) {
+        // use existing object
+        id_species_map[species->id] = subsystem_species;
+      }
+      else {
+        // create a new object and export it directly so that all the newly used species are
+        // on the top of the simulation_state module
+        shared_ptr<API::Species> new_species = make_shared<API::Species>(species->name);
+        new_species->export_to_python(out, ctx);
+        id_species_map[species->id] = new_species;
+      }
+    }
+  }
 
   // prepare geometry objects map
+  IdGeometryObjectMap id_geometry_object_map;
+  for (const auto& obj: model->geometry_objects) {
+    assert(obj->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+    id_geometry_object_map[obj->geometry_object_id] = obj;
+  }
 
-  // for each molecule
+  // for each partition
+  stringstream dummy_out;
+  stringstream vol_mols;
+  stringstream surf_mols;
+  vol_mols << NAME_CHECKPOINTED_VOLUME_MOLECULES << " = [\n";
+  surf_mols << NAME_CHECKPOINTED_SURFACE_MOLECULES << " = [\n";
 
-    // vol
+  for (const MCell::Partition& p: world->get_partitions()) {
+    // for each molecule
+    for (const MCell::Molecule& m: p.get_molecules()) {
+      if (m.is_defunct()) {
+        continue;
+      }
+      assert(id_species_map.count(m.species_id) != 0);
 
-    // surf
+      // vol
+      PythonExportContext dummy_ctx; // we do not want to use the pointer comparison checks in export
+      if (m.is_vol()) {
+        ChkptVolMol vm = ChkptVolMol(
+            m, id_species_map, world->config.time_unit, world->config.length_unit);
+        vol_mols << IND4 << vm.export_to_python(dummy_out, ctx) << ",\n";
+      }
+      else {
+        assert(m.is_surf());
+        ChkptSurfMol sm = ChkptSurfMol(
+            m, id_species_map, world->config.time_unit, world->config.length_unit,
+            p, id_geometry_object_map);
+        surf_mols << IND4 << sm.export_to_python(dummy_out, ctx) << ",\n";
+      }
+    }
+  }
+  assert(dummy_out.str() == "" && "No other code must be exported.");
+
+  out << vol_mols.str() << "]\n\n";
+  out << surf_mols.str() << "]\n\n";
 }
 
 
@@ -225,6 +285,8 @@ std::string PythonExporter::save_model(
   gen_ctor_call(out, MODEL, NAME_CLASS_MODEL, false);
   out << "\n";
 
+  out << make_section_comment("model setup");
+
   // config, notifications, warnings
   gen_assign(out, MODEL, NAME_CONFIG, model->config.export_to_python(out, ctx));
   out << "\n";
@@ -256,6 +318,7 @@ std::string PythonExporter::save_model(
 
   // checkpoint-specific config
 
+  out << make_section_comment("saved simulation state");
   // - time step (explicit)?
   vector<string> config_vars = { NAME_INITIAL_ITERATION, NAME_INITIAL_TIME, NAME_RNG_STATE };
   for (string& var: config_vars) {
@@ -264,11 +327,12 @@ std::string PythonExporter::save_model(
     gen_assign(out, MODEL, NAME_CONFIG, it->first, S(SIMULATION_STATE) + "." + it->second);
   }
 
-  // - append to observables
+  gen_assign(out, MODEL, NAME_RELEASE_SITES, instantiation_prefix + NAME_RELEASE_SITES);
+  gen_assign(out, MODEL, NAME_GEOMETRY_OBJECTS, instantiation_prefix + NAME_GEOMETRY_OBJECTS);
+  out << "\n";
+  // TODO: - append to observables
 
-
-  // resume simulation
-
+  out << make_section_comment("resume simulation");
   // initialize
   // run
   // end

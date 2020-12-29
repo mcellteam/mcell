@@ -45,6 +45,15 @@ namespace API {
 class BaseChkptMol: public GenBaseChkptMol {
 public:
   BASE_CHKPT_MOL_CTOR()
+
+
+  bool export_as_string_without_newlines() const override {
+    return true;
+  }
+
+  bool export_even_if_already_exported() const override {
+    return true;
+  }
 };
 
 } // namespace API

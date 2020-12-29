@@ -25,6 +25,7 @@
 
 #include <string>
 #include <map>
+#include <ostream>
 
 namespace MCell {
 
@@ -52,7 +53,7 @@ private:
   std::string save_observables(PythonExportContext& ctx);
   void save_simulation_state(
       PythonExportContext& ctx, std::map<std::string, std::string>& config_variable_names);
-  void save_molecules(PythonExportContext& ctx, std::ostream& out);
+  void save_molecules(std::ostream& out, PythonExportContext& ctx);
   std::string save_model(
       PythonExportContext& ctx,
       const std::string& subsystem_name,

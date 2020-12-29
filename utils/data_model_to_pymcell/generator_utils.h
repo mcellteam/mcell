@@ -96,21 +96,6 @@ static Value& get_node(Value& parent, const string name) {
 }
 
 
-static string make_section_comment(const string text) {
-  return BLOCK_BEGIN1 + text + BLOCK_BEGIN2 + "\n";
-}
-
-
-static string make_start_block_comment(const string text) {
-  return BLOCK_BEGIN1 + text + BLOCK_BEGIN2;
-}
-
-
-static string make_end_block_comment(const string text) {
-  return BLOCK_END1 + text + BLOCK_END2 + "\n";
-}
-
-
 static string fix_dots_in_simple_species(const string& s) {
   string res = s;
   if (API::is_simple_species(s)) {

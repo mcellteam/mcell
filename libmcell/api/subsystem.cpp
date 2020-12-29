@@ -41,6 +41,16 @@ void Subsystem::dump() const {
   std::cout << to_str() << "\n";
 }
 
+std::shared_ptr<Species> Subsystem::get_species_with_id(const species_id_t id) {
+  // not very efficient, we may need some caching/map later
+  for (auto& s: species) {
+    if (s->species_id == id) {
+      return s;
+    }
+  }
+  return std::shared_ptr<Species>(nullptr);
+}
+
 
 void Subsystem::unify_and_register_elementary_molecule_types() {
   // then go through Species

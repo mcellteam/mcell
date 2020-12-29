@@ -127,7 +127,10 @@ public:
   // shadows all inherited non-virtual to_str methods
   std::string to_str(const std::string ind="") const;
 
+  // TODO: this belongs to Instantiation
   std::shared_ptr<GeometryObject> get_geometry_object_with_id(const geometry_object_id_t id);
+
+  // TODO: this belongs to Subsystem
   std::shared_ptr<ReactionRule> get_reaction_rule_with_fwd_id(const BNG::rxn_rule_id_t id);
 
   void error_if_initialized(const char* what) {
