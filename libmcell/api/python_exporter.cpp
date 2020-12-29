@@ -274,7 +274,7 @@ std::string PythonExporter::save_model(
   out << MCELL_IMPORT;
 
   // TODO: version check, warning
-
+  out << make_section_comment("import model and saved simulation state");
   out << get_import(SUBSYSTEM);
   out << get_import(INSTANTIATION);
   out << get_import(OBSERVABLES);
@@ -282,10 +282,10 @@ std::string PythonExporter::save_model(
   out << "\n";
 
   // create model object
+  out << make_section_comment("model setup");
+
   gen_ctor_call(out, MODEL, NAME_CLASS_MODEL, false);
   out << "\n";
-
-  out << make_section_comment("model setup");
 
   // config, notifications, warnings
   gen_assign(out, MODEL, NAME_CONFIG, model->config.export_to_python(out, ctx));
@@ -327,16 +327,19 @@ std::string PythonExporter::save_model(
     gen_assign(out, MODEL, NAME_CONFIG, it->first, S(SIMULATION_STATE) + "." + it->second);
   }
 
-  gen_assign(out, MODEL, NAME_RELEASE_SITES, instantiation_prefix + NAME_RELEASE_SITES);
-  gen_assign(out, MODEL, NAME_GEOMETRY_OBJECTS, instantiation_prefix + NAME_GEOMETRY_OBJECTS);
+  gen_assign(out, MODEL, NAME_CHECKPOINTED_VOLUME_MOLECULES, instantiation_prefix + NAME_CHECKPOINTED_VOLUME_MOLECULES);
+  gen_assign(out, MODEL, NAME_CHECKPOINTED_SURFACE_MOLECULES, instantiation_prefix + NAME_CHECKPOINTED_SURFACE_MOLECULES);
   out << "\n";
   // TODO: - append to observables
 
   out << make_section_comment("resume simulation");
-  // initialize
-  // run
-  // end
+  gen_method_call(out, MODEL, NAME_INITIALIZE);
+  out << "\n";
 
+  gen_method_call(
+      out, MODEL, NAME_RUN_ITERATIONS,
+      S(PARAMETERS) + "." + PARAM_ITERATIONS + " - " + S(SIMULATION_STATE) + "." + NAME_INITIAL_ITERATION);
+  gen_method_call(out, MODEL, NAME_END_SIMULATION);
   out.close();
   return MODEL;
 }

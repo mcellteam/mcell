@@ -50,10 +50,6 @@ class Model: public GenModel {
 public:
 
   Model() : initialized(false), world(nullptr), callbacks(this) {
-    // add species superclasses
-    species.push_back(AllMolecules);
-    species.push_back(AllVolumeMolecules);
-    species.push_back(AllSurfaceMolecules);
   }
   virtual ~Model();
 

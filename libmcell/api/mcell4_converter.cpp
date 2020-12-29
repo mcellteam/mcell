@@ -488,7 +488,9 @@ void MCell4Converter::convert_species() {
       new_species.space_step = 0;
       new_species.time_step = 0;
     }
-    else {
+    else if (!is_set(model->find_elementary_molecule_type(s->name))) {
+      // report error if we don't have an elementary molecule type for this simple species
+      // TODO: complex species cannot be defined like this
       throw ValueError(S("Neither ") + NAME_DIFFUSION_CONSTANT_2D + " nor " +
           NAME_DIFFUSION_CONSTANT_3D + " was set for " + NAME_CLASS_SPECIES + " " +
           s->to_bngl_str() + ".");

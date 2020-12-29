@@ -91,6 +91,10 @@ void Model::initialize() {
     throw RuntimeError("Model.initialize() can be called only once");
   }
 
+  // first add species superclasses
+  std::vector<std::shared_ptr<Species>> superspecies = { AllMolecules, AllVolumeMolecules, AllSurfaceMolecules };
+  species.insert(species.begin(), superspecies.begin(), superspecies.end());
+
   // Species objects might have created their own ElementaryMoleculeType
   // objects, we must unify it first (required for python export)
   unify_and_register_elementary_molecule_types();
