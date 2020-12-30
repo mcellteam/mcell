@@ -2,6 +2,9 @@
 #ifndef LIBS_BNG_RXN_CONTAINER_H_
 #define LIBS_BNG_RXN_CONTAINER_H_
 
+#define BOOST_ALLOW_DEPRECATED_HEADERS
+#include <boost/dynamic_bitset.hpp>
+
 #include "bng/bng_defines.h"
 #include "bng/rxn_rule.h"
 #include "bng/rxn_class.h"
@@ -49,6 +52,36 @@ static inline BNG::RxnClass* get_rxn_class_for_any_compartment(
   return it->second;
 }
 
+// used always with two elements, the contained bitsets have size of
+// rxn_rules.size(), first one is for the first reactant, second for the second reactant
+// WARNING: the number of reaction rules cannot change in runtime for this to work
+typedef std::vector<boost::dynamic_bitset<>> ReactionIdBitsets;
+
+
+class ReactantClass {
+public:
+  bool is_initialized() const {
+    return reaction_id_bitsets.size() == 2;
+  }
+
+  // used for lookup, does not compare id
+  bool operator < (const ReactantClass& other) const {
+    assert(is_initialized());
+    assert(other.is_initialized());
+
+    if (reaction_id_bitsets[0] != other.reaction_id_bitsets[0]) {
+      return reaction_id_bitsets[0] < other.reaction_id_bitsets[0];
+    }
+    else {
+      return reaction_id_bitsets[1] < other.reaction_id_bitsets[1];
+    }
+  }
+
+  reactant_class_id_t id;
+  ReactionIdBitsets reaction_id_bitsets;
+};
+
+
 /**
  * Owns information on reactions and species,
  * serves as a source of information for BNGEngine.
@@ -60,7 +93,8 @@ static inline BNG::RxnClass* get_rxn_class_for_any_compartment(
 class RxnContainer {
 public:
   RxnContainer(SpeciesContainer& all_species_, BNGData& bng_data_, const BNGConfig& bng_config_)
-    : all_vol_mols_can_react_with_surface(false),
+    : next_reactant_class_id(0),
+      all_vol_mols_can_react_with_surface(false),
       all_surf_mols_can_react_with_surface(false),
       all_species(all_species_),
       bng_data(bng_data_),
@@ -217,6 +251,25 @@ public:
 
   void remove_species_id_references(const species_id_t id);
 
+  const ReactantClassIdSet& get_reacting_classes(const species_id_t species_id) {
+
+    // get or compute species reactant class
+    reactant_class_id_t reactant_class_id;
+    Species& species = all_species.get(species_id);
+    assert(species.is_vol() && "Reacting classes are currently supported only for volume molecules");
+
+    if (species.has_valid_reactant_class_id()) {
+      reactant_class_id = species.get_reactant_class_id();
+    }
+    else {
+      reactant_class_id = compute_reactant_class_for_species(species_id);
+      species.set_reactant_class_id(reactant_class_id);
+    }
+
+    assert(reactant_class_id < reacting_classes.size());
+    return reacting_classes[reactant_class_id];
+  }
+
   // returns nullptr if reaction rule was not found
   RxnRule* find_rxn_rule_by_name(const std::string& name) {
     for (RxnRule* rxn_rule: rxn_rules) {
@@ -260,7 +313,13 @@ private:
 
   void delete_rxn_class(RxnClass* rxn_class);
 
+  void compute_reacting_classes(const ReactantClass& rc);
+  reactant_class_id_t find_or_add_reactant_class(
+      const ReactionIdBitsets& reactions_bitset_per_reactant);
+  reactant_class_id_t compute_reactant_class_for_species(const species_id_t species_id);
+
 private:
+
   // owns reaction classes
   // allocated in get_or_create_empty_bimol_rxn_class, deleted in destructor
   // the size of the vector will be changing, so we cannot take pointers to its elements
@@ -284,6 +343,13 @@ private:
   // this map allows to search for reaction classes with ignoring
   // orientation and compartment
   BimolRxnClassesMap bimol_rxn_class_any_orient_compartment_map;
+
+  reactant_class_id_t next_reactant_class_id;
+
+  std::set<ReactantClass> reactant_classes;
+
+  // indexed by reactant_class_id_t
+  std::vector<ReactantClassIdSet> reacting_classes;
 
 public:
   // TODO: make private

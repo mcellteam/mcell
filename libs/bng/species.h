@@ -34,7 +34,8 @@ public:
     : Cplx(&data),
       id(SPECIES_ID_INVALID),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
-      rxn_flags_were_updated(false), num_instantiations(0) {
+      rxn_flags_were_updated(false), num_instantiations(0),
+      reactant_class_id(REACTANT_CLASS_ID_INVALID) {
   }
 
   void finalize(const BNGConfig& config, const bool do_update_diffusion_constant = true) {
@@ -58,7 +59,7 @@ public:
     : Cplx(&data),
       id(SPECIES_ID_INVALID),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
-      rxn_flags_were_updated(false), num_instantiations(0) {
+      rxn_flags_were_updated(false), num_instantiations(0), reactant_class_id(REACTANT_CLASS_ID_INVALID) {
 
     elem_mols = cplx_inst.elem_mols;
     finalize(config, do_update_diffusion_constant);
@@ -69,7 +70,8 @@ public:
     : Cplx(other), ElemMolTypeSpeciesCommonData(other),
       id(other.id), name(other.name),
       space_step(other.space_step), time_step(other.time_step),
-      rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(other.num_instantiations) {
+      rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(other.num_instantiations),
+      reactant_class_id(other.reactant_class_id) {
   }
 
   // TODO: maybe an assignment operator is needed, e.g. in the CplxInstance case, the copy ctor was not
@@ -218,6 +220,20 @@ public:
     return BaseFlag::has_flag(flag);
   }
 
+  bool has_valid_reactant_class_id() const {
+    return reactant_class_id != REACTANT_CLASS_ID_INVALID;
+  }
+
+  reactant_class_id_t get_reactant_class_id() const {
+    assert(has_valid_reactant_class_id());
+    return reactant_class_id;
+  }
+
+  void set_reactant_class_id(const reactant_class_id_t id) {
+    assert(id != REACTANT_CLASS_ID_INVALID);
+    reactant_class_id = id;
+  }
+
   void dump(const BNGData& bng_data, const std::string ind = "") const;
   static void dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted = false);
 
@@ -248,6 +264,8 @@ private:
   bool rxn_flags_were_updated;
 
   uint num_instantiations;
+
+  reactant_class_id_t reactant_class_id;
 };
 
 } // namespace BNG

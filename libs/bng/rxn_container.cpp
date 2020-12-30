@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <sstream>
-
+#include <bitset>
 
 using namespace std;
 
@@ -243,6 +243,93 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const Reactant& reac
 }
 
 
+void RxnContainer::compute_reacting_classes(const ReactantClass& rc) {
+  assert(rc.is_initialized());
+
+  assert(reacting_classes.size() == rc.id);
+  reacting_classes.push_back(std::set<reactant_class_id_t>());
+  ReactantClassIdSet& current_set = reacting_classes.back();
+
+  for (const ReactantClass& reacting_class: reactant_classes) {
+    assert(reacting_class.is_initialized());
+
+    // cross check
+    // - rule_ids[0] -> reacting_class.rule_ids[1]
+    if ((rc.reaction_id_bitsets[0] & reacting_class.reaction_id_bitsets[1]).any()) {
+      // may react
+      current_set.insert(reacting_class.id);
+    }
+    // - rule_ids[1] -> reacting_class.rule_ids[0]
+    else if ((rc.reaction_id_bitsets[1] & reacting_class.reaction_id_bitsets[0]).any()) {
+      // may react (no need to check if we can already react)
+      current_set.insert(reacting_class.id);
+    }
+  }
+}
+
+
+// also computes reacting classes if this is a new reactant class
+reactant_class_id_t RxnContainer::find_or_add_reactant_class(
+    const ReactionIdBitsets& reactions_bitset_per_reactant) {
+
+  reactant_class_id_t res;
+  bool is_new_reactant_class;
+
+  ReactantClass rc;
+  rc.reaction_id_bitsets = reactions_bitset_per_reactant;
+  const auto it = reactant_classes.find(rc);
+
+  if (it != reactant_classes.end()) {
+    return it->id;
+  }
+  else {
+    // add and compute reacting classes
+    rc.id = next_reactant_class_id;
+    next_reactant_class_id++;
+    reactant_classes.insert(rc);
+
+    compute_reacting_classes(rc);
+    return rc.id;
+  }
+}
+
+
+reactant_class_id_t RxnContainer::compute_reactant_class_for_species(const species_id_t species_id) {
+
+  // prepare reactant class bitsets
+  assert(rxn_rules.back()->id == rxn_rules.size() - 1);
+  ReactionIdBitsets reactions_bitset_per_reactant =
+    { boost::dynamic_bitset<>(rxn_rules.size()), boost::dynamic_bitset<>(rxn_rules.size())};
+  for (RxnRule* r: rxn_rules) {
+    if (r->is_bimol_vol_rxn()) {
+      std::vector<uint> indices;
+      r->get_reactant_indices(species_id, all_species, indices);
+      assert(indices.size() <= 2);
+
+      if (indices.empty()) {
+        continue;
+      }
+
+      if (indices.size() == 1) {
+        // species matches one of reactants
+        // set bit on position id
+        assert(indices[0] <= 1);
+        reactions_bitset_per_reactant[indices[0]][r->id] = 1;
+      }
+      else {
+        // species matches both reactants
+        assert(indices[0] + indices[1] == 1);
+        reactions_bitset_per_reactant[0][r->id] = 1;
+        reactions_bitset_per_reactant[1][r->id] = 1;
+      }
+    }
+  }
+
+  // find or add reactant class based on the computed bitsets, also compute reacting classes
+  return find_or_add_reactant_class(reactions_bitset_per_reactant);
+}
+
+
 // - puts pointers to all corresponding classes to the res_classes_map
 // - for bimol rxns, does not reuse already defined rxn class, e.g. when A + B was already created,
 //   rxn class for B + A will be created (NOTE: might improve if needed but so far the only issue
@@ -250,7 +337,8 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const Reactant& reac
 // - called only from get_bimol_rxns_for_reactant
 void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t species_id1, const bool for_all_known_species) {
 
-  // find all reactions for species id
+  // find all reactions for species id,
+  // also define reactant class
   small_vector<RxnRule*> rxns_for_new_species;
   for (RxnRule* r: rxn_rules) {
     if (r->is_bimol() && r->species_can_be_reactant(species_id1, all_species)) {
