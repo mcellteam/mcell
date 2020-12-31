@@ -1809,7 +1809,7 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
 
 bool RxnRule::species_can_be_bimol_reactants(
     const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species,
-    uint* assigned_index1, uint* assigned_index2
+    uint* assigned_index1, uint* assigned_index2, bool* both_match_both_patterns
 ) {
   assert(is_bimol());
 
@@ -1850,6 +1850,11 @@ bool RxnRule::species_can_be_bimol_reactants(
     }
     if (assigned_index2 != nullptr) {
       *assigned_index2 = index2;
+    }
+    if (both_match_both_patterns != nullptr) {
+      *both_match_both_patterns =
+          id1_matches[0] && id1_matches[1] &&
+          id2_matches[0] && id2_matches[1];
     }
   }
 

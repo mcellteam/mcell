@@ -255,14 +255,17 @@ void RxnContainer::compute_reacting_classes(const ReactantClass& rc) {
 
     // cross check
     // - rule_ids[0] -> reacting_class.rule_ids[1]
-    if ((rc.reaction_id_bitsets[0] & reacting_class.reaction_id_bitsets[1]).any()) {
-      // may react
-      current_set.insert(reacting_class.id);
-    }
     // - rule_ids[1] -> reacting_class.rule_ids[0]
-    else if ((rc.reaction_id_bitsets[1] & reacting_class.reaction_id_bitsets[0]).any()) {
-      // may react (no need to check if we can already react)
+    bool can_react =
+        (rc.reaction_id_bitsets[0] & reacting_class.reaction_id_bitsets[1]).any() ||
+        (rc.reaction_id_bitsets[1] & reacting_class.reaction_id_bitsets[0]).any();
+
+    if (can_react) {
+      // mapping A -> B
       current_set.insert(reacting_class.id);
+
+      // update also the mapping B -> A because this is a new reactant class
+      reacting_classes[reacting_class.id].insert(rc.id);
     }
   }
 }
@@ -297,7 +300,7 @@ reactant_class_id_t RxnContainer::find_or_add_reactant_class(
 reactant_class_id_t RxnContainer::compute_reactant_class_for_species(const species_id_t species_id) {
 
   // prepare reactant class bitsets
-  assert(rxn_rules.back()->id == rxn_rules.size() - 1);
+  assert(rxn_rules.empty() || rxn_rules.back()->id == rxn_rules.size() - 1);
   ReactionIdBitsets reactions_bitset_per_reactant =
     { boost::dynamic_bitset<>(rxn_rules.size()), boost::dynamic_bitset<>(rxn_rules.size())};
   for (RxnRule* r: rxn_rules) {
@@ -411,6 +414,8 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
 
           small_vector<RxnRule*> applicable_rxns;
 
+          bool has_rxn_where_both_match_both_patterns = false;
+
           for (RxnRule* matching_rxn: rxns_for_new_species) {
 
             // usually the species must be different but reactions of type A + A are allowed
@@ -419,12 +424,20 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
             }
 
             uint reac1_index, reac2_index;
+            bool both_match_both_patterns = false;
             bool reactants_match =
-                matching_rxn->species_can_be_bimol_reactants(reac1.species_id, species_id2, all_species, &reac1_index, &reac2_index);
+                matching_rxn->species_can_be_bimol_reactants(
+                    reac1.species_id, species_id2, all_species,
+                    &reac1_index, &reac2_index, &both_match_both_patterns);
+
+            if (both_match_both_patterns) {
+              has_rxn_where_both_match_both_patterns = true;
+            }
 
             if (reactants_match &&
                 matching_rxn->reactant_compatment_matches(reac1_index, reac1.compartment_id) &&
                 matching_rxn->reactant_compatment_matches(reac2_index, reac2.compartment_id)) {
+
 
               // ok, we have a reaction applicable both to new_id and second_id and compartment matches as well
               // we need to add this rxn to a rxn class for these reactants
@@ -433,8 +446,34 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
           }
 
           if (!applicable_rxns.empty()) {
+
+            Reactant reacA = reac1;
+            Reactant reacB = reac2;
+
+            // if both reactants match both patterns, and compartments are not important,
+            // we must sort the reactants so that it does not matter whether the rxn class was first created
+            // for reac1 or reac2,
+            // otherwise, this might give us different result e.g. based on the frequency of rxn class cleanup
+            // NOTE: some cases related to compartments might be missed
+            if (reac1.species_id != reac2.species_id &&
+                has_rxn_where_both_match_both_patterns &&
+                (
+                 ((reac1.compartment_id == COMPARTMENT_ID_NONE || reac1.compartment_id == COMPARTMENT_ID_ANY) &&
+                  (reac2.compartment_id == COMPARTMENT_ID_NONE || reac2.compartment_id == COMPARTMENT_ID_ANY)) ||
+                 reac1.compartment_id == reac2.compartment_id
+                )
+               ) {
+              // order by species name - the one lexicographically smaller will be the first one
+              const Species& s1 = all_species.get(reac1.species_id);
+              const Species& s2 = all_species.get(reac2.species_id);
+              if (s1.name > s2.name) {
+                reacA = reac2;
+                reacB = reac1;
+              }
+            }
+
             // get to the instance of the reaction class for (new_id, second_id) or (second_id, new_id)
-            RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(reac1, reac2);
+            RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(reacA, reacB);
 
             for (RxnRule* rxn: applicable_rxns) {
               rxn_class->add_rxn_rule_no_update(rxn);
@@ -493,8 +532,12 @@ void RxnContainer::remove_unimol_rxn_classes(const species_id_t id) {
 void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id) {
 
   // remove the rxn classes and their mappings for the second reactants
-  if (species_processed_for_bimol_rxn_classes.count(reac1_species_id) != 0) {
+  //if (species_processed_for_bimol_rxn_classes.count(reac1_species_id) != 0) {
+  if (bimol_rxn_class_map.count(reac1_species_id) != 0) {
     // forget that we processed this species
+    // does not necessarily have to be present - we might have not fully processed this species,
+    // it might present in the bimol_rxn_class_map only because it was used as a second reactant for
+    // another fully processed species
     species_processed_for_bimol_rxn_classes.erase(reac1_species_id);
 
     BimolSpeciesIt it_species1 = bimol_rxn_class_map.find(reac1_species_id);
@@ -543,10 +586,6 @@ void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id)
       // erase the top level entry
       bimol_rxn_class_map.erase(it_species1);
     }
-  }
-  else {
-    assert(bimol_rxn_class_map.count(reac1_species_id) == 0 &&
-        "There must be no rxn class maps for unprocessed species");
   }
 }
 

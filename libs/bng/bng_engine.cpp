@@ -32,7 +32,8 @@ string BNGEngine::get_stats_report() const {
   res << "[" <<
       "active species " << num_active_species <<
       ", total species " << all_species.get_species_vector().size() <<
-      ", total rxn classes " << all_rxns.get_num_rxn_classes() <<
+      ", rxn classes " << all_rxns.get_num_rxn_classes() <<
+      ", reactant classes " << all_rxns.get_num_reactant_classes() <<
       "]";
   return res.str();
 }

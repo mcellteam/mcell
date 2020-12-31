@@ -270,6 +270,11 @@ public:
     return reacting_classes[reactant_class_id];
   }
 
+  size_t get_num_reactant_classes() const {
+    assert(next_reactant_class_id == reactant_classes.size());
+    return reactant_classes.size();
+  }
+
   // returns nullptr if reaction rule was not found
   RxnRule* find_rxn_rule_by_name(const std::string& name) {
     for (RxnRule* rxn_rule: rxn_rules) {
