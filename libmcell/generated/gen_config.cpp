@@ -54,8 +54,8 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   subpartition_dimension = 0.5;
   total_iterations_hint = 1000000;
   check_overlapped_walls = true;
-  reaction_class_cleanup_periodicity = 100;
-  species_cleanup_periodicity = 2000;
+  reaction_class_cleanup_periodicity = 500;
+  species_cleanup_periodicity = 10000;
   sort_molecules = false;
   memory_limit_gb = -1;
   initial_iteration = 0;
@@ -190,8 +190,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("subpartition_dimension") = 0.5,
           py::arg("total_iterations_hint") = 1000000,
           py::arg("check_overlapped_walls") = true,
-          py::arg("reaction_class_cleanup_periodicity") = 100,
-          py::arg("species_cleanup_periodicity") = 2000,
+          py::arg("reaction_class_cleanup_periodicity") = 500,
+          py::arg("species_cleanup_periodicity") = 10000,
           py::arg("sort_molecules") = false,
           py::arg("memory_limit_gb") = -1,
           py::arg("initial_iteration") = 0,
@@ -279,10 +279,10 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   if (check_overlapped_walls != true) {
     ss << ind << "check_overlapped_walls = " << check_overlapped_walls << "," << nl;
   }
-  if (reaction_class_cleanup_periodicity != 100) {
+  if (reaction_class_cleanup_periodicity != 500) {
     ss << ind << "reaction_class_cleanup_periodicity = " << reaction_class_cleanup_periodicity << "," << nl;
   }
-  if (species_cleanup_periodicity != 2000) {
+  if (species_cleanup_periodicity != 10000) {
     ss << ind << "species_cleanup_periodicity = " << species_cleanup_periodicity << "," << nl;
   }
   if (sort_molecules != false) {

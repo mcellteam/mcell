@@ -47,8 +47,8 @@ class PythonExportContext;
         const float_t subpartition_dimension_ = 0.5, \
         const float_t total_iterations_hint_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
-        const int reaction_class_cleanup_periodicity_ = 100, \
-        const int species_cleanup_periodicity_ = 2000, \
+        const int reaction_class_cleanup_periodicity_ = 500, \
+        const int species_cleanup_periodicity_ = 10000, \
         const bool sort_molecules_ = false, \
         const int memory_limit_gb_ = -1, \
         const uint64_t initial_iteration_ = 0, \

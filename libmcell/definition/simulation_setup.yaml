@@ -108,11 +108,20 @@ Config:
  
   - name: reaction_class_cleanup_periodicity
     type: int
-    default: 100
+    default: 500
+    doc: |
+      Reaction class cleanup removes computed reaction classes for inactive species from memory.
+      This provides faster reaction lookup faster but when the same reaction class is 
+      needed again, it must be recomputed.
 
   - name: species_cleanup_periodicity
     type: int
-    default: 2000
+    default: 10000
+    doc: |
+      Species cleanup removes inactive species from memory. It removes also all reaction classes 
+      that reference it.
+      This provides faster addition of new species lookup faster but when the species is 
+      needed again, it must be recomputed.
 
   - name: sort_molecules
     type: bool

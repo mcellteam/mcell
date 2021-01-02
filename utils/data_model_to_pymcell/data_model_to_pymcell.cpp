@@ -39,6 +39,7 @@ static const option long_options[] = {
     { "help", 0, 0, 'h' },
     { "version", 0, 0, 'v' },
     { "debug", 0, 0, 'g' },
+    { "testing", 0, 0, 't' },
     { "cellblender_viz", 0, 0, 'c' },
     { "bng", 0, 0, 'b' },
     { "output_file_prefix", 1, 0, 'o'},
@@ -68,11 +69,13 @@ int process_args(
     string& output_files_prefix,
     bool& bng_mode,
     bool& debug_mode,
+    bool& testing_mode,
     bool& cellblender_viz
 ) {
   input_file = "";
   output_files_prefix = "";
   debug_mode = false;
+  testing_mode = false;
   cellblender_viz = false;
   bng_mode = false;
 
@@ -80,7 +83,7 @@ int process_args(
   while (1) {
 
     // get the next argument
-    int c = getopt_long_only(argc, argv, "hvgo:", long_options, nullptr);
+    int c = getopt_long_only(argc, argv, "hvgtcbo:", long_options, nullptr);
     if (c == -1)
       break;
 
@@ -93,6 +96,9 @@ int process_args(
         return ARG_PARSE_QUIT;
       case 'g':
         debug_mode = true;
+        break;
+      case 't':
+        testing_mode = true;
         break;
       case 'c':
         cellblender_viz = true;
@@ -133,15 +139,20 @@ int main(const int argc, char* argv[]) {
   string output_files_prefix;
   bool bng_mode;
   bool debug_mode;
+  bool testing_mode;
   bool cellblender_viz;
 
-  int arg_process_res = process_args(argc, argv, input_file, output_files_prefix, bng_mode, debug_mode, cellblender_viz);
+  int arg_process_res =
+      process_args(argc, argv, input_file, output_files_prefix,
+          bng_mode, debug_mode, testing_mode, cellblender_viz);
   if (arg_process_res != ARG_PARSE_OK) {
     return arg_process_res;
   }
 
   MCell::MCell4Generator converter;
-  bool ok = converter.generate(input_file, output_files_prefix, bng_mode, debug_mode, cellblender_viz);
+  bool ok = converter.generate(
+      input_file, output_files_prefix,
+      bng_mode, debug_mode, testing_mode, cellblender_viz);
 
   if (!ok) {
     cerr << "There was an error while converting " << input_file << " to pymcell code.\n";

@@ -69,6 +69,7 @@ bool MCell4Generator::generate(
     const string& output_files_prefix_,
     const bool bng_mode_,
     const bool debug_mode_,
+    const bool testing_mode_,
     const bool cellblender_viz
 ) {
   reset();
@@ -77,6 +78,7 @@ bool MCell4Generator::generate(
   data.output_files_prefix = output_files_prefix_;
   data.bng_mode = bng_mode_;
   data.debug_mode = debug_mode_;
+  data.testing_mode = testing_mode_;
 
   // load json file
   ifstream file;
@@ -866,6 +868,13 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << "\n";
 
   generate_config(out);
+
+  if (data.testing_mode) {
+    out << make_section_comment("testing-specific configuration");
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_REACTION_CLASS_CLEANUP_PERIODICITY, TESTING_RXN_CLASS_CLEANUP_PERIODICITY);
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_SPECIES_CLEANUP_PERIODICITY, TESTING_SPECIES_CLEANUP_PERIODICITY);
+    out << "\n";
+  }
 
   out << get_user_defined_configuration(customization_module);
 

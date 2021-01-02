@@ -405,9 +405,16 @@ Attributes:
   | simulation such as a molecule escaping closed geometry when it hits two walls 
   | that overlap.
 
-* | **reaction_class_cleanup_periodicity**: int = 100
+* | **reaction_class_cleanup_periodicity**: int = 500
+  | Reaction class cleanup removes computed reaction classes for inactive species from memory.
+  | This provides faster reaction lookup faster but when the same reaction class is 
+  | needed again, it must be recomputed.
 
-* | **species_cleanup_periodicity**: int = 2000
+* | **species_cleanup_periodicity**: int = 10000
+  | Species cleanup removes inactive species from memory. It removes also all reaction classes 
+  | that reference it.
+  | This provides faster addition of new species lookup faster but when the species is 
+  | needed again, it must be recomputed.
 
 * | **sort_molecules**: bool = False
   | Enables sorting of molecules for diffusion, this may improve cache locality.

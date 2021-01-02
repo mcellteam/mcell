@@ -50,7 +50,11 @@ using namespace API;
 
 using Json::Value;
 
-// using exceptions to
+
+const uint TESTING_RXN_CLASS_CLEANUP_PERIODICITY = 100;
+const uint TESTING_SPECIES_CLEANUP_PERIODICITY = 500;
+
+// using exception catching to recover from errors
 
 #define CHECK(stmt, failed) \
   do { \

@@ -83,6 +83,7 @@ struct SharedGenData {
   std::string output_files_prefix;
   bool bng_mode;
   bool debug_mode;
+  bool testing_mode;
 
   std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
   std::vector<IdLoc> all_reaction_rules_names;
