@@ -226,14 +226,14 @@ float_t RxnClass::compute_pb_factor() const {
 
     if (num_surf_reactants == 2) {
       /* this is a reaction between two surface molecules */
-      if (reactant_species[0]->cant_initiate() && reactant_species[1]->cant_initiate()) {
+      if (reactant_species[0]->is_target_only() && reactant_species[1]->is_target_only()) {
         warns() <<
             "There is a surface reaction between " << reactant_species[0]->name << " and " <<
             reactant_species[1]->name << ", but neither of them can initiate this reaction " <<
             "(they are marked as target_only)\n";
       }
 
-      if (reactant_species[0]->cant_initiate() || reactant_species[1]->cant_initiate()) {
+      if (reactant_species[0]->is_target_only() || reactant_species[1]->is_target_only()) {
         pb_factor = bng_config.time_unit * bng_config.grid_density / 3; /* 3 neighbors */
       }
       else {
@@ -307,16 +307,16 @@ float_t RxnClass::compute_pb_factor() const {
     float_t eff_vel_b = get_reactant_space_step(1) / get_reactant_time_step(1);
     float_t eff_vel;
 
-    if (reactant_species[0]->cant_initiate() && reactant_species[1]->cant_initiate()) {
+    if (reactant_species[0]->is_target_only() && reactant_species[1]->is_target_only()) {
       warns() <<
           "There is a volume reaction between " << reactant_species[0]->name << " and " <<
           reactant_species[1]->name << ", but neither of them can initiate this reaction " <<
           "(they are marked as target_only)\n";
     }
-    else if (reactant_species[0]->cant_initiate()) {
+    else if (reactant_species[0]->is_target_only()) {
       eff_vel_a = 0;
     }
-    else if (reactant_species[1]->cant_initiate()) {
+    else if (reactant_species[1]->is_target_only()) {
       eff_vel_b = 0;
     }
 

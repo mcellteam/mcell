@@ -69,7 +69,10 @@ public:
     assert(is_initialized());
     assert(other.is_initialized());
 
-    if (reaction_id_bitsets[0] != other.reaction_id_bitsets[0]) {
+    if (target_only != other.target_only) {
+      return (target_only?1:0) < (other.target_only?1:0);
+    }
+    else if (reaction_id_bitsets[0] != other.reaction_id_bitsets[0]) {
       return reaction_id_bitsets[0] < other.reaction_id_bitsets[0];
     }
     else {
@@ -78,6 +81,7 @@ public:
   }
 
   reactant_class_id_t id;
+  bool target_only;
   ReactionIdBitsets reaction_id_bitsets;
 };
 
@@ -270,9 +274,17 @@ public:
     return reacting_classes[reactant_class_id];
   }
 
+  const ReactantClass& get_reactant_class(const reactant_class_id_t id) {
+    assert(id != REACTANT_CLASS_ID_INVALID);
+    assert(id < reactant_classes_vector.size());
+    assert(reactant_classes_vector.size() == reactant_classes_set.size());
+    return *reactant_classes_vector[id];
+  }
+
   size_t get_num_reactant_classes() const {
-    assert(next_reactant_class_id == reactant_classes.size());
-    return reactant_classes.size();
+    assert(next_reactant_class_id == reactant_classes_set.size());
+    assert(reactant_classes_vector.size() == reactant_classes_set.size());
+    return reactant_classes_vector.size();
   }
 
   // returns nullptr if reaction rule was not found
@@ -320,7 +332,7 @@ private:
 
   void compute_reacting_classes(const ReactantClass& rc);
   reactant_class_id_t find_or_add_reactant_class(
-      const ReactionIdBitsets& reactions_bitset_per_reactant);
+      const ReactionIdBitsets& reactions_bitset_per_reactant, const bool target_only);
   reactant_class_id_t compute_reactant_class_for_species(const species_id_t species_id);
 
 private:
@@ -351,7 +363,11 @@ private:
 
   reactant_class_id_t next_reactant_class_id;
 
-  std::set<ReactantClass> reactant_classes;
+  // owns reactant classes, indexed by ID
+  std::vector<ReactantClass*> reactant_classes_vector;
+  // containes pointers to objects owned by reactant_classes_vector
+  // used to quickly find out whether we already have this reactant class
+  std::set<ReactantClass*> reactant_classes_set;
 
   // indexed by reactant_class_id_t
   std::vector<ReactantClassIdSet> reacting_classes;

@@ -956,7 +956,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     else if (spec->custom_time_step_from_mdl > 0) {
       mol_type.custom_time_step = spec->custom_time_step_from_mdl;
     }
-    mol_type.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, spec->flags & CANT_INITIATE);
+    mol_type.set_flag(BNG::SPECIES_MOL_FLAG_TARGET_ONLY, spec->flags & CANT_INITIATE);
 
     if ((spec->flags & ON_GRID) == 0 && (spec->flags & IS_SURFACE) == 0) {  //FIXME: ALL_SURF_MOLS have wrong flag
       mol_type.set_is_vol();

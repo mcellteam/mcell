@@ -1154,8 +1154,8 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
   bool sm_still_exists = true;
   assert(!species.has_flag(SPECIES_FLAG_CAN_SURFSURFSURF) && "Not supported");
   bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
-  if (can_surf_surf_react && !species.cant_initiate()) {
-    assert(!species.has_flag(SPECIES_MOL_FLAG_CANT_INITIATE) && "Not sure what to do here");
+  if (can_surf_surf_react && !species.is_target_only()) {
+    assert(!species.has_flag(SPECIES_MOL_FLAG_TARGET_ONLY) && "Not sure what to do here");
     // the time t_steps should tell when the reaction occurred and it is quite weird because
     // it has nothing to do with the time spent diffusing
     sm_still_exists = react_2D_all_neighbors(p, sm, t_steps, diffusion_start_time);
@@ -1163,7 +1163,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 
   // NOTE: surf-surf reactions on the same wall have higher priority,
   // this must be randomized once intermembrane rxns will be more used
-  if (sm_still_exists && species.has_flag(SPECIES_FLAG_CAN_INTERMEMBRANE_SURFSURF) && !species.cant_initiate()) {
+  if (sm_still_exists && species.has_flag(SPECIES_FLAG_CAN_INTERMEMBRANE_SURFSURF) && !species.is_target_only()) {
     sm_still_exists = react_2D_intermembrane(p, sm, t_steps, diffusion_start_time);
   }
 

@@ -25,7 +25,7 @@
 
 #include <set>
 
-#include "../libs/bng/rxn_container.h"
+#include "bng/rxn_container.h"
 #include "defines.h"
 #include "dyn_vertex_structs.h"
 #include "molecule.h"
@@ -33,7 +33,7 @@
 #include "geometry.h"
 #include "simulation_config.h"
 #include "species_flags_analyzer.h"
-#include "../libmcell/api/shared_structs.h"
+#include "libmcell/api/shared_structs.h"
 
 namespace Json {
 class Value;
@@ -358,7 +358,7 @@ public:
   ) {
     // can the new species initiate a reaction?
     const BNG::Species& initiator_reactant_species = get_all_species().get(new_species_id);
-    if (initiator_reactant_species.cant_initiate()) {
+    if (initiator_reactant_species.is_target_only()) {
       // nothing to do
       return;
     }
@@ -406,14 +406,12 @@ public:
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const BNG::reactant_class_id_t reacting_class_id: reacting_classes) {
 
-      /* TODO
       // can the second reactant initiate a reaction with me?
-      const BNG::Species& initiator_reactant_species = get_all_species().get(second_species_id);
-      assert(initiator_reactant_species.is_vol());
-      if (initiator_reactant_species.cant_initiate()) {
+      const BNG::ReactantClass& initiator_reactant_class = get_all_rxns().get_reactant_class(reacting_class_id);
+      if (initiator_reactant_class.target_only) {
         // nothing to do
         continue;
-      }*/
+      }
 
       SubpartReactantsSet& second_reactant_sets_per_subpart =
           volume_molecule_reactants_per_reactant_class.get_subparts_reactants_for_reactant_class(reacting_class_id);

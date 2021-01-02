@@ -435,7 +435,7 @@ BNG::elem_mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
       bng_mt.custom_space_step = api_mt.custom_space_step;
     }
 
-    bng_mt.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, api_mt.target_only);
+    bng_mt.set_flag(BNG::SPECIES_MOL_FLAG_TARGET_ONLY, api_mt.target_only);
   }
 
   // components
@@ -500,7 +500,7 @@ void MCell4Converter::convert_species() {
           s->to_bngl_str() + ".");
     }
 	
-    new_species.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, s->target_only); // default is false
+    new_species.set_flag(BNG::SPECIES_MOL_FLAG_TARGET_ONLY, s->target_only); // default is false
 
     // FIXME: the MolType below is created correctly only for simple species
     release_assert(s->elementary_molecules.size() <= 1 && "TODO: Complex species");

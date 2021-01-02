@@ -18,6 +18,10 @@ RxnContainer::~RxnContainer() {
   for (RxnRule* rxn: rxn_rules) {
     delete rxn;
   }
+
+  for (ReactantClass* rxn: reactant_classes_vector) {
+    delete rxn;
+  }
 }
 
 
@@ -250,22 +254,22 @@ void RxnContainer::compute_reacting_classes(const ReactantClass& rc) {
   reacting_classes.push_back(std::set<reactant_class_id_t>());
   ReactantClassIdSet& current_set = reacting_classes.back();
 
-  for (const ReactantClass& reacting_class: reactant_classes) {
-    assert(reacting_class.is_initialized());
+  for (const ReactantClass* reacting_class: reactant_classes_vector) {
+    assert(reacting_class->is_initialized());
 
     // cross check
     // - rule_ids[0] -> reacting_class.rule_ids[1]
     // - rule_ids[1] -> reacting_class.rule_ids[0]
     bool can_react =
-        (rc.reaction_id_bitsets[0] & reacting_class.reaction_id_bitsets[1]).any() ||
-        (rc.reaction_id_bitsets[1] & reacting_class.reaction_id_bitsets[0]).any();
+        (rc.reaction_id_bitsets[0] & reacting_class->reaction_id_bitsets[1]).any() ||
+        (rc.reaction_id_bitsets[1] & reacting_class->reaction_id_bitsets[0]).any();
 
     if (can_react) {
       // mapping A -> B
-      current_set.insert(reacting_class.id);
+      current_set.insert(reacting_class->id);
 
       // update also the mapping B -> A because this is a new reactant class
-      reacting_classes[reacting_class.id].insert(rc.id);
+      reacting_classes[reacting_class->id].insert(rc.id);
     }
   }
 }
@@ -273,26 +277,28 @@ void RxnContainer::compute_reacting_classes(const ReactantClass& rc) {
 
 // also computes reacting classes if this is a new reactant class
 reactant_class_id_t RxnContainer::find_or_add_reactant_class(
-    const ReactionIdBitsets& reactions_bitset_per_reactant) {
+    const ReactionIdBitsets& reactions_bitset_per_reactant, const bool target_only) {
 
   reactant_class_id_t res;
   bool is_new_reactant_class;
 
-  ReactantClass rc;
-  rc.reaction_id_bitsets = reactions_bitset_per_reactant;
-  const auto it = reactant_classes.find(rc);
+  ReactantClass* rc = new ReactantClass;
+  rc->target_only = target_only;
+  rc->reaction_id_bitsets = reactions_bitset_per_reactant;
+  const auto it = reactant_classes_set.find(rc);
 
-  if (it != reactant_classes.end()) {
-    return it->id;
+  if (it != reactant_classes_set.end()) {
+    return (*it)->id;
   }
   else {
     // add and compute reacting classes
-    rc.id = next_reactant_class_id;
+    rc->id = next_reactant_class_id;
     next_reactant_class_id++;
-    reactant_classes.insert(rc);
+    reactant_classes_set.insert(rc);
+    reactant_classes_vector.push_back(rc);
 
-    compute_reacting_classes(rc);
-    return rc.id;
+    compute_reacting_classes(*rc);
+    return rc->id;
   }
 }
 
@@ -329,7 +335,8 @@ reactant_class_id_t RxnContainer::compute_reactant_class_for_species(const speci
   }
 
   // find or add reactant class based on the computed bitsets, also compute reacting classes
-  return find_or_add_reactant_class(reactions_bitset_per_reactant);
+  Species& s = all_species.get(species_id);
+  return find_or_add_reactant_class(reactions_bitset_per_reactant, s.is_target_only());
 }
 
 

@@ -166,8 +166,8 @@ public:
   }
 
   // true if a molecule of this species cannot initiate a reaction
-  bool cant_initiate() const {
-    return has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
+  bool is_target_only() const {
+    return has_flag(SPECIES_MOL_FLAG_TARGET_ONLY);
   }
 
   bool can_diffuse() const {
@@ -200,7 +200,7 @@ public:
   }
 
   bool can_vol_react() const {
-    if (cant_initiate()) {
+    if (is_target_only()) {
       return false;
     }
     else {

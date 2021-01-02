@@ -124,9 +124,9 @@ void Species::update_rxn_and_custom_flags(
   bool all_mols_are_cant_initiate = true;
   for (const ElemMol& mi: elem_mols) {
     all_mols_are_cant_initiate = all_mols_are_cant_initiate &&
-        bng_data.get_elem_mol_type(mi.elem_mol_type_id).has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
+        bng_data.get_elem_mol_type(mi.elem_mol_type_id).has_flag(SPECIES_MOL_FLAG_TARGET_ONLY);
   }
-  set_flag(SPECIES_MOL_FLAG_CANT_INITIATE, all_mols_are_cant_initiate);
+  set_flag(SPECIES_MOL_FLAG_TARGET_ONLY, all_mols_are_cant_initiate);
 
   rxn_flags_were_updated = true;
 }
