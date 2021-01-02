@@ -119,8 +119,8 @@ std::string GenSurfaceProperty::export_to_python(std::ostream& out, PythonExport
   std::string exported_name = "surface_property_" + std::to_string(ctx.postinc_counter("surface_property"));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

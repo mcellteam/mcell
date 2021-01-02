@@ -389,6 +389,10 @@ void MCell4Converter::convert_simulation_setup() {
   // this option in MCell3 was removed in MCell4
   world->config.use_expanded_list = true;
 
+  // TODO: check that the values are higher than 1
+  world->config.rxn_class_cleanup_periodicity = config.reaction_class_cleanup_periodicity;
+  world->config.species_cleanup_periodicity = config.species_cleanup_periodicity;
+
   world->config.memory_limit_gb = config.memory_limit_gb;
 
   // compute other constants and initialize reporting (if enabled)

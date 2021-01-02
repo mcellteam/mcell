@@ -320,6 +320,8 @@ class Config():
             subpartition_dimension : float = 0.5,
             total_iterations_hint : float = 1000000,
             check_overlapped_walls : bool = True,
+            reaction_class_cleanup_periodicity : int = 100,
+            species_cleanup_periodicity : int = 2000,
             sort_molecules : bool = False,
             memory_limit_gb : int = -1,
             initial_iteration : int = 0,
@@ -338,6 +340,8 @@ class Config():
         self.subpartition_dimension = subpartition_dimension
         self.total_iterations_hint = total_iterations_hint
         self.check_overlapped_walls = check_overlapped_walls
+        self.reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity
+        self.species_cleanup_periodicity = species_cleanup_periodicity
         self.sort_molecules = sort_molecules
         self.memory_limit_gb = memory_limit_gb
         self.initial_iteration = initial_iteration

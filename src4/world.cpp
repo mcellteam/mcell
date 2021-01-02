@@ -212,13 +212,13 @@ void World::init_simulation() {
 
   // create rxn class cleanup events
   RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
-  rxn_class_cleanup_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
-  rxn_class_cleanup_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
+  rxn_class_cleanup_event->event_time = config.rxn_class_cleanup_periodicity;
+  rxn_class_cleanup_event->periodicity_interval = config.rxn_class_cleanup_periodicity;
   scheduler.schedule_event(rxn_class_cleanup_event);
 
   SpeciesCleanupEvent* species_cleanup_event = new SpeciesCleanupEvent(this);
-  species_cleanup_event->event_time = SPECIES_CLEANUP_PERIODICITY;
-  species_cleanup_event->periodicity_interval = SPECIES_CLEANUP_PERIODICITY;
+  species_cleanup_event->event_time = config.species_cleanup_periodicity;
+  species_cleanup_event->periodicity_interval = config.species_cleanup_periodicity;
   scheduler.schedule_event(species_cleanup_event);
 
   // create subpart sorting events

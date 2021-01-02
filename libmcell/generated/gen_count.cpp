@@ -317,8 +317,8 @@ std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& c
   std::string exported_name = "count_" + fix_id(name);
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

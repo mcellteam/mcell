@@ -105,6 +105,14 @@ Config:
       Enables check for overlapped walls. Overlapping walls can cause issues during 
       simulation such as a molecule escaping closed geometry when it hits two walls 
       that overlap. 
+ 
+  - name: reaction_class_cleanup_periodicity
+    type: int
+    default: 100
+
+  - name: species_cleanup_periodicity
+    type: int
+    default: 2000
 
   - name: sort_molecules
     type: bool

@@ -153,8 +153,8 @@ std::string GenChkptVolMol::export_to_python(std::ostream& out, PythonExportCont
   std::string exported_name = "chkpt_vol_mol_" + std::to_string(ctx.postinc_counter("chkpt_vol_mol"));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

@@ -54,6 +54,8 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   subpartition_dimension = 0.5;
   total_iterations_hint = 1000000;
   check_overlapped_walls = true;
+  reaction_class_cleanup_periodicity = 100;
+  species_cleanup_periodicity = 2000;
   sort_molecules = false;
   memory_limit_gb = -1;
   initial_iteration = 0;
@@ -75,6 +77,8 @@ bool GenConfig::__eq__(const Config& other) const {
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations_hint == other.total_iterations_hint &&
     check_overlapped_walls == other.check_overlapped_walls &&
+    reaction_class_cleanup_periodicity == other.reaction_class_cleanup_periodicity &&
+    species_cleanup_periodicity == other.species_cleanup_periodicity &&
     sort_molecules == other.sort_molecules &&
     memory_limit_gb == other.memory_limit_gb &&
     initial_iteration == other.initial_iteration &&
@@ -106,6 +110,8 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations_hint == other.total_iterations_hint &&
     check_overlapped_walls == other.check_overlapped_walls &&
+    reaction_class_cleanup_periodicity == other.reaction_class_cleanup_periodicity &&
+    species_cleanup_periodicity == other.species_cleanup_periodicity &&
     sort_molecules == other.sort_molecules &&
     memory_limit_gb == other.memory_limit_gb &&
     initial_iteration == other.initial_iteration &&
@@ -138,6 +144,8 @@ std::string GenConfig::to_str(const std::string ind) const {
       "subpartition_dimension=" << subpartition_dimension << ", " <<
       "total_iterations_hint=" << total_iterations_hint << ", " <<
       "check_overlapped_walls=" << check_overlapped_walls << ", " <<
+      "reaction_class_cleanup_periodicity=" << reaction_class_cleanup_periodicity << ", " <<
+      "species_cleanup_periodicity=" << species_cleanup_periodicity << ", " <<
       "sort_molecules=" << sort_molecules << ", " <<
       "memory_limit_gb=" << memory_limit_gb << ", " <<
       "initial_iteration=" << initial_iteration << ", " <<
@@ -162,6 +170,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const float_t,
             const float_t,
             const bool,
+            const int,
+            const int,
             const bool,
             const int,
             const uint64_t,
@@ -180,6 +190,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("subpartition_dimension") = 0.5,
           py::arg("total_iterations_hint") = 1000000,
           py::arg("check_overlapped_walls") = true,
+          py::arg("reaction_class_cleanup_periodicity") = 100,
+          py::arg("species_cleanup_periodicity") = 2000,
           py::arg("sort_molecules") = false,
           py::arg("memory_limit_gb") = -1,
           py::arg("initial_iteration") = 0,
@@ -202,6 +214,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension)
       .def_property("total_iterations_hint", &Config::get_total_iterations_hint, &Config::set_total_iterations_hint)
       .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls)
+      .def_property("reaction_class_cleanup_periodicity", &Config::get_reaction_class_cleanup_periodicity, &Config::set_reaction_class_cleanup_periodicity)
+      .def_property("species_cleanup_periodicity", &Config::get_species_cleanup_periodicity, &Config::set_species_cleanup_periodicity)
       .def_property("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules)
       .def_property("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb)
       .def_property("initial_iteration", &Config::get_initial_iteration, &Config::set_initial_iteration)
@@ -217,8 +231,8 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   std::string exported_name = "config_" + std::to_string(ctx.postinc_counter("config"));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";
@@ -264,6 +278,12 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   }
   if (check_overlapped_walls != true) {
     ss << ind << "check_overlapped_walls = " << check_overlapped_walls << "," << nl;
+  }
+  if (reaction_class_cleanup_periodicity != 100) {
+    ss << ind << "reaction_class_cleanup_periodicity = " << reaction_class_cleanup_periodicity << "," << nl;
+  }
+  if (species_cleanup_periodicity != 2000) {
+    ss << ind << "species_cleanup_periodicity = " << species_cleanup_periodicity << "," << nl;
   }
   if (sort_molecules != false) {
     ss << ind << "sort_molecules = " << sort_molecules << "," << nl;

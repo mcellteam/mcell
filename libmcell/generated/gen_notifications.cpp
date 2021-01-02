@@ -95,8 +95,8 @@ std::string GenNotifications::export_to_python(std::ostream& out, PythonExportCo
   std::string exported_name = "notifications_" + std::to_string(ctx.postinc_counter("notifications"));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

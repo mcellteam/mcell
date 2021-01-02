@@ -47,6 +47,8 @@ class PythonExportContext;
         const float_t subpartition_dimension_ = 0.5, \
         const float_t total_iterations_hint_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
+        const int reaction_class_cleanup_periodicity_ = 100, \
+        const int species_cleanup_periodicity_ = 2000, \
         const bool sort_molecules_ = false, \
         const int memory_limit_gb_ = -1, \
         const uint64_t initial_iteration_ = 0, \
@@ -66,6 +68,8 @@ class PythonExportContext;
       subpartition_dimension = subpartition_dimension_; \
       total_iterations_hint = total_iterations_hint_; \
       check_overlapped_walls = check_overlapped_walls_; \
+      reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity_; \
+      species_cleanup_periodicity = species_cleanup_periodicity_; \
       sort_molecules = sort_molecules_; \
       memory_limit_gb = memory_limit_gb_; \
       initial_iteration = initial_iteration_; \
@@ -259,6 +263,34 @@ public:
   virtual bool get_check_overlapped_walls() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return check_overlapped_walls;
+  }
+
+  int reaction_class_cleanup_periodicity;
+  virtual void set_reaction_class_cleanup_periodicity(const int new_reaction_class_cleanup_periodicity_) {
+    if (initialized) {
+      throw RuntimeError("Value 'reaction_class_cleanup_periodicity' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    reaction_class_cleanup_periodicity = new_reaction_class_cleanup_periodicity_;
+  }
+  virtual int get_reaction_class_cleanup_periodicity() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return reaction_class_cleanup_periodicity;
+  }
+
+  int species_cleanup_periodicity;
+  virtual void set_species_cleanup_periodicity(const int new_species_cleanup_periodicity_) {
+    if (initialized) {
+      throw RuntimeError("Value 'species_cleanup_periodicity' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    species_cleanup_periodicity = new_species_cleanup_periodicity_;
+  }
+  virtual int get_species_cleanup_periodicity() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return species_cleanup_periodicity;
   }
 
   bool sort_molecules;

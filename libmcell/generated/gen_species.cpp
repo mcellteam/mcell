@@ -143,8 +143,8 @@ std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext&
   std::string exported_name = "species_" + fix_id(name);
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

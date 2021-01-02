@@ -34,7 +34,7 @@ namespace MCell {
 
 
 void SpeciesCleanupEvent::dump(const string ind) const {
-  cout << ind << "Rxn class cleanup event:\n";
+  cout << ind << "Species cleanup event:\n";
   string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
 }

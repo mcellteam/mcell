@@ -148,8 +148,8 @@ std::string GenBaseChkptMol::export_to_python(std::ostream& out, PythonExportCon
   std::string exported_name = "base_chkpt_mol_" + std::to_string(ctx.postinc_counter("base_chkpt_mol"));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

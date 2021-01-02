@@ -118,8 +118,8 @@ std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonEx
   std::string exported_name = "molecule_release_info_" + std::to_string(ctx.postinc_counter("molecule_release_info"));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

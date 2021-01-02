@@ -405,6 +405,10 @@ Attributes:
   | simulation such as a molecule escaping closed geometry when it hits two walls 
   | that overlap.
 
+* | **reaction_class_cleanup_periodicity**: int = 100
+
+* | **species_cleanup_periodicity**: int = 2000
+
 * | **sort_molecules**: bool = False
   | Enables sorting of molecules for diffusion, this may improve cache locality.
   | Produces different results when enabled.

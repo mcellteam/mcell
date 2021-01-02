@@ -77,8 +77,8 @@ std::string GenWarnings::export_to_python(std::ostream& out, PythonExportContext
   std::string exported_name = "warnings_" + std::to_string(ctx.postinc_counter("warnings"));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
-
   }
+
   bool str_export = export_as_string_without_newlines();
   std::string nl = "";
   std::string ind = " ";

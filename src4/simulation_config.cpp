@@ -134,6 +134,8 @@ void SimulationConfig::dump() {
   DUMP_ATTR(use_expanded_list);
   DUMP_ATTR(randomize_smol_pos);
   DUMP_ATTR(check_overlapped_walls);
+  DUMP_ATTR(rxn_class_cleanup_periodicity);
+  DUMP_ATTR(species_cleanup_periodicity);
   DUMP_ATTR(sort_mols_by_subpart);
   DUMP_ATTR(memory_limit_gb);
   DUMP_ATTR(simulation_stats_every_n_iterations);
