@@ -21,19 +21,22 @@ namespace BNG {
 string BNGEngine::get_stats_report() const {
   stringstream res;
 
+  std::set<reactant_class_id_t> active_reactant_classes;
   uint num_active_species = 0;
   for (const Species* s: all_species.get_species_vector()) {
     release_assert(s != nullptr);
     if (s->was_instantiated()) {
       num_active_species++;
+      if (s->has_valid_reactant_class_id()) {
+        active_reactant_classes.insert(s->get_reactant_class_id());
+      }
     }
   }
 
   res << "[" <<
-      "active species " << num_active_species <<
-      ", total species " << all_species.get_species_vector().size() <<
+      "active/total species " << num_active_species << "/" << all_species.get_species_vector().size() <<
       ", rxn classes " << all_rxns.get_num_rxn_classes() <<
-      ", reactant classes " << all_rxns.get_num_reactant_classes() <<
+      ", active/total reactant classes " << active_reactant_classes.size() << "/" << all_rxns.get_num_reactant_classes() <<
       "]";
   return res.str();
 }
