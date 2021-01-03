@@ -86,6 +86,15 @@ public:
 };
 
 
+class ReactantClassLessPtr {
+public:
+  bool operator() (const ReactantClass* a, const ReactantClass* b) const {
+    assert(a != nullptr && b != nullptr);
+    return *a < *b;
+  }
+};
+
+
 /**
  * Owns information on reactions and species,
  * serves as a source of information for BNGEngine.
@@ -367,7 +376,7 @@ private:
   std::vector<ReactantClass*> reactant_classes_vector;
   // containes pointers to objects owned by reactant_classes_vector
   // used to quickly find out whether we already have this reactant class
-  std::set<ReactantClass*> reactant_classes_set;
+  std::set<ReactantClass*, ReactantClassLessPtr> reactant_classes_set;
 
   // indexed by reactant_class_id_t
   std::vector<ReactantClassIdSet> reacting_classes;

@@ -336,7 +336,15 @@ reactant_class_id_t RxnContainer::compute_reactant_class_for_species(const speci
 
   // find or add reactant class based on the computed bitsets, also compute reacting classes
   Species& s = all_species.get(species_id);
-  return find_or_add_reactant_class(reactions_bitset_per_reactant, s.is_target_only());
+  reactant_class_id_t res = find_or_add_reactant_class(reactions_bitset_per_reactant, s.is_target_only());
+
+#if 0
+  cout <<
+      reactions_bitset_per_reactant[0] << "|" << reactions_bitset_per_reactant[1] <<
+      " reactant class id:" << res << ", species id:" << species_id << " (" << rxn_rules.size() << ")\n";
+#endif
+
+  return res;
 }
 
 
