@@ -366,7 +366,7 @@ void MolOrRxnCountEvent::compute_mol_count_item(
     const Partition& p,
     const MolOrRxnCountItem& item,
     const Molecule& m,
-    std::vector<CountItem>& count_items
+    CountItemVector& count_items
 ) {
   species_id_t all_mol_id = world->get_all_species().get_all_molecules_species_id();
   species_id_t all_vol_id = world->get_all_species().get_all_volume_molecules_species_id();
@@ -413,7 +413,7 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
     Partition& p,
     const MolOrRxnCountItem& item,
     const BNG::RxnRule* rxn,
-    std::vector<CountItem>& count_items
+    CountItemVector& count_items
 ) {
   for (const MolOrRxnCountTerm& term: item.terms) {
     assert(!term.is_rxn_count() || term.rxn_rule_id != BNG::RXN_RULE_ID_INVALID);
@@ -474,7 +474,7 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
 }
 
 
-void MolOrRxnCountEvent::compute_counts(std::vector<CountItem>& count_items) {
+void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
 
   // go through all molecules and count them
   PartitionVector& partitions = world->get_partitions();
@@ -568,7 +568,7 @@ void MolOrRxnCountEvent::compute_counts(std::vector<CountItem>& count_items) {
 
 
 void MolOrRxnCountEvent::step() {
-  std::vector<CountItem> count_items;
+  CountItemVector count_items;
 
   compute_counts(count_items);
 
@@ -580,7 +580,7 @@ void MolOrRxnCountEvent::step() {
 
 
 float_t MolOrRxnCountEvent::get_single_count_value() {
-  std::vector<CountItem> count_items;
+  CountItemVector count_items;
 
   compute_counts(count_items);
 

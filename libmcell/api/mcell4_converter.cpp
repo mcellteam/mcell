@@ -1466,7 +1466,7 @@ void MCell4Converter::convert_release_events() {
 static void append_subtracted_volume_compartments(
     MCell::MolOrRxnCountTerm top_count_term,
     const GeometryObjectSet& child_compartments,
-    std::vector<MolOrRxnCountTerm>& terms
+    MolOrRxnCountTermVector& terms
 ) {
   assert(top_count_term.type == MCell::CountType::EnclosedInVolumeRegion);
 
@@ -1484,7 +1484,7 @@ static void append_subtracted_volume_compartments(
 void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
     const std::shared_ptr<API::CountTerm> ct,
     const int sign,
-    std::vector<MolOrRxnCountTerm>& terms
+    MolOrRxnCountTermVector& terms
 ) {
   MCell::MolOrRxnCountTerm res;
   res.sign_in_expression = sign;

@@ -147,7 +147,7 @@ private:
 
   void convert_count_term_leaf_and_init_counting_flags(
       const std::shared_ptr<API::CountTerm> ct, const int sign,
-      std::vector<MolOrRxnCountTerm>& terms
+      MolOrRxnCountTermVector& terms
   );
   void convert_count_terms_recursively(
       const std::shared_ptr<API::CountTerm> ct,

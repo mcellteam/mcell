@@ -131,6 +131,8 @@ public:
   region_id_t region_id;
 };
 
+typedef small_vector<MolOrRxnCountTerm> MolOrRxnCountTermVector;
+
 
 class MolOrRxnCountItem {
 public:
@@ -155,11 +157,13 @@ public:
 
   // note: items are shared in MCell3 but so far it seems that
   // we can just count them separately
-  std::vector<MolOrRxnCountTerm> terms;
+  MolOrRxnCountTermVector terms;
 
   // value used to multiply the whole result
   float_t multiplier;
 };
+
+typedef small_vector<MolOrRxnCountItem> MolOrRxnCountItemVector;
 
 
 enum class CountSpeciesInfoType {
@@ -188,7 +192,7 @@ struct CountSpeciesInfo {
 
   // indices of count items that count this species in the whole world
   // when needs_counted_volume is false, these are the only counts we care about
-  std::set<uint> world_count_item_indices;
+  uint_set<uint> world_count_item_indices;
 };
 
 /**
@@ -236,7 +240,7 @@ public:
     return get_or_compute_count_species_info(species_id).needs_counted_volume;
   }
 
-  std::vector<MolOrRxnCountItem> mol_rxn_count_items;
+  MolOrRxnCountItemVector mol_rxn_count_items;
 
   World* world;
 
@@ -248,17 +252,17 @@ private:
       const Partition& p,
       const MolOrRxnCountItem& item,
       const Molecule& m,
-      std::vector<CountItem>& count_items
+      CountItemVector& count_items
   );
 
   void compute_rxn_count_item(
       Partition& p,
       const MolOrRxnCountItem& item,
       const BNG::RxnRule* rxn,
-      std::vector<CountItem>& count_items
+      CountItemVector& count_items
   );
 
-  void compute_counts(std::vector<CountItem>& count_items);
+  void compute_counts(CountItemVector& count_items);
 
   // index to this array is species_id
   std::vector<CountSpeciesInfo> count_species_info;
