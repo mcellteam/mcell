@@ -566,13 +566,7 @@ std::string World::export_counts_to_bngl_observables(std::ostream& observables) 
     const MolOrRxnCountEvent* ce = dynamic_cast<const MolOrRxnCountEvent*>(count_events[i]);
     assert(ce != nullptr);
 
-    vector<MolOrRxnCountItem> count_items;
-    count_items.insert(count_items.end(),
-        ce->world_mol_count_items.begin(), ce->world_mol_count_items.end());
-    count_items.insert(count_items.end(),
-        ce->specific_mol_rxn_count_items.begin(), ce->specific_mol_rxn_count_items.end());
-
-    for (const MolOrRxnCountItem& item: count_items) {
+    for (const MolOrRxnCountItem& item: ce->mol_rxn_count_items) {
       // get observable name from filename
       const string& path = get_count_buffer(item.buffer_id).get_filename();
       size_t slash_pos = path.find_last_of("/\\");

@@ -41,7 +41,7 @@ class World;
 
 enum class SpeciesPatternType {
   Invalid,
-  SpeciesId,
+  SpeciesId, // TODO: remove this variant
   SpeciesPattern,
   MoleculesPattern
 };
@@ -72,6 +72,8 @@ public:
       region_id(REGION_ID_INVALID)
      {
   }
+
+  uint get_num_pattern_matches(const species_id_t species_id) const;
 
   uint get_num_molecule_matches(
       const Molecule& m,
@@ -133,7 +135,7 @@ public:
 class MolOrRxnCountItem {
 public:
   MolOrRxnCountItem(const count_buffer_id_t buffer_id_)
-    : buffer_id(buffer_id_), multiplier(1) {
+    : index(UINT_INVALID), buffer_id(buffer_id_), multiplier(1) {
     assert(buffer_id != COUNT_BUFFER_ID_INVALID);
   }
 
@@ -144,6 +146,9 @@ public:
 
   void dump(const std::string ind = "") const;
   void to_data_model(const World* world, Json::Value& reaction_output) const;
+
+  // index of this item in MolOrRxnCountEvent's mol_rxn_count_items
+  uint index;
 
   // count buffer objects are owned by World
   count_buffer_id_t buffer_id;
@@ -169,11 +174,21 @@ enum class CountSpeciesInfoType {
 struct CountSpeciesInfo {
   CountSpeciesInfo()
     : type(CountSpeciesInfoType::NotSeen),
-      needs_counted_volume(false) {
+      needs_counted_volume(false),
+      all_are_world_mol_counts(true) {
   }
 
   CountSpeciesInfoType type;
+
   bool needs_counted_volume;
+
+  // when true, all count items that count this species are listed in
+  // the world_count_item_indices
+  bool all_are_world_mol_counts;
+
+  // indices of count items that count this species in the whole world
+  // when needs_counted_volume is false, these are the only counts we care about
+  std::set<uint> world_count_item_indices;
 };
 
 /**
@@ -185,7 +200,8 @@ public:
     : BaseEvent(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT),
       world(world_), count_mols(false), count_rxns(false) {
   }
-  virtual ~MolOrRxnCountEvent() {}
+  virtual ~MolOrRxnCountEvent() {
+  }
 
   void step() override;
 
@@ -199,12 +215,9 @@ public:
   void to_data_model(Json::Value& mcell_node) const override;
 
   void add_mol_count_item(const MolOrRxnCountItem& item) {
-    /*if (item.is_world_mol_count()) {
-      world_mol_count_items.push_back(item);
-    }
-    else {*/
-      specific_mol_rxn_count_items.push_back(item);
-    //}
+    mol_rxn_count_items.push_back(item);
+    // set index
+    mol_rxn_count_items.back().index = mol_rxn_count_items.size() - 1;
 
     // set counting flags
     if (item.counts_mols()) {
@@ -223,8 +236,7 @@ public:
     return get_or_compute_count_species_info(species_id).needs_counted_volume;
   }
 
-  std::vector<MolOrRxnCountItem> world_mol_count_items;
-  std::vector<MolOrRxnCountItem> specific_mol_rxn_count_items;
+  std::vector<MolOrRxnCountItem> mol_rxn_count_items;
 
   World* world;
 
@@ -236,7 +248,6 @@ private:
       const Partition& p,
       const MolOrRxnCountItem& item,
       const Molecule& m,
-      const size_t item_index,
       std::vector<CountItem>& count_items
   );
 
@@ -244,7 +255,6 @@ private:
       Partition& p,
       const MolOrRxnCountItem& item,
       const BNG::RxnRule* rxn,
-      const size_t item_index,
       std::vector<CountItem>& count_items
   );
 
