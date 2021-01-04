@@ -282,12 +282,14 @@ reactant_class_id_t RxnContainer::find_or_add_reactant_class(
   reactant_class_id_t res;
   bool is_new_reactant_class;
 
+  // NOTE: maybe search without creating the ReactantClass object
   ReactantClass* rc = new ReactantClass;
   rc->target_only = target_only;
   rc->reaction_id_bitsets = reactions_bitset_per_reactant;
   const auto it = reactant_classes_set.find(rc);
 
   if (it != reactant_classes_set.end()) {
+    delete rc;
     return (*it)->id;
   }
   else {
