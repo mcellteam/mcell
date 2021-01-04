@@ -489,7 +489,7 @@ void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
   // to improve performance, first process the species that we are counting in the whole world
   uint_set<uint> processed_item_indices; // TODO: this can be precomputed
   for (const BNG::Species* species: world->get_all_species().get_species_vector()) {
-    if (species->is_defunct()) {
+    if (species->is_defunct() || species->get_num_instantiations() == 0) {
       continue;
     }
 
