@@ -16,19 +16,19 @@ namespace BNG {
 
 void BNGNotifications::dump() const {
   cout << "BNGNotifications:\n";
-  cout << "  rxn_probability_changed: \t\t" << rxn_probability_changed << " [bool] \t\t\n";
+  cout << "  rxn_probability_changed: \t\t" << rxn_probability_changed << "\n";
 }
 
 
 void BNGConfig::dump() const {
   cout << "BNGConfig:\n";
-  cout << "  initial_seed: \t\t" << initial_seed << " [uint] \t\t\n";
-  cout << "  time_unit: \t\t" << time_unit << " [float_t] \t\t\n";
-  cout << "  length_unit: \t\t" << length_unit << " [float_t] \t\t\n";
-  cout << "  grid_density: \t\t" << grid_density << " [float_t] \t\t\n";
-  cout << "  rx_radius_3d: \t\t" << rx_radius_3d << " [float_t] \t\t\n";
-  cout << "  rxn_and_species_report: \t\t" << rxn_and_species_report << " [bool] \t\t\n";
-  cout << "  bng_verbosity_level: \t\t" << bng_verbosity_level << " [bool] \t\t\n";
+  cout << "  initial_seed: \t\t" << initial_seed << "\n";
+  cout << "  time_unit: \t\t" << time_unit << "\n";
+  cout << "  length_unit: \t\t" << length_unit << "\n";
+  cout << "  grid_density: \t\t" << grid_density << "\n";
+  cout << "  rx_radius_3d: \t\t" << rx_radius_3d << "\n";
+  cout << "  rxn_and_species_report: \t\t" << rxn_and_species_report << "\n";
+  cout << "  bng_verbosity_level: \t\t" << bng_verbosity_level << "\n";
 
   notifications.dump();
 }

@@ -121,7 +121,7 @@ void SimulationConfig::init_radial_steps() {
 void SimulationConfig::dump() {
   BNGConfig::dump();
   cout << "SimulationConfig:\n";
-#define DUMP_ATTR(A) cout << "  " #A ": \t\t" << A << "t\n"
+#define DUMP_ATTR(A) cout << "  " #A ": \t\t" << A << "\n"
   DUMP_ATTR(vacancy_search_dist2);
   DUMP_ATTR(partition0_llf);
   DUMP_ATTR(partition_edge_length);
