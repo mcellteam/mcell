@@ -647,7 +647,12 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
 }
 
 
-const CountSpeciesInfo& MolOrRxnCountEvent::get_or_compute_count_species_info(const species_id_t species_id) {
+bool MolOrRxnCountEvent::species_needs_counted_volume(const species_id_t species_id) {
+  return get_or_compute_count_species_info(species_id).needs_counted_volume;
+}
+
+
+inline const CountSpeciesInfo& MolOrRxnCountEvent::get_or_compute_count_species_info(const species_id_t species_id) {
   assert(species_id != SPECIES_ID_INVALID);
   if (species_id >= count_species_info.size()) {
     // extend the array if we did not see these species yet

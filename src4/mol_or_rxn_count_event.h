@@ -236,9 +236,7 @@ public:
   // and whether the species are counted in volume regions so that they
   // need the Molecule's attribute counted_volume to be maintained
   // is cached
-  bool species_needs_counted_volume(const species_id_t species_id) {
-    return get_or_compute_count_species_info(species_id).needs_counted_volume;
-  }
+  bool species_needs_counted_volume(const species_id_t species_id);
 
   MolOrRxnCountItemVector mol_rxn_count_items;
 
