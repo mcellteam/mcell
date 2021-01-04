@@ -1688,34 +1688,12 @@ void MCell4Converter::convert_count_terms_recursively(
 }
 
 
-MolOrRxnCountEvent* MCell4Converter::get_or_create_count_event(const float_t start_time, const float_t periodicity) {
-
-  const auto& it = find_if(count_events.begin(), count_events.end(),
-      [&start_time, &periodicity] (const MolOrRxnCountEvent* e) {
-      return e->event_time == start_time && e->periodicity_interval == periodicity;
-    }
-  );
-  if (it != count_events.end()) {
-    return *it;
-  }
-  else {
-    MCell::MolOrRxnCountEvent* count_event = new MCell::MolOrRxnCountEvent(world);
-    count_event->event_time = start_time;
-    count_event->periodicity_interval = periodicity;
-    count_events.push_back(count_event);
-    return count_event;
-  }
-}
-
-
 void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() {
-  assert(count_events.empty() && "May be called only once");
-
-  // creates minimal number of count events
   for (const std::shared_ptr<API::Count>& c: model->counts) {
+    MCell::MolOrRxnCountEvent* count_event = new MCell::MolOrRxnCountEvent(world);
 
-    MCell::MolOrRxnCountEvent* count_event =
-        get_or_create_count_event(0, round_f(c->every_n_timesteps + EPS));
+    count_event->event_time = 0;
+    count_event->periodicity_interval = round_f(c->every_n_timesteps + EPS);
 
     // create buffer
     count_buffer_id_t buffer_id =
@@ -1735,22 +1713,18 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
 
     // having multiple MolOrRxnCountInfo per MolOrRxnCountEvent
     // was useful for MCell3 conversion, however for pymcell4 each count is a separate event
-    uint index = count_event->add_mol_count_item(info);
+    count_event->add_mol_count_item(info);
 
     // remember for get_current_value calls
     c->count_event = count_event;
-    c->count_event_index = index;
-  }
 
-  // schedule created MolOrRxnCountEvents
-  for (MolOrRxnCountEvent* e: count_events) {
-    if (e->periodicity_interval > 0) {
+    if (c->every_n_timesteps > 0) {
       // 0 means that the event won't be ever rescheduled,
       // if it were added to the schedule it would be executed once and then deleted
-      world->scheduler.schedule_event(e);
+      world->scheduler.schedule_event(count_event);
     }
     else {
-      world->add_unscheduled_count_event(e);
+      world->add_unscheduled_count_event(count_event);
     }
   }
 }

@@ -206,7 +206,7 @@ public:
   void step() override;
 
   // used from MCell4 API
-  float_t get_single_count_value(const uint item_index);
+  float_t get_single_count_value();
 
   // DiffuseReactEvent must execute only up to this event
   bool is_barrier() const override { return true; }
@@ -214,8 +214,7 @@ public:
   void dump(const std::string ind = "") const override;
   void to_data_model(Json::Value& mcell_node) const override;
 
-  // returns index
-  uint add_mol_count_item(const MolOrRxnCountItem& item) {
+  void add_mol_count_item(const MolOrRxnCountItem& item) {
     mol_rxn_count_items.push_back(item);
     // set index
     mol_rxn_count_items.back().index = mol_rxn_count_items.size() - 1;
@@ -227,8 +226,6 @@ public:
     if (item.counts_rxns()) {
       count_rxns = true;
     }
-
-    return mol_rxn_count_items.back().index;
   }
 
   // returns true if this count event count these specific species

@@ -76,8 +76,6 @@ public:
   // count event, owned by Scheduler if every_n_timesteps > 0,
   // owned by World if every_n_timesteps == 0
   MolOrRxnCountEvent* count_event;
-  // index of MolRxnCountItem representing this Count in count_event
-  uint count_event_index;
 };
 
 } // namespace API

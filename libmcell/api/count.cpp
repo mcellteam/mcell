@@ -37,7 +37,7 @@ float_t Count::get_current_value() {
         "( counted reaction rule: " + reaction_rule->to_bngl_str() + ").");
   }
 
-  return count_event->get_single_count_value(count_event_index);
+  return count_event->get_single_count_value();
 }
 
 } // namespace API
