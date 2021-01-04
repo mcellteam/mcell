@@ -154,6 +154,7 @@ private:
       const int sign,
       MCell::MolOrRxnCountItem& info
   );
+  MolOrRxnCountEvent* get_or_create_count_event(const float_t start_time, const float_t periodicity);
   void convert_mol_or_rxn_count_events_and_init_counting_flags();
   void init_species_counting_flags();
 
@@ -165,6 +166,9 @@ private:
 
   Model* model;
   World* world;
+
+  // count events created during conversion, owned by scheduler
+  std::vector<MCell::MolOrRxnCountEvent*> count_events;
 };
 
 } // namespace API

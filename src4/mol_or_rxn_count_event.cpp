@@ -579,14 +579,15 @@ void MolOrRxnCountEvent::step() {
 }
 
 
-float_t MolOrRxnCountEvent::get_single_count_value() {
+float_t MolOrRxnCountEvent::get_single_count_value(const uint item_index) {
   std::vector<CountItem> count_items;
 
+  assert(count_items.size() <= item_index);
+
+  // we are computing all counts for now
   compute_counts(count_items);
 
-  assert(count_items.size() == 1);
-
-  return count_items[0].value;
+  return count_items[item_index].value;
 }
 
 
