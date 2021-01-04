@@ -183,7 +183,7 @@ class MolOrRxnCountEvent: public BaseEvent {
 public:
   MolOrRxnCountEvent(World* world_)
     : BaseEvent(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT),
-      world(world_) {
+      world(world_), count_mols(false), count_rxns(false) {
   }
   virtual ~MolOrRxnCountEvent() {}
 
