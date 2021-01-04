@@ -251,7 +251,7 @@ void RxnContainer::compute_reacting_classes(const ReactantClass& rc) {
   assert(rc.is_initialized());
 
   assert(reacting_classes.size() == rc.id);
-  reacting_classes.push_back(std::set<reactant_class_id_t>());
+  reacting_classes.push_back(ReactantClassIdSet());
   ReactantClassIdSet& current_set = reacting_classes.back();
 
   for (const ReactantClass* reacting_class: reactant_classes_vector) {

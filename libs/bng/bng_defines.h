@@ -123,7 +123,7 @@ const rxn_rule_id_t RXN_RULE_ID_INVALID = ID_INVALID;
 typedef uint reactant_class_id_t;
 const reactant_class_id_t REACTANT_CLASS_ID_INVALID = ID_INVALID;
 
-typedef std::set<reactant_class_id_t> ReactantClassIdSet;
+typedef uint_set<reactant_class_id_t> ReactantClassIdSet;
 
 const char PATH_SEPARATOR =
 #ifdef _WIN32
