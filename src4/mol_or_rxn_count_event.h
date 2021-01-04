@@ -137,6 +137,11 @@ public:
     assert(buffer_id != COUNT_BUFFER_ID_INVALID);
   }
 
+  bool is_world_mol_count() const;
+
+  bool counts_mols() const;
+  bool counts_rxns() const;
+
   void dump(const std::string ind = "") const;
   void to_data_model(const World* world, Json::Value& reaction_output) const;
 
@@ -194,7 +199,20 @@ public:
   void to_data_model(Json::Value& mcell_node) const override;
 
   void add_mol_count_item(const MolOrRxnCountItem& item) {
-    mol_count_items.push_back(item);
+    /*if (item.is_world_mol_count()) {
+      world_mol_count_items.push_back(item);
+    }
+    else {*/
+      specific_mol_rxn_count_items.push_back(item);
+    //}
+
+    // set counting flags
+    if (item.counts_mols()) {
+      count_mols = true;
+    }
+    if (item.counts_rxns()) {
+      count_rxns = true;
+    }
   }
 
   // returns true if this count event count these specific species
@@ -205,7 +223,8 @@ public:
     return get_or_compute_count_species_info(species_id).needs_counted_volume;
   }
 
-  std::vector<MolOrRxnCountItem> mol_count_items;
+  std::vector<MolOrRxnCountItem> world_mol_count_items;
+  std::vector<MolOrRxnCountItem> specific_mol_rxn_count_items;
 
   World* world;
 
@@ -233,6 +252,10 @@ private:
 
   // index to this array is species_id
   std::vector<CountSpeciesInfo> count_species_info;
+
+  // flags to optimize counting
+  bool count_mols;
+  bool count_rxns;
 };
 
 } // namespace mcell

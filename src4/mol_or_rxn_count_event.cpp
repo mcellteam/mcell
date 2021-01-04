@@ -201,6 +201,33 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
 }
 
 
+bool MolOrRxnCountItem::counts_mols() const {
+  for (auto& t: terms) {
+    if (t.is_mol_count()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+bool MolOrRxnCountItem::counts_rxns() const {
+  for (auto& t: terms) {
+    if (t.is_rxn_count()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+bool MolOrRxnCountItem::is_world_mol_count() const {
+  return
+      terms.size() == 1 &&
+      terms[0].type == CountType::EnclosedInWorld;
+}
+
+
 void MolOrRxnCountItem::dump(const std::string ind) const {
 
   cout << ind << "buffer_id: " << buffer_id << " [count_buffer_id_t] \t\t\n";
@@ -444,10 +471,10 @@ void MolOrRxnCountEvent::compute_counts(std::vector<CountItem>& count_items) {
 
   // go through all molecules and count them
   PartitionVector& partitions = world->get_partitions();
-  count_items.resize(mol_count_items.size());
+  count_items.resize(specific_mol_rxn_count_items.size());
 
   // initialize new count items
-  for (uint i = 0; i < mol_count_items.size(); i++) {
+  for (uint i = 0; i < specific_mol_rxn_count_items.size(); i++) {
     count_items[i].time = event_time * world->config.time_unit;
     count_items[i].value = 0;
   }
@@ -456,49 +483,51 @@ void MolOrRxnCountEvent::compute_counts(std::vector<CountItem>& count_items) {
   for (Partition& p: partitions) {
 
     // for each molecule
-    // TODO: optimize - we do not need this if we are counting just reactions
-    for (const Molecule& m: p.get_molecules()) {
+    if (count_mols) {
+      for (const Molecule& m: p.get_molecules()) {
 
-      if (m.is_defunct()) {
-        continue;
-      }
+        if (m.is_defunct()) {
+          continue;
+        }
 
-      // check whether we are counting these species at all
-      const CountSpeciesInfo& species_info = get_or_compute_count_species_info(m.species_id);
-      if (species_info.type != CountSpeciesInfoType::Counted) {
-        assert(species_info.type == CountSpeciesInfoType::NotCounted);
-        continue;
-      }
+        // check whether we are counting these species at all
+        const CountSpeciesInfo& species_info = get_or_compute_count_species_info(m.species_id);
+        if (species_info.type != CountSpeciesInfoType::Counted) {
+          assert(species_info.type == CountSpeciesInfoType::NotCounted);
+          continue;
+        }
 
-      // for each counting info
-      for (uint i = 0; i < mol_count_items.size(); i++) {
-        compute_mol_count_item(
-            p, mol_count_items[i], m, i,
-            count_items
-        );
-      }
-    } // for molecules
+        // for each counting info
+        for (uint i = 0; i < specific_mol_rxn_count_items.size(); i++) {
+          compute_mol_count_item(
+              p, specific_mol_rxn_count_items[i], m, i,
+              count_items
+          );
+        }
+      } // for molecules
+    }
 
-    // TODO: optimize - we do not need this if we are counting just molecules
-    for (const BNG::RxnRule* rxn: world->get_all_rxns().get_rxn_rules_vector()) {
-      if (!rxn->is_counted()) {
-        continue;
-      }
+    if (count_rxns) {
+      for (const BNG::RxnRule* rxn: world->get_all_rxns().get_rxn_rules_vector()) {
+        if (!rxn->is_counted()) {
+          continue;
+        }
 
-      // for each counting info
-      for (uint i = 0; i < mol_count_items.size(); i++) {
-        compute_rxn_count_item(
-            p, mol_count_items[i], rxn, i,
-            count_items
-        );
-      }
-    } // for rxns
+        // for each counting info
+        for (uint i = 0; i < specific_mol_rxn_count_items.size(); i++) {
+          compute_rxn_count_item(
+              p, specific_mol_rxn_count_items[i], rxn, i,
+              count_items
+          );
+        }
+      } // for rxns
+    }
   } // for partition
 
-  for (uint i = 0; i < mol_count_items.size(); i++) {
+  for (uint i = 0; i < specific_mol_rxn_count_items.size(); i++) {
     // multiply the results by a constant
     // (value is different from 1 when the count expression in MDL had a top level multiplication)
-    count_items[i].value *= mol_count_items[i].multiplier;
+    count_items[i].value *= specific_mol_rxn_count_items[i].multiplier;
   }
 }
 
@@ -509,8 +538,8 @@ void MolOrRxnCountEvent::step() {
   compute_counts(count_items);
 
   // store the counts to buffers
-  for (uint i = 0; i < mol_count_items.size(); i++) {
-    world->get_count_buffer(mol_count_items[i].buffer_id).add(count_items[i]);
+  for (uint i = 0; i < specific_mol_rxn_count_items.size(); i++) {
+    world->get_count_buffer(specific_mol_rxn_count_items[i].buffer_id).add(count_items[i]);
   }
 }
 
@@ -534,7 +563,7 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
   info.type = CountSpeciesInfoType::NotCounted;
 
   // for each counting info
-  for (MolOrRxnCountItem& count_item: mol_count_items) {
+  for (MolOrRxnCountItem& count_item: specific_mol_rxn_count_items) {
 
     // and each term
     for (MolOrRxnCountTerm& term: count_item.terms) {
@@ -598,9 +627,9 @@ void MolOrRxnCountEvent::dump(const std::string ind) const {
   BaseEvent::dump(ind2);
 
   cout << ind << " mol_count_infos:\n";
-  for(uint i = 0; i < mol_count_items.size(); i++) {
+  for(uint i = 0; i < specific_mol_rxn_count_items.size(); i++) {
     cout << ind2 << i << "\n";
-    mol_count_items[i].dump(ind4);
+    specific_mol_rxn_count_items[i].dump(ind4);
   }
 
 }
@@ -609,7 +638,7 @@ void MolOrRxnCountEvent::dump(const std::string ind) const {
 void MolOrRxnCountEvent::to_data_model(Json::Value& mcell_node) const {
   // set global reaction_data_output settings if this is the first
   // counting event that we are converting
-  if (mol_count_items.empty()) {
+  if (specific_mol_rxn_count_items.empty()) {
     return;
   }
 
@@ -633,7 +662,7 @@ void MolOrRxnCountEvent::to_data_model(Json::Value& mcell_node) const {
 
   Json::Value& reaction_output_list = reaction_data_output[KEY_REACTION_OUTPUT_LIST];
 
-  for (const MolOrRxnCountItem& info: mol_count_items) {
+  for (const MolOrRxnCountItem& info: specific_mol_rxn_count_items) {
     Json::Value reaction_output;
     info.to_data_model(world, reaction_output);
     reaction_output_list.append(reaction_output);
