@@ -158,7 +158,7 @@ std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportCon
     ss << ind << "affected_complex_pattern = " << affected_complex_pattern->export_to_python(out, ctx) << "," << nl;
   }
   if (concentration != FLT_UNSET) {
-    ss << ind << "concentration = " << concentration << "," << nl;
+    ss << ind << "concentration = " << f_to_str(concentration) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

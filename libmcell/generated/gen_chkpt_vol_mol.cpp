@@ -165,12 +165,12 @@ std::string GenChkptVolMol::export_to_python(std::ostream& out, PythonExportCont
     ss << exported_name << " = ";
   }
   ss << "m.ChkptVolMol(" << nl;
-  ss << ind << "pos = " << "m.Vec3" << pos << "," << nl;
+  ss << ind << "pos = " << "m.Vec3(" << f_to_str(pos.x) << ", " << f_to_str(pos.y) << ", " << f_to_str(pos.z)<< ")," << nl;
   ss << ind << "id = " << id << "," << nl;
   ss << ind << "species = " << species->export_to_python(out, ctx) << "," << nl;
-  ss << ind << "diffusion_time = " << diffusion_time << "," << nl;
-  ss << ind << "unimol_rx_time = " << unimol_rx_time << "," << nl;
-  ss << ind << "birthday = " << birthday << "," << nl;
+  ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
+  ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
+  ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
   ss << ")" << nl << nl;
   if (!str_export) {
     out << ss.str();

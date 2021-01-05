@@ -139,7 +139,7 @@ std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out, Python
     ss << ind << "number_to_release = " << number_to_release << "," << nl;
   }
   if (density != FLT_UNSET) {
-    ss << ind << "density = " << density << "," << nl;
+    ss << ind << "density = " << f_to_str(density) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

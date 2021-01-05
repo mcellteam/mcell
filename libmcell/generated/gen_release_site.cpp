@@ -269,7 +269,7 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
     ss << ind << "molecule_list = " << export_vec_molecule_list(out, ctx, exported_name) << "," << nl;
   }
   if (release_time != 0) {
-    ss << ind << "release_time = " << release_time << "," << nl;
+    ss << ind << "release_time = " << f_to_str(release_time) << "," << nl;
   }
   if (is_set(release_pattern)) {
     ss << ind << "release_pattern = " << release_pattern->export_to_python(out, ctx) << "," << nl;
@@ -281,25 +281,25 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
     ss << ind << "region = " << region->export_to_python(out, ctx) << "," << nl;
   }
   if (location != VEC3_UNSET) {
-    ss << ind << "location = " << "m.Vec3" << location << "," << nl;
+    ss << ind << "location = " << "m.Vec3(" << f_to_str(location.x) << ", " << f_to_str(location.y) << ", " << f_to_str(location.z)<< ")," << nl;
   }
   if (site_diameter != 0) {
-    ss << ind << "site_diameter = " << site_diameter << "," << nl;
+    ss << ind << "site_diameter = " << f_to_str(site_diameter) << "," << nl;
   }
   if (site_radius != FLT_UNSET) {
-    ss << ind << "site_radius = " << site_radius << "," << nl;
+    ss << ind << "site_radius = " << f_to_str(site_radius) << "," << nl;
   }
   if (number_to_release != FLT_UNSET) {
-    ss << ind << "number_to_release = " << number_to_release << "," << nl;
+    ss << ind << "number_to_release = " << f_to_str(number_to_release) << "," << nl;
   }
   if (density != FLT_UNSET) {
-    ss << ind << "density = " << density << "," << nl;
+    ss << ind << "density = " << f_to_str(density) << "," << nl;
   }
   if (concentration != FLT_UNSET) {
-    ss << ind << "concentration = " << concentration << "," << nl;
+    ss << ind << "concentration = " << f_to_str(concentration) << "," << nl;
   }
   if (release_probability != FLT_UNSET) {
-    ss << ind << "release_probability = " << release_probability << "," << nl;
+    ss << ind << "release_probability = " << f_to_str(release_probability) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

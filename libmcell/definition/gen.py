@@ -226,6 +226,7 @@ NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
 VEC_NONPTR_TO_STR = 'vec_nonptr_to_str'
 VEC_PTR_TO_STR = 'vec_ptr_to_str'
+F_TO_STR = 'f_to_str'
 
 # --- some global data ---
 g_enums = set()
@@ -1091,11 +1092,22 @@ def write_vec_export(f, return_only_name, gen_class_name, item):
     )
     
     if is_yaml_list_type(inner_type):
+        
+        inner2_type = get_inner_list_type(inner_type)
+        
+
         # special case for 2D arrays, they hold int or float
         f.write(
             '  ' + out + '"[";\n' +
-            '    for (const auto& value: item) {\n' +
-            '    ' + out + 'value << ", ";\n' + 
+            '    for (const auto& value: item) {\n'
+        )
+
+        if inner2_type == YAML_TYPE_FLOAT:
+            f.write('    ' + out + F_TO_STR + '(value) << ", ";\n')
+        else:
+            f.write('    ' + out + 'value << ", ";\n') 
+            
+        f.write(
             '    }\n' +
             '  ' + out + '"], ";\n'            
         )
@@ -1107,6 +1119,8 @@ def write_vec_export(f, return_only_name, gen_class_name, item):
             '    ' + out + 'name << ", ";\n' +
             '    }\n'
         )
+    elif inner_type == YAML_TYPE_FLOAT:
+        f.write('  ' + out + F_TO_STR + '(item) << ", ";\n')
     else:
         # array of simple type
         f.write('  ' + out + 'item << ", ";\n')
@@ -1220,7 +1234,13 @@ def write_export_to_python_implementation(f, class_name, class_def):
             f.write('"\'" << ' + name + ' << "\'" << "," << ' + NL + ';\n')
         elif type == YAML_TYPE_VEC3:
             # also other ivec*/vec2 types should be handled like this but it was not needed so far
-            f.write('"' + M_DOT + CPP_TYPE_VEC3 + '" << ' + name + ' << "," << ' + NL + ';\n')
+            f.write('"' + M_DOT + CPP_TYPE_VEC3 + '(" << ' + 
+                        F_TO_STR + '(' + name + '.x) << ", " << ' +
+                        F_TO_STR + '(' + name + '.y) << ", " << ' +
+                        F_TO_STR + '(' + name + '.z)' +
+                        '<< ")," << ' + NL + ';\n')
+        elif type == YAML_TYPE_FLOAT:
+            f.write(F_TO_STR + '(' + name + ') << "," << ' + NL + ';\n')
         else:
             # using operators << for enums
             f.write(name + ' << "," << ' + NL + ';\n')

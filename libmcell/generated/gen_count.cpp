@@ -339,10 +339,10 @@ std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& c
     ss << ind << "count_expression = " << count_expression->export_to_python(out, ctx) << "," << nl;
   }
   if (multiplier != 1) {
-    ss << ind << "multiplier = " << multiplier << "," << nl;
+    ss << ind << "multiplier = " << f_to_str(multiplier) << "," << nl;
   }
   if (every_n_timesteps != 1) {
-    ss << ind << "every_n_timesteps = " << every_n_timesteps << "," << nl;
+    ss << ind << "every_n_timesteps = " << f_to_str(every_n_timesteps) << "," << nl;
   }
   if (is_set(species_pattern)) {
     ss << ind << "species_pattern = " << species_pattern->export_to_python(out, ctx) << "," << nl;

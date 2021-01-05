@@ -156,13 +156,13 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
     ss << ind << "products = " << export_vec_products(out, ctx, exported_name) << "," << nl;
   }
   if (fwd_rate != FLT_UNSET) {
-    ss << ind << "fwd_rate = " << fwd_rate << "," << nl;
+    ss << ind << "fwd_rate = " << f_to_str(fwd_rate) << "," << nl;
   }
   if (rev_name != STR_UNSET) {
     ss << ind << "rev_name = " << "'" << rev_name << "'" << "," << nl;
   }
   if (rev_rate != FLT_UNSET) {
-    ss << ind << "rev_rate = " << rev_rate << "," << nl;
+    ss << ind << "rev_rate = " << f_to_str(rev_rate) << "," << nl;
   }
   if (variable_rate != std::vector<std::vector<float_t>>() && !skip_vectors_export()) {
     ss << ind << "variable_rate = " << export_vec_variable_rate(out, ctx, exported_name) << "," << nl;
@@ -236,7 +236,7 @@ std::string GenReactionRule::export_vec_variable_rate(std::ostream& out, PythonE
     }
     ss << "[";
     for (const auto& value: item) {
-      ss << value << ", ";
+      ss << f_to_str(value) << ", ";
     }
     ss << "], ";
   }

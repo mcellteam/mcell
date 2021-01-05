@@ -247,19 +247,19 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << ind << "seed = " << seed << "," << nl;
   }
   if (time_step != 1e-6) {
-    ss << ind << "time_step = " << time_step << "," << nl;
+    ss << ind << "time_step = " << f_to_str(time_step) << "," << nl;
   }
   if (surface_grid_density != 10000) {
-    ss << ind << "surface_grid_density = " << surface_grid_density << "," << nl;
+    ss << ind << "surface_grid_density = " << f_to_str(surface_grid_density) << "," << nl;
   }
   if (interaction_radius != FLT_UNSET) {
-    ss << ind << "interaction_radius = " << interaction_radius << "," << nl;
+    ss << ind << "interaction_radius = " << f_to_str(interaction_radius) << "," << nl;
   }
   if (intermembrane_interaction_radius != FLT_UNSET) {
-    ss << ind << "intermembrane_interaction_radius = " << intermembrane_interaction_radius << "," << nl;
+    ss << ind << "intermembrane_interaction_radius = " << f_to_str(intermembrane_interaction_radius) << "," << nl;
   }
   if (vacancy_search_distance != 10) {
-    ss << ind << "vacancy_search_distance = " << vacancy_search_distance << "," << nl;
+    ss << ind << "vacancy_search_distance = " << f_to_str(vacancy_search_distance) << "," << nl;
   }
   if (center_molecules_on_grid != false) {
     ss << ind << "center_molecules_on_grid = " << center_molecules_on_grid << "," << nl;
@@ -268,13 +268,13 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << ind << "initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx, exported_name) << "," << nl;
   }
   if (partition_dimension != 10) {
-    ss << ind << "partition_dimension = " << partition_dimension << "," << nl;
+    ss << ind << "partition_dimension = " << f_to_str(partition_dimension) << "," << nl;
   }
   if (subpartition_dimension != 0.5) {
-    ss << ind << "subpartition_dimension = " << subpartition_dimension << "," << nl;
+    ss << ind << "subpartition_dimension = " << f_to_str(subpartition_dimension) << "," << nl;
   }
   if (total_iterations_hint != 1000000) {
-    ss << ind << "total_iterations_hint = " << total_iterations_hint << "," << nl;
+    ss << ind << "total_iterations_hint = " << f_to_str(total_iterations_hint) << "," << nl;
   }
   if (check_overlapped_walls != true) {
     ss << ind << "check_overlapped_walls = " << check_overlapped_walls << "," << nl;
@@ -295,7 +295,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << ind << "initial_iteration = " << initial_iteration << "," << nl;
   }
   if (initial_time != 0) {
-    ss << ind << "initial_time = " << initial_time << "," << nl;
+    ss << ind << "initial_time = " << f_to_str(initial_time) << "," << nl;
   }
   if (is_set(rng_state)) {
     ss << ind << "rng_state = " << rng_state->export_to_python(out, ctx) << "," << nl;
@@ -322,7 +322,7 @@ std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out, Py
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    ss << item << ", ";
+    ss << f_to_str(item) << ", ";
   }
   ss << "]";
   return ss.str();

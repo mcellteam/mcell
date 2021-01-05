@@ -125,13 +125,13 @@ std::string GenReleasePattern::export_to_python(std::ostream& out, PythonExportC
     ss << ind << "name = " << "'" << name << "'" << "," << nl;
   }
   if (release_interval != TIME_INFINITY) {
-    ss << ind << "release_interval = " << release_interval << "," << nl;
+    ss << ind << "release_interval = " << f_to_str(release_interval) << "," << nl;
   }
   if (train_duration != TIME_INFINITY) {
-    ss << ind << "train_duration = " << train_duration << "," << nl;
+    ss << ind << "train_duration = " << f_to_str(train_duration) << "," << nl;
   }
   if (train_interval != TIME_INFINITY) {
-    ss << ind << "train_interval = " << train_interval << "," << nl;
+    ss << ind << "train_interval = " << f_to_str(train_interval) << "," << nl;
   }
   if (number_of_trains != 1) {
     ss << ind << "number_of_trains = " << number_of_trains << "," << nl;

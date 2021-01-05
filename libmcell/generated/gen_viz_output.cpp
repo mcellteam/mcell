@@ -127,7 +127,7 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
     ss << ind << "mode = " << mode << "," << nl;
   }
   if (every_n_timesteps != 1) {
-    ss << ind << "every_n_timesteps = " << every_n_timesteps << "," << nl;
+    ss << ind << "every_n_timesteps = " << f_to_str(every_n_timesteps) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

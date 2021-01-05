@@ -296,7 +296,7 @@ std::string GenGeometryObject::export_vec_vertex_list(std::ostream& out, PythonE
     }
     ss << "[";
     for (const auto& value: item) {
-      ss << value << ", ";
+      ss << f_to_str(value) << ", ";
     }
     ss << "], ";
   }

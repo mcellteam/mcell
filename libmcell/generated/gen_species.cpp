@@ -159,16 +159,16 @@ std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext&
     ss << ind << "name = " << "'" << name << "'" << "," << nl;
   }
   if (diffusion_constant_2d != FLT_UNSET) {
-    ss << ind << "diffusion_constant_2d = " << diffusion_constant_2d << "," << nl;
+    ss << ind << "diffusion_constant_2d = " << f_to_str(diffusion_constant_2d) << "," << nl;
   }
   if (diffusion_constant_3d != FLT_UNSET) {
-    ss << ind << "diffusion_constant_3d = " << diffusion_constant_3d << "," << nl;
+    ss << ind << "diffusion_constant_3d = " << f_to_str(diffusion_constant_3d) << "," << nl;
   }
   if (custom_time_step != FLT_UNSET) {
-    ss << ind << "custom_time_step = " << custom_time_step << "," << nl;
+    ss << ind << "custom_time_step = " << f_to_str(custom_time_step) << "," << nl;
   }
   if (custom_space_step != FLT_UNSET) {
-    ss << ind << "custom_space_step = " << custom_space_step << "," << nl;
+    ss << ind << "custom_space_step = " << f_to_str(custom_space_step) << "," << nl;
   }
   if (target_only != false) {
     ss << ind << "target_only = " << target_only << "," << nl;

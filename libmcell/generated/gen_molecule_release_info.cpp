@@ -154,7 +154,7 @@ std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out, Pytho
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    ss << item << ", ";
+    ss << f_to_str(item) << ", ";
   }
   ss << "]";
   return ss.str();
