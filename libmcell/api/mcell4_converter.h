@@ -67,6 +67,7 @@ class ReleaseSite;
 class CountTerm;
 class Species;
 class SurfaceClass;
+class RngState;
 
 class MCell4Converter {
 public:
@@ -84,6 +85,8 @@ public:
   // throws exception if anything went wrong
   MCell::ReleaseEvent* convert_single_release_event(
       const std::shared_ptr<API::ReleaseSite>& r);
+
+  static void convert_rng_state(std::shared_ptr<RngState>& src, rng_state& dst);
 
 private:
   species_id_t get_species_id(API::Species& s, const std::string class_name, const std::string object_name);

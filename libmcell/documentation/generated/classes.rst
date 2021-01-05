@@ -431,11 +431,12 @@ Attributes:
 
 * | **initial_time**: float = 0
   | Initial time in us, used when resuming a checkpoint.
+  | Will be truncated to be a multiple of time step.
 
-* | **rng_state**: RngState = None
-  | Used for checkpointing, may contain state of the random generator to be set 
+* | **initial_rng_state**: RngState = None
+  | Used for checkpointing, may contain state of the random number generator to be set 
   | after initialization right before the first event is started. 
-  | When set, the set 'seed' value is ignored.
+  | When not set, the set 'seed' value is used to initialize the random number generator.
 
 Count
 =====

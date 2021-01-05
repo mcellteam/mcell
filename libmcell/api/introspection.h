@@ -38,7 +38,7 @@ class Model;
 class Introspection: public GenIntrospection {
 public:
   Introspection() :
-    model(nullptr),
+    model_inst(nullptr),
     world(nullptr) {
   }
 
@@ -58,7 +58,10 @@ public:
   void dump() const {}
 
 private:
-  Model* model;
+  // not using name model because class Model inherits Introspection and
+  // this made code a bit confusing
+  Model* model_inst;
+
   World* world;
 };
 

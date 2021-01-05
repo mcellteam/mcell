@@ -54,6 +54,7 @@ using namespace std;
 namespace MCell {
 namespace API {
 
+class RngState;
 
 Model::~Model() {
   delete world;
@@ -115,6 +116,11 @@ void Model::initialize() {
   vec_set_initialized(counts);
 
   world->init_simulation(world->config.get_simulation_start_time());
+
+  // rng state from checkpoint, must be set after model initialization
+  if (is_set(config.initial_rng_state)) {
+    MCell4Converter::convert_rng_state(config.initial_rng_state, world->rng);
+  }
 
   initialize_introspection(this);
 

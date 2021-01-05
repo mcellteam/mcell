@@ -53,7 +53,7 @@ class PythonExportContext;
         const int memory_limit_gb_ = -1, \
         const uint64_t initial_iteration_ = 0, \
         const float_t initial_time_ = 0, \
-        std::shared_ptr<RngState> rng_state_ = nullptr \
+        std::shared_ptr<RngState> initial_rng_state_ = nullptr \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
@@ -74,7 +74,7 @@ class PythonExportContext;
       memory_limit_gb = memory_limit_gb_; \
       initial_iteration = initial_iteration_; \
       initial_time = initial_time_; \
-      rng_state = rng_state_; \
+      initial_rng_state = initial_rng_state_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -349,18 +349,18 @@ public:
     return initial_time;
   }
 
-  std::shared_ptr<RngState> rng_state;
-  virtual void set_rng_state(std::shared_ptr<RngState> new_rng_state_) {
+  std::shared_ptr<RngState> initial_rng_state;
+  virtual void set_initial_rng_state(std::shared_ptr<RngState> new_initial_rng_state_) {
     if (initialized) {
-      throw RuntimeError("Value 'rng_state' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'initial_rng_state' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     cached_data_are_uptodate = false;
-    rng_state = new_rng_state_;
+    initial_rng_state = new_initial_rng_state_;
   }
-  virtual std::shared_ptr<RngState> get_rng_state() const {
+  virtual std::shared_ptr<RngState> get_initial_rng_state() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return rng_state;
+    return initial_rng_state;
   }
 
   // --- methods ---

@@ -182,7 +182,7 @@ void PythonExporter::save_simulation_state(
 
   // rng state
   RngState rng_state = RngState(world->rng);
-  config_variable_names[NAME_RNG_STATE] = rng_state.export_to_python(out, ctx);
+  config_variable_names[NAME_INITIAL_RNG_STATE] = rng_state.export_to_python(out, ctx);
 }
 
 
@@ -320,7 +320,7 @@ std::string PythonExporter::save_model(
 
   out << make_section_comment("saved simulation state");
   // - time step (explicit)?
-  vector<string> config_vars = { NAME_INITIAL_ITERATION, NAME_INITIAL_TIME, NAME_RNG_STATE };
+  vector<string> config_vars = { NAME_INITIAL_ITERATION, NAME_INITIAL_TIME, NAME_INITIAL_RNG_STATE };
   for (string& var: config_vars) {
     auto it = config_variable_names.find(var);
     release_assert(it != config_variable_names.end());

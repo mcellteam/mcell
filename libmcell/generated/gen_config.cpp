@@ -34,8 +34,8 @@ void GenConfig::check_semantics() const {
 }
 
 void GenConfig::set_initialized() {
-  if (is_set(rng_state)) {
-    rng_state->set_initialized();
+  if (is_set(initial_rng_state)) {
+    initial_rng_state->set_initialized();
   }
   initialized = true;
 }
@@ -60,7 +60,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   memory_limit_gb = -1;
   initial_iteration = 0;
   initial_time = 0;
-  rng_state = nullptr;
+  initial_rng_state = nullptr;
 }
 
 bool GenConfig::__eq__(const Config& other) const {
@@ -84,12 +84,12 @@ bool GenConfig::__eq__(const Config& other) const {
     initial_iteration == other.initial_iteration &&
     initial_time == other.initial_time &&
     (
-      (is_set(rng_state)) ?
-        (is_set(other.rng_state) ?
-          (rng_state->__eq__(*other.rng_state)) : 
+      (is_set(initial_rng_state)) ?
+        (is_set(other.initial_rng_state) ?
+          (initial_rng_state->__eq__(*other.initial_rng_state)) : 
           false
         ) :
-        (is_set(other.rng_state) ?
+        (is_set(other.initial_rng_state) ?
           false :
           true
         )
@@ -117,12 +117,12 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     initial_iteration == other.initial_iteration &&
     initial_time == other.initial_time &&
     (
-      (is_set(rng_state)) ?
-        (is_set(other.rng_state) ?
-          (rng_state->__eq__(*other.rng_state)) : 
+      (is_set(initial_rng_state)) ?
+        (is_set(other.initial_rng_state) ?
+          (initial_rng_state->__eq__(*other.initial_rng_state)) : 
           false
         ) :
-        (is_set(other.rng_state) ?
+        (is_set(other.initial_rng_state) ?
           false :
           true
         )
@@ -150,7 +150,7 @@ std::string GenConfig::to_str(const std::string ind) const {
       "memory_limit_gb=" << memory_limit_gb << ", " <<
       "initial_iteration=" << initial_iteration << ", " <<
       "initial_time=" << initial_time << ", " <<
-      "\n" << ind + "  " << "rng_state=" << "(" << ((rng_state != nullptr) ? rng_state->to_str(ind + "  ") : "null" ) << ")";
+      "\n" << ind + "  " << "initial_rng_state=" << "(" << ((initial_rng_state != nullptr) ? initial_rng_state->to_str(ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -196,7 +196,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("memory_limit_gb") = -1,
           py::arg("initial_iteration") = 0,
           py::arg("initial_time") = 0,
-          py::arg("rng_state") = nullptr
+          py::arg("initial_rng_state") = nullptr
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
@@ -220,7 +220,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb)
       .def_property("initial_iteration", &Config::get_initial_iteration, &Config::set_initial_iteration)
       .def_property("initial_time", &Config::get_initial_time, &Config::set_initial_time)
-      .def_property("rng_state", &Config::get_rng_state, &Config::set_rng_state)
+      .def_property("initial_rng_state", &Config::get_initial_rng_state, &Config::set_initial_rng_state)
     ;
 }
 
@@ -297,8 +297,8 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   if (initial_time != 0) {
     ss << ind << "initial_time = " << f_to_str(initial_time) << "," << nl;
   }
-  if (is_set(rng_state)) {
-    ss << ind << "rng_state = " << rng_state->export_to_python(out, ctx) << "," << nl;
+  if (is_set(initial_rng_state)) {
+    ss << ind << "initial_rng_state = " << initial_rng_state->export_to_python(out, ctx) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

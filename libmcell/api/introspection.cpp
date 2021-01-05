@@ -38,8 +38,8 @@ namespace MCell {
 namespace API {
 
 void Introspection::initialize_introspection(Model* model_) {
-  model = model_;
-  world = model->get_world();
+  model_inst = model_;
+  world = model_inst->get_world();
   assert(world != nullptr);
 }
 
@@ -88,7 +88,7 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
     res->pos3d = GeometryUtil::uv2xyz(m.s.pos, w, w_vert0) * Vec3(world->config.length_unit);
     res->orientation = convert_orientation(m.s.orientation);
 
-    res->geometry_object = model->get_geometry_object_with_id(w.object_id);
+    res->geometry_object = model_inst->get_geometry_object_with_id(w.object_id);
     assert(is_set(res->geometry_object));
     res->wall_index = m.s.wall_index - res->geometry_object->first_wall_index;
   }

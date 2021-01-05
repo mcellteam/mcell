@@ -37,6 +37,7 @@
 #include "api/mcell.h"
 #include "api/bindings.h"
 #include "api/compartment_utils.h"
+#include "api/rng_state.h"
 
 using namespace std;
 
@@ -1761,6 +1762,7 @@ void MCell4Converter::convert_viz_output_events() {
 
 
 // sets up data loaded from checkpoint, must be run after all events were added to the scheduler
+// rng state is set after model initialization in Model::initialize
 void MCell4Converter::convert_simulation_state() {
 
   if ((model->config.initial_iteration != 0) != (model->config.initial_time != 0)) {
@@ -1774,6 +1776,7 @@ void MCell4Converter::convert_simulation_state() {
   world->scheduler.skip_events_up_to_time(
       world->config.get_simulation_start_time()
   );
+
 
 }
 
@@ -1795,6 +1798,25 @@ void MCell4Converter::check_all_mol_types_have_diffusion_const() {
       throw RuntimeError("Molecule type " + mt.name + " does not have its diffusion constant specified.");
     }
   }
+}
+
+
+void MCell4Converter::convert_rng_state(std::shared_ptr<RngState>& src, rng_state& dst) {
+  assert(is_set(src));
+
+  dst.randcnt = src->randcnt;
+  dst.aa = src->aa;
+  dst.bb = src->bb;
+  dst.cc = src->cc;
+
+  assert(RANDSIZ == RNG_SIZE);
+  assert(src->randslr.size() == RNG_SIZE);
+  std::copy(src->randslr.begin(), src->randslr.end(), dst.randrsl);
+
+  assert(src->mm.size() == RNG_SIZE);
+  std::copy(src->mm.begin(), src->mm.end(), dst.mm);
+
+  dst.rngblocks = src->rngblocks;
 }
 
 } // namespace API

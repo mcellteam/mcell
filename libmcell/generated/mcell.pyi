@@ -326,7 +326,7 @@ class Config():
             memory_limit_gb : int = -1,
             initial_iteration : int = 0,
             initial_time : float = 0,
-            rng_state : RngState = None
+            initial_rng_state : RngState = None
         ):
         self.seed = seed
         self.time_step = time_step
@@ -346,7 +346,7 @@ class Config():
         self.memory_limit_gb = memory_limit_gb
         self.initial_iteration = initial_iteration
         self.initial_time = initial_time
-        self.rng_state = rng_state
+        self.initial_rng_state = initial_rng_state
 
 
 class Count():
