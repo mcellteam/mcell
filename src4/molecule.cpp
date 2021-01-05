@@ -46,8 +46,6 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
   DUMP_FLAG(flags, TYPE_SURF)
   DUMP_FLAG(flags, TYPE_VOL)
   if (full_dump) {
-    DUMP_FLAG(flags, ACT_REACT)
-
     if ((flags & MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) != 0)
       res += string("ACT_NEWBIE") + ", ";
 
@@ -55,9 +53,6 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
       res += string("ACT_CHANGE") + ", ";
   }
   DUMP_FLAG(flags, MOLECULE_FLAG_ACT_CLAMPED)
-  if (full_dump) {
-    DUMP_FLAG(flags, IN_SCHEDULE)
-  }
   DUMP_FLAG(flags, MOLECULE_FLAG_DEFUNCT)
 #undef DUMP_FLAG
   return res;

@@ -33,26 +33,6 @@ namespace MCell {
 
 class Partition;
 
-
-#if 0
-// from mcell3, copied for reference
-#define TYPE_SURF 0x001
-#define TYPE_VOL 0x002
-#define TYPE_MASK 0x003
-
-#define ACT_REACT 0x020
-
-
-/* Flags telling us which linked lists the molecule appears in. */
-#define IN_SCHEDULE 0x100
-
-
-/* Flag indicating that a molecule is old enough to take the maximum timestep */
-#define MATURE_MOLECULE 0x2000
-#endif
-
-
-
 enum molecule_flag_t {
   // volume/surface information is only cached from BNG CplxInstance
   MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
