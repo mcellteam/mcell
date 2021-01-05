@@ -42,9 +42,6 @@ class Partition;
 
 #define ACT_REACT 0x020
 
-// IN_VOLUME
-// IN_SURFACE
-
 // #define ACT_NEWBIE 0x040  // does not have unimolecular time specified
 // #define ACT_CHANGE 0x080
 // -> these two above were merged into: ACT_RESCHEDULE_UNIMOL_RX
@@ -54,7 +51,6 @@ class Partition;
 /* Flags telling us which linked lists the molecule appears in. */
 #define IN_SCHEDULE 0x100
 #define IN_SURFACE 0x200
-#define IN_VOLUME 0x400
 /* And a mask to pick off all three IN_ flags */
 #define IN_MASK 0x700
 
