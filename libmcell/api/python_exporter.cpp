@@ -338,7 +338,7 @@ std::string PythonExporter::save_model(
 
   gen_method_call(
       out, MODEL, NAME_RUN_ITERATIONS,
-      S(PARAMETERS) + "." + PARAM_ITERATIONS + " - " + S(SIMULATION_STATE) + "." + NAME_INITIAL_ITERATION);
+      S(MODEL) + "." + NAME_CONFIG + "." + NAME_TOTAL_ITERATIONS + " - " + S(SIMULATION_STATE) + "." + NAME_INITIAL_ITERATION);
   gen_method_call(out, MODEL, NAME_END_SIMULATION);
   out.close();
   return MODEL;
