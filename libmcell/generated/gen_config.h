@@ -45,7 +45,7 @@ class PythonExportContext;
         const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
         const float_t partition_dimension_ = 10, \
         const float_t subpartition_dimension_ = 0.5, \
-        const float_t total_iterations_hint_ = 1000000, \
+        const float_t total_iterations_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
         const int reaction_class_cleanup_periodicity_ = 500, \
         const int species_cleanup_periodicity_ = 10000, \
@@ -66,7 +66,7 @@ class PythonExportContext;
       initial_partition_origin = initial_partition_origin_; \
       partition_dimension = partition_dimension_; \
       subpartition_dimension = subpartition_dimension_; \
-      total_iterations_hint = total_iterations_hint_; \
+      total_iterations = total_iterations_; \
       check_overlapped_walls = check_overlapped_walls_; \
       reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity_; \
       species_cleanup_periodicity = species_cleanup_periodicity_; \
@@ -237,18 +237,18 @@ public:
     return subpartition_dimension;
   }
 
-  float_t total_iterations_hint;
-  virtual void set_total_iterations_hint(const float_t new_total_iterations_hint_) {
+  float_t total_iterations;
+  virtual void set_total_iterations(const float_t new_total_iterations_) {
     if (initialized) {
-      throw RuntimeError("Value 'total_iterations_hint' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'total_iterations' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     cached_data_are_uptodate = false;
-    total_iterations_hint = new_total_iterations_hint_;
+    total_iterations = new_total_iterations_;
   }
-  virtual float_t get_total_iterations_hint() const {
+  virtual float_t get_total_iterations() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return total_iterations_hint;
+    return total_iterations;
   }
 
   bool check_overlapped_walls;

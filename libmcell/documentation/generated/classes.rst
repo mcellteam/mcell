@@ -396,9 +396,11 @@ Attributes:
 
 * | **subpartition_dimension**: float = 0.5
 
-* | **total_iterations_hint**: float = 1000000
-  | Estimated value of total iterations, used when generating visualization data 
-  | files and also for other reporting uses. Value is truncated to an integer.
+* | **total_iterations**: float = 1000000
+  | Required for checkpointing so that the checkpointed model has information on
+  | the intended total number of iterations. 
+  | Also used when generating visualization data files and also for other reporting uses. 
+  | Value is truncated to an integer.
 
 * | **check_overlapped_walls**: bool = True
   | Enables check for overlapped walls. Overlapping walls can cause issues during 

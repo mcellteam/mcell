@@ -745,7 +745,7 @@ void MCell4Generator::generate_config(ostream& out) {
   string params_module = get_module_name(PARAMETERS);
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, params_module + "." + PARAM_TIME_STEP);
   gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, params_module + "." + PARAM_SEED);
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, params_module + "." + PARAM_ITERATIONS);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS, params_module + "." + PARAM_ITERATIONS);
   out << "\n";
   gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT, true);
   out << "\n";

@@ -52,7 +52,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   initial_partition_origin = std::vector<float_t>();
   partition_dimension = 10;
   subpartition_dimension = 0.5;
-  total_iterations_hint = 1000000;
+  total_iterations = 1000000;
   check_overlapped_walls = true;
   reaction_class_cleanup_periodicity = 500;
   species_cleanup_periodicity = 10000;
@@ -75,7 +75,7 @@ bool GenConfig::__eq__(const Config& other) const {
     initial_partition_origin == other.initial_partition_origin &&
     partition_dimension == other.partition_dimension &&
     subpartition_dimension == other.subpartition_dimension &&
-    total_iterations_hint == other.total_iterations_hint &&
+    total_iterations == other.total_iterations &&
     check_overlapped_walls == other.check_overlapped_walls &&
     reaction_class_cleanup_periodicity == other.reaction_class_cleanup_periodicity &&
     species_cleanup_periodicity == other.species_cleanup_periodicity &&
@@ -108,7 +108,7 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     true /*initial_partition_origin*/ &&
     partition_dimension == other.partition_dimension &&
     subpartition_dimension == other.subpartition_dimension &&
-    total_iterations_hint == other.total_iterations_hint &&
+    total_iterations == other.total_iterations &&
     check_overlapped_walls == other.check_overlapped_walls &&
     reaction_class_cleanup_periodicity == other.reaction_class_cleanup_periodicity &&
     species_cleanup_periodicity == other.species_cleanup_periodicity &&
@@ -142,7 +142,7 @@ std::string GenConfig::to_str(const std::string ind) const {
       "initial_partition_origin=" << vec_nonptr_to_str(initial_partition_origin, ind + "  ") << ", " <<
       "partition_dimension=" << partition_dimension << ", " <<
       "subpartition_dimension=" << subpartition_dimension << ", " <<
-      "total_iterations_hint=" << total_iterations_hint << ", " <<
+      "total_iterations=" << total_iterations << ", " <<
       "check_overlapped_walls=" << check_overlapped_walls << ", " <<
       "reaction_class_cleanup_periodicity=" << reaction_class_cleanup_periodicity << ", " <<
       "species_cleanup_periodicity=" << species_cleanup_periodicity << ", " <<
@@ -188,7 +188,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("initial_partition_origin") = std::vector<float_t>(),
           py::arg("partition_dimension") = 10,
           py::arg("subpartition_dimension") = 0.5,
-          py::arg("total_iterations_hint") = 1000000,
+          py::arg("total_iterations") = 1000000,
           py::arg("check_overlapped_walls") = true,
           py::arg("reaction_class_cleanup_periodicity") = 500,
           py::arg("species_cleanup_periodicity") = 10000,
@@ -212,7 +212,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("initial_partition_origin", &Config::get_initial_partition_origin, &Config::set_initial_partition_origin)
       .def_property("partition_dimension", &Config::get_partition_dimension, &Config::set_partition_dimension)
       .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension)
-      .def_property("total_iterations_hint", &Config::get_total_iterations_hint, &Config::set_total_iterations_hint)
+      .def_property("total_iterations", &Config::get_total_iterations, &Config::set_total_iterations)
       .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls)
       .def_property("reaction_class_cleanup_periodicity", &Config::get_reaction_class_cleanup_periodicity, &Config::set_reaction_class_cleanup_periodicity)
       .def_property("species_cleanup_periodicity", &Config::get_species_cleanup_periodicity, &Config::set_species_cleanup_periodicity)
@@ -273,8 +273,8 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   if (subpartition_dimension != 0.5) {
     ss << ind << "subpartition_dimension = " << f_to_str(subpartition_dimension) << "," << nl;
   }
-  if (total_iterations_hint != 1000000) {
-    ss << ind << "total_iterations_hint = " << f_to_str(total_iterations_hint) << "," << nl;
+  if (total_iterations != 1000000) {
+    ss << ind << "total_iterations = " << f_to_str(total_iterations) << "," << nl;
   }
   if (check_overlapped_walls != true) {
     ss << ind << "check_overlapped_walls = " << check_overlapped_walls << "," << nl;

@@ -318,7 +318,7 @@ class Config():
             initial_partition_origin : List[float] = None,
             partition_dimension : float = 10,
             subpartition_dimension : float = 0.5,
-            total_iterations_hint : float = 1000000,
+            total_iterations : float = 1000000,
             check_overlapped_walls : bool = True,
             reaction_class_cleanup_periodicity : int = 500,
             species_cleanup_periodicity : int = 10000,
@@ -338,7 +338,7 @@ class Config():
         self.initial_partition_origin = initial_partition_origin
         self.partition_dimension = partition_dimension
         self.subpartition_dimension = subpartition_dimension
-        self.total_iterations_hint = total_iterations_hint
+        self.total_iterations = total_iterations
         self.check_overlapped_walls = check_overlapped_walls
         self.reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity
         self.species_cleanup_periodicity = species_cleanup_periodicity

@@ -234,7 +234,7 @@ void MCell4Converter::convert_simulation_setup() {
   // config
   const API::Config& config = model->config;
 
-  world->total_iterations = config.total_iterations_hint;
+  world->total_iterations = config.total_iterations;
   world->config.time_unit = config.time_step;
 
   float_t grid_density = config.surface_grid_density;
