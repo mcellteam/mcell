@@ -389,12 +389,12 @@ static void compute_vol_displacement(
   assert(max_time != 0);
   assert(vm.is_vol());
 
-  if (vm.has_flag(ACT_CLAMPED)) {
+  if (vm.has_flag(MOLECULE_FLAG_ACT_CLAMPED)) {
     pick_clamped_displacement(p, sp, vm, rng, displacement);
     vm.v.previous_wall_index = WALL_INDEX_INVALID;
     // not sure why this is set, maybe because it won't be used anymore?
     vm.set_clamp_orientation(ORIENTATION_DOWN);
-    vm.clear_flag(ACT_CLAMPED);
+    vm.clear_flag(MOLECULE_FLAG_ACT_CLAMPED);
 
     rate_factor = 1.0;
     r_rate_factor = 1.0;

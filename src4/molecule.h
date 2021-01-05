@@ -42,11 +42,6 @@ class Partition;
 
 #define ACT_REACT 0x020
 
-// #define ACT_NEWBIE 0x040  // does not have unimolecular time specified
-// #define ACT_CHANGE 0x080
-// -> these two above were merged into: ACT_RESCHEDULE_UNIMOL_RX
-
-#define ACT_CLAMPED 0x1000
 
 /* Flags telling us which linked lists the molecule appears in. */
 #define IN_SCHEDULE 0x100

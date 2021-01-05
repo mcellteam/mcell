@@ -54,7 +54,7 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
     if ((flags & MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) != 0)
       res += string("ACT_CHANGE") + ", ";
   }
-  DUMP_FLAG(flags, ACT_CLAMPED)
+  DUMP_FLAG(flags, MOLECULE_FLAG_ACT_CLAMPED)
   if (full_dump) {
     DUMP_FLAG(flags, IN_SCHEDULE)
   }
