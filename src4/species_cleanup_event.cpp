@@ -40,6 +40,37 @@ void SpeciesCleanupEvent::dump(const string ind) const {
 }
 
 
+void SpeciesCleanupEvent::remove_unused_reactant_classes() {
+
+  // get a set of used reactant classes
+  uint_set<BNG::reactant_class_id_t> used_reactant_classes;
+  for (BNG::Species* sp: world->get_all_species().get_species_vector()) {
+    release_assert(sp != nullptr);
+
+    if (sp->has_valid_reactant_class_id()) {
+      used_reactant_classes.insert(sp->get_reactant_class_id());
+    }
+  }
+
+  // go through all reactant classes and select those that are not used
+  uint_set<BNG::reactant_class_id_t> unused_reactant_classes;
+  for (const BNG::ReactantClass* rc: world->get_all_rxns().get_reactant_classes()) {
+    if (rc != nullptr && used_reactant_classes.count(rc->id) == 0) {
+      unused_reactant_classes.insert(rc->id);
+    }
+  }
+
+  // remove the unused classes
+  for (BNG::reactant_class_id_t id: unused_reactant_classes) {
+    // from rxn container including reacting classes
+    world->get_all_rxns().remove_reactant_class(id);
+
+    // and from partition's reactants map
+    world->get_partition(PARTITION_ID_INITIAL).remove_reactant_class_usage(id);
+  }
+}
+
+
 void SpeciesCleanupEvent::step() {
 
   // remove all rxn classes and all caches
@@ -76,9 +107,9 @@ void SpeciesCleanupEvent::step() {
   // cleanup the species array, we must remove nullptrs from the species array
   world->get_all_species().defragment();
 
-  for (BNG::Species* sp: world->get_all_species().get_species_vector()) {
-    release_assert(sp != nullptr);
-  }
+  // also remove unused reactant classes
+  remove_unused_reactant_classes();
+
 }
 
 

@@ -254,7 +254,7 @@ void RxnContainer::compute_reacting_classes(const ReactantClass& rc) {
   reacting_classes.push_back(ReactantClassIdSet());
   ReactantClassIdSet& current_set = reacting_classes.back();
 
-  for (const ReactantClass* reacting_class: reactant_classes_vector) {
+  for (const ReactantClass* reacting_class: reactant_classes_set) {
     assert(reacting_class->is_initialized());
 
     // cross check
@@ -617,6 +617,24 @@ void RxnContainer::remove_species_id_references(const species_id_t id) {
   for (RxnRule* rxn: rxn_rules) {
     rxn->remove_species_id_references(id);
   }
+}
+
+
+void RxnContainer::remove_reactant_class(const reactant_class_id_t id) {
+  for (ReactantClassIdSet& reactants: reacting_classes) {
+    // remove if present
+    reactants.erase(id);
+  }
+  // clear reactants, later, we might need to use better containers but the
+  // number of reactant classes should't be high so let's keep it like this
+  reacting_classes[id] = ReactantClassIdSet();
+
+  // and delete the class itself
+  ReactantClass* rc = reactant_classes_vector[id];
+  assert(rc != nullptr);
+  reactant_classes_set.erase(rc);
+  delete rc;
+  reactant_classes_vector[id] = nullptr;
 }
 
 

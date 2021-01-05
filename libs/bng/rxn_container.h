@@ -85,6 +85,7 @@ public:
   ReactionIdBitsets reaction_id_bitsets;
 };
 
+typedef std::vector<ReactantClass*> ReactantClassesVector;
 
 class ReactantClassLessPtr {
 public:
@@ -286,15 +287,28 @@ public:
   const ReactantClass& get_reactant_class(const reactant_class_id_t id) {
     assert(id != REACTANT_CLASS_ID_INVALID);
     assert(id < reactant_classes_vector.size());
-    assert(reactant_classes_vector.size() == reactant_classes_set.size());
     return *reactant_classes_vector[id];
   }
 
-  size_t get_num_reactant_classes() const {
-    assert(next_reactant_class_id == reactant_classes_set.size());
-    assert(reactant_classes_vector.size() == reactant_classes_set.size());
-    return reactant_classes_vector.size();
+  size_t get_num_existing_reactant_classes() const {
+#ifdef NDEBUG
+    size_t num = 0;
+    for (const auto& rc: reactant_classes_vector) {
+      if (rc != nullptr) {
+        num++;
+      }
+    }
+    assert(num == reactant_classes_set.size());
+#endif
+    return reactant_classes_set.size();
   }
+
+  // may contain nullptr items
+  ReactantClassesVector get_reactant_classes() const {
+    return reactant_classes_vector;
+  }
+
+  void remove_reactant_class(const reactant_class_id_t id);
 
   // returns nullptr if reaction rule was not found
   RxnRule* find_rxn_rule_by_name(const std::string& name) {
@@ -373,8 +387,8 @@ private:
   reactant_class_id_t next_reactant_class_id;
 
   // owns reactant classes, indexed by ID
-  std::vector<ReactantClass*> reactant_classes_vector;
-  // containes pointers to objects owned by reactant_classes_vector
+  ReactantClassesVector reactant_classes_vector;
+  // contains pointers to objects owned by reactant_classes_vector
   // used to quickly find out whether we already have this reactant class
   std::set<ReactantClass*, ReactantClassLessPtr> reactant_classes_set;
 

@@ -32,6 +32,7 @@ class World;
 /**
  * Removes all surface and volume species that whose instantiation count is 0.
  * Removes all rxn classes because they might reference the removed species.
+ * Also removes unused reactant classes.
  */
 class SpeciesCleanupEvent: public BaseEvent {
 public:
@@ -43,6 +44,9 @@ public:
   void step() override;
   void dump(const std::string indent) const override;
 private:
+
+  void remove_unused_reactant_classes();
+
   World* world;
 };
 
