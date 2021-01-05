@@ -33,7 +33,6 @@ namespace MCell {
 
 class Partition;
 
-// TODO: remove usage of ACT_DIFFUSE, it is not used anywhere
 
 #if 0
 // from mcell3, copied for reference
@@ -41,7 +40,6 @@ class Partition;
 #define TYPE_VOL 0x002
 #define TYPE_MASK 0x003
 
-#define ACT_DIFFUSE 0x008
 #define ACT_REACT 0x020
 
 // IN_VOLUME

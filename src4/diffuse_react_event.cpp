@@ -2527,7 +2527,7 @@ int DiffuseReactEvent::outcome_products_random(
       }
 
       const BNG::Species& species_new_ref = p.get_all_species().get(product_species_id);
-      new_vm.flags = IN_VOLUME | (species_new_ref.can_diffuse() ? ACT_DIFFUSE : 0);
+      new_vm.flags = IN_VOLUME;
       new_vm.set_flag(MOLECULE_FLAG_VOL);
       new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
@@ -2592,7 +2592,7 @@ int DiffuseReactEvent::outcome_products_random(
 
       // create our new molecule
       Molecule sm_to_add(MOLECULE_ID_INVALID, product_species_id, pos, time);
-      sm_to_add.flags = (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
+      sm_to_add.flags = IN_SURFACE;
       sm_to_add.set_flag(MOLECULE_FLAG_SURF);
       sm_to_add.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 

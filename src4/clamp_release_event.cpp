@@ -228,7 +228,7 @@ void ClampReleaseEvent::step() {
     Molecule& new_vm = p.add_volume_molecule(
           Molecule(MOLECULE_ID_INVALID, species_id, pos, event_time), 0.5 /* release delay time */
     );
-    new_vm.flags |= ACT_CLAMPED | IN_VOLUME | ACT_DIFFUSE | MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN;
+    new_vm.flags |= ACT_CLAMPED | IN_VOLUME | MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN;
 
     new_vm.set_clamp_orientation(o);
     new_vm.v.previous_wall_index = w.index;
