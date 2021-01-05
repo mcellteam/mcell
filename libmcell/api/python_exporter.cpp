@@ -323,7 +323,7 @@ std::string PythonExporter::save_model(
     gen_assign(out, MODEL, NAME_CONFIG, it->first, S(SIMULATION_STATE) + "." + it->second);
   }
 
-  gen_assign(out, MODEL, NAME_CHECKPOINTED_MOLECULES, instantiation_prefix + NAME_CHECKPOINTED_MOLECULES);
+  gen_assign(out, MODEL, NAME_CHECKPOINTED_MOLECULES, S(SIMULATION_STATE) + "." + NAME_CHECKPOINTED_MOLECULES);
   out << "\n";
   // TODO: - append to observables
 

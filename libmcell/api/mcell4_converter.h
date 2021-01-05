@@ -79,14 +79,14 @@ public:
   // throws exception if anything went wrong
   // modifies model as well where it stores information for cases
   // when a value such a reaction rate was updated by the user
-  void convert();
+  void convert_before_init();
+
+  void convert_after_init();
 
   // converter can be also used to convert individual objects
   // throws exception if anything went wrong
   MCell::ReleaseEvent* convert_single_release_event(
       const std::shared_ptr<API::ReleaseSite>& r);
-
-  static void convert_rng_state(std::shared_ptr<RngState>& src, rng_state& dst);
 
 private:
   species_id_t get_species_id(API::Species& s, const std::string class_name, const std::string object_name);
@@ -162,12 +162,15 @@ private:
 
   void convert_viz_output_events();
 
-  void convert_checkpointed_molecules();
-  void convert_simulation_state();
+  void convert_initial_iteration_and_time();
 
   void add_ctrl_c_termination_event();
 
   void check_all_mol_types_have_diffusion_const();
+
+  // after init
+  void convert_rng_state();
+  void convert_checkpointed_molecules();
 
   Model* model;
   World* world;

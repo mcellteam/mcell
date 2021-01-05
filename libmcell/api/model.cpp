@@ -105,7 +105,7 @@ void Model::initialize() {
   // semantic checks are done during conversion
   MCell4Converter converter(this, world);
 
-  converter.convert();
+  converter.convert_before_init();
 
   // set that all used objects were initialized
   vec_set_initialized(species);
@@ -117,10 +117,9 @@ void Model::initialize() {
 
   world->init_simulation(world->config.get_simulation_start_time());
 
-  // rng state from checkpoint, must be set after model initialization
-  if (is_set(config.initial_rng_state)) {
-    MCell4Converter::convert_rng_state(config.initial_rng_state, world->rng);
-  }
+  // convert also rng state checkpointed molecules,
+  // must be done after world initialization
+  converter.convert_after_init();
 
   initialize_introspection(this);
 

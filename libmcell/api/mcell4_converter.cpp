@@ -84,7 +84,7 @@ static viz_mode_t convert_viz_mode(const VizMode m) {
 }
 
 
-void MCell4Converter::convert() {
+void MCell4Converter::convert_before_init() {
   assert(model != nullptr);
   assert(world != nullptr);
 
@@ -142,7 +142,7 @@ void MCell4Converter::convert() {
   convert_viz_output_events();
 
   // sets up data loaded from checkpoint
-  convert_simulation_state();
+  convert_initial_iteration_and_time();
 
   add_ctrl_c_termination_event();
 
@@ -1769,11 +1769,82 @@ void MCell4Converter::convert_viz_output_events() {
 }
 
 
+// sets up data loaded from checkpoint, must be run after all events were added to the scheduler
+// rng state is set after model initialization in Model::initialize
+void MCell4Converter::convert_initial_iteration_and_time() {
+
+  if ((model->config.initial_iteration != 0) != (model->config.initial_time != 0)) {
+    throw RuntimeError(S("Both ") + NAME_INITIAL_ITERATION + " and " + NAME_INITIAL_TIME +
+        " must be either 0 or both must be greater than 0.");
+  }
+
+  world->stats.set_current_iteration(model->config.initial_iteration);
+
+  // skips all events, fails if some periodic events are scheduled
+  world->scheduler.skip_events_up_to_time(
+      world->config.get_simulation_start_time()
+  );
+}
+
+
+void MCell4Converter::add_ctrl_c_termination_event() {
+  MCell::PeriodicCallEvent* event = new PeriodicCallEvent(world);
+  event->event_time = world->config.get_simulation_start_time();
+  event->periodicity_interval = 1;
+  event->function_ptr = check_ctrl_c;
+  event->function_arg = world;
+
+  world->scheduler.schedule_event(event);
+}
+
+
+void MCell4Converter::check_all_mol_types_have_diffusion_const() {
+  for (const BNG::ElemMolType& mt: world->bng_engine.get_data().get_elem_mol_types()) {
+    if (!mt.is_reactive_surface() && mt.D == FLT_INVALID) {
+      throw RuntimeError("Molecule type '" + mt.name + "' does not have its diffusion constant specified.");
+    }
+  }
+}
+
+
+
+// must be called after world initialization
+void MCell4Converter::convert_after_init() {
+  convert_rng_state();
+  convert_checkpointed_molecules();
+}
+
+
+void MCell4Converter::convert_rng_state() {
+  if (!is_set(model->config.initial_rng_state)) {
+    return; // nothing to do
+  }
+
+  std::shared_ptr<RngState>& src = model->config.initial_rng_state;
+  rng_state& dst = world->rng;
+
+  dst.randcnt = src->randcnt;
+  dst.aa = src->aa;
+  dst.bb = src->bb;
+  dst.cc = src->cc;
+
+  assert(RANDSIZ == RNG_SIZE);
+  assert(src->randslr.size() == RNG_SIZE);
+  std::copy(src->randslr.begin(), src->randslr.end(), dst.randrsl);
+
+  assert(src->mm.size() == RNG_SIZE);
+  std::copy(src->mm.begin(), src->mm.end(), dst.mm);
+
+  dst.rngblocks = src->rngblocks;
+}
+
+
 void MCell4Converter::convert_checkpointed_molecules() {
   // single partition for now
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
   uint_set<MCell::molecule_id_t> used_mol_ids;
+
   // add each mol
   for (const shared_ptr<BaseChkptMol>& m: model->checkpointed_molecules) {
     MCell::Molecule res_m;
@@ -1819,67 +1890,16 @@ void MCell4Converter::convert_checkpointed_molecules() {
       res_m.s.wall_index = sm->geometry_object->get_partition_wall_index(sm->wall_index);
       res_m.s.grid_tile_index = sm->grid_tile_index;
 
+      // we must initialize grid and register the molecule there
+      MCell::Wall& w = p.get_wall(res_m.s.wall_index);
+      if (!w.has_initialized_grid()) {
+        w.initialize_grid(p);
+      }
+      w.grid.set_molecule_tile(res_m.s.grid_tile_index, res_m.id);
+
       p.add_surface_molecule(res_m, 0);
     }
   }
-}
-
-// sets up data loaded from checkpoint, must be run after all events were added to the scheduler
-// rng state is set after model initialization in Model::initialize
-void MCell4Converter::convert_simulation_state() {
-
-  if ((model->config.initial_iteration != 0) != (model->config.initial_time != 0)) {
-    throw RuntimeError(S("Both ") + NAME_INITIAL_ITERATION + " and " + NAME_INITIAL_TIME +
-        " must be either 0 or both must be greater than 0.");
-  }
-
-  world->stats.set_current_iteration(model->config.initial_iteration);
-
-  // skips all events, fails if some periodic events are scheduled
-  world->scheduler.skip_events_up_to_time(
-      world->config.get_simulation_start_time()
-  );
-
-  convert_checkpointed_molecules();
-}
-
-
-void MCell4Converter::add_ctrl_c_termination_event() {
-  MCell::PeriodicCallEvent* event = new PeriodicCallEvent(world);
-  event->event_time = world->config.get_simulation_start_time();
-  event->periodicity_interval = 1;
-  event->function_ptr = check_ctrl_c;
-  event->function_arg = world;
-
-  world->scheduler.schedule_event(event);
-}
-
-
-void MCell4Converter::check_all_mol_types_have_diffusion_const() {
-  for (const BNG::ElemMolType& mt: world->bng_engine.get_data().get_elem_mol_types()) {
-    if (!mt.is_reactive_surface() && mt.D == FLT_INVALID) {
-      throw RuntimeError("Molecule type '" + mt.name + "' does not have its diffusion constant specified.");
-    }
-  }
-}
-
-
-void MCell4Converter::convert_rng_state(std::shared_ptr<RngState>& src, rng_state& dst) {
-  assert(is_set(src));
-
-  dst.randcnt = src->randcnt;
-  dst.aa = src->aa;
-  dst.bb = src->bb;
-  dst.cc = src->cc;
-
-  assert(RANDSIZ == RNG_SIZE);
-  assert(src->randslr.size() == RNG_SIZE);
-  std::copy(src->randslr.begin(), src->randslr.end(), dst.randrsl);
-
-  assert(src->mm.size() == RNG_SIZE);
-  std::copy(src->mm.begin(), src->mm.end(), dst.mm);
-
-  dst.rngblocks = src->rngblocks;
 }
 
 } // namespace API

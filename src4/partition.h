@@ -467,33 +467,63 @@ private:
     const BNG::Species& species = get_all_species().get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
 
-    // TODO: molecule IDs must be assigned by World
-    molecule_id_t molecule_id = next_molecule_id;
-    next_molecule_id++;
+    if (vm_copy.id == MOLECULE_ID_INVALID) {
+      // assign new ID
+      // TODO: molecule IDs must be assigned by World
+      molecule_id_t molecule_id = next_molecule_id;
+      next_molecule_id++;
 
-    // We always have to increase the size of the mapping array - its size is
-    // large enough to hold ids for all molecules that were ever created,
-    // we will need to reuse ids or compress it later
-    uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
-    molecule_id_to_index_mapping.push_back(next_molecule_array_index);
-    assert(
-        molecule_id_to_index_mapping.size() == next_molecule_id
-        && "Mapping array must have value for every molecule index"
-    );
+      // We always have to increase the size of the mapping array - its size is
+      // large enough to hold ids for all molecules that were ever created,
+      // we will need to reuse ids or compress it later
+      uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
+      molecule_id_to_index_mapping.push_back(next_molecule_array_index);
+      assert(
+          molecule_id_to_index_mapping.size() == next_molecule_id
+          && "Mapping array must have value for every molecule index"
+      );
 
-    // This is the only place where we insert molecules into volume_molecules,
-    // although this array size can be decreased in defragmentation
-    molecules.push_back(vm_copy);
-    Molecule& new_m = molecules.back();
-    new_m.id = molecule_id;
+      // This is the only place where we insert molecules into volume_molecules,
+      // although this array size can be decreased in defragmentation
+      molecules.push_back(vm_copy);
+      Molecule& new_m = molecules.back();
+      new_m.id = molecule_id;
 
-    // set to diffuse this or the next iteration,
-    // for releases - it will be diffused this iteration
-    // for new reaction products - it will be diffused next iteration because the DiffuseaAndReactEvent handles
-    // the current iteration
-    new_m.diffusion_time = stats.get_current_iteration() + release_delay_time;
+      // set to diffuse this or the next iteration,
+      // for releases - it will be diffused this iteration
+      // for new reaction products - it will be diffused next iteration because the DiffuseaAndReactEvent handles
+      // the current iteration
+      new_m.diffusion_time = stats.get_current_iteration() + release_delay_time;
 
-    return new_m;
+      return new_m;
+    }
+    else {
+      // this is a checkpointed molecule
+
+      // update the next molecule id counter
+      if (vm_copy.id >= next_molecule_id) {
+        next_molecule_id = vm_copy.id + 1;
+      }
+
+      // set its index in the molecule_id_to_index_mapping array
+      // its id must be at the position
+      uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
+
+      if (vm_copy.id >= molecule_id_to_index_mapping.size()) {
+        // insert invalid indices up to the index specified by id
+        molecule_id_to_index_mapping.insert(
+            molecule_id_to_index_mapping.end(),
+            vm_copy.id + 1 - molecule_id_to_index_mapping.size(),
+            MOLECULE_INDEX_INVALID
+        );
+      }
+      molecule_id_to_index_mapping[vm_copy.id] = next_molecule_array_index;
+
+      // and append it to the molecules array
+      molecules.push_back(vm_copy);
+      Molecule& new_m = molecules.back();
+      return new_m;
+    }
   }
 
   void update_species_for_new_molecule(const Molecule& m) {
