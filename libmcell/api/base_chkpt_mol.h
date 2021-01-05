@@ -39,6 +39,7 @@ namespace API {
         ID_SPECIES_MAP.find(M.species_id)->second, \
         M.diffusion_time * TIME_UNIT, \
 		    M.birthday * TIME_UNIT, \
+		    M.flags, \
 		    ((M.unimol_rx_time != TIME_INVALID) ? M.unimol_rx_time * TIME_UNIT : FLT_UNSET) \
     )
 

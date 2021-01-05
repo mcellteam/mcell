@@ -59,6 +59,9 @@ void GenChkptSurfMol::check_semantics() const {
   if (!is_set(birthday)) {
     throw ValueError("Parameter 'birthday' must be set.");
   }
+  if (!is_set(flags)) {
+    throw ValueError("Parameter 'flags' must be set.");
+  }
 }
 
 void GenChkptSurfMol::set_initialized() {
@@ -82,6 +85,7 @@ void GenChkptSurfMol::set_all_attributes_as_default_or_unset() {
   species = nullptr;
   diffusion_time = FLT_UNSET;
   birthday = FLT_UNSET;
+  flags = INT_UNSET;
   unimol_rx_time = FLT_UNSET;
 }
 
@@ -116,6 +120,7 @@ bool GenChkptSurfMol::__eq__(const ChkptSurfMol& other) const {
      )  &&
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
+    flags == other.flags &&
     unimol_rx_time == other.unimol_rx_time;
 }
 
@@ -150,6 +155,7 @@ bool GenChkptSurfMol::eq_nonarray_attributes(const ChkptSurfMol& other, const bo
      )  &&
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
+    flags == other.flags &&
     unimol_rx_time == other.unimol_rx_time;
 }
 
@@ -165,6 +171,7 @@ std::string GenChkptSurfMol::to_str(const std::string ind) const {
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "diffusion_time=" << diffusion_time << ", " <<
       "birthday=" << birthday << ", " <<
+      "flags=" << flags << ", " <<
       "unimol_rx_time=" << unimol_rx_time;
   return ss.str();
 }
@@ -182,6 +189,7 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
             std::shared_ptr<Species>,
             const float_t,
             const float_t,
+            const int,
             const float_t
           >(),
           py::arg("pos"),
@@ -193,6 +201,7 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
           py::arg("species"),
           py::arg("diffusion_time"),
           py::arg("birthday"),
+          py::arg("flags"),
           py::arg("unimol_rx_time") = FLT_UNSET
       )
       .def("check_semantics", &ChkptSurfMol::check_semantics)
@@ -230,6 +239,7 @@ std::string GenChkptSurfMol::export_to_python(std::ostream& out, PythonExportCon
   ss << ind << "species = " << species->export_to_python(out, ctx) << "," << nl;
   ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
   ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
+  ss << ind << "flags = " << flags << "," << nl;
   if (unimol_rx_time != FLT_UNSET) {
     ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
   }

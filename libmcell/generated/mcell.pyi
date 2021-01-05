@@ -189,12 +189,14 @@ class BaseChkptMol():
             species : Species,
             diffusion_time : float,
             birthday : float,
+            flags : int,
             unimol_rx_time : float = None
         ):
         self.id = id
         self.species = species
         self.diffusion_time = diffusion_time
         self.birthday = birthday
+        self.flags = flags
         self.unimol_rx_time = unimol_rx_time
 
 
@@ -210,6 +212,7 @@ class ChkptSurfMol():
             species : Species,
             diffusion_time : float,
             birthday : float,
+            flags : int,
             unimol_rx_time : float = None
         ):
         self.pos = pos
@@ -221,6 +224,7 @@ class ChkptSurfMol():
         self.species = species
         self.diffusion_time = diffusion_time
         self.birthday = birthday
+        self.flags = flags
         self.unimol_rx_time = unimol_rx_time
 
 
@@ -232,6 +236,7 @@ class ChkptVolMol():
             species : Species,
             diffusion_time : float,
             birthday : float,
+            flags : int,
             unimol_rx_time : float = None
         ):
         self.pos = pos
@@ -239,6 +244,7 @@ class ChkptVolMol():
         self.species = species
         self.diffusion_time = diffusion_time
         self.birthday = birthday
+        self.flags = flags
         self.unimol_rx_time = unimol_rx_time
 
 

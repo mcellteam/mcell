@@ -1790,9 +1790,12 @@ void MCell4Converter::convert_checkpointed_molecules() {
     }
     res_m.species_id = m->species->species_id;
 
-    // NOTE: we might check that the times are not in the past
+    // TODO: check that the times are not in the past
     res_m.diffusion_time = m->diffusion_time / world->config.time_unit;
     res_m.birthday = m->birthday / world->config.time_unit;
+
+    // TODO: check that the flags make sense
+    res_m.flags = m->flags;
 
     if (is_set(m->unimol_rx_time)) {
       res_m.unimol_rx_time = m->unimol_rx_time / world->config.time_unit;
@@ -1805,7 +1808,6 @@ void MCell4Converter::convert_checkpointed_molecules() {
       const shared_ptr<ChkptVolMol>& vm = dynamic_pointer_cast<ChkptVolMol>(m);
       res_m.v.pos = vm->pos * Vec3(world->config.rcp_length_unit);
 
-      // flags?
       p.add_volume_molecule(res_m, 0);
     }
     else {
@@ -1817,7 +1819,6 @@ void MCell4Converter::convert_checkpointed_molecules() {
       res_m.s.wall_index = sm->geometry_object->get_partition_wall_index(sm->wall_index);
       res_m.s.grid_tile_index = sm->grid_tile_index;
 
-      // flags?
       p.add_surface_molecule(res_m, 0);
     }
   }

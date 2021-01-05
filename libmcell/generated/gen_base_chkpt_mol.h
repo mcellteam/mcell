@@ -39,6 +39,7 @@ class PythonExportContext;
         std::shared_ptr<Species> species_, \
         const float_t diffusion_time_, \
         const float_t birthday_, \
+        const int flags_, \
         const float_t unimol_rx_time_ = FLT_UNSET \
     ) { \
       class_name = "BaseChkptMol"; \
@@ -46,6 +47,7 @@ class PythonExportContext;
       species = species_; \
       diffusion_time = diffusion_time_; \
       birthday = birthday_; \
+      flags = flags_; \
       unimol_rx_time = unimol_rx_time_; \
       postprocess_in_ctor();\
       check_semantics();\
@@ -122,6 +124,20 @@ public:
   virtual float_t get_birthday() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return birthday;
+  }
+
+  int flags;
+  virtual void set_flags(const int new_flags_) {
+    if (initialized) {
+      throw RuntimeError("Value 'flags' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    flags = new_flags_;
+  }
+  virtual int get_flags() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return flags;
   }
 
   float_t unimol_rx_time;

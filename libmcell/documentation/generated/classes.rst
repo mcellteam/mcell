@@ -184,6 +184,8 @@ Attributes:
 
 * | **birthday**: float
 
+* | **flags**: int
+
 * | **unimol_rx_time**: float = None
 
 ChkptSurfMol
@@ -209,6 +211,8 @@ Attributes:
 
 * | **birthday**: float
 
+* | **flags**: int
+
 * | **unimol_rx_time**: float = None
 
 ChkptVolMol
@@ -225,6 +229,8 @@ Attributes:
 * | **diffusion_time**: float
 
 * | **birthday**: float
+
+* | **flags**: int
 
 * | **unimol_rx_time**: float = None
 

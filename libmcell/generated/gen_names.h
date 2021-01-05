@@ -136,6 +136,7 @@ const char* const NAME_FIND_SPECIES = "find_species";
 const char* const NAME_FIND_SURFACE_CLASS = "find_surface_class";
 const char* const NAME_FIND_SURFACE_COMPARTMENT = "find_surface_compartment";
 const char* const NAME_FIND_VOLUME_COMPARTMENT = "find_volume_compartment";
+const char* const NAME_FLAGS = "flags";
 const char* const NAME_FUNCTION = "function";
 const char* const NAME_FWD_RATE = "fwd_rate";
 const char* const NAME_GEOMETRY_OBJECT = "geometry_object";

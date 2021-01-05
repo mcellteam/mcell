@@ -11,6 +11,8 @@ BaseChkptMol:
     type: float     
   - name: birthday 
     type: float     
+  - name: flags 
+    type: int
   - name: unimol_rx_time 
     type: float
     default: unset     

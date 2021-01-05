@@ -43,6 +43,9 @@ void GenBaseChkptMol::check_semantics() const {
   if (!is_set(birthday)) {
     throw ValueError("Parameter 'birthday' must be set.");
   }
+  if (!is_set(flags)) {
+    throw ValueError("Parameter 'flags' must be set.");
+  }
 }
 
 void GenBaseChkptMol::set_initialized() {
@@ -58,6 +61,7 @@ void GenBaseChkptMol::set_all_attributes_as_default_or_unset() {
   species = nullptr;
   diffusion_time = FLT_UNSET;
   birthday = FLT_UNSET;
+  flags = INT_UNSET;
   unimol_rx_time = FLT_UNSET;
 }
 
@@ -77,6 +81,7 @@ bool GenBaseChkptMol::__eq__(const BaseChkptMol& other) const {
      )  &&
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
+    flags == other.flags &&
     unimol_rx_time == other.unimol_rx_time;
 }
 
@@ -96,6 +101,7 @@ bool GenBaseChkptMol::eq_nonarray_attributes(const BaseChkptMol& other, const bo
      )  &&
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
+    flags == other.flags &&
     unimol_rx_time == other.unimol_rx_time;
 }
 
@@ -106,6 +112,7 @@ std::string GenBaseChkptMol::to_str(const std::string ind) const {
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "diffusion_time=" << diffusion_time << ", " <<
       "birthday=" << birthday << ", " <<
+      "flags=" << flags << ", " <<
       "unimol_rx_time=" << unimol_rx_time;
   return ss.str();
 }
@@ -118,12 +125,14 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
             std::shared_ptr<Species>,
             const float_t,
             const float_t,
+            const int,
             const float_t
           >(),
           py::arg("id"),
           py::arg("species"),
           py::arg("diffusion_time"),
           py::arg("birthday"),
+          py::arg("flags"),
           py::arg("unimol_rx_time") = FLT_UNSET
       )
       .def("check_semantics", &BaseChkptMol::check_semantics)
@@ -134,6 +143,7 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
       .def_property("species", &BaseChkptMol::get_species, &BaseChkptMol::set_species)
       .def_property("diffusion_time", &BaseChkptMol::get_diffusion_time, &BaseChkptMol::set_diffusion_time)
       .def_property("birthday", &BaseChkptMol::get_birthday, &BaseChkptMol::set_birthday)
+      .def_property("flags", &BaseChkptMol::get_flags, &BaseChkptMol::set_flags)
       .def_property("unimol_rx_time", &BaseChkptMol::get_unimol_rx_time, &BaseChkptMol::set_unimol_rx_time)
     ;
 }
@@ -161,6 +171,7 @@ std::string GenBaseChkptMol::export_to_python(std::ostream& out, PythonExportCon
   ss << ind << "species = " << species->export_to_python(out, ctx) << "," << nl;
   ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
   ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
+  ss << ind << "flags = " << flags << "," << nl;
   if (unimol_rx_time != FLT_UNSET) {
     ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
   }
