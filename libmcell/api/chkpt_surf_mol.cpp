@@ -43,9 +43,10 @@ ChkptSurfMol::ChkptSurfMol(
 
   assert(sm.id != MOLECULE_ID_INVALID);
 
+  type = MoleculeType::SURFACE;
+
   pos = sm.s.pos * Vec2(length_unit);
   orientation = convert_orientation(sm.s.orientation);
-
 
   const Wall& w = p.get_wall(sm.s.wall_index);
 

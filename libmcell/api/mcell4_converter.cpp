@@ -171,6 +171,14 @@ species_id_t MCell4Converter::get_species_id_for_complex(
         "(all components must be present and their state set).");
   }
 
+  // check that all used elementary molecule types have diffusion constant
+  for (const BNG::ElemMol& em: bng_ci.elem_mols) {
+    const BNG::ElemMolType& emt = world->bng_engine.get_data().get_elem_mol_type(em.elem_mol_type_id);
+    if (emt.D == FLT_INVALID) {
+      throw RuntimeError("Molecule type '" + emt.name + "' does not have its diffusion constant specified.");
+    }
+  }
+
   // we need to define species for our complex instance
   BNG::Species s = BNG::Species(
       bng_ci,
@@ -1761,6 +1769,17 @@ void MCell4Converter::convert_viz_output_events() {
 }
 
 
+void MCell4Converter::convert_checkpointed_molecules() {
+  // single partition for now
+
+  // get max id to prepare size of molecule_id_to_index_mapping array
+  // we do not care about the ordering in the molecules array?
+
+
+  // add each mol
+
+}
+
 // sets up data loaded from checkpoint, must be run after all events were added to the scheduler
 // rng state is set after model initialization in Model::initialize
 void MCell4Converter::convert_simulation_state() {
@@ -1777,7 +1796,7 @@ void MCell4Converter::convert_simulation_state() {
       world->config.get_simulation_start_time()
   );
 
-
+  convert_checkpointed_molecules();
 }
 
 
@@ -1795,7 +1814,7 @@ void MCell4Converter::add_ctrl_c_termination_event() {
 void MCell4Converter::check_all_mol_types_have_diffusion_const() {
   for (const BNG::ElemMolType& mt: world->bng_engine.get_data().get_elem_mol_types()) {
     if (!mt.is_reactive_surface() && mt.D == FLT_INVALID) {
-      throw RuntimeError("Molecule type " + mt.name + " does not have its diffusion constant specified.");
+      throw RuntimeError("Molecule type '" + mt.name + "' does not have its diffusion constant specified.");
     }
   }
 }

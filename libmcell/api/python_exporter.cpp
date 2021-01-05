@@ -218,10 +218,7 @@ void PythonExporter::save_molecules(std::ostream& out, PythonExportContext& ctx)
 
   // for each partition
   stringstream dummy_out;
-  stringstream vol_mols;
-  stringstream surf_mols;
-  vol_mols << NAME_CHECKPOINTED_VOLUME_MOLECULES << " = [\n";
-  surf_mols << NAME_CHECKPOINTED_SURFACE_MOLECULES << " = [\n";
+  out << NAME_CHECKPOINTED_MOLECULES << " = [\n";
 
   for (const MCell::Partition& p: world->get_partitions()) {
     // for each molecule
@@ -236,21 +233,20 @@ void PythonExporter::save_molecules(std::ostream& out, PythonExportContext& ctx)
       if (m.is_vol()) {
         ChkptVolMol vm = ChkptVolMol(
             m, id_species_map, world->config.time_unit, world->config.length_unit);
-        vol_mols << IND4 << vm.export_to_python(dummy_out, ctx) << ",\n";
+        out << IND4 << vm.export_to_python(dummy_out, ctx) << ",\n";
       }
       else {
         assert(m.is_surf());
         ChkptSurfMol sm = ChkptSurfMol(
             m, id_species_map, world->config.time_unit, world->config.length_unit,
             p, id_geometry_object_map);
-        surf_mols << IND4 << sm.export_to_python(dummy_out, ctx) << ",\n";
+        out << IND4 << sm.export_to_python(dummy_out, ctx) << ",\n";
       }
     }
   }
   assert(dummy_out.str() == "" && "No other code must be exported.");
 
-  out << vol_mols.str() << "]\n\n";
-  out << surf_mols.str() << "]\n\n";
+  out << "]\n\n";
 }
 
 
@@ -327,8 +323,7 @@ std::string PythonExporter::save_model(
     gen_assign(out, MODEL, NAME_CONFIG, it->first, S(SIMULATION_STATE) + "." + it->second);
   }
 
-  gen_assign(out, MODEL, NAME_CHECKPOINTED_VOLUME_MOLECULES, instantiation_prefix + NAME_CHECKPOINTED_VOLUME_MOLECULES);
-  gen_assign(out, MODEL, NAME_CHECKPOINTED_SURFACE_MOLECULES, instantiation_prefix + NAME_CHECKPOINTED_SURFACE_MOLECULES);
+  gen_assign(out, MODEL, NAME_CHECKPOINTED_MOLECULES, instantiation_prefix + NAME_CHECKPOINTED_MOLECULES);
   out << "\n";
   // TODO: - append to observables
 

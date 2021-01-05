@@ -543,13 +543,11 @@ class Instantiation():
             self,
             release_sites : List[ReleaseSite] = None,
             geometry_objects : List[GeometryObject] = None,
-            checkpointed_volume_molecules : List[ChkptVolMol] = None,
-            checkpointed_surface_molecules : List[ChkptSurfMol] = None
+            checkpointed_molecules : List[BaseChkptMol] = None
         ):
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
-        self.checkpointed_volume_molecules = checkpointed_volume_molecules
-        self.checkpointed_surface_molecules = checkpointed_surface_molecules
+        self.checkpointed_molecules = checkpointed_molecules
 
 
     def add_release_site(
@@ -661,8 +659,7 @@ class Model():
             elementary_molecule_types : List[ElementaryMoleculeType] = None,
             release_sites : List[ReleaseSite] = None,
             geometry_objects : List[GeometryObject] = None,
-            checkpointed_volume_molecules : List[ChkptVolMol] = None,
-            checkpointed_surface_molecules : List[ChkptSurfMol] = None,
+            checkpointed_molecules : List[BaseChkptMol] = None,
             viz_outputs : List[VizOutput] = None,
             counts : List[Count] = None
         ):
@@ -675,8 +672,7 @@ class Model():
         self.elementary_molecule_types = elementary_molecule_types
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
-        self.checkpointed_volume_molecules = checkpointed_volume_molecules
-        self.checkpointed_surface_molecules = checkpointed_surface_molecules
+        self.checkpointed_molecules = checkpointed_molecules
         self.viz_outputs = viz_outputs
         self.counts = counts
 

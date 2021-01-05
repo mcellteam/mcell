@@ -162,6 +162,7 @@ private:
 
   void convert_viz_output_events();
 
+  void convert_checkpointed_molecules();
   void convert_simulation_state();
 
   void add_ctrl_c_termination_event();

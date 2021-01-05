@@ -38,6 +38,7 @@ ChkptVolMol::ChkptVolMol(
 
   assert(vm.id != MOLECULE_ID_INVALID);
 
+  type = MoleculeType::VOLUME;
   pos = vm.v.pos * Vec3(length_unit);
 }
 

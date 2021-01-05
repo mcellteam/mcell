@@ -46,6 +46,9 @@ class BaseChkptMol: public GenBaseChkptMol {
 public:
   BASE_CHKPT_MOL_CTOR()
 
+  void postprocess_in_ctor() override {
+    type = MoleculeType::UNSET;
+  }
 
   bool export_as_string_without_newlines() const override {
     return true;
@@ -54,6 +57,9 @@ public:
   bool export_even_if_already_exported() const override {
     return true;
   }
+
+  // used when casting to a derived class
+  MoleculeType type;
 };
 
 } // namespace API

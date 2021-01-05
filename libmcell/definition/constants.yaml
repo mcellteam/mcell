@@ -231,7 +231,7 @@ enums:
       value: 5
       
   - name: MoleculeType
-    doc: Used in molecule introspection.
+    doc: Used in molecule introspection and internally in checkpointing.
     values:
     - name: UNSET
       value: 0

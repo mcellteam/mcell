@@ -233,7 +233,7 @@ std::string GenChkptSurfMol::export_to_python(std::ostream& out, PythonExportCon
   if (unimol_rx_time != FLT_UNSET) {
     ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
   }
-  ss << ind << "pos = " << pos << "," << nl;
+  ss << ind << "pos = " << "m.Vec2(" << f_to_str(pos.u) << ", " << f_to_str(pos.v)<< ")," << nl;
   ss << ind << "orientation = " << orientation << "," << nl;
   ss << ind << "geometry_object = " << geometry_object->export_to_python(out, ctx) << "," << nl;
   ss << ind << "wall_index = " << wall_index << "," << nl;

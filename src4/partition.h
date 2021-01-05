@@ -472,7 +472,7 @@ private:
     next_molecule_id++;
 
     // We always have to increase the size of the mapping array - its size is
-    // large enough to hold indices for all molecules that were ever created,
+    // large enough to hold ids for all molecules that were ever created,
     // we will need to reuse ids or compress it later
     uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
     molecule_id_to_index_mapping.push_back(next_molecule_array_index);

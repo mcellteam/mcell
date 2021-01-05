@@ -1250,6 +1250,12 @@ def write_export_to_python_implementation(f, class_name, class_def):
                         F_TO_STR + '(' + name + '.y) << ", " << ' +
                         F_TO_STR + '(' + name + '.z)' +
                         '<< ")," << ' + NL + ';\n')
+        elif type == YAML_TYPE_VEC2:
+            # also other ivec*/vec2 types should be handled like this but it was not needed so far
+            f.write('"' + M_DOT + CPP_TYPE_VEC2 + '(" << ' + 
+                        F_TO_STR + '(' + name + '.u) << ", " << ' +
+                        F_TO_STR + '(' + name + '.v)' +
+                        '<< ")," << ' + NL + ';\n')
         elif type == YAML_TYPE_FLOAT:
             f.write(F_TO_STR + '(' + name + ') << "," << ' + NL + ';\n')
         else:

@@ -111,7 +111,7 @@ MoleculeType
 ============
 
 
-  | Used in molecule introspection.
+  | Used in molecule introspection and internally in checkpointing.
 
 * | **UNSET** = 0
 * | **VOLUME** = 1
@@ -741,10 +741,7 @@ Attributes:
 
 * | **geometry_objects**: List[GeometryObject] = None
 
-* | **checkpointed_volume_molecules**: List[ChkptVolMol] = None
-  | Used when resuming simulation from a checkpoint.
-
-* | **checkpointed_surface_molecules**: List[ChkptSurfMol] = None
+* | **checkpointed_molecules**: List[BaseChkptMol] = None
   | Used when resuming simulation from a checkpoint.
 
 
@@ -916,10 +913,7 @@ Attributes:
 
 * | **geometry_objects**: List[GeometryObject] = None
 
-* | **checkpointed_volume_molecules**: List[ChkptVolMol] = None
-  | Used when resuming simulation from a checkpoint.
-
-* | **checkpointed_surface_molecules**: List[ChkptSurfMol] = None
+* | **checkpointed_molecules**: List[BaseChkptMol] = None
   | Used when resuming simulation from a checkpoint.
 
 * | **viz_outputs**: List[VizOutput] = None
