@@ -33,24 +33,23 @@ namespace MCell {
 
 class Partition;
 
+// WARNING: do not change these values, checkpointed models use them
+// TODO: probably print this out in some reasonable form into checkpoints
 enum molecule_flag_t {
   // volume/surface information is only cached from BNG CplxInstance
   MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
   MOLECULE_FLAG_VOL = 1 << 1, // originally TYPE_VOL
-
-  MOLECULE_FLAG_MATURE = 1 << 13, // originally MATURE_MOLECULE
-
-  MOLECULE_FLAG_ACT_CLAMPED = 1 << 15, // originally ACT_CLAMPED
-
-  MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN = 1 << 16,
-  MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE = 1 << 17,
+  MOLECULE_FLAG_MATURE = 1 << 2, // originally MATURE_MOLECULE
+  MOLECULE_FLAG_ACT_CLAMPED = 1 << 3, // originally ACT_CLAMPED
+  MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN = 1 << 4,
+  MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE = 1 << 5,
 
   // flags needed for concentration clamp handling,
   // only one of them may be set
-  MOLECULE_FLAG_CLAMP_ORIENTATION_UP = 1 << 20,
-  MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN = 1 << 21,
+  MOLECULE_FLAG_CLAMP_ORIENTATION_UP = 1 << 6,
+  MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN = 1 << 7,
 
-  MOLECULE_FLAG_DEFUNCT = 1 << 31,
+  MOLECULE_FLAG_DEFUNCT = 1 << 15,
 };
 
 /**
