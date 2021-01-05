@@ -486,32 +486,38 @@ void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
     count_items[i].value = 0;
   }
 
-  // to improve performance, first process the species that we are counting in the whole world
-  uint_set<uint> processed_item_indices; // TODO: this can be precomputed
-  for (const BNG::Species* species: world->get_all_species().get_species_vector()) {
-    if (species->is_defunct() || species->get_num_instantiations() == 0) {
-      continue;
-    }
+  uint_set<uint> processed_item_indices;
 
-    const CountSpeciesInfo& species_info = get_or_compute_count_species_info(species->id);
-    if (species_info.type != CountSpeciesInfoType::Counted) {
-      assert(species_info.type == CountSpeciesInfoType::NotCounted);
-      continue;
-    }
+  // to improve performance, first process the species that we are counting in the whole world,
+  // but only if there is less species than molecules (very crude heuristics)
+  if (world->get_all_species().get_species_vector().size() <
+      world->get_partition(PARTITION_ID_INITIAL).get_molecules().size()) {
 
-    for (uint index: species_info.world_count_item_indices) {
-      const MolOrRxnCountItem& item = mol_rxn_count_items[index];
-      assert(item.is_world_mol_count());
+    for (const BNG::Species* species: world->get_all_species().get_species_vector()) {
+      if (species->is_defunct() || species->get_num_instantiations() == 0) {
+        continue;
+      }
 
-      const MolOrRxnCountTerm& term = item.terms[0];
-      uint multiplier = term.get_num_pattern_matches(species->id);
-      assert(multiplier != 0);
+      const CountSpeciesInfo& species_info = get_or_compute_count_species_info(species->id);
+      if (species_info.type != CountSpeciesInfoType::Counted) {
+        assert(species_info.type == CountSpeciesInfoType::NotCounted);
+        continue;
+      }
 
-      // use the count of this species as tracked in the BNG library
-      count_items[item.index].inc_or_dec(
-          term.sign_in_expression, species->get_num_instantiations() * multiplier);
+      for (uint index: species_info.world_count_item_indices) {
+        const MolOrRxnCountItem& item = mol_rxn_count_items[index];
+        assert(item.is_world_mol_count());
 
-      processed_item_indices.insert(index);
+        const MolOrRxnCountTerm& term = item.terms[0];
+        uint multiplier = term.get_num_pattern_matches(species->id);
+        assert(multiplier != 0);
+
+        // use the count of this species as tracked in the BNG library
+        count_items[item.index].inc_or_dec(
+            term.sign_in_expression, species->get_num_instantiations() * multiplier);
+
+        processed_item_indices.insert(index);
+      }
     }
   }
 
