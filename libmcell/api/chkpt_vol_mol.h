@@ -38,6 +38,10 @@ class ChkptVolMol: public GenChkptVolMol {
 public:
   CHKPT_VOL_MOL_CTOR()
 
+  void postprocess_in_ctor() override {
+    type = MoleculeType::VOLUME;
+  }
+
   ChkptVolMol(
       const MCell::Molecule& vm,
       const IdSpeciesMap& id_species_map, const float_t time_unit,

@@ -47,6 +47,10 @@ public:
       const IdGeometryObjectMap& id_geometry_object_map
   );
 
+  void postprocess_in_ctor() override {
+    type = MoleculeType::SURFACE;
+  }
+
   virtual ~ChkptSurfMol() {
   }
 };

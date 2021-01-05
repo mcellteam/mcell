@@ -1771,13 +1771,56 @@ void MCell4Converter::convert_viz_output_events() {
 
 void MCell4Converter::convert_checkpointed_molecules() {
   // single partition for now
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
-  // get max id to prepare size of molecule_id_to_index_mapping array
-  // we do not care about the ordering in the molecules array?
-
-
+  uint_set<MCell::molecule_id_t> used_mol_ids;
   // add each mol
+  for (const shared_ptr<BaseChkptMol>& m: model->checkpointed_molecules) {
+    MCell::Molecule res_m;
 
+    // base data
+    if (used_mol_ids.count(m->id) != 0) {
+      throw RuntimeError("Checkpointed molecule with ID " + to_string(m->id) + " was already added.");
+    }
+
+    res_m.id = m->id;
+
+    if (m->species->species_id == SPECIES_ID_INVALID) {
+      throw RuntimeError("Species " + m->species->name + " for checkpointed molecule is not present in the model.");
+    }
+    res_m.species_id = m->species->species_id;
+
+    // NOTE: we might check that the times are not in the past
+    res_m.diffusion_time = m->diffusion_time / world->config.time_unit;
+    res_m.birthday = m->birthday / world->config.time_unit;
+
+    if (is_set(m->unimol_rx_time)) {
+      res_m.unimol_rx_time = m->unimol_rx_time / world->config.time_unit;
+    }
+    else {
+      res_m.unimol_rx_time = TIME_INVALID;
+    }
+
+    if (m->type == MoleculeType::VOLUME) {
+      const shared_ptr<ChkptVolMol>& vm = dynamic_pointer_cast<ChkptVolMol>(m);
+      res_m.v.pos = vm->pos * Vec3(world->config.rcp_length_unit);
+
+      // flags?
+      p.add_volume_molecule(res_m, 0);
+    }
+    else {
+      assert(m->type == MoleculeType::SURFACE);
+      const shared_ptr<ChkptSurfMol>& sm = dynamic_pointer_cast<ChkptSurfMol>(m);
+
+      res_m.s.pos = sm->pos * Vec2(world->config.rcp_length_unit);
+      res_m.s.orientation = convert_orientation(sm->orientation, false);
+      res_m.s.wall_index = sm->geometry_object->get_partition_wall_index(sm->wall_index);
+      res_m.s.grid_tile_index = sm->grid_tile_index;
+
+      // flags?
+      p.add_surface_molecule(res_m, 0);
+    }
+  }
 }
 
 // sets up data loaded from checkpoint, must be run after all events were added to the scheduler
