@@ -9,10 +9,11 @@ BaseChkptMol:
     type: Species*
   - name: diffusion_time 
     type: float     
-  - name: unimol_rx_time 
-    type: float     
   - name: birthday 
     type: float     
+  - name: unimol_rx_time 
+    type: float
+    default: unset     
 
 ChkptVolMol:
   superclass: BaseChkptMol

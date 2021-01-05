@@ -56,9 +56,6 @@ void GenChkptSurfMol::check_semantics() const {
   if (!is_set(diffusion_time)) {
     throw ValueError("Parameter 'diffusion_time' must be set.");
   }
-  if (!is_set(unimol_rx_time)) {
-    throw ValueError("Parameter 'unimol_rx_time' must be set.");
-  }
   if (!is_set(birthday)) {
     throw ValueError("Parameter 'birthday' must be set.");
   }
@@ -84,8 +81,8 @@ void GenChkptSurfMol::set_all_attributes_as_default_or_unset() {
   id = INT_UNSET;
   species = nullptr;
   diffusion_time = FLT_UNSET;
-  unimol_rx_time = FLT_UNSET;
   birthday = FLT_UNSET;
+  unimol_rx_time = FLT_UNSET;
 }
 
 bool GenChkptSurfMol::__eq__(const ChkptSurfMol& other) const {
@@ -118,8 +115,8 @@ bool GenChkptSurfMol::__eq__(const ChkptSurfMol& other) const {
         )
      )  &&
     diffusion_time == other.diffusion_time &&
-    unimol_rx_time == other.unimol_rx_time &&
-    birthday == other.birthday;
+    birthday == other.birthday &&
+    unimol_rx_time == other.unimol_rx_time;
 }
 
 bool GenChkptSurfMol::eq_nonarray_attributes(const ChkptSurfMol& other, const bool ignore_name) const {
@@ -152,8 +149,8 @@ bool GenChkptSurfMol::eq_nonarray_attributes(const ChkptSurfMol& other, const bo
         )
      )  &&
     diffusion_time == other.diffusion_time &&
-    unimol_rx_time == other.unimol_rx_time &&
-    birthday == other.birthday;
+    birthday == other.birthday &&
+    unimol_rx_time == other.unimol_rx_time;
 }
 
 std::string GenChkptSurfMol::to_str(const std::string ind) const {
@@ -167,8 +164,8 @@ std::string GenChkptSurfMol::to_str(const std::string ind) const {
       "id=" << id << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "diffusion_time=" << diffusion_time << ", " <<
-      "unimol_rx_time=" << unimol_rx_time << ", " <<
-      "birthday=" << birthday;
+      "birthday=" << birthday << ", " <<
+      "unimol_rx_time=" << unimol_rx_time;
   return ss.str();
 }
 
@@ -195,8 +192,8 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
           py::arg("id"),
           py::arg("species"),
           py::arg("diffusion_time"),
-          py::arg("unimol_rx_time"),
-          py::arg("birthday")
+          py::arg("birthday"),
+          py::arg("unimol_rx_time") = FLT_UNSET
       )
       .def("check_semantics", &ChkptSurfMol::check_semantics)
       .def("__str__", &ChkptSurfMol::to_str, py::arg("ind") = std::string(""))
@@ -229,16 +226,18 @@ std::string GenChkptSurfMol::export_to_python(std::ostream& out, PythonExportCon
     ss << exported_name << " = ";
   }
   ss << "m.ChkptSurfMol(" << nl;
+  ss << ind << "id = " << id << "," << nl;
+  ss << ind << "species = " << species->export_to_python(out, ctx) << "," << nl;
+  ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
+  ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
+  if (unimol_rx_time != FLT_UNSET) {
+    ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
+  }
   ss << ind << "pos = " << pos << "," << nl;
   ss << ind << "orientation = " << orientation << "," << nl;
   ss << ind << "geometry_object = " << geometry_object->export_to_python(out, ctx) << "," << nl;
   ss << ind << "wall_index = " << wall_index << "," << nl;
   ss << ind << "grid_tile_index = " << grid_tile_index << "," << nl;
-  ss << ind << "id = " << id << "," << nl;
-  ss << ind << "species = " << species->export_to_python(out, ctx) << "," << nl;
-  ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
-  ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
-  ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
   ss << ")" << nl << nl;
   if (!str_export) {
     out << ss.str();

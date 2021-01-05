@@ -188,14 +188,14 @@ class BaseChkptMol():
             id : int,
             species : Species,
             diffusion_time : float,
-            unimol_rx_time : float,
-            birthday : float
+            birthday : float,
+            unimol_rx_time : float = None
         ):
         self.id = id
         self.species = species
         self.diffusion_time = diffusion_time
-        self.unimol_rx_time = unimol_rx_time
         self.birthday = birthday
+        self.unimol_rx_time = unimol_rx_time
 
 
 class ChkptSurfMol():
@@ -209,8 +209,8 @@ class ChkptSurfMol():
             id : int,
             species : Species,
             diffusion_time : float,
-            unimol_rx_time : float,
-            birthday : float
+            birthday : float,
+            unimol_rx_time : float = None
         ):
         self.pos = pos
         self.orientation = orientation
@@ -220,8 +220,8 @@ class ChkptSurfMol():
         self.id = id
         self.species = species
         self.diffusion_time = diffusion_time
-        self.unimol_rx_time = unimol_rx_time
         self.birthday = birthday
+        self.unimol_rx_time = unimol_rx_time
 
 
 class ChkptVolMol():
@@ -231,15 +231,15 @@ class ChkptVolMol():
             id : int,
             species : Species,
             diffusion_time : float,
-            unimol_rx_time : float,
-            birthday : float
+            birthday : float,
+            unimol_rx_time : float = None
         ):
         self.pos = pos
         self.id = id
         self.species = species
         self.diffusion_time = diffusion_time
-        self.unimol_rx_time = unimol_rx_time
         self.birthday = birthday
+        self.unimol_rx_time = unimol_rx_time
 
 
 class Complex():

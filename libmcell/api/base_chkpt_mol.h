@@ -38,8 +38,8 @@ namespace API {
         M.id, \
         ID_SPECIES_MAP.find(M.species_id)->second, \
         M.diffusion_time * TIME_UNIT, \
-        M.unimol_rx_time * TIME_UNIT, \
-        M.birthday * TIME_UNIT \
+		    M.birthday * TIME_UNIT, \
+		    ((M.unimol_rx_time != TIME_INVALID) ? M.unimol_rx_time * TIME_UNIT : FLT_UNSET) \
     )
 
 class BaseChkptMol: public GenBaseChkptMol {

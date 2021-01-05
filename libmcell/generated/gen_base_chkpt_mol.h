@@ -38,15 +38,15 @@ class PythonExportContext;
         const int id_, \
         std::shared_ptr<Species> species_, \
         const float_t diffusion_time_, \
-        const float_t unimol_rx_time_, \
-        const float_t birthday_ \
+        const float_t birthday_, \
+        const float_t unimol_rx_time_ = FLT_UNSET \
     ) { \
       class_name = "BaseChkptMol"; \
       id = id_; \
       species = species_; \
       diffusion_time = diffusion_time_; \
-      unimol_rx_time = unimol_rx_time_; \
       birthday = birthday_; \
+      unimol_rx_time = unimol_rx_time_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -110,20 +110,6 @@ public:
     return diffusion_time;
   }
 
-  float_t unimol_rx_time;
-  virtual void set_unimol_rx_time(const float_t new_unimol_rx_time_) {
-    if (initialized) {
-      throw RuntimeError("Value 'unimol_rx_time' of object with name " + name + " (class " + class_name + ") "
-                         "cannot be set after model was initialized.");
-    }
-    cached_data_are_uptodate = false;
-    unimol_rx_time = new_unimol_rx_time_;
-  }
-  virtual float_t get_unimol_rx_time() const {
-    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return unimol_rx_time;
-  }
-
   float_t birthday;
   virtual void set_birthday(const float_t new_birthday_) {
     if (initialized) {
@@ -136,6 +122,20 @@ public:
   virtual float_t get_birthday() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return birthday;
+  }
+
+  float_t unimol_rx_time;
+  virtual void set_unimol_rx_time(const float_t new_unimol_rx_time_) {
+    if (initialized) {
+      throw RuntimeError("Value 'unimol_rx_time' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    unimol_rx_time = new_unimol_rx_time_;
+  }
+  virtual float_t get_unimol_rx_time() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return unimol_rx_time;
   }
 
   // --- methods ---

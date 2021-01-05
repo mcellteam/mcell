@@ -211,14 +211,6 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
     ss << exported_name << " = ";
   }
   ss << "m.SurfaceRegion(" << nl;
-  ss << ind << "name = " << "'" << name << "'" << "," << nl;
-  ss << ind << "wall_indices = " << export_vec_wall_indices(out, ctx, exported_name) << "," << nl;
-  if (is_set(surface_class)) {
-    ss << ind << "surface_class = " << surface_class->export_to_python(out, ctx) << "," << nl;
-  }
-  if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>() && !skip_vectors_export()) {
-    ss << ind << "initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx, exported_name) << "," << nl;
-  }
   if (node_type != RegionNodeType::UNSET) {
     ss << ind << "node_type = " << node_type << "," << nl;
   }
@@ -227,6 +219,14 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
   }
   if (is_set(right_node)) {
     ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
+  }
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  ss << ind << "wall_indices = " << export_vec_wall_indices(out, ctx, exported_name) << "," << nl;
+  if (is_set(surface_class)) {
+    ss << ind << "surface_class = " << surface_class->export_to_python(out, ctx) << "," << nl;
+  }
+  if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>() && !skip_vectors_export()) {
+    ss << ind << "initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx, exported_name) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

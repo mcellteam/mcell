@@ -192,15 +192,6 @@ std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& c
     ss << exported_name << " = ";
   }
   ss << "m.Model(" << nl;
-  if (config != Config()) {
-    ss << ind << "config = " << config.export_to_python(out, ctx) << "," << nl;
-  }
-  if (warnings != Warnings()) {
-    ss << ind << "warnings = " << warnings.export_to_python(out, ctx) << "," << nl;
-  }
-  if (notifications != Notifications()) {
-    ss << ind << "notifications = " << notifications.export_to_python(out, ctx) << "," << nl;
-  }
   if (species != std::vector<std::shared_ptr<Species>>() && !skip_vectors_export()) {
     ss << ind << "species = " << export_vec_species(out, ctx, exported_name) << "," << nl;
   }
@@ -230,6 +221,15 @@ std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& c
   }
   if (counts != std::vector<std::shared_ptr<Count>>() && !skip_vectors_export()) {
     ss << ind << "counts = " << export_vec_counts(out, ctx, exported_name) << "," << nl;
+  }
+  if (config != Config()) {
+    ss << ind << "config = " << config.export_to_python(out, ctx) << "," << nl;
+  }
+  if (warnings != Warnings()) {
+    ss << ind << "warnings = " << warnings.export_to_python(out, ctx) << "," << nl;
+  }
+  if (notifications != Notifications()) {
+    ss << ind << "notifications = " << notifications.export_to_python(out, ctx) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

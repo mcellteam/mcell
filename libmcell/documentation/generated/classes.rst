@@ -182,9 +182,9 @@ Attributes:
 
 * | **diffusion_time**: float
 
-* | **unimol_rx_time**: float
-
 * | **birthday**: float
+
+* | **unimol_rx_time**: float = None
 
 ChkptSurfMol
 ============
@@ -207,9 +207,9 @@ Attributes:
 
 * | **diffusion_time**: float
 
-* | **unimol_rx_time**: float
-
 * | **birthday**: float
+
+* | **unimol_rx_time**: float = None
 
 ChkptVolMol
 ===========
@@ -224,9 +224,9 @@ Attributes:
 
 * | **diffusion_time**: float
 
-* | **unimol_rx_time**: float
-
 * | **birthday**: float
+
+* | **unimol_rx_time**: float = None
 
 Complex
 =======

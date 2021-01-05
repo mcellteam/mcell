@@ -40,16 +40,16 @@ class PythonExportContext;
         const int id_, \
         std::shared_ptr<Species> species_, \
         const float_t diffusion_time_, \
-        const float_t unimol_rx_time_, \
-        const float_t birthday_ \
-    )  : GenChkptVolMol(id_,species_,diffusion_time_,unimol_rx_time_,birthday_) { \
+        const float_t birthday_, \
+        const float_t unimol_rx_time_ = FLT_UNSET \
+    )  : GenChkptVolMol(id_,species_,diffusion_time_,birthday_,unimol_rx_time_) { \
       class_name = "ChkptVolMol"; \
       pos = pos_; \
       id = id_; \
       species = species_; \
       diffusion_time = diffusion_time_; \
-      unimol_rx_time = unimol_rx_time_; \
       birthday = birthday_; \
+      unimol_rx_time = unimol_rx_time_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -60,9 +60,9 @@ public:
       const int id_, 
       std::shared_ptr<Species> species_, 
       const float_t diffusion_time_, 
-      const float_t unimol_rx_time_, 
-      const float_t birthday_ 
-  )  : BaseChkptMol(id_,species_,diffusion_time_,unimol_rx_time_,birthday_)  {
+      const float_t birthday_, 
+      const float_t unimol_rx_time_ = FLT_UNSET 
+  )  : BaseChkptMol(id_,species_,diffusion_time_,birthday_,unimol_rx_time_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;

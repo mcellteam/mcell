@@ -158,6 +158,15 @@ std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext&
   if (name != STR_UNSET) {
     ss << ind << "name = " << "'" << name << "'" << "," << nl;
   }
+  if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>() && !skip_vectors_export()) {
+    ss << ind << "elementary_molecules = " << export_vec_elementary_molecules(out, ctx, exported_name) << "," << nl;
+  }
+  if (orientation != Orientation::DEFAULT) {
+    ss << ind << "orientation = " << orientation << "," << nl;
+  }
+  if (compartment_name != STR_UNSET) {
+    ss << ind << "compartment_name = " << "'" << compartment_name << "'" << "," << nl;
+  }
   if (diffusion_constant_2d != FLT_UNSET) {
     ss << ind << "diffusion_constant_2d = " << f_to_str(diffusion_constant_2d) << "," << nl;
   }
@@ -172,15 +181,6 @@ std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext&
   }
   if (target_only != false) {
     ss << ind << "target_only = " << target_only << "," << nl;
-  }
-  if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>() && !skip_vectors_export()) {
-    ss << ind << "elementary_molecules = " << export_vec_elementary_molecules(out, ctx, exported_name) << "," << nl;
-  }
-  if (orientation != Orientation::DEFAULT) {
-    ss << ind << "orientation = " << orientation << "," << nl;
-  }
-  if (compartment_name != STR_UNSET) {
-    ss << ind << "compartment_name = " << "'" << compartment_name << "'" << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

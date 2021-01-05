@@ -147,10 +147,6 @@ std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportCon
     ss << exported_name << " = ";
   }
   ss << "m.SurfaceClass(" << nl;
-  ss << ind << "name = " << "'" << name << "'" << "," << nl;
-  if (properties != std::vector<std::shared_ptr<SurfaceProperty>>() && !skip_vectors_export()) {
-    ss << ind << "properties = " << export_vec_properties(out, ctx, exported_name) << "," << nl;
-  }
   if (type != SurfacePropertyType::UNSET) {
     ss << ind << "type = " << type << "," << nl;
   }
@@ -159,6 +155,10 @@ std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportCon
   }
   if (concentration != FLT_UNSET) {
     ss << ind << "concentration = " << f_to_str(concentration) << "," << nl;
+  }
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  if (properties != std::vector<std::shared_ptr<SurfaceProperty>>() && !skip_vectors_export()) {
+    ss << ind << "properties = " << export_vec_properties(out, ctx, exported_name) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

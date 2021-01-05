@@ -245,6 +245,15 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
     ss << exported_name << " = ";
   }
   ss << "m.GeometryObject(" << nl;
+  if (node_type != RegionNodeType::UNSET) {
+    ss << ind << "node_type = " << node_type << "," << nl;
+  }
+  if (is_set(left_node)) {
+    ss << ind << "left_node = " << left_node->export_to_python(out, ctx) << "," << nl;
+  }
+  if (is_set(right_node)) {
+    ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
+  }
   ss << ind << "name = " << "'" << name << "'" << "," << nl;
   ss << ind << "vertex_list = " << export_vec_vertex_list(out, ctx, exported_name) << "," << nl;
   ss << ind << "wall_list = " << export_vec_wall_list(out, ctx, exported_name) << "," << nl;
@@ -262,15 +271,6 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
   }
   if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>() && !skip_vectors_export()) {
     ss << ind << "initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx, exported_name) << "," << nl;
-  }
-  if (node_type != RegionNodeType::UNSET) {
-    ss << ind << "node_type = " << node_type << "," << nl;
-  }
-  if (is_set(left_node)) {
-    ss << ind << "left_node = " << left_node->export_to_python(out, ctx) << "," << nl;
-  }
-  if (is_set(right_node)) {
-    ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

@@ -1202,7 +1202,18 @@ def write_export_to_python_implementation(f, class_name, class_def):
     
     f.write(out + '"' + M_DOT + class_name + '(" << ' + NL + ';\n')
     processed_items = set()
+
+    # we would like to export inherited fields first
+    sorted_items = [] 
     for item in items:
+        if KEY_INHERITED in item:
+            sorted_items.append(item)
+    for item in items:
+        if KEY_INHERITED not in item:
+            sorted_items.append(item)
+    
+    for item in sorted_items:
+        
         type = item[KEY_TYPE]
         name = item[KEY_NAME]
         

@@ -43,9 +43,6 @@ void GenChkptVolMol::check_semantics() const {
   if (!is_set(diffusion_time)) {
     throw ValueError("Parameter 'diffusion_time' must be set.");
   }
-  if (!is_set(unimol_rx_time)) {
-    throw ValueError("Parameter 'unimol_rx_time' must be set.");
-  }
   if (!is_set(birthday)) {
     throw ValueError("Parameter 'birthday' must be set.");
   }
@@ -64,8 +61,8 @@ void GenChkptVolMol::set_all_attributes_as_default_or_unset() {
   id = INT_UNSET;
   species = nullptr;
   diffusion_time = FLT_UNSET;
-  unimol_rx_time = FLT_UNSET;
   birthday = FLT_UNSET;
+  unimol_rx_time = FLT_UNSET;
 }
 
 bool GenChkptVolMol::__eq__(const ChkptVolMol& other) const {
@@ -84,8 +81,8 @@ bool GenChkptVolMol::__eq__(const ChkptVolMol& other) const {
         )
      )  &&
     diffusion_time == other.diffusion_time &&
-    unimol_rx_time == other.unimol_rx_time &&
-    birthday == other.birthday;
+    birthday == other.birthday &&
+    unimol_rx_time == other.unimol_rx_time;
 }
 
 bool GenChkptVolMol::eq_nonarray_attributes(const ChkptVolMol& other, const bool ignore_name) const {
@@ -104,8 +101,8 @@ bool GenChkptVolMol::eq_nonarray_attributes(const ChkptVolMol& other, const bool
         )
      )  &&
     diffusion_time == other.diffusion_time &&
-    unimol_rx_time == other.unimol_rx_time &&
-    birthday == other.birthday;
+    birthday == other.birthday &&
+    unimol_rx_time == other.unimol_rx_time;
 }
 
 std::string GenChkptVolMol::to_str(const std::string ind) const {
@@ -115,8 +112,8 @@ std::string GenChkptVolMol::to_str(const std::string ind) const {
       "id=" << id << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "diffusion_time=" << diffusion_time << ", " <<
-      "unimol_rx_time=" << unimol_rx_time << ", " <<
-      "birthday=" << birthday;
+      "birthday=" << birthday << ", " <<
+      "unimol_rx_time=" << unimol_rx_time;
   return ss.str();
 }
 
@@ -135,8 +132,8 @@ py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
           py::arg("id"),
           py::arg("species"),
           py::arg("diffusion_time"),
-          py::arg("unimol_rx_time"),
-          py::arg("birthday")
+          py::arg("birthday"),
+          py::arg("unimol_rx_time") = FLT_UNSET
       )
       .def("check_semantics", &ChkptVolMol::check_semantics)
       .def("__str__", &ChkptVolMol::to_str, py::arg("ind") = std::string(""))
@@ -165,12 +162,14 @@ std::string GenChkptVolMol::export_to_python(std::ostream& out, PythonExportCont
     ss << exported_name << " = ";
   }
   ss << "m.ChkptVolMol(" << nl;
-  ss << ind << "pos = " << "m.Vec3(" << f_to_str(pos.x) << ", " << f_to_str(pos.y) << ", " << f_to_str(pos.z)<< ")," << nl;
   ss << ind << "id = " << id << "," << nl;
   ss << ind << "species = " << species->export_to_python(out, ctx) << "," << nl;
   ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
-  ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
   ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
+  if (unimol_rx_time != FLT_UNSET) {
+    ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
+  }
+  ss << ind << "pos = " << "m.Vec3(" << f_to_str(pos.x) << ", " << f_to_str(pos.y) << ", " << f_to_str(pos.z)<< ")," << nl;
   ss << ")" << nl << nl;
   if (!str_export) {
     out << ss.str();
