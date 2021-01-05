@@ -50,12 +50,7 @@ class Partition;
 
 /* Flags telling us which linked lists the molecule appears in. */
 #define IN_SCHEDULE 0x100
-#define IN_SURFACE 0x200
-/* And a mask to pick off all three IN_ flags */
-#define IN_MASK 0x700
 
-/* Flags telling us what our counting status is */
-#define COUNT_ME 0x800
 
 /* Flag indicating that a molecule is old enough to take the maximum timestep */
 #define MATURE_MOLECULE 0x2000

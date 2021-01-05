@@ -2591,7 +2591,6 @@ int DiffuseReactEvent::outcome_products_random(
 
       // create our new molecule
       Molecule sm_to_add(MOLECULE_ID_INVALID, product_species_id, pos, time);
-      sm_to_add.flags = IN_SURFACE;
       sm_to_add.set_flag(MOLECULE_FLAG_SURF);
       sm_to_add.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 

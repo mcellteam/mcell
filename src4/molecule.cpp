@@ -57,7 +57,6 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
   DUMP_FLAG(flags, ACT_CLAMPED)
   if (full_dump) {
     DUMP_FLAG(flags, IN_SCHEDULE)
-    DUMP_FLAG(flags, IN_SURFACE)
   }
   DUMP_FLAG(flags, MOLECULE_FLAG_DEFUNCT)
 #undef DUMP_FLAG
