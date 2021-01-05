@@ -204,6 +204,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
   world->total_iterations = s->iterations;
   world->config.time_unit = s->time_unit;
+  world->config.initial_time = TIME_SIMULATION_START;
+  world->config.initial_iteration = 0;
   world->config.length_unit = s->length_unit;
   world->config.grid_density = s->grid_density;
   world->config.rx_radius_3d = s->rx_radius_3d;

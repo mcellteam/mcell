@@ -269,6 +269,21 @@ EventExecutionInfo Scheduler::handle_next_event() {
 }
 
 
+void Scheduler::skip_events_up_to_time(const float_t start_time) {
+
+  while (calendar.get_next_time() < start_time) {
+    BaseEvent* event = calendar.pop_next();
+    bool to_schedule = event->update_event_time_for_next_scheduled_time();
+    if (to_schedule) {
+      calendar.insert(event);
+    }
+    else {
+      delete event;
+    }
+  }
+}
+
+
 void Scheduler::dump() const {
   calendar.dump();
 }

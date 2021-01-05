@@ -157,7 +157,19 @@ void World::init_counted_volumes() {
 }
 
 
-void World::init_simulation() {
+static float_t get_event_start_time(const float_t start_time, const float_t periodicity) {
+  if (periodicity == 0) {
+    return 0;
+  }
+  else {
+    return floor_to_multiple(start_time + periodicity, periodicity);
+  }
+}
+
+
+void World::init_simulation(const float_t start_time) {
+
+  release_assert(floor_to_multiple(start_time, config.time_unit) == start_time);
 
   // TODO: check these messages in testsuite
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
@@ -183,7 +195,7 @@ void World::init_simulation() {
 
   recompute_species_flags();
 
-  stats.reset();
+  stats.reset(false);
 
   init_fpu();
 
@@ -196,35 +208,40 @@ void World::init_simulation() {
 
   // create event that diffuses molecules
   DiffuseReactEvent* event = new DiffuseReactEvent(this);
-  event->event_time = TIME_SIMULATION_START;
+  event->event_time = start_time;
   scheduler.schedule_event(event);
 
   // create defragmentation events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
-  defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
+  defragmentation_event->event_time = get_event_start_time(start_time, DEFRAGMENTATION_PERIODICITY);
   defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
 
   PartitionShrinkEvent* partition_shrink_event = new PartitionShrinkEvent(this);
-  partition_shrink_event->event_time = PARTITION_SHRINK_PERIODICITY;
+  partition_shrink_event->event_time = get_event_start_time(start_time, PARTITION_SHRINK_PERIODICITY);
   partition_shrink_event->periodicity_interval = PARTITION_SHRINK_PERIODICITY;
   scheduler.schedule_event(partition_shrink_event);
 
   // create rxn class cleanup events
   RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
-  rxn_class_cleanup_event->event_time = config.rxn_class_cleanup_periodicity;
+  rxn_class_cleanup_event->event_time = get_event_start_time(start_time, config.rxn_class_cleanup_periodicity);
   rxn_class_cleanup_event->periodicity_interval = config.rxn_class_cleanup_periodicity;
   scheduler.schedule_event(rxn_class_cleanup_event);
 
   SpeciesCleanupEvent* species_cleanup_event = new SpeciesCleanupEvent(this);
-  species_cleanup_event->event_time = config.species_cleanup_periodicity;
+  species_cleanup_event->event_time = get_event_start_time(start_time, config.species_cleanup_periodicity);
   species_cleanup_event->periodicity_interval = config.species_cleanup_periodicity;
   scheduler.schedule_event(species_cleanup_event);
 
   // create subpart sorting events
   if (config.sort_mols_by_subpart) {
     SortMolsBySubpartEvent* sort_event = new SortMolsBySubpartEvent(this);
-    sort_event->event_time = 0;
+    if (start_time == 0) {
+      sort_event->event_time = TIME_SIMULATION_START;
+    }
+    else {
+      sort_event->event_time = get_event_start_time(start_time, SORT_MOLS_BY_SUBPART_PERIODICITY);
+    }
     sort_event->periodicity_interval = SORT_MOLS_BY_SUBPART_PERIODICITY;
     scheduler.schedule_event(sort_event);
   }
@@ -234,7 +251,7 @@ void World::init_simulation() {
     PeriodicCallEvent* stats_event = new PeriodicCallEvent(this);
     stats_event->function_ptr = print_periodic_stats_func;
     stats_event->function_arg = this;
-    stats_event->event_time = 0;
+    stats_event->event_time = start_time;
     stats_event->periodicity_interval = config.simulation_stats_every_n_iterations;
     scheduler.schedule_event(stats_event);
   }
@@ -268,9 +285,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const bool terminate
 
   uint64_t output_frequency = determine_output_frequency(total_iterations);
 
-  if (!simulation_initialized) {
-    init_simulation();
-  }
+  release_assert(simulation_initialized);
 
   uint64_t& current_iteration = stats.get_current_iteration();
 
@@ -290,7 +305,9 @@ void World::run_n_iterations(const uint64_t num_iterations, const bool terminate
   do {
     // current_iteration corresponds to the number of executed time steps
     float_t time = scheduler.get_next_event_time();
-    current_iteration = (uint64_t)time;
+
+    // convert time to iteration
+    current_iteration = (uint64_t)(time - config.get_simulation_start_time()) + config.initial_iteration;
 
     if (current_iteration == 1 && previous_iteration == 0) {
       it1_start_time_set = true;
@@ -407,11 +424,11 @@ void World::end_simulation(const bool print_final_report) {
 }
 
 
-void World::run_simulation(const bool dump_initial_state, const bool dump_with_geometry) {
+void World::init_and_run_simulation(const bool dump_initial_state, const bool dump_with_geometry) {
 
   // do initialization, also insert
   // defragmentation and end simulation event
-  init_simulation();
+  init_simulation(TIME_SIMULATION_START);
 
   if (dump_initial_state) {
     dump(dump_with_geometry);

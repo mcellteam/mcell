@@ -130,6 +130,10 @@ public:
   // returns time of the event that was handled
   EventExecutionInfo handle_next_event();
 
+  // skip events for checkpointing,
+  // may take long time if periodic events are scheduled
+  void skip_events_up_to_time(const float_t start_time);
+
   void dump() const;
 
   void to_data_model(Json::Value& mcell_node) const;

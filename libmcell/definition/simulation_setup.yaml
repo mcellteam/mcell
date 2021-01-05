@@ -141,12 +141,16 @@ Config:
   - name: initial_iteration
     type: uint64
     default: 0
+    min: 0
     doc: Initial iteration, used when resuming a checkpoint.
       
   - name: initial_time
     type: float
     default: 0
-    doc: Initial time in us, used when resuming a checkpoint.
+    min: 0
+    doc: | 
+       Initial time in us, used when resuming a checkpoint.
+       Will be truncated to be a multiple of time step.
 
   - name: rng_state
     type: RngState*

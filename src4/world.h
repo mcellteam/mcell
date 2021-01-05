@@ -66,8 +66,12 @@ class World {
 public:
   World(API::Callbacks& callbacks_);
   ~World();
-  void init_simulation();
-  void run_simulation(const bool dump_initial_state = false, const bool dump_with_geometry = false);
+  // MCell MDL mode
+  void init_and_run_simulation(const bool dump_initial_state = false, const bool dump_with_geometry = false);
+
+  void init_simulation(const float_t start_time);
+
+  // MCell Python mode, init_simulation must be called first
   void run_n_iterations(
       const uint64_t num_iterations,
       const bool terminate_last_iteration_after_viz_output = false // used when ending simulation

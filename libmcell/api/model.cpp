@@ -114,7 +114,7 @@ void Model::initialize() {
   vec_set_initialized(viz_outputs);
   vec_set_initialized(counts);
 
-  world->init_simulation();
+  world->init_simulation(world->config.get_simulation_start_time());
 
   initialize_introspection(this);
 

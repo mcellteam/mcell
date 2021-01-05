@@ -140,6 +140,9 @@ void MCell4Converter::convert() {
 
   convert_viz_output_events();
 
+  // sets up data loaded from checkpoint
+  convert_simulation_state();
+
   add_ctrl_c_termination_event();
 
   // some general checks
@@ -225,6 +228,7 @@ void MCell4Converter::get_geometry_bounding_box(Vec3& llf, Vec3& urb) {
 
 
 void MCell4Converter::convert_simulation_setup() {
+
   // notifications and reports
   const API::Notifications& notifications = model->notifications;
   world->config.bng_verbosity_level = notifications.bng_verbosity_level;
@@ -236,6 +240,8 @@ void MCell4Converter::convert_simulation_setup() {
 
   world->total_iterations = config.total_iterations;
   world->config.time_unit = config.time_step;
+  world->config.initial_time = config.initial_time;
+  world->config.initial_iteration = config.initial_iteration;
 
   float_t grid_density = config.surface_grid_density;
   world->config.grid_density = grid_density;
@@ -1754,9 +1760,27 @@ void MCell4Converter::convert_viz_output_events() {
 }
 
 
+// sets up data loaded from checkpoint, must be run after all events were added to the scheduler
+void MCell4Converter::convert_simulation_state() {
+
+  if ((model->config.initial_iteration != 0) != (model->config.initial_time != 0)) {
+    throw RuntimeError(S("Both ") + NAME_INITIAL_ITERATION + " and " + NAME_INITIAL_TIME +
+        " must be either 0 or both must be greater than 0.");
+  }
+
+  world->stats.set_current_iteration(model->config.initial_iteration);
+
+  // skips all events, fails if some periodic events are scheduled
+  world->scheduler.skip_events_up_to_time(
+      world->config.get_simulation_start_time()
+  );
+
+}
+
+
 void MCell4Converter::add_ctrl_c_termination_event() {
   MCell::PeriodicCallEvent* event = new PeriodicCallEvent(world);
-  event->event_time = 0;
+  event->event_time = world->config.get_simulation_start_time();
   event->periodicity_interval = 1;
   event->function_ptr = check_ctrl_c;
   event->function_arg = world;

@@ -33,6 +33,7 @@
 
 #include "mcell_structs.h"
 #include "debug_config.h"
+#include "dump_state.h"
 
 /*************************************************************************
 ae_list_sort:

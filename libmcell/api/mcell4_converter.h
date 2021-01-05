@@ -159,6 +159,8 @@ private:
 
   void convert_viz_output_events();
 
+  void convert_simulation_state();
+
   void add_ctrl_c_termination_event();
 
   void check_all_mol_types_have_diffusion_const();

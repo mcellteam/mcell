@@ -34,6 +34,8 @@ namespace MCell {
 class SimulationConfig: public BNG::BNGConfig {
 public:
   SimulationConfig() :
+    initial_time(TIME_INVALID),
+    initial_iteration(UINT_INVALID),
     vacancy_search_dist2(FLT_INVALID),
     partition_edge_length(FLT_INVALID),
     num_subpartitions_per_partition_edge(UINT_INVALID),
@@ -54,6 +56,8 @@ public:
   }
 
   // configuration
+  float_t initial_time; // simulation start time in us, non-zero if starting from a checkpoint
+  uint64_t initial_iteration; // initial iteration, non-zero if starting from a checkpoint
 
   float_t vacancy_search_dist2; /* Square of distance to search for free grid
                                   location to place surface product */
@@ -98,6 +102,14 @@ public:
   }
 
   void dump();
+
+  float_t get_simulation_start_time() const {
+    assert(initial_time != TIME_INVALID);
+    return floor_to_multiple(
+        initial_time / time_unit,
+        time_unit
+    );
+  }
 
 private:
   void init_subpartition_edge_length();
