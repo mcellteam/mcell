@@ -497,7 +497,7 @@ void Model::checkpoint_after_iteration(
   // there can be multiple callbacks registered
 
 
-  EndIterationCallEvent* checkpoint_event = new EndIterationCallEvent(nullptr);
+  //EndIterationCallEvent* checkpoint_event = new EndIterationCallEvent(nullptr);
   //checkpoint_event->event_time = iteration
 }
 

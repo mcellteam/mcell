@@ -243,12 +243,12 @@ PYBIND11_MODULE(mcell, m) {
 }
 
 
-void check_ctrl_c(const float_t current_time, void* arg) {
+void check_ctrl_c(const float_t current_time, World* world) {
   if (PyErr_CheckSignals() != 0) {
     std::cout << "Caught Ctrl-C signal in iteration " << current_time << ".\n";
     std::cout << "Flushing buffers.\n";
-    release_assert(arg != nullptr);
-    ((World*)arg)->flush_buffers();
+    release_assert(world != nullptr);
+    world->flush_buffers();
 
     throw py::error_already_set();
   }

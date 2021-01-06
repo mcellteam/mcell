@@ -33,23 +33,41 @@ namespace MCell {
  * Used for example to check that the user pressed ctrl-c
  * when running inside the Python interpreter.
  * Always executed at the end of an iteration.
+ *
+ * Made a template to hold its context as function_arg and
+ * to be able to destroy it afterwards.
  */
+template<typename T>
 class EndIterationCallEvent: public BaseEvent {
 public:
-  EndIterationCallEvent(World* /*world_*/)
+  typedef void (*CalledFunctionType)(float_t, T);
+
+  EndIterationCallEvent(
+      CalledFunctionType function_ptr_,
+      const T& function_arg_, // makes a shallow copy
+      const bool return_from_run_n_iterations_ = false
+  )
     : BaseEvent(EVENT_TYPE_INDEX_END_ITERATION_CALL),
-      function_ptr(nullptr),
-      function_arg(nullptr) {
+      function_ptr(function_ptr_),
+      function_arg(function_arg_),
+      return_from_run_n_iterations(return_from_run_n_iterations_){
   }
 
   // pointer to a function to be periodically called
-  void (*function_ptr)(float_t, void*);
+  // first argument is event time, second is
+  CalledFunctionType function_ptr;
 
-  void* function_arg;
+  T function_arg;
+
+  bool return_from_run_n_iterations;
 
   void step() override {
     assert(function_ptr != nullptr);
     function_ptr(event_time, function_arg);
+  }
+
+  virtual bool return_from_run_n_iterations_after_execution() const {
+    return return_from_run_n_iterations;
   }
 
   void dump(const std::string ind) const override {

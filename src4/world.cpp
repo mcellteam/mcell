@@ -63,9 +63,9 @@ static double tosecs(timeval& t) {
 }
 
 
-static void print_periodic_stats_func(float_t time, void* world) {
+static void print_periodic_stats_func(float_t time, World* world) {
   release_assert(world != nullptr);
-  ((World*)world)->print_periodic_stats();
+  world->print_periodic_stats();
 }
 
 
@@ -248,9 +248,8 @@ void World::init_simulation(const float_t start_time) {
 
   // simulation statistics, mostly for development purposes
   if (config.simulation_stats_every_n_iterations > 0) {
-    EndIterationCallEvent* stats_event = new EndIterationCallEvent(this);
-    stats_event->function_ptr = print_periodic_stats_func;
-    stats_event->function_arg = this;
+    EndIterationCallEvent<World*>* stats_event =
+        new EndIterationCallEvent<World*>(print_periodic_stats_func, this);
     stats_event->event_time = start_time;
     stats_event->periodicity_interval = config.simulation_stats_every_n_iterations;
     scheduler.schedule_event(stats_event);

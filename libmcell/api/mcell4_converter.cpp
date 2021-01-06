@@ -1788,11 +1788,11 @@ void MCell4Converter::convert_initial_iteration_and_time() {
 
 
 void MCell4Converter::add_ctrl_c_termination_event() {
-  MCell::EndIterationCallEvent* event = new EndIterationCallEvent(world);
+  MCell::EndIterationCallEvent<World*>* event =
+      new EndIterationCallEvent<World*>(check_ctrl_c, world);
+
   event->event_time = world->config.get_simulation_start_time();
   event->periodicity_interval = 1;
-  event->function_ptr = check_ctrl_c;
-  event->function_arg = world;
 
   world->scheduler.schedule_event(event);
 }
