@@ -941,6 +941,13 @@ Methods:
    * | iterations: float
      | Number of iterations to run. Value is truncated to an integer.
 
+   * | return type: int
+
+
+  | Runs specified number of iterations. Returns the number of iterations
+  | executed (it might be less than the requested number of iterations when 
+  | a checkpoint was scheduled).
+
 
 * | **end_simulation**
 
@@ -1123,12 +1130,40 @@ Methods:
 * | **save_checkpoint**
 
    * | custom_dir: str = None
-     | Sets custom directory where checkpoints will be stored.
+     | Sets custom directory where the checkpoint will be stored. 
+     | The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'.
 
 
   | Saves current model state as checkpoint. 
   | The default directory structure is checkpoints/seed_<SEED>/it_<ITERATION>,
   | it can be changed by setting 'custom_dir'.
+  | If used during an iteration, schedules an event for the end of the current iteration
+  | that saves the checkpoint (effectively calls 'checkpoint_after_iteration(0, False, custom_dir)'.
+
+
+* | **checkpoint_after_iteration**
+
+   * | iteration: int = 0
+     | Specifies iteration number after which the checkpoint save will occur. 
+     | The default value 0 means\: if we are currently executing an iteration 
+     | (checkpoint_after_iteration is called asynchronously or from a callback),
+     | then finish the current iteration and save the checkpoint. 
+     | If called with 0 between iterations, the simulator executes one iteration then 
+     | and saves the checkpoint.
+
+   * | return_from_run_iterations: bool = True
+     | When true, saving the checkpoint means that we want to terminate the simulation 
+     | and right after the save, the currently running function Model.run_iterations
+     | does not simulate any following iterations and execution returns from this function
+     | (e.g. to execute the next statement which is usually 'model.end_simulation()'.
+     | When false, the checkpoint is just saved and simulation continues uninterrupted.
+
+   * | custom_dir: str = None
+     | Sets custom directory where the checkpoint will be stored. 
+     | The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'.
+
+
+  | Schedules checkpoiting for time right after after a given iteration is finished.
 
 
 * | **add_species**

@@ -109,7 +109,7 @@ public:
 
   // --- methods ---
   virtual void initialize() = 0;
-  virtual void run_iterations(const float_t iterations) = 0;
+  virtual uint64_t run_iterations(const float_t iterations) = 0;
   virtual void end_simulation(const bool print_final_report = true) = 0;
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
   virtual void add_instantiation(std::shared_ptr<Instantiation> instantiation) = 0;
@@ -126,6 +126,7 @@ public:
   virtual void load_bngl(const std::string& file_name, const std::string& observables_files_prefix = "", std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
   virtual void export_to_bngl(const std::string& file_name) = 0;
   virtual void save_checkpoint(const std::string& custom_dir = STR_UNSET) = 0;
+  virtual void checkpoint_after_iteration(const uint64_t iteration = 0, const bool return_from_run_iterations = true, const std::string& custom_dir = STR_UNSET) = 0;
 }; // GenModel
 
 class Model;

@@ -691,7 +691,7 @@ class Model():
     def run_iterations(
             self,
             iterations : float
-        ) -> None:
+        ) -> 'int':
         pass
 
     def end_simulation(
@@ -797,6 +797,14 @@ class Model():
 
     def save_checkpoint(
             self,
+            custom_dir : str = None
+        ) -> None:
+        pass
+
+    def checkpoint_after_iteration(
+            self,
+            iteration : int = 0,
+            return_from_run_iterations : bool = True,
             custom_dir : str = None
         ) -> None:
         pass

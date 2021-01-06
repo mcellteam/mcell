@@ -114,7 +114,7 @@ static std::string get_customization_import(const std::string& customization_mod
   ;
 }
 
-static std::string get_argparse_w_customization(
+static std::string get_argparse_w_customization_begin(
     const std::string& parameters_module, const std::string& customization_module) {
 
   return
@@ -128,12 +128,31 @@ static std::string get_argparse_w_customization(
       "    elif len(sys.argv) == 3 and sys.argv[1] == '-seed':\n"
       "        # overwrite value of seed defined in module parameters\n"
       "        " + parameters_module + ".SEED = int(sys.argv[2])\n"
+  ;
+}
+
+const char* const CHECKPOINT_ITERATION = "checkpoint_iteration";
+
+static std::string get_argparse_checkpoint_iteration(
+    const std::string& parameters_module) {
+
+  return
+      std::string("    elif len(sys.argv) == 3 and sys.argv[1] == '-chkpt':\n") +
+      "        " + CHECKPOINT_ITERATION + " = int(sys.argv[2])\n" +
+      "    elif len(sys.argv) == 5 and sys.argv[1] == '-seed' and sys.argv[3] == '-chkpt':\n" +
+      "        " + parameters_module + ".SEED = int(sys.argv[2])\n" +
+      "        " + CHECKPOINT_ITERATION + " = int(sys.argv[4])\n"
+  ;
+}
+
+static std::string get_argparse_w_customization_end() {
+  return
       "    else:\n"
       "        print(\"Error: invalid command line arguments\")\n"
       "        print(\"  usage: \" + sys.argv[0] + \"[-seed N]\")\n"
-      "        sys.exit(1)\n"
-  ;
+      "        sys.exit(1)\n";
 }
+
 
 static std::string get_user_defined_configuration(const std::string& customization_module) {
   return

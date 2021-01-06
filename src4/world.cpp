@@ -281,11 +281,13 @@ void World::init_simulation(const float_t start_time) {
 }
 
 
-void World::run_n_iterations(const uint64_t num_iterations, const bool terminate_last_iteration_after_viz_output) {
+uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool terminate_last_iteration_after_viz_output) {
 
   uint64_t output_frequency = determine_output_frequency(total_iterations);
 
   release_assert(simulation_initialized);
+
+  uint64_t start_iteration = stats.get_current_iteration();
 
   uint64_t& current_iteration = stats.get_current_iteration();
 
@@ -373,6 +375,8 @@ void World::run_n_iterations(const uint64_t num_iterations, const bool terminate
   fflush(stdout);
   fflush(stderr);
 #endif
+
+  return current_iteration - start_iteration;
 }
 
 

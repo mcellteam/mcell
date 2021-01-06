@@ -72,7 +72,8 @@ public:
   void init_simulation(const float_t start_time);
 
   // MCell Python mode, init_simulation must be called first
-  void run_n_iterations(
+  // returns number of executed iterations
+  uint64_t run_n_iterations(
       const uint64_t num_iterations,
       const bool terminate_last_iteration_after_viz_output = false // used when ending simulation
   );

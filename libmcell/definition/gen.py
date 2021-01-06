@@ -852,7 +852,7 @@ def write_required_includes(f, class_def):
     types = get_all_used_nonbase_types(class_def)
     inner_types = set()
     for t in types:
-        # mus be set otherwise we get duplicates
+        # must be set otherwise we get duplicates
         inner_types.add( get_first_inner_type(t) )
 
     types_no_ptrs = [ t for t in inner_types if not is_yaml_ptr_type(t) ] 

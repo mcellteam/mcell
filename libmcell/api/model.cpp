@@ -127,11 +127,11 @@ void Model::initialize() {
 }
 
 
-void Model::run_iterations(const float_t iterations) {
+uint64_t Model::run_iterations(const float_t iterations) {
   if (world == nullptr) {
     throw RuntimeError("Model was not initialized, call Model.initialize() first");
   }
-  world->run_n_iterations(iterations, false);
+  return world->run_n_iterations(iterations, false);
 }
 
 
@@ -464,6 +464,15 @@ void Model::save_checkpoint(const std::string& custom_dir) {
 
   PythonExporter exporter(this);
   exporter.save_checkpoint(dir);
+}
+
+
+void Model::checkpoint_after_iteration(
+    const uint64_t iteration,
+    const bool return_from_run_iterations,
+    const std::string& custom_dir) {
+
+  assert(false && "TODO");
 }
 
 

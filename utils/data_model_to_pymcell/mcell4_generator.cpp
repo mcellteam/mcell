@@ -853,7 +853,17 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << get_customization_import(customization_module);
   out << "\n";
 
-  out << get_argparse_w_customization(parameters_module, customization_module);
+  if (data.testing_mode) {
+    out << CHECKPOINT_ITERATION << " = None\n\n";
+  }
+
+  out << get_argparse_w_customization_begin(parameters_module, customization_module);
+
+  if (data.testing_mode) {
+    out << get_argparse_checkpoint_iteration(parameters_module);
+  }
+
+  out << get_argparse_w_customization_end();
   out << "\n";
 
   out << get_import(get_module_name(SUBSYSTEM));

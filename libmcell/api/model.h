@@ -55,7 +55,7 @@ public:
 
   // from generated template
   void initialize() override;
-  void run_iterations(const float_t iterations) override;
+  uint64_t run_iterations(const float_t iterations) override;
   void end_simulation(const bool print_final_report = true) override;
 
   void add_subsystem(std::shared_ptr<Subsystem> subsystem) override;
@@ -107,6 +107,11 @@ public:
   void export_to_bngl(const std::string& file_name) override;
 
   void save_checkpoint(const std::string& custom_dir = STR_UNSET) override;
+
+  void checkpoint_after_iteration(
+      const uint64_t iteration = 0,
+      const bool return_from_run_iterations = true,
+      const std::string& custom_dir = STR_UNSET) override;
 
   // overrides from derived classes Subsystem, Instantiation, and Observables
   void add_species(std::shared_ptr<Species> s) override;
