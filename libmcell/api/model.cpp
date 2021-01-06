@@ -45,7 +45,7 @@
 #include "rxn_utils.inc"
 #include "molecule.h"
 #include "viz_output_event.h"
-
+#include "end_iteration_call_event.h"
 #include "bng/rxn_class.h"
 
 
@@ -439,6 +439,18 @@ void Model::export_to_bngl(const std::string& file_name) {
 }
 
 
+// returns 'checkpoints/seed_<SEED>/it_' - without the iteration number
+std::string Model::get_default_checkpoint_dir_prefix() const {
+  stringstream seed_num;
+  seed_num << setfill('0') << std::setw(DEFAULT_SEED_DIR_DIGITS) << config.seed;
+
+  return
+      std::string(DEFAULT_CHECKPOINTS_DIR) + BNG::PATH_SEPARATOR +
+      DEFAULT_SEED_DIR_PREFIX + seed_num.str() + BNG::PATH_SEPARATOR +
+      DEFAULT_ITERATION_DIR_PREFIX;
+}
+
+
 void Model::save_checkpoint(const std::string& custom_dir) {
   if (!initialized) {
     throw RuntimeError(S("Model must be initialized for ") + NAME_SAVE_CHECKPOINT + ".");
@@ -450,14 +462,9 @@ void Model::save_checkpoint(const std::string& custom_dir) {
     dir = custom_dir;
   }
   else {
-    stringstream seed_num;
-    seed_num << setfill('0') << std::setw(DEFAULT_SEED_DIR_DIGITS) << config.seed;
-
     // TODO: move the VizOutputEvent::iterations_to_string to some utilities
     dir =
-        std::string(DEFAULT_CHECKPOINTS_DIR) + BNG::PATH_SEPARATOR +
-        DEFAULT_SEED_DIR_PREFIX + seed_num.str() + BNG::PATH_SEPARATOR +
-        DEFAULT_ITERATION_DIR_PREFIX +
+        get_default_checkpoint_dir_prefix() +
         VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), config.total_iterations) +
         BNG::PATH_SEPARATOR;
   }
@@ -472,7 +479,26 @@ void Model::checkpoint_after_iteration(
     const bool return_from_run_iterations,
     const std::string& custom_dir) {
 
-  assert(false && "TODO");
+  // print warning and ignore if scheduled to the past
+  //if (iterations < world->stats.get_current_iteration())
+
+  string dir;
+  bool append_it_to_dir;
+  if (is_set(custom_dir)) {
+    dir = custom_dir;
+    append_it_to_dir = false;
+  }
+  else {
+    dir = get_default_checkpoint_dir_prefix();
+    append_it_to_dir = true;
+  }
+
+  // remember context for callback
+  // there can be multiple callbacks registered
+
+
+  EndIterationCallEvent* checkpoint_event = new EndIterationCallEvent(nullptr);
+  //checkpoint_event->event_time = iteration
 }
 
 

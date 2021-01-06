@@ -41,7 +41,7 @@
 #include "datamodel_defines.h"
 #include "bng_data_to_datamodel_converter.h"
 #include "diffuse_react_event.h"
-#include "periodic_call_event.h"
+#include "end_iteration_call_event.h"
 
 #include "api/mol_wall_hit_info.h"
 #include "api/geometry_object.h"
@@ -248,7 +248,7 @@ void World::init_simulation(const float_t start_time) {
 
   // simulation statistics, mostly for development purposes
   if (config.simulation_stats_every_n_iterations > 0) {
-    PeriodicCallEvent* stats_event = new PeriodicCallEvent(this);
+    EndIterationCallEvent* stats_event = new EndIterationCallEvent(this);
     stats_event->function_ptr = print_periodic_stats_func;
     stats_event->function_arg = this;
     stats_event->event_time = start_time;

@@ -21,8 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_PERIODIC_CALL_EVENT_H_
-#define SRC4_PERIODIC_CALL_EVENT_H_
+#ifndef SRC4_END_ITERATION_CALL_EVENT_H_
+#define SRC4_END_ITERATION_CALL_EVENT_H_
 
 #include "base_event.h"
 
@@ -31,12 +31,13 @@ namespace MCell {
 /**
  * General event that allows to call a function periodically.
  * Used for example to check that the user pressed ctrl-c
- * when running inside the Python interpreter
+ * when running inside the Python interpreter.
+ * Always executed at the end of an iteration.
  */
-class PeriodicCallEvent: public BaseEvent {
+class EndIterationCallEvent: public BaseEvent {
 public:
-  PeriodicCallEvent(World* /*world_*/)
-    : BaseEvent(EVENT_TYPE_INDEX_PERIODIC_CALL),
+  EndIterationCallEvent(World* /*world_*/)
+    : BaseEvent(EVENT_TYPE_INDEX_END_ITERATION_CALL),
       function_ptr(nullptr),
       function_arg(nullptr) {
   }
@@ -61,4 +62,4 @@ public:
 
 } // namespace mcell
 
-#endif // SRC4_PERIODIC_CALL_EVENT_H_
+#endif // SRC4_END_ITERATION_CALL_EVENT_H_

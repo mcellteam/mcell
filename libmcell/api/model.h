@@ -156,6 +156,8 @@ private:
       const char* method_name
   );
 
+  std::string get_default_checkpoint_dir_prefix() const;
+
   bool initialized;
   World* world;
 
