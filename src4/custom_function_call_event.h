@@ -21,8 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_END_ITERATION_CALL_EVENT_H_
-#define SRC4_END_ITERATION_CALL_EVENT_H_
+#ifndef SRC4_CUSTOM_FUNCTION_CALL_EVENT_H_
+#define SRC4_CUSTOM_FUNCTION_CALL_EVENT_H_
 
 #include "base_event.h"
 
@@ -38,19 +38,19 @@ namespace MCell {
  * to be able to destroy it afterwards.
  */
 template<typename T>
-class EndIterationCallEvent: public BaseEvent {
+class CustomFunctionCallEvent: public BaseEvent {
 public:
   typedef void (*CalledFunctionType)(float_t, T);
 
-  EndIterationCallEvent(
+  CustomFunctionCallEvent(
       CalledFunctionType function_ptr_,
       const T& function_arg_, // makes a shallow copy
-      const bool return_from_run_n_iterations_ = false
+      const event_type_index_t event_type_index_ = EVENT_TYPE_INDEX_CALL_END_ITERATION
   )
-    : BaseEvent(EVENT_TYPE_INDEX_END_ITERATION_CALL),
+    : BaseEvent(event_type_index_),
       function_ptr(function_ptr_),
       function_arg(function_arg_),
-      return_from_run_n_iterations(return_from_run_n_iterations_){
+      return_from_run_n_iterations(false){
   }
 
   // pointer to a function to be periodically called
@@ -80,4 +80,4 @@ public:
 
 } // namespace mcell
 
-#endif // SRC4_END_ITERATION_CALL_EVENT_H_
+#endif // SRC4_CUSTOM_FUNCTION_CALL_EVENT_H_

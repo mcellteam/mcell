@@ -40,12 +40,14 @@
 #include "api/wall_wall_hit_info.h"
 
 #include "world.h"
+#include "scheduler.h"
 #include "diffuse_react_event.h"
 #include "release_event.h"
 #include "rxn_utils.inc"
 #include "molecule.h"
 #include "viz_output_event.h"
-#include "end_iteration_call_event.h"
+#include "custom_function_call_event.h"
+
 #include "bng/rxn_class.h"
 
 
@@ -474,31 +476,83 @@ void Model::save_checkpoint(const std::string& custom_dir) {
 }
 
 
-void Model::checkpoint_after_iteration(
+struct CheckpointSaveEventContext {
+  Model* model;
+  std::string dir_prefix;
+  bool append_it_to_dir;
+};
+
+
+void save_checkpoint_func(const float_t time, CheckpointSaveEventContext ctx) {
+
+  const World* world = ctx.model->get_world();
+
+  release_assert(
+      world->scheduler.get_event_being_executed()->type_index == EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT &&
+      "May be called only from event with index EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT, "
+      " world/model data may be inconsistent otherwise"
+  );
+
+  uint64_t current_it = world->stats.get_current_iteration();
+
+  std::string dir;
+  if (ctx.append_it_to_dir) {
+    dir =
+        ctx.dir_prefix +
+        VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), ctx.model->config.total_iterations) +
+        BNG::PATH_SEPARATOR;
+  }
+  else {
+    dir = ctx.dir_prefix;
+  }
+
+  cout << "Saving scheduled checkpoint in iteration " << current_it << " into " << dir << "\n";
+
+  PythonExporter exporter(ctx.model);
+  exporter.save_checkpoint(dir);
+}
+
+
+// can be called asynchronously at any point of simulation, only single-threaded
+void Model::schedule_checkpoint(
     const uint64_t iteration,
     const bool return_from_run_iterations,
     const std::string& custom_dir) {
 
-  // print warning and ignore if scheduled to the past
-  //if (iterations < world->stats.get_current_iteration())
+  // NOTE: accessing current iteration value asynchronously,
+  // it is a 64-bit integer so write is done atomically with a single instruction
+  uint64_t current_it = world->stats.get_current_iteration();
+  if (iteration != 0 && iteration < current_it) {
+    throw RuntimeError(S("Method ") + NAME_SCHEDULE_CHECKPOINT + " - cannot schedule checkpoint to the past.");
+  }
 
-  string dir;
-  bool append_it_to_dir;
+  // same as above - 'initialized' uses a simple type, therefore writes are atomic
+  if (!initialized) {
+    throw RuntimeError(S("Method ") + NAME_SCHEDULE_CHECKPOINT + " cannot be called before model initialization.");
+  }
+
+  // prepare context for callback
+  CheckpointSaveEventContext ctx;
+  ctx.model = this;
+
   if (is_set(custom_dir)) {
-    dir = custom_dir;
-    append_it_to_dir = false;
+    ctx.dir_prefix = custom_dir;
+    ctx.append_it_to_dir = false;
   }
   else {
-    dir = get_default_checkpoint_dir_prefix();
-    append_it_to_dir = true;
+    ctx.dir_prefix = get_default_checkpoint_dir_prefix();
+    ctx.append_it_to_dir = true;
   }
 
-  // remember context for callback
-  // there can be multiple callbacks registered
+  CustomFunctionCallEvent<CheckpointSaveEventContext>* checkpoint_event =
+      new CustomFunctionCallEvent<CheckpointSaveEventContext>(
+          save_checkpoint_func, ctx, EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT);
+  checkpoint_event->event_time = iteration;
+  checkpoint_event->periodicity_interval = 0; // only once
+  checkpoint_event->return_from_run_n_iterations = return_from_run_iterations;
 
-
-  //EndIterationCallEvent* checkpoint_event = new EndIterationCallEvent(nullptr);
-  //checkpoint_event->event_time = iteration
+  // safely schedule
+  world->scheduler.schedule_event_asynchronously(checkpoint_event);
 }
 
 

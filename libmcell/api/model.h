@@ -108,7 +108,7 @@ public:
 
   void save_checkpoint(const std::string& custom_dir = STR_UNSET) override;
 
-  void checkpoint_after_iteration(
+  void schedule_checkpoint(
       const uint64_t iteration = 0,
       const bool return_from_run_iterations = true,
       const std::string& custom_dir = STR_UNSET) override;
@@ -158,7 +158,7 @@ private:
 
   std::string get_default_checkpoint_dir_prefix() const;
 
-  bool initialized;
+  volatile bool initialized;
   World* world;
 
   Callbacks callbacks;

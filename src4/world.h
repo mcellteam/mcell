@@ -227,6 +227,8 @@ public:
   void flush_buffers();
 
 private:
+  uint64_t time_to_iteration(const float_t time);
+
   // called in init_simulation
   void recompute_species_flags();
 
@@ -255,7 +257,7 @@ public:
 
   SpeciesFlagsAnalyzer species_flags_analyzer;
 
-  Scheduler scheduler;
+  mutable Scheduler scheduler; // scheduler might need to do some internal reorganization
 
   std::vector<MolOrRxnCountEvent*> unscheduled_count_events;
 

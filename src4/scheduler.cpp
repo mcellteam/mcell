@@ -228,13 +228,43 @@ void Scheduler::schedule_event(BaseEvent* event) {
 }
 
 
+void Scheduler::schedule_event_asynchronously(BaseEvent* event) {
+  // may be called multiple times at the same moment e.g. when
+  // adding a checkpointing event based on some timer in Python
+  async_event_queue_lock.lock();
+  have_async_events_to_schedule = true;
+  async_event_queue.push_back(event);
+  async_event_queue_lock.unlock();
+}
+
+
+void Scheduler::schedule_events_from_async_queue() {
+  if (!have_async_events_to_schedule) {
+    return;
+  }
+
+  async_event_queue_lock.lock();
+  for (BaseEvent* e: async_event_queue) {
+    schedule_event(e);
+  }
+  async_event_queue.clear();
+  have_async_events_to_schedule = false;
+  async_event_queue_lock.unlock();
+}
+
 float_t Scheduler::get_next_event_time() {
+  schedule_events_from_async_queue();
+
   return calendar.get_next_time();
 }
 
 
 // pop next scheduled event and run its step method
 EventExecutionInfo Scheduler::handle_next_event() {
+
+  // first check if there are any
+  schedule_events_from_async_queue();
+
   BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");
   float_t event_time = event->event_time;
@@ -253,7 +283,7 @@ EventExecutionInfo Scheduler::handle_next_event() {
   event_being_executed = nullptr;
 
   event_type_index_t type_index = event->type_index;
-
+  bool return_from_run_iterations = event->return_from_run_n_iterations_after_execution();
 
   // schedule itself for the next period or just delete
   float_t next_time;
@@ -265,7 +295,7 @@ EventExecutionInfo Scheduler::handle_next_event() {
     delete event;
   }
 
-  return EventExecutionInfo(event_time, type_index);
+  return EventExecutionInfo(event_time, type_index, return_from_run_iterations);
 }
 
 

@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
+
 #include <fenv.h> // Linux include
-#include <run_n_iterations_end_event.h>
 #include <sys/resource.h> // Linux include
 
 #include <fstream>
@@ -41,7 +41,8 @@
 #include "datamodel_defines.h"
 #include "bng_data_to_datamodel_converter.h"
 #include "diffuse_react_event.h"
-#include "end_iteration_call_event.h"
+#include "run_n_iterations_end_event.h"
+#include "custom_function_call_event.h"
 
 #include "api/mol_wall_hit_info.h"
 #include "api/geometry_object.h"
@@ -248,8 +249,8 @@ void World::init_simulation(const float_t start_time) {
 
   // simulation statistics, mostly for development purposes
   if (config.simulation_stats_every_n_iterations > 0) {
-    EndIterationCallEvent<World*>* stats_event =
-        new EndIterationCallEvent<World*>(print_periodic_stats_func, this);
+    CustomFunctionCallEvent<World*>* stats_event =
+        new CustomFunctionCallEvent<World*>(print_periodic_stats_func, this);
     stats_event->event_time = start_time;
     stats_event->periodicity_interval = config.simulation_stats_every_n_iterations;
     scheduler.schedule_event(stats_event);
@@ -280,6 +281,10 @@ void World::init_simulation(const float_t start_time) {
 }
 
 
+uint64_t World::time_to_iteration(const float_t time) {
+  return (uint64_t)(time - config.get_simulation_start_time()) + config.initial_iteration;
+}
+
 uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool terminate_last_iteration_after_viz_output) {
 
   uint64_t output_frequency = determine_output_frequency(total_iterations);
@@ -308,7 +313,7 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
     float_t time = scheduler.get_next_event_time();
 
     // convert time to iteration
-    current_iteration = (uint64_t)(time - config.get_simulation_start_time()) + config.initial_iteration;
+    current_iteration = time_to_iteration(time);
 
     if (current_iteration == 1 && previous_iteration == 0) {
       it1_start_time_set = true;
@@ -358,10 +363,16 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
 
     // also terminate if this was the last iteration and we hit an event that represents a check for the
     // end of the simulation
-    if (terminate_last_iteration_after_viz_output &&
-       event_info.type_index == EVENT_TYPE_INDEX_SIMULATION_END_CHECK
+    if (
+        (terminate_last_iteration_after_viz_output &&
+         event_info.type_index == EVENT_TYPE_INDEX_SIMULATION_END_CHECK
+        ) ||
+        event_info.return_from_run_iterations
     ) {
-      assert(current_iteration == this_run_first_iteration + num_iterations - 1);
+      assert(
+          event_info.return_from_run_iterations ||
+          current_iteration == this_run_first_iteration + num_iterations - 1);
+
       break;
     }
 
@@ -524,11 +535,11 @@ std::string World::export_releases_to_bngl_seed_species(
 
   parameters << "\n" << BNG::IND << "# seed species counts\n";
 
-  vector<const BaseEvent*> release_events;
+  vector<BaseEvent*> release_events;
   scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_RELEASE, release_events);
 
   for (size_t i = 0; i < release_events.size(); i++) {
-    const ReleaseEvent* re = dynamic_cast<const ReleaseEvent*>(release_events[i]);
+    ReleaseEvent* re = dynamic_cast<ReleaseEvent*>(release_events[i]);
     assert(re != nullptr);
 
     if (re->release_shape == ReleaseShape::INITIAL_SURF_REGION) {
@@ -579,11 +590,11 @@ std::string World::export_releases_to_bngl_seed_species(
 std::string World::export_counts_to_bngl_observables(std::ostream& observables) const {
   observables << BNG::BEGIN_OBSERVABLES << "\n";
 
-  vector<const BaseEvent*> count_events;
+  vector<BaseEvent*> count_events;
   scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
 
   for (size_t i = 0; i < count_events.size(); i++) {
-    const MolOrRxnCountEvent* ce = dynamic_cast<const MolOrRxnCountEvent*>(count_events[i]);
+    MolOrRxnCountEvent* ce = dynamic_cast<MolOrRxnCountEvent*>(count_events[i]);
     assert(ce != nullptr);
 
     for (const MolOrRxnCountItem& item: ce->mol_rxn_count_items) {

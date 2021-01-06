@@ -27,11 +27,13 @@
 #include "clamp_release_event.h"
 #include "viz_output_event.h"
 #include "mol_or_rxn_count_event.h"
-#include "end_iteration_call_event.h"
 #include "geometry.h"
 #include "rng.h"
 #include "isaac64.h"
 #include "mcell_structs.h"
+#include "custom_function_call_event.h"
+
+
 #include "bng/bng.h"
 
 #include "api/mcell.h"
@@ -1788,8 +1790,8 @@ void MCell4Converter::convert_initial_iteration_and_time() {
 
 
 void MCell4Converter::add_ctrl_c_termination_event() {
-  MCell::EndIterationCallEvent<World*>* event =
-      new EndIterationCallEvent<World*>(check_ctrl_c, world);
+  MCell::CustomFunctionCallEvent<World*>* event =
+      new CustomFunctionCallEvent<World*>(check_ctrl_c, world);
 
   event->event_time = world->config.get_simulation_start_time();
   event->periodicity_interval = 1;

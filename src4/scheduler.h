@@ -26,6 +26,7 @@
 
 #include <deque>
 #include <list>
+#include <mutex>
 
 #include "base_event.h"
 
@@ -108,21 +109,31 @@ private:
 
 // Structure used to return information about the event that was just handled
 struct EventExecutionInfo {
-  EventExecutionInfo(float_t time_, event_type_index_t type_index_)
-    : time(time_), type_index(type_index_) {
+  EventExecutionInfo(
+      const float_t time_, const event_type_index_t type_index_, const bool return_from_run_iterations_) :
+      time(time_), type_index(type_index_), return_from_run_iterations(return_from_run_iterations_) {
   }
   float_t time;
   event_type_index_t type_index;
+  bool return_from_run_iterations;
 };
 
 class Scheduler {
 public:
   Scheduler() :
-    event_being_executed(nullptr) {
+    event_being_executed(nullptr),
+    async_event_queue_lock(mtx, std::defer_lock),
+    have_async_events_to_schedule(false) {
   }
 
   // scheduler becomes owner of the base_event object
   void schedule_event(BaseEvent* event);
+
+  // same as schedule_event only guarded by a critical section and
+  // inserts the event into a separate queue of events,
+  // every method whose outcome might be changed by the events in the async queue
+  // must call schedule_events_from_async_queue to schedule these events correctly
+  void schedule_event_asynchronously(BaseEvent* event);
 
   // returns the time of next event
   float_t get_next_event_time();
@@ -139,21 +150,24 @@ public:
   void to_data_model(Json::Value& mcell_node) const;
 
   const BaseEvent* find_next_event_with_type_index(
-      const event_type_index_t event_type_index) const {
+      const event_type_index_t event_type_index) {
+    schedule_events_from_async_queue();
+
     return calendar.find_next_event_with_type_index(event_type_index);
   }
 
   void get_all_events_with_type_index(
       const event_type_index_t event_type_index, std::vector<BaseEvent*>& events) {
-    return calendar.get_all_events_with_type_index(event_type_index, events);
-  }
+    schedule_events_from_async_queue();
 
-  void get_all_events_with_type_index(
-      const event_type_index_t event_type_index, std::vector<const BaseEvent*>& events) const {
     return calendar.get_all_events_with_type_index(event_type_index, events);
   }
 
   BaseEvent* get_event_being_executed() {
+    return event_being_executed;
+  }
+
+  const BaseEvent* get_event_being_executed() const {
     return event_being_executed;
   }
 
@@ -162,11 +176,22 @@ public:
   }
 
 private:
+  // checks if there are events in the async queue and schedules them
+  // not really const but maintains the consistency of events visible to the outside
+  void schedule_events_from_async_queue();
+
+
   Calendar calendar;
 
   // callback might need to query which event is being executed right now
   // is nullptr when no event is running
   BaseEvent* event_being_executed;
+
+  // lock for asynchronous scheduling of events
+  std::mutex mtx;
+  std::unique_lock<std::mutex> async_event_queue_lock;
+  std::vector<BaseEvent*> async_event_queue;
+  volatile bool have_async_events_to_schedule; // unguarded flag for fast check whether async_event_queue is empty
 };
 
 } // namespace mcell

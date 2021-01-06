@@ -259,29 +259,28 @@ Model:
          Sets custom directory where the checkpoint will be stored. 
          The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'. 
 
-  - name: checkpoint_after_iteration
+  - name: schedule_checkpoint
     doc: |
-       Schedules checkpoiting for time right after after a given iteration is finished.
+       Schedules checkpoint save that will occur when an iteration is started  
+       right before any other events scheduled for the given iteration are executed.
+       Can be called asynchronously at any time after initialization.
+       
     params:
     - name: iteration
       type: uint64
       default: 0
       doc: |
-        Specifies iteration number after which the checkpoint save will occur. 
+        Specifies iteration number when the checkpoint save will occur. 
         Please note that iterations are counted from 0, i.e. a call run_iterations(3)
         runs iterations 0, 1, 2.
-        The default value 0 means\: if we are currently executing an iteration 
-        (checkpoint_after_iteration is called asynchronously or from a callback),
-        then finish the current iteration and save the checkpoint. 
-        If called with 0 between iterations, the simulator executes one iteration then 
-        and saves the checkpoint.
+        To schedule a checkpoint for the closest time as possible, keep the default value 0. 
     
     - name: return_from_run_iterations
       type: bool
       default: true
       doc: |
         When true, saving the checkpoint means that we want to terminate the simulation 
-        and right after the save, the currently running function Model.run_iterations
+        right after the save, the currently running function Model.run_iterations
         does not simulate any following iterations and execution returns from this function
         (e.g. to execute the next statement which is usually 'model.end_simulation()'.
         When false, the checkpoint is just saved and simulation continues uninterrupted.

@@ -801,7 +801,7 @@ class Model():
         ) -> None:
         pass
 
-    def checkpoint_after_iteration(
+    def schedule_checkpoint(
             self,
             iteration : int = 0,
             return_from_run_iterations : bool = True,
