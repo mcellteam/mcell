@@ -300,7 +300,6 @@ std::string PythonExporter::save_model(
   out << "\n";
 
   // instantiation
-  // TODO: do not generate past releases?
   string instantiation_prefix = S(INSTANTIATION) + "." + instantiation_name + ".";
   gen_assign(out, MODEL, NAME_RELEASE_SITES, instantiation_prefix + NAME_RELEASE_SITES);
   gen_assign(out, MODEL, NAME_GEOMETRY_OBJECTS, instantiation_prefix + NAME_GEOMETRY_OBJECTS);
@@ -314,7 +313,7 @@ std::string PythonExporter::save_model(
 
   // checkpoint-specific config
 
-  out << make_section_comment("saved simulation state");
+  out << make_section_comment("saved simulation state and checkpoint config");
   // - time step (explicit)?
   vector<string> config_vars = { NAME_INITIAL_ITERATION, NAME_INITIAL_TIME, NAME_INITIAL_RNG_STATE };
   for (string& var: config_vars) {
@@ -322,6 +321,7 @@ std::string PythonExporter::save_model(
     release_assert(it != config_variable_names.end());
     gen_assign(out, MODEL, NAME_CONFIG, it->first, S(SIMULATION_STATE) + "." + it->second);
   }
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_APPEND_TO_COUNT_OUTPUT_DATA, true);
 
   gen_assign(out, MODEL, NAME_CHECKPOINTED_MOLECULES, S(SIMULATION_STATE) + "." + NAME_CHECKPOINTED_MOLECULES);
   out << "\n";

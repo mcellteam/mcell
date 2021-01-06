@@ -276,7 +276,7 @@ Model:
         To schedule a checkpoint for the closest time as possible, keep the default value 0. 
         If calling schedule_checkpoint from a different thread (e.g. by using threading.Timer), 
         it is highly recommended to keep the default value 0 or choose some time that will be 
-	for sure in the future.
+        for sure in the future.
     
     - name: return_from_run_iterations
       type: bool

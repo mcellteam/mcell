@@ -61,6 +61,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   initial_iteration = 0;
   initial_time = 0;
   initial_rng_state = nullptr;
+  append_to_count_output_data = false;
 }
 
 bool GenConfig::__eq__(const Config& other) const {
@@ -93,7 +94,8 @@ bool GenConfig::__eq__(const Config& other) const {
           false :
           true
         )
-     ) ;
+     )  &&
+    append_to_count_output_data == other.append_to_count_output_data;
 }
 
 bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_name) const {
@@ -126,7 +128,8 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
           false :
           true
         )
-     ) ;
+     )  &&
+    append_to_count_output_data == other.append_to_count_output_data;
 }
 
 std::string GenConfig::to_str(const std::string ind) const {
@@ -150,7 +153,8 @@ std::string GenConfig::to_str(const std::string ind) const {
       "memory_limit_gb=" << memory_limit_gb << ", " <<
       "initial_iteration=" << initial_iteration << ", " <<
       "initial_time=" << initial_time << ", " <<
-      "\n" << ind + "  " << "initial_rng_state=" << "(" << ((initial_rng_state != nullptr) ? initial_rng_state->to_str(ind + "  ") : "null" ) << ")";
+      "\n" << ind + "  " << "initial_rng_state=" << "(" << ((initial_rng_state != nullptr) ? initial_rng_state->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "append_to_count_output_data=" << append_to_count_output_data;
   return ss.str();
 }
 
@@ -176,7 +180,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const int,
             const uint64_t,
             const float_t,
-            std::shared_ptr<RngState>
+            std::shared_ptr<RngState>,
+            const bool
           >(),
           py::arg("seed") = 1,
           py::arg("time_step") = 1e-6,
@@ -196,7 +201,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("memory_limit_gb") = -1,
           py::arg("initial_iteration") = 0,
           py::arg("initial_time") = 0,
-          py::arg("initial_rng_state") = nullptr
+          py::arg("initial_rng_state") = nullptr,
+          py::arg("append_to_count_output_data") = false
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
@@ -221,6 +227,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("initial_iteration", &Config::get_initial_iteration, &Config::set_initial_iteration)
       .def_property("initial_time", &Config::get_initial_time, &Config::set_initial_time)
       .def_property("initial_rng_state", &Config::get_initial_rng_state, &Config::set_initial_rng_state)
+      .def_property("append_to_count_output_data", &Config::get_append_to_count_output_data, &Config::set_append_to_count_output_data)
     ;
 }
 
@@ -299,6 +306,9 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   }
   if (is_set(initial_rng_state)) {
     ss << ind << "initial_rng_state = " << initial_rng_state->export_to_python(out, ctx) << "," << nl;
+  }
+  if (append_to_count_output_data != false) {
+    ss << ind << "append_to_count_output_data = " << append_to_count_output_data << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

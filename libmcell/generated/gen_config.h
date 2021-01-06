@@ -53,7 +53,8 @@ class PythonExportContext;
         const int memory_limit_gb_ = -1, \
         const uint64_t initial_iteration_ = 0, \
         const float_t initial_time_ = 0, \
-        std::shared_ptr<RngState> initial_rng_state_ = nullptr \
+        std::shared_ptr<RngState> initial_rng_state_ = nullptr, \
+        const bool append_to_count_output_data_ = false \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
@@ -75,6 +76,7 @@ class PythonExportContext;
       initial_iteration = initial_iteration_; \
       initial_time = initial_time_; \
       initial_rng_state = initial_rng_state_; \
+      append_to_count_output_data = append_to_count_output_data_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -361,6 +363,20 @@ public:
   virtual std::shared_ptr<RngState> get_initial_rng_state() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_rng_state;
+  }
+
+  bool append_to_count_output_data;
+  virtual void set_append_to_count_output_data(const bool new_append_to_count_output_data_) {
+    if (initialized) {
+      throw RuntimeError("Value 'append_to_count_output_data' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    append_to_count_output_data = new_append_to_count_output_data_;
+  }
+  virtual bool get_append_to_count_output_data() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return append_to_count_output_data;
   }
 
   // --- methods ---

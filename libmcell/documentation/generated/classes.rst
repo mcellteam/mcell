@@ -444,6 +444,11 @@ Attributes:
   | after initialization right before the first event is started. 
   | When not set, the set 'seed' value is used to initialize the random number generator.
 
+* | **append_to_count_output_data**: bool = False
+  | Used for checkpointing, instead of creating new files for Count observables data, 
+  | new values are appended to the existing files. If such files do not exist, new files are
+  | created.
+
 Count
 =====
 
@@ -1147,7 +1152,10 @@ Methods:
      | Specifies iteration number when the checkpoint save will occur. 
      | Please note that iterations are counted from 0, i.e. a call run_iterations(3)
      | runs iterations 0, 1, 2.
-     | To schedule a checkpoint for the closest time as possible, keep the default value 0.
+     | To schedule a checkpoint for the closest time as possible, keep the default value 0. 
+     | If calling schedule_checkpoint from a different thread (e.g. by using threading.Timer), 
+     | it is highly recommended to keep the default value 0 or choose some time that will be 
+     | for sure in the future.
 
    * | return_from_run_iterations: bool = True
      | When true, saving the checkpoint means that we want to terminate the simulation 
