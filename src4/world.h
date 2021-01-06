@@ -35,7 +35,6 @@
 #include <map>
 #include <iostream>
 
-#include "../libs/bng/rxn_container.h"
 #include "bng/bng.h"
 
 #include "partition.h"

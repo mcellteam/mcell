@@ -126,17 +126,20 @@ public:
     have_async_events_to_schedule(false) {
   }
 
-  // scheduler becomes owner of the base_event object
+  // - scheduler becomes owner of the base_event object
+  // - event's time must be valid and not be in the past
   void schedule_event(BaseEvent* event);
 
-  // same as schedule_event only guarded by a critical section and
-  // inserts the event into a separate queue of events,
-  // every method whose outcome might be changed by the events in the async queue
-  // must call schedule_events_from_async_queue to schedule these events correctly
+  // - similar as schedule_event only guarded by a critical section and
+  //   inserts the event into a separate queue of events,
+  // - every method whose outcome might be changed by the events in the async queue
+  //   must call schedule_events_from_async_queue to schedule these events correctly
+  // - events that have event_time == TIME_INVALID will get time for the next iteration
+  //   so that they are executed in the right order
   void schedule_event_asynchronously(BaseEvent* event);
 
   // returns the time of next event
-  float_t get_next_event_time();
+  float_t get_next_event_time(const bool skip_async_events_check = false);
 
   // returns time of the event that was handled
   EventExecutionInfo handle_next_event();

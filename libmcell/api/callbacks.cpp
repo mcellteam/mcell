@@ -54,6 +54,9 @@ void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo> info) {
   info->time_before_hit = info->time_before_hit * model->get_world()->config.time_unit;
   info->pos3d_before_hit = info->pos3d_before_hit * Vec3(model->get_world()->config.length_unit);
 
+  // acquire GIL before calling Python code
+  py::gil_scoped_acquire acquire;
+
   // call the actual callback
   mol_wall_hit_callback_function(info, mol_wall_hit_context);
 }
@@ -100,6 +103,9 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
     info->wall_index = info->geometry_object->get_object_wall_index(info->partition_wall_index);
     info->pos2d = info->pos2d * Vec2(model->get_world()->config.length_unit);
   }
+
+  // acquire GIL before calling Python code
+  py::gil_scoped_acquire acquire;
 
   // call the actual callback
   specific_callback.rxn_callback_function(info, specific_callback.rxn_context);

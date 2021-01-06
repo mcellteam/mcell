@@ -244,6 +244,8 @@ PYBIND11_MODULE(mcell, m) {
 
 
 void check_ctrl_c(const float_t current_time, World* world) {
+  // make sure to re-acquire lock, PyErr_CheckSignals segfaults otherwise
+  py::gil_scoped_acquire acquire;
   if (PyErr_CheckSignals() != 0) {
     std::cout << "Caught Ctrl-C signal in iteration " << current_time << ".\n";
     std::cout << "Flushing buffers.\n";

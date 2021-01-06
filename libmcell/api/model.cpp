@@ -130,6 +130,10 @@ void Model::initialize() {
 
 
 uint64_t Model::run_iterations(const float_t iterations) {
+  // release GIL before calling into long-running C++ code, 
+  // necessary for other Python threads to be allowed to run (e.g. a timer)
+  py::gil_scoped_release release;
+
   if (world == nullptr) {
     throw RuntimeError("Model was not initialized, call Model.initialize() first");
   }
@@ -139,6 +143,7 @@ uint64_t Model::run_iterations(const float_t iterations) {
 
 void Model::end_simulation(const bool print_final_report) {
   // the first argument specifies that the last mol/rxn count and viz_output events will be run
+  // cannot call callbacks anymore (no diffusion event is executed)
   world->end_simulation(print_final_report);
 }
 
@@ -210,6 +215,10 @@ std::vector<int> Model::run_reaction(
     std::shared_ptr<ReactionRule> reaction_rule,
     const std::vector<int> reactant_ids,
     const float_t time) {
+
+  // need to release lock because we might be calling callbacks that are locking back
+  py::gil_scoped_release release;
+
   if (!initialized) {
     throw RuntimeError(S("Model must be initialized before calling ") + NAME_RUN_REACTION + ".");
   }
@@ -265,7 +274,7 @@ std::vector<int> Model::run_reaction(
     BaseEvent* current_event = world->scheduler.get_event_being_executed();
     DiffuseReactEvent* diffuse_react_event;
     bool using_temporary_event;
-    if (current_event->type_index == EVENT_TYPE_INDEX_DIFFUSE_REACT) {
+    if (current_event != nullptr && current_event->type_index == EVENT_TYPE_INDEX_DIFFUSE_REACT) {
       diffuse_react_event = dynamic_cast<DiffuseReactEvent*>(current_event);
       using_temporary_event = false;
     }
@@ -547,7 +556,14 @@ void Model::schedule_checkpoint(
   CustomFunctionCallEvent<CheckpointSaveEventContext>* checkpoint_event =
       new CustomFunctionCallEvent<CheckpointSaveEventContext>(
           save_checkpoint_func, ctx, EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT);
-  checkpoint_event->event_time = iteration;
+
+  if (iteration == 0) {
+    // schedule for the closest iteration while correctly maintaining order of events in the queue
+    checkpoint_event->event_time = TIME_INVALID;
+  }
+  else {
+    checkpoint_event->event_time = iteration;
+  }
   checkpoint_event->periodicity_interval = 0; // only once
   checkpoint_event->return_from_run_n_iterations = return_from_run_iterations;
 

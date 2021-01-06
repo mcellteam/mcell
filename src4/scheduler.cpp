@@ -94,7 +94,7 @@ void Calendar::insert(BaseEvent* event) {
   else {
     // we first need to find out whether we already have a bucket for this event
     float_t first_start_time = get_first_bucket_start_time();
-    assert(bucket_start_time - first_start_time >= 0 && "cannot schedule to the past"); // some eps?
+    release_assert(bucket_start_time - first_start_time >= 0 && "cannot schedule to the past"); // some eps?
     size_t buckets_from_first = (bucket_start_time - first_start_time) / BUCKET_TIME_INTERVAL;
 
     if (buckets_from_first < queue.size()) {
@@ -224,6 +224,7 @@ float_t Calendar::get_time_up_to_next_barrier(
 
 
 void Scheduler::schedule_event(BaseEvent* event) {
+  release_assert(event->event_time != TIME_INVALID);
   calendar.insert(event);
 }
 
@@ -245,6 +246,14 @@ void Scheduler::schedule_events_from_async_queue() {
 
   async_event_queue_lock.lock();
   for (BaseEvent* e: async_event_queue) {
+
+    if (e->event_time == TIME_INVALID) {
+      // real asynchronous event,
+      // schedule correctly for an upcoming iteration while making sure
+      // that all the events from the current iteration are finished so that
+      // the event_type_index is correctly followed
+      e->event_time = floor_f(get_next_event_time(true) + 1);
+    }
     schedule_event(e);
   }
   async_event_queue.clear();
@@ -252,8 +261,11 @@ void Scheduler::schedule_events_from_async_queue() {
   async_event_queue_lock.unlock();
 }
 
-float_t Scheduler::get_next_event_time() {
-  schedule_events_from_async_queue();
+
+float_t Scheduler::get_next_event_time(const bool skip_async_events_check) {
+  if (!skip_async_events_check) {
+    schedule_events_from_async_queue();
+  }
 
   return calendar.get_next_time();
 }
