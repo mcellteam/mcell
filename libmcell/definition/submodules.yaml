@@ -29,3 +29,39 @@ bngl_utils:
       type: Dict[str, float]
       default: empty
       
+      
+run_utils:
+  type: submodule
+  methods:
+  - name: get_last_checkpoint_dir
+    doc: | 
+       Searches the directory checkpoints for the last checkpoint for the given 
+       parameters and returns the directory name if such a directory exists. 
+       Returns empty string if no checkpoint directory was found.
+       Currently supports only the seed argument.
+    todo: extend to handle additional parameters, not just seed
+    return_type: str
+    params:
+    - name: seed
+      type: int
+#    - name: params
+#      type: Dict[str, float]
+#      default: empty
+#      
+  - name: remove_cwd
+    doc: |
+       Removes all directory names items pointing to the current working directory from a list and 
+       returns a new list.
+    return_type: List[str]
+    params:
+    - name: paths
+      type: List[str]
+    
+#  - name: load_checkpoint_iterations
+#    doc: |
+#       Loads file that contains iteration numbers on each line and returns the 
+#       value as a list. Used mostly for testing.
+#    return_type: List[int]
+#    params:
+#    - name: file_name
+#      type: str

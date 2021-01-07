@@ -19,9 +19,10 @@ include_directories(${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src -std=c++14 ${PYTHON_INCLUDES}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src ${PYTHON_INCLUDES}")
 
 set(SOURCE_FILES
+    api/api_utils.cpp
     api/bindings.cpp
     api/checkpoint_signals.cpp
     
@@ -41,8 +42,10 @@ set(SOURCE_FILES
     api/observables.cpp
     api/model.cpp
     
-    api/geometry_utils.cpp
     api/bngl_utils.cpp
+    api/geometry_utils.cpp
+    api/run_utils.cpp
+
     api/compartment_utils.cpp
     
     api/globals.cpp
@@ -104,8 +107,9 @@ set(SOURCE_FILES
 
     generated/gen_constants.cpp
 
-    generated/gen_geometry_utils.cpp
     generated/gen_bngl_utils.cpp
+    generated/gen_geometry_utils.cpp
+    generated/gen_run_utils.cpp
 )
 
 set(ALL_SOURCES

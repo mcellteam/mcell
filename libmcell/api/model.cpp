@@ -23,7 +23,6 @@
 #include "model.h"
 
 #include <string>
-#include <iomanip>
 
 #include "api/mcell4_converter.h"
 #include "api/python_exporter.h"
@@ -460,12 +459,9 @@ void Model::export_to_bngl(const std::string& file_name) {
 
 // returns 'checkpoints/seed_<SEED>/it_' - without the iteration number
 std::string Model::get_default_checkpoint_dir_prefix() const {
-  stringstream seed_num;
-  seed_num << setfill('0') << std::setw(DEFAULT_SEED_DIR_DIGITS) << config.seed;
-
   return
-      std::string(DEFAULT_CHECKPOINTS_DIR) + BNG::PATH_SEPARATOR +
-      DEFAULT_SEED_DIR_PREFIX + seed_num.str() + BNG::PATH_SEPARATOR +
+      DEFAULT_CHECKPOINTS_DIR + BNG::PATH_SEPARATOR +
+      get_seed_dir_name(config.seed) + BNG::PATH_SEPARATOR +
       DEFAULT_ITERATION_DIR_PREFIX;
 }
 

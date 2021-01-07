@@ -82,6 +82,8 @@ class bngl_utils():
     pass
 class geometry_utils():
     pass
+class run_utils():
+    pass
 
 class Vec3():
     def __init__(self, x : float = 0, y : float = 0, z : float = 0):
@@ -1492,6 +1494,24 @@ class geometry_utils():
             name : str,
             edge_length : float
         ) -> 'GeometryObject':
+        pass
+
+class run_utils():
+    def __init__(
+            self,
+        ):
+        pass
+
+    def get_last_checkpoint_dir(
+            self,
+            seed : int
+        ) -> 'str':
+        pass
+
+    def remove_cwd(
+            self,
+            paths : List[str]
+        ) -> 'List[str]':
         pass
 
 AllMolecules = Species('ALL_MOLECULES')

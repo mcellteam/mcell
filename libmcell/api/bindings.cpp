@@ -65,7 +65,9 @@
 #include "generated/gen_chkpt_surf_mol.h"
 #include "generated/gen_rng_state.h"
 
+#include "generated/gen_bngl_utils.h"
 #include "generated/gen_geometry_utils.h"
+#include "generated/gen_run_utils.h"
 
 
 #include "generated/gen_constants.h"
@@ -238,8 +240,9 @@ PYBIND11_MODULE(mcell, m) {
   // constants may reference existing types, must be "bound" later
   define_pybinding_constants(m);
 
-  define_pybinding_geometry_utils(m);
   define_pybinding_bngl_utils(m);
+  define_pybinding_geometry_utils(m);
+  define_pybinding_run_utils(m);
 }
 
 

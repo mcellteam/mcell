@@ -245,6 +245,7 @@ Model:
       doc: Output file name.
       
   - name: save_checkpoint
+    todo: provide more configurability for parameters
     doc: |
        Saves current model state as checkpoint. 
        The default directory structure is checkpoints/seed_<SEED>/it_<ITERATION>,
@@ -260,6 +261,7 @@ Model:
          The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'. 
 
   - name: schedule_checkpoint
+    todo: provide more configurability for parameters
     doc: |
        Schedules checkpoint save that will occur when an iteration is started  
        right before any other events scheduled for the given iteration are executed.

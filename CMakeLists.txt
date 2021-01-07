@@ -58,7 +58,7 @@ endif()
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14 -fpermissive")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++17 -fpermissive")
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
 
@@ -410,7 +410,7 @@ pybind11_add_module(mcell4_so MODULE
 add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP}
+    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} stdc++fs
     PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
 )
 set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
