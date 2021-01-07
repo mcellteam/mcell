@@ -54,7 +54,8 @@ class PythonExportContext;
         const uint64_t initial_iteration_ = 0, \
         const float_t initial_time_ = 0, \
         std::shared_ptr<RngState> initial_rng_state_ = nullptr, \
-        const bool append_to_count_output_data_ = false \
+        const bool append_to_count_output_data_ = false, \
+        const bool continue_after_sigalrm_ = false \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
@@ -77,6 +78,7 @@ class PythonExportContext;
       initial_time = initial_time_; \
       initial_rng_state = initial_rng_state_; \
       append_to_count_output_data = append_to_count_output_data_; \
+      continue_after_sigalrm = continue_after_sigalrm_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -377,6 +379,20 @@ public:
   virtual bool get_append_to_count_output_data() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return append_to_count_output_data;
+  }
+
+  bool continue_after_sigalrm;
+  virtual void set_continue_after_sigalrm(const bool new_continue_after_sigalrm_) {
+    if (initialized) {
+      throw RuntimeError("Value 'continue_after_sigalrm' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    continue_after_sigalrm = new_continue_after_sigalrm_;
+  }
+  virtual bool get_continue_after_sigalrm() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return continue_after_sigalrm;
   }
 
   // --- methods ---

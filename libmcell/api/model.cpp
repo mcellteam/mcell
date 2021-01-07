@@ -38,6 +38,7 @@
 #include "api/count.h"
 #include "api/wall.h"
 #include "api/wall_wall_hit_info.h"
+#include "api/checkpoint_signals.h"
 
 #include "world.h"
 #include "scheduler.h"
@@ -59,6 +60,7 @@ namespace API {
 class RngState;
 
 Model::~Model() {
+  unset_checkpoint_signals(this); // may be safely called multiple times
   delete world;
 }
 
@@ -125,6 +127,9 @@ void Model::initialize() {
 
   initialize_introspection(this);
 
+  // set action for SIGUSR1 and SIGUSR2
+  set_checkpoint_signals(this);
+
   initialized = true;
 }
 
@@ -145,6 +150,9 @@ void Model::end_simulation(const bool print_final_report) {
   // the first argument specifies that the last mol/rxn count and viz_output events will be run
   // cannot call callbacks anymore (no diffusion event is executed)
   world->end_simulation(print_final_report);
+
+  // unset action for SIGUSR1 and SIGUSR2
+  unset_checkpoint_signals(this);
 }
 
 
@@ -525,7 +533,7 @@ void save_checkpoint_func(const float_t time, CheckpointSaveEventContext ctx) {
 // can be called asynchronously at any point of simulation, only single-threaded
 void Model::schedule_checkpoint(
     const uint64_t iteration,
-    const bool return_from_run_iterations,
+    const bool continue_simulation,
     const std::string& custom_dir) {
 
   // NOTE: accessing current iteration value asynchronously,
@@ -565,7 +573,7 @@ void Model::schedule_checkpoint(
     checkpoint_event->event_time = iteration;
   }
   checkpoint_event->periodicity_interval = 0; // only once
-  checkpoint_event->return_from_run_n_iterations = return_from_run_iterations;
+  checkpoint_event->return_from_run_n_iterations = !continue_simulation;
 
   // safely schedule
   world->scheduler.schedule_event_asynchronously(checkpoint_event);

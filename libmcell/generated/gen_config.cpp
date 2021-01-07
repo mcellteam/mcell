@@ -62,6 +62,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   initial_time = 0;
   initial_rng_state = nullptr;
   append_to_count_output_data = false;
+  continue_after_sigalrm = false;
 }
 
 bool GenConfig::__eq__(const Config& other) const {
@@ -95,7 +96,8 @@ bool GenConfig::__eq__(const Config& other) const {
           true
         )
      )  &&
-    append_to_count_output_data == other.append_to_count_output_data;
+    append_to_count_output_data == other.append_to_count_output_data &&
+    continue_after_sigalrm == other.continue_after_sigalrm;
 }
 
 bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_name) const {
@@ -129,7 +131,8 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
           true
         )
      )  &&
-    append_to_count_output_data == other.append_to_count_output_data;
+    append_to_count_output_data == other.append_to_count_output_data &&
+    continue_after_sigalrm == other.continue_after_sigalrm;
 }
 
 std::string GenConfig::to_str(const std::string ind) const {
@@ -154,7 +157,8 @@ std::string GenConfig::to_str(const std::string ind) const {
       "initial_iteration=" << initial_iteration << ", " <<
       "initial_time=" << initial_time << ", " <<
       "\n" << ind + "  " << "initial_rng_state=" << "(" << ((initial_rng_state != nullptr) ? initial_rng_state->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "append_to_count_output_data=" << append_to_count_output_data;
+      "append_to_count_output_data=" << append_to_count_output_data << ", " <<
+      "continue_after_sigalrm=" << continue_after_sigalrm;
   return ss.str();
 }
 
@@ -181,6 +185,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const uint64_t,
             const float_t,
             std::shared_ptr<RngState>,
+            const bool,
             const bool
           >(),
           py::arg("seed") = 1,
@@ -202,7 +207,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("initial_iteration") = 0,
           py::arg("initial_time") = 0,
           py::arg("initial_rng_state") = nullptr,
-          py::arg("append_to_count_output_data") = false
+          py::arg("append_to_count_output_data") = false,
+          py::arg("continue_after_sigalrm") = false
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
@@ -228,6 +234,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("initial_time", &Config::get_initial_time, &Config::set_initial_time)
       .def_property("initial_rng_state", &Config::get_initial_rng_state, &Config::set_initial_rng_state)
       .def_property("append_to_count_output_data", &Config::get_append_to_count_output_data, &Config::set_append_to_count_output_data)
+      .def_property("continue_after_sigalrm", &Config::get_continue_after_sigalrm, &Config::set_continue_after_sigalrm)
     ;
 }
 
@@ -309,6 +316,9 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   }
   if (append_to_count_output_data != false) {
     ss << ind << "append_to_count_output_data = " << append_to_count_output_data << "," << nl;
+  }
+  if (continue_after_sigalrm != false) {
+    ss << ind << "continue_after_sigalrm = " << continue_after_sigalrm << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

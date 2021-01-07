@@ -130,7 +130,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("load_bngl", &Model::load_bngl, py::arg("file_name"), py::arg("observables_files_prefix") = "", py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("export_to_bngl", &Model::export_to_bngl, py::arg("file_name"))
       .def("save_checkpoint", &Model::save_checkpoint, py::arg("custom_dir") = STR_UNSET)
-      .def("schedule_checkpoint", &Model::schedule_checkpoint, py::arg("iteration") = 0, py::arg("return_from_run_iterations") = true, py::arg("custom_dir") = STR_UNSET)
+      .def("schedule_checkpoint", &Model::schedule_checkpoint, py::arg("iteration") = 0, py::arg("continue_simulation") = false, py::arg("custom_dir") = STR_UNSET)
       .def("add_species", &Model::add_species, py::arg("s"))
       .def("find_species", &Model::find_species, py::arg("name"))
       .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("r"))

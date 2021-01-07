@@ -23,6 +23,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g3 -O0 -isystem ${CMAKE_CURR
 
 set(SOURCE_FILES
     api/bindings.cpp
+    api/checkpoint_signals.cpp
     
     api/component_type.cpp
     api/component.cpp

@@ -110,7 +110,7 @@ public:
 
   void schedule_checkpoint(
       const uint64_t iteration = 0,
-      const bool return_from_run_iterations = true,
+      const bool continue_simulation = false,
       const std::string& custom_dir = STR_UNSET) override;
 
   // overrides from derived classes Subsystem, Instantiation, and Observables

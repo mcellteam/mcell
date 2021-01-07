@@ -449,6 +449,11 @@ Attributes:
   | new values are appended to the existing files. If such files do not exist, new files are
   | created.
 
+* | **continue_after_sigalrm**: bool = False
+  | MCell registers a SIGALRM signal handler. When SIGALRM signal is received and 
+  | continue_after_sigalrm is False, checkpoint is stored and simulation is terminated. 
+  | When continue_after_sigalrm is True, checkpoint is stored and simulation continues.
+
 Count
 =====
 
@@ -1157,12 +1162,12 @@ Methods:
      | it is highly recommended to keep the default value 0 or choose some time that will be 
      | for sure in the future.
 
-   * | return_from_run_iterations: bool = True
-     | When true, saving the checkpoint means that we want to terminate the simulation 
+   * | continue_simulation: bool = False
+     | When false, saving the checkpoint means that we want to terminate the simulation 
      | right after the save, the currently running function Model.run_iterations
      | does not simulate any following iterations and execution returns from this function
-     | (e.g. to execute the next statement which is usually 'model.end_simulation()'.
-     | When false, the checkpoint is just saved and simulation continues uninterrupted.
+     | to execute the next statement which is usually 'model.end_simulation()'.
+     | When true, the checkpoint is just saved and simulation continues uninterrupted.
 
    * | custom_dir: str = None
      | Sets custom directory where the checkpoint will be stored. 

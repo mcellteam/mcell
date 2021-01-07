@@ -278,15 +278,15 @@ Model:
         it is highly recommended to keep the default value 0 or choose some time that will be 
         for sure in the future.
     
-    - name: return_from_run_iterations
+    - name: continue_simulation
       type: bool
-      default: true
+      default: false
       doc: |
-        When true, saving the checkpoint means that we want to terminate the simulation 
+        When false, saving the checkpoint means that we want to terminate the simulation 
         right after the save, the currently running function Model.run_iterations
         does not simulate any following iterations and execution returns from this function
-        (e.g. to execute the next statement which is usually 'model.end_simulation()'.
-        When false, the checkpoint is just saved and simulation continues uninterrupted.
+        to execute the next statement which is usually 'model.end_simulation()'.
+        When true, the checkpoint is just saved and simulation continues uninterrupted.
               
     - name: custom_dir
       type: str

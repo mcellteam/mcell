@@ -333,7 +333,8 @@ class Config():
             initial_iteration : int = 0,
             initial_time : float = 0,
             initial_rng_state : RngState = None,
-            append_to_count_output_data : bool = False
+            append_to_count_output_data : bool = False,
+            continue_after_sigalrm : bool = False
         ):
         self.seed = seed
         self.time_step = time_step
@@ -355,6 +356,7 @@ class Config():
         self.initial_time = initial_time
         self.initial_rng_state = initial_rng_state
         self.append_to_count_output_data = append_to_count_output_data
+        self.continue_after_sigalrm = continue_after_sigalrm
 
 
 class Count():
@@ -806,7 +808,7 @@ class Model():
     def schedule_checkpoint(
             self,
             iteration : int = 0,
-            return_from_run_iterations : bool = True,
+            continue_simulation : bool = False,
             custom_dir : str = None
         ) -> None:
         pass
