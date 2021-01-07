@@ -31,7 +31,6 @@
 
 namespace MCell {
 
-
 // auxiliary struct used when generating species or molecule types
 struct SpeciesOrMolType {
   SpeciesOrMolType(const std::string& name_, const bool is_species_ = true)
@@ -71,6 +70,13 @@ struct IdLoc {
 // data and configuration shared among generators
 struct SharedGenData {
   void reset() {
+    input_file = "";
+    output_files_prefix = "";
+    debug_mode = false;
+    testing_mode = false;
+    cellblender_viz = false;
+    bng_mode = false;
+
     unnamed_rxn_counter = 0;
     all_species_and_mol_type_names.clear();
     all_reaction_rules_names.clear();
@@ -80,10 +86,14 @@ struct SharedGenData {
 
   uint unnamed_rxn_counter;
 
+  std::string input_file;
   std::string output_files_prefix;
+
   bool bng_mode;
   bool debug_mode;
   bool testing_mode;
+  std::vector<int> checkpoint_iterations;
+  bool cellblender_viz;
 
   std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
   std::vector<IdLoc> all_reaction_rules_names;

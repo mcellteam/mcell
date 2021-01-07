@@ -64,27 +64,17 @@ void MCell4Generator::reset() {
 
 // the aim is to generate as much of output as possible,
 // therefore we are using exceptions
-bool MCell4Generator::generate(
-    const string& input_file,
-    const string& output_files_prefix_,
-    const bool bng_mode_,
-    const bool debug_mode_,
-    const bool testing_mode_,
-    const bool cellblender_viz
-) {
+bool MCell4Generator::generate(const SharedGenData& opts) {
   reset();
 
   bool failed = false;
-  data.output_files_prefix = output_files_prefix_;
-  data.bng_mode = bng_mode_;
-  data.debug_mode = debug_mode_;
-  data.testing_mode = testing_mode_;
+  data = opts; // copy options
 
   // load json file
   ifstream file;
-  file.open(input_file);
+  file.open(opts.input_file);
   if (!file.is_open()) {
-    cerr << "Could not open file '" << input_file << "' for reading.\n";
+    cerr << "Could not open file '" << opts.input_file << "' for reading.\n";
     return false;
   }
   Value root;
@@ -109,7 +99,7 @@ bool MCell4Generator::generate(
   std::vector<std::string> geometry_names;
   CHECK(geometry_names = generate_geometry(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
-  CHECK(generate_observables(cellblender_viz), failed);
+  CHECK(generate_observables(opts.cellblender_viz), failed);
   CHECK(generate_model(failed), failed);
   CHECK(generate_customization(), failed);
 
@@ -909,6 +899,12 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << IND4;
   gen_method_call(out, MODEL, NAME_INITIALIZE);
   out << "\n";
+
+  for (int it: data.checkpoint_iterations) {
+    out << IND4;
+    gen_method_call(out, MODEL, NAME_SCHEDULE_CHECKPOINT, to_string(it));
+    out << "\n";
+  }
 
   out << IND4 << "if " << parameters_module << "." << PARAM_DUMP << ":\n";
   out << IND8;

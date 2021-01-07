@@ -55,18 +55,6 @@ std::string BNGConfig::get_warnings_report_file_name() const {
 }
 
 
-// get current date/time, format is YYYY-MM-DD HH:mm:ss
-static const std::string current_date_time() {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
-
-    return buf;
-}
-
-
 static bool dir_exists(const string& path) {
   struct stat sb;
   if (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
@@ -113,42 +101,24 @@ static void make_reports_dir(const string& file_path) {
 }
 
 
-static void initialize_file(const std::string& fname, const char* report_name) {
-  // first check whether the directory exists and make it
-  make_reports_dir(fname);
-
-  ofstream of;
-  of.open(fname, fstream::out);
-  if (of.is_open()) {
-    of << report_name << " report, " << current_date_time() << "\n\n";
-    of.close();
-  }
-  else {
-    cout << "Could not open file " << fname << " for report generation, ignored.\n";
-  }
-}
-
-
-static void remove_file(const std::string& fname, const char* report_name) {
-  ofstream of;
-  of.open(fname, fstream::in);
-  if (of.is_open()) {
-    // file exists
-    of.close();
-    int res = remove(fname.c_str());
-    if (res != 0){
-      cout << "Could not remove file " << fname << " for report generation, ignored.\n";
-    }
-  }
-}
-
-
-void BNGConfig::initialize_report_files() {
-  remove_file(get_warnings_report_file_name(), "Warnings");
+void BNGConfig::initialize_bng_report_files() {
+  remove_report_file(get_warnings_report_file_name(), "Warnings");
   if (rxn_and_species_report) {
-    initialize_file(get_rxn_report_file_name(), "RXN");
-    initialize_file(get_species_report_file_name(), "Species");
+    initialize_report_file(get_rxn_report_file_name(), "RXN");
+    initialize_report_file(get_species_report_file_name(), "Species");
   }
+}
+
+
+// get current date/time, format is YYYY-MM-DD HH:mm:ss
+std::string get_current_date_time() {
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+    return buf;
 }
 
 
@@ -165,5 +135,35 @@ void append_to_report(const std::string& report_fname, const std::string& msg) {
     of.close();
   }
 }
+
+void initialize_report_file(const std::string& fname, const char* report_name) {
+  // first check whether the directory exists and make it
+  make_reports_dir(fname);
+
+  ofstream of;
+  of.open(fname, fstream::out);
+  if (of.is_open()) {
+    of << report_name << " report, " << get_current_date_time() << "\n\n";
+    of.close();
+  }
+  else {
+    cout << "Could not open file " << fname << " for report generation, ignored.\n";
+  }
+}
+
+
+void remove_report_file(const std::string& fname, const char* report_name) {
+  ofstream of;
+  of.open(fname, fstream::in);
+  if (of.is_open()) {
+    // file exists
+    of.close();
+    int res = remove(fname.c_str());
+    if (res != 0){
+      cout << "Could not remove file " << fname << " for report generation, ignored.\n";
+    }
+  }
+}
+
 
 } // namespace BNG

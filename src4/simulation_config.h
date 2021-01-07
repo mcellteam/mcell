@@ -25,6 +25,8 @@
 
 #include "defines.h"
 
+const char* const RUN_REPORT_PREFIX = "run_report_";
+
 namespace MCell {
 
 /*
@@ -110,6 +112,10 @@ public:
         time_unit
     );
   }
+
+
+  std::string get_run_report_file_name() const;
+  void initialize_run_report_file();
 
 private:
   void init_subpartition_edge_length();

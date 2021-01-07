@@ -278,6 +278,18 @@ void World::init_simulation(const float_t start_time) {
   // start memory check timer
   memory_limit_checker.start_timed_check(this, config.memory_limit_gb);
 
+  if (stats.get_current_iteration() == 0) {
+    // not starting from a checkpoint
+    config.initialize_run_report_file();
+    BNG::append_to_report(config.get_run_report_file_name(), "Simulation started ");
+  }
+  else {
+    BNG::append_to_report(config.get_run_report_file_name(), "Simulation resumed from a checkpoint ");
+  }
+  BNG::append_to_report(config.get_run_report_file_name(),
+      "at iteration " + to_string(stats.get_current_iteration()) +
+      " and time " + BNG::get_current_date_time() + ".\n");
+
   simulation_initialized = true;
 }
 
@@ -444,6 +456,13 @@ void World::end_simulation(const bool print_final_report) {
       << tosecs(run_time.ru_stime) - tosecs(it1_start_time.ru_stime) <<  "(system)\n";
 
   }
+
+  BNG::append_to_report(config.get_run_report_file_name(),
+      "Simulation ended at iteration " + to_string(stats.get_current_iteration()) +
+      " and time " + BNG::get_current_date_time() + ", " +
+      ((run_n_iterations_terminated_with_checkpoint) ?
+          "terminated due to checkpoint.\n" :
+          "all iterations were finished.\n"));
 
   simulation_ended = true;
 }

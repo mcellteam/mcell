@@ -23,6 +23,7 @@
 #include "api_utils.h"
 
 #include <iomanip>
+#include <time.h>
 
 namespace MCell {
 namespace API {
@@ -50,10 +51,22 @@ bool is_simple_species(const std::string& name) {
 }
 
 
-std::string get_seed_dir_name(const int seed) {
+std::string get_seed_dir_name(const int seed, const std::string& prefix) {
   std::stringstream seed_num;
   seed_num << std::setfill('0') << std::setw(DEFAULT_SEED_DIR_DIGITS) << seed;
-  return DEFAULT_SEED_DIR_PREFIX + seed_num.str();
+  return prefix + seed_num.str();
+}
+
+
+// get current date/time, format is YYYY-MM-DD HH:mm:ss
+const std::string get_current_date_time() {
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+    return buf;
 }
 
 } // namespace API

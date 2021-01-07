@@ -24,10 +24,23 @@
 
 #include <iostream>
 #include <cmath>
+#include <string>
+
+#include "bng/bng_defines.h"
 
 using namespace std;
 
 namespace MCell {
+
+std::string SimulationConfig::get_run_report_file_name() const {
+  return std::string(BNG::REPORT_DIR) + BNG::PATH_SEPARATOR + RUN_REPORT_PREFIX + seed_as_str() + BNG::REPORT_EXT;
+}
+
+
+void SimulationConfig::initialize_run_report_file() {
+  BNG::initialize_report_file(get_run_report_file_name(), "Run");
+}
+
 
 void SimulationConfig::init_subpartition_edge_length() {
   release_assert(partition_edge_length > 0);
