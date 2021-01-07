@@ -282,6 +282,10 @@ private:
   // already initialized
   bool simulation_initialized;
 
+  // set in run_n_iterations to know whether we should report
+  // final viz and rxn output in end_simulation
+  bool run_n_iterations_terminated_with_checkpoint;
+
   // used to know whether we already reported final simulation stats
   bool simulation_ended;
 

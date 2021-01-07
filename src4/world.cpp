@@ -78,6 +78,7 @@ World::World(API::Callbacks& callbacks_)
     next_region_id(0),
     next_geometry_object_id(0),
     simulation_initialized(false),
+    run_n_iterations_terminated_with_checkpoint(false),
     simulation_ended(false),
     buffers_flushed(false),
     previous_progress_report_time({0, 0}),
@@ -287,12 +288,11 @@ uint64_t World::time_to_iteration(const float_t time) {
 
 uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool terminate_last_iteration_after_viz_output) {
 
-  uint64_t output_frequency = determine_output_frequency(total_iterations);
-
   release_assert(simulation_initialized);
 
+  run_n_iterations_terminated_with_checkpoint = false;
+  uint64_t output_frequency = determine_output_frequency(total_iterations);
   uint64_t start_iteration = stats.get_current_iteration();
-
   uint64_t& current_iteration = stats.get_current_iteration();
 
   // create events that are used to check whether simulation should end right after the last viz output,
@@ -373,6 +373,10 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
           event_info.return_from_run_iterations ||
           current_iteration == this_run_first_iteration + num_iterations - 1);
 
+      if (event_info.type_index == EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT) {
+        run_n_iterations_terminated_with_checkpoint = true;
+      }
+
       break;
     }
 
@@ -410,14 +414,21 @@ void World::end_simulation(const bool print_final_report) {
     return;
   }
 
-  // executes all events up to the last viz output,
-  // this is to produce viz output and counts for the last iteration
-  run_n_iterations(1, true);
+  // - execute all events up to the last viz output
+  //   to produce viz output and counts for the last iteration
+  // - must not be done if we ended with checkpoint
+  if (!run_n_iterations_terminated_with_checkpoint) {
+    run_n_iterations(1, true);
+  }
 
   flush_buffers();
 
   if (print_final_report) {
-    cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";
+    cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully";
+    if (run_n_iterations_terminated_with_checkpoint) {
+      cout << ", terminated with a checkpoint";
+    }
+    cout << "\n";
 
     stats.dump();
 
