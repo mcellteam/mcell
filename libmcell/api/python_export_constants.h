@@ -70,7 +70,7 @@ const char* const GENERATED_WARNING =
 
 const char* const BASE_MODEL_IMPORTS =
     "import sys\n"
-    "import os\n\n"
+    "import os\n"
 ;
 
 const char* const IMPORT_OS =
@@ -143,6 +143,30 @@ static std::string get_argparse_checkpoint_iteration(
       "        " + parameters_module + ".SEED = int(sys.argv[2])\n" +
       "        " + CHECKPOINT_ITERATION + " = int(sys.argv[4])\n"
   ;
+}
+
+static std::string get_resume_from_checkpoint_code(
+    const std::string& parameters_module) {
+
+  return
+      "# resume simulation if a checkpoint was created\n"
+      "checkpoint_dir = m.run_utils.get_last_checkpoint_dir(" + parameters_module + ".SEED)\n"
+      "if checkpoint_dir:\n"
+      "    # change sys.path so that the only the checkpointed files are loaded\n"
+      "    sys.path = m.run_utils.remove_cwd(sys.path)\n"
+      "    sys.path.append(checkpoint_dir)\n"
+      "    \n"
+      "    # prepare import of the 'model' module from the checkpoint\n"
+      "    model_spec = importlib.util.spec_from_file_location(\n"
+      "        'model', os.path.join(checkpoint_dir, 'model.py'))\n"
+      "    model_module = importlib.util.module_from_spec(model_spec)\n"
+      "    \n"
+      "    # run import, this also resumes simulation from the checkpoint\n"
+      "    model_spec.loader.exec_module(model_module)\n"
+      "\n"
+      "    # exit after simulation has finished successfully\n"
+      "    sys.exit(0)\n\n"
+ ;
 }
 
 static std::string get_argparse_w_customization_end() {

@@ -79,7 +79,12 @@ std::string get_last_checkpoint_dir(const int seed) {
     }
   }
 
-  return chkpt_seed_dir + fs::path::preferred_separator + max_it_dir_name + fs::path::preferred_separator;
+  if (max_it_dir_name != "") {
+    return chkpt_seed_dir + fs::path::preferred_separator + max_it_dir_name + fs::path::preferred_separator;
+  }
+  else {
+    return "";
+  }
 }
 
 

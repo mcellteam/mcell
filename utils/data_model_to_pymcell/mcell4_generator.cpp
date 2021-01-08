@@ -826,6 +826,8 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   }
 
   out << BASE_MODEL_IMPORTS;
+  out << get_import("importlib.util");
+  out << "\n";
   out << MODEL_PATH_SETUP;
   out << "\n";
   out << MCELL_PATH_SETUP;
@@ -839,6 +841,8 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
       "# parameters are intentionally not imported using from ... import *\n" <<
       "# because we may need to make changes to the module's variables\n" <<
       IMPORT << " " << parameters_module << "\n\n";
+
+  out << get_resume_from_checkpoint_code(parameters_module);
 
   out << get_customization_import(customization_module);
   out << "\n";

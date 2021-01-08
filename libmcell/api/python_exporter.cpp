@@ -265,6 +265,7 @@ std::string PythonExporter::save_model(
   // imports
   out << INTERPRETER;
   out << BASE_MODEL_IMPORTS;
+  out << "\n";
   out << MCELL_PATH_SETUP;
   out << "\n";
   out << MCELL_IMPORT;
@@ -325,7 +326,6 @@ std::string PythonExporter::save_model(
 
   gen_assign(out, MODEL, NAME_CHECKPOINTED_MOLECULES, S(SIMULATION_STATE) + "." + NAME_CHECKPOINTED_MOLECULES);
   out << "\n";
-  // TODO: - append to observables
 
   out << make_section_comment("resume simulation");
   gen_method_call(out, MODEL, NAME_INITIALIZE);
