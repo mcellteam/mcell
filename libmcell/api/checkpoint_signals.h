@@ -23,6 +23,8 @@
 #ifndef LIBMCELL_API_CHECKPOINT_SIGNALS_H_
 #define LIBMCELL_API_CHECKPOINT_SIGNALS_H_
 
+#include <string>
+
 namespace MCell {
 namespace API {
 
@@ -33,6 +35,13 @@ void set_checkpoint_signals(Model* model);
 
 // may be safely called multiple times
 void unset_checkpoint_signals(Model* model);
+
+// used as a template argument for CustomFunctionCallEvent
+struct CheckpointSaveEventContext {
+  Model* model;
+  std::string dir_prefix;
+  bool append_it_to_dir;
+};
 
 } // namespace API
 } // namespace MCell

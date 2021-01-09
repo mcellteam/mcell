@@ -29,11 +29,13 @@
 #include "api/chkpt_vol_mol.h"
 #include "api/chkpt_surf_mol.h"
 #include "api/rng_state.h"
+#include "api/checkpoint_signals.h"
 
 #include "src/util.h"
 #include "src4/world.h"
 #include "src4/partition.h"
 #include "src4/molecule.h"
+#include "src4/custom_function_call_event.h"
 
 using namespace std;
 
@@ -70,14 +72,14 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
 
   // parameters - later, once we will maintain the association,
 
-  string subsystem_name = save_subsystem(ctx);
+  string subsystem_name = export_subsystem(ctx);
 
-  string geometry_objects_name = save_geometry(ctx);
+  string geometry_objects_name = export_geometry(ctx);
 
-  string instantiation_name = save_instantiation(ctx, geometry_objects_name);
+  string instantiation_name = export_instantiation(ctx, geometry_objects_name);
 
   // need to append - some config flag?
-  string observables_name = save_observables(ctx);
+  string observables_name = export_observables(ctx);
 
   // molecules
   // - volume
@@ -86,17 +88,17 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
   // starting, ending iterations, ...
   // all generated variables are prefixed with state_
   std::map<std::string, std::string> config_variable_names;
-  save_simulation_state(ctx, config_variable_names);
+  export_simulation_state(ctx, config_variable_names);
 
   // model
   // - config
   // - warnings
   // - notifications
-  save_model(ctx, subsystem_name, instantiation_name, observables_name, config_variable_names);
+  export_model(ctx, subsystem_name, instantiation_name, observables_name, config_variable_names);
 }
 
 
-std::string PythonExporter::save_subsystem(PythonExportContext& ctx) {
+std::string PythonExporter::export_subsystem(PythonExportContext& ctx) {
   ofstream out;
   open_and_check_file(SUBSYSTEM, out);
   out << MCELL_IMPORT;
@@ -108,7 +110,7 @@ std::string PythonExporter::save_subsystem(PythonExportContext& ctx) {
 }
 
 
-std::string PythonExporter::save_geometry(PythonExportContext& ctx) {
+std::string PythonExporter::export_geometry(PythonExportContext& ctx) {
   ofstream out;
   open_and_check_file(GEOMETRY, out);
   out << MCELL_IMPORT;
@@ -120,7 +122,7 @@ std::string PythonExporter::save_geometry(PythonExportContext& ctx) {
 }
 
 
-std::string PythonExporter::save_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name) {
+std::string PythonExporter::export_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name) {
   // prints out everything, even past releases
   // for checkpointing, we always need to fully finish the current iteration and then start the new one
   std::ofstream out;
@@ -141,7 +143,7 @@ std::string PythonExporter::save_instantiation(PythonExportContext& ctx, const s
 }
 
 
-std::string PythonExporter::save_observables(PythonExportContext& ctx) {
+std::string PythonExporter::export_observables(PythonExportContext& ctx) {
   ofstream out;
   open_and_check_file(OBSERVABLES, out);
   out << MCELL_IMPORT;
@@ -158,7 +160,7 @@ std::string PythonExporter::save_observables(PythonExportContext& ctx) {
 
 
 // state_variable_names are indexed by Config class attribute names
-void PythonExporter::save_simulation_state(
+void PythonExporter::export_simulation_state(
     PythonExportContext& ctx,
     std::map<std::string, std::string>& config_variable_names
 ) {
@@ -178,7 +180,7 @@ void PythonExporter::save_simulation_state(
   out << "\n";
 
   // molecules
-  save_molecules(out, ctx);
+  export_molecules(out, ctx);
 
   // rng state
   RngState rng_state = RngState(world->rng);
@@ -186,7 +188,7 @@ void PythonExporter::save_simulation_state(
 }
 
 
-void PythonExporter::save_molecules(std::ostream& out, PythonExportContext& ctx) {
+void PythonExporter::export_molecules(std::ostream& out, PythonExportContext& ctx) {
 
   // prepare species map
   IdSpeciesMap id_species_map;
@@ -250,7 +252,7 @@ void PythonExporter::save_molecules(std::ostream& out, PythonExportContext& ctx)
 }
 
 
-std::string PythonExporter::save_model(
+std::string PythonExporter::export_model(
     PythonExportContext& ctx,
     const std::string& subsystem_name,
     const std::string& instantiation_name,
@@ -331,6 +333,8 @@ std::string PythonExporter::save_model(
   gen_method_call(out, MODEL, NAME_INITIALIZE);
   out << "\n";
 
+  export_checkpoint_iterations(out);
+
   gen_method_call(
       out, MODEL, NAME_RUN_ITERATIONS,
       S(MODEL) + "." + NAME_CONFIG + "." + NAME_TOTAL_ITERATIONS + " - " + S(SIMULATION_STATE) + "." + NAME_INITIAL_ITERATION);
@@ -339,6 +343,32 @@ std::string PythonExporter::save_model(
   return MODEL;
 }
 
+
+void PythonExporter::export_checkpoint_iterations(std::ostream& out) {
+
+  vector<BaseEvent*> checkpoint_events;
+  world->scheduler.get_all_events_with_type_index(
+      EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT, checkpoint_events);
+
+  for (auto be: checkpoint_events) {
+    auto ce = dynamic_cast<CustomFunctionCallEvent<CheckpointSaveEventContext>*>(be);
+
+    bool arg2_nondefault = !ce->return_from_run_n_iterations;
+    bool arg3_nondefault = !ce->function_arg.append_it_to_dir; // with custom dir, this is false
+
+    out << MODEL << "." << NAME_SCHEDULE_CHECKPOINT << "(\n";
+    gen_param(out, NAME_ITERATION, ce->event_time, arg2_nondefault);
+
+    if (arg2_nondefault) {
+      gen_param(out, NAME_ITERATION, !ce->return_from_run_n_iterations, arg3_nondefault);
+    }
+
+    if (arg2_nondefault) {
+      gen_param(out, NAME_ITERATION, ce->function_arg.dir_prefix, true);
+    }
+    out << ")\n";
+  }
+}
 
 } // namespace API
 } // namespace MCell

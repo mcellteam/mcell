@@ -462,7 +462,7 @@ void World::end_simulation(const bool print_final_report) {
       " and time " + BNG::get_current_date_time() + ", " +
       ((run_n_iterations_terminated_with_checkpoint) ?
           "terminated due to checkpoint.\n" :
-          "all iterations were finished.\n"));
+          "all iterations were finished.\nFINISHED\n"));
 
   simulation_ended = true;
 }

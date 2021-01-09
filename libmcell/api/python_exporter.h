@@ -47,19 +47,21 @@ private:
       const bool for_append = false,
       const bool bngl = false);
 
-  std::string save_subsystem(PythonExportContext& ctx);
-  std::string save_geometry(PythonExportContext& ctx);
-  std::string save_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name);
-  std::string save_observables(PythonExportContext& ctx);
-  void save_simulation_state(
+  std::string export_subsystem(PythonExportContext& ctx);
+  std::string export_geometry(PythonExportContext& ctx);
+  std::string export_instantiation(PythonExportContext& ctx, const std::string& geometry_objects_name);
+  std::string export_observables(PythonExportContext& ctx);
+  void export_simulation_state(
       PythonExportContext& ctx, std::map<std::string, std::string>& config_variable_names);
-  void save_molecules(std::ostream& out, PythonExportContext& ctx);
-  std::string save_model(
+  void export_molecules(std::ostream& out, PythonExportContext& ctx);
+
+  std::string export_model(
       PythonExportContext& ctx,
       const std::string& subsystem_name,
       const std::string& instantiation_name,
       const std::string& observables_name,
       const std::map<std::string, std::string>& config_variable_names);
+  void export_checkpoint_iterations(std::ostream& out);
 
 
   Model* model;

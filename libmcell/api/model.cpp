@@ -489,13 +489,6 @@ void Model::save_checkpoint(const std::string& custom_dir) {
 }
 
 
-struct CheckpointSaveEventContext {
-  Model* model;
-  std::string dir_prefix;
-  bool append_it_to_dir;
-};
-
-
 void save_checkpoint_func(const float_t time, CheckpointSaveEventContext ctx) {
 
   const World* world = ctx.model->get_world();

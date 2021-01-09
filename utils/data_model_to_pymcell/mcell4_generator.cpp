@@ -904,9 +904,12 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   gen_method_call(out, MODEL, NAME_INITIALIZE);
   out << "\n";
 
-  for (int it: data.checkpoint_iterations) {
-    out << IND4;
-    gen_method_call(out, MODEL, NAME_SCHEDULE_CHECKPOINT, to_string(it));
+  if (!data.checkpoint_iterations.empty()) {
+    out << make_section_comment("checkpoint iterations");
+    for (int it: data.checkpoint_iterations) {
+      out << IND4;
+      gen_method_call(out, MODEL, NAME_SCHEDULE_CHECKPOINT, to_string(it));
+    }
     out << "\n";
   }
 

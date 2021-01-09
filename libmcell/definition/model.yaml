@@ -271,6 +271,7 @@ Model:
     - name: iteration
       type: uint64
       default: 0
+      todo: shouldn't we specify simulated time instead?
       doc: |
         Specifies iteration number when the checkpoint save will occur. 
         Please note that iterations are counted from 0, i.e. a call run_iterations(3)
