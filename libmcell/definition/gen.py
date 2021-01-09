@@ -1174,7 +1174,10 @@ def write_export_to_python_implementation(f, class_name, class_def):
             f.write('"' + name_underscored + '_" + ' + 
                     'std::to_string(' + CTX + '.postinc_counter("' + name_underscored + '"));\n')
         else:
-            f.write('"' + name_underscored + '_" + fix_id(name);\n')
+            f.write('std::string("' + name_underscored + '") + "_" + ' + 
+                    '(is_set(name) ? ' + 
+                        'fix_id(name) : ' +
+                        'std::to_string(' + CTX + '.postinc_counter("' + name_underscored + '")));\n')
             
         f.write(
             '  if (!export_even_if_already_exported()) {\n' +

@@ -59,6 +59,7 @@ enum molecule_flag_t {
 // TODO: remove orientation -> get this info from species
 class Molecule {
 public:
+  // Warning: ctors do not reset surf or vol data
   Molecule()
     : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
       reactant_compartment_id(BNG::COMPARTMENT_ID_NONE),
@@ -105,6 +106,21 @@ public:
   // gcc9 reports a warning but, the memcpy here is safe
   void operator = (const Molecule& m) {
     memcpy(this, &m, sizeof(Molecule));
+  }
+
+  void reset_vol_data() {
+    v.pos = Vec3(POS_INVALID);
+    v.subpart_index = SUBPART_INDEX_INVALID;
+    v.reactant_subpart_index = SUBPART_INDEX_INVALID;
+    v.counted_volume_index = COUNTED_VOLUME_INDEX_INVALID;
+    v.previous_wall_index = WALL_INDEX_INVALID;
+  }
+
+  void reset_surf_data() {
+    s.pos = Vec2(POS_INVALID);
+    s.orientation = ORIENTATION_NONE;
+    s.wall_index = WALL_INDEX_INVALID;
+    s.grid_tile_index = TILE_INDEX_INVALID;
   }
 
   // data is ordered to avoid alignment holes (for 64-bit floats)

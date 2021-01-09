@@ -92,7 +92,7 @@ std::string GenComponentType::export_to_python(std::ostream& out, PythonExportCo
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = "component_type_" + fix_id(name);
+  std::string exported_name = std::string("component_type") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("component_type")));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
   }

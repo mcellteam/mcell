@@ -1884,12 +1884,16 @@ void MCell4Converter::convert_checkpointed_molecules() {
     }
 
     if (m->type == MoleculeType::VOLUME) {
+      res_m.reset_vol_data();
+
       const shared_ptr<ChkptVolMol>& vm = dynamic_pointer_cast<ChkptVolMol>(m);
       res_m.v.pos = vm->pos * Vec3(world->config.rcp_length_unit);
 
       p.add_volume_molecule(res_m, 0);
     }
     else {
+      res_m.reset_surf_data();
+
       assert(m->type == MoleculeType::SURFACE);
       const shared_ptr<ChkptSurfMol>& sm = dynamic_pointer_cast<ChkptSurfMol>(m);
 

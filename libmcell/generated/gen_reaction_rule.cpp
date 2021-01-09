@@ -131,7 +131,7 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = "reaction_rule_" + fix_id(name);
+  std::string exported_name = std::string("reaction_rule") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("reaction_rule")));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
   }

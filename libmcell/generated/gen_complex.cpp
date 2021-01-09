@@ -104,7 +104,7 @@ std::string GenComplex::export_to_python(std::ostream& out, PythonExportContext&
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
-  std::string exported_name = "complex_" + fix_id(name);
+  std::string exported_name = std::string("complex") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("complex")));
   if (!export_even_if_already_exported()) {
     ctx.add_exported(this, exported_name);
   }
