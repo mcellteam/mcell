@@ -37,6 +37,8 @@
 
 #include "bng/bng.h"
 
+#include "api/checkpoint_signals.h"
+
 #include "partition.h"
 #include "scheduler.h"
 #include "geometry.h"
@@ -80,6 +82,15 @@ public:
 
   // used by converters
   void create_initial_surface_region_release_event();
+
+  // checkpointing - called from signal handler
+  void set_to_create_checkpoint_event_from_signal_hadler(const int signo, API::Model* model) {
+    signaled_checkpoint_signo = signo;
+    signaled_checkpoint_model = model;
+  }
+
+  void schedule_checkpoint_event(
+      const uint64_t iteration, const bool continue_simulation, const API::CheckpointSaveEventContext& ctx);
 
   // -------------- diverse getters -----------------------------
   const SimulationConfig& get_config() {
@@ -227,6 +238,8 @@ public:
   void flush_buffers();
 
 private:
+  void check_checkpointing_signal();
+
   uint64_t time_to_iteration(const float_t time);
 
   // called in init_simulation
@@ -300,6 +313,12 @@ private:
 
   // and to nicely report simulation progress
   uint64_t previous_iteration;
+
+  // SIGNO_NOT_SIGNALED (-1) if not signaled, supported values are SIGUSR1, SIGUSR2, and SIGALRM
+  int signaled_checkpoint_signo;
+  // checkpointing requires model pointer, do not use this for anything else,
+  // is not nullptr only when a checkpoint is scheduled
+  API::Model* signaled_checkpoint_model;
 };
 
 } // namespace mcell

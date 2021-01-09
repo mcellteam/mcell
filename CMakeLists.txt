@@ -429,7 +429,7 @@ add_executable(mcell
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
-target_link_libraries(mcell mcell4 libmcell_callbacks_empty bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
+target_link_libraries(mcell mcell4 libmcell_dummy bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     add_dependencies(pymcell mcell4 version_h bng nfsim_c NFsim jsoncpp_lib)

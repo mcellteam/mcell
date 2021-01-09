@@ -25,12 +25,23 @@
 #include <iostream>
 #include <cmath>
 #include <string>
+#include <iomanip>
 
 #include "bng/bng_defines.h"
+#include "api/common.h"
 
 using namespace std;
 
 namespace MCell {
+
+// returns 'checkpoints/seed_<SEED>/it_' - without the iteration number
+std::string SimulationConfig::get_default_checkpoint_dir_prefix() const {
+  return
+      API::DEFAULT_CHECKPOINTS_DIR + BNG::PATH_SEPARATOR +
+      get_seed_dir_name(initial_seed) + BNG::PATH_SEPARATOR +
+      API::DEFAULT_ITERATION_DIR_PREFIX;
+}
+
 
 std::string SimulationConfig::get_run_report_file_name() const {
   return std::string(BNG::REPORT_DIR) + BNG::PATH_SEPARATOR + RUN_REPORT_PREFIX + seed_as_str() + BNG::REPORT_EXT;
@@ -154,6 +165,13 @@ void SimulationConfig::dump() {
   DUMP_ATTR(simulation_stats_every_n_iterations);
   DUMP_ATTR(has_intersecting_counted_objects);
 #undef DUMP_ATTR
+}
+
+
+std::string get_seed_dir_name(const int seed) {
+  std::stringstream seed_num;
+  seed_num << std::setfill('0') << std::setw(API::DEFAULT_SEED_DIR_DIGITS) << seed;
+  return API::DEFAULT_SEED_DIR_PREFIX + seed_num.str();
 }
 
 } // namespace MCell

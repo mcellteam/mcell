@@ -457,15 +457,6 @@ void Model::export_to_bngl(const std::string& file_name) {
 }
 
 
-// returns 'checkpoints/seed_<SEED>/it_' - without the iteration number
-std::string Model::get_default_checkpoint_dir_prefix() const {
-  return
-      DEFAULT_CHECKPOINTS_DIR + BNG::PATH_SEPARATOR +
-      get_seed_dir_name(config.seed) + BNG::PATH_SEPARATOR +
-      DEFAULT_ITERATION_DIR_PREFIX;
-}
-
-
 void Model::save_checkpoint(const std::string& custom_dir) {
   if (!initialized) {
     throw RuntimeError(S("Model must be initialized for ") + NAME_SAVE_CHECKPOINT + ".");
@@ -477,9 +468,9 @@ void Model::save_checkpoint(const std::string& custom_dir) {
     dir = custom_dir;
   }
   else {
-    // TODO: move the VizOutputEvent::iterations_to_string to some utilities
+    // TODO: move the VizOutputEvent::iterations_to_string to api_utils
     dir =
-        get_default_checkpoint_dir_prefix() +
+        world->config.get_default_checkpoint_dir_prefix() +
         VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), config.total_iterations) +
         BNG::PATH_SEPARATOR;
   }
@@ -489,37 +480,8 @@ void Model::save_checkpoint(const std::string& custom_dir) {
 }
 
 
-void save_checkpoint_func(const float_t time, CheckpointSaveEventContext ctx) {
-
-  const World* world = ctx.model->get_world();
-
-  release_assert(
-      world->scheduler.get_event_being_executed()->type_index == EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT &&
-      "May be called only from event with index EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT, "
-      " world/model data may be inconsistent otherwise"
-  );
-
-  uint64_t current_it = world->stats.get_current_iteration();
-
-  std::string dir;
-  if (ctx.append_it_to_dir) {
-    dir =
-        ctx.dir_prefix +
-        VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), ctx.model->config.total_iterations) +
-        BNG::PATH_SEPARATOR;
-  }
-  else {
-    dir = ctx.dir_prefix;
-  }
-
-  cout << "Saving scheduled checkpoint in iteration " << current_it << " into " << dir << "\n";
-
-  PythonExporter exporter(ctx.model);
-  exporter.save_checkpoint(dir);
-}
-
-
 // can be called asynchronously at any point of simulation, only single-threaded
+// cannot be called from signal handlers
 void Model::schedule_checkpoint(
     const uint64_t iteration,
     const bool continue_simulation,
@@ -546,26 +508,11 @@ void Model::schedule_checkpoint(
     ctx.append_it_to_dir = false;
   }
   else {
-    ctx.dir_prefix = get_default_checkpoint_dir_prefix();
+    ctx.dir_prefix = world->config.get_default_checkpoint_dir_prefix();
     ctx.append_it_to_dir = true;
   }
 
-  CustomFunctionCallEvent<CheckpointSaveEventContext>* checkpoint_event =
-      new CustomFunctionCallEvent<CheckpointSaveEventContext>(
-          save_checkpoint_func, ctx, EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT);
-
-  if (iteration == 0) {
-    // schedule for the closest iteration while correctly maintaining order of events in the queue
-    checkpoint_event->event_time = TIME_INVALID;
-  }
-  else {
-    checkpoint_event->event_time = iteration;
-  }
-  checkpoint_event->periodicity_interval = 0; // only once
-  checkpoint_event->return_from_run_n_iterations = !continue_simulation;
-
-  // safely schedule
-  world->scheduler.schedule_event_asynchronously(checkpoint_event);
+  world->schedule_checkpoint_event(iteration, continue_simulation, ctx);
 }
 
 

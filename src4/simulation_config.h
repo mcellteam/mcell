@@ -54,7 +54,9 @@ public:
     sort_mols_by_subpart(false),
     memory_limit_gb(-1),
     simulation_stats_every_n_iterations(0),
-    has_intersecting_counted_objects(false) {
+    continue_after_sigalrm(false),
+    has_intersecting_counted_objects(false)
+  {
   }
 
   // configuration
@@ -93,6 +95,8 @@ public:
 
   int simulation_stats_every_n_iterations;
 
+  bool continue_after_sigalrm;
+
   // initialized in World::init_counted_volumes
   // also tells whether waypoints in a partition were initialized
   bool has_intersecting_counted_objects;
@@ -113,6 +117,8 @@ public:
     );
   }
 
+  // returns 'checkpoints/seed_<SEED>/it_' - without the iteration number
+  std::string get_default_checkpoint_dir_prefix() const;
 
   std::string get_run_report_file_name() const;
   void initialize_run_report_file();
@@ -122,6 +128,8 @@ private:
   void init_radial_steps();
 
 };
+
+std::string get_seed_dir_name(const int seed);
 
 } // namespace MCell
 

@@ -28,6 +28,9 @@
 
 #include "api/common.h"
 #include "api/model.h"
+#include "api/python_exporter.h"
+#include "src4/world.h"
+#include "src4/viz_output_event.h"
 
 using namespace std;
 
@@ -40,38 +43,16 @@ struct sigaction g_previous_sigaction_sigusr1;
 struct sigaction g_previous_sigaction_sigusr2;
 struct sigaction g_previous_sigaction_sigalrm;
 
+// WARNING: only limited set of calls is allowed in signal handlers,
+// e.g. no malloc
 void checkpoint_signal_handler(int signo) {
   // checkpoint can be requested multiple times even when the
   // scheduling of a checkpoint is running
 
-  bool continue_simulation = false;
-
   for (Model* m: g_models) {
-
-    // printout for each model instance
-#ifndef _WIN32
-    if (signo == SIGUSR1) {
-      cout << "User signal SIGUSR1 detected, scheduling a checkpoint and continuing simulation.\n";
-      continue_simulation = true;
+    if (m->get_world() != nullptr) {
+      m->get_world()->set_to_create_checkpoint_event_from_signal_hadler(signo, m);
     }
-    else if (signo == SIGUSR2) {
-      cout << "User signal SIGUSR2 detected, scheduling a checkpoint and terminating simulation afterwards.\n";
-      continue_simulation = false;
-    }
-#endif
-    if (signo == SIGALRM) {
-      cout << "Signal SIGALRM detected - periodic or time limit elapsed, scheduling a checkpoint ";
-      if (m->config.continue_after_sigalrm) {
-        cout << "and continuing simulation.\n";
-        continue_simulation = true;
-      }
-      else {
-        cout << "and terminating simulation afterwards.\n";
-        continue_simulation = false;
-      }
-    }
-
-    m->schedule_checkpoint(0, continue_simulation);
   }
 }
 
@@ -128,6 +109,36 @@ void unset_checkpoint_signals(Model* model) {
       cout << "Warning: failed to uninstall SIGALRM signal handler.\n";
     }
   }
+}
+
+
+void save_checkpoint_func(const float_t time, CheckpointSaveEventContext ctx) {
+
+  const World* world = ctx.model->get_world();
+
+  release_assert(
+      world->scheduler.get_event_being_executed()->type_index == EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT &&
+      "May be called only from event with index EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT, "
+      " world/model data may be inconsistent otherwise"
+  );
+
+  uint64_t current_it = world->stats.get_current_iteration();
+
+  std::string dir;
+  if (ctx.append_it_to_dir) {
+    dir =
+        ctx.dir_prefix +
+        VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), ctx.model->config.total_iterations) +
+        BNG::PATH_SEPARATOR;
+  }
+  else {
+    dir = ctx.dir_prefix;
+  }
+
+  cout << "Saving scheduled checkpoint in iteration " << current_it << " into " << dir << "\n";
+
+  PythonExporter exporter(ctx.model);
+  exporter.save_checkpoint(dir);
 }
 
 } // namespace API

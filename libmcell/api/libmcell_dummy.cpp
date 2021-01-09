@@ -20,16 +20,21 @@
  *
 ******************************************************************************/
 
-// this is an empty implementation because MCell executable (not mcell.so)
-// uses this Callbacks class but we do not want to link all the Python
-// libraries it needs
+// this is an empty implementation of some functions from libmcell
+// MCell executable (not mcell.so) references but not uses Callbacks class and other
+// functions and we do not want to link all the Python libraries it needs
 
 #include "api/reaction_info.h"
 #include "api/callbacks.h"
 #include "api/mol_wall_hit_info.h"
+#include "api/checkpoint_signals.h"
 
 namespace MCell {
 namespace API {
+
+void save_checkpoint_func(double, MCell::API::CheckpointSaveEventContext) {
+  release_assert("must not be called");
+}
 
 Callbacks::Callbacks(Model*) {
   // empty

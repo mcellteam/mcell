@@ -416,6 +416,8 @@ void MCell4Converter::convert_simulation_setup() {
 
   world->config.memory_limit_gb = config.memory_limit_gb;
 
+  world->config.continue_after_sigalrm = config.continue_after_sigalrm;
+
   // compute other constants and initialize reporting (if enabled)
   world->config.init();
 }
@@ -1812,7 +1814,6 @@ void MCell4Converter::check_all_mol_types_have_diffusion_const() {
     }
   }
 }
-
 
 
 // must be called after world initialization

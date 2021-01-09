@@ -124,7 +124,7 @@ add_library(${PROJECT_NAME} STATIC
 
 add_dependencies(${PROJECT_NAME} version_h)
 
-add_library(libmcell_callbacks_empty STATIC
-    api/callbacks_empty.cpp
+add_library(libmcell_dummy STATIC
+    api/libmcell_dummy.cpp
 )
 

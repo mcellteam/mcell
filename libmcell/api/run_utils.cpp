@@ -32,6 +32,7 @@ namespace fs = std::filesystem;
 #endif
 
 #include "api_utils.h"
+#include "src4/simulation_config.h"
 
 using namespace std;
 

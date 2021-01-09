@@ -22,7 +22,6 @@
 
 #include "api_utils.h"
 
-#include <iomanip>
 #include <time.h>
 
 namespace MCell {
@@ -48,13 +47,6 @@ Orientation convert_orientation(const orientation_t o) {
 bool is_simple_species(const std::string& name) {
   // complex species always contain a parenthesis in their name
   return name.find('(') == std::string::npos;
-}
-
-
-std::string get_seed_dir_name(const int seed, const std::string& prefix) {
-  std::stringstream seed_num;
-  seed_num << std::setfill('0') << std::setw(DEFAULT_SEED_DIR_DIGITS) << seed;
-  return prefix + seed_num.str();
 }
 
 

@@ -23,6 +23,7 @@
 
 #include <fenv.h> // Linux include
 #include <sys/resource.h> // Linux include
+#include <signal.h>
 
 #include <fstream>
 
@@ -83,7 +84,8 @@ World::World(API::Callbacks& callbacks_)
     buffers_flushed(false),
     previous_progress_report_time({0, 0}),
     it1_start_time_set(false),
-    previous_iteration(0)
+    previous_iteration(0),
+    signaled_checkpoint_signo(API::SIGNO_NOT_SIGNALED)
 {
   config.partition_edge_length = FLT_INVALID;
   config.num_subpartitions_per_partition_edge = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
@@ -166,6 +168,79 @@ static float_t get_event_start_time(const float_t start_time, const float_t peri
   else {
     return floor_to_multiple(start_time + periodicity, periodicity);
   }
+}
+
+
+void World::schedule_checkpoint_event(
+    const uint64_t iteration, const bool continue_simulation, const API::CheckpointSaveEventContext& ctx) {
+
+  CustomFunctionCallEvent<API::CheckpointSaveEventContext>* checkpoint_event =
+      new CustomFunctionCallEvent<API::CheckpointSaveEventContext>(
+          API::save_checkpoint_func, ctx, EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT);
+
+  if (iteration == 0) {
+    // schedule for the closest iteration while correctly maintaining order of events in the queue
+    checkpoint_event->event_time = TIME_INVALID;
+  }
+  else {
+    checkpoint_event->event_time = iteration;
+  }
+  checkpoint_event->periodicity_interval = 0; // only once
+  checkpoint_event->return_from_run_n_iterations = !continue_simulation;
+
+  // safely schedule
+  // not really needed to do safely when called due to a signal handler because only a flag
+  // is set and the handling is done synchronously, but required when schedule_checkpoint is called e.g. from
+  // a timer
+  scheduler.schedule_event_asynchronously(checkpoint_event);
+}
+
+
+void World::check_checkpointing_signal() {
+  if (signaled_checkpoint_signo == API::SIGNO_NOT_SIGNALED) {
+    return;
+  }
+
+  bool continue_simulation = false;
+
+  // printout for each model instance
+#ifndef _WIN32
+  if (signaled_checkpoint_signo == SIGUSR1) {
+    cout << "User signal SIGUSR1 detected, scheduling a checkpoint and continuing simulation.\n";
+    continue_simulation = true;
+  }
+  else if (signaled_checkpoint_signo == SIGUSR2) {
+    cout << "User signal SIGUSR2 detected, scheduling a checkpoint and terminating simulation afterwards.\n";
+    continue_simulation = false;
+  }
+#endif
+  else if (signaled_checkpoint_signo == SIGALRM) {
+    cout << "Signal SIGALRM detected - periodic or time limit elapsed, scheduling a checkpoint ";
+    if (config.continue_after_sigalrm) {
+      cout << "and continuing simulation.\n";
+      continue_simulation = true;
+    }
+    else {
+      cout << "and terminating simulation afterwards.\n";
+      continue_simulation = false;
+    }
+  }
+  else {
+    cout << "Unexpected signal " << signaled_checkpoint_signo << " received, fatal error.\n";
+    release_assert(false);
+  }
+
+  API::CheckpointSaveEventContext ctx;
+  release_assert(signaled_checkpoint_model != nullptr);
+  ctx.model = signaled_checkpoint_model;
+  ctx.dir_prefix = config.get_default_checkpoint_dir_prefix();
+  ctx.append_it_to_dir = true;
+
+  schedule_checkpoint_event(0, continue_simulation, ctx);
+
+  // reset flag and pointer to model because we don't need it anymore
+  signaled_checkpoint_signo = API::SIGNO_NOT_SIGNALED;
+  signaled_checkpoint_model = nullptr;
 }
 
 
@@ -299,6 +374,7 @@ uint64_t World::time_to_iteration(const float_t time) {
   return (uint64_t)(time - config.get_simulation_start_time()) + config.initial_iteration;
 }
 
+
 uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool terminate_last_iteration_after_viz_output) {
 
   release_assert(simulation_initialized);
@@ -322,6 +398,8 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
   uint64_t this_run_first_iteration = current_iteration;
 
   do {
+    check_checkpointing_signal();
+
     // current_iteration corresponds to the number of executed time steps
     float_t time = scheduler.get_next_event_time();
 

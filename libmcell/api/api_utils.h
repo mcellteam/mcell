@@ -35,8 +35,6 @@ namespace API {
 
 bool is_simple_species(const std::string& name);
 Orientation convert_orientation(const orientation_t o);
-std::string get_seed_dir_name(const int seed, const std::string& prefix = DEFAULT_SEED_DIR_PREFIX);
-
 
 template<class T>
 void append_to_vec(
