@@ -53,6 +53,22 @@ std::string Species::export_to_python(std::ostream& out, PythonExportContext& ct
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
+
+  if (is_species_superclass()) {
+    if (name == BNG::ALL_MOLECULES) {
+      return S(MDOT) + NAME_CV_AllMolecules;
+    }
+    else if (name == BNG::ALL_VOLUME_MOLECULES) {
+      return S(MDOT) + NAME_CV_AllVolumeMolecules;
+    }
+    else if (name == BNG::ALL_SURFACE_MOLECULES) {
+      return S(MDOT) + NAME_CV_AllSurfaceMolecules;
+    }
+    else {
+      assert(false);
+    }
+  }
+
   std::string exported_name = "species_" + fix_id(name);
   ctx.add_exported(this, exported_name);
 

@@ -114,6 +114,7 @@ std::string PythonExporter::export_geometry(PythonExportContext& ctx) {
   ofstream out;
   open_and_check_file(GEOMETRY, out);
   out << MCELL_IMPORT;
+  out << get_import_star(SUBSYSTEM);
 
   string res_name = model->export_vec_geometry_objects(out, ctx, "");
 
