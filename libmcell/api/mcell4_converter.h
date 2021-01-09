@@ -162,7 +162,7 @@ private:
 
   void convert_viz_output_events();
 
-  void convert_initial_iteration_and_time();
+  void convert_initial_iteration_and_time_and_move_scheduler_time();
 
   void add_ctrl_c_termination_event();
 

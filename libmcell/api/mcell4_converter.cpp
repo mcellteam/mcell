@@ -143,10 +143,14 @@ void MCell4Converter::convert_before_init() {
 
   convert_viz_output_events();
 
-  // sets up data loaded from checkpoint
-  convert_initial_iteration_and_time();
-
+  // beside of the event checking for check ctrl-c, it is a periodic event for each
+  // iteration so, in the following call, where time maybe be moved time for scheduler
+  // when a checkpoint is resumed, we always end up at the starting iteration and do not skip it
+  // so that later we are not inserting events to the past (from the scheduler's point of view)
   add_ctrl_c_termination_event();
+
+  // sets up data loaded from checkpoint
+  convert_initial_iteration_and_time_and_move_scheduler_time();
 
   // some general checks
   if (world->config.rx_radius_3d * SQRT2 >= world->config.subpartition_edge_length / 2) {
@@ -1774,7 +1778,7 @@ void MCell4Converter::convert_viz_output_events() {
 
 // sets up data loaded from checkpoint, must be run after all events were added to the scheduler
 // rng state is set after model initialization in Model::initialize
-void MCell4Converter::convert_initial_iteration_and_time() {
+void MCell4Converter::convert_initial_iteration_and_time_and_move_scheduler_time() {
 
   if ((model->config.initial_iteration != 0) != (model->config.initial_time != 0)) {
     throw RuntimeError(S("Both ") + NAME_INITIAL_ITERATION + " and " + NAME_INITIAL_TIME +

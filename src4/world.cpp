@@ -284,6 +284,7 @@ void World::init_simulation(const float_t start_time) {
     BNG::append_to_report(config.get_run_report_file_name(), "Simulation started ");
   }
   else {
+    cout << "Iterations: " << stats.get_current_iteration() << " of " << total_iterations << " (resuming a checkpoint)\n";
     BNG::append_to_report(config.get_run_report_file_name(), "Simulation resumed from a checkpoint ");
   }
   BNG::append_to_report(config.get_run_report_file_name(),
@@ -556,7 +557,6 @@ void World::reset_unimol_rxn_times(const BNG::rxn_rule_id_t rxn_rule_id) {
     }
   }
 }
-
 
 
 std::string World::export_releases_to_bngl_seed_species(
