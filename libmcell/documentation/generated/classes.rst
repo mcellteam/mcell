@@ -494,6 +494,7 @@ Attributes:
   | If the pattern has a compartment set, this specifies the counted region.
 
 * | **reaction_rule**: ReactionRule = None
+  | Count the number of reactions that occurred since the start of the simulation.
 
 * | **region**: Region = None
   | Only a GeometryObject or SurfaceRegion can be passed as the region argument, 
@@ -511,6 +512,10 @@ Attributes:
 
 * | **right_node**: CountTerm = None
   | Internal, when node_type is not Leaf, this is the right operand
+
+* | **initial_reactions_count**: int = 0
+  | Used for checkpointing, allows to set initial count of reactions that occurred.
+  | Ignored when molecules are counted.
 
 
 Methods:
@@ -556,6 +561,7 @@ Attributes:
   | If the pattern has a compartment set, this specifies the counted region.
 
 * | **reaction_rule**: ReactionRule = None
+  | Count the number of reactions that occurred since the start of the simulation.
 
 * | **region**: Region = None
   | Only a GeometryObject or SurfaceRegion can be passed as the region argument, 
@@ -573,6 +579,10 @@ Attributes:
 
 * | **right_node**: CountTerm = None
   | Internal, when node_type is not Leaf, this is the right operand
+
+* | **initial_reactions_count**: int = 0
+  | Used for checkpointing, allows to set initial count of reactions that occurred.
+  | Ignored when molecules are counted.
 
 
 Methods:

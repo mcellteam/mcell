@@ -128,7 +128,7 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
     ;
 }
 
-std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -170,7 +170,7 @@ std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportCon
   }
 }
 
-std::string GenSurfaceClass::export_vec_properties(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenSurfaceClass::export_vec_properties(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";

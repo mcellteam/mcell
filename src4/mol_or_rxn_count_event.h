@@ -69,7 +69,8 @@ public:
       species_molecules_pattern(nullptr),
       rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
       geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
-      region_id(REGION_ID_INVALID)
+      region_id(REGION_ID_INVALID),
+      initial_reactions_count(0)
      {
   }
 
@@ -129,6 +130,10 @@ public:
 
   // valid when type is PresentOnSurfaceRegion or RxnOnSurfaceRegion
   region_id_t region_id;
+
+  // holds initial value when resumed from a checkpoint,
+  // ignored for molecule counts
+  uint64_t initial_reactions_count;
 };
 
 typedef small_vector<MolOrRxnCountTerm> MolOrRxnCountTermVector;

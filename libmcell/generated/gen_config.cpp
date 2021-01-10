@@ -238,7 +238,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
     ;
 }
 
-std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -330,7 +330,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   }
 }
 
-std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenConfig::export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";

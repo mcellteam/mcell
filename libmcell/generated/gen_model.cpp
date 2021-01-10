@@ -174,7 +174,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
     ;
 }
 
-std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& ctx) {
 # if 0 // not to be used
   std::string exported_name = "model";
 
@@ -238,7 +238,7 @@ std::string GenModel::export_to_python(std::ostream& out, PythonExportContext& c
 #endif
 }
 
-std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -268,7 +268,7 @@ std::string GenModel::export_vec_species(std::ostream& out, PythonExportContext&
   return exported_name;
 }
 
-std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -298,7 +298,7 @@ std::string GenModel::export_vec_reaction_rules(std::ostream& out, PythonExportC
   return exported_name;
 }
 
-std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -328,7 +328,7 @@ std::string GenModel::export_vec_surface_classes(std::ostream& out, PythonExport
   return exported_name;
 }
 
-std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -358,7 +358,7 @@ std::string GenModel::export_vec_elementary_molecule_types(std::ostream& out, Py
   return exported_name;
 }
 
-std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -388,7 +388,7 @@ std::string GenModel::export_vec_release_sites(std::ostream& out, PythonExportCo
   return exported_name;
 }
 
-std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -418,7 +418,7 @@ std::string GenModel::export_vec_geometry_objects(std::ostream& out, PythonExpor
   return exported_name;
 }
 
-std::string GenModel::export_vec_checkpointed_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_checkpointed_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -448,7 +448,7 @@ std::string GenModel::export_vec_checkpointed_molecules(std::ostream& out, Pytho
   return exported_name;
 }
 
-std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -478,7 +478,7 @@ std::string GenModel::export_vec_viz_outputs(std::ostream& out, PythonExportCont
   return exported_name;
 }
 
-std::string GenModel::export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenModel::export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;

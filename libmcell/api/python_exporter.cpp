@@ -36,6 +36,7 @@
 #include "src4/partition.h"
 #include "src4/molecule.h"
 #include "src4/custom_function_call_event.h"
+#include "src4/mol_or_rxn_count_event.h"
 
 using namespace std;
 
@@ -152,6 +153,27 @@ std::string PythonExporter::export_observables(PythonExportContext& ctx) {
   out << get_import_star(GEOMETRY);
   out << get_import_star(INSTANTIATION);
   out << "\n";
+
+  // we need to set the initial_reactions_count of reaction counts here
+  for (auto& count: model->Observables::counts) {
+    if (is_set(count->count_expression)) {
+      assert(count->count_event != nullptr);
+      assert(count->count_event->mol_rxn_count_items.size() == 1);
+
+      for (const auto& count_term: count->count_event->mol_rxn_count_items[0].terms) {
+        if (count_term.is_rxn_count()) {
+          throw RuntimeError(
+            "Checkpointing of Count objects that use expressions containing reaction counts is not supported yet.");
+        }
+      }
+    }
+    else {
+      if (is_set(count->reaction_rule)) {
+        // set value that will be exported
+        count->initial_reactions_count_export_override = count->get_current_value();
+      }
+    }
+  }
 
   string res_name = model->Observables::export_to_python(out, ctx);
 

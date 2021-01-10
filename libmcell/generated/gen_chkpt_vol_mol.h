@@ -78,7 +78,7 @@ public:
   bool operator != (const ChkptVolMol& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const;
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
 
 
   // --- attributes ---

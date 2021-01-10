@@ -375,7 +375,8 @@ class Count():
             region : Region = None,
             node_type : ExprNodeType = ExprNodeType.LEAF,
             left_node : CountTerm = None,
-            right_node : CountTerm = None
+            right_node : CountTerm = None,
+            initial_reactions_count : int = 0
         ):
         self.name = name
         self.file_name = file_name
@@ -389,6 +390,7 @@ class Count():
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
+        self.initial_reactions_count = initial_reactions_count
 
 
     def get_current_value(
@@ -417,7 +419,8 @@ class CountTerm():
             region : Region = None,
             node_type : ExprNodeType = ExprNodeType.LEAF,
             left_node : CountTerm = None,
-            right_node : CountTerm = None
+            right_node : CountTerm = None,
+            initial_reactions_count : int = 0
         ):
         self.species_pattern = species_pattern
         self.molecules_pattern = molecules_pattern
@@ -426,6 +429,7 @@ class CountTerm():
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
+        self.initial_reactions_count = initial_reactions_count
 
 
     def __add__(

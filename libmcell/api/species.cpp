@@ -49,7 +49,7 @@ bool Species::__eq__(const Species& other) const {
 
 
 // species name is sufficient
-std::string Species::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string Species::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }

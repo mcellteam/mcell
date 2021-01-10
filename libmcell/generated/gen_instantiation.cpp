@@ -85,7 +85,7 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
     ;
 }
 
-std::string GenInstantiation::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenInstantiation::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   std::string exported_name = "instantiation";
 
   bool str_export = export_as_string_without_newlines();
@@ -117,7 +117,7 @@ std::string GenInstantiation::export_to_python(std::ostream& out, PythonExportCo
   }
 }
 
-std::string GenInstantiation::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenInstantiation::export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -147,7 +147,7 @@ std::string GenInstantiation::export_vec_release_sites(std::ostream& out, Python
   return exported_name;
 }
 
-std::string GenInstantiation::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenInstantiation::export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -177,7 +177,7 @@ std::string GenInstantiation::export_vec_geometry_objects(std::ostream& out, Pyt
   return exported_name;
 }
 
-std::string GenInstantiation::export_vec_checkpointed_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenInstantiation::export_vec_checkpointed_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;

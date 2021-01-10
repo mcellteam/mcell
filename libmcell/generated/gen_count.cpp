@@ -75,6 +75,7 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   node_type = ExprNodeType::LEAF;
   left_node = nullptr;
   right_node = nullptr;
+  initial_reactions_count = 0;
 }
 
 bool GenCount::__eq__(const Count& other) const {
@@ -160,7 +161,8 @@ bool GenCount::__eq__(const Count& other) const {
           false :
           true
         )
-     ) ;
+     )  &&
+    initial_reactions_count == other.initial_reactions_count;
 }
 
 bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name) const {
@@ -246,7 +248,8 @@ bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name
           false :
           true
         )
-     ) ;
+     )  &&
+    initial_reactions_count == other.initial_reactions_count;
 }
 
 std::string GenCount::to_str(const std::string ind) const {
@@ -263,7 +266,8 @@ std::string GenCount::to_str(const std::string ind) const {
       "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "initial_reactions_count=" << initial_reactions_count;
   return ss.str();
 }
 
@@ -282,7 +286,8 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             std::shared_ptr<Region>,
             const ExprNodeType,
             std::shared_ptr<CountTerm>,
-            std::shared_ptr<CountTerm>
+            std::shared_ptr<CountTerm>,
+            const uint64_t
           >(),
           py::arg("name") = STR_UNSET,
           py::arg("file_name") = STR_UNSET,
@@ -295,7 +300,8 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
           py::arg("region") = nullptr,
           py::arg("node_type") = ExprNodeType::LEAF,
           py::arg("left_node") = nullptr,
-          py::arg("right_node") = nullptr
+          py::arg("right_node") = nullptr,
+          py::arg("initial_reactions_count") = 0
       )
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
@@ -310,7 +316,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
     ;
 }
 
-std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -349,6 +355,9 @@ std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& c
   }
   if (is_set(right_node)) {
     ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
+  }
+  if (initial_reactions_count != 0) {
+    ss << ind << "initial_reactions_count = " << initial_reactions_count << "," << nl;
   }
   if (name != STR_UNSET) {
     ss << ind << "name = " << "'" << name << "'" << "," << nl;

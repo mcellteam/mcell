@@ -97,7 +97,7 @@ public:
 
   std::shared_ptr<Species> as_species() override;
 
-  // do not export elementary_molecules (represented by name)
+  // do not export elementary_molecules (they are represented by name)
   bool skip_vectors_export() const override {
     return true;
   }

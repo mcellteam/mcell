@@ -158,6 +158,7 @@ const char* const NAME_GRID_TILE_INDEX = "grid_tile_index";
 const char* const NAME_ID = "id";
 const char* const NAME_INITIAL_ITERATION = "initial_iteration";
 const char* const NAME_INITIAL_PARTITION_ORIGIN = "initial_partition_origin";
+const char* const NAME_INITIAL_REACTIONS_COUNT = "initial_reactions_count";
 const char* const NAME_INITIAL_RNG_STATE = "initial_rng_state";
 const char* const NAME_INITIAL_SURFACE_RELEASES = "initial_surface_releases";
 const char* const NAME_INITIAL_TIME = "initial_time";

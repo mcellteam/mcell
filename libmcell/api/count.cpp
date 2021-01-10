@@ -32,11 +32,6 @@ float_t Count::get_current_value() {
     throw RuntimeError(S(NAME_CLASS_COUNT) + " with name " + name + " was not initialized.");
   }
 
-  if (is_set(reaction_rule)) {
-    throw RuntimeError(S("Calling of ") + NAME_GET_CURRENT_VALUE + " to count reactions is not supported " +
-        "( counted reaction rule: " + reaction_rule->to_bngl_str() + ").");
-  }
-
   return count_event->get_single_count_value();
 }
 

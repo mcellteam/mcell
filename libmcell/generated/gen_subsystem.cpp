@@ -92,7 +92,7 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
     ;
 }
 
-std::string GenSubsystem::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenSubsystem::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   std::string exported_name = "subsystem";
 
   bool str_export = export_as_string_without_newlines();
@@ -127,7 +127,7 @@ std::string GenSubsystem::export_to_python(std::ostream& out, PythonExportContex
   }
 }
 
-std::string GenSubsystem::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenSubsystem::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -157,7 +157,7 @@ std::string GenSubsystem::export_vec_species(std::ostream& out, PythonExportCont
   return exported_name;
 }
 
-std::string GenSubsystem::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenSubsystem::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -187,7 +187,7 @@ std::string GenSubsystem::export_vec_reaction_rules(std::ostream& out, PythonExp
   return exported_name;
 }
 
-std::string GenSubsystem::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenSubsystem::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -217,7 +217,7 @@ std::string GenSubsystem::export_vec_surface_classes(std::ostream& out, PythonEx
   return exported_name;
 }
 
-std::string GenSubsystem::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenSubsystem::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;

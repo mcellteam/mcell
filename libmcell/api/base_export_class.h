@@ -59,7 +59,7 @@ public:
 
   // either returns the whole definition as a string or prints definition to out and
   // returns name
-  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) {
     assert(false);
     return "Export to Python for a derived class is not implemented.";
   }

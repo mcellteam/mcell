@@ -226,7 +226,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
     ;
 }
 
-std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -282,7 +282,7 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
   }
 }
 
-std::string GenGeometryObject::export_vec_vertex_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenGeometryObject::export_vec_vertex_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";
@@ -304,7 +304,7 @@ std::string GenGeometryObject::export_vec_vertex_list(std::ostream& out, PythonE
   return ss.str();
 }
 
-std::string GenGeometryObject::export_vec_wall_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenGeometryObject::export_vec_wall_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";
@@ -326,7 +326,7 @@ std::string GenGeometryObject::export_vec_wall_list(std::ostream& out, PythonExp
   return ss.str();
 }
 
-std::string GenGeometryObject::export_vec_surface_regions(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenGeometryObject::export_vec_surface_regions(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";
@@ -347,7 +347,7 @@ std::string GenGeometryObject::export_vec_surface_regions(std::ostream& out, Pyt
   return ss.str();
 }
 
-std::string GenGeometryObject::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenGeometryObject::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";

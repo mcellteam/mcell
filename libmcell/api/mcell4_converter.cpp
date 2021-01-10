@@ -1667,6 +1667,9 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
       res.type = MCell::CountType::RxnCountInWorld;
       rxn->set_is_counted_in_world();
     }
+
+    // remember the initial reactions count when resuming from a checkpoint, default is 0
+    res.initial_reactions_count = ct->initial_reactions_count;
   }
   else {
     assert(false);

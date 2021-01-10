@@ -74,7 +74,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
     ;
 }
 
-std::string GenObservables::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenObservables::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   std::string exported_name = "observables";
 
   bool str_export = export_as_string_without_newlines();
@@ -103,7 +103,7 @@ std::string GenObservables::export_to_python(std::ostream& out, PythonExportCont
   }
 }
 
-std::string GenObservables::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenObservables::export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;
@@ -133,7 +133,7 @@ std::string GenObservables::export_vec_viz_outputs(std::ostream& out, PythonExpo
   return exported_name;
 }
 
-std::string GenObservables::export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenObservables::export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // prints vector into 'out' and returns name of the generated list
   std::stringstream ss;
   std::string exported_name;

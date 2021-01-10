@@ -111,7 +111,7 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
     ;
 }
 
-std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -142,7 +142,7 @@ std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonEx
   }
 }
 
-std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";

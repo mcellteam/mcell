@@ -70,10 +70,10 @@ public:
   bool operator != (const ReactionRule& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
-  virtual std::string export_vec_reactants(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
-  virtual std::string export_vec_products(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
-  virtual std::string export_vec_variable_rate(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
+  virtual std::string export_vec_reactants(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_products(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_variable_rate(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
 
 
   // --- attributes ---

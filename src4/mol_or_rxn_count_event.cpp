@@ -421,6 +421,9 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
     // does the current reaction match?
     if (term.is_rxn_count() && term.rxn_rule_id == rxn->id) {
 
+      // use initial_reactions_count (from previous checkpoint)
+      count_items[item.index].value += term.initial_reactions_count;
+
       // get counts from partition
       const CountInGeomObjectMap& counts_in_objects = p.get_rxn_in_volume_count_map(term.rxn_rule_id);
       const CountOnWallMap& counts_on_walls = p.get_rxn_on_surface_count_map(term.rxn_rule_id);

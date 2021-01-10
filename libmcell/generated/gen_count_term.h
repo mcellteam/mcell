@@ -43,7 +43,8 @@ class PythonExportContext;
         std::shared_ptr<Region> region_ = nullptr, \
         const ExprNodeType node_type_ = ExprNodeType::LEAF, \
         std::shared_ptr<CountTerm> left_node_ = nullptr, \
-        std::shared_ptr<CountTerm> right_node_ = nullptr \
+        std::shared_ptr<CountTerm> right_node_ = nullptr, \
+        const uint64_t initial_reactions_count_ = 0 \
     ) { \
       class_name = "CountTerm"; \
       species_pattern = species_pattern_; \
@@ -53,6 +54,7 @@ class PythonExportContext;
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
+      initial_reactions_count = initial_reactions_count_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -70,7 +72,7 @@ public:
   bool operator != (const CountTerm& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
 
-  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const override;
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
 
 
   // --- attributes ---
@@ -170,6 +172,20 @@ public:
   virtual std::shared_ptr<CountTerm> get_right_node() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return right_node;
+  }
+
+  uint64_t initial_reactions_count;
+  virtual void set_initial_reactions_count(const uint64_t new_initial_reactions_count_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_reactions_count' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    initial_reactions_count = new_initial_reactions_count_;
+  }
+  virtual uint64_t get_initial_reactions_count() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return initial_reactions_count;
   }
 
   // --- methods ---

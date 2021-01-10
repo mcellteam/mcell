@@ -127,7 +127,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
     ;
 }
 
-std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -180,7 +180,7 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
   }
 }
 
-std::string GenReactionRule::export_vec_reactants(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenReactionRule::export_vec_reactants(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";
@@ -201,7 +201,7 @@ std::string GenReactionRule::export_vec_reactants(std::ostream& out, PythonExpor
   return ss.str();
 }
 
-std::string GenReactionRule::export_vec_products(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenReactionRule::export_vec_products(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";
@@ -222,7 +222,7 @@ std::string GenReactionRule::export_vec_products(std::ostream& out, PythonExport
   return ss.str();
 }
 
-std::string GenReactionRule::export_vec_variable_rate(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenReactionRule::export_vec_variable_rate(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";

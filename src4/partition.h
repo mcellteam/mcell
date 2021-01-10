@@ -1095,9 +1095,11 @@ private:
   std::vector< WallsInSubpart > walls_per_subpart;
 
   // ---------------------------------- counting ------------------------------------------
-  // key is rxn rule id and its values are maps that contain current reaction counts for each
-  // counted volume or wall
-  // counts are reset every time MolOrRxnCountEvent is executed
+  // - key is rxn rule id and its values are maps that contain current reaction counts for each
+  //   counted volume or wall
+  // - counts are 0 when resumed from a checkpoint because there is not easy way how to reconstruct
+  //   these data from the last observables counts and it was much easier to store the previous counts
+  //   in the MolOrRxnCountTerm object
   std::map< BNG::rxn_rule_id_t, CountInGeomObjectMap > rxn_counts_per_counted_volume;
   std::map< BNG::rxn_rule_id_t, CountOnWallMap > rxn_counts_per_wall_volume;
 

@@ -111,7 +111,7 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
     ;
 }
 
-std::string GenElementaryMolecule::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenElementaryMolecule::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -144,7 +144,7 @@ std::string GenElementaryMolecule::export_to_python(std::ostream& out, PythonExp
   }
 }
 
-std::string GenElementaryMolecule::export_vec_components(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenElementaryMolecule::export_vec_components(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";

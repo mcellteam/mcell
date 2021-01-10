@@ -109,6 +109,19 @@ public:
       return std::shared_ptr<Complex>(nullptr);
     }
   }
+
+
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override {
+    // we need to overwrite the current value for export however we do not want to change it
+    // permanently
+    uint64_t initial_reactions_count_orig = initial_reactions_count;
+    initial_reactions_count = initial_reactions_count_export_override;
+    std::string res = GenCountTerm::export_to_python(out, ctx);
+    initial_reactions_count = initial_reactions_count_orig;
+    return res;
+  }
+
+  uint64_t initial_reactions_count_export_override;
 };
 
 } // namespace API

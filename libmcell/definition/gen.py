@@ -192,7 +192,7 @@ RET_TYPE_EXPORT_TO_PYTHON = 'std::string'
 CTX = 'ctx'
 EXPORTED_NAME = 'exported_name'
 EXPORT_TO_PYTHON_ARGS = 'std::ostream& out, PythonExportContext& ' + CTX
-DECL_EXPORT_TO_PYTHON = 'export_to_python(' + EXPORT_TO_PYTHON_ARGS + ') const'
+DECL_EXPORT_TO_PYTHON = 'export_to_python(' + EXPORT_TO_PYTHON_ARGS + ')'
 EXPORT_VEC_PREFIX = 'export_vec_'
 M_DOT = 'm.'
 
@@ -1050,7 +1050,7 @@ def write_vec_export(f, return_only_name, gen_class_name, item):
     PARENT_NAME = 'parent_name'
     
     name_w_args = \
-        EXPORT_VEC_PREFIX + item_name + '(' + EXPORT_TO_PYTHON_ARGS + ', const std::string& ' + PARENT_NAME + ') const'
+        EXPORT_VEC_PREFIX + item_name + '(' + EXPORT_TO_PYTHON_ARGS + ', const std::string& ' + PARENT_NAME + ')'
     decl = '  virtual ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + name_w_args + ';\n'
     f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + name_w_args + " {\n")
     

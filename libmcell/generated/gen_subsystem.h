@@ -58,11 +58,11 @@ public:
   bool operator != (const Subsystem& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
 
-  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx) const;
-  virtual std::string export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
-  virtual std::string export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
-  virtual std::string export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
-  virtual std::string export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const;
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
+  virtual std::string export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
 
 
   // --- attributes ---

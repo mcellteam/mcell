@@ -192,7 +192,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
     ;
 }
 
-std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -238,7 +238,7 @@ std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportCo
   }
 }
 
-std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";
@@ -256,7 +256,7 @@ std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonE
   return ss.str();
 }
 
-std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";

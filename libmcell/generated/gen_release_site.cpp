@@ -242,7 +242,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
     ;
 }
 
-std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportContext& ctx) const {
+std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportContext& ctx) {
   if (!export_even_if_already_exported() && ctx.already_exported(this)) {
     return ctx.get_exported_name(this);
   }
@@ -311,7 +311,7 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   }
 }
 
-std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) const {
+std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
   // does not print the array itself to 'out' and returns the whole list
   std::stringstream ss;
   ss << "[";
