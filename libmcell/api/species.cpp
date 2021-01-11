@@ -69,7 +69,13 @@ std::string Species::export_to_python(std::ostream& out, PythonExportContext& ct
     }
   }
 
-  std::string exported_name = "species_" + fix_id(name);
+  std::string exported_name = "species_";
+  if (name.size() > MAX_SPECIES_NAME_LENGTH) {
+    exported_name += to_string(ctx.postinc_counter("species"));
+  }
+  else {
+    exported_name += fix_id(name);
+  }
   ctx.add_exported(this, exported_name);
 
   std::stringstream ss;

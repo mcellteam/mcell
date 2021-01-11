@@ -9,6 +9,8 @@ namespace API {
 
 const int FLOAT_OUT_PRECISION = 15; // this is the precision that is used by mdl_to_data_model.py script
 
+const int MAX_SPECIES_NAME_LENGTH = 32;
+
 const char* const PARAMETERS = "parameters";
 const char* const SUBSYSTEM = "subsystem";
 const char* const GEOMETRY = "geometry";
