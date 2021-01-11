@@ -133,7 +133,7 @@ std::string GenComponentType::export_vec_states(std::ostream& out, PythonExportC
     else if (i % 16 == 0) {
       ss << "\n  ";
     }
-    ss << item << ", ";
+    ss << "'" << item << "', ";
   }
   ss << "]";
   return ss.str();

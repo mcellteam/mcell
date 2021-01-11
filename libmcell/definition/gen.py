@@ -1121,6 +1121,8 @@ def write_vec_export(f, return_only_name, gen_class_name, item):
         )
     elif inner_type == YAML_TYPE_FLOAT:
         f.write('  ' + out + F_TO_STR + '(item) << ", ";\n')
+    elif inner_type == YAML_TYPE_STR:
+        f.write('  ' + out + '"\'" << item << "\', ";\n')
     else:
         # array of simple type
         f.write('  ' + out + 'item << ", ";\n')

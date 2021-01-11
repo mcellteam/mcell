@@ -1165,9 +1165,9 @@ Methods:
 
    * | iteration: int = 0
      | Specifies iteration number when the checkpoint save will occur. 
-     | Please note that iterations are counted from 0, i.e. a call run_iterations(3)
-     | runs iterations 0, 1, 2.
-     | To schedule a checkpoint for the closest time as possible, keep the default value 0. 
+     | Please note that iterations are counted from 0.
+     | To schedule a checkpoint for the closest time as possible, keep the default value 0,
+     | this will schedule checkpoint for the beginning of the iteration with number current iteration + 1.  
      | If calling schedule_checkpoint from a different thread (e.g. by using threading.Timer), 
      | it is highly recommended to keep the default value 0 or choose some time that will be 
      | for sure in the future.
