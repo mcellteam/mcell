@@ -213,6 +213,12 @@ void PythonExporter::export_simulation_state(
 
 void PythonExporter::export_molecules(std::ostream& out, PythonExportContext& ctx) {
 
+  // first export used species
+  stringstream species_out;
+  species_out << "# species used by molecules but not defined in subsystem\n";
+  species_out << NAME_SPECIES << " = [ ";
+  int num_exported_species = 0;
+
   // prepare species map
   IdSpeciesMap id_species_map;
   for (const BNG::Species* species: world->get_all_species().get_species_vector()) {
@@ -228,11 +234,19 @@ void PythonExporter::export_molecules(std::ostream& out, PythonExportContext& ct
         // create a new object and export it directly so that all the newly used species are
         // on the top of the simulation_state module
         shared_ptr<API::Species> new_species = make_shared<API::Species>(species->name);
-        new_species->export_to_python(out, ctx);
+        std::string name = new_species->export_to_python(out, ctx);
         id_species_map[species->id] = new_species;
+
+        // add it to the list of species to be used
+        if (num_exported_species != 0 && num_exported_species % 8 == 0) {
+          species_out << "\n  ";
+        }
+        species_out << name << ", ";
       }
     }
   }
+  species_out << "\n]\n\n";
+  out << species_out.str();
 
   // prepare geometry objects map
   IdGeometryObjectMap id_geometry_object_map;
@@ -349,6 +363,7 @@ std::string PythonExporter::export_model(
   }
   gen_assign(out, MODEL, NAME_CONFIG, NAME_APPEND_TO_COUNT_OUTPUT_DATA, true);
 
+  out << MODEL << "." << NAME_SPECIES << " += " << SIMULATION_STATE << "." << NAME_SPECIES << "\n";
   gen_assign(out, MODEL, NAME_CHECKPOINTED_MOLECULES, S(SIMULATION_STATE) + "." + NAME_CHECKPOINTED_MOLECULES);
   out << "\n";
 
