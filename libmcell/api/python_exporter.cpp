@@ -230,9 +230,10 @@ void PythonExporter::export_molecules(std::ostream& out, PythonExportContext& ct
         // use existing object
         id_species_map[species->id] = subsystem_species;
       }
-      else {
-        // create a new object and export it directly so that all the newly used species are
-        // on the top of the simulation_state module
+      else if (!species->is_reactive_surface()){
+        // - reactive surfaces/surface classes must be defined in subsystem
+        // - create a new object and export it directly so that all the newly used species are
+        //   in the beginning of the simulation_state module file
         shared_ptr<API::Species> new_species = make_shared<API::Species>(species->name);
         std::string name = new_species->export_to_python(out, ctx);
         id_species_map[species->id] = new_species;

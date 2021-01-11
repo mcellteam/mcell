@@ -92,7 +92,7 @@ public:
   bool __eq__(const Complex& other) const override;
 
   std::string to_bngl_str() const override {
-    return to_bngl_str_w_orientation();
+    return to_bngl_str_w_custom_orientation();
   }
 
   std::shared_ptr<Species> as_species() override;
@@ -107,13 +107,23 @@ public:
     return true;
   }
 
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) {
+    // we must set name for export if it was not set
+    if (!is_set(name)) {
+      name = to_bngl_str_w_custom_orientation(false /*any*/, true);
+    }
+    return GenComplex::export_to_python(out, ctx);
+  }
+
   // complexes can be only either surf or vol, there is no other option
   bool is_vol() const {
     return !is_surf();
   }
   bool is_surf() const;
 
-  std::string to_bngl_str_w_orientation(bool replace_orientation_w_up_down_compartments = false) const;
+  std::string to_bngl_str_w_custom_orientation(
+      const bool replace_orientation_w_up_down_compartments = false,
+      const bool ignore_orientation = false) const;
 
   // not really const, sets mutable members that serve as cache
   const std::string& get_canonical_name() const;
