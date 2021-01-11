@@ -111,10 +111,10 @@ public:
 
   float_t get_simulation_start_time() const {
     assert(initial_time != TIME_INVALID);
-    return floor_to_multiple(
-        initial_time / time_unit,
-        time_unit
-    );
+    // simulation starts always in integer values of internal time
+    float_t res = floor_to_multiple(initial_time / time_unit, 1);
+    assert((int)res == res);
+    return res;
   }
 
   // returns 'checkpoints/seed_<SEED>/it_' - without the iteration number

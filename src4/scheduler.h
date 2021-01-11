@@ -89,6 +89,8 @@ public:
   }
 
 private:
+  // differs from get_next_time - does not clear empty buckets
+  // and returns bucket start time, not the next event time
   float_t get_first_bucket_start_time() {
     assert(queue.size() != 0);
     return queue.front().start_time;

@@ -246,7 +246,7 @@ void World::check_checkpointing_signal() {
 
 void World::init_simulation(const float_t start_time) {
 
-  release_assert(floor_to_multiple(start_time, config.time_unit) == start_time);
+  release_assert((int)start_time == start_time && "Iterations start time must be an integer.");
 
   // TODO: check these messages in testsuite
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID

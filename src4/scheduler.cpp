@@ -133,6 +133,7 @@ BaseEvent* Calendar::pop_next() {
 
 float_t Calendar::get_next_time() {
   clear_empty_buckets();
+  assert(!queue.empty() && !queue.front().events.empty());
   BaseEvent* next_event = queue.front().events.front();
   return next_event->event_time;
 }
@@ -313,7 +314,8 @@ EventExecutionInfo Scheduler::handle_next_event() {
 
 void Scheduler::skip_events_up_to_time(const float_t start_time) {
 
-  while (calendar.get_next_time() < start_time) {
+  // need to deal with imprecisions, e.g. 0.0000005 * 10^6 ~= 5.0000000000008
+  while (calendar.get_next_time() < start_time - EPS) {
     BaseEvent* event = calendar.pop_next();
     bool to_schedule = event->update_event_time_for_next_scheduled_time();
     if (to_schedule) {
