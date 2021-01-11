@@ -36,6 +36,10 @@ class CountTerm: public GenCountTerm, public std::enable_shared_from_this<CountT
 public:
   COUNT_TERM_CTOR()
 
+  void postprocess_in_ctor() override {
+    initial_reactions_count_export_override = 0;
+  }
+
   void check_semantics() const override {
     GenCountTerm::check_semantics();
     if (is_set(region)) {

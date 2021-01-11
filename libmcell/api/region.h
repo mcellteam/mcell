@@ -33,6 +33,10 @@ class Region: public GenRegion, public std::enable_shared_from_this<Region> {
 public:
   REGION_CTOR()
 
+  void postprocess_in_ctor() {
+    is_geometry_object = false;
+  }
+
   std::shared_ptr<Region> __add__(std::shared_ptr<Region> other) override {
     return std::make_shared<Region>(RegionNodeType::UNION, shared_from_this(), other);
   }
@@ -42,6 +46,10 @@ public:
   std::shared_ptr<Region> __mul__(std::shared_ptr<Region> other) override {
     return std::make_shared<Region>(RegionNodeType::INTERSECT, shared_from_this(), other);
   }
+
+  // set to true in GeometryObject, allows to find out whether it is safe to
+  // cast this object to a GeometryObject
+  bool is_geometry_object;
 };
 
 } // namespace API

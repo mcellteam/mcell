@@ -42,6 +42,9 @@ public:
 
 public:
   void postprocess_in_ctor() override {
+    // overwrite value in Region construction
+    is_geometry_object = true;
+
     node_type = RegionNodeType::LEAF_GEOMETRY_OBJECT;
     partition_id = PARTITION_ID_INVALID;
     geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;

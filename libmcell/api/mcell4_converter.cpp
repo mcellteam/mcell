@@ -1522,13 +1522,32 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   const shared_ptr<Complex> pattern = ct->get_pattern();
   if (is_set(pattern) && is_set(pattern->compartment_name)) {
     const string& compartment_name = pattern->compartment_name;
-    // only one region or compartment may be set
+    // only one region or compartment may be set (unless they are the same)
     if (is_set(ct->region) && is_set(compartment_name)) {
-      throw ValueError(S("Only one of ") + NAME_REGION + " or compartment may be set for " +
-          NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
+
+      bool error = true;
+
+      // set error to fale if there is no collision
+      if (ct->region->is_geometry_object) {
+        std::shared_ptr<API::GeometryObject> geom_obj = dynamic_pointer_cast<API::GeometryObject>(ct->region);
+
+        if (geom_obj->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
+            world->bng_engine.get_data().get_compartment(geom_obj->vol_compartment_id).name == compartment_name) {
+          error = false;
+        }
+        else if (geom_obj->surf_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
+            world->bng_engine.get_data().get_compartment(geom_obj->surf_compartment_id).name == compartment_name) {
+          error = false;
+        }
+      }
+
+      if (error) {
+        throw ValueError(S("Only one of ") + NAME_REGION + " or compartment may be set for " +
+            NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
+      }
     }
 
-    // if compartment is set, set region
+    // if compartment is set, set/overwrite region
     shared_ptr<GeometryObject> comp_obj;
     comp_obj = model->find_volume_compartment(compartment_name);
     if (is_set(comp_obj)) {
