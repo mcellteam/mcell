@@ -94,13 +94,13 @@ bool Complex::__eq__(const Complex& other) const {
 
 
 std::string Complex::to_bngl_str_w_custom_orientation(
-    const bool replace_orientation_w_up_down_compartments, const bool ignore_orientation) const {
+    const bool replace_orientation_w_up_down_compartments, const bool ignore_orientation_and_compartment) const {
   string res;
   bool add_compartment = false;
   bool orientation_replaced = false;
   if (is_set(name)) {
     res = name;
-    if (is_set(compartment_name) && name.find('@') == string::npos) {
+    if (!ignore_orientation_and_compartment && is_set(compartment_name) && name.find('@') == string::npos) {
       add_compartment = true;
     }
   }
@@ -112,27 +112,29 @@ std::string Complex::to_bngl_str_w_custom_orientation(
       }
     }
 
-    if (!replace_orientation_w_up_down_compartments) {
-      if (orientation == Orientation::UP) {
-        res += "'";
+    if (!ignore_orientation_and_compartment) {
+      if (!replace_orientation_w_up_down_compartments) {
+        if (orientation == Orientation::UP) {
+          res += "'";
+        }
+        else if (orientation == Orientation::DOWN) {
+          res += ",";
+        }
       }
-      else if (orientation == Orientation::DOWN) {
-        res += ",";
+      else {
+        if (orientation == Orientation::UP) {
+          res += BNG::MCELL_COMPARTMENT_UP;
+          orientation_replaced = true;
+        }
+        else if (orientation == Orientation::DOWN) {
+          res += BNG::MCELL_COMPARTMENT_DOWN;
+          orientation_replaced = true;
+        }
       }
-    }
-    else {
-      if (orientation == Orientation::UP) {
-        res += BNG::MCELL_COMPARTMENT_UP;
-        orientation_replaced = true;
-      }
-      else if (orientation == Orientation::DOWN) {
-        res += BNG::MCELL_COMPARTMENT_DOWN;
-        orientation_replaced = true;
-      }
-    }
 
-    if (is_set(compartment_name)) {
-      add_compartment = true;
+      if (is_set(compartment_name)) {
+        add_compartment = true;
+      }
     }
   }
 
