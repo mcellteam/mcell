@@ -515,6 +515,32 @@ void MCell4Converter::convert_species() {
       new_species.space_step = 0;
       new_species.time_step = 0;
     }
+    else if (s->elementary_molecules.empty()) {
+
+      if (is_set(s->custom_time_step) || is_set(s->custom_space_step)) {
+        throw ValueError("Species declaration " + new_species.name + " must not use " +
+            NAME_CUSTOM_TIME_STEP + " nor " + NAME_CUSTOM_SPACE_STEP + " because it is derived from " +
+            "its elementary molecule types."
+        );
+      }
+
+      // this is a declaration of a possibly complex molecule, all used elementary molecules must be defined
+      BNG::Cplx bng_cplx(&world->bng_engine.get_data());
+      new_species.elem_mols = convert_complex(*s, false, false).elem_mols;
+
+      new_species.finalize(world->config);
+
+      if (!new_species.is_fully_qualified()) {
+        throw ValueError("Species declaration " + new_species.name + " must use a fully qualified BNGL string for initialization.");
+      }
+
+      // register and remember which species we created
+      species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
+      s->species_id = new_species_id;
+
+      // we completely converted this declaration
+      continue;
+    }
     else if (!is_set(model->find_elementary_molecule_type(s->name))) {
       // report error if we don't have an elementary molecule type for this simple species
       // TODO: complex species cannot be defined like this
