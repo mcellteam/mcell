@@ -31,6 +31,10 @@ void ComponentType::dump(const BNGData& bng_data) const {
 }
 
 
+float_t get_default_space_step(const BNGConfig& config, const float_t D) {
+  return sqrt_f(4.0 * 1.0e8 * D * config.time_unit) * config.rcp_length_unit;
+}
+
 // ------------- MoleculeType -------------
 // based on assemble_mol_species
 /**************************************************************************
@@ -77,56 +81,71 @@ In: state: the simulation state
     target_only: 1 if the molecule cannot initiate reactions
 Out: the species, or NULL if an error occurred
 **************************************************************************/
+
+void get_space_and_time_step(
+    const BNGConfig& config,
+    const bool is_surf, const float_t D,
+    const float_t custom_time_step, const float_t custom_space_step,
+    float_t& time_step, float_t& space_step) {
+
+  assert(D != FLT_INVALID);
+   // Immobile (boring)
+   if (!distinguishable_f(D, 0, EPS)) {
+     space_step = 0.0;
+     time_step = 1.0;
+   }
+   // Custom timestep or spacestep
+   else if (custom_space_step > 0) {
+     float_t lr_bar = custom_space_step;
+     if (is_surf) {
+       time_step =
+           lr_bar * lr_bar / (BNG_PI * 1.0e8 * D * config.time_unit);
+     }
+     else {
+       time_step =
+           lr_bar * lr_bar * BNG_PI / (16.0 * 1.0e8 * D * config.time_unit);
+     }
+     space_step =
+         sqrt_f(4.0 * 1.0e8 * D * time_step * config.time_unit) * config.rcp_length_unit;
+   }
+   else if (custom_time_step > 0) {
+     space_step =
+         sqrt_f(4.0 * 1.0e8 * D * custom_time_step) * config.rcp_length_unit;
+     time_step = custom_time_step / config.time_unit;
+   }
+   // Global timestep (this is the typical case)
+   else /*if (!distinguishable(state->space_step, 0, EPS_C))*/ {
+     space_step = get_default_space_step(config, D);
+     time_step = DEFAULT_TIME_STEP;
+   }
+   /*// Global spacestep - not supported yet
+   else {
+     double space_step = state->space_step * state->length_unit;
+     if (species->is_2d) {
+       new_spec->time_step =
+           space_step * space_step /
+           (MY_PI * 1.0e8 * new_spec->D * global_time_unit);
+     }
+     else {
+       new_spec->time_step =
+           space_step * space_step * MY_PI /
+           (16.0 * 1.0e8 * new_spec->D * global_time_unit);
+     }
+     new_spec->space_step = sqrt(4.0 * 1.0e8 * new_spec->D *
+                                 new_spec->time_step * global_time_unit) *
+                                 state->r_length_unit;
+   }*/
+}
+
+
 // time_unit and length_unit are coming from the simulation configuration
 void ElemMolType::compute_space_and_time_step(const BNGConfig& config) {
-  assert(D != FLT_INVALID);
-  // Immobile (boring)
-  if (!distinguishable_f(D, 0, EPS)) {
-    space_step = 0.0;
-    time_step = 1.0;
-  }
-  // Custom timestep or spacestep
-  else if (custom_space_step > 0) {
-    float_t lr_bar = custom_space_step;
-    assert(!has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE));
-    if (has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF)) {
-      time_step =
-          lr_bar * lr_bar / (BNG_PI * 1.0e8 * D * config.time_unit);
-    }
-    else {
-      time_step =
-          lr_bar * lr_bar * BNG_PI / (16.0 * 1.0e8 * D * config.time_unit);
-    }
-    space_step =
-        sqrt_f(4.0 * 1.0e8 * D * time_step * config.time_unit) * config.rcp_length_unit;
-  }
-  else if (custom_time_step > 0) {
-    space_step =
-        sqrt_f(4.0 * 1.0e8 * D * custom_time_step) * config.rcp_length_unit;
-    time_step = custom_time_step / config.time_unit;
-  }
-  // Global timestep (this is the typical case)
-  else /*if (!distinguishable(state->space_step, 0, EPS_C))*/ {
-    space_step = sqrt_f(4.0 * 1.0e8 * D * config.time_unit) * config.rcp_length_unit;
-    time_step = 1.0;
-  }
-  /*// Global spacestep - not supported yet
-  else {
-    double space_step = state->space_step * state->length_unit;
-    if (species->is_2d) {
-      new_spec->time_step =
-          space_step * space_step /
-          (MY_PI * 1.0e8 * new_spec->D * global_time_unit);
-    }
-    else {
-      new_spec->time_step =
-          space_step * space_step * MY_PI /
-          (16.0 * 1.0e8 * new_spec->D * global_time_unit);
-    }
-    new_spec->space_step = sqrt(4.0 * 1.0e8 * new_spec->D *
-                                new_spec->time_step * global_time_unit) *
-                                state->r_length_unit;
-  }*/
+  get_space_and_time_step(
+      config, 
+      has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF), D,
+      custom_time_step, custom_space_step,
+      time_step, space_step
+  );
 }
 
 

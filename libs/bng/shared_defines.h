@@ -174,6 +174,8 @@ const float_t TIME_INVALID = -1;
 const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
 const float_t TIME_SIMULATION_START = 0;
 
+const float_t DEFAULT_TIME_STEP = 1.0;
+
 const uint UINT_INVALID = UINT32_MAX; // invalid value to be used for any invalid unsigned integer values
 const uint UINT_INVALID2 = UINT32_MAX - 1; // second invalid value not to be used, in this case for any purpose
 const int INT_INVALID = INT32_MAX;

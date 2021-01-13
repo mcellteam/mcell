@@ -133,6 +133,16 @@ public:
   void dump(const BNGData& bng_data) const;
 };
 
+
+// auxiliary functions used by ElemMolType and Species
+float_t get_default_space_step(const BNGConfig& config, const float_t D);
+
+void get_space_and_time_step(
+    const BNGConfig& config,
+    const bool is_surf, const float_t D,
+    const float_t custom_time_step, const float_t custom_space_step,
+    float_t& time_step, float_t& space_step);
+
 } /* namespace BNG */
 
 #endif /* LIBS_BNG_ELEM_MOL_TYPE_H_ */

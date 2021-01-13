@@ -134,51 +134,128 @@ void Species::update_rxn_and_custom_flags(
 
 void Species::compute_space_and_time_step(const BNGConfig& config) {
 
-  // check if any of the used elementaty molecules has custom time or space step
-  bool has_custom_step = false;
-  float_t min_space_step = FLT_GIGANTIC;
-  elem_mol_type_id_t min_emt_id = UINT_INVALID;
-#ifndef NDEBUG
-  float_t min_time_step = FLT_GIGANTIC;
-#endif
+  // check if any of the used elementary molecules has custom time or space step
+  // 0 means that it was not set
+  float_t min_custom_time_step = FLT_GIGANTIC;
+  float_t min_custom_space_step = FLT_GIGANTIC;
+  bool has_mol_wo_custom_time_step = false;
+  bool has_mol_wo_custom_space_step = false;
 
   for (uint i = 0; i < elem_mols.size(); i++) {
     const ElemMolType& emt = bng_data->get_elem_mol_type(elem_mols[i].elem_mol_type_id);
-    assert(emt.time_step != FLT_INVALID && emt.space_step != FLT_INVALID);
 
-    has_custom_step = has_custom_step || emt.has_custom_time_or_space_step();
+    if (emt.custom_time_step != 0) {
+      if (emt.custom_time_step < min_custom_time_step) {
+        min_custom_time_step = emt.custom_time_step;
+      }
+    }
+    else {
+      has_mol_wo_custom_time_step = true;
+    }
 
-    if (emt.space_step < min_space_step) {
-      min_emt_id = elem_mols[i].elem_mol_type_id;
-
-#ifndef NDEBUG
-      min_time_step = emt.time_step;
-#endif
+    if (emt.custom_space_step != 0) {
+      if (emt.custom_space_step < min_custom_space_step) {
+        min_custom_space_step = emt.custom_space_step;
+      }
+    }
+    else {
+      has_mol_wo_custom_space_step = true;
     }
   }
+  // if custom time step was either not set or it is > 1.0 but at least one of the
+  // molecules does not have it set, so we must keep the default
+  if (min_custom_time_step == FLT_GIGANTIC ||
+      (has_mol_wo_custom_time_step && min_custom_time_step > DEFAULT_TIME_STEP)) {
+    min_custom_time_step = 0;
+  }
 
-  if (has_custom_step) {
+  float_t default_space_step = get_default_space_step(config, D);
+  if (min_custom_space_step == FLT_GIGANTIC ||
+      (has_mol_wo_custom_space_step && min_custom_space_step > default_space_step)) {
+    min_custom_space_step = 0;
+  }
+
+  if (min_custom_time_step != 0 || min_custom_space_step != 0) {
     // custom time or space step is used either to:
     // 1) speedup simulation if the default probability of reactions is low enough and
     //    we don't care that the molecule diffuses further than usual or
     // 2) lower the probability of a reaction per collision so that it is lower than 1
     //
-    // TODO
-    release_assert(elem_mols.size() == 1);
+    // the goal when computing space and time step for a complex with a custom time or space step
+    // is to lower the resulting probability factor so that when reaction of A + X has a certain
+    // probability (pb_factor), then the probability of A.A + X is not higher
+    // this is used only when the user specified custom time or space step, when not given,
+    // we don't care
+    //
+    // pb_factor is proportional to sqrt(time_step)
+    //
+    // simplified equations (based on RxnClass::compute_pb_factor):
+    //
+    // vol:
+    // pb_factor = 1/(C1 * (C2 + space_step/time_step))
+    // space_step/time_step = C3/sqrt(custom_time_step)
+    // -> pb_factor = C4 * sqrt(custom_time_step)  (setting C2 to 0)
+    //
+    // surf:
+    // pb_factor = C5 * sqrt(time_step)
+    //
+    // therefore, when pb_factor would double from probability for A to probability for A.A:
+    // pb_factor = sqrt(time_step_A)
+    // pb_factor = 2*sqrt(time_step_AA) ->
+    //
+    // to keep the same probability factor we would need to set:
+    //
+    // time_step_AA = time_step_A / (2^2)
+    //
+    // This seems overly conservative and probably won't be needed. E.g. for
+    // a molecule with 100 As -> the time step would have to be lowered by 100^2.
+    //
+    // We can come back to it when issues will arise, but for now,
+    // let's use the minimum custom time or space step value for the space and time step settings
 
-    const ElemMolType& min_emt = bng_data->get_elem_mol_type(min_emt_id);
+    if (min_custom_space_step != 0 && min_custom_time_step != 0) {
+      // both are used in our complex, use the one giving smaller result
+      float_t ts_time, ss_time;
+      get_space_and_time_step(
+          config,
+          has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF), D,
+          min_custom_time_step, 0,
+          ts_time, ss_time
+      );
 
-    assert(
-        min_emt.time_step == min_time_step &&
-        "The found elem. mol type with minimal space step must be also the one with minimal time step");
+      float_t ts_space, ss_space;
+      get_space_and_time_step(
+          config,
+          has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF), D,
+          0, min_custom_space_step,
+          ts_space, ss_space
+      );
 
-    space_step = min_emt.space_step;
-    time_step = min_emt.time_step;
+      if (ts_time <= ts_space) {
+        assert(ss_time <= ss_space);
+        time_step = ts_time;
+        space_step = ss_time;
+      }
+      else {
+        assert(ss_space < ss_time);
+        time_step = ts_space;
+        space_step = ss_space;
+      }
+    }
+    else {
+      // one of them is 0
+      get_space_and_time_step(
+          config,
+          has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF), D,
+          min_custom_time_step, min_custom_space_step,
+          time_step, space_step
+      );
+    }
   }
   else {
-    // use default computation based on diffusion constant
-    space_step = sqrt_f(4.0 * 1.0e8 * D * config.time_unit) * config.rcp_length_unit;
-    time_step = 1.0;
+    // use default computation based on diffusion constant of the whole complex
+    space_step = get_default_space_step(config, D);
+    time_step = DEFAULT_TIME_STEP;
   }
 }
 
