@@ -25,8 +25,10 @@
 #define SRC4_WORLD_H_
 
 #include <time.h>
+#ifndef _WIN64
 #include <sys/time.h> // Linux include
 #include <sys/resource.h> // Linux include
+#endif
 #include <functional>
 
 #include <vector>

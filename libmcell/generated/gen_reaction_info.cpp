@@ -21,7 +21,7 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "libs/pybind11/include/pybind11/stl.h"
+#include "api/pybind11_stl_include.h"
 #include "gen_reaction_info.h"
 #include "api/reaction_info.h"
 #include "api/geometry_object.h"

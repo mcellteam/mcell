@@ -29,6 +29,10 @@
 #include <google/dense_hash_map>
 #include <google/dense_hash_set>
 
+#ifdef _WIN64
+typedef unsigned int uint;
+#endif
+
 // ---------------------------------- debug ----------------------------------------
 
 // assert not conditioned by NDEBUG

@@ -81,7 +81,9 @@ void SimulationStats::dump() {
 
 
 uint64_t get_mem_usage() {
-
+#ifdef _WIN64
+  return 0;
+#else
   int who = RUSAGE_SELF;
   struct rusage usage;
   int ret;
@@ -95,6 +97,7 @@ uint64_t get_mem_usage() {
     // ignoring fail
     return 0;
   }
+#endif
 }
 
 

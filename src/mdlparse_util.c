@@ -2186,7 +2186,7 @@ int mdl_set_grid_density(struct mdlparse_vars *parse_state, double density) {
 *************************************************************************/
 static int schedule_async_checkpoint(struct mdlparse_vars *parse_state,
                                      unsigned int dur) {
-#ifdef _WIN32
+#ifdef _WIN64
   set_alarm_handler(&chkpt_signal_handler);
 #else
   struct sigaction sa, saPrev;

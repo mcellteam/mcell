@@ -72,9 +72,11 @@ void print_version(FILE *f) {
     fprintf(f, " [unofficial revision]");
   fprintf(f, "\n");
 
+#ifndef _WIN64
   /* Print the current machine details */
   gethostname(hostname, sizeof(hostname));
   fprintf(f, "  Running on %s at %s\n", hostname, ctime_r(&now, curtime));
+#endif
   print_credits(f);
 }
 

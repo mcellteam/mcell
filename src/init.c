@@ -33,7 +33,7 @@
 #include <float.h>
 #include <time.h>
 #include <sys/types.h>
-#ifndef _WIN32
+#ifndef _WIN64
 #include <sys/resource.h>
 #endif
 

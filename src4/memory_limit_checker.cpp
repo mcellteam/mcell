@@ -21,7 +21,9 @@
 ******************************************************************************/
 
 #include <chrono>
+#ifndef _WIN64
 #include <sys/resource.h>
+#endif
 
 #include "memory_limit_checker.h"
 #include "world.h"

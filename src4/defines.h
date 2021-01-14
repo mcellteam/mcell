@@ -35,7 +35,7 @@
 #include <map>
 #include <unordered_map>
 
-#include "mcell_structs.h"
+#include "mcell_structs.h" // TODO: get rid of this include
 #include "debug_config.h"
 
 // warning: do not use floating point types from directly,

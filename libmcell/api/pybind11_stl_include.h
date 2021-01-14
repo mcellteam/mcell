@@ -20,20 +20,17 @@
  *
 ******************************************************************************/
 
-#include <sstream>
-#include "api/pybind11_stl_include.h"
-#include "gen_geometry_utils.h"
-#include "api/geometry_object.h"
+// Windows build needs a fix otherwise this error occurs:
+// msys/mingw64/include/c++/10.2.0/cmath:1121:11: error: 'hypot' has not been declared in '::'
 
-namespace MCell {
-namespace API {
+#ifndef API_PYBIND_STL_INCLUDE
+#define API_PYBIND_STL_INCLUDE
 
-void define_pybinding_geometry_utils(py::module& m) {
-  m.def_submodule("geometry_utils")
-      .def("create_box", &geometry_utils::create_box, py::arg("name"), py::arg("edge_length"))
-    ;
-}
+#ifdef _WIN64
+// fix for _hypot compilation issue
+#define _hypot hypot
+#include <cmath>
+#endif
+#include "libs/pybind11/include/pybind11/stl.h"
 
-} // namespace API
-} // namespace MCell
-
+#endif

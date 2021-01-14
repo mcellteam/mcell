@@ -25,7 +25,13 @@
 
 #include <functional>
 
+#ifdef _WIN64
+// fix for _hypot compilation issue
+#define _hypot hypot
+#include <cmath>
+#endif
 #include "pybind11/include/pybind11/pybind11.h"
+
 #include "api/common.h"
 #include "defines.h"
 #include "bng/bng_defines.h"

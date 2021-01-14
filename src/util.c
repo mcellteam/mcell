@@ -35,6 +35,12 @@
 #include <unistd.h>
 #include <stdbool.h>
 
+#ifndef _WIN64
+#include <sys/resource.h> // Linux include
+#else
+typedef unsigned int uint;
+#endif
+
 #include "logging.h"
 #include "util.h"
 #include "mcell_structs.h"
@@ -2243,3 +2249,13 @@ ub4 jenkins_hash(ub1 *k, ub4 length) {
   /*-------------------------------------------- report the result */
   return (c);
 }
+
+
+// initializer list for rusage causes many compilation warnings when used
+void reset_rusage(rusage* r) {
+  r->ru_utime.tv_sec = 0;
+  r->ru_utime.tv_usec = 0;
+  r->ru_stime.tv_sec = 0;
+  r->ru_stime.tv_usec = 0;
+}
+

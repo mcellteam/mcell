@@ -90,13 +90,25 @@ static void make_reports_dir(const string& file_path) {
   int res;
   uint num_attemts = 0;
   do {
+#ifndef _WIN64
     res = mkdir(dir_path.c_str(), 0777);
+#else
+    res = mkdir(dir_path.c_str());
+#endif
     if (res != 0) {
       if (errno != EEXIST) {
         cerr << "Could not create directory '" << dir_path << "', trying again after 1s.\n";
         num_attemts++;
         errno = 0;
+#ifndef _WIN64
         sleep(1);
+#else
+        // not sure, maybe gets optimized away
+        int i = 0;
+        while (i < 1000000) {
+          i++;
+        }
+#endif
       }
       else {
         // directory now exists

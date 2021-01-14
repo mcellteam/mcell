@@ -25,7 +25,7 @@
 #define _GNU_SOURCE 1
 #endif
 
-#ifndef _WIN32
+#ifndef _WIN64
 #include <sys/resource.h>
 #endif
 #include <stdlib.h>
@@ -685,7 +685,7 @@ mcell_silence_warnings(MCELL_STATE *state) {
  *   Out: 0 on success, 1 on failure.
  ***********************************************************************/
 int install_usr_signal_handlers(void) {
-#ifndef _WIN32 /* fixme: Windows does not support USR signals */
+#ifndef _WIN64 /* fixme: Windows does not support USR signals */
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
   sa.sa_handler = &chkpt_signal_handler;

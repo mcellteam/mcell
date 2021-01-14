@@ -21,7 +21,7 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "libs/pybind11/include/pybind11/stl.h"
+#include "api/pybind11_stl_include.h"
 #include "gen_wall_wall_hit_info.h"
 #include "api/wall_wall_hit_info.h"
 #include "api/wall.h"

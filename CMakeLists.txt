@@ -49,7 +49,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
 endif()
 
-set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable ")
+set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-class-memaccess ")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")
@@ -58,15 +58,9 @@ endif()
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14 -fpermissive")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14 -fpermissive ")
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
-
-if (CYGWIN)
-    # cygwin app run in cygwin environment is somehow unable to load cygstdc++-6.dll
-    # although it works fine when ran from 'cmd' 
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ")
-endif()
 
 
 option(ENABLE_LTO "Use link-time optimization" OFF)
@@ -407,15 +401,27 @@ pybind11_add_module(mcell4_so MODULE
     libmcell/api/exports.cpp
 )
 
+if (WIN32)
+    # cmake & make somehow ignore CMAKE_SHARED_LINKER_FLAGS when mcell.so is linked
+    set(CMAKE_CXX_FLAGS "-L ${CMAKE_SOURCE_DIR}/libs/windows_python35 ")
+    set(WIN_PYTHON "python35")
+endif()
+
+
 add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP}
+    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${WIN_PYTHON}
 )
+
 set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(mcell4_so PROPERTIES PREFIX "")
 set_target_properties(mcell4_so PROPERTIES OUTPUT_NAME "mcell")
-set_target_properties(mcell4_so PROPERTIES SUFFIX ".so") # must be .so on MacOS as well, TODO fix for Windows
+if (WIN32)
+    set_target_properties(mcell4_so PROPERTIES SUFFIX ".pyd") 
+else()
+    set_target_properties(mcell4_so PROPERTIES SUFFIX ".so") # must be .so on MacOS as well
+endif()
 
 # build executable
 add_executable(mcell

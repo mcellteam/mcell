@@ -121,7 +121,7 @@ typedef uint rxn_rule_id_t;
 const rxn_rule_id_t RXN_RULE_ID_INVALID = ID_INVALID;
 
 const char* const PATH_SEPARATOR =
-#ifdef _WIN32
+#ifdef _WIN64
                             "\\";
 #else
                             "/";

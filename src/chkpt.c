@@ -277,7 +277,7 @@ void chkpt_signal_handler(int signo) {
     }
   }
 
-#ifndef _WIN32 /* fixme: Windows does not support USR signals */
+#ifndef _WIN64 /* fixme: Windows does not support USR signals */
   if (signo == SIGUSR1)
     *chkpt_checkpoint_requested = CHKPT_SIGNAL_CONT;
   else if (signo == SIGUSR2)

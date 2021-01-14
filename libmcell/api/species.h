@@ -23,8 +23,6 @@
 #ifndef API_SPECIES_H
 #define API_SPECIES_H
 
-#include <Python.h>
-
 #include "generated/gen_species.h"
 #include "generated/gen_constants.h"
 #include "api/common.h"

@@ -23,14 +23,22 @@
 #ifndef LIBMCELL_API_COMMON_H
 #define LIBMCELL_API_COMMON_H
 
+
+
 #include <ostream>
 #include <sstream>
 #include <exception>
 #include <string>
 #include <memory>
 #include <functional>
+#ifdef _WIN64
+// fix for _hypot compilation issue
+#define _hypot hypot
+#include <cmath>
+#endif
 #include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
 #include "pybind11/include/pybind11/functional.h"
+
 
 namespace py = pybind11;
 #include <vector>

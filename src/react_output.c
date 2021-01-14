@@ -304,7 +304,7 @@ static void emergency_output_signal_handler(int signo) {
   Out: None.
 **************************************************************************/
 static void install_emergency_output_signal_handler(int signo) {
-#ifdef _WIN32 /* fixme: for Windows do a better job than just signal(), need   \
+#ifdef _WIN64 /* fixme: for Windows do a better job than just signal(), need   \
                  to find out what other things the *nix version is doing */
   signal(signo, &emergency_output_signal_handler);
 #else

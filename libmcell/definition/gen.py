@@ -1246,7 +1246,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         write_generated_notice(f)
         
         f.write('#include <sstream>\n')
-        f.write('#include "libs/pybind11/include/pybind11/stl.h"\n')
+        f.write('#include "api/pybind11_stl_include.h"\n')
 
         # includes for our class
         f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')

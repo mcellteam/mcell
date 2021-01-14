@@ -34,6 +34,10 @@
 
 #define DUMP_EVERYTHING 0xFFFFFFFF
 
+#ifdef _WIN64
+typedef unsigned int uint;
+#endif
+
 void dump_volume(struct volume* s, const char* comment, unsigned int selected_details);
 
 // the functions below are used to generate log that can be diffed with mcell4's log

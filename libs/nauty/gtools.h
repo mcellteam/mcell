@@ -15,8 +15,13 @@ used, it is necessary to check they are correct.
 #define HAVE_ERRNO_H  1      /* <errno.h> exists */
 #define HAVE_PERROR  1          /* perror() exists */
 #define HAVE_PIPE  1          /* pipe() exists */
+#ifndef _WIN64
 #define HAVE_WAIT  1          /* wait() exists */
 #define HAVE_WAIT_H  1     /* <sys/wait.h> exists */
+#else
+#define HAVE_WAIT  0          /* wait() exists */
+#define HAVE_WAIT_H  0     /* <sys/wait.h> exists */
+#endif
 #define HAVE_POPEN  1          /* popen() and pclose() exist */
 #define POPEN_DEC  1         /* popen() is declared */
 #define FTELL_DEC  1         /* ftell() is declared */
@@ -107,7 +112,7 @@ int setenv(const char*,const char*,int);
 #endif
 #endif
 
-#if HAS_STDIO_UNLOCK && !defined(NAUTY_IN_MAGMA) && !defined(IS_JAVA)
+#if HAS_STDIO_UNLOCK && !defined(NAUTY_IN_MAGMA) && !defined(IS_JAVA) && !defined(_WIN32)
 #define FLOCKFILE(f) flockfile(f)
 #define FUNLOCKFILE(f) funlockfile(f)
 #define GETC(f) getc_unlocked(f)

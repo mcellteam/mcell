@@ -425,10 +425,12 @@ typedef struct WSAData {
   char *lpVendorInfo;
 #endif
 } WSADATA, *LPWSADATA;
-typedef int(WINAPI *FUNC_WSAStartup)(WORD wVersionRequested,
+
+#if 0
+typedef long long int(WINAPI *FUNC_WSAStartup)(WORD wVersionRequested,
                                      LPWSADATA lpWSAData);
-typedef int(WINAPI *FUNC_WSAGetLastError)(void);
-typedef int(WINAPI *FUNC_gethostname)(char *name, int namelen);
+typedef long long int(WINAPI *FUNC_WSAGetLastError)(void);
+typedef long long int(WINAPI *FUNC_gethostname)(char *name, int namelen);
 static FUNC_WSAStartup WSAStartup = NULL;
 static FUNC_WSAGetLastError WSAGetLastError = NULL;
 static FUNC_gethostname win32gethostname = NULL;
@@ -474,6 +476,7 @@ inline static int gethostname(char *name, size_t len) {
   }
   return 0;
 }
+#endif
 
 /* getrusage emulated function, normally in <sys/resources.h> */
 #ifndef _TIMEVAL_DEFINED
@@ -522,10 +525,11 @@ inline static int getrusage(int who, struct rusage *usage) {
   return 0;
 }
 
+#if 0
 /* symlink emulated function, normally in <unistd.h> */
 #define SYMBOLIC_LINK_FLAG_FILE 0x0
 #define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
-typedef BOOLEAN(WINAPI *FUNC_CreateSymbolicLink)(LPCSTR lpSymlinkFileName,
+typedef long long int (WINAPI *FUNC_CreateSymbolicLink)(LPCSTR lpSymlinkFileName,
                                                  LPCSTR lpTargetFileName,
                                                  DWORD dwFlags);
 static FUNC_CreateSymbolicLink CreateSymbolicLink = NULL;
@@ -585,6 +589,7 @@ inline static int symlink(const char *oldpath, const char *newpath) {
   }
   return 0;
 }
+#endif
 
 /* stat and fstat wrapped function */
 /* adds S_IFLNK support to stat(path, &s) - necessary since Windows' stat does
@@ -694,12 +699,12 @@ inline static unsigned alarm(unsigned seconds) {
 /* atomic rename wrapped function */
 /* Windows rename is not atomic, but there is ReplaceFile (only when actually
  * replacing though) */
-inline static int _win_rename(const char *old, const char *new) {
-  DWORD dwAttrib = GetFileAttributes(new);
+inline static int _win_rename(const char *old, const char *new_name) {
+  DWORD dwAttrib = GetFileAttributes(new_name);
   if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
       !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-    /* new file exists */
-    if (ReplaceFile(new, old, NULL, REPLACEFILE_WRITE_THROUGH, NULL, NULL)) {
+    /* new_name file exists */
+    if (ReplaceFile(new_name, old, NULL, REPLACEFILE_WRITE_THROUGH, NULL, NULL)) {
       return 0;
     }
     /* fixme: set errno based on GetLastError() [possibly doing some filtering
@@ -707,7 +712,7 @@ inline static int _win_rename(const char *old, const char *new) {
     errno = EACCES;
     return -1;
   } else {
-    return rename(old, new);
+    return rename(old, new_name);
   }
 }
 #define rename _win_rename
@@ -719,5 +724,10 @@ inline static int _win_mkdir(const char *pathname, mode_t mode) {
   return mkdir(pathname);
 }
 #define mkdir _win_mkdir
+
+
+// some annoying macros from windows.h
+#undef IGNORE
+#undef DIFFERENCE
 
 #endif

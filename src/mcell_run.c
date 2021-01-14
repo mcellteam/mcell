@@ -26,7 +26,7 @@
 #include <math.h>
 #include <unistd.h>
 
-#ifndef _WIN32
+#ifndef _WIN64
 #include <sys/resource.h>
 #endif
 #if defined(__linux__)

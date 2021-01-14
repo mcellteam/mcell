@@ -22,7 +22,9 @@
 
 #include <fenv.h> // Linux include
 #include <run_n_iterations_end_event.h>
+#ifndef _WIN64
 #include <sys/resource.h> // Linux include
+#endif
 
 #include <fstream>
 
