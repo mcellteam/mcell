@@ -28,6 +28,7 @@ end model
 
 generate_network({overwrite=>1})
 simulate_ode({suffix=>"ode",t_end=>100,n_steps=>100})
+
 resetConcentrations()
 simulate_ssa({suffix=>"ssa",t_end=>100,n_steps=>100})
 resetConcentrations()

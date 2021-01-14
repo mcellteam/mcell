@@ -21,8 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_PERIODIC_CALL_EVENT_H_
-#define SRC4_PERIODIC_CALL_EVENT_H_
+#ifndef SRC4_CUSTOM_FUNCTION_CALL_EVENT_H_
+#define SRC4_CUSTOM_FUNCTION_CALL_EVENT_H_
 
 #include "base_event.h"
 
@@ -31,24 +31,43 @@ namespace MCell {
 /**
  * General event that allows to call a function periodically.
  * Used for example to check that the user pressed ctrl-c
- * when running inside the Python interpreter
+ * when running inside the Python interpreter.
+ * Always executed at the end of an iteration.
+ *
+ * Made a template to hold its context as function_arg and
+ * to be able to destroy it afterwards.
  */
-class PeriodicCallEvent: public BaseEvent {
+template<typename T>
+class CustomFunctionCallEvent: public BaseEvent {
 public:
-  PeriodicCallEvent(World* /*world_*/)
-    : BaseEvent(EVENT_TYPE_INDEX_PERIODIC_CALL),
-      function_ptr(nullptr),
-      function_arg(nullptr) {
+  typedef void (*CalledFunctionType)(float_t, T);
+
+  CustomFunctionCallEvent(
+      CalledFunctionType function_ptr_,
+      const T& function_arg_, // makes a shallow copy
+      const event_type_index_t event_type_index_ = EVENT_TYPE_INDEX_CALL_END_ITERATION
+  )
+    : BaseEvent(event_type_index_),
+      function_ptr(function_ptr_),
+      function_arg(function_arg_),
+      return_from_run_n_iterations(false){
   }
 
   // pointer to a function to be periodically called
-  void (*function_ptr)(float_t, void*);
+  // first argument is event time, second is
+  CalledFunctionType function_ptr;
 
-  void* function_arg;
+  T function_arg;
+
+  bool return_from_run_n_iterations;
 
   void step() override {
     assert(function_ptr != nullptr);
     function_ptr(event_time, function_arg);
+  }
+
+  virtual bool return_from_run_n_iterations_after_execution() const {
+    return return_from_run_n_iterations;
   }
 
   void dump(const std::string ind) const override {
@@ -61,4 +80,4 @@ public:
 
 } // namespace mcell
 
-#endif // SRC4_PERIODIC_CALL_EVENT_H_
+#endif // SRC4_CUSTOM_FUNCTION_CALL_EVENT_H_

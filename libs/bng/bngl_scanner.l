@@ -24,20 +24,34 @@
 /* Set up function name prefixes and output file name */
 %option prefix="bngl"
 
-ID       [a-zA-Z_][a-zA-Z0-9_]*
+ID [a-zA-Z_][a-zA-Z0-9_]*
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
 I ([0-9]+)
+STR \"([^\\\"]|\\.)*\"
 
 %%
 
     /* comments and whitespaces */
 
-"#"[^\n]*"\n"   { /* line comment */ /*bngllineno++;*/ }
+"#"[^\n]*"\n"   { /* line comment */ LOC(); return TOK_NL; }
 [ \t]+          ; /* whitespaces are ignored, not sure if this is correct */ 
-"\n"            { /*bngllineno++;*/ }
+"\n"            { LOC(); return TOK_NL; }
 "\r"            ; /* Windows end line character is ignored */
-"\\"			; /* Ignoring backslash used to cancel newline for now */
-
+"\\\n"			; /* Canceling newline preceded by backslash */
+<<EOF>>         {   
+                  // we must return newline for EOF only once otherwise 
+                  // the parsing won't end  
+                  if (g_ctx->get_eof_returned_as_newline()) {
+                    return 0;
+                  }
+                  else {
+                    g_ctx->set_eof_returned_as_newline();
+                    LOC();
+                    return TOK_NL;
+                  }
+                }
+                
+                
     /* keywords */
      
 "begin"         { LOC(); return TOK_BEGIN; }
@@ -61,7 +75,7 @@ I ([0-9]+)
 {R}             { LOC(); bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; } /* must contain decimal point */
 {I}             { LOC(); bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
 {ID}            { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_ID; }
-\"([^\\\"]|\\.)*\" { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_STR; } 
+{STR}           { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_STR; } 
                         
     /* other characters */
     

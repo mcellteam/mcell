@@ -49,8 +49,15 @@ bool CountBuffer::open(bool error_is_fatal) {
     mcell_error("Failed to create parent directory for molecule count output.");
   }
 
-  // create an empty file so that we know that nothing was stored
-  fout.open(filename);
+  if (!open_for_append) {
+    // create an empty file so that we know that nothing was stored
+    fout.open(filename);
+  }
+  else {
+    // appending is used when restoring a checkpoint
+    // opens a new file if the file does not exist
+    fout.open(filename, std::ofstream::out | std::ofstream::app);
+  }
 
   if (!fout.is_open()) {
     mcell_warn("Could not open file %s for writing.", filename.c_str());

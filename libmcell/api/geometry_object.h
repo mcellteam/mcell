@@ -42,6 +42,9 @@ public:
 
 public:
   void postprocess_in_ctor() override {
+    // overwrite value in Region construction
+    is_geometry_object = true;
+
     node_type = RegionNodeType::LEAF_GEOMETRY_OBJECT;
     partition_id = PARTITION_ID_INVALID;
     geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;
@@ -112,31 +115,31 @@ public:
     }
   }
 
-  vertex_index_t get_partition_vertex_index(const int vertex_index) {
+  vertex_index_t get_partition_vertex_index(const int vertex_index) const {
     check_vertex_index(vertex_index);
     return first_vertex_index + vertex_index;
   }
 
-  wall_index_t get_partition_wall_index(const int wall_index) {
+  wall_index_t get_partition_wall_index(const int wall_index) const {
     check_wall_index(wall_index);
     return first_wall_index + wall_index;
   }
 
-  int get_object_wall_index(const wall_index_t wall_index) {
+  int get_object_wall_index(const wall_index_t wall_index) const {
     int res = wall_index - first_wall_index;
     assert(res >= 0 && res < (int)wall_list.size());
     return res;
   }
 
 private:
-  void check_vertex_index(const int vertex_index) {
+  void check_vertex_index(const int vertex_index) const {
     if (vertex_index < 0 || vertex_index >= (int)vertex_list.size()) {
       throw RuntimeError(
           "Vertex index " + std::to_string(vertex_index) + " is out of range for " + NAME_VERTEX_LIST + " of " + name + ".");
     }
   }
 
-  void check_wall_index(const int wall_index) {
+  void check_wall_index(const int wall_index) const {
     if (wall_index < 0 || wall_index >= (int)wall_list.size()) {
       throw RuntimeError(
           "Vertex index " + std::to_string(wall_index) + " is out of range for " + NAME_VERTEX_LIST + " of " + name + ".");

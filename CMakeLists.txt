@@ -58,7 +58,7 @@ endif()
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14 -fpermissive ")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++17 -fpermissive ")
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
 
@@ -68,7 +68,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also PyMCell" ON)
+option(PYMCELL "Build also PyMCell (MCell3 with Python interface, not maintained)" OFF)
 
 
 if (ENABLE_LTO)
@@ -411,7 +411,8 @@ endif()
 add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${WIN_PYTHON}
+    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} stdc++fs ${WIN_PYTHON}
+    PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
 )
 
 set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -434,7 +435,7 @@ add_executable(mcell
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
-target_link_libraries(mcell mcell4 libmcell_callbacks_empty bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
+target_link_libraries(mcell mcell4 libmcell_dummy bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     add_dependencies(pymcell mcell4 version_h bng nfsim_c NFsim jsoncpp_lib)

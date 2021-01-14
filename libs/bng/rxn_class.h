@@ -94,8 +94,9 @@ private:
   // owned by the simulation engine
   const BNGConfig& bng_config;
 
-  // flag for optimized testing of this rxn class
+  // flags for optimized testing of this rxn class
   bool bimol_vol_rxn_flag;
+  bool intermembrane_surf_surf_rxn_flag;
 
   // flag for initialization of pathways on-demand
   bool pathways_and_rates_initialized;
@@ -106,7 +107,8 @@ public:
       const Reactant& reactant1, const Reactant& reactant2 = Reactant(SPECIES_ID_INVALID, COMPARTMENT_ID_ANY))
     : type(RxnType::Invalid), max_fixed_p(FLT_INVALID),
       all_rxns(all_rxns_), all_species(all_species_), bng_config(bng_config_),
-      bimol_vol_rxn_flag(false), pathways_and_rates_initialized(false)
+      bimol_vol_rxn_flag(false), intermembrane_surf_surf_rxn_flag(false),
+      pathways_and_rates_initialized(false)
     {
     assert(reactant1.species_id != SPECIES_ID_INVALID);
     specific_reactants.push_back(reactant1);
@@ -121,6 +123,10 @@ public:
 
   uint get_num_reactions() const {
     return rxn_rule_ids.size();
+  }
+
+  uint get_num_pathways() const {
+    return pathways.size();
   }
 
   // first query for the max probability or for rxn rate update usually causes
@@ -139,7 +145,7 @@ public:
   const RxnProductsVector& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) {
     release_assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
 
-    assert(pathway_index < pathways.size());
+    assert((size_t)pathway_index < pathways.size());
 
     if (pathways[pathway_index].products_are_defined) {
       return pathways[pathway_index].product_species_w_indices;
@@ -188,6 +194,10 @@ public:
       debug_check_bimol_vol_rxn_flag();
     #endif
     return bimol_vol_rxn_flag;
+  }
+
+  bool is_intermembrane_surf_surf_rxn_class() const {
+    return intermembrane_surf_surf_rxn_flag;
   }
 
   bool is_absorb_region_border() const {

@@ -24,6 +24,7 @@
 #define API_GEN_SUBSYSTEM_H
 
 #include "api/common.h"
+#include "api/base_export_class.h"
 
 namespace MCell {
 namespace API {
@@ -33,8 +34,22 @@ class ElementaryMoleculeType;
 class ReactionRule;
 class Species;
 class SurfaceClass;
+class PythonExportContext;
 
-class GenSubsystem {
+#define SUBSYSTEM_CTOR() \
+    Subsystem( \
+        const std::vector<std::shared_ptr<Species>> species_ = std::vector<std::shared_ptr<Species>>(), \
+        const std::vector<std::shared_ptr<ReactionRule>> reaction_rules_ = std::vector<std::shared_ptr<ReactionRule>>(), \
+        const std::vector<std::shared_ptr<SurfaceClass>> surface_classes_ = std::vector<std::shared_ptr<SurfaceClass>>(), \
+        const std::vector<std::shared_ptr<ElementaryMoleculeType>> elementary_molecule_types_ = std::vector<std::shared_ptr<ElementaryMoleculeType>>() \
+    ) { \
+      species = species_; \
+      reaction_rules = reaction_rules_; \
+      surface_classes = surface_classes_; \
+      elementary_molecule_types = elementary_molecule_types_; \
+    }
+
+class GenSubsystem: public BaseExportClass {
 public:
   virtual ~GenSubsystem() {}
   virtual bool __eq__(const Subsystem& other) const;
@@ -42,6 +57,13 @@ public:
   bool operator == (const Subsystem& other) const { return __eq__(other);}
   bool operator != (const Subsystem& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
+
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
+  virtual std::string export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+
 
   // --- attributes ---
   std::vector<std::shared_ptr<Species>> species;

@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_subsystem.h"
 #include "api/subsystem.h"
 #include "api/elementary_molecule_type.h"
@@ -62,7 +63,15 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
   return py::class_<Subsystem, std::shared_ptr<Subsystem>>(m, "Subsystem")
       .def(
           py::init<
-          >()
+            const std::vector<std::shared_ptr<Species>>,
+            const std::vector<std::shared_ptr<ReactionRule>>,
+            const std::vector<std::shared_ptr<SurfaceClass>>,
+            const std::vector<std::shared_ptr<ElementaryMoleculeType>>
+          >(),
+          py::arg("species") = std::vector<std::shared_ptr<Species>>(),
+          py::arg("reaction_rules") = std::vector<std::shared_ptr<ReactionRule>>(),
+          py::arg("surface_classes") = std::vector<std::shared_ptr<SurfaceClass>>(),
+          py::arg("elementary_molecule_types") = std::vector<std::shared_ptr<ElementaryMoleculeType>>()
       )
       .def("__str__", &Subsystem::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Subsystem::__eq__, py::arg("other"))
@@ -81,6 +90,161 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       .def_property("surface_classes", &Subsystem::get_surface_classes, &Subsystem::set_surface_classes)
       .def_property("elementary_molecule_types", &Subsystem::get_elementary_molecule_types, &Subsystem::set_elementary_molecule_types)
     ;
+}
+
+std::string GenSubsystem::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  std::string exported_name = "subsystem";
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Subsystem(" << nl;
+  if (species != std::vector<std::shared_ptr<Species>>() && !skip_vectors_export()) {
+    ss << ind << "species = " << export_vec_species(out, ctx, exported_name) << "," << nl;
+  }
+  if (reaction_rules != std::vector<std::shared_ptr<ReactionRule>>() && !skip_vectors_export()) {
+    ss << ind << "reaction_rules = " << export_vec_reaction_rules(out, ctx, exported_name) << "," << nl;
+  }
+  if (surface_classes != std::vector<std::shared_ptr<SurfaceClass>>() && !skip_vectors_export()) {
+    ss << ind << "surface_classes = " << export_vec_surface_classes(out, ctx, exported_name) << "," << nl;
+  }
+  if (elementary_molecule_types != std::vector<std::shared_ptr<ElementaryMoleculeType>>() && !skip_vectors_export()) {
+    ss << ind << "elementary_molecule_types = " << export_vec_elementary_molecule_types(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+}
+
+std::string GenSubsystem::export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_species";
+  }
+  else {
+    exported_name = "species";
+  }
+
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < species.size(); i++) {
+    const auto& item = species[i];
+    if (i == 0) {
+      ss << "    ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenSubsystem::export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_reaction_rules";
+  }
+  else {
+    exported_name = "reaction_rules";
+  }
+
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < reaction_rules.size(); i++) {
+    const auto& item = reaction_rules[i];
+    if (i == 0) {
+      ss << "    ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenSubsystem::export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_surface_classes";
+  }
+  else {
+    exported_name = "surface_classes";
+  }
+
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < surface_classes.size(); i++) {
+    const auto& item = surface_classes[i];
+    if (i == 0) {
+      ss << "    ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
+}
+
+std::string GenSubsystem::export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // prints vector into 'out' and returns name of the generated list
+  std::stringstream ss;
+  std::string exported_name;
+  if (parent_name != ""){
+    exported_name = parent_name+ "_elementary_molecule_types";
+  }
+  else {
+    exported_name = "elementary_molecule_types";
+  }
+
+  ss << exported_name << " = [\n";
+  for (size_t i = 0; i < elementary_molecule_types.size(); i++) {
+    const auto& item = elementary_molecule_types[i];
+    if (i == 0) {
+      ss << "    ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "\n]\n\n";
+  out << ss.str();
+  return exported_name;
 }
 
 } // namespace API

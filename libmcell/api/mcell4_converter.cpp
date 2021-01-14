@@ -27,16 +27,19 @@
 #include "clamp_release_event.h"
 #include "viz_output_event.h"
 #include "mol_or_rxn_count_event.h"
-#include "periodic_call_event.h"
 #include "geometry.h"
 #include "rng.h"
 #include "isaac64.h"
 #include "mcell_structs.h"
+#include "custom_function_call_event.h"
+
+
 #include "bng/bng.h"
 
 #include "api/mcell.h"
 #include "api/bindings.h"
 #include "api/compartment_utils.h"
+#include "api/rng_state.h"
 
 using namespace std;
 
@@ -83,7 +86,7 @@ static viz_mode_t convert_viz_mode(const VizMode m) {
 }
 
 
-void MCell4Converter::convert() {
+void MCell4Converter::convert_before_init() {
   assert(model != nullptr);
   assert(world != nullptr);
 
@@ -140,7 +143,14 @@ void MCell4Converter::convert() {
 
   convert_viz_output_events();
 
+  // beside of the event checking for check ctrl-c, it is a periodic event for each
+  // iteration so, in the following call, where time maybe be moved time for scheduler
+  // when a checkpoint is resumed, we always end up at the starting iteration and do not skip it
+  // so that later we are not inserting events to the past (from the scheduler's point of view)
   add_ctrl_c_termination_event();
+
+  // sets up data loaded from checkpoint
+  convert_initial_iteration_and_time_and_move_scheduler_time();
 
   // some general checks
   if (world->config.rx_radius_3d * SQRT2 >= world->config.subpartition_edge_length / 2) {
@@ -165,6 +175,14 @@ species_id_t MCell4Converter::get_species_id_for_complex(
     throw ValueError(
         error_msg + ": " + NAME_COMPLEX + "'" + bng_ci.to_str() + "' must be fully qualified " +
         "(all components must be present and their state set).");
+  }
+
+  // check that all used elementary molecule types have diffusion constant
+  for (const BNG::ElemMol& em: bng_ci.elem_mols) {
+    const BNG::ElemMolType& emt = world->bng_engine.get_data().get_elem_mol_type(em.elem_mol_type_id);
+    if (emt.D == FLT_INVALID) {
+      throw RuntimeError("Molecule type '" + emt.name + "' does not have its diffusion constant specified.");
+    }
   }
 
   // we need to define species for our complex instance
@@ -225,6 +243,7 @@ void MCell4Converter::get_geometry_bounding_box(Vec3& llf, Vec3& urb) {
 
 
 void MCell4Converter::convert_simulation_setup() {
+
   // notifications and reports
   const API::Notifications& notifications = model->notifications;
   world->config.bng_verbosity_level = notifications.bng_verbosity_level;
@@ -234,8 +253,10 @@ void MCell4Converter::convert_simulation_setup() {
   // config
   const API::Config& config = model->config;
 
-  world->total_iterations = config.total_iterations_hint;
+  world->total_iterations = config.total_iterations;
   world->config.time_unit = config.time_step;
+  world->config.initial_time = config.initial_time;
+  world->config.initial_iteration = config.initial_iteration;
 
   float_t grid_density = config.surface_grid_density;
   world->config.grid_density = grid_density;
@@ -250,6 +271,15 @@ void MCell4Converter::convert_simulation_setup() {
   }
   else {
     world->config.rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
+  }
+
+  if (is_set(config.intermembrane_interaction_radius)) {
+    // NOTE: mcell3 does not convert the unit of the interaction radius in parser which
+    // seems a bit weird
+    world->config.intermembrane_rx_radius_3d = config.intermembrane_interaction_radius / length_unit;
+  }
+  else {
+    world->config.intermembrane_rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
   }
 
   float_t vacancy_search_dist = config.vacancy_search_distance / length_unit; // Convert units
@@ -380,7 +410,13 @@ void MCell4Converter::convert_simulation_setup() {
   // this option in MCell3 was removed in MCell4
   world->config.use_expanded_list = true;
 
+  // TODO: check that the values are higher than 1
+  world->config.rxn_class_cleanup_periodicity = config.reaction_class_cleanup_periodicity;
+  world->config.species_cleanup_periodicity = config.species_cleanup_periodicity;
+
   world->config.memory_limit_gb = config.memory_limit_gb;
+
+  world->config.continue_after_sigalrm = config.continue_after_sigalrm;
 
   // compute other constants and initialize reporting (if enabled)
   world->config.init();
@@ -422,7 +458,7 @@ BNG::elem_mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
       bng_mt.custom_space_step = api_mt.custom_space_step;
     }
 
-    bng_mt.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, api_mt.target_only);
+    bng_mt.set_flag(BNG::SPECIES_MOL_FLAG_TARGET_ONLY, api_mt.target_only);
   }
 
   // components
@@ -463,33 +499,57 @@ void MCell4Converter::convert_species() {
       new_species.custom_space_step = s->custom_space_step;
     }
 
-    bool is_vol = false;
     if (is_set(s->diffusion_constant_3d)) {
-      is_vol = true;
       new_species.D = s->diffusion_constant_3d;
       new_species.set_is_vol();
       new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
     else if (is_set(s->diffusion_constant_2d)) {
-      is_vol = false;
       new_species.D = s->diffusion_constant_2d;
       new_species.set_is_surf();
       new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
     else if (BNG::is_species_superclass(new_species.name)) {
-      is_vol = new_species.name != ALL_SURFACE_MOLECULES;
       // these values are not really used, they are initialized for comparisons
       new_species.D = 0;
       new_species.space_step = 0;
       new_species.time_step = 0;
     }
-    else {
+    else if (s->elementary_molecules.empty()) {
+
+      if (is_set(s->custom_time_step) || is_set(s->custom_space_step)) {
+        throw ValueError("Species declaration " + new_species.name + " must not use " +
+            NAME_CUSTOM_TIME_STEP + " nor " + NAME_CUSTOM_SPACE_STEP + " because it is derived from " +
+            "its elementary molecule types."
+        );
+      }
+
+      // this is a declaration of a possibly complex molecule, all used elementary molecules must be defined
+      BNG::Cplx bng_cplx(&world->bng_engine.get_data());
+      new_species.elem_mols = convert_complex(*s, false, false).elem_mols;
+
+      new_species.finalize(world->config);
+
+      if (!new_species.is_fully_qualified()) {
+        throw ValueError("Species declaration " + new_species.name + " must use a fully qualified BNGL string for initialization.");
+      }
+
+      // register and remember which species we created
+      species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
+      s->species_id = new_species_id;
+
+      // we completely converted this declaration
+      continue;
+    }
+    else if (!is_set(model->find_elementary_molecule_type(s->name))) {
+      // report error if we don't have an elementary molecule type for this simple species
+      // TODO: complex species cannot be defined like this
       throw ValueError(S("Neither ") + NAME_DIFFUSION_CONSTANT_2D + " nor " +
           NAME_DIFFUSION_CONSTANT_3D + " was set for " + NAME_CLASS_SPECIES + " " +
           s->to_bngl_str() + ".");
     }
 	
-    new_species.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, s->target_only); // default is false
+    new_species.set_flag(BNG::SPECIES_MOL_FLAG_TARGET_ONLY, s->target_only); // default is false
 
     // FIXME: the MolType below is created correctly only for simple species
     release_assert(s->elementary_molecules.size() <= 1 && "TODO: Complex species");
@@ -497,21 +557,10 @@ void MCell4Converter::convert_species() {
       release_assert(mi->components.empty());
     }
 
-    // we must add a complex instance as the single molecule type in the new species
-    // define a molecule type with no components
-    BNG::ElemMolType mol_type;
-    mol_type.name = new_species.name; // name of the mol type is the same as for our species
-    mol_type.D = new_species.D; // we must also set the diffusion constant - simply inherit from this simple species
-    mol_type.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, s->target_only);
-    mol_type.custom_space_step = new_species.custom_space_step;
-    mol_type.custom_time_step = new_species.custom_time_step;
-    if (is_vol) {
-      mol_type.set_is_vol();
-    }
-    else {
-      mol_type.set_is_surf();
-    }
-    BNG::elem_mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_elem_mol_type(mol_type);
+    // find elementary molecule type for our species
+    // must exist because it was added in Subsystem::unify_and_register_elementary_molecule_types
+    BNG::elem_mol_type_id_t mol_type_id = world->bng_engine.get_data().find_elem_mol_type_id(s->name);
+    release_assert(mol_type_id != BNG::MOL_TYPE_ID_INVALID);
 
     BNG::ElemMol mol_inst;
     mol_inst.elem_mol_type_id = mol_type_id;
@@ -777,6 +826,21 @@ BNG::Cplx MCell4Converter::convert_complex(API::Complex& api_cplx, const bool in
 }
 
 
+void MCell4Converter::check_intermembrane_surface_reaction(const BNG::RxnRule& rxn) {
+  if (rxn.reactants.size() !=2 || rxn.products.size() != 2) {
+    throw ValueError("Intermembrane reaction must have exactly 2 reactants and 2 products, error for " +
+        rxn.to_str() + ".");
+  }
+
+  if (!rxn.reactants[0].is_surf() || !rxn.reactants[1].is_surf() ||
+      !rxn.products[0].is_surf() || !rxn.products[1].is_surf()) {
+      throw ValueError("Intermembrane reaction's reactants and products must be all surface complexes, error for " +
+          rxn.to_str() + ".");
+  }
+
+  // TODO: check compartments?
+}
+
 
 void MCell4Converter::convert_rxns() {
   BNG::BNGData& bng_data = world->bng_engine.get_data();
@@ -825,7 +889,18 @@ void MCell4Converter::convert_rxns() {
       rxn.append_product(product);
     }
 
+    // sets also flags for reactants and products
     rxn.finalize();
+
+    if (r->is_intermembrane_surface_reaction) {
+      check_intermembrane_surface_reaction(rxn);
+      rxn.set_is_intermembrane_surf_rxn();
+      // orientation is ANY in this case, we might need to update it later
+      // TODO: add warning if user specified explicit orientation
+      rxn.reactants[0].set_orientation(ORIENTATION_NONE);
+      rxn.reactants[1].set_orientation(ORIENTATION_NONE);
+    }
+
     string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn);
     if (error_msg != "") {
       throw ValueError(error_msg);
@@ -845,6 +920,12 @@ void MCell4Converter::convert_rxns() {
       rxn_rev.base_rate_constant = r->rev_rate;
       rxn_rev.reactants = rxn.products;
       rxn_rev.products = rxn.reactants;
+
+      if (r->is_intermembrane_surface_reaction) {
+        rxn.set_is_intermembrane_surf_rxn();
+        rxn.reactants[0].set_orientation(ORIENTATION_NONE);
+        rxn.reactants[1].set_orientation(ORIENTATION_NONE);
+      }
 
       rxn_rev.finalize();
       string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn_rev);
@@ -1434,7 +1515,7 @@ void MCell4Converter::convert_release_events() {
 static void append_subtracted_volume_compartments(
     MCell::MolOrRxnCountTerm top_count_term,
     const GeometryObjectSet& child_compartments,
-    std::vector<MolOrRxnCountTerm>& terms
+    MolOrRxnCountTermVector& terms
 ) {
   assert(top_count_term.type == MCell::CountType::EnclosedInVolumeRegion);
 
@@ -1452,7 +1533,7 @@ static void append_subtracted_volume_compartments(
 void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
     const std::shared_ptr<API::CountTerm> ct,
     const int sign,
-    std::vector<MolOrRxnCountTerm>& terms
+    MolOrRxnCountTermVector& terms
 ) {
   MCell::MolOrRxnCountTerm res;
   res.sign_in_expression = sign;
@@ -1467,13 +1548,32 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   const shared_ptr<Complex> pattern = ct->get_pattern();
   if (is_set(pattern) && is_set(pattern->compartment_name)) {
     const string& compartment_name = pattern->compartment_name;
-    // only one region or compartment may be set
+    // only one region or compartment may be set (unless they are the same)
     if (is_set(ct->region) && is_set(compartment_name)) {
-      throw ValueError(S("Only one of ") + NAME_REGION + " or compartment may be set for " +
-          NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
+
+      bool error = true;
+
+      // set error to fale if there is no collision
+      if (ct->region->is_geometry_object) {
+        std::shared_ptr<API::GeometryObject> geom_obj = dynamic_pointer_cast<API::GeometryObject>(ct->region);
+
+        if (geom_obj->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
+            world->bng_engine.get_data().get_compartment(geom_obj->vol_compartment_id).name == compartment_name) {
+          error = false;
+        }
+        else if (geom_obj->surf_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
+            world->bng_engine.get_data().get_compartment(geom_obj->surf_compartment_id).name == compartment_name) {
+          error = false;
+        }
+      }
+
+      if (error) {
+        throw ValueError(S("Only one of ") + NAME_REGION + " or compartment may be set for " +
+            NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
+      }
     }
 
-    // if compartment is set, set region
+    // if compartment is set, set/overwrite region
     shared_ptr<GeometryObject> comp_obj;
     comp_obj = model->find_volume_compartment(compartment_name);
     if (is_set(comp_obj)) {
@@ -1612,6 +1712,9 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
       res.type = MCell::CountType::RxnCountInWorld;
       rxn->set_is_counted_in_world();
     }
+
+    // remember the initial reactions count when resuming from a checkpoint, default is 0
+    res.initial_reactions_count = ct->initial_reactions_count;
   }
   else {
     assert(false);
@@ -1665,7 +1768,8 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
 
     // create buffer
     count_buffer_id_t buffer_id =
-        world->create_count_buffer(c->file_name, API::DEFAULT_COUNT_BUFFER_SIZE);
+        world->create_count_buffer(
+            c->file_name, API::DEFAULT_COUNT_BUFFER_SIZE, model->config.append_to_count_output_data);
 
     MCell::MolOrRxnCountItem info(buffer_id);
 
@@ -1722,12 +1826,30 @@ void MCell4Converter::convert_viz_output_events() {
 }
 
 
+// sets up data loaded from checkpoint, must be run after all events were added to the scheduler
+// rng state is set after model initialization in Model::initialize
+void MCell4Converter::convert_initial_iteration_and_time_and_move_scheduler_time() {
+
+  if ((model->config.initial_iteration != 0) != (model->config.initial_time != 0)) {
+    throw RuntimeError(S("Both ") + NAME_INITIAL_ITERATION + " and " + NAME_INITIAL_TIME +
+        " must be either 0 or both must be greater than 0.");
+  }
+
+  world->stats.set_current_iteration(model->config.initial_iteration);
+
+  // skips all events, fails if some periodic events are scheduled
+  world->scheduler.skip_events_up_to_time(
+      world->config.get_simulation_start_time()
+  );
+}
+
+
 void MCell4Converter::add_ctrl_c_termination_event() {
-  MCell::PeriodicCallEvent* event = new PeriodicCallEvent(world);
-  event->event_time = 0;
+  MCell::CustomFunctionCallEvent<World*>* event =
+      new CustomFunctionCallEvent<World*>(check_ctrl_c, world);
+
+  event->event_time = world->config.get_simulation_start_time();
   event->periodicity_interval = 1;
-  event->function_ptr = check_ctrl_c;
-  event->function_arg = world;
 
   world->scheduler.schedule_event(event);
 }
@@ -1736,7 +1858,106 @@ void MCell4Converter::add_ctrl_c_termination_event() {
 void MCell4Converter::check_all_mol_types_have_diffusion_const() {
   for (const BNG::ElemMolType& mt: world->bng_engine.get_data().get_elem_mol_types()) {
     if (!mt.is_reactive_surface() && mt.D == FLT_INVALID) {
-      throw RuntimeError("Molecule type " + mt.name + " does not have its diffusion constant specified.");
+      throw RuntimeError("Molecule type '" + mt.name + "' does not have its diffusion constant specified.");
+    }
+  }
+}
+
+
+// must be called after world initialization
+void MCell4Converter::convert_after_init() {
+  convert_rng_state();
+  convert_checkpointed_molecules();
+}
+
+
+void MCell4Converter::convert_rng_state() {
+  if (!is_set(model->config.initial_rng_state)) {
+    return; // nothing to do
+  }
+
+  std::shared_ptr<RngState>& src = model->config.initial_rng_state;
+  rng_state& dst = world->rng;
+
+  dst.randcnt = src->randcnt;
+  dst.aa = src->aa;
+  dst.bb = src->bb;
+  dst.cc = src->cc;
+
+  assert(RANDSIZ == RNG_SIZE);
+  assert(src->randslr.size() == RNG_SIZE);
+  std::copy(src->randslr.begin(), src->randslr.end(), dst.randrsl);
+
+  assert(src->mm.size() == RNG_SIZE);
+  std::copy(src->mm.begin(), src->mm.end(), dst.mm);
+
+  dst.rngblocks = src->rngblocks;
+}
+
+
+void MCell4Converter::convert_checkpointed_molecules() {
+  // single partition for now
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  uint_set<MCell::molecule_id_t> used_mol_ids;
+
+  // add each mol
+  for (const shared_ptr<BaseChkptMol>& m: model->checkpointed_molecules) {
+    MCell::Molecule res_m;
+
+    // base data
+    if (used_mol_ids.count(m->id) != 0) {
+      throw RuntimeError("Checkpointed molecule with ID " + to_string(m->id) + " was already added.");
+    }
+
+    res_m.id = m->id;
+
+    if (m->species->species_id == SPECIES_ID_INVALID) {
+      throw RuntimeError("Species " + m->species->name + " for checkpointed molecule is not present in the model.");
+    }
+    res_m.species_id = m->species->species_id;
+
+    // TODO: check that the times are not in the past
+    res_m.diffusion_time = m->diffusion_time / world->config.time_unit;
+    res_m.birthday = m->birthday / world->config.time_unit;
+
+    // TODO: check that the flags make sense
+    res_m.flags = m->flags;
+
+    if (is_set(m->unimol_rx_time)) {
+      res_m.unimol_rx_time = m->unimol_rx_time / world->config.time_unit;
+    }
+    else {
+      res_m.unimol_rx_time = TIME_INVALID;
+    }
+
+    if (m->type == MoleculeType::VOLUME) {
+      res_m.reset_vol_data();
+
+      const shared_ptr<ChkptVolMol>& vm = dynamic_pointer_cast<ChkptVolMol>(m);
+      res_m.v.pos = vm->pos * Vec3(world->config.rcp_length_unit);
+
+      p.add_volume_molecule(res_m, 0);
+    }
+    else {
+      res_m.reset_surf_data();
+
+      assert(m->type == MoleculeType::SURFACE);
+      const shared_ptr<ChkptSurfMol>& sm = dynamic_pointer_cast<ChkptSurfMol>(m);
+
+      res_m.s.pos = sm->pos * Vec2(world->config.rcp_length_unit);
+      res_m.s.orientation = convert_orientation(sm->orientation, false);
+      res_m.s.wall_index = sm->geometry_object->get_partition_wall_index(sm->wall_index);
+      res_m.s.grid_tile_index = sm->grid_tile_index;
+
+      // we must initialize grid and register the molecule there
+      MCell::Wall& w = p.get_wall(res_m.s.wall_index);
+      if (!w.has_initialized_grid()) {
+        w.initialize_grid(p);
+      }
+      w.grid.set_molecule_tile(res_m.s.grid_tile_index, res_m.id);
+
+      p.add_surface_molecule(res_m, 0);
     }
   }
 }

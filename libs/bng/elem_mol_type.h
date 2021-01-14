@@ -97,7 +97,7 @@ public:
   CompartmentIdSet reactant_compartments;
 
   bool cant_initiate() const {
-    return has_flag(SPECIES_MOL_FLAG_CANT_INITIATE);
+    return has_flag(SPECIES_MOL_FLAG_TARGET_ONLY);
   }
 
   bool operator ==(const ElemMolType& mt2) const {

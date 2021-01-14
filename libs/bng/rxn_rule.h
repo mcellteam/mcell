@@ -370,6 +370,14 @@ public:
     }
   }
 
+  void set_is_intermembrane_surf_rxn() {
+    set_flag(RXN_FLAG_INTERMEMBRANE);
+  }
+
+  bool is_intermembrane_surf_rxn() const {
+    return has_flag(RXN_FLAG_INTERMEMBRANE);
+  }
+
   bool reactants_use_compartments() const {
     if (is_unimol()) {
       return reactants[0].has_compartment();
@@ -400,7 +408,7 @@ public:
   // sets assigned indices if assigned_indexN are not nullptr
   bool species_can_be_bimol_reactants(
       const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species,
-      uint* assigned_index1 = nullptr, uint* assigned_index2 = nullptr
+      uint* assigned_index1 = nullptr, uint* assigned_index2 = nullptr, bool* both_match_both_patterns = nullptr
   );
 
   // returns true if two reactants match each other and species 'id' matches one of the reactants

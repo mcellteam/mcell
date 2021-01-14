@@ -64,25 +64,17 @@ void MCell4Generator::reset() {
 
 // the aim is to generate as much of output as possible,
 // therefore we are using exceptions
-bool MCell4Generator::generate(
-    const string& input_file,
-    const string& output_files_prefix_,
-    const bool bng_mode_,
-    const bool debug_mode_,
-    const bool cellblender_viz
-) {
+bool MCell4Generator::generate(const SharedGenData& opts) {
   reset();
 
   bool failed = false;
-  data.output_files_prefix = output_files_prefix_;
-  data.bng_mode = bng_mode_;
-  data.debug_mode = debug_mode_;
+  data = opts; // copy options
 
   // load json file
   ifstream file;
-  file.open(input_file);
+  file.open(opts.input_file);
   if (!file.is_open()) {
-    cerr << "Could not open file '" << input_file << "' for reading.\n";
+    cerr << "Could not open file '" << opts.input_file << "' for reading.\n";
     return false;
   }
   Value root;
@@ -107,7 +99,7 @@ bool MCell4Generator::generate(
   std::vector<std::string> geometry_names;
   CHECK(geometry_names = generate_geometry(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
-  CHECK(generate_observables(cellblender_viz), failed);
+  CHECK(generate_observables(opts.cellblender_viz), failed);
   CHECK(generate_model(failed), failed);
   CHECK(generate_customization(), failed);
 
@@ -143,7 +135,9 @@ void MCell4Generator::generate_parameters() {
   ofstream out;
   open_and_check_file(PARAMETERS, out);
   out << GENERATED_WARNING << "\n";
+  out << IMPORT_OS;
   out << MCELL_IMPORT;
+  out << MODEL_PATH_SETUP << "\n";
   out << make_section_comment("model parameters");
 
   if (data.mcell.isMember(KEY_PARAMETER_SYSTEM)) {
@@ -386,7 +380,10 @@ void MCell4Generator::generate_subsystem() {
   open_and_check_file(SUBSYSTEM, out);
   out << GENERATED_WARNING << "\n";
 
+  out << IMPORT_OS;
   out << MCELL_IMPORT;
+  out << MODEL_PATH_SETUP << "\n";
+
   out << make_import(PARAMETERS);
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
@@ -429,7 +426,7 @@ void MCell4Generator::generate_subsystem() {
     gen_method_call(
         out, SUBSYSTEM,
         NAME_LOAD_BNGL_MOLECULE_TYPES_AND_REACTION_RULES,
-        "'" + get_filename(data.output_files_prefix, MODEL, BNGL_EXT) + "'"
+        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT))
     );
     out << "\n" << bngl_mol_types_initialization;
 
@@ -684,7 +681,10 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
   open_and_check_file(OBSERVABLES, out);
   out << GENERATED_WARNING << "\n";
 
+  out << IMPORT_OS;
   out << MCELL_IMPORT;
+  out << MODEL_PATH_SETUP << "\n";
+
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
   if (geometry_generated) {
@@ -714,8 +714,8 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
     gen_method_call(
         out, OBSERVABLES,
         NAME_LOAD_BNGL_OBSERVABLES,
-        "'" + get_filename(data.output_files_prefix, MODEL, BNGL_EXT) + "', " +
-        get_module_name(SUBSYSTEM) + ", " +
+        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)) + ", " +
+        SUBSYSTEM + ", " +
         "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'"
     );
 
@@ -735,7 +735,7 @@ void MCell4Generator::generate_config(ostream& out) {
   string params_module = get_module_name(PARAMETERS);
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, params_module + "." + PARAM_TIME_STEP);
   gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, params_module + "." + PARAM_SEED);
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, params_module + "." + PARAM_ITERATIONS);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS, params_module + "." + PARAM_ITERATIONS);
   out << "\n";
   gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT, true);
   out << "\n";
@@ -826,6 +826,8 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   }
 
   out << BASE_MODEL_IMPORTS;
+  out << get_import("importlib.util");
+  out << "\n";
   out << MODEL_PATH_SETUP;
   out << "\n";
   out << MCELL_PATH_SETUP;
@@ -840,16 +842,28 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
       "# because we may need to make changes to the module's variables\n" <<
       IMPORT << " " << parameters_module << "\n\n";
 
+  out << get_resume_from_checkpoint_code(parameters_module);
+
   out << get_customization_import(customization_module);
   out << "\n";
 
-  out << get_argparse_w_customization(parameters_module, customization_module);
+  if (data.testing_mode) {
+    out << CHECKPOINT_ITERATION << " = None\n\n";
+  }
+
+  out << get_argparse_w_customization_begin(parameters_module, customization_module);
+
+  if (data.testing_mode) {
+    out << get_argparse_checkpoint_iteration(parameters_module);
+  }
+
+  out << get_argparse_w_customization_end();
   out << "\n";
 
-  out << IMPORT << " " << get_module_name(SUBSYSTEM) << "\n";
-  out << IMPORT << " " << get_module_name(INSTANTIATION) << "\n";
+  out << get_import(get_module_name(SUBSYSTEM));
+  out << get_import(get_module_name(INSTANTIATION));
   if (observables_generated) {
-    out << IMPORT << " " << get_module_name(OBSERVABLES) << "\n";
+    out << get_import(get_module_name(OBSERVABLES));
   }
   out << "\n";
 
@@ -858,6 +872,13 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << "\n";
 
   generate_config(out);
+
+  if (data.testing_mode) {
+    out << make_section_comment("testing-specific configuration");
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_REACTION_CLASS_CLEANUP_PERIODICITY, TESTING_RXN_CLASS_CLEANUP_PERIODICITY);
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_SPECIES_CLEANUP_PERIODICITY, TESTING_SPECIES_CLEANUP_PERIODICITY);
+    out << "\n";
+  }
 
   out << get_user_defined_configuration(customization_module);
 
@@ -882,6 +903,15 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << IND4;
   gen_method_call(out, MODEL, NAME_INITIALIZE);
   out << "\n";
+
+  if (!data.checkpoint_iterations.empty()) {
+    out << make_section_comment("checkpoint iterations");
+    for (int it: data.checkpoint_iterations) {
+      out << IND4;
+      gen_method_call(out, MODEL, NAME_SCHEDULE_CHECKPOINT, to_string(it));
+    }
+    out << "\n";
+  }
 
   out << IND4 << "if " << parameters_module << "." << PARAM_DUMP << ":\n";
   out << IND8;

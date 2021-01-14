@@ -40,16 +40,18 @@ CountTerm:
     type: Complex*
     default: unset
     doc: |
-     Count the number of matches of the given pattern on molecules.
-     The observable will count a molecule every time it matches the pattern.
-     When the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a 
-     molecule A(a!1).A(a!1,b!2).B(a!2) will be counted twice because the 
-     pattern may match in two different ways. 
-     If the pattern has a compartment set, this specifies the counted region.  
+      Count the number of matches of the given pattern on molecules.
+      The observable will count a molecule every time it matches the pattern.
+      When the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a 
+      molecule A(a!1).A(a!1,b!2).B(a!2) will be counted twice because the 
+      pattern may match in two different ways. 
+      If the pattern has a compartment set, this specifies the counted region.  
     
   - name: reaction_rule
     type: ReactionRule*
     default: unset
+    doc: |
+      Count the number of reactions that occurred since the start of the simulation.
         
   - name: region
     type: Region*
@@ -76,6 +78,13 @@ CountTerm:
     type: CountTerm*
     default: unset
     doc: Internal, when node_type is not Leaf, this is the right operand 
+    
+  - name: initial_reactions_count
+    type: uint64
+    default: 0
+    doc: | 
+       Used for checkpointing, allows to set initial count of reactions that occurred.
+       Ignored when molecules are counted.
 
   methods:
     # operator overloads follow the Python naming
@@ -106,7 +115,7 @@ Count:
     type: str
     default: unset
     doc: |
-       File name with an optional path must be set. It is not dediuced automatically.
+       File name with an optional path must be set. It is not deduced automatically.
     
   - name: count_expression 
     type: CountTerm*

@@ -769,11 +769,6 @@ bool PythonGenerator::is_volume_mol_type(const std::string& mol_type_name) {
 }
 
 
-static bool is_simple_species(const std::string& species_name) {
-  return species_name.find('(') == string::npos;
-}
-
-
 static void get_mol_types_in_species(const std::string& species_name, vector<string>& mol_types) {
   mol_types.clear();
 

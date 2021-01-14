@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_initial_surface_release.h"
 #include "api/initial_surface_release.h"
 #include "api/complex.h"
@@ -112,6 +113,42 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def_property("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release)
       .def_property("density", &InitialSurfaceRelease::get_density, &InitialSurfaceRelease::set_density)
     ;
+}
+
+std::string GenInitialSurfaceRelease::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "initial_surface_release_" + std::to_string(ctx.postinc_counter("initial_surface_release"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.InitialSurfaceRelease(" << nl;
+  ss << ind << "complex = " << complex->export_to_python(out, ctx) << "," << nl;
+  if (number_to_release != INT_UNSET) {
+    ss << ind << "number_to_release = " << number_to_release << "," << nl;
+  }
+  if (density != FLT_UNSET) {
+    ss << ind << "density = " << f_to_str(density) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

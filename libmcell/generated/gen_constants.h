@@ -41,11 +41,16 @@ const int DEFAULT_COUNT_BUFFER_SIZE = 10000;
 const std::string ALL_MOLECULES = "ALL_MOLECULES";
 const std::string ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const std::string ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
-const int MOLECULE_ID_INVALID = -1;
+const std::string DEFAULT_CHECKPOINTS_DIR = "checkpoints";
+const std::string DEFAULT_SEED_DIR_PREFIX = "seed_";
+const int DEFAULT_SEED_DIR_DIGITS = 5;
+const std::string DEFAULT_ITERATION_DIR_PREFIX = "it_";
+const int ID_INVALID = -1;
 const int NUMBER_OF_TRAINS_UNLIMITED = -1;
 const float_t TIME_INFINITY = 1e140;
 const int INT_UNSET = INT32_MAX;
 const float_t FLT_UNSET = FLT_MAX;
+const int RNG_SIZE = 256;
 
 enum class Orientation {
   DOWN = -1,
@@ -57,14 +62,14 @@ enum class Orientation {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const Orientation v) {
+static inline std::ostream& operator << (std::ostream& out, const Orientation v) {
   switch (v) {
-    case Orientation::DOWN: out << "Orientation.DOWN (-1)"; break;
-    case Orientation::NONE: out << "Orientation.NONE (0)"; break;
-    case Orientation::UP: out << "Orientation.UP (1)"; break;
-    case Orientation::NOT_SET: out << "Orientation.NOT_SET (2)"; break;
-    case Orientation::ANY: out << "Orientation.ANY (3)"; break;
-    case Orientation::DEFAULT: out << "Orientation.DEFAULT (4)"; break;
+    case Orientation::DOWN: out << "m.Orientation.DOWN"; break;
+    case Orientation::NONE: out << "m.Orientation.NONE"; break;
+    case Orientation::UP: out << "m.Orientation.UP"; break;
+    case Orientation::NOT_SET: out << "m.Orientation.NOT_SET"; break;
+    case Orientation::ANY: out << "m.Orientation.ANY"; break;
+    case Orientation::DEFAULT: out << "m.Orientation.DEFAULT"; break;
   }
   return out;
 };
@@ -77,11 +82,11 @@ enum class Notification {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const Notification v) {
+static inline std::ostream& operator << (std::ostream& out, const Notification v) {
   switch (v) {
-    case Notification::NONE: out << "Notification.NONE (0)"; break;
-    case Notification::BRIEF: out << "Notification.BRIEF (1)"; break;
-    case Notification::FULL: out << "Notification.FULL (2)"; break;
+    case Notification::NONE: out << "m.Notification.NONE"; break;
+    case Notification::BRIEF: out << "m.Notification.BRIEF"; break;
+    case Notification::FULL: out << "m.Notification.FULL"; break;
   }
   return out;
 };
@@ -94,11 +99,11 @@ enum class WarningLevel {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const WarningLevel v) {
+static inline std::ostream& operator << (std::ostream& out, const WarningLevel v) {
   switch (v) {
-    case WarningLevel::IGNORE: out << "WarningLevel.IGNORE (0)"; break;
-    case WarningLevel::WARNING: out << "WarningLevel.WARNING (1)"; break;
-    case WarningLevel::ERROR: out << "WarningLevel.ERROR (2)"; break;
+    case WarningLevel::IGNORE: out << "m.WarningLevel.IGNORE"; break;
+    case WarningLevel::WARNING: out << "m.WarningLevel.WARNING"; break;
+    case WarningLevel::ERROR: out << "m.WarningLevel.ERROR"; break;
   }
   return out;
 };
@@ -110,10 +115,10 @@ enum class VizMode {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const VizMode v) {
+static inline std::ostream& operator << (std::ostream& out, const VizMode v) {
   switch (v) {
-    case VizMode::ASCII: out << "VizMode.ASCII (0)"; break;
-    case VizMode::CELLBLENDER: out << "VizMode.CELLBLENDER (1)"; break;
+    case VizMode::ASCII: out << "m.VizMode.ASCII"; break;
+    case VizMode::CELLBLENDER: out << "m.VizMode.CELLBLENDER"; break;
   }
   return out;
 };
@@ -128,13 +133,13 @@ enum class Shape {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const Shape v) {
+static inline std::ostream& operator << (std::ostream& out, const Shape v) {
   switch (v) {
-    case Shape::UNSET: out << "Shape.UNSET (0)"; break;
-    case Shape::SPHERICAL: out << "Shape.SPHERICAL (1)"; break;
-    case Shape::REGION_EXPR: out << "Shape.REGION_EXPR (2)"; break;
-    case Shape::LIST: out << "Shape.LIST (3)"; break;
-    case Shape::COMPARTMENT: out << "Shape.COMPARTMENT (4)"; break;
+    case Shape::UNSET: out << "m.Shape.UNSET"; break;
+    case Shape::SPHERICAL: out << "m.Shape.SPHERICAL"; break;
+    case Shape::REGION_EXPR: out << "m.Shape.REGION_EXPR"; break;
+    case Shape::LIST: out << "m.Shape.LIST"; break;
+    case Shape::COMPARTMENT: out << "m.Shape.COMPARTMENT"; break;
   }
   return out;
 };
@@ -150,14 +155,14 @@ enum class SurfacePropertyType {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const SurfacePropertyType v) {
+static inline std::ostream& operator << (std::ostream& out, const SurfacePropertyType v) {
   switch (v) {
-    case SurfacePropertyType::UNSET: out << "SurfacePropertyType.UNSET (0)"; break;
-    case SurfacePropertyType::REFLECTIVE: out << "SurfacePropertyType.REFLECTIVE (1)"; break;
-    case SurfacePropertyType::TRANSPARENT: out << "SurfacePropertyType.TRANSPARENT (2)"; break;
-    case SurfacePropertyType::ABSORPTIVE: out << "SurfacePropertyType.ABSORPTIVE (3)"; break;
-    case SurfacePropertyType::CONCENTRATION_CLAMP: out << "SurfacePropertyType.CONCENTRATION_CLAMP (4)"; break;
-    case SurfacePropertyType::FLUX_CLAMP: out << "SurfacePropertyType.FLUX_CLAMP (5)"; break;
+    case SurfacePropertyType::UNSET: out << "m.SurfacePropertyType.UNSET"; break;
+    case SurfacePropertyType::REFLECTIVE: out << "m.SurfacePropertyType.REFLECTIVE"; break;
+    case SurfacePropertyType::TRANSPARENT: out << "m.SurfacePropertyType.TRANSPARENT"; break;
+    case SurfacePropertyType::ABSORPTIVE: out << "m.SurfacePropertyType.ABSORPTIVE"; break;
+    case SurfacePropertyType::CONCENTRATION_CLAMP: out << "m.SurfacePropertyType.CONCENTRATION_CLAMP"; break;
+    case SurfacePropertyType::FLUX_CLAMP: out << "m.SurfacePropertyType.FLUX_CLAMP"; break;
   }
   return out;
 };
@@ -171,12 +176,12 @@ enum class ExprNodeType {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const ExprNodeType v) {
+static inline std::ostream& operator << (std::ostream& out, const ExprNodeType v) {
   switch (v) {
-    case ExprNodeType::UNSET: out << "ExprNodeType.UNSET (0)"; break;
-    case ExprNodeType::LEAF: out << "ExprNodeType.LEAF (1)"; break;
-    case ExprNodeType::ADD: out << "ExprNodeType.ADD (2)"; break;
-    case ExprNodeType::SUB: out << "ExprNodeType.SUB (3)"; break;
+    case ExprNodeType::UNSET: out << "m.ExprNodeType.UNSET"; break;
+    case ExprNodeType::LEAF: out << "m.ExprNodeType.LEAF"; break;
+    case ExprNodeType::ADD: out << "m.ExprNodeType.ADD"; break;
+    case ExprNodeType::SUB: out << "m.ExprNodeType.SUB"; break;
   }
   return out;
 };
@@ -192,14 +197,14 @@ enum class RegionNodeType {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const RegionNodeType v) {
+static inline std::ostream& operator << (std::ostream& out, const RegionNodeType v) {
   switch (v) {
-    case RegionNodeType::UNSET: out << "RegionNodeType.UNSET (0)"; break;
-    case RegionNodeType::LEAF_GEOMETRY_OBJECT: out << "RegionNodeType.LEAF_GEOMETRY_OBJECT (1)"; break;
-    case RegionNodeType::LEAF_SURFACE_REGION: out << "RegionNodeType.LEAF_SURFACE_REGION (2)"; break;
-    case RegionNodeType::UNION: out << "RegionNodeType.UNION (3)"; break;
-    case RegionNodeType::DIFFERENCE: out << "RegionNodeType.DIFFERENCE (4)"; break;
-    case RegionNodeType::INTERSECT: out << "RegionNodeType.INTERSECT (5)"; break;
+    case RegionNodeType::UNSET: out << "m.RegionNodeType.UNSET"; break;
+    case RegionNodeType::LEAF_GEOMETRY_OBJECT: out << "m.RegionNodeType.LEAF_GEOMETRY_OBJECT"; break;
+    case RegionNodeType::LEAF_SURFACE_REGION: out << "m.RegionNodeType.LEAF_SURFACE_REGION"; break;
+    case RegionNodeType::UNION: out << "m.RegionNodeType.UNION"; break;
+    case RegionNodeType::DIFFERENCE: out << "m.RegionNodeType.DIFFERENCE"; break;
+    case RegionNodeType::INTERSECT: out << "m.RegionNodeType.INTERSECT"; break;
   }
   return out;
 };
@@ -215,14 +220,31 @@ enum class ReactionType {
 };
 
 
-static inline  std::ostream& operator << (std::ostream& out, const ReactionType v) {
+static inline std::ostream& operator << (std::ostream& out, const ReactionType v) {
   switch (v) {
-    case ReactionType::UNSET: out << "ReactionType.UNSET (0)"; break;
-    case ReactionType::UNIMOL_VOLUME: out << "ReactionType.UNIMOL_VOLUME (1)"; break;
-    case ReactionType::UNIMOL_SURFACE: out << "ReactionType.UNIMOL_SURFACE (2)"; break;
-    case ReactionType::VOLUME_VOLUME: out << "ReactionType.VOLUME_VOLUME (3)"; break;
-    case ReactionType::VOLUME_SURFACE: out << "ReactionType.VOLUME_SURFACE (4)"; break;
-    case ReactionType::SURFACE_SURFACE: out << "ReactionType.SURFACE_SURFACE (5)"; break;
+    case ReactionType::UNSET: out << "m.ReactionType.UNSET"; break;
+    case ReactionType::UNIMOL_VOLUME: out << "m.ReactionType.UNIMOL_VOLUME"; break;
+    case ReactionType::UNIMOL_SURFACE: out << "m.ReactionType.UNIMOL_SURFACE"; break;
+    case ReactionType::VOLUME_VOLUME: out << "m.ReactionType.VOLUME_VOLUME"; break;
+    case ReactionType::VOLUME_SURFACE: out << "m.ReactionType.VOLUME_SURFACE"; break;
+    case ReactionType::SURFACE_SURFACE: out << "m.ReactionType.SURFACE_SURFACE"; break;
+  }
+  return out;
+};
+
+
+enum class MoleculeType {
+  UNSET = 0,
+  VOLUME = 1,
+  SURFACE = 2
+};
+
+
+static inline std::ostream& operator << (std::ostream& out, const MoleculeType v) {
+  switch (v) {
+    case MoleculeType::UNSET: out << "m.MoleculeType.UNSET"; break;
+    case MoleculeType::VOLUME: out << "m.MoleculeType.VOLUME"; break;
+    case MoleculeType::SURFACE: out << "m.MoleculeType.SURFACE"; break;
   }
   return out;
 };

@@ -40,13 +40,7 @@ namespace MCell {
 
 class MCell4Generator {
 public:
-  bool generate(
-      const std::string& input_file,
-      const std::string& output_files_prefix_,
-      const bool bng_mode_,
-      const bool debug_mode_,
-      const bool cellblender_viz
-  );
+  bool generate(const SharedGenData& opts);
 
 private:
   void reset();

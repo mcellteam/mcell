@@ -6,6 +6,12 @@ INT32_MAX = 2147483647 # do not use this constant in your code
 FLT_MAX = 3.40282346638528859812e+38 # do not use this constant in your code
 
 # "forward" declarations to make the type hints valid
+class BaseChkptMol():
+    pass
+class ChkptSurfMol():
+    pass
+class ChkptVolMol():
+    pass
 class Complex():
     pass
 class Component():
@@ -27,6 +33,8 @@ class GeometryObject():
 class InitialSurfaceRelease():
     pass
 class Instantiation():
+    pass
+class Introspection():
     pass
 class Model():
     pass
@@ -50,6 +58,8 @@ class ReleasePattern():
     pass
 class ReleaseSite():
     pass
+class RngState():
+    pass
 class Species():
     pass
 class Subsystem():
@@ -71,6 +81,8 @@ class Warnings():
 class bngl_utils():
     pass
 class geometry_utils():
+    pass
+class run_utils():
     pass
 
 class Vec3():
@@ -143,6 +155,11 @@ class ReactionType(Enum):
     VOLUME_SURFACE = 4
     SURFACE_SURFACE = 5
 
+class MoleculeType(Enum):
+    UNSET = 0
+    VOLUME = 1
+    SURFACE = 2
+
 
 
 STATE_UNSET = 'STATE_UNSET'
@@ -155,11 +172,82 @@ DEFAULT_COUNT_BUFFER_SIZE = 10000
 ALL_MOLECULES = 'ALL_MOLECULES'
 ALL_VOLUME_MOLECULES = 'ALL_VOLUME_MOLECULES'
 ALL_SURFACE_MOLECULES = 'ALL_SURFACE_MOLECULES'
-MOLECULE_ID_INVALID = -1
+DEFAULT_CHECKPOINTS_DIR = 'checkpoints'
+DEFAULT_SEED_DIR_PREFIX = 'seed_'
+DEFAULT_SEED_DIR_DIGITS = 5
+DEFAULT_ITERATION_DIR_PREFIX = 'it_'
+ID_INVALID = -1
 NUMBER_OF_TRAINS_UNLIMITED = -1
 TIME_INFINITY = 1e140
 INT_UNSET = INT32_MAX
 FLT_UNSET = FLT_MAX
+RNG_SIZE = 256
+
+
+class BaseChkptMol():
+    def __init__(
+            self,
+            id : int,
+            species : Species,
+            diffusion_time : float,
+            birthday : float,
+            flags : int,
+            unimol_rx_time : float = None
+        ):
+        self.id = id
+        self.species = species
+        self.diffusion_time = diffusion_time
+        self.birthday = birthday
+        self.flags = flags
+        self.unimol_rx_time = unimol_rx_time
+
+
+class ChkptSurfMol():
+    def __init__(
+            self,
+            pos : Vec2,
+            orientation : Orientation,
+            geometry_object : GeometryObject,
+            wall_index : int,
+            grid_tile_index : int,
+            id : int,
+            species : Species,
+            diffusion_time : float,
+            birthday : float,
+            flags : int,
+            unimol_rx_time : float = None
+        ):
+        self.pos = pos
+        self.orientation = orientation
+        self.geometry_object = geometry_object
+        self.wall_index = wall_index
+        self.grid_tile_index = grid_tile_index
+        self.id = id
+        self.species = species
+        self.diffusion_time = diffusion_time
+        self.birthday = birthday
+        self.flags = flags
+        self.unimol_rx_time = unimol_rx_time
+
+
+class ChkptVolMol():
+    def __init__(
+            self,
+            pos : Vec3,
+            id : int,
+            species : Species,
+            diffusion_time : float,
+            birthday : float,
+            flags : int,
+            unimol_rx_time : float = None
+        ):
+        self.pos = pos
+        self.id = id
+        self.species = species
+        self.diffusion_time = diffusion_time
+        self.birthday = birthday
+        self.flags = flags
+        self.unimol_rx_time = unimol_rx_time
 
 
 class Complex():
@@ -232,29 +320,45 @@ class Config():
             time_step : float = 1e-6,
             surface_grid_density : float = 10000,
             interaction_radius : float = None,
+            intermembrane_interaction_radius : float = None,
             vacancy_search_distance : float = 10,
             center_molecules_on_grid : bool = False,
             initial_partition_origin : List[float] = None,
             partition_dimension : float = 10,
             subpartition_dimension : float = 0.5,
-            total_iterations_hint : float = 1000000,
+            total_iterations : float = 1000000,
             check_overlapped_walls : bool = True,
+            reaction_class_cleanup_periodicity : int = 500,
+            species_cleanup_periodicity : int = 10000,
             sort_molecules : bool = False,
-            memory_limit_gb : int = -1
+            memory_limit_gb : int = -1,
+            initial_iteration : int = 0,
+            initial_time : float = 0,
+            initial_rng_state : RngState = None,
+            append_to_count_output_data : bool = False,
+            continue_after_sigalrm : bool = False
         ):
         self.seed = seed
         self.time_step = time_step
         self.surface_grid_density = surface_grid_density
         self.interaction_radius = interaction_radius
+        self.intermembrane_interaction_radius = intermembrane_interaction_radius
         self.vacancy_search_distance = vacancy_search_distance
         self.center_molecules_on_grid = center_molecules_on_grid
         self.initial_partition_origin = initial_partition_origin
         self.partition_dimension = partition_dimension
         self.subpartition_dimension = subpartition_dimension
-        self.total_iterations_hint = total_iterations_hint
+        self.total_iterations = total_iterations
         self.check_overlapped_walls = check_overlapped_walls
+        self.reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity
+        self.species_cleanup_periodicity = species_cleanup_periodicity
         self.sort_molecules = sort_molecules
         self.memory_limit_gb = memory_limit_gb
+        self.initial_iteration = initial_iteration
+        self.initial_time = initial_time
+        self.initial_rng_state = initial_rng_state
+        self.append_to_count_output_data = append_to_count_output_data
+        self.continue_after_sigalrm = continue_after_sigalrm
 
 
 class Count():
@@ -271,7 +375,8 @@ class Count():
             region : Region = None,
             node_type : ExprNodeType = ExprNodeType.LEAF,
             left_node : CountTerm = None,
-            right_node : CountTerm = None
+            right_node : CountTerm = None,
+            initial_reactions_count : int = 0
         ):
         self.name = name
         self.file_name = file_name
@@ -285,6 +390,7 @@ class Count():
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
+        self.initial_reactions_count = initial_reactions_count
 
 
     def get_current_value(
@@ -313,7 +419,8 @@ class CountTerm():
             region : Region = None,
             node_type : ExprNodeType = ExprNodeType.LEAF,
             left_node : CountTerm = None,
-            right_node : CountTerm = None
+            right_node : CountTerm = None,
+            initial_reactions_count : int = 0
         ):
         self.species_pattern = species_pattern
         self.molecules_pattern = molecules_pattern
@@ -322,6 +429,7 @@ class CountTerm():
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
+        self.initial_reactions_count = initial_reactions_count
 
 
     def __add__(
@@ -450,10 +558,12 @@ class Instantiation():
     def __init__(
             self,
             release_sites : List[ReleaseSite] = None,
-            geometry_objects : List[GeometryObject] = None
+            geometry_objects : List[GeometryObject] = None,
+            checkpointed_molecules : List[BaseChkptMol] = None
         ):
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
+        self.checkpointed_molecules = checkpointed_molecules
 
 
     def add_release_site(
@@ -501,6 +611,58 @@ class Instantiation():
         ) -> None:
         pass
 
+class Introspection():
+    def __init__(
+            self,
+        ):
+        pass
+
+    def get_molecule_ids(
+            self,
+            species : Species = None
+        ) -> 'List[int]':
+        pass
+
+    def get_molecule(
+            self,
+            id : int
+        ) -> 'Molecule':
+        pass
+
+    def get_species_name(
+            self,
+            species_id : int
+        ) -> 'str':
+        pass
+
+    def get_vertex(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Wall':
+        pass
+
+    def get_vertex_unit_normal(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall_unit_normal(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Vec3':
+        pass
+
 class Model():
     def __init__(
             self,
@@ -513,6 +675,7 @@ class Model():
             elementary_molecule_types : List[ElementaryMoleculeType] = None,
             release_sites : List[ReleaseSite] = None,
             geometry_objects : List[GeometryObject] = None,
+            checkpointed_molecules : List[BaseChkptMol] = None,
             viz_outputs : List[VizOutput] = None,
             counts : List[Count] = None
         ):
@@ -525,6 +688,7 @@ class Model():
         self.elementary_molecule_types = elementary_molecule_types
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
+        self.checkpointed_molecules = checkpointed_molecules
         self.viz_outputs = viz_outputs
         self.counts = counts
 
@@ -537,7 +701,7 @@ class Model():
     def run_iterations(
             self,
             iterations : float
-        ) -> None:
+        ) -> 'int':
         pass
 
     def end_simulation(
@@ -587,44 +751,12 @@ class Model():
         ) -> None:
         pass
 
-    def get_molecule_ids(
+    def run_reaction(
             self,
-            species : Species = None
+            reaction_rule : ReactionRule,
+            reactant_ids : List[int],
+            time : float
         ) -> 'List[int]':
-        pass
-
-    def get_molecule(
-            self,
-            id : int
-        ) -> 'Molecule':
-        pass
-
-    def get_vertex(
-            self,
-            object : GeometryObject,
-            vertex_index : int
-        ) -> 'Vec3':
-        pass
-
-    def get_wall(
-            self,
-            object : GeometryObject,
-            wall_index : int
-        ) -> 'Wall':
-        pass
-
-    def get_vertex_unit_normal(
-            self,
-            object : GeometryObject,
-            vertex_index : int
-        ) -> 'Vec3':
-        pass
-
-    def get_wall_unit_normal(
-            self,
-            object : GeometryObject,
-            wall_index : int
-        ) -> 'Vec3':
         pass
 
     def add_vertex_move(
@@ -670,6 +802,20 @@ class Model():
     def export_to_bngl(
             self,
             file_name : str
+        ) -> None:
+        pass
+
+    def save_checkpoint(
+            self,
+            custom_dir : str = None
+        ) -> None:
+        pass
+
+    def schedule_checkpoint(
+            self,
+            iteration : int = 0,
+            continue_simulation : bool = False,
+            custom_dir : str = None
         ) -> None:
         pass
 
@@ -800,6 +946,52 @@ class Model():
         ) -> None:
         pass
 
+    def get_molecule_ids(
+            self,
+            species : Species = None
+        ) -> 'List[int]':
+        pass
+
+    def get_molecule(
+            self,
+            id : int
+        ) -> 'Molecule':
+        pass
+
+    def get_species_name(
+            self,
+            species_id : int
+        ) -> 'str':
+        pass
+
+    def get_vertex(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Wall':
+        pass
+
+    def get_vertex_unit_normal(
+            self,
+            object : GeometryObject,
+            vertex_index : int
+        ) -> 'Vec3':
+        pass
+
+    def get_wall_unit_normal(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Vec3':
+        pass
+
 class MolWallHitInfo():
     def __init__(
             self,
@@ -823,15 +1015,23 @@ class MolWallHitInfo():
 class Molecule():
     def __init__(
             self,
-            id : int = MOLECULE_ID_INVALID,
-            species : Species = None,
+            id : int = ID_INVALID,
+            type : MoleculeType = MoleculeType.UNSET,
+            species_id : int = ID_INVALID,
             pos3d : Vec3 = None,
-            orientation : Orientation = Orientation.NOT_SET
+            orientation : Orientation = Orientation.NOT_SET,
+            pos2d : Vec2 = None,
+            geometry_object : GeometryObject = None,
+            wall_index : int = -1
         ):
         self.id = id
-        self.species = species
+        self.type = type
+        self.species_id = species_id
         self.pos3d = pos3d
         self.orientation = orientation
+        self.pos2d = pos2d
+        self.geometry_object = geometry_object
+        self.wall_index = wall_index
 
 
     def remove(
@@ -903,27 +1103,23 @@ class ReactionInfo():
             self,
             type : ReactionType,
             reactant_ids : List[int],
+            product_ids : List[int],
             reaction_rule : ReactionRule,
             time : float,
             pos3d : Vec3,
             geometry_object : GeometryObject = None,
             wall_index : int = -1,
-            pos2d : Vec2 = None,
-            geometry_object_surf_reac2 : GeometryObject = None,
-            wall_index_surf_reac2 : int = -1,
-            pos2d_surf_reac2 : Vec2 = None
+            pos2d : Vec2 = None
         ):
         self.type = type
         self.reactant_ids = reactant_ids
+        self.product_ids = product_ids
         self.reaction_rule = reaction_rule
         self.time = time
         self.pos3d = pos3d
         self.geometry_object = geometry_object
         self.wall_index = wall_index
         self.pos2d = pos2d
-        self.geometry_object_surf_reac2 = geometry_object_surf_reac2
-        self.wall_index_surf_reac2 = wall_index_surf_reac2
-        self.pos2d_surf_reac2 = pos2d_surf_reac2
 
 
 class ReactionRule():
@@ -935,7 +1131,8 @@ class ReactionRule():
             fwd_rate : float = None,
             rev_name : str = None,
             rev_rate : float = None,
-            variable_rate : List[List[float]] = None
+            variable_rate : List[List[float]] = None,
+            is_intermembrane_surface_reaction : bool = False
         ):
         self.name = name
         self.reactants = reactants
@@ -944,6 +1141,7 @@ class ReactionRule():
         self.rev_name = rev_name
         self.rev_rate = rev_rate
         self.variable_rate = variable_rate
+        self.is_intermembrane_surface_reaction = is_intermembrane_surface_reaction
 
 
     def to_bngl_str(
@@ -1029,6 +1227,26 @@ class ReleaseSite():
         self.density = density
         self.concentration = concentration
         self.release_probability = release_probability
+
+
+class RngState():
+    def __init__(
+            self,
+            randcnt : int,
+            aa : int,
+            bb : int,
+            cc : int,
+            randslr : List[int],
+            mm : List[int],
+            rngblocks : int
+        ):
+        self.randcnt = randcnt
+        self.aa = aa
+        self.bb = bb
+        self.cc = cc
+        self.randslr = randslr
+        self.mm = mm
+        self.rngblocks = rngblocks
 
 
 class Species():
@@ -1280,6 +1498,24 @@ class geometry_utils():
             name : str,
             edge_length : float
         ) -> 'GeometryObject':
+        pass
+
+class run_utils():
+    def __init__(
+            self,
+        ):
+        pass
+
+    def get_last_checkpoint_dir(
+            self,
+            seed : int
+        ) -> 'str':
+        pass
+
+    def remove_cwd(
+            self,
+            paths : List[str]
+        ) -> 'List[str]':
         pass
 
 AllMolecules = Species('ALL_MOLECULES')

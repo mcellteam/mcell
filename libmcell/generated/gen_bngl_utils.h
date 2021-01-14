@@ -28,6 +28,7 @@
 namespace MCell {
 namespace API {
 
+class PythonExportContext;
 
 namespace bngl_utils {
 

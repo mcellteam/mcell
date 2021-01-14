@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_release_pattern.h"
 #include "api/release_pattern.h"
 
@@ -99,6 +100,50 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
       .def_property("train_interval", &ReleasePattern::get_train_interval, &ReleasePattern::set_train_interval)
       .def_property("number_of_trains", &ReleasePattern::get_number_of_trains, &ReleasePattern::set_number_of_trains)
     ;
+}
+
+std::string GenReleasePattern::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = std::string("release_pattern") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("release_pattern")));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.ReleasePattern(" << nl;
+  if (name != STR_UNSET) {
+    ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  }
+  if (release_interval != TIME_INFINITY) {
+    ss << ind << "release_interval = " << f_to_str(release_interval) << "," << nl;
+  }
+  if (train_duration != TIME_INFINITY) {
+    ss << ind << "train_duration = " << f_to_str(train_duration) << "," << nl;
+  }
+  if (train_interval != TIME_INFINITY) {
+    ss << ind << "train_interval = " << f_to_str(train_interval) << "," << nl;
+  }
+  if (number_of_trains != 1) {
+    ss << ind << "number_of_trains = " << number_of_trains << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

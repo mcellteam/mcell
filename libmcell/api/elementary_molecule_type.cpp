@@ -79,5 +79,10 @@ std::string ElementaryMoleculeType::to_bngl_str() const {
 }
 
 
+bool ElementaryMoleculeType::skip_python_export() const {
+  return BNG::is_species_superclass(name);
+}
+
+
 } // namespace API
 } // namespace MCell

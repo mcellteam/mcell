@@ -33,60 +33,23 @@ namespace MCell {
 
 class Partition;
 
-// TODO: remove usage of ACT_DIFFUSE, it is not used anywhere
-
-#if 0
-// from mcell3, copied for reference
-#define TYPE_SURF 0x001
-#define TYPE_VOL 0x002
-#define TYPE_MASK 0x003
-
-#define ACT_DIFFUSE 0x008
-#define ACT_REACT 0x020
-
-// IN_VOLUME
-// IN_SURFACE
-
-// #define ACT_NEWBIE 0x040  // does not have unimolecular time specified
-// #define ACT_CHANGE 0x080
-// -> these two above were merged into: ACT_RESCHEDULE_UNIMOL_RX
-
-#define ACT_CLAMPED 0x1000
-
-/* Flags telling us which linked lists the molecule appears in. */
-#define IN_SCHEDULE 0x100
-#define IN_SURFACE 0x200
-#define IN_VOLUME 0x400
-/* And a mask to pick off all three IN_ flags */
-#define IN_MASK 0x700
-
-/* Flags telling us what our counting status is */
-#define COUNT_ME 0x800
-
-/* Flag indicating that a molecule is old enough to take the maximum timestep */
-#define MATURE_MOLECULE 0x2000
-#endif
-
-
-
+// WARNING: do not change these values, checkpointed models use them
+// TODO: probably print this out in some reasonable form into checkpoints
 enum molecule_flag_t {
   // volume/surface information is only cached from BNG CplxInstance
   MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
   MOLECULE_FLAG_VOL = 1 << 1, // originally TYPE_VOL
-
-  MOLECULE_FLAG_MATURE = 1 << 13, // originally MATURE_MOLECULE
-
-  MOLECULE_FLAG_ACT_CLAMPED = 1 << 15, // originally ACT_CLAMPED
-
-  MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN = 1 << 16,
-  MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE = 1 << 17,
+  MOLECULE_FLAG_MATURE = 1 << 2, // originally MATURE_MOLECULE
+  MOLECULE_FLAG_ACT_CLAMPED = 1 << 3, // originally ACT_CLAMPED
+  MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN = 1 << 4,
+  MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE = 1 << 5,
 
   // flags needed for concentration clamp handling,
   // only one of them may be set
-  MOLECULE_FLAG_CLAMP_ORIENTATION_UP = 1 << 20,
-  MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN = 1 << 21,
+  MOLECULE_FLAG_CLAMP_ORIENTATION_UP = 1 << 6,
+  MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN = 1 << 7,
 
-  MOLECULE_FLAG_DEFUNCT = 1 << 31,
+  MOLECULE_FLAG_DEFUNCT = 1 << 15,
 };
 
 /**
@@ -96,6 +59,7 @@ enum molecule_flag_t {
 // TODO: remove orientation -> get this info from species
 class Molecule {
 public:
+  // Warning: ctors do not reset surf or vol data
   Molecule()
     : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
       reactant_compartment_id(BNG::COMPARTMENT_ID_NONE),
@@ -142,6 +106,21 @@ public:
   // gcc9 reports a warning but, the memcpy here is safe
   void operator = (const Molecule& m) {
     memcpy(this, &m, sizeof(Molecule));
+  }
+
+  void reset_vol_data() {
+    v.pos = Vec3(POS_INVALID);
+    v.subpart_index = SUBPART_INDEX_INVALID;
+    v.reactant_subpart_index = SUBPART_INDEX_INVALID;
+    v.counted_volume_index = COUNTED_VOLUME_INDEX_INVALID;
+    v.previous_wall_index = WALL_INDEX_INVALID;
+  }
+
+  void reset_surf_data() {
+    s.pos = Vec2(POS_INVALID);
+    s.orientation = ORIENTATION_NONE;
+    s.wall_index = WALL_INDEX_INVALID;
+    s.grid_tile_index = TILE_INDEX_INVALID;
   }
 
   // data is ordered to avoid alignment holes (for 64-bit floats)

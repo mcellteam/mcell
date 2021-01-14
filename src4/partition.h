@@ -25,7 +25,7 @@
 
 #include <set>
 
-#include "../libs/bng/rxn_container.h"
+#include "bng/rxn_container.h"
 #include "defines.h"
 #include "dyn_vertex_structs.h"
 #include "molecule.h"
@@ -33,7 +33,7 @@
 #include "geometry.h"
 #include "simulation_config.h"
 #include "species_flags_analyzer.h"
-#include "../libmcell/api/shared_structs.h"
+#include "libmcell/api/shared_structs.h"
 
 namespace Json {
 class Value;
@@ -137,55 +137,55 @@ private:
 
 
 // container that holds SubpartReactantsSet for each species
-class SpeciesSubpartReactantsSet {
+class ReactantClassSubpartReactantsSet {
 public:
-  SpeciesSubpartReactantsSet(const uint num_subparts_) :
+  ReactantClassSubpartReactantsSet(const uint num_subparts_) :
     empty_subpart_reactants_set(0),
     num_subparts(num_subparts_) {
   }
 
-  ~SpeciesSubpartReactantsSet() {
-    for (auto& subpart_sets: subparts_reactant_sets_per_species) {
+  ~ReactantClassSubpartReactantsSet() {
+    for (auto& subpart_sets: subparts_reactant_sets_per_reactant_class) {
       if (subpart_sets != nullptr) {
         delete subpart_sets;
       }
     }
   }
 
-  void remove_reactant_sets_for_species(const species_id_t species_id) {
-    if (species_id >= subparts_reactant_sets_per_species.size()) {
+  void remove_reactant_sets_for_reactant_class(const BNG::reactant_class_id_t id) {
+    if (id >= subparts_reactant_sets_per_reactant_class.size()) {
       return;
     }
-    if (subparts_reactant_sets_per_species[species_id] != nullptr) {
-      delete subparts_reactant_sets_per_species[species_id];
-      subparts_reactant_sets_per_species[species_id] = nullptr;
+    if (subparts_reactant_sets_per_reactant_class[id] != nullptr) {
+      delete subparts_reactant_sets_per_reactant_class[id];
+      subparts_reactant_sets_per_reactant_class[id] = nullptr;
     }
   }
 
-  SubpartReactantsSet& get_subparts_reactants_for_species(const species_id_t species_id) {
-    if (species_id >= subparts_reactant_sets_per_species.size()) {
-      subparts_reactant_sets_per_species.resize(species_id + 1, nullptr);
+  SubpartReactantsSet& get_subparts_reactants_for_reactant_class(const BNG::reactant_class_id_t id) {
+    if (id >= subparts_reactant_sets_per_reactant_class.size()) {
+      subparts_reactant_sets_per_reactant_class.resize(id + 1, nullptr);
     }
-    if (subparts_reactant_sets_per_species[species_id] == nullptr) {
-      subparts_reactant_sets_per_species[species_id] = new SubpartReactantsSet(num_subparts);
+    if (subparts_reactant_sets_per_reactant_class[id] == nullptr) {
+      subparts_reactant_sets_per_reactant_class[id] = new SubpartReactantsSet(num_subparts);
     }
-    return *subparts_reactant_sets_per_species[species_id];
+    return *subparts_reactant_sets_per_reactant_class[id];
   }
 
-  const SubpartReactantsSet& get_subparts_reactants_for_species(const species_id_t species_id) const {
-    if (species_id >= subparts_reactant_sets_per_species.size() ||
-        subparts_reactant_sets_per_species[species_id] == nullptr) {
+  const SubpartReactantsSet& get_subparts_reactants_for_reactant_class(const BNG::reactant_class_id_t id) const {
+    if (id >= subparts_reactant_sets_per_reactant_class.size() ||
+        subparts_reactant_sets_per_reactant_class[id] == nullptr) {
       return empty_subpart_reactants_set;
     }
     else {
-      return *subparts_reactant_sets_per_species[species_id];
+      return *subparts_reactant_sets_per_reactant_class[id];
     }
   }
 
 private:
 
-  // indexed by species_id, grows dynamically as number of species grows
-  std::vector<SubpartReactantsSet*> subparts_reactant_sets_per_species;
+  // indexed by reactant_class_id, grows dynamically as number of species grows
+  std::vector<SubpartReactantsSet*> subparts_reactant_sets_per_reactant_class;
 
   SubpartReactantsSet empty_subpart_reactants_set;
 
@@ -216,7 +216,7 @@ public:
   )
     : origin_corner(origin_corner_),
       next_molecule_id(0),
-      volume_molecule_reactants_per_species(config_.num_subpartitions),
+      volume_molecule_reactants_per_reactant_class(config_.num_subpartitions),
       id(id_),
       config(config_),
       bng_engine(bng_engine_),
@@ -358,22 +358,17 @@ public:
   ) {
     // can the new species initiate a reaction?
     const BNG::Species& initiator_reactant_species = get_all_species().get(new_species_id);
-    if (initiator_reactant_species.cant_initiate()) {
+    if (initiator_reactant_species.is_target_only()) {
       // nothing to do
       return;
     }
     assert(initiator_reactant_species.is_vol());
 
-    // TODO: get just vol reactants, have a separate cache in rxn container for it
-    const BNG::ReactantRxnClassesMap* rxns_classes_map =
-        get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(new_species_id);
-    if (rxns_classes_map == nullptr) {
-      // nothing to do
-      return;
-    }
+    const BNG::ReactantClassIdSet& reacting_classes = get_all_rxns().get_reacting_classes(new_species_id);
 
     SubpartReactantsSet& reactant_sets_per_subpart =
-        volume_molecule_reactants_per_species.get_subparts_reactants_for_species(new_species_id);
+        volume_molecule_reactants_per_reactant_class.get_subparts_reactants_for_reactant_class(
+            initiator_reactant_species.get_reactant_class_id());
 
     // let's go through all molecules and update whether they can react with our new species
     for (const Molecule& m: molecules) {
@@ -383,23 +378,10 @@ public:
 
       assert(m.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
 
-      // check if any rxn matches the molecule that we are checking
-      for (const auto& second_reactant_info: *rxns_classes_map) { 
-      // TODO: filter first by species id
-        const BNG::RxnClass* rxn_class =
-            BNG::get_rxn_class_for_any_compartment(second_reactant_info.second); 
-        if (rxn_class->get_num_reactions() == 0) {
-          // there is a reaction class, but it has no reactions
-          continue;
-        }
+      const BNG::Species& reactant_species = get_all_species().get(m.species_id);
 
-        // find all molecules in this subpart that match the second reactant
-        species_id_t second_species_id = second_reactant_info.first;
-        if (m.species_id == second_species_id) {
-          // this mapping may already exist because the new_species_id was known
-          // when 'm' was added
-          reactant_sets_per_subpart.insert(m.v.reactant_subpart_index, m.id);
-        }
+      if (reacting_classes.count(reactant_species.get_reactant_class_id()) != 0) {
+        reactant_sets_per_subpart.insert(m.v.reactant_subpart_index, m.id);
       }
     }
   }
@@ -419,41 +401,20 @@ public:
       return;
     }
 
-    // and these are indices of possible reactants with our reactant_species_id,
-    // this might trigger creation of a new rxn class if the species were not seen before
-    // TODO: get just vol reactants, have a separate cache in rxn container for it
-    //      by this we can possibly remove handling of ANY compartment in rxn container
-    const BNG::ReactantRxnClassesMap* rxns_classes_map =
-        get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(vm.species_id);
-    if (rxns_classes_map == nullptr || rxns_classes_map->empty()) {
-      // nothing to do, just update the index
-      vm.v.reactant_subpart_index = vm.v.subpart_index;
-      return;
-    }
+    const BNG::ReactantClassIdSet& reacting_classes = get_all_rxns().get_reacting_classes(vm.species_id);
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
-    for (const auto& second_reactant_info: *rxns_classes_map) {
-      species_id_t second_species_id = second_reactant_info.first;
-
-      const BNG::RxnClass* rxn_class =
-          BNG::get_rxn_class_for_any_compartment(second_reactant_info.second);
-
-      if (rxn_class->get_num_reactions() == 0 ||
-          !rxn_class->is_bimol_vol_rxn_class()) {
-        // there is a reaction class, but it has no reactions
-        continue;
-      }
+    for (const BNG::reactant_class_id_t reacting_class_id: reacting_classes) {
 
       // can the second reactant initiate a reaction with me?
-      const BNG::Species& initiator_reactant_species = get_all_species().get(second_species_id);
-      assert(initiator_reactant_species.is_vol());
-      if (initiator_reactant_species.cant_initiate()) {
+      const BNG::ReactantClass& initiator_reactant_class = get_all_rxns().get_reactant_class(reacting_class_id);
+      if (initiator_reactant_class.target_only) {
         // nothing to do
         continue;
       }
 
       SubpartReactantsSet& second_reactant_sets_per_subpart =
-          volume_molecule_reactants_per_species.get_subparts_reactants_for_species(second_species_id);
+          volume_molecule_reactants_per_reactant_class.get_subparts_reactants_for_reactant_class(reacting_class_id);
 
       if (removing) {
         second_reactant_sets_per_subpart.erase_existing(vm.v.reactant_subpart_index, vm.id);
@@ -506,33 +467,63 @@ private:
     const BNG::Species& species = get_all_species().get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
 
-    // TODO: molecule IDs must be assigned by World
-    molecule_id_t molecule_id = next_molecule_id;
-    next_molecule_id++;
+    if (vm_copy.id == MOLECULE_ID_INVALID) {
+      // assign new ID
+      // TODO: molecule IDs must be assigned by World
+      molecule_id_t molecule_id = next_molecule_id;
+      next_molecule_id++;
 
-    // We always have to increase the size of the mapping array - its size is
-    // large enough to hold indices for all molecules that were ever created,
-    // we will need to reuse ids or compress it later
-    uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
-    molecule_id_to_index_mapping.push_back(next_molecule_array_index);
-    assert(
-        molecule_id_to_index_mapping.size() == next_molecule_id
-        && "Mapping array must have value for every molecule index"
-    );
+      // We always have to increase the size of the mapping array - its size is
+      // large enough to hold ids for all molecules that were ever created,
+      // we will need to reuse ids or compress it later
+      uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
+      molecule_id_to_index_mapping.push_back(next_molecule_array_index);
+      assert(
+          molecule_id_to_index_mapping.size() == next_molecule_id
+          && "Mapping array must have value for every molecule index"
+      );
 
-    // This is the only place where we insert molecules into volume_molecules,
-    // although this array size can be decreased in defragmentation
-    molecules.push_back(vm_copy);
-    Molecule& new_m = molecules.back();
-    new_m.id = molecule_id;
+      // This is the only place where we insert molecules into volume_molecules,
+      // although this array size can be decreased in defragmentation
+      molecules.push_back(vm_copy);
+      Molecule& new_m = molecules.back();
+      new_m.id = molecule_id;
 
-    // set to diffuse this or the next iteration,
-    // for releases - it will be diffused this iteration
-    // for new reaction products - it will be diffused next iteration because the DiffuseaAndReactEvent handles
-    // the current iteration
-    new_m.diffusion_time = stats.get_current_iteration() + release_delay_time;
+      // set to diffuse this or the next iteration,
+      // for releases - it will be diffused this iteration
+      // for new reaction products - it will be diffused next iteration because the DiffuseaAndReactEvent handles
+      // the current iteration
+      new_m.diffusion_time = stats.get_current_iteration() + release_delay_time;
 
-    return new_m;
+      return new_m;
+    }
+    else {
+      // this is a checkpointed molecule
+
+      // update the next molecule id counter
+      if (vm_copy.id >= next_molecule_id) {
+        next_molecule_id = vm_copy.id + 1;
+      }
+
+      // set its index in the molecule_id_to_index_mapping array
+      // its id must be at the position
+      uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
+
+      if (vm_copy.id >= molecule_id_to_index_mapping.size()) {
+        // insert invalid indices up to the index specified by id
+        molecule_id_to_index_mapping.insert(
+            molecule_id_to_index_mapping.end(),
+            vm_copy.id + 1 - molecule_id_to_index_mapping.size(),
+            MOLECULE_INDEX_INVALID
+        );
+      }
+      molecule_id_to_index_mapping[vm_copy.id] = next_molecule_array_index;
+
+      // and append it to the molecules array
+      molecules.push_back(vm_copy);
+      Molecule& new_m = molecules.back();
+      return new_m;
+    }
   }
 
   void update_species_for_new_molecule(const Molecule& m) {
@@ -631,8 +622,9 @@ public:
 
   const MoleculeIdsSet& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) const {
     assert(subpart_index < config.num_subpartitions);
-    return volume_molecule_reactants_per_species.
-        get_subparts_reactants_for_species(species_id).get_contained_set(subpart_index);
+    const BNG::Species& species = get_all_species().get(species_id);
+    return volume_molecule_reactants_per_reactant_class.
+        get_subparts_reactants_for_reactant_class(species.get_reactant_class_id()).get_contained_set(subpart_index);
   }
 
 
@@ -1032,6 +1024,7 @@ public:
   }
 
   void remove_from_known_vol_species(const species_id_t species_id);
+  void remove_reactant_class_usage(const BNG::reactant_class_id_t reactant_class_id);
 
   void shrink_all_volume_molecule_reactants_per_subpart();
 
@@ -1045,8 +1038,11 @@ public:
     if (id == MOLECULE_ID_INVALID) {
       return false;
     }
-    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
-    if (vm_vec_index == MOLECULE_INDEX_INVALID) {
+    if (id >= molecule_id_to_index_mapping.size()) {
+      return false;
+    }
+    molecule_index_t index = molecule_id_to_index_mapping[id];
+    if (index == MOLECULE_INDEX_INVALID) {
       return false;
     }
     return !get_m(id).is_defunct();
@@ -1072,7 +1068,7 @@ private:
   molecule_id_t next_molecule_id;
 
   // indexed with species_id
-  SpeciesSubpartReactantsSet volume_molecule_reactants_per_species;
+  ReactantClassSubpartReactantsSet volume_molecule_reactants_per_reactant_class;
 
   // set that remembers which species we already saw, used to update
   // volume_molecule_reactants_per_subpart when needed
@@ -1099,9 +1095,11 @@ private:
   std::vector< WallsInSubpart > walls_per_subpart;
 
   // ---------------------------------- counting ------------------------------------------
-  // key is rxn rule id and its values are maps that contain current reaction counts for each
-  // counted volume or wall
-  // counts are reset every time MolOrRxnCountEvent is executed
+  // - key is rxn rule id and its values are maps that contain current reaction counts for each
+  //   counted volume or wall
+  // - counts are 0 when resumed from a checkpoint because there is not easy way how to reconstruct
+  //   these data from the last observables counts and it was much easier to store the previous counts
+  //   in the MolOrRxnCountTerm object
   std::map< BNG::rxn_rule_id_t, CountInGeomObjectMap > rxn_counts_per_counted_volume;
   std::map< BNG::rxn_rule_id_t, CountOnWallMap > rxn_counts_per_wall_volume;
 

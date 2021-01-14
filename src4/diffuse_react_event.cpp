@@ -1154,11 +1154,17 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
   bool sm_still_exists = true;
   assert(!species.has_flag(SPECIES_FLAG_CAN_SURFSURFSURF) && "Not supported");
   bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
-  if (can_surf_surf_react && !species.cant_initiate()) {
-    assert(!species.has_flag(SPECIES_MOL_FLAG_CANT_INITIATE) && "Not sure what to do here");
+  if (can_surf_surf_react && !species.is_target_only()) {
+    assert(!species.has_flag(SPECIES_MOL_FLAG_TARGET_ONLY) && "Not sure what to do here");
     // the time t_steps should tell when the reaction occurred and it is quite weird because
     // it has nothing to do with the time spent diffusing
     sm_still_exists = react_2D_all_neighbors(p, sm, t_steps, diffusion_start_time);
+  }
+
+  // NOTE: surf-surf reactions on the same wall have higher priority,
+  // this must be randomized once intermembrane rxns will be more used
+  if (sm_still_exists && species.has_flag(SPECIES_FLAG_CAN_INTERMEMBRANE_SURFSURF) && !species.is_target_only()) {
+    sm_still_exists = react_2D_intermembrane(p, sm, t_steps, diffusion_start_time);
   }
 
   if (sm_still_exists) {
@@ -1336,8 +1342,169 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 }
 
 
+bool DiffuseReactEvent::react_2D_intermembrane(
+    Partition& p, Molecule& sm,
+    const float_t t_steps, const float_t diffusion_start_time
+) {
+  const Wall& w1 = p.get_wall(sm.s.wall_index);
+  const Vec3& w1_vert0 = p.get_wall_vertex(w1, 0);
 
+  // get 3d position
+  Vec3 reac1_pos3d = GeometryUtil::uv2xyz(sm.s.pos, w1, w1_vert0);
 
+  // which subpart are we in?
+  // we check walls whose part is in the current subpartition, not the neighbors
+  IVec3 subpart_indices;
+  p.get_subpart_3d_indices(reac1_pos3d, subpart_indices);
+  subpart_index_t subpart_index = p.get_subpart_index_from_3d_indices(subpart_indices);
+
+  // with what species we may react? (this should be cached)
+  const BNG::ReactantRxnClassesMap* rxns_classes_map =
+      p.get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(sm.species_id);
+  if (rxns_classes_map == nullptr || rxns_classes_map->empty()) {
+    assert(false && "No rxns");
+    return true;
+  }
+
+  uint_set<species_id_t> reacting_species;
+  for (const auto& second_reactant_info: *rxns_classes_map) {
+    const BNG::RxnClass* rxn_class =
+        BNG::get_rxn_class_for_any_compartment(second_reactant_info.second);
+
+    if (!rxn_class->is_intermembrane_surf_surf_rxn_class()) {
+      continue;
+    }
+
+    species_id_t second_species_id = second_reactant_info.first;
+    reacting_species.insert(second_species_id);
+  }
+
+  float_t rxn_radius2 = p.config.intermembrane_rx_radius_3d * p.config.intermembrane_rx_radius_3d;
+
+  typedef pair<molecule_id_t, float_t> IdDist2Pair;
+  small_vector<IdDist2Pair> reactants_dist2;
+
+  // get neighboring subparts - this is necessary because
+  // subpartitioning can put a boundary right between membranes
+  SubpartIndicesSet subpart_indices_set;
+  CollisionUtil::collect_neighboring_subparts(
+      p, reac1_pos3d, subpart_indices, p.config.intermembrane_rx_radius_3d, p.config.subpartition_edge_length,
+      subpart_indices_set
+  );
+  // and include current subpart
+  subpart_indices_set.insert(subpart_index);
+
+  // collect walls (this can be also somehow pre-computed)
+  uint_set<wall_index_t> wall_indices;
+  for (subpart_index_t si: subpart_indices_set) {
+    // for each wall in this subpart that belongs to a different object
+    const WallsInSubpart& subpart_wall_indices = p.get_subpart_wall_indices(subpart_index);
+    wall_indices.insert(subpart_wall_indices.begin(), subpart_wall_indices.end());
+  }
+
+  for (wall_index_t wi: wall_indices) {
+    const Wall& w2 = p.get_wall(wi);
+    if (w2.object_id == w1.object_id) {
+      continue;
+    }
+
+    const Grid& g = w2.grid;
+    if (!g.is_initialized() || g.get_num_occupied_tiles() == 0) {
+      continue;
+    }
+    const Vec3& w2_vert0 = p.get_wall_vertex(w2, 0);
+
+    // not really efficient, goes through all tiles
+    small_vector<molecule_id_t> molecule_ids;
+    g.get_contained_molecules(molecule_ids);
+    assert(molecule_ids.size() == g.get_num_occupied_tiles());
+
+    for (molecule_id_t reac2_id: molecule_ids) {
+      const Molecule& reac2 = p.get_m(reac2_id);
+      assert(reac2.is_surf());
+      if (reacting_species.count(reac2.species_id) == 0) {
+        continue;
+      }
+
+      // compute distance
+      Vec3 reac2_pos3d = GeometryUtil::uv2xyz(reac2.s.pos, w2, w2_vert0);
+      float_t dist2 = len3_squared(reac1_pos3d - reac2_pos3d);
+      if (dist2 > rxn_radius2) {
+        continue;
+      }
+
+      reactants_dist2.push_back(make_pair(reac2_id, dist2));
+    }
+  }
+
+  if (reactants_dist2.empty()) {
+    return true;
+  }
+
+  // sort potential reactants by distance
+  sort(reactants_dist2.begin(), reactants_dist2.end(),
+      [ ]( const IdDist2Pair& lhs, const IdDist2Pair& rhs ) {
+        return lhs.second < rhs.second;
+      }
+  );
+
+  // and similarly as in diffuse_volume_molecule, evaluate each potential collision
+
+  // collision_time is the same as for surf mols,
+  // TODO: not sure if correct, this molecule has already diffused and newly created
+  // molecules birthdays will be this one
+  float_t collision_time = diffusion_start_time;
+
+  bool was_defunct = false;
+  for (const IdDist2Pair& id_dist2_pair: reactants_dist2) {
+    Molecule& sm2 = p.get_m(id_dist2_pair.first);
+
+    // get what reaction should happen
+    RxnClassesVector matching_rxn_classes;
+    RxnUtil::trigger_bimolecular(
+        p.bng_engine, sm, sm2, ORIENTATION_NONE, ORIENTATION_NONE, matching_rxn_classes);
+
+    if (matching_rxn_classes.empty()) {
+      assert(false && "We already filtered-out molcules that can react");
+      continue;
+    }
+
+    int selected_pathway_index;
+    int rxn_class_index;
+    if (matching_rxn_classes.size() == 1) {
+      selected_pathway_index = RxnUtil::test_bimolecular(
+          matching_rxn_classes[0], world->rng,
+          sm, sm2,
+          // TODO: not sure what to put as scaling coeff
+          1,
+          0, // local prob factor
+          collision_time);
+
+        // there is just one possible class == one pair of reactants
+        rxn_class_index = 0;
+    }
+    else {
+      release_assert(false && "Multiple rxn classes for intermembrane rxns are not supported yet");
+    }
+
+    if (selected_pathway_index < RX_LEAST_VALID_PATHWAY) {
+      continue; // No reaction
+    }
+
+    Collision collision = Collision(
+        CollisionType::INTERMEMBRANE_SURFMOL_SURFMOL,
+        &p, sm.id, collision_time,
+        sm2.id,
+        matching_rxn_classes[rxn_class_index]
+    );
+
+    /* run the reaction */
+    int outcome_bimol_result = outcome_bimolecular(
+        p, collision, selected_pathway_index, collision_time
+    );
+  }
+  return !was_defunct;
+}
 
 
 /*************************************************************************
@@ -1750,6 +1917,7 @@ int DiffuseReactEvent::outcome_intersect(
 // returns 0 if positions were found
 int DiffuseReactEvent::find_surf_product_positions(
     Partition& p,
+    const BNG::RxnRule* rxn,
     const Molecule* reacA, const bool keep_reacA,
     const Molecule* reacB, const bool keep_reacB,
     const Molecule* surf_reac,
@@ -1837,9 +2005,33 @@ int DiffuseReactEvent::find_surf_product_positions(
     }
   }
 
-  // random assignment of positions
+  // assignment of positions
   uint num_tiles_to_recycle = min(actual_products.size(), recycled_surf_prod_positions.size());
-  if (needed_surface_positions == 1 && num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
+  if (rxn->is_intermembrane_surf_rxn()) {
+    // special case A + B -> C + D
+    release_assert(needed_surface_positions == 2 && num_tiles_to_recycle == 2);
+    release_assert(rxn->products.size() == 2);
+
+    BNG::compartment_id_t compartment_prod0 = rxn->products[0].get_compartment_id();
+    BNG::compartment_id_t compartment_prod1 = rxn->products[1].get_compartment_id();
+
+    // use compartment to determine location
+    if (reacA->reactant_compartment_id == compartment_prod0) {
+      // in the same order
+      assigned_surf_product_positions[0] = recycled_surf_prod_positions[0];
+      assigned_surf_product_positions[0].set_reac_type(GridPosType::REACA_UV);
+      assigned_surf_product_positions[1] = recycled_surf_prod_positions[1];
+      assigned_surf_product_positions[1].set_reac_type(GridPosType::REACB_UV);
+    }
+    else {
+      // switched order
+      assigned_surf_product_positions[0] = recycled_surf_prod_positions[1];
+      assigned_surf_product_positions[0].set_reac_type(GridPosType::REACB_UV);
+      assigned_surf_product_positions[1] = recycled_surf_prod_positions[0];
+      assigned_surf_product_positions[1].set_reac_type(GridPosType::REACA_UV);
+    }
+  }
+  else if (needed_surface_positions == 1 && num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
     if (initiator_recycled_index == INDEX_INVALID) {
       assert(recycled_surf_prod_positions.size() == 1);
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[0];
@@ -1962,15 +2154,28 @@ void DiffuseReactEvent::handle_rxn_callback(
     const float_t time,
     const BNG::RxnRule* rxn,
     // reac1 is the diffused molecule and reac2 is the optional second reactant
-    const Molecule* reac1,
-    const Molecule* reac2
+    const Molecule* reacA,
+    const Molecule* reacB,
+    const MoleculeIdsVector& product_ids
 ) {
 
   // check callback (reactive surface are ignored)
   if (world->get_callbacks().needs_rxn_callback(rxn->id) && !rxn->is_reactive_surface_rxn()) {
     shared_ptr<API::ReactionInfo> info = make_shared<API::ReactionInfo>();
 
-    assert(reac1->id == collision.diffused_molecule_id);
+    const Molecule* reac1;
+    const Molecule* reac2;
+
+    // first reactant id that we are sending back must be always the diffusing molecule
+    if (reacA->id == collision.diffused_molecule_id) {
+      reac1 = reacA;
+      reac2 = reacB;
+    }
+    else {
+      assert(reacB != nullptr);
+      reac1 = reacB;
+      reac2 = reacA;
+    }
     assert(reac2 == nullptr || reac2->id == collision.colliding_molecule_id);
 
     // determine type
@@ -1997,6 +2202,8 @@ void DiffuseReactEvent::handle_rxn_callback(
       info->reactant_ids.push_back(reac2->id);
     }
 
+    info->product_ids.insert(info->product_ids.begin(), product_ids.begin(), product_ids.end());
+
     info->time = time;
     info->rxn_rule_id = rxn->id;
 
@@ -2017,13 +2224,6 @@ void DiffuseReactEvent::handle_rxn_callback(
       info->pos2d = first_surf_reac->s.pos;
       info->geometry_object_id = p.get_wall(first_surf_reac->s.wall_index).object_id;
       info->partition_wall_index = first_surf_reac->s.wall_index;
-
-      if (info->type == API::ReactionType::SURFACE_SURFACE)  {
-        // use the second surface reactant for the second surface location
-        info->pos2d_surf_reac2 = reac2->s.pos;
-        info->geometry_object_id_surf_reac2 = p.get_wall(reac2->s.wall_index).object_id;
-        info->partition_wall_index_surf_reac2 = reac2->s.wall_index;
-      }
     }
 
     world->get_callbacks().do_rxn_callback(info);
@@ -2040,7 +2240,8 @@ int DiffuseReactEvent::outcome_products_random(
     const float_t time,
     const rxn_class_pathway_index_t pathway_index,
     bool& keep_reacA,
-    bool& keep_reacB
+    bool& keep_reacB,
+    MoleculeIdsVector* optional_product_ids
 ) {
   assert(collision.is_mol_mol_reaction() ||
       collision.is_unimol_reaction() ||
@@ -2120,8 +2321,6 @@ int DiffuseReactEvent::outcome_products_random(
     reacB = &p.get_m(collision.colliding_molecule_id);
   }
 
-  handle_rxn_callback(p, collision, time, rxn, reacA, reacB);
-
   if (num_mol_reactants == 2) {
     if (reacA->is_surf()) {
       surf_reac = reacA;
@@ -2179,7 +2378,7 @@ int DiffuseReactEvent::outcome_products_random(
   bool surf_pos_reacA_is_used;
   if (is_orientable) {
     int res = find_surf_product_positions(
-        p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, actual_products,
+        p, rxn, reacA, keep_reacA, reacB, keep_reacB, surf_reac, actual_products,
         assigned_surf_product_positions, num_surface_products, surf_pos_reacA_is_used);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;
@@ -2226,6 +2425,8 @@ int DiffuseReactEvent::outcome_products_random(
     product_orientations.resize(rxn->products.size(), ORIENTATION_NONE);
   }
 
+  MoleculeIdsVector product_ids;
+
   for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
     const ProductSpeciesIdWIndices& actual_product = actual_products[product_index];
 
@@ -2258,6 +2459,8 @@ int DiffuseReactEvent::outcome_products_random(
       bool ok = rxn->get_assigned_simple_cplx_reactant_for_product(single_rxn_product_index, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
+      Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
+
       if (rxn->reactants[reactant_index].get_orientation() != product_orientation) {
         // initiator volume molecule passes through wall?
         // any surf mol -> set new orient
@@ -2282,6 +2485,9 @@ int DiffuseReactEvent::outcome_products_random(
           assert(false);
         }
       }
+
+      // reactant was kept
+      product_ids.push_back(reactant->id);
 
       continue;
     }
@@ -2321,7 +2527,6 @@ int DiffuseReactEvent::outcome_products_random(
       }
 
       const BNG::Species& species_new_ref = p.get_all_species().get(product_species_id);
-      new_vm.flags = IN_VOLUME | (species_new_ref.can_diffuse() ? ACT_DIFFUSE : 0);
       new_vm.set_flag(MOLECULE_FLAG_VOL);
       new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
@@ -2386,7 +2591,6 @@ int DiffuseReactEvent::outcome_products_random(
 
       // create our new molecule
       Molecule sm_to_add(MOLECULE_ID_INVALID, product_species_id, pos, time);
-      sm_to_add.flags = (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
       sm_to_add.set_flag(MOLECULE_FLAG_SURF);
       sm_to_add.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
@@ -2418,11 +2622,20 @@ int DiffuseReactEvent::outcome_products_random(
       new_diffuse_actions.push_back(DiffuseAction(new_m_id, where_is_vm_created));
     }
 
+    product_ids.push_back(new_m_id);
+
     // refresh reacA and reacB pointers, we are added new molecules in this loop and they point to that vector
     reacA = &p.get_m(reacA_id);
     reacB = (reacB_id != MOLECULE_ID_INVALID) ? &p.get_m(reacB_id) : nullptr;
     surf_reac = (surf_reac_id != MOLECULE_ID_INVALID) ? &p.get_m(surf_reac_id) : nullptr;
   } // end for - product creation
+
+  // this is a safe point where we can manipulate contents of this event
+  handle_rxn_callback(p, collision, time, rxn, reacA, reacB, product_ids);
+
+  if (optional_product_ids != nullptr) {
+    *optional_product_ids = product_ids;
+  }
 
   // we might need to swap info on which reactant was kept
   if (reactants_swapped) {
@@ -2443,7 +2656,8 @@ bool DiffuseReactEvent::outcome_unimolecular(
     Molecule& m,
     const float_t scheduled_time,
     RxnClass* rxn_class,
-    const rxn_class_pathway_index_t pathway_index
+    const rxn_class_pathway_index_t pathway_index,
+    MoleculeIdsVector* optional_product_ids
 ) {
   molecule_id_t id = m.id;
 
@@ -2471,7 +2685,8 @@ bool DiffuseReactEvent::outcome_unimolecular(
     bool ignoredA, ignoredB;
     // creates new molecule(s) as output of the unimolecular reaction
     // !! might invalidate references (we might reorder defuncting and outcome call later)
-    int outcome_res = outcome_products_random(p, collision, scheduled_time, pathway_index, ignoredA, ignoredB);
+    int outcome_res = outcome_products_random(
+        p, collision, scheduled_time, pathway_index, ignoredA, ignoredB, optional_product_ids);
     assert(outcome_res == RX_A_OK || outcome_res == RX_BLOCKED);
 
     Molecule& m_new_ref = p.get_m(id);

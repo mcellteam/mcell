@@ -204,6 +204,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
   world->total_iterations = s->iterations;
   world->config.time_unit = s->time_unit;
+  world->config.initial_time = TIME_SIMULATION_START;
+  world->config.initial_iteration = 0;
   world->config.length_unit = s->length_unit;
   world->config.grid_density = s->grid_density;
   world->config.rx_radius_3d = s->rx_radius_3d;
@@ -956,7 +958,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     else if (spec->custom_time_step_from_mdl > 0) {
       mol_type.custom_time_step = spec->custom_time_step_from_mdl;
     }
-    mol_type.set_flag(BNG::SPECIES_MOL_FLAG_CANT_INITIATE, spec->flags & CANT_INITIATE);
+    mol_type.set_flag(BNG::SPECIES_MOL_FLAG_TARGET_ONLY, spec->flags & CANT_INITIATE);
 
     if ((spec->flags & ON_GRID) == 0 && (spec->flags & IS_SURFACE) == 0) {  //FIXME: ALL_SURF_MOLS have wrong flag
       mol_type.set_is_vol();

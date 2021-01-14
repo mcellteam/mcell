@@ -668,8 +668,11 @@ void Partition::remove_from_known_vol_species(const species_id_t species_id) {
     return;
   }
   known_vol_species.erase(species_id);
+}
 
-  volume_molecule_reactants_per_species.remove_reactant_sets_for_species(species_id);
+
+void Partition::remove_reactant_class_usage(const BNG::reactant_class_id_t reactant_class_id) {
+  volume_molecule_reactants_per_reactant_class.remove_reactant_sets_for_reactant_class(reactant_class_id);
 }
 
 

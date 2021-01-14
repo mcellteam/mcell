@@ -436,7 +436,8 @@ private:
 class ParserContext {
 public:
   ParserContext()
-    : single_cplx(nullptr), errors(0), current_file(nullptr) {
+    : single_cplx(nullptr), errors(0), eof_returned_as_newline(false),
+      current_file(nullptr) {
   }
 
   // frees all owned nodes
@@ -577,8 +578,18 @@ public:
     return it.first->c_str();
   }
 
+  // handling of a missing newline at the end of the file
+  void set_eof_returned_as_newline() {
+    eof_returned_as_newline = true;
+  }
+
+  bool get_eof_returned_as_newline() {
+    return eof_returned_as_newline;
+  }
+
 private:
   int errors;
+  bool eof_returned_as_newline;
 
   void remember_node(ASTBaseNode* n) {
     assert(all_nodes.count(n) == 0 && "Cannot add one node twice to be deleted");

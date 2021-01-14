@@ -24,17 +24,31 @@
 #define API_GEN_INSTANTIATION_H
 
 #include "api/common.h"
+#include "api/base_export_class.h"
 
 namespace MCell {
 namespace API {
 
 class Instantiation;
+class BaseChkptMol;
 class GeometryObject;
 class Region;
 class ReleaseSite;
 class Subsystem;
+class PythonExportContext;
 
-class GenInstantiation {
+#define INSTANTIATION_CTOR() \
+    Instantiation( \
+        const std::vector<std::shared_ptr<ReleaseSite>> release_sites_ = std::vector<std::shared_ptr<ReleaseSite>>(), \
+        const std::vector<std::shared_ptr<GeometryObject>> geometry_objects_ = std::vector<std::shared_ptr<GeometryObject>>(), \
+        const std::vector<std::shared_ptr<BaseChkptMol>> checkpointed_molecules_ = std::vector<std::shared_ptr<BaseChkptMol>>() \
+    ) { \
+      release_sites = release_sites_; \
+      geometry_objects = geometry_objects_; \
+      checkpointed_molecules = checkpointed_molecules_; \
+    }
+
+class GenInstantiation: public BaseExportClass {
 public:
   virtual ~GenInstantiation() {}
   virtual bool __eq__(const Instantiation& other) const;
@@ -42,6 +56,12 @@ public:
   bool operator == (const Instantiation& other) const { return __eq__(other);}
   bool operator != (const Instantiation& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
+
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
+  virtual std::string export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_checkpointed_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+
 
   // --- attributes ---
   std::vector<std::shared_ptr<ReleaseSite>> release_sites;
@@ -58,6 +78,14 @@ public:
   }
   virtual std::vector<std::shared_ptr<GeometryObject>> get_geometry_objects() const {
     return geometry_objects;
+  }
+
+  std::vector<std::shared_ptr<BaseChkptMol>> checkpointed_molecules;
+  virtual void set_checkpointed_molecules(const std::vector<std::shared_ptr<BaseChkptMol>> new_checkpointed_molecules_) {
+    checkpointed_molecules = new_checkpointed_molecules_;
+  }
+  virtual std::vector<std::shared_ptr<BaseChkptMol>> get_checkpointed_molecules() const {
+    return checkpointed_molecules;
   }
 
   // --- methods ---

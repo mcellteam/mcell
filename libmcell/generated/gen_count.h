@@ -35,6 +35,7 @@ class Complex;
 class CountTerm;
 class ReactionRule;
 class Region;
+class PythonExportContext;
 
 #define COUNT_CTOR() \
     Count( \
@@ -49,8 +50,9 @@ class Region;
         std::shared_ptr<Region> region_ = nullptr, \
         const ExprNodeType node_type_ = ExprNodeType::LEAF, \
         std::shared_ptr<CountTerm> left_node_ = nullptr, \
-        std::shared_ptr<CountTerm> right_node_ = nullptr \
-    )  : GenCount(species_pattern_,molecules_pattern_,reaction_rule_,region_,node_type_,left_node_,right_node_) { \
+        std::shared_ptr<CountTerm> right_node_ = nullptr, \
+        const uint64_t initial_reactions_count_ = 0 \
+    )  : GenCount(species_pattern_,molecules_pattern_,reaction_rule_,region_,node_type_,left_node_,right_node_,initial_reactions_count_) { \
       class_name = "Count"; \
       name = name_; \
       file_name = file_name_; \
@@ -64,6 +66,7 @@ class Region;
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
+      initial_reactions_count = initial_reactions_count_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -77,8 +80,9 @@ public:
       std::shared_ptr<Region> region_ = nullptr, 
       const ExprNodeType node_type_ = ExprNodeType::LEAF, 
       std::shared_ptr<CountTerm> left_node_ = nullptr, 
-      std::shared_ptr<CountTerm> right_node_ = nullptr 
-  )  : CountTerm(species_pattern_,molecules_pattern_,reaction_rule_,region_,node_type_,left_node_,right_node_)  {
+      std::shared_ptr<CountTerm> right_node_ = nullptr, 
+      const uint64_t initial_reactions_count_ = 0 
+  )  : CountTerm(species_pattern_,molecules_pattern_,reaction_rule_,region_,node_type_,left_node_,right_node_,initial_reactions_count_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
@@ -90,6 +94,9 @@ public:
   bool operator == (const Count& other) const { return __eq__(other);}
   bool operator != (const Count& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
+
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
+
 
   // --- attributes ---
   std::string file_name;

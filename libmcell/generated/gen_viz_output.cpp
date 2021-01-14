@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_viz_output.h"
 #include "api/viz_output.h"
 #include "api/species.h"
@@ -97,6 +98,66 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def_property("mode", &VizOutput::get_mode, &VizOutput::set_mode)
       .def_property("every_n_timesteps", &VizOutput::get_every_n_timesteps, &VizOutput::set_every_n_timesteps)
     ;
+}
+
+std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "viz_output_" + std::to_string(ctx.postinc_counter("viz_output"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.VizOutput(" << nl;
+  ss << ind << "output_files_prefix = " << "'" << output_files_prefix << "'" << "," << nl;
+  if (species_list != std::vector<std::shared_ptr<Species>>() && !skip_vectors_export()) {
+    ss << ind << "species_list = " << export_vec_species_list(out, ctx, exported_name) << "," << nl;
+  }
+  if (mode != VizMode::ASCII) {
+    ss << ind << "mode = " << mode << "," << nl;
+  }
+  if (every_n_timesteps != 1) {
+    ss << ind << "every_n_timesteps = " << f_to_str(every_n_timesteps) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+}
+
+std::string GenVizOutput::export_vec_species_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < species_list.size(); i++) {
+    const auto& item = species_list[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

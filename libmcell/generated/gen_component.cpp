@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_component.h"
 #include "api/component.h"
 #include "api/component_type.h"
@@ -113,6 +114,42 @@ py::class_<Component> define_pybinding_Component(py::module& m) {
       .def_property("state", &Component::get_state, &Component::set_state)
       .def_property("bond", &Component::get_bond, &Component::set_bond)
     ;
+}
+
+std::string GenComponent::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "component_" + std::to_string(ctx.postinc_counter("component"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Component(" << nl;
+  ss << ind << "component_type = " << component_type->export_to_python(out, ctx) << "," << nl;
+  if (state != "STATE_UNSET") {
+    ss << ind << "state = " << "'" << state << "'" << "," << nl;
+  }
+  if (bond != BOND_UNBOUND) {
+    ss << ind << "bond = " << bond << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

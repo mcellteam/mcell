@@ -1809,7 +1809,7 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
 
 bool RxnRule::species_can_be_bimol_reactants(
     const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species,
-    uint* assigned_index1, uint* assigned_index2
+    uint* assigned_index1, uint* assigned_index2, bool* both_match_both_patterns
 ) {
   assert(is_bimol());
 
@@ -1851,6 +1851,11 @@ bool RxnRule::species_can_be_bimol_reactants(
     if (assigned_index2 != nullptr) {
       *assigned_index2 = index2;
     }
+    if (both_match_both_patterns != nullptr) {
+      *both_match_both_patterns =
+          id1_matches[0] && id1_matches[1] &&
+          id2_matches[0] && id2_matches[1];
+    }
   }
 
   return res;
@@ -1868,7 +1873,6 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
     return false;
   }
 
-  const Cplx& cplx = all_species.get_as_cplx(id);
   return
       species_applicable_as_reactant[0].count(id) != 0 &&
       species_applicable_as_reactant[1].count(id) != 0;
@@ -1953,7 +1957,7 @@ bool RxnRule::update_rxn_rate(const float_t new_rate) {
 
 std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name, const bool with_id) const {
   stringstream ss;
-  if (with_name) {
+  if (with_name && name != "") {
     ss << name << ": ";
   }
 

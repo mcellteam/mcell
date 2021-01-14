@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_warnings.h"
 #include "api/warnings.h"
 
@@ -67,6 +68,35 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
       .def("__eq__", &Warnings::__eq__, py::arg("other"))
       .def("dump", &Warnings::dump)
     ;
+}
+
+std::string GenWarnings::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "warnings_" + std::to_string(ctx.postinc_counter("warnings"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Warnings(" << nl;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

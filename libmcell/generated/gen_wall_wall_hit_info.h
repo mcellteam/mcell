@@ -31,6 +31,7 @@ namespace API {
 
 class WallWallHitInfo;
 class Wall;
+class PythonExportContext;
 
 #define WALL_WALL_HIT_INFO_CTOR_NOARGS() \
     WallWallHitInfo( \

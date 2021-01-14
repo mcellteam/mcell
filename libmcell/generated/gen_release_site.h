@@ -34,6 +34,7 @@ class Complex;
 class MoleculeReleaseInfo;
 class Region;
 class ReleasePattern;
+class PythonExportContext;
 
 #define RELEASE_SITE_CTOR() \
     ReleaseSite( \
@@ -83,6 +84,10 @@ public:
   bool operator == (const ReleaseSite& other) const { return __eq__(other);}
   bool operator != (const ReleaseSite& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
+
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
+  virtual std::string export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+
 
   // --- attributes ---
   std::shared_ptr<Complex> complex;

@@ -875,7 +875,6 @@ void ReleaseEvent::release_inside_regions(int& computed_release_number) {
     Molecule& new_vm = p.add_volume_molecule(
         Molecule(MOLECULE_ID_INVALID, species_id, pos, event_time), get_release_delay_time()
     );
-    new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
     new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
@@ -936,7 +935,6 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(int computed_release_number) 
     Molecule& new_vm = p.add_volume_molecule(
         Molecule(MOLECULE_ID_INVALID, species_id, molecule_location, event_time), get_release_delay_time()
     );
-    new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
     new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
@@ -960,7 +958,6 @@ void ReleaseEvent::release_list() {
       Molecule& new_vm = p.add_volume_molecule(
           Molecule(MOLECULE_ID_INVALID, info.species_id, info.pos, event_time), get_release_delay_time()
       );
-      new_vm.flags = IN_VOLUME | ACT_DIFFUSE; // TODO: not sure if these flags are used in MCell4
       new_vm.set_flag(MOLECULE_FLAG_VOL);
       new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 

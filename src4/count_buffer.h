@@ -50,12 +50,20 @@ public:
   void write(std::ostream& out) const;
 };
 
+typedef small_vector<CountItem> CountItemVector;
+
+
 // might need to be a template in the future
 class CountBuffer {
 public:
 
-  CountBuffer(const std::string filename_, const size_t buffer_size_)
-    : filename(filename_), buffer_size(buffer_size_) {
+  CountBuffer(
+      const std::string filename_,
+      const size_t buffer_size_,
+      const bool open_for_append_) :
+      filename(filename_),
+      buffer_size(buffer_size_),
+      open_for_append(open_for_append_) {
   }
 
   void add(const CountItem& item) {
@@ -90,7 +98,9 @@ private:
   std::ofstream fout;
 
   // buffer
-  std::vector<CountItem> data;
+  CountItemVector data;
+
+  bool open_for_append;
 };
 
 typedef std::vector<CountBuffer> CountBufferVector;

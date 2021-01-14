@@ -476,6 +476,10 @@ public:
     return num_occupied == num_tiles;
   }
 
+  uint get_num_occupied_tiles() const {
+    return num_occupied;
+  }
+
   uint get_num_free_tiles() const {
     assert(num_tiles >= num_occupied);
     return num_tiles - num_occupied;

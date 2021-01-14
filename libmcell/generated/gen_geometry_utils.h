@@ -29,6 +29,7 @@ namespace MCell {
 namespace API {
 
 class GeometryObject;
+class PythonExportContext;
 
 namespace geometry_utils {
 

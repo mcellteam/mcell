@@ -41,6 +41,57 @@ void Subsystem::dump() const {
   std::cout << to_str() << "\n";
 }
 
+std::shared_ptr<Species> Subsystem::get_species_with_id(const species_id_t id) {
+  // not very efficient, we may need some caching/map later
+  for (auto& s: species) {
+    if (s->species_id == id) {
+      return s;
+    }
+  }
+  return std::shared_ptr<Species>(nullptr);
+}
+
+
+void Subsystem::unify_and_register_elementary_molecule_types() {
+  // then go through Species
+  for (std::shared_ptr<Species> s: species) {
+    for (size_t i = 0; i < s->elementary_molecules.size(); i++) {
+      std::shared_ptr<ElementaryMoleculeType> emt = s->elementary_molecules[i]->elementary_molecule_type;
+
+      // do we have this exact object already?
+      auto it_ptr_eq = std::find_if(
+          elementary_molecule_types.begin(), elementary_molecule_types.end(),
+          [&emt] (const std::shared_ptr<ElementaryMoleculeType> emt_existing) {
+            return emt_existing.get() == emt.get(); // comparing pointers
+          }
+      );
+      if (it_ptr_eq != elementary_molecule_types.end()) {
+        // same object exists
+        continue;
+      }
+
+      // do we have an object with the same contents already?
+      auto it_contents_eq = std::find_if(
+          elementary_molecule_types.begin(), elementary_molecule_types.end(),
+          [&emt] (const std::shared_ptr<ElementaryMoleculeType> emt_existing) {
+            return *emt_existing == *emt; // comparing contents
+          }
+      );
+      if (it_contents_eq != elementary_molecule_types.end()) {
+        // same object exists, we must use this one and let shared_ptr ref counting
+        // destroy the previous one (creation of the EMT object to be destroyed
+        // occurs mainly when defining simple species, so the link from species to this emt
+        // is internal and not visible to the user)
+        s->elementary_molecules[i]->elementary_molecule_type = *it_contents_eq;
+      }
+      else{
+        // no such object is in the emt list, add it (reports error if such object already exists)
+        add_elementary_molecule_type(emt);
+      }
+    }
+  }
+}
+
 
 void Subsystem::load_bngl_molecule_types_and_reaction_rules(
     const std::string& file_name,

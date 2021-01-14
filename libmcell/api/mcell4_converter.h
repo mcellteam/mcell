@@ -67,6 +67,7 @@ class ReleaseSite;
 class CountTerm;
 class Species;
 class SurfaceClass;
+class RngState;
 
 class MCell4Converter {
 public:
@@ -78,7 +79,9 @@ public:
   // throws exception if anything went wrong
   // modifies model as well where it stores information for cases
   // when a value such a reaction rate was updated by the user
-  void convert();
+  void convert_before_init();
+
+  void convert_after_init();
 
   // converter can be also used to convert individual objects
   // throws exception if anything went wrong
@@ -108,6 +111,7 @@ private:
   void check_surface_compartments(const BNG::RxnRule& r, BNG::compartment_id_t& surf_comp_id);
   void set_vol_rxn_substance_orientation_from_compartment(
       BNG::RxnRule& r, const BNG::Compartment& surf_comp, BNG::Cplx& substance);
+  void check_intermembrane_surface_reaction(const BNG::RxnRule& rxn);
   void convert_rxns();
 
   MCell::wall_index_t convert_wall_and_add_to_geom_object(
@@ -146,7 +150,7 @@ private:
 
   void convert_count_term_leaf_and_init_counting_flags(
       const std::shared_ptr<API::CountTerm> ct, const int sign,
-      std::vector<MolOrRxnCountTerm>& terms
+      MolOrRxnCountTermVector& terms
   );
   void convert_count_terms_recursively(
       const std::shared_ptr<API::CountTerm> ct,
@@ -158,9 +162,15 @@ private:
 
   void convert_viz_output_events();
 
+  void convert_initial_iteration_and_time_and_move_scheduler_time();
+
   void add_ctrl_c_termination_event();
 
   void check_all_mol_types_have_diffusion_const();
+
+  // after init
+  void convert_rng_state();
+  void convert_checkpointed_molecules();
 
   Model* model;
   World* world;

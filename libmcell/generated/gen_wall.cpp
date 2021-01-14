@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_wall.h"
 #include "api/wall.h"
 #include "api/geometry_object.h"
@@ -37,7 +38,7 @@ void GenWall::check_semantics() const {
     throw ValueError("Parameter 'wall_index' must be set.");
   }
   if (!is_set(vertices)) {
-    throw ValueError("Parameter 'vertices' must be set.");
+    throw ValueError("Parameter 'vertices' must be set and the value must not be an empty list.");
   }
   if (!is_set(area)) {
     throw ValueError("Parameter 'area' must be set.");

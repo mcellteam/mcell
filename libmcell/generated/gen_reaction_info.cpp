@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_reaction_info.h"
 #include "api/reaction_info.h"
 #include "api/geometry_object.h"
@@ -34,6 +35,7 @@ bool GenReactionInfo::__eq__(const ReactionInfo& other) const {
   return
     type == other.type &&
     reactant_ids == other.reactant_ids &&
+    product_ids == other.product_ids &&
     (
       (is_set(reaction_rule)) ?
         (is_set(other.reaction_rule) ?
@@ -59,26 +61,14 @@ bool GenReactionInfo::__eq__(const ReactionInfo& other) const {
         )
      )  &&
     wall_index == other.wall_index &&
-    pos2d == other.pos2d &&
-    (
-      (is_set(geometry_object_surf_reac2)) ?
-        (is_set(other.geometry_object_surf_reac2) ?
-          (geometry_object_surf_reac2->__eq__(*other.geometry_object_surf_reac2)) : 
-          false
-        ) :
-        (is_set(other.geometry_object_surf_reac2) ?
-          false :
-          true
-        )
-     )  &&
-    wall_index_surf_reac2 == other.wall_index_surf_reac2 &&
-    pos2d_surf_reac2 == other.pos2d_surf_reac2;
+    pos2d == other.pos2d;
 }
 
 bool GenReactionInfo::eq_nonarray_attributes(const ReactionInfo& other, const bool ignore_name) const {
   return
     type == other.type &&
     true /*reactant_ids*/ &&
+    true /*product_ids*/ &&
     (
       (is_set(reaction_rule)) ?
         (is_set(other.reaction_rule) ?
@@ -104,20 +94,7 @@ bool GenReactionInfo::eq_nonarray_attributes(const ReactionInfo& other, const bo
         )
      )  &&
     wall_index == other.wall_index &&
-    pos2d == other.pos2d &&
-    (
-      (is_set(geometry_object_surf_reac2)) ?
-        (is_set(other.geometry_object_surf_reac2) ?
-          (geometry_object_surf_reac2->__eq__(*other.geometry_object_surf_reac2)) : 
-          false
-        ) :
-        (is_set(other.geometry_object_surf_reac2) ?
-          false :
-          true
-        )
-     )  &&
-    wall_index_surf_reac2 == other.wall_index_surf_reac2 &&
-    pos2d_surf_reac2 == other.pos2d_surf_reac2;
+    pos2d == other.pos2d;
 }
 
 std::string GenReactionInfo::to_str(const std::string ind) const {
@@ -125,15 +102,13 @@ std::string GenReactionInfo::to_str(const std::string ind) const {
   ss << "ReactionInfo" << ": " <<
       "type=" << type << ", " <<
       "reactant_ids=" << vec_nonptr_to_str(reactant_ids, ind + "  ") << ", " <<
+      "product_ids=" << vec_nonptr_to_str(product_ids, ind + "  ") << ", " <<
       "\n" << ind + "  " << "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "time=" << time << ", " <<
       "pos3d=" << pos3d << ", " <<
       "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index << ", " <<
-      "pos2d=" << pos2d << ", " <<
-      "\n" << ind + "  " << "geometry_object_surf_reac2=" << "(" << ((geometry_object_surf_reac2 != nullptr) ? geometry_object_surf_reac2->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "wall_index_surf_reac2=" << wall_index_surf_reac2 << ", " <<
-      "pos2d_surf_reac2=" << pos2d_surf_reac2;
+      "pos2d=" << pos2d;
   return ss.str();
 }
 
@@ -148,15 +123,13 @@ py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
       .def("dump", &ReactionInfo::dump)
       .def_property("type", &ReactionInfo::get_type, &ReactionInfo::set_type)
       .def_property("reactant_ids", &ReactionInfo::get_reactant_ids, &ReactionInfo::set_reactant_ids)
+      .def_property("product_ids", &ReactionInfo::get_product_ids, &ReactionInfo::set_product_ids)
       .def_property("reaction_rule", &ReactionInfo::get_reaction_rule, &ReactionInfo::set_reaction_rule)
       .def_property("time", &ReactionInfo::get_time, &ReactionInfo::set_time)
       .def_property("pos3d", &ReactionInfo::get_pos3d, &ReactionInfo::set_pos3d)
       .def_property("geometry_object", &ReactionInfo::get_geometry_object, &ReactionInfo::set_geometry_object)
       .def_property("wall_index", &ReactionInfo::get_wall_index, &ReactionInfo::set_wall_index)
       .def_property("pos2d", &ReactionInfo::get_pos2d, &ReactionInfo::set_pos2d)
-      .def_property("geometry_object_surf_reac2", &ReactionInfo::get_geometry_object_surf_reac2, &ReactionInfo::set_geometry_object_surf_reac2)
-      .def_property("wall_index_surf_reac2", &ReactionInfo::get_wall_index_surf_reac2, &ReactionInfo::set_wall_index_surf_reac2)
-      .def_property("pos2d_surf_reac2", &ReactionInfo::get_pos2d_surf_reac2, &ReactionInfo::set_pos2d_surf_reac2)
     ;
 }
 

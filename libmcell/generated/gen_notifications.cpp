@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_notifications.h"
 #include "api/notifications.h"
 
@@ -85,6 +86,44 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report)
       .def_property("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations)
     ;
+}
+
+std::string GenNotifications::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "notifications_" + std::to_string(ctx.postinc_counter("notifications"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Notifications(" << nl;
+  if (bng_verbosity_level != 0) {
+    ss << ind << "bng_verbosity_level = " << bng_verbosity_level << "," << nl;
+  }
+  if (rxn_and_species_report != true) {
+    ss << ind << "rxn_and_species_report = " << rxn_and_species_report << "," << nl;
+  }
+  if (simulation_stats_every_n_iterations != 0) {
+    ss << ind << "simulation_stats_every_n_iterations = " << simulation_stats_every_n_iterations << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

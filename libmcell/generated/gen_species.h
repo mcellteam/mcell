@@ -34,6 +34,7 @@ namespace API {
 class Complex;
 class ElementaryMolecule;
 class Species;
+class PythonExportContext;
 
 #define SPECIES_CTOR() \
     Species( \
@@ -80,6 +81,10 @@ public:
   bool operator == (const Species& other) const { return __eq__(other);}
   bool operator != (const Species& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
+
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
+  virtual std::string export_vec_elementary_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+
 
   // --- attributes ---
   float_t diffusion_constant_2d;

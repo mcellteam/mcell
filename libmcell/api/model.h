@@ -34,6 +34,8 @@
 #include "api/notifications.h"
 #include "api/shared_structs.h"
 #include "api/callbacks.h"
+#include "api/introspection.h"
+#include "api/geometry_object.h"
 
 namespace MCell {
 
@@ -48,16 +50,12 @@ class Model: public GenModel {
 public:
 
   Model() : initialized(false), world(nullptr), callbacks(this) {
-    // add species superclasses
-    species.push_back(AllMolecules);
-    species.push_back(AllVolumeMolecules);
-    species.push_back(AllSurfaceMolecules);
   }
   virtual ~Model();
 
   // from generated template
   void initialize() override;
-  void run_iterations(const float_t iterations) override;
+  uint64_t run_iterations(const float_t iterations) override;
   void end_simulation(const bool print_final_report = true) override;
 
   void add_subsystem(std::shared_ptr<Subsystem> subsystem) override;
@@ -75,14 +73,10 @@ public:
 
   void release_molecules(std::shared_ptr<ReleaseSite> release_site) override;
 
-  std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
-  std::shared_ptr<Molecule> get_molecule(const int id) override;
-
-  Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
-  std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) override;
-  Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
-  Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) override;
-
+  std::vector<int> run_reaction(
+      std::shared_ptr<ReactionRule> reaction_rule,
+      const std::vector<int> reactant_ids,
+      const float_t time) override;
 
   void add_vertex_move(
       std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement
@@ -112,6 +106,13 @@ public:
 
   void export_to_bngl(const std::string& file_name) override;
 
+  void save_checkpoint(const std::string& custom_dir = STR_UNSET) override;
+
+  void schedule_checkpoint(
+      const uint64_t iteration = 0,
+      const bool continue_simulation = false,
+      const std::string& custom_dir = STR_UNSET) override;
+
   // overrides from derived classes Subsystem, Instantiation, and Observables
   void add_species(std::shared_ptr<Species> s) override;
   void add_reaction_rule(std::shared_ptr<ReactionRule> r) override;
@@ -127,7 +128,10 @@ public:
   // shadows all inherited non-virtual to_str methods
   std::string to_str(const std::string ind="") const;
 
+  // TODO: this belongs to Instantiation
   std::shared_ptr<GeometryObject> get_geometry_object_with_id(const geometry_object_id_t id);
+
+  // TODO: this belongs to Subsystem
   std::shared_ptr<ReactionRule> get_reaction_rule_with_fwd_id(const BNG::rxn_rule_id_t id);
 
   void error_if_initialized(const char* what) {
@@ -141,6 +145,9 @@ public:
   const World* get_world() const {
     return world;
   }
+  World* get_world() {
+    return world;
+  }
 
 private:
   void export_data_model_viz_or_full(
@@ -149,7 +156,7 @@ private:
       const char* method_name
   );
 
-  bool initialized;
+  volatile bool initialized;
   World* world;
 
   Callbacks callbacks;

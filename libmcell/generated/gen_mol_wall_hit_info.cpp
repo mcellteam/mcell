@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_mol_wall_hit_info.h"
 #include "api/mol_wall_hit_info.h"
 #include "api/geometry_object.h"

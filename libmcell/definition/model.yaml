@@ -1,5 +1,5 @@
 Model:
-  superclasses: [Subsystem, Instantiation, Observables]
+  superclasses: [Subsystem, Instantiation, Observables, Introspection]
   
   items:
   - name: config
@@ -13,11 +13,19 @@ Model:
   - name: notifications
     type: Notifications
     default: Notifications()
-    
+
   methods:
   - name: initialize
+    doc: | 
+      Initializes model, initialization blocks most of changes to 
+      contained components (the attributes 
 
   - name: run_iterations
+    doc: | 
+       Runs specified number of iterations. Returns the number of iterations
+       executed (it might be less than the requested number of iterations when 
+       a checkpoint was scheduled). 
+    return_type: uint64
     params:
     - name: iterations
       type: float
@@ -84,71 +92,30 @@ Model:
     params:
     - name: release_site
       type: ReleaseSite*
-    
-  # --- introspection ---
-
-  # TODO: can we make some faster interface? however, we do not want to be bound to 
-  # the internal implementation and we must abstract away the partitions      
-  - name: get_molecule_ids
+      
+  - name: run_reaction
     doc: | 
-      Returns a list of ids of molecules of given Species existing in the simulated environment,
-      if the argument species is not set, returns list of all molecules.      
+      Run a single reaction on reactants. Callbacks will be called if they are registered for the given reaction.
+      Returns a list of product IDs.
+      Note\: only unimolecular reactions are currently supported.
     return_type: List[int]
     params:
-    - name: species
-      type: Species*
-      default: unset
-  
-  - name: get_molecule
-    doc: Returns a molecule from the simulated environment, None if the molecule does not exist 
-    return_type: Molecule*
-    params: 
-    - name: id
-      type: int
-  
-  # --- geometry ---
-  - name: get_vertex
-    doc: Returns coordinates of a vertex.
-    return_type: Vec3 
-    params:
-    - name: object
-      type: GeometryObject*
-    - name: vertex_index
-      type: int 
-      doc: This is the index of the vertex in object's walls (wall_list).
+    - name: reaction_rule
+      type: ReactionRule*
+      doc: Reaction rule to run.
       
-  - name: get_wall
-    doc: Returns information about a wall belonging to a given object.
-    return_type: Wall* 
-    params:
-    - name: object
-      type: GeometryObject*
-    - name: wall_index
-      type: int 
-      doc: This is the index of the wall in object's walls (wall_list).
-      
-  - name: get_vertex_unit_normal
-    doc: | 
-       Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
-       This represents the unit vector pointing outwards from the vertex.
-    return_type: Vec3
-    params:
-    - name: object
-      type: GeometryObject*
-    - name: vertex_index
-      type: int 
-      doc: This is the index of the vertex in object's vertex_list.
-
-  - name: get_wall_unit_normal
-    doc: Returns wall normal converted to a unit vector of length 1um.
-    return_type: Vec3
-    params:
-    - name: object
-      type: GeometryObject*
-    - name: wall_index
-      type: int 
-      doc: This is the index of the vertex in object's walls (wall_list).
+    - name: reactant_ids
+      type: List[int]
+      doc: | 
+        The number of reactants for a unimolecular reaction must be 1 and for a bimolecular reaction must be 2.
+        Reactants for a bimolecular reaction do not have to be listed in the same order as in the reaction rule definition. 
     
+    - name: time
+      type: float
+      doc: |
+        Precise time in seconds when this reaction occurs. Important to know for how long the products
+        will be diffused when they are created in a middle of a time step. 
+      
   # --- dynamic geometry ---
       
   - name: add_vertex_move
@@ -213,8 +180,9 @@ Model:
       
   - name: register_reaction_callback
     doc: | 
-       Allows to intercept unimolecular and bimolecular reactions happening in volume.
-       It is allowed to do state modifications except for removing reacting molecules.  
+       Defines a function to be called when a reaction was processed.
+       It is allowed to do state modifications except for removing reacting molecules, 
+       they will be removed automatically after return from this callback.  
     params: 
     - name: function
       type: std::function<void(std::shared_ptr<ReactionInfo>, py::object)>
@@ -276,3 +244,57 @@ Model:
       type: str
       doc: Output file name.
       
+  - name: save_checkpoint
+    todo: provide more configurability for parameters
+    doc: |
+       Saves current model state as checkpoint. 
+       The default directory structure is checkpoints/seed_<SEED>/it_<ITERATION>,
+       it can be changed by setting 'custom_dir'.
+       If used during an iteration, schedules an event for the end of the current iteration
+       that saves the checkpoint (effectively calls 'checkpoint_after_iteration(0, False, custom_dir)'.  
+    params:
+    - name: custom_dir
+      type: str
+      default: unset
+      doc: |
+         Sets custom directory where the checkpoint will be stored. 
+         The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'. 
+
+  - name: schedule_checkpoint
+    todo: provide more configurability for parameters
+    doc: |
+       Schedules checkpoint save that will occur when an iteration is started  
+       right before any other events scheduled for the given iteration are executed.
+       Can be called asynchronously at any time after initialization.
+       
+    params:
+    - name: iteration
+      type: uint64
+      default: 0
+      todo: shouldn't we specify simulated time instead?
+      doc: |
+        Specifies iteration number when the checkpoint save will occur. 
+        Please note that iterations are counted from 0.
+        To schedule a checkpoint for the closest time as possible, keep the default value 0,
+        this will schedule checkpoint for the beginning of the iteration with number current iteration + 1.  
+        If calling schedule_checkpoint from a different thread (e.g. by using threading.Timer), 
+        it is highly recommended to keep the default value 0 or choose some time that will be 
+        for sure in the future.
+    
+    - name: continue_simulation
+      type: bool
+      default: false
+      doc: |
+        When false, saving the checkpoint means that we want to terminate the simulation 
+        right after the save, the currently running function Model.run_iterations
+        does not simulate any following iterations and execution returns from this function
+        to execute the next statement which is usually 'model.end_simulation()'.
+        When true, the checkpoint is just saved and simulation continues uninterrupted.
+              
+    - name: custom_dir
+      type: str
+      default: unset
+      doc: |
+         Sets custom directory where the checkpoint will be stored. 
+         The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'. 
+               

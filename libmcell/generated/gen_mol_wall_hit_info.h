@@ -30,6 +30,7 @@ namespace API {
 
 class MolWallHitInfo;
 class GeometryObject;
+class PythonExportContext;
 
 class GenMolWallHitInfo {
 public:

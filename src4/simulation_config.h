@@ -25,6 +25,8 @@
 
 #include "defines.h"
 
+const char* const RUN_REPORT_PREFIX = "run_report_";
+
 namespace MCell {
 
 /*
@@ -34,6 +36,8 @@ namespace MCell {
 class SimulationConfig: public BNG::BNGConfig {
 public:
   SimulationConfig() :
+    initial_time(TIME_INVALID),
+    initial_iteration(UINT_INVALID),
     vacancy_search_dist2(FLT_INVALID),
     partition_edge_length(FLT_INVALID),
     num_subpartitions_per_partition_edge(UINT_INVALID),
@@ -45,13 +49,19 @@ public:
     use_expanded_list(true),
     randomize_smol_pos(false),
     check_overlapped_walls(true),
+    rxn_class_cleanup_periodicity(0),
+    species_cleanup_periodicity(0),
     sort_mols_by_subpart(false),
     memory_limit_gb(-1),
     simulation_stats_every_n_iterations(0),
-    has_intersecting_counted_objects(false) {
+    continue_after_sigalrm(false),
+    has_intersecting_counted_objects(false)
+  {
   }
 
   // configuration
+  float_t initial_time; // simulation start time in us, non-zero if starting from a checkpoint
+  uint64_t initial_iteration; // initial iteration, non-zero if starting from a checkpoint
 
   float_t vacancy_search_dist2; /* Square of distance to search for free grid
                                   location to place surface product */
@@ -76,11 +86,16 @@ public:
                              location instead of center of grid */
   bool check_overlapped_walls; /* Check geometry for overlapped walls? */
 
+  uint rxn_class_cleanup_periodicity;
+  uint species_cleanup_periodicity;
+
   bool sort_mols_by_subpart;
 
   int memory_limit_gb; // -1 means that limit is disabled
 
   int simulation_stats_every_n_iterations;
+
+  bool continue_after_sigalrm;
 
   // initialized in World::init_counted_volumes
   // also tells whether waypoints in a partition were initialized
@@ -94,11 +109,27 @@ public:
 
   void dump();
 
+  float_t get_simulation_start_time() const {
+    assert(initial_time != TIME_INVALID);
+    // simulation starts always in integer values of internal time
+    float_t res = floor_to_multiple(initial_time / time_unit, 1);
+    assert((int)res == res);
+    return res;
+  }
+
+  // returns 'checkpoints/seed_<SEED>/it_' - without the iteration number
+  std::string get_default_checkpoint_dir_prefix() const;
+
+  std::string get_run_report_file_name() const;
+  void initialize_run_report_file();
+
 private:
   void init_subpartition_edge_length();
   void init_radial_steps();
 
 };
+
+std::string get_seed_dir_name(const int seed);
 
 } // namespace MCell
 

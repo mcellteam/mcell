@@ -32,6 +32,7 @@ namespace API {
 class ElementaryMolecule;
 class Component;
 class ElementaryMoleculeType;
+class PythonExportContext;
 
 #define ELEMENTARY_MOLECULE_CTOR() \
     ElementaryMolecule( \
@@ -57,6 +58,10 @@ public:
   bool operator == (const ElementaryMolecule& other) const { return __eq__(other);}
   bool operator != (const ElementaryMolecule& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
+
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
+  virtual std::string export_vec_components(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+
 
   // --- attributes ---
   std::shared_ptr<ElementaryMoleculeType> elementary_molecule_type;

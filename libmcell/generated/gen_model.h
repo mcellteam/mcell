@@ -32,11 +32,13 @@
 #include "api/subsystem.h"
 #include "api/instantiation.h"
 #include "api/observables.h"
+#include "api/introspection.h"
 
 namespace MCell {
 namespace API {
 
 class Model;
+class BaseChkptMol;
 class Config;
 class Count;
 class ElementaryMoleculeType;
@@ -57,8 +59,9 @@ class VizOutput;
 class Wall;
 class WallWallHitInfo;
 class Warnings;
+class PythonExportContext;
 
-class GenModel: public Subsystem, public Instantiation, public Observables {
+class GenModel: public Subsystem, public Instantiation, public Observables, public Introspection {
 public:
   virtual ~GenModel() {}
   virtual bool __eq__(const Model& other) const;
@@ -66,6 +69,18 @@ public:
   bool operator == (const Model& other) const { return __eq__(other);}
   bool operator != (const Model& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
+
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
+  virtual std::string export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_reaction_rules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_surface_classes(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_elementary_molecule_types(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_release_sites(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_geometry_objects(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_checkpointed_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+
 
   // --- attributes ---
   Config config;
@@ -94,7 +109,7 @@ public:
 
   // --- methods ---
   virtual void initialize() = 0;
-  virtual void run_iterations(const float_t iterations) = 0;
+  virtual uint64_t run_iterations(const float_t iterations) = 0;
   virtual void end_simulation(const bool print_final_report = true) = 0;
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
   virtual void add_instantiation(std::shared_ptr<Instantiation> instantiation) = 0;
@@ -103,18 +118,15 @@ public:
   virtual void export_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void export_viz_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void release_molecules(std::shared_ptr<ReleaseSite> release_site) = 0;
-  virtual std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) = 0;
-  virtual std::shared_ptr<Molecule> get_molecule(const int id) = 0;
-  virtual Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) = 0;
-  virtual std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
-  virtual Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) = 0;
-  virtual Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
+  virtual std::vector<int> run_reaction(std::shared_ptr<ReactionRule> reaction_rule, const std::vector<int> reactant_ids, const float_t time) = 0;
   virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement) = 0;
   virtual std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) = 0;
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
   virtual void register_reaction_callback(const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function, py::object context, std::shared_ptr<ReactionRule> reaction_rule) = 0;
   virtual void load_bngl(const std::string& file_name, const std::string& observables_files_prefix = "", std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
   virtual void export_to_bngl(const std::string& file_name) = 0;
+  virtual void save_checkpoint(const std::string& custom_dir = STR_UNSET) = 0;
+  virtual void schedule_checkpoint(const uint64_t iteration = 0, const bool continue_simulation = false, const std::string& custom_dir = STR_UNSET) = 0;
 }; // GenModel
 
 class Model;

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2019,2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -170,6 +170,17 @@ public:
     return cmp_lt(time, event_time + periodicity_interval, EPS);
   }
 
+  // used also directly from MCell API
+  // returns true if molecule survived
+  bool outcome_unimolecular(
+      Partition& p,
+      Molecule& vm,
+      const float_t scheduled_time,
+      BNG::RxnClass* rxn_class,
+      const rxn_class_pathway_index_t pathway_index,
+      MoleculeIdsVector* optional_product_ids = nullptr
+  );
+
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
@@ -256,9 +267,15 @@ private:
       const float_t diffusion_start_time // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
   );
 
+  bool react_2D_intermembrane(
+      Partition& p, Molecule& sm,
+      const float_t t_steps, const float_t diffusion_start_time
+  );
+
   // ---------------------------------- reactions ----------------------------------
   int find_surf_product_positions(
       Partition& p,
+      const BNG::RxnRule* rxn,
       const Molecule* reacA, const bool keep_reacA,
       const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
@@ -283,14 +300,6 @@ private:
       const float_t time
   );
 
-	// returns true if molecule survived
-  bool outcome_unimolecular(
-      Partition& p,
-      Molecule& vm,
-      const float_t scheduled_time,
-      BNG::RxnClass* rxn_class,
-      const rxn_class_pathway_index_t pathway_index
-  );
 
   void handle_rxn_callback(
       Partition& p,
@@ -298,7 +307,8 @@ private:
       const float_t time,
       const BNG::RxnRule* rxn,
       const Molecule* reac1,
-      const Molecule* reac2
+      const Molecule* reac2,
+      const MoleculeIdsVector& product_ids
   );
 
   int outcome_products_random(
@@ -307,7 +317,8 @@ private:
       const float_t remaining_time_step,
       const rxn_class_pathway_index_t pathway_index,
       bool& keep_reacA,
-      bool& keep_reacB
+      bool& keep_reacB,
+      MoleculeIdsVector* optional_product_ids = nullptr
   );
 
   void pick_unimol_rxn_class_and_set_rxn_time(

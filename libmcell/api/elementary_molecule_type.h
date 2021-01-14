@@ -49,6 +49,8 @@ public:
 
   std::string to_bngl_str() const override;
 
+  bool skip_python_export() const override;
+
   // added methods
   std::string get_canonical_name() const;
 

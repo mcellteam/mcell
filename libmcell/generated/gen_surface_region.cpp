@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_surface_region.h"
 #include "api/surface_region.h"
 #include "api/initial_surface_release.h"
@@ -36,7 +37,7 @@ void GenSurfaceRegion::check_semantics() const {
     throw ValueError("Parameter 'name' must be set.");
   }
   if (!is_set(wall_indices)) {
-    throw ValueError("Parameter 'wall_indices' must be set.");
+    throw ValueError("Parameter 'wall_indices' must be set and the value must not be an empty list.");
   }
 }
 
@@ -189,6 +190,91 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       .def_property("surface_class", &SurfaceRegion::get_surface_class, &SurfaceRegion::set_surface_class)
       .def_property("initial_surface_releases", &SurfaceRegion::get_initial_surface_releases, &SurfaceRegion::set_initial_surface_releases)
     ;
+}
+
+std::string GenSurfaceRegion::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = std::string("surface_region") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("surface_region")));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.SurfaceRegion(" << nl;
+  if (node_type != RegionNodeType::UNSET) {
+    ss << ind << "node_type = " << node_type << "," << nl;
+  }
+  if (is_set(left_node)) {
+    ss << ind << "left_node = " << left_node->export_to_python(out, ctx) << "," << nl;
+  }
+  if (is_set(right_node)) {
+    ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
+  }
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  ss << ind << "wall_indices = " << export_vec_wall_indices(out, ctx, exported_name) << "," << nl;
+  if (is_set(surface_class)) {
+    ss << ind << "surface_class = " << surface_class->export_to_python(out, ctx) << "," << nl;
+  }
+  if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>() && !skip_vectors_export()) {
+    ss << ind << "initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+}
+
+std::string GenSurfaceRegion::export_vec_wall_indices(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < wall_indices.size(); i++) {
+    const auto& item = wall_indices[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    ss << item << ", ";
+  }
+  ss << "]";
+  return ss.str();
+}
+
+std::string GenSurfaceRegion::export_vec_initial_surface_releases(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < initial_surface_releases.size(); i++) {
+    const auto& item = initial_surface_releases[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

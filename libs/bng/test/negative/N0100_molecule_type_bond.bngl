@@ -1,9 +1,8 @@
 # FAIL
-# OUTPUT: error: Definition of a component in the molecule types section must not have a bond, error for '!+'
-# OUTPUT: error: Definition of a component in the molecule types section must not have a bond, error for '!1'
+# OUTPUT: error: syntax error, unexpected '!'
 
 
 begin molecule types
-   A(a!+)
+   A(a!+) # already the parser detects this error
    B(z!1)
 end molecule types

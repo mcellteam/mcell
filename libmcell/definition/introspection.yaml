@@ -10,21 +10,25 @@ Molecule:
   items:
   - name: id
     type: int
-    default: MOLECULE_ID_INVALID
+    default: ID_INVALID
     doc: Unique id of this molecule
      
-  - name: species
-    type: Species*
-    default: unset
+  - name: type
+    type: MoleculeType
+    default: MoleculeType.UNSET
     
+  - name: species_id
+    type: int
+    default: ID_INVALID
+    doc: | 
+       Species id of this molecule.
+       The id value is only temporary and can be invalidated by simulating an iteration.
+     
   - name: pos3d
     type: Vec3
     default: unset
     doc: |
-      TODO - Right now, contains only position of this is a volume molecule 
-      Contains position in space both for surface and volume molecules,
-      it won't be possible to change it for surface molecules.
-       
+      Contains position of a molecule in 3D space.        
       
   - name: orientation
     type: Orientation
@@ -33,6 +37,27 @@ Molecule:
       Contains orientation for surface molecule. Volume molecules 
       have always orientation set to Orientation.NONE.
       
+  - name: pos2d
+    type: Vec2 
+    default: unset
+    doc: |
+      Set only for surface molecules.
+              
+  - name: geometry_object
+    type: GeometryObject*
+    default: unset
+    doc: |
+       Set only for surface molecules.
+       Object on whose surface is the molecule located.
+     
+  - name: wall_index
+    type: int
+    default: -1
+    doc: |
+       Set only for surface molecules.
+       Index of wall belonging to the geometry_object where is the 
+       molecule located. 
+          
   methods:
   - name: remove
     # TODO: better name?
@@ -82,4 +107,83 @@ WallWallHitInfo:
     type: Wall*
            
   - name: wall2
-    type: Wall*           
+    type: Wall*
+    
+    
+Introspection:
+  todo: do not include in documentation
+  doc: 
+     This class is used only as a base class to Model, it is not provided through API.
+     Provides methods to introspect simulation state.
+
+  # TODO: can we make some faster interface? however, we do not want to be bound to 
+  # the internal implementation and we must abstract away the partitions
+  methods:      
+  - name: get_molecule_ids
+    doc: | 
+      Returns a list of ids of molecules of given Species existing in the simulated environment,
+      if the argument species is not set, returns list of all molecules.      
+    return_type: List[int]
+    params:
+    - name: species
+      type: Species*
+      default: unset
+  
+  - name: get_molecule
+    doc: Returns a molecule from the simulated environment, None if the molecule does not exist 
+    return_type: Molecule*
+    params: 
+    - name: id
+      type: int
+
+  - name: get_species_name
+    doc: | 
+       Returns a string representing canonical species name in the BNGL format. 
+    return_type: str
+    params: 
+    - name: species_id
+      type: int
+  
+  # --- geometry ---
+  - name: get_vertex
+    doc: Returns coordinates of a vertex.
+    return_type: Vec3 
+    params:
+    - name: object
+      type: GeometryObject*
+    - name: vertex_index
+      type: int 
+      doc: This is the index of the vertex in object's walls (wall_list).
+      
+  - name: get_wall
+    doc: Returns information about a wall belonging to a given object.
+    return_type: Wall* 
+    params:
+    - name: object
+      type: GeometryObject*
+    - name: wall_index
+      type: int 
+      doc: This is the index of the wall in object's walls (wall_list).
+      
+  - name: get_vertex_unit_normal
+    doc: | 
+       Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
+       This represents the unit vector pointing outwards from the vertex.
+    return_type: Vec3
+    params:
+    - name: object
+      type: GeometryObject*
+    - name: vertex_index
+      type: int 
+      doc: This is the index of the vertex in object's vertex_list.
+
+  - name: get_wall_unit_normal
+    doc: Returns wall normal converted to a unit vector of length 1um.
+    return_type: Vec3
+    params:
+    - name: object
+      type: GeometryObject*
+    - name: wall_index
+      type: int 
+      doc: This is the index of the vertex in object's walls (wall_list).
+                     

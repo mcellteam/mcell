@@ -16,19 +16,19 @@ namespace BNG {
 
 void BNGNotifications::dump() const {
   cout << "BNGNotifications:\n";
-  cout << "  rxn_probability_changed: \t\t" << rxn_probability_changed << " [bool] \t\t\n";
+  cout << "  rxn_probability_changed: \t\t" << rxn_probability_changed << "\n";
 }
 
 
 void BNGConfig::dump() const {
   cout << "BNGConfig:\n";
-  cout << "  initial_seed: \t\t" << initial_seed << " [uint] \t\t\n";
-  cout << "  time_unit: \t\t" << time_unit << " [float_t] \t\t\n";
-  cout << "  length_unit: \t\t" << length_unit << " [float_t] \t\t\n";
-  cout << "  grid_density: \t\t" << grid_density << " [float_t] \t\t\n";
-  cout << "  rx_radius_3d: \t\t" << rx_radius_3d << " [float_t] \t\t\n";
-  cout << "  rxn_and_species_report: \t\t" << rxn_and_species_report << " [bool] \t\t\n";
-  cout << "  bng_verbosity_level: \t\t" << bng_verbosity_level << " [bool] \t\t\n";
+  cout << "  initial_seed: \t\t" << initial_seed << "\n";
+  cout << "  time_unit: \t\t" << time_unit << "\n";
+  cout << "  length_unit: \t\t" << length_unit << "\n";
+  cout << "  grid_density: \t\t" << grid_density << "\n";
+  cout << "  rx_radius_3d: \t\t" << rx_radius_3d << "\n";
+  cout << "  rxn_and_species_report: \t\t" << rxn_and_species_report << "\n";
+  cout << "  bng_verbosity_level: \t\t" << bng_verbosity_level << "\n";
 
   notifications.dump();
 }
@@ -52,18 +52,6 @@ std::string BNGConfig::get_species_report_file_name() const {
 
 std::string BNGConfig::get_warnings_report_file_name() const {
   return std::string(REPORT_DIR) + PATH_SEPARATOR + WARNINGS_REPORT_PREFIX + seed_as_str() + REPORT_EXT;
-}
-
-
-// get current date/time, format is YYYY-MM-DD HH:mm:ss
-static const std::string current_date_time() {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
-
-    return buf;
 }
 
 
@@ -125,42 +113,24 @@ static void make_reports_dir(const string& file_path) {
 }
 
 
-static void initialize_file(const std::string& fname, const char* report_name) {
-  // first check whether the directory exists and make it
-  make_reports_dir(fname);
-
-  ofstream of;
-  of.open(fname, fstream::out);
-  if (of.is_open()) {
-    of << report_name << " report, " << current_date_time() << "\n\n";
-    of.close();
-  }
-  else {
-    cout << "Could not open file " << fname << " for report generation, ignored.\n";
-  }
-}
-
-
-static void remove_file(const std::string& fname, const char* report_name) {
-  ofstream of;
-  of.open(fname, fstream::in);
-  if (of.is_open()) {
-    // file exists
-    of.close();
-    int res = remove(fname.c_str());
-    if (res != 0){
-      cout << "Could not remove file " << fname << " for report generation, ignored.\n";
-    }
-  }
-}
-
-
-void BNGConfig::initialize_report_files() {
-  remove_file(get_warnings_report_file_name(), "Warnings");
+void BNGConfig::initialize_bng_report_files() {
+  remove_report_file(get_warnings_report_file_name(), "Warnings");
   if (rxn_and_species_report) {
-    initialize_file(get_rxn_report_file_name(), "RXN");
-    initialize_file(get_species_report_file_name(), "Species");
+    initialize_report_file(get_rxn_report_file_name(), "RXN");
+    initialize_report_file(get_species_report_file_name(), "Species");
   }
+}
+
+
+// get current date/time, format is YYYY-MM-DD HH:mm:ss
+std::string get_current_date_time() {
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d %X", &tstruct);
+
+    return buf;
 }
 
 
@@ -177,5 +147,35 @@ void append_to_report(const std::string& report_fname, const std::string& msg) {
     of.close();
   }
 }
+
+void initialize_report_file(const std::string& fname, const char* report_name) {
+  // first check whether the directory exists and make it
+  make_reports_dir(fname);
+
+  ofstream of;
+  of.open(fname, fstream::out);
+  if (of.is_open()) {
+    of << report_name << " report, " << get_current_date_time() << "\n\n";
+    of.close();
+  }
+  else {
+    cout << "Could not open file " << fname << " for report generation, ignored.\n";
+  }
+}
+
+
+void remove_report_file(const std::string& fname, const char* report_name) {
+  ofstream of;
+  of.open(fname, fstream::in);
+  if (of.is_open()) {
+    // file exists
+    of.close();
+    int res = remove(fname.c_str());
+    if (res != 0){
+      cout << "Could not remove file " << fname << " for report generation, ignored.\n";
+    }
+  }
+}
+
 
 } // namespace BNG

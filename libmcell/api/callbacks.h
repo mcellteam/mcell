@@ -49,8 +49,29 @@ typedef std::function<void(std::shared_ptr<API::MolWallHitInfo>, pybind11::objec
 typedef std::function<void(std::shared_ptr<API::ReactionInfo>, pybind11::object)>
   rxn_callback_function_t;
 
+
+struct RxnCallbackInfo {
+  RxnCallbackInfo() :
+    rxn_callback_function(nullptr),
+    rxn_rule_id(BNG::RXN_RULE_ID_INVALID) {
+  }
+
+  RxnCallbackInfo(
+      const rxn_callback_function_t rxn_callback_function_,
+      const py::object rxn_context_,
+      const BNG::rxn_rule_id_t rxn_rule_id_) :
+    rxn_callback_function(rxn_callback_function_),
+    rxn_context(rxn_context_),
+    rxn_rule_id(rxn_rule_id_) {
+  }
+
+  rxn_callback_function_t rxn_callback_function;
+  py::object rxn_context;
+  BNG::rxn_rule_id_t rxn_rule_id;
+};
+
 // not generated
-// TODO: allow multiple callbacks
+// TODO: allow multiple callbacks for wall hits
 class Callbacks {
 public:
   // model_ is nullptr in MDL mode
@@ -93,26 +114,18 @@ public:
   void register_rxn_callback(
       const rxn_callback_function_t func,
       py::object context,
-      const BNG::rxn_rule_id_t rxn_rule_id_
-  ) {
-    assert(model != nullptr);
-    rxn_callback_function = func;
-    rxn_context = context;
-    rxn_rule_id = rxn_rule_id_;
-  }
+      const BNG::rxn_rule_id_t rxn_rule_id
+  );
 
   bool needs_rxn_callback(
-      const BNG::rxn_rule_id_t rxn_rule_id_) {
-    return rxn_callback_function != nullptr &&
-        rxn_rule_id == rxn_rule_id_;
+      const BNG::rxn_rule_id_t rxn_rule_id) {
+    return rxn_callbacks.count(rxn_rule_id);
   }
 
   void do_rxn_callback(std::shared_ptr<ReactionInfo> info);
 
-  rxn_callback_function_t rxn_callback_function;
-  py::object rxn_context;
-  BNG::rxn_rule_id_t rxn_rule_id;
-
+private:
+  std::map<BNG::rxn_rule_id_t, RxnCallbackInfo> rxn_callbacks;
 };
 
 } /* namespace API */

@@ -2145,7 +2145,6 @@ static molecule_id_t place_single_molecule_onto_grid(
   sm_to_add.s.wall_index = wall.index;
   sm_to_add.s.orientation = orientation;
   sm_to_add.s.grid_tile_index = tile_index;
-  sm_to_add.flags = ACT_DIFFUSE | IN_SURFACE; // TODO: is ACT_DIFFUSE and IN_SURFACE used somewere?
   sm_to_add.set_flag(MOLECULE_FLAG_SURF);
   sm_to_add.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 

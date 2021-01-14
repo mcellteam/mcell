@@ -25,6 +25,7 @@
 #include <string>
 
 #include "api/mcell4_converter.h"
+#include "api/python_exporter.h"
 #include "api/api_utils.h"
 #include "api/molecule.h"
 
@@ -36,10 +37,18 @@
 #include "api/count.h"
 #include "api/wall.h"
 #include "api/wall_wall_hit_info.h"
+#include "api/checkpoint_signals.h"
 
 #include "world.h"
+#include "scheduler.h"
 #include "diffuse_react_event.h"
 #include "release_event.h"
+#include "rxn_utils.inc"
+#include "molecule.h"
+#include "viz_output_event.h"
+#include "custom_function_call_event.h"
+
+#include "bng/rxn_class.h"
 
 
 using namespace std;
@@ -47,8 +56,10 @@ using namespace std;
 namespace MCell {
 namespace API {
 
+class RngState;
 
 Model::~Model() {
+  unset_checkpoint_signals(this); // may be safely called multiple times
   delete world;
 }
 
@@ -84,12 +95,20 @@ void Model::initialize() {
     throw RuntimeError("Model.initialize() can be called only once");
   }
 
+  // first add species superclasses
+  std::vector<std::shared_ptr<Species>> superspecies = { AllMolecules, AllVolumeMolecules, AllSurfaceMolecules };
+  species.insert(species.begin(), superspecies.begin(), superspecies.end());
+
+  // Species objects might have created their own ElementaryMoleculeType
+  // objects, we must unify it first (required for python export)
+  unify_and_register_elementary_molecule_types();
+
   world = new World(callbacks);
 
   // semantic checks are done during conversion
   MCell4Converter converter(this, world);
 
-  converter.convert();
+  converter.convert_before_init();
 
   // set that all used objects were initialized
   vec_set_initialized(species);
@@ -99,24 +118,40 @@ void Model::initialize() {
   vec_set_initialized(viz_outputs);
   vec_set_initialized(counts);
 
-  world->init_simulation();
+  world->init_simulation(world->config.get_simulation_start_time());
+
+  // convert also rng state checkpointed molecules,
+  // must be done after world initialization
+  converter.convert_after_init();
+
+  initialize_introspection(this);
+
+  // set action for SIGUSR1 and SIGUSR2
+  set_checkpoint_signals(this);
 
   initialized = true;
 }
 
 
-void Model::run_iterations(const float_t iterations) {
+uint64_t Model::run_iterations(const float_t iterations) {
+  // release GIL before calling into long-running C++ code, 
+  // necessary for other Python threads to be allowed to run (e.g. a timer)
+  py::gil_scoped_release release;
+
   if (world == nullptr) {
     throw RuntimeError("Model was not initialized, call Model.initialize() first");
   }
-  uint output_frequency = World::determine_output_frequency(iterations);
-  world->run_n_iterations(iterations, output_frequency, false);
+  return world->run_n_iterations(iterations, false);
 }
 
 
 void Model::end_simulation(const bool print_final_report) {
   // the first argument specifies that the last mol/rxn count and viz_output events will be run
+  // cannot call callbacks anymore (no diffusion event is executed)
   world->end_simulation(print_final_report);
+
+  // unset action for SIGUSR1 and SIGUSR2
+  unset_checkpoint_signals(this);
 }
 
 
@@ -130,6 +165,10 @@ void Model::export_data_model_viz_or_full(
     const bool only_for_visualization,
     const char* method_name) {
 
+  if (world == nullptr) {
+    throw RuntimeError(S("Model must be initialized before a call to ") + NAME_EXPORT_DATA_MODEL + ".");
+  }
+
   if (is_set(file)) {
     world->export_data_model(file, only_for_visualization);
   }
@@ -140,6 +179,10 @@ void Model::export_data_model_viz_or_full(
 
 
 void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
+  if (!initialized) {
+    throw RuntimeError(S("Model must be initialized before calling ") + NAME_RELEASE_MOLECULES + ".");
+  }
+
   // check that time is now or in the future
   float_t iteration_start_time = world->stats.get_current_iteration() * world->config.time_unit;
   if (release_site->release_time < iteration_start_time) {
@@ -175,118 +218,94 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
 }
 
 
-std::vector<int> Model::get_molecule_ids(std::shared_ptr<Species> species) {
-  // NOTE: not very efficient
-  std::vector<int> res;
+std::vector<int> Model::run_reaction(
+    std::shared_ptr<ReactionRule> reaction_rule,
+    const std::vector<int> reactant_ids,
+    const float_t time) {
 
-  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  std::vector<MCell::Molecule>& molecules = p.get_molecules();
-  for (MCell::Molecule& m: molecules) {
-    if (m.is_defunct()) {
-      continue;
+  // need to release lock because we might be calling callbacks that are locking back
+  py::gil_scoped_release release;
+
+  if (!initialized) {
+    throw RuntimeError(S("Model must be initialized before calling ") + NAME_RUN_REACTION + ".");
+  }
+
+  if (reaction_rule->reactants.size() != reactant_ids.size()) {
+    throw RuntimeError("Reaction expects " + to_string(reaction_rule->reactants.size()) +
+        " reactants but " + to_string(reactant_ids.size()) + " reactants were provided.");
+  }
+
+  if (reaction_rule->fwd_rxn_rule_id == BNG::RXN_RULE_ID_INVALID) {
+    throw RuntimeError("Reaction rule is not present in model and was not initialized.");
+  }
+
+  if (reaction_rule->rev_rxn_rule_id != BNG::RXN_RULE_ID_INVALID) {
+    throw RuntimeError(S("Method ") + NAME_RUN_REACTION + " can be used only with irreversible reactions.");
+  }
+
+  const BNG::RxnRule* rxn = world->get_all_rxns().get(reaction_rule->fwd_rxn_rule_id);
+
+  if (!rxn->is_unimol()) {
+    throw RuntimeError(S("Method ") + NAME_RUN_REACTION + " currently supports only unimolecular reactions.");
+  }
+
+  MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  molecule_id_t id1 = reactant_ids[0];
+  if (!p.does_molecule_exist(id1)) {
+    throw RuntimeError("Molecule with id " + to_string(id1) + " does not exist.");
+  }
+  MCell::Molecule& m1 = p.get_m(id1);
+  if (m1.is_defunct()) {
+    throw RuntimeError("Molecule with id " + to_string(id1) + " was removed.");
+  }
+
+  std::vector<int> res;
+  if (rxn->is_unimol()) {
+    // check if the requested rxn is applicable for our reactant
+    // also determine pathway index
+    BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(m1.as_reactant());
+    rxn_class->init_rxn_pathways_and_rates(); // initialize if needed
+    rxn_class_pathway_index_t index = 0;
+    while (index < (rxn_class_pathway_index_t)rxn_class->get_num_pathways() &&
+        rxn_class->get_rxn_for_pathway(index)->id != rxn->id) {
+      index++;
     }
 
-    if (is_set(species) && species->species_id == m.species_id) {
-      res.push_back(m.id);
+    if (index >= (rxn_class_pathway_index_t)rxn_class->get_num_pathways()) {
+      const BNG::Species& species = world->get_all_species().get(m1.species_id);
+      throw RuntimeError("Reaction rule " + reaction_rule->to_bngl_str() +
+          " cannot be applied on molecule with species " + species.name);
+    }
+
+    // if we are in a callback, we are probably in a diffuse react event
+    BaseEvent* current_event = world->scheduler.get_event_being_executed();
+    DiffuseReactEvent* diffuse_react_event;
+    bool using_temporary_event;
+    if (current_event != nullptr && current_event->type_index == EVENT_TYPE_INDEX_DIFFUSE_REACT) {
+      diffuse_react_event = dynamic_cast<DiffuseReactEvent*>(current_event);
+      using_temporary_event = false;
     }
     else {
-      res.push_back(m.id);
+      // otherwise we will instantiate a new event
+      diffuse_react_event = new DiffuseReactEvent(world);
+      using_temporary_event = true;
     }
-  }
 
-  return res;
-}
+    MoleculeIdsVector product_ids;
+    diffuse_react_event->outcome_unimolecular(p, m1, time / world->config.time_unit, rxn_class, index, &product_ids);
 
+    if (using_temporary_event) {
+      delete diffuse_react_event;
+    }
 
-std::shared_ptr<API::Molecule> Model::get_molecule(const int id) {
-  std::shared_ptr<API::Molecule> res;
-  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  if (!p.does_molecule_exist(id)) {
-    throw RuntimeError("Molecule with id " + to_string(id) + " does not exist.");
-  }
-  MCell::Molecule& m = p.get_m(id);
-  if (m.is_defunct()) {
-    throw RuntimeError("Molecule with id " + to_string(id) + " was removed.");
-  }
-
-  res = make_shared<API::Molecule>();
-  res->id = m.id;
-  if (m.is_surf()) {
-    // TODO: res->pos3d
-    res->orientation = convert_orientation(m.s.orientation);
+    res.insert(res.begin(), product_ids.begin(), product_ids.end());
   }
   else {
-    res->pos3d = m.v.pos * Vec3(world->config.length_unit);
-    res->orientation = Orientation::NONE;
+    // TODO
+    release_assert(false);
   }
-  res->world = world;
-  res->set_initialized();
 
   return res;
-}
-
-
-Vec3 Model::get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) {
-  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  return
-      p.get_geometry_vertex(object->get_partition_vertex_index(vertex_index)) *
-      Vec3(world->config.length_unit);
-}
-
-
-std::shared_ptr<Wall> Model::get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) {
-  object->check_is_initialized();
-
-  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
-
-  auto res = make_shared<Wall>();
-  res->geometry_object = object;
-  res->wall_index = wall_index;
-  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    res->vertices.push_back(p.get_geometry_vertex(w.vertex_indices[i]) * Vec3(world->config.length_unit));
-  }
-  res->area = w.area * world->config.length_unit * world->config.length_unit;
-  res->unit_normal = w.normal;
-  assert(cmp_eq(len3(res->unit_normal), 1));
-  res->is_movable = w.is_movable;
-  res->world = world;
-  return res;
-}
-
-
-Vec3 Model::get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) {
-  object->check_is_initialized();
-
-  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-
-  const std::vector<wall_index_t>& walls = p.get_walls_using_vertex(object->get_partition_vertex_index(vertex_index));
-
-  if (walls.empty()) {
-    throw RuntimeError("Internal error: there are no walls that use vertex with index " +
-        to_string(vertex_index) + " of object " + object->name + ".");
-  }
-
-  Vec3 normals_sum = Vec3(0);
-  for (wall_index_t wi: walls) {
-    const MCell::Wall& w = p.get_wall(wi);
-    // wall normals are already unit vectors so we can just sum them
-    normals_sum = normals_sum + w.normal;
-  }
-
-  return normals_sum / Vec3(len3(normals_sum));
-}
-
-
-Vec3 Model::get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) {
-  object->check_is_initialized();
-
-  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
-
-  // the value is is already normalized
-  assert(cmp_eq(len3(w.normal), 1));
-  return w.normal;
 }
 
 
@@ -382,10 +401,6 @@ void Model::register_reaction_callback(
     py::object context,
     std::shared_ptr<ReactionRule> reaction_rule
 ) {
-  if (callbacks.rxn_callback_function != nullptr) {
-    throw RuntimeError("Only one reaction callback is supported for now.");
-  }
-
   if (!initialized) {
     throw RuntimeError("Model must be initialized before registering callbacks.");
   }
@@ -439,6 +454,65 @@ void Model::export_to_bngl(const std::string& file_name) {
   if (err_msg != "") {
     throw RuntimeError("BNGL export failed: " + err_msg);
   }
+}
+
+
+void Model::save_checkpoint(const std::string& custom_dir) {
+  if (!initialized) {
+    throw RuntimeError(S("Model must be initialized for ") + NAME_SAVE_CHECKPOINT + ".");
+  }
+
+  // prepare output directory name
+  string dir;
+  if (is_set(custom_dir)) {
+    dir = custom_dir;
+  }
+  else {
+    // TODO: move the VizOutputEvent::iterations_to_string to api_utils
+    dir =
+        world->config.get_default_checkpoint_dir_prefix() +
+        VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), config.total_iterations) +
+        BNG::PATH_SEPARATOR;
+  }
+
+  PythonExporter exporter(this);
+  exporter.save_checkpoint(dir);
+}
+
+
+// can be called asynchronously at any point of simulation, only single-threaded
+// cannot be called from signal handlers
+void Model::schedule_checkpoint(
+    const uint64_t iteration,
+    const bool continue_simulation,
+    const std::string& custom_dir) {
+
+  // NOTE: accessing current iteration value asynchronously,
+  // it is a 64-bit integer so write is done atomically with a single instruction
+  uint64_t current_it = world->stats.get_current_iteration();
+  if (iteration != 0 && iteration < current_it) {
+    throw RuntimeError(S("Method ") + NAME_SCHEDULE_CHECKPOINT + " - cannot schedule checkpoint to the past.");
+  }
+
+  // same as above - 'initialized' uses a simple type, therefore writes are atomic
+  if (!initialized) {
+    throw RuntimeError(S("Method ") + NAME_SCHEDULE_CHECKPOINT + " cannot be called before model initialization.");
+  }
+
+  // prepare context for callback
+  CheckpointSaveEventContext ctx;
+  ctx.model = this;
+
+  if (is_set(custom_dir)) {
+    ctx.dir_prefix = custom_dir;
+    ctx.append_it_to_dir = false;
+  }
+  else {
+    ctx.dir_prefix = world->config.get_default_checkpoint_dir_prefix();
+    ctx.append_it_to_dir = true;
+  }
+
+  world->schedule_checkpoint_event(iteration, continue_simulation, ctx);
 }
 
 

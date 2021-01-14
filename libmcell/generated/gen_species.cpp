@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_species.h"
 #include "api/species.h"
 #include "api/complex.h"
@@ -133,6 +134,83 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       .def_property("custom_space_step", &Species::get_custom_space_step, &Species::set_custom_space_step)
       .def_property("target_only", &Species::get_target_only, &Species::set_target_only)
     ;
+}
+
+std::string GenSpecies::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = std::string("species") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("species")));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Species(" << nl;
+  if (name != STR_UNSET) {
+    ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  }
+  if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>() && !skip_vectors_export()) {
+    ss << ind << "elementary_molecules = " << export_vec_elementary_molecules(out, ctx, exported_name) << "," << nl;
+  }
+  if (orientation != Orientation::DEFAULT) {
+    ss << ind << "orientation = " << orientation << "," << nl;
+  }
+  if (compartment_name != STR_UNSET) {
+    ss << ind << "compartment_name = " << "'" << compartment_name << "'" << "," << nl;
+  }
+  if (diffusion_constant_2d != FLT_UNSET) {
+    ss << ind << "diffusion_constant_2d = " << f_to_str(diffusion_constant_2d) << "," << nl;
+  }
+  if (diffusion_constant_3d != FLT_UNSET) {
+    ss << ind << "diffusion_constant_3d = " << f_to_str(diffusion_constant_3d) << "," << nl;
+  }
+  if (custom_time_step != FLT_UNSET) {
+    ss << ind << "custom_time_step = " << f_to_str(custom_time_step) << "," << nl;
+  }
+  if (custom_space_step != FLT_UNSET) {
+    ss << ind << "custom_space_step = " << f_to_str(custom_space_step) << "," << nl;
+  }
+  if (target_only != false) {
+    ss << ind << "target_only = " << target_only << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+}
+
+std::string GenSpecies::export_vec_elementary_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < elementary_molecules.size(); i++) {
+    const auto& item = elementary_molecules[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

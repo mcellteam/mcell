@@ -55,6 +55,9 @@ std::string Component::to_bngl_str() const {
     if (bond == BOND_BOUND) {
       res += "!+";
     }
+    else if (bond == BOND_ANY) {
+      res += "!?";
+    }
     else {
       res += "!" + std::to_string(bond);
     }

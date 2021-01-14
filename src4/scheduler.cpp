@@ -94,7 +94,7 @@ void Calendar::insert(BaseEvent* event) {
   else {
     // we first need to find out whether we already have a bucket for this event
     float_t first_start_time = get_first_bucket_start_time();
-    assert(bucket_start_time - first_start_time >= 0 && "cannot schedule to the past"); // some eps?
+    release_assert(bucket_start_time - first_start_time >= 0 && "cannot schedule to the past"); // some eps?
     size_t buckets_from_first = (bucket_start_time - first_start_time) / BUCKET_TIME_INTERVAL;
 
     if (buckets_from_first < queue.size()) {
@@ -133,6 +133,7 @@ BaseEvent* Calendar::pop_next() {
 
 float_t Calendar::get_next_time() {
   clear_empty_buckets();
+  assert(!queue.empty() && !queue.front().events.empty());
   BaseEvent* next_event = queue.front().events.front();
   return next_event->event_time;
 }
@@ -224,17 +225,59 @@ float_t Calendar::get_time_up_to_next_barrier(
 
 
 void Scheduler::schedule_event(BaseEvent* event) {
+  release_assert(event->event_time != TIME_INVALID);
   calendar.insert(event);
 }
 
 
-float_t Scheduler::get_next_event_time() {
+void Scheduler::schedule_event_asynchronously(BaseEvent* event) {
+  // may be called multiple times at the same moment e.g. when
+  // adding a checkpointing event based on some timer in Python
+  async_event_queue_lock.lock();
+  have_async_events_to_schedule = true;
+  async_event_queue.push_back(event);
+  async_event_queue_lock.unlock();
+}
+
+
+void Scheduler::schedule_events_from_async_queue() {
+  if (!have_async_events_to_schedule) {
+    return;
+  }
+
+  async_event_queue_lock.lock();
+  for (BaseEvent* e: async_event_queue) {
+
+    if (e->event_time == TIME_INVALID) {
+      // real asynchronous event,
+      // schedule correctly for an upcoming iteration while making sure
+      // that all the events from the current iteration are finished so that
+      // the event_type_index is correctly followed
+      e->event_time = floor_f(get_next_event_time(true) + 1);
+    }
+    schedule_event(e);
+  }
+  async_event_queue.clear();
+  have_async_events_to_schedule = false;
+  async_event_queue_lock.unlock();
+}
+
+
+float_t Scheduler::get_next_event_time(const bool skip_async_events_check) {
+  if (!skip_async_events_check) {
+    schedule_events_from_async_queue();
+  }
+
   return calendar.get_next_time();
 }
 
 
 // pop next scheduled event and run its step method
 EventExecutionInfo Scheduler::handle_next_event() {
+
+  // first check if there are any
+  schedule_events_from_async_queue();
+
   BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");
   float_t event_time = event->event_time;
@@ -253,7 +296,7 @@ EventExecutionInfo Scheduler::handle_next_event() {
   event_being_executed = nullptr;
 
   event_type_index_t type_index = event->type_index;
-
+  bool return_from_run_iterations = event->return_from_run_n_iterations_after_execution();
 
   // schedule itself for the next period or just delete
   float_t next_time;
@@ -265,7 +308,23 @@ EventExecutionInfo Scheduler::handle_next_event() {
     delete event;
   }
 
-  return EventExecutionInfo(event_time, type_index);
+  return EventExecutionInfo(event_time, type_index, return_from_run_iterations);
+}
+
+
+void Scheduler::skip_events_up_to_time(const float_t start_time) {
+
+  // need to deal with imprecisions, e.g. 0.0000005 * 10^6 ~= 5.0000000000008
+  while (calendar.get_next_time() < start_time - EPS) {
+    BaseEvent* event = calendar.pop_next();
+    bool to_schedule = event->update_event_time_for_next_scheduled_time();
+    if (to_schedule) {
+      calendar.insert(event);
+    }
+    else {
+      delete event;
+    }
+  }
 }
 
 

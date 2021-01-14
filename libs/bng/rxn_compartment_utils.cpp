@@ -177,10 +177,10 @@ static string check_surface_compartments(
     if (surf_compartments.size() == 1) {
       surf_comp_id = surf_compartments[0];
     }
-    else if (surf_compartments.size() == 2) {
+    else if (surf_compartments.size() == 2 && !r.is_intermembrane_surf_rxn()) {
       if (surf_compartments[0] != surf_compartments[1]) {
         return "Reaction rule " + r.to_str(false, false, false) + ": all compartments of surface molecules on the "
-            "reactants side must use the same compartment.";
+            "reactants side must use the same compartment (unless this is an intermembrane surface reaction).";
       }
       surf_comp_id = surf_compartments[0];
     }
@@ -197,11 +197,14 @@ static string check_surface_compartments(
     }
 
     // do all the surface products use the same compartment?
-    for (const Cplx& prod: r.products) {
-      if (prod.is_surf() && prod.get_compartment_id() != surf_comp_id) {
+    if (!r.is_intermembrane_surf_rxn()) {
+      for (const Cplx& prod: r.products) {
+        if (prod.is_surf() && prod.get_compartment_id() != surf_comp_id) {
 
-        return "Reaction rule " + r.to_str(false, false, false) + ": all compartments of surface molecules on the "
-            "products side must use the same compartment " + comp_name + " as reactants.";
+          return "Reaction rule " + r.to_str(false, false, false) + ": all compartments of surface molecules on the " +
+              "products side must use the same compartment " + comp_name + " as reactants " +
+              "(unless this is an intermembrane surface reaction).";
+        }
       }
     }
 

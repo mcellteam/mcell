@@ -37,8 +37,9 @@
 #include <map>
 #include <iostream>
 
-#include "../libs/bng/rxn_container.h"
 #include "bng/bng.h"
+
+#include "api/checkpoint_signals.h"
 
 #include "partition.h"
 #include "scheduler.h"
@@ -68,17 +69,30 @@ class World {
 public:
   World(API::Callbacks& callbacks_);
   ~World();
-  void init_simulation();
-  void run_simulation(const bool dump_initial_state = false, const bool dump_with_geometry = false);
-  void run_n_iterations(
+  // MCell MDL mode
+  void init_and_run_simulation(const bool dump_initial_state = false, const bool dump_with_geometry = false);
+
+  void init_simulation(const float_t start_time);
+
+  // MCell Python mode, init_simulation must be called first
+  // returns number of executed iterations
+  uint64_t run_n_iterations(
       const uint64_t num_iterations,
-      const uint64_t output_frequency,
       const bool terminate_last_iteration_after_viz_output = false // used when ending simulation
   );
   void end_simulation(const bool print_final_report = true);
 
   // used by converters
   void create_initial_surface_region_release_event();
+
+  // checkpointing - called from signal handler
+  void set_to_create_checkpoint_event_from_signal_hadler(const int signo, API::Model* model) {
+    signaled_checkpoint_signo = signo;
+    signaled_checkpoint_model = model;
+  }
+
+  void schedule_checkpoint_event(
+      const uint64_t iteration, const bool continue_simulation, const API::CheckpointSaveEventContext& ctx);
 
   // -------------- diverse getters -----------------------------
   const SimulationConfig& get_config() {
@@ -177,9 +191,10 @@ public:
   BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
-  count_buffer_id_t create_count_buffer(const std::string file_name, const size_t buffer_size) {
+  count_buffer_id_t create_count_buffer(
+      const std::string file_name, const size_t buffer_size, const bool open_for_append = false) {
     count_buffer_id_t id = count_buffers.size();
-    count_buffers.push_back(CountBuffer(file_name, buffer_size));
+    count_buffers.push_back(CountBuffer(file_name, buffer_size, open_for_append));
     return id;
   }
 
@@ -225,6 +240,10 @@ public:
   void flush_buffers();
 
 private:
+  void check_checkpointing_signal();
+
+  uint64_t time_to_iteration(const float_t time);
+
   // called in init_simulation
   void recompute_species_flags();
 
@@ -253,7 +272,7 @@ public:
 
   SpeciesFlagsAnalyzer species_flags_analyzer;
 
-  Scheduler scheduler;
+  mutable Scheduler scheduler; // scheduler might need to do some internal reorganization
 
   std::vector<MolOrRxnCountEvent*> unscheduled_count_events;
 
@@ -278,6 +297,10 @@ private:
   // already initialized
   bool simulation_initialized;
 
+  // set in run_n_iterations to know whether we should report
+  // final viz and rxn output in end_simulation
+  bool run_n_iterations_terminated_with_checkpoint;
+
   // used to know whether we already reported final simulation stats
   bool simulation_ended;
 
@@ -292,6 +315,12 @@ private:
 
   // and to nicely report simulation progress
   uint64_t previous_iteration;
+
+  // SIGNO_NOT_SIGNALED (-1) if not signaled, supported values are SIGUSR1, SIGUSR2, and SIGALRM
+  int signaled_checkpoint_signo;
+  // checkpointing requires model pointer, do not use this for anything else,
+  // is not nullptr only when a checkpoint is scheduled
+  API::Model* signaled_checkpoint_model;
 };
 
 } // namespace mcell

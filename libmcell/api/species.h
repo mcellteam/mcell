@@ -39,16 +39,6 @@ class Species: public GenSpecies {
 public:
   SPECIES_CTOR()
 
-  // ctor for special ALL_*MOLECULES species
-  // overlaps with generated ctor, the only difference is the type of the argument which is
-  // const std::string&
-  Species(const char* name_)
-    : GenSpecies(name_) {
-    set_all_attributes_as_default_or_unset();
-    name = name_;
-    species_id = SPECIES_ID_INVALID;
-  }
-
   Species(Complex& cplx_inst)
     : GenSpecies(cplx_inst.to_bngl_str()),
       species_id(SPECIES_ID_INVALID) {
@@ -82,7 +72,6 @@ public:
     }
   }
 
-
   // we are making changes, so semantic checks are here instead of in const check_semantics
   void postprocess_in_ctor() override {
     // initialization
@@ -96,7 +85,8 @@ public:
     }
 
     // 1) simple species defined by name
-    if (is_set(name) && !is_set(elementary_molecules) && (is_set(diffusion_constant_2d) || is_set(diffusion_constant_3d))) {
+    if (is_set(name) && !is_set(elementary_molecules) &&
+        (is_set(diffusion_constant_2d) || is_set(diffusion_constant_3d))) {
 
       if (!is_simple_species(name)) {
         throw ValueError("Only simple species can be fully defined by setting name and diffusion constant. "
@@ -118,9 +108,12 @@ public:
       }
 
       // create a single ElementaryMoleculeType
+      // will be added on initialization to model's elementary_molecule_types
       auto mt = std::make_shared<ElementaryMoleculeType>(
           name, std::vector<std::shared_ptr<ComponentType>>(),
-          diffusion_constant_2d, diffusion_constant_3d
+          diffusion_constant_2d, diffusion_constant_3d,
+          custom_time_step, custom_space_step,
+          target_only
       );
 
       // and then molecule instance out of it
@@ -153,6 +146,15 @@ public:
     res.compartment_name = compartment_name;
     return res;
   }
+
+  bool skip_python_export() const override {
+    return is_species_superclass();
+  }
+
+  // default generated variant exports all details, we do not want this because
+  // we export just the BNGL name and recompute the diffusion constant
+  // and other fields from the elementary molecule types this species uses
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
 
   bool is_species_superclass() const {
     return BNG::is_species_superclass(name);

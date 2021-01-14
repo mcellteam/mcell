@@ -220,7 +220,7 @@ ComponentType SemanticAnalyzer::convert_component_type(
   if (!allow_components_to_have_bonds && c->bond->str != "") {
     errs_loc(c) <<
         "Definition of a component in the molecule types section must not have a bond, "
-        "error for '!" << c->bond->str << "'.\n"; // test N0100
+        "error for '!" << c->bond->str << "'.\n"; // checked by parser, original test N0100
     ctx->inc_error_count();
   }
 
@@ -567,7 +567,9 @@ ElemMol SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
 
     // state
     if (component->states->items.size() > 1) {
-      errs_loc(component) << "A component might have max. 1 state specified, error for component " << component->name << ".\n"; // test N0202
+      // checked by parser, original test N0202
+      errs_loc(component) <<
+          "A component might have max. 1 state specified, error for component " << component->name << ".\n";
       ctx->inc_error_count();
       return mi;
     }

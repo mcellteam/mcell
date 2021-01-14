@@ -37,14 +37,19 @@ void define_pybinding_constants(py::module& m) {
   m.attr("ALL_MOLECULES") = py::str(ALL_MOLECULES);
   m.attr("ALL_VOLUME_MOLECULES") = py::str(ALL_VOLUME_MOLECULES);
   m.attr("ALL_SURFACE_MOLECULES") = py::str(ALL_SURFACE_MOLECULES);
+  m.attr("DEFAULT_CHECKPOINTS_DIR") = py::str(DEFAULT_CHECKPOINTS_DIR);
+  m.attr("DEFAULT_SEED_DIR_PREFIX") = py::str(DEFAULT_SEED_DIR_PREFIX);
+  m.attr("DEFAULT_SEED_DIR_DIGITS") = py::int_(DEFAULT_SEED_DIR_DIGITS);
+  m.attr("DEFAULT_ITERATION_DIR_PREFIX") = py::str(DEFAULT_ITERATION_DIR_PREFIX);
   m.attr("AllMolecules") = py::object(py::cast(AllMolecules));
   m.attr("AllVolumeMolecules") = py::object(py::cast(AllVolumeMolecules));
   m.attr("AllSurfaceMolecules") = py::object(py::cast(AllSurfaceMolecules));
-  m.attr("MOLECULE_ID_INVALID") = py::int_(MOLECULE_ID_INVALID);
+  m.attr("ID_INVALID") = py::int_(ID_INVALID);
   m.attr("NUMBER_OF_TRAINS_UNLIMITED") = py::int_(NUMBER_OF_TRAINS_UNLIMITED);
   m.attr("TIME_INFINITY") = py::float_(TIME_INFINITY);
   m.attr("INT_UNSET") = py::int_(INT_UNSET);
   m.attr("FLT_UNSET") = py::float_(FLT_UNSET);
+  m.attr("RNG_SIZE") = py::int_(RNG_SIZE);
 }
 
 void define_pybinding_enums(py::module& m) {
@@ -106,6 +111,11 @@ void define_pybinding_enums(py::module& m) {
     .value("VOLUME_VOLUME", ReactionType::VOLUME_VOLUME)
     .value("VOLUME_SURFACE", ReactionType::VOLUME_SURFACE)
     .value("SURFACE_SURFACE", ReactionType::SURFACE_SURFACE)
+    .export_values();
+  py::enum_<MoleculeType>(m, "MoleculeType", py::arithmetic())
+    .value("UNSET", MoleculeType::UNSET)
+    .value("VOLUME", MoleculeType::VOLUME)
+    .value("SURFACE", MoleculeType::SURFACE)
     .export_values();
 }
 

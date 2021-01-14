@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_elementary_molecule.h"
 #include "api/elementary_molecule.h"
 #include "api/component.h"
@@ -108,6 +109,60 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
       .def_property("elementary_molecule_type", &ElementaryMolecule::get_elementary_molecule_type, &ElementaryMolecule::set_elementary_molecule_type)
       .def_property("components", &ElementaryMolecule::get_components, &ElementaryMolecule::set_components)
     ;
+}
+
+std::string GenElementaryMolecule::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "elementary_molecule_" + std::to_string(ctx.postinc_counter("elementary_molecule"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.ElementaryMolecule(" << nl;
+  ss << ind << "elementary_molecule_type = " << elementary_molecule_type->export_to_python(out, ctx) << "," << nl;
+  if (components != std::vector<std::shared_ptr<Component>>() && !skip_vectors_export()) {
+    ss << ind << "components = " << export_vec_components(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+}
+
+std::string GenElementaryMolecule::export_vec_components(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < components.size(); i++) {
+    const auto& item = components[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

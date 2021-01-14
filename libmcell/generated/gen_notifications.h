@@ -30,6 +30,7 @@ namespace MCell {
 namespace API {
 
 class Notifications;
+class PythonExportContext;
 
 #define NOTIFICATIONS_CTOR() \
     Notifications( \
@@ -57,6 +58,9 @@ public:
   bool operator == (const Notifications& other) const { return __eq__(other);}
   bool operator != (const Notifications& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
+
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
+
 
   // --- attributes ---
   int bng_verbosity_level;

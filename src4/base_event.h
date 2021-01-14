@@ -39,7 +39,10 @@ typedef int event_type_index_t;
 // Value specifies ordering when two events are scheduled for exactly the same time
 // The 'holes' are there on purpose for ordering of external events
 const event_type_index_t EVENT_TYPE_INDEX_INVALID = -1;
-const event_type_index_t EVENT_TYPE_INDEX_PERIODIC_CALL = 0;
+
+// must be the very first event in an iteration
+const event_type_index_t EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT = 0;
+
 const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
 // first counting and visualization output is done after release
 const event_type_index_t EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT = 290;
@@ -60,7 +63,8 @@ const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 500;  // this event sp
 const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;
 const event_type_index_t EVENT_TYPE_INDEX_PARTITION_SHRINK = 910;
 
-const event_type_index_t EVENT_TYPE_INDEX_BARRIER = 1000;
+const event_type_index_t EVENT_TYPE_INDEX_BARRIER = 980;
+const event_type_index_t EVENT_TYPE_INDEX_CALL_END_ITERATION = 990;
 
 /**
  * Base class for all events.
@@ -126,6 +130,11 @@ public:
   virtual void set_barrier_time_for_next_execution(const float_t time_step) {
     // the subclass must return true in may_be_blocked_by_barrier_and_needs_set_time_step
     assert(false && "Only overridden variant of this method may be called.");
+  }
+
+  // used by checkpointing
+  virtual bool return_from_run_n_iterations_after_execution() const {
+    return false;
   }
 
   // time when this object's step() method will be called

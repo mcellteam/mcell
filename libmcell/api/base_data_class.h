@@ -24,13 +24,15 @@
 #define LIBMCELL_API_BASE_DATA_CLASS_H_
 
 #include "common.h"
+#include "base_export_class.h"
 
 namespace MCell {
 namespace API {
 
+class PythonExportContext;
 
 // base class for all classes that hold the model input data
-class BaseDataClass {
+class BaseDataClass: public BaseExportClass {
 public:
   BaseDataClass()
     : class_name(STR_UNSET), name(STR_UNSET), initialized(false), cached_data_are_uptodate(false) {
@@ -77,6 +79,7 @@ public:
 
   // empty implementation, to be overridden in actual derived classes
   virtual std::string to_str(const std::string ind="") const {
+    assert(false);
     return "String dump for a derived class is not implemented.";
   }
 

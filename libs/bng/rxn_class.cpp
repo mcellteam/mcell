@@ -217,22 +217,23 @@ float_t RxnClass::compute_pb_factor() const {
 
   /* determine reaction probability by proper conversion of the reaction rate constant */
   assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
-  if (specific_reactants.size() == 1) {
-    // unimolecular
+  if (specific_reactants.size() == 1 || is_intermembrane_surf_surf_rxn_class()) {
+    // unimolecular or
+    // experimental surf-surf on different objects
     pb_factor = bng_config.time_unit;
   }
   else if (num_surf_reactants >= 1 || num_surfaces == 1) {
 
     if (num_surf_reactants == 2) {
       /* this is a reaction between two surface molecules */
-      if (reactant_species[0]->cant_initiate() && reactant_species[1]->cant_initiate()) {
+      if (reactant_species[0]->is_target_only() && reactant_species[1]->is_target_only()) {
         warns() <<
             "There is a surface reaction between " << reactant_species[0]->name << " and " <<
             reactant_species[1]->name << ", but neither of them can initiate this reaction " <<
             "(they are marked as target_only)\n";
       }
 
-      if (reactant_species[0]->cant_initiate() || reactant_species[1]->cant_initiate()) {
+      if (reactant_species[0]->is_target_only() || reactant_species[1]->is_target_only()) {
         pb_factor = bng_config.time_unit * bng_config.grid_density / 3; /* 3 neighbors */
       }
       else {
@@ -306,16 +307,16 @@ float_t RxnClass::compute_pb_factor() const {
     float_t eff_vel_b = get_reactant_space_step(1) / get_reactant_time_step(1);
     float_t eff_vel;
 
-    if (reactant_species[0]->cant_initiate() && reactant_species[1]->cant_initiate()) {
+    if (reactant_species[0]->is_target_only() && reactant_species[1]->is_target_only()) {
       warns() <<
           "There is a volume reaction between " << reactant_species[0]->name << " and " <<
           reactant_species[1]->name << ", but neither of them can initiate this reaction " <<
           "(they are marked as target_only)\n";
     }
-    else if (reactant_species[0]->cant_initiate()) {
+    else if (reactant_species[0]->is_target_only()) {
       eff_vel_a = 0;
     }
-    else if (reactant_species[1]->cant_initiate()) {
+    else if (reactant_species[1]->is_target_only()) {
       eff_vel_b = 0;
     }
 
@@ -373,7 +374,16 @@ void RxnClass::add_rxn_rule_no_update(RxnRule* r) {
     bimol_vol_rxn_flag = r->is_bimol_vol_rxn();
   }
   else {
+    // this should not normally happen
     assert(bimol_vol_rxn_flag == r->is_bimol_vol_rxn());
+  }
+
+  if (rxn_rule_ids.empty()) {
+    intermembrane_surf_surf_rxn_flag = r->is_intermembrane_surf_rxn();
+  }
+  else {
+    release_assert(intermembrane_surf_surf_rxn_flag == r->is_intermembrane_surf_rxn() &&
+        "Intermembrane and other reactions cannot be mixed in a single rxn class");
   }
 
   // check that the rule was not added already,

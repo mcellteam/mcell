@@ -133,10 +133,6 @@ const uint SORT_MOLS_BY_SUBPART_PERIODICITY = 20;
 
 const uint DEFRAGMENTATION_PERIODICITY = 100;
 
-const uint RXN_CLASS_CLEANUP_PERIODICITY = 100;
-
-const uint SPECIES_CLEANUP_PERIODICITY = 2000;
-
 // TODO: make this configurable so that we can run tests
 const uint PARTITION_SHRINK_PERIODICITY = 10000;
 
@@ -452,6 +448,7 @@ static inline float_t abs_f(const float_t x) {
 
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
   assert(val >= 0);
+  assert(multiple > 0);
   return (float_t)((int)((val + EPS)/ multiple)) * multiple;
 }
 
@@ -748,7 +745,7 @@ uint64_t get_mem_usage();
 class SimulationStats {
 public:
   SimulationStats() {
-    reset();
+    reset(true);
   }
   void inc_ray_voxel_tests() {
     ray_voxel_tests++;
@@ -799,8 +796,15 @@ public:
     return current_iteration;
   }
 
-  void reset() {
-    current_iteration = 0;
+  // to be used only in initialization
+  void set_current_iteration(const uint64_t it) {
+    current_iteration = it;
+  }
+
+  void reset(const bool reset_also_current_iteration) {
+    if (reset_also_current_iteration) {
+      current_iteration = 0;
+    }
     ray_voxel_tests = 0;
     ray_polygon_tests = 0;
     ray_polygon_colls = 0;

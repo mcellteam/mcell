@@ -1,18 +1,22 @@
 
-#ifndef SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_
-#define SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_
+#ifndef LIBMCELL_API_PYTHON_EXPORT_CONSTANTS_H_
+#define LIBMCELL_API_PYTHON_EXPORT_CONSTANTS_H_
 
 #include "datamodel_defines.h"
 
 namespace MCell {
+namespace API {
 
 const int FLOAT_OUT_PRECISION = 15; // this is the precision that is used by mdl_to_data_model.py script
+
+const int MAX_SPECIES_NAME_LENGTH = 32;
 
 const char* const PARAMETERS = "parameters";
 const char* const SUBSYSTEM = "subsystem";
 const char* const GEOMETRY = "geometry";
 const char* const INSTANTIATION = "instantiation";
 const char* const OBSERVABLES = "observables";
+const char* const SIMULATION_STATE = "simulation_state";
 const char* const MODEL = "model";
 
 #define CUSTOMIZATION "customization"
@@ -68,11 +72,17 @@ const char* const GENERATED_WARNING =
 
 const char* const BASE_MODEL_IMPORTS =
     "import sys\n"
-    "import os\n\n"
+    "import os\n"
 ;
 
+const char* const IMPORT_OS =
+    "import os\n"
+;
+
+#define MODEL_PATH "MODEL_PATH"
+
 const char* const MODEL_PATH_SETUP =
-    "MODEL_PATH = os.path.dirname(os.path.abspath(__file__))\n"
+    MODEL_PATH " = os.path.dirname(os.path.abspath(__file__))\n"
 ;
 
 const char* const MCELL_PATH_SETUP =
@@ -97,18 +107,16 @@ const char* const MCELL_PATH_SETUP =
 
 const char* const MCELL_IMPORT = "import mcell as m\n\n";
 
-#define C
-
 static std::string get_customization_import(const std::string& customization_module) {
   return
-      "if os.path.exists(os.path.join('" + customization_module + ".py')):\n"
-      "    import " CUSTOMIZATION "\n"
+      std::string("if os.path.exists(os.path.join(") + MODEL_PATH + ", '" + customization_module + ".py')):\n"
+      "    import " + customization_module + "\n"
       "else:\n"
-      "    " CUSTOMIZATION " = None\n"
+      "    " + customization_module + " = None\n"
   ;
 }
 
-static std::string get_argparse_w_customization(
+static std::string get_argparse_w_customization_begin(
     const std::string& parameters_module, const std::string& customization_module) {
 
   return
@@ -122,12 +130,55 @@ static std::string get_argparse_w_customization(
       "    elif len(sys.argv) == 3 and sys.argv[1] == '-seed':\n"
       "        # overwrite value of seed defined in module parameters\n"
       "        " + parameters_module + ".SEED = int(sys.argv[2])\n"
+  ;
+}
+
+const char* const CHECKPOINT_ITERATION = "checkpoint_iteration";
+
+static std::string get_argparse_checkpoint_iteration(
+    const std::string& parameters_module) {
+
+  return
+      std::string("    elif len(sys.argv) == 3 and sys.argv[1] == '-chkpt':\n") +
+      "        " + CHECKPOINT_ITERATION + " = int(sys.argv[2])\n" +
+      "    elif len(sys.argv) == 5 and sys.argv[1] == '-seed' and sys.argv[3] == '-chkpt':\n" +
+      "        " + parameters_module + ".SEED = int(sys.argv[2])\n" +
+      "        " + CHECKPOINT_ITERATION + " = int(sys.argv[4])\n"
+  ;
+}
+
+static std::string get_resume_from_checkpoint_code(
+    const std::string& parameters_module) {
+
+  return
+      "# resume simulation if a checkpoint was created\n"
+      "checkpoint_dir = m.run_utils.get_last_checkpoint_dir(" + parameters_module + ".SEED)\n"
+      "if checkpoint_dir:\n"
+      "    # change sys.path so that the only the checkpointed files are loaded\n"
+      "    sys.path = m.run_utils.remove_cwd(sys.path)\n"
+      "    sys.path.append(checkpoint_dir)\n"
+      "    \n"
+      "    # prepare import of the 'model' module from the checkpoint\n"
+      "    model_spec = importlib.util.spec_from_file_location(\n"
+      "        'model', os.path.join(checkpoint_dir, 'model.py'))\n"
+      "    model_module = importlib.util.module_from_spec(model_spec)\n"
+      "    \n"
+      "    # run import, this also resumes simulation from the checkpoint\n"
+      "    model_spec.loader.exec_module(model_module)\n"
+      "\n"
+      "    # exit after simulation has finished successfully\n"
+      "    sys.exit(0)\n\n"
+ ;
+}
+
+static std::string get_argparse_w_customization_end() {
+  return
       "    else:\n"
       "        print(\"Error: invalid command line arguments\")\n"
       "        print(\"  usage: \" + sys.argv[0] + \"[-seed N]\")\n"
-      "        sys.exit(1)\n"
-  ;
+      "        sys.exit(1)\n";
 }
+
 
 static std::string get_user_defined_configuration(const std::string& customization_module) {
   return
@@ -135,6 +186,18 @@ static std::string get_user_defined_configuration(const std::string& customizati
       "    # user-defined model configuration\n"
       "    " + customization_module + "." + CUSTOM_CONFIG + "(" + MODEL + ")\n"
   ;
+}
+
+static std::string get_abs_path(const std::string file) {
+  return std::string("os.path.join(") + MODEL_PATH + ", '" + file + "')";
+}
+
+static std::string get_import(const std::string module) {
+  return "import " + module + "\n";
+}
+
+static std::string get_import_star(const std::string module) {
+  return "from " + module + " import *\n";
 }
 
 const char* const REGION_ALL_NAME = "ALL";
@@ -183,6 +246,7 @@ const char* const TEMPLATE_CUSTOM_INIT_AND_RUN =
     "\"\"\"\n"
 ;
 
+} // namespace API
 } // namespace MCell
 
-#endif // SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_
+#endif // LIBMCELL_API_PYTHON_EXPORT_CONSTANTS_H_

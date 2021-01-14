@@ -61,6 +61,7 @@ public:
       rcp_length_unit(0),
       grid_density(0),
       rx_radius_3d(0),
+      intermembrane_rx_radius_3d(0),
       rxn_and_species_report(true),
       bng_verbosity_level(0) {
   }
@@ -76,6 +77,7 @@ public:
   BNGCommon::float_t rcp_length_unit;
   BNGCommon::float_t grid_density;
   BNGCommon::float_t rx_radius_3d;
+  BNGCommon::float_t intermembrane_rx_radius_3d;
 
   // generate report files during simulation
   bool rxn_and_species_report;
@@ -87,7 +89,7 @@ public:
 
   void init() {
     rcp_length_unit = 1/length_unit;
-    initialize_report_files();
+    initialize_bng_report_files();
   }
 
   std::string get_rxn_report_file_name() const;
@@ -95,13 +97,18 @@ public:
   std::string get_warnings_report_file_name() const;
 
   void dump() const;
-private:
+
+protected:
   std::string seed_as_str() const;
-  void initialize_report_files();
+  void initialize_bng_report_files();
 };
 
-void append_to_report(const std::string& report_fname, const std::string& msg);
 
+// report utilities
+std::string get_current_date_time();
+void append_to_report(const std::string& report_fname, const std::string& msg);
+void initialize_report_file(const std::string& fname, const char* report_name);
+void remove_report_file(const std::string& fname, const char* report_name);
 
 } // namespace BNG
 

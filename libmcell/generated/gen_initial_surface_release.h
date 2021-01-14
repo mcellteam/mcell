@@ -31,6 +31,7 @@ namespace API {
 
 class InitialSurfaceRelease;
 class Complex;
+class PythonExportContext;
 
 #define INITIAL_SURFACE_RELEASE_CTOR() \
     InitialSurfaceRelease( \
@@ -58,6 +59,9 @@ public:
   bool operator == (const InitialSurfaceRelease& other) const { return __eq__(other);}
   bool operator != (const InitialSurfaceRelease& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
+
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
+
 
   // --- attributes ---
   std::shared_ptr<Complex> complex;

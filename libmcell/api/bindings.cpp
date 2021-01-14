@@ -54,12 +54,20 @@
 
 #include "generated/gen_molecule.h"
 #include "generated/gen_wall.h"
+#include "generated/gen_introspection.h"
+
 #include "generated/gen_mol_wall_hit_info.h"
 
 #include "generated/gen_wall_wall_hit_info.h"
 #include "generated/gen_reaction_info.h"
 
+#include "generated/gen_chkpt_vol_mol.h"
+#include "generated/gen_chkpt_surf_mol.h"
+#include "generated/gen_rng_state.h"
+
+#include "generated/gen_bngl_utils.h"
 #include "generated/gen_geometry_utils.h"
+#include "generated/gen_run_utils.h"
 
 
 #include "generated/gen_constants.h"
@@ -224,20 +232,28 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_MolWallHitInfo(m);
   define_pybinding_ReactionInfo(m);
 
+  define_pybinding_BaseChkptMol(m);
+  define_pybinding_ChkptVolMol(m);
+  define_pybinding_ChkptSurfMol(m);
+  define_pybinding_RngState(m);
+
   // constants may reference existing types, must be "bound" later
   define_pybinding_constants(m);
 
-  define_pybinding_geometry_utils(m);
   define_pybinding_bngl_utils(m);
+  define_pybinding_geometry_utils(m);
+  define_pybinding_run_utils(m);
 }
 
 
-void check_ctrl_c(const float_t current_time, void* arg) {
+void check_ctrl_c(const float_t current_time, World* world) {
+  // make sure to re-acquire lock, PyErr_CheckSignals segfaults otherwise
+  py::gil_scoped_acquire acquire;
   if (PyErr_CheckSignals() != 0) {
     std::cout << "Caught Ctrl-C signal in iteration " << current_time << ".\n";
     std::cout << "Flushing buffers.\n";
-    release_assert(arg != nullptr);
-    ((World*)arg)->flush_buffers();
+    release_assert(world != nullptr);
+    world->flush_buffers();
 
     throw py::error_already_set();
   }

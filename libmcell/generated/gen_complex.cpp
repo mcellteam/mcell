@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_complex.h"
 #include "api/complex.h"
 #include "api/elementary_molecule.h"
@@ -97,6 +98,68 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       .def_property("orientation", &Complex::get_orientation, &Complex::set_orientation)
       .def_property("compartment_name", &Complex::get_compartment_name, &Complex::set_compartment_name)
     ;
+}
+
+std::string GenComplex::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = std::string("complex") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("complex")));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Complex(" << nl;
+  if (name != STR_UNSET) {
+    ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  }
+  if (elementary_molecules != std::vector<std::shared_ptr<ElementaryMolecule>>() && !skip_vectors_export()) {
+    ss << ind << "elementary_molecules = " << export_vec_elementary_molecules(out, ctx, exported_name) << "," << nl;
+  }
+  if (orientation != Orientation::DEFAULT) {
+    ss << ind << "orientation = " << orientation << "," << nl;
+  }
+  if (compartment_name != STR_UNSET) {
+    ss << ind << "compartment_name = " << "'" << compartment_name << "'" << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+}
+
+std::string GenComplex::export_vec_elementary_molecules(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < elementary_molecules.size(); i++) {
+    const auto& item = elementary_molecules[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

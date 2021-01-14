@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_count.h"
 #include "api/count.h"
 #include "api/complex.h"
@@ -74,6 +75,7 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   node_type = ExprNodeType::LEAF;
   left_node = nullptr;
   right_node = nullptr;
+  initial_reactions_count = 0;
 }
 
 bool GenCount::__eq__(const Count& other) const {
@@ -159,7 +161,8 @@ bool GenCount::__eq__(const Count& other) const {
           false :
           true
         )
-     ) ;
+     )  &&
+    initial_reactions_count == other.initial_reactions_count;
 }
 
 bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name) const {
@@ -245,7 +248,8 @@ bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name
           false :
           true
         )
-     ) ;
+     )  &&
+    initial_reactions_count == other.initial_reactions_count;
 }
 
 std::string GenCount::to_str(const std::string ind) const {
@@ -262,7 +266,8 @@ std::string GenCount::to_str(const std::string ind) const {
       "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "initial_reactions_count=" << initial_reactions_count;
   return ss.str();
 }
 
@@ -281,7 +286,8 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             std::shared_ptr<Region>,
             const ExprNodeType,
             std::shared_ptr<CountTerm>,
-            std::shared_ptr<CountTerm>
+            std::shared_ptr<CountTerm>,
+            const uint64_t
           >(),
           py::arg("name") = STR_UNSET,
           py::arg("file_name") = STR_UNSET,
@@ -294,7 +300,8 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
           py::arg("region") = nullptr,
           py::arg("node_type") = ExprNodeType::LEAF,
           py::arg("left_node") = nullptr,
-          py::arg("right_node") = nullptr
+          py::arg("right_node") = nullptr,
+          py::arg("initial_reactions_count") = 0
       )
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
@@ -307,6 +314,74 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier)
       .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps)
     ;
+}
+
+std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = std::string("count") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("count")));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Count(" << nl;
+  if (is_set(species_pattern)) {
+    ss << ind << "species_pattern = " << species_pattern->export_to_python(out, ctx) << "," << nl;
+  }
+  if (is_set(molecules_pattern)) {
+    ss << ind << "molecules_pattern = " << molecules_pattern->export_to_python(out, ctx) << "," << nl;
+  }
+  if (is_set(reaction_rule)) {
+    ss << ind << "reaction_rule = " << reaction_rule->export_to_python(out, ctx) << "," << nl;
+  }
+  if (is_set(region)) {
+    ss << ind << "region = " << region->export_to_python(out, ctx) << "," << nl;
+  }
+  if (node_type != ExprNodeType::LEAF) {
+    ss << ind << "node_type = " << node_type << "," << nl;
+  }
+  if (is_set(left_node)) {
+    ss << ind << "left_node = " << left_node->export_to_python(out, ctx) << "," << nl;
+  }
+  if (is_set(right_node)) {
+    ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
+  }
+  if (initial_reactions_count != 0) {
+    ss << ind << "initial_reactions_count = " << initial_reactions_count << "," << nl;
+  }
+  if (name != STR_UNSET) {
+    ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  }
+  if (file_name != STR_UNSET) {
+    ss << ind << "file_name = " << "'" << file_name << "'" << "," << nl;
+  }
+  if (is_set(count_expression)) {
+    ss << ind << "count_expression = " << count_expression->export_to_python(out, ctx) << "," << nl;
+  }
+  if (multiplier != 1) {
+    ss << ind << "multiplier = " << f_to_str(multiplier) << "," << nl;
+  }
+  if (every_n_timesteps != 1) {
+    ss << ind << "every_n_timesteps = " << f_to_str(every_n_timesteps) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

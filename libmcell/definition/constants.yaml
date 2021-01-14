@@ -40,7 +40,23 @@ constants:
   - name: ALL_SURFACE_MOLECULES
     type: str
     value: "ALL_SURFACE_MOLECULES"
+    
+  - name: DEFAULT_CHECKPOINTS_DIR
+    type: str
+    value: "checkpoints"
+
+  - name: DEFAULT_SEED_DIR_PREFIX
+    type: str
+    value: "seed_"
+
+  - name: DEFAULT_SEED_DIR_DIGITS
+    type: int
+    value: 5
   
+  - name: DEFAULT_ITERATION_DIR_PREFIX
+    type: str
+    value: "it_"
+    
   # TODO: maybe rename to AllSpecies ...
   - name: AllMolecules
     type: Species
@@ -54,7 +70,7 @@ constants:
     type: Species
     value: AllSurfaceMolecules # object from api/globals.cpp
 
-  - name: MOLECULE_ID_INVALID
+  - name: ID_INVALID
     type: int
     value: -1 
     
@@ -79,7 +95,13 @@ constants:
     doc: | 
       This is a special floating point value that means that an argument was not set, 
       its value is 3.40282346638528859812e+38F.
-        
+      
+  - name: RNG_SIZE
+    type: int
+    value: 256
+    doc: |
+      Size of arrays of 
+  
 enums:
   - name: Orientation
     doc: Orientation of a Complex.
@@ -207,5 +229,14 @@ enums:
       value: 4
     - name: SURFACE_SURFACE
       value: 5
-    
+      
+  - name: MoleculeType
+    doc: Used in molecule introspection and internally in checkpointing.
+    values:
+    - name: UNSET
+      value: 0
+    - name: VOLUME
+      value: 1
+    - name: SURFACE
+      value: 2
       

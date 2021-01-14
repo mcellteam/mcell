@@ -30,6 +30,8 @@ namespace MCell {
 namespace API {
 
 class Config;
+class RngState;
+class PythonExportContext;
 
 #define CONFIG_CTOR() \
     Config( \
@@ -37,30 +39,46 @@ class Config;
         const float_t time_step_ = 1e-6, \
         const float_t surface_grid_density_ = 10000, \
         const float_t interaction_radius_ = FLT_UNSET, \
+        const float_t intermembrane_interaction_radius_ = FLT_UNSET, \
         const float_t vacancy_search_distance_ = 10, \
         const bool center_molecules_on_grid_ = false, \
         const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
         const float_t partition_dimension_ = 10, \
         const float_t subpartition_dimension_ = 0.5, \
-        const float_t total_iterations_hint_ = 1000000, \
+        const float_t total_iterations_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
+        const int reaction_class_cleanup_periodicity_ = 500, \
+        const int species_cleanup_periodicity_ = 10000, \
         const bool sort_molecules_ = false, \
-        const int memory_limit_gb_ = -1 \
+        const int memory_limit_gb_ = -1, \
+        const uint64_t initial_iteration_ = 0, \
+        const float_t initial_time_ = 0, \
+        std::shared_ptr<RngState> initial_rng_state_ = nullptr, \
+        const bool append_to_count_output_data_ = false, \
+        const bool continue_after_sigalrm_ = false \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
       time_step = time_step_; \
       surface_grid_density = surface_grid_density_; \
       interaction_radius = interaction_radius_; \
+      intermembrane_interaction_radius = intermembrane_interaction_radius_; \
       vacancy_search_distance = vacancy_search_distance_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
       initial_partition_origin = initial_partition_origin_; \
       partition_dimension = partition_dimension_; \
       subpartition_dimension = subpartition_dimension_; \
-      total_iterations_hint = total_iterations_hint_; \
+      total_iterations = total_iterations_; \
       check_overlapped_walls = check_overlapped_walls_; \
+      reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity_; \
+      species_cleanup_periodicity = species_cleanup_periodicity_; \
       sort_molecules = sort_molecules_; \
       memory_limit_gb = memory_limit_gb_; \
+      initial_iteration = initial_iteration_; \
+      initial_time = initial_time_; \
+      initial_rng_state = initial_rng_state_; \
+      append_to_count_output_data = append_to_count_output_data_; \
+      continue_after_sigalrm = continue_after_sigalrm_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -77,6 +95,10 @@ public:
   bool operator == (const Config& other) const { return __eq__(other);}
   bool operator != (const Config& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const override;
+
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
+  virtual std::string export_vec_initial_partition_origin(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+
 
   // --- attributes ---
   int seed;
@@ -133,6 +155,20 @@ public:
   virtual float_t get_interaction_radius() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return interaction_radius;
+  }
+
+  float_t intermembrane_interaction_radius;
+  virtual void set_intermembrane_interaction_radius(const float_t new_intermembrane_interaction_radius_) {
+    if (initialized) {
+      throw RuntimeError("Value 'intermembrane_interaction_radius' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    intermembrane_interaction_radius = new_intermembrane_interaction_radius_;
+  }
+  virtual float_t get_intermembrane_interaction_radius() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return intermembrane_interaction_radius;
   }
 
   float_t vacancy_search_distance;
@@ -205,18 +241,18 @@ public:
     return subpartition_dimension;
   }
 
-  float_t total_iterations_hint;
-  virtual void set_total_iterations_hint(const float_t new_total_iterations_hint_) {
+  float_t total_iterations;
+  virtual void set_total_iterations(const float_t new_total_iterations_) {
     if (initialized) {
-      throw RuntimeError("Value 'total_iterations_hint' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'total_iterations' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     cached_data_are_uptodate = false;
-    total_iterations_hint = new_total_iterations_hint_;
+    total_iterations = new_total_iterations_;
   }
-  virtual float_t get_total_iterations_hint() const {
+  virtual float_t get_total_iterations() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return total_iterations_hint;
+    return total_iterations;
   }
 
   bool check_overlapped_walls;
@@ -231,6 +267,34 @@ public:
   virtual bool get_check_overlapped_walls() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return check_overlapped_walls;
+  }
+
+  int reaction_class_cleanup_periodicity;
+  virtual void set_reaction_class_cleanup_periodicity(const int new_reaction_class_cleanup_periodicity_) {
+    if (initialized) {
+      throw RuntimeError("Value 'reaction_class_cleanup_periodicity' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    reaction_class_cleanup_periodicity = new_reaction_class_cleanup_periodicity_;
+  }
+  virtual int get_reaction_class_cleanup_periodicity() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return reaction_class_cleanup_periodicity;
+  }
+
+  int species_cleanup_periodicity;
+  virtual void set_species_cleanup_periodicity(const int new_species_cleanup_periodicity_) {
+    if (initialized) {
+      throw RuntimeError("Value 'species_cleanup_periodicity' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    species_cleanup_periodicity = new_species_cleanup_periodicity_;
+  }
+  virtual int get_species_cleanup_periodicity() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return species_cleanup_periodicity;
   }
 
   bool sort_molecules;
@@ -259,6 +323,76 @@ public:
   virtual int get_memory_limit_gb() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return memory_limit_gb;
+  }
+
+  uint64_t initial_iteration;
+  virtual void set_initial_iteration(const uint64_t new_initial_iteration_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_iteration' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    initial_iteration = new_initial_iteration_;
+  }
+  virtual uint64_t get_initial_iteration() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return initial_iteration;
+  }
+
+  float_t initial_time;
+  virtual void set_initial_time(const float_t new_initial_time_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_time' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    initial_time = new_initial_time_;
+  }
+  virtual float_t get_initial_time() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return initial_time;
+  }
+
+  std::shared_ptr<RngState> initial_rng_state;
+  virtual void set_initial_rng_state(std::shared_ptr<RngState> new_initial_rng_state_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_rng_state' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    initial_rng_state = new_initial_rng_state_;
+  }
+  virtual std::shared_ptr<RngState> get_initial_rng_state() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return initial_rng_state;
+  }
+
+  bool append_to_count_output_data;
+  virtual void set_append_to_count_output_data(const bool new_append_to_count_output_data_) {
+    if (initialized) {
+      throw RuntimeError("Value 'append_to_count_output_data' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    append_to_count_output_data = new_append_to_count_output_data_;
+  }
+  virtual bool get_append_to_count_output_data() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return append_to_count_output_data;
+  }
+
+  bool continue_after_sigalrm;
+  virtual void set_continue_after_sigalrm(const bool new_continue_after_sigalrm_) {
+    if (initialized) {
+      throw RuntimeError("Value 'continue_after_sigalrm' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    continue_after_sigalrm = new_continue_after_sigalrm_;
+  }
+  virtual bool get_continue_after_sigalrm() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return continue_after_sigalrm;
   }
 
   // --- methods ---

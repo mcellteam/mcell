@@ -23,8 +23,8 @@
 #ifndef API_CONFIG_H
 #define API_CONFIG_H
 
-#include "../generated/gen_config.h"
-#include "../api/common.h"
+#include "generated/gen_config.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {

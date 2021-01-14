@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_region.h"
 #include "api/region.h"
 #include "api/region.h"
@@ -135,6 +136,44 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
       .def_property("left_node", &Region::get_left_node, &Region::set_left_node)
       .def_property("right_node", &Region::get_right_node, &Region::set_right_node)
     ;
+}
+
+std::string GenRegion::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "region_" + std::to_string(ctx.postinc_counter("region"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.Region(" << nl;
+  if (node_type != RegionNodeType::UNSET) {
+    ss << ind << "node_type = " << node_type << "," << nl;
+  }
+  if (is_set(left_node)) {
+    ss << ind << "left_node = " << left_node->export_to_python(out, ctx) << "," << nl;
+  }
+  if (is_set(right_node)) {
+    ss << ind << "right_node = " << right_node->export_to_python(out, ctx) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

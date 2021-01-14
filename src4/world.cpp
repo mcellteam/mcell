@@ -20,11 +20,12 @@
  *
 ******************************************************************************/
 
+
 #include <fenv.h> // Linux include
-#include <run_n_iterations_end_event.h>
 #ifndef _WIN64
 #include <sys/resource.h> // Linux include
 #endif
+#include <signal.h>
 
 #include <fstream>
 
@@ -43,7 +44,8 @@
 #include "datamodel_defines.h"
 #include "bng_data_to_datamodel_converter.h"
 #include "diffuse_react_event.h"
-#include "periodic_call_event.h"
+#include "run_n_iterations_end_event.h"
+#include "custom_function_call_event.h"
 
 #include "api/mol_wall_hit_info.h"
 #include "api/geometry_object.h"
@@ -65,9 +67,9 @@ static double tosecs(timeval& t) {
 }
 
 
-static void print_periodic_stats_func(float_t time, void* world) {
+static void print_periodic_stats_func(float_t time, World* world) {
   release_assert(world != nullptr);
-  ((World*)world)->print_periodic_stats();
+  world->print_periodic_stats();
 }
 
 
@@ -79,11 +81,13 @@ World::World(API::Callbacks& callbacks_)
     next_region_id(0),
     next_geometry_object_id(0),
     simulation_initialized(false),
+    run_n_iterations_terminated_with_checkpoint(false),
     simulation_ended(false),
     buffers_flushed(false),
     previous_progress_report_time({0, 0}),
     it1_start_time_set(false),
-    previous_iteration(0)
+    previous_iteration(0),
+    signaled_checkpoint_signo(API::SIGNO_NOT_SIGNALED)
 {
   config.partition_edge_length = FLT_INVALID;
   config.num_subpartitions_per_partition_edge = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
@@ -159,7 +163,92 @@ void World::init_counted_volumes() {
 }
 
 
-void World::init_simulation() {
+static float_t get_event_start_time(const float_t start_time, const float_t periodicity) {
+  if (periodicity == 0) {
+    return 0;
+  }
+  else {
+    return floor_to_multiple(start_time + periodicity, periodicity);
+  }
+}
+
+
+void World::schedule_checkpoint_event(
+    const uint64_t iteration, const bool continue_simulation, const API::CheckpointSaveEventContext& ctx) {
+
+  CustomFunctionCallEvent<API::CheckpointSaveEventContext>* checkpoint_event =
+      new CustomFunctionCallEvent<API::CheckpointSaveEventContext>(
+          API::save_checkpoint_func, ctx, EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT);
+
+  if (iteration == 0) {
+    // schedule for the closest iteration while correctly maintaining order of events in the queue
+    checkpoint_event->event_time = TIME_INVALID;
+  }
+  else {
+    checkpoint_event->event_time = iteration;
+  }
+  checkpoint_event->periodicity_interval = 0; // only once
+  checkpoint_event->return_from_run_n_iterations = !continue_simulation;
+
+  // safely schedule
+  // not really needed to do safely when called due to a signal handler because only a flag
+  // is set and the handling is done synchronously, but required when schedule_checkpoint is called e.g. from
+  // a timer
+  scheduler.schedule_event_asynchronously(checkpoint_event);
+}
+
+
+void World::check_checkpointing_signal() {
+  if (signaled_checkpoint_signo == API::SIGNO_NOT_SIGNALED) {
+    return;
+  }
+
+  bool continue_simulation = false;
+
+  // printout for each model instance
+#ifndef _WIN32
+  if (signaled_checkpoint_signo == SIGUSR1) {
+    cout << "User signal SIGUSR1 detected, scheduling a checkpoint and continuing simulation.\n";
+    continue_simulation = true;
+  }
+  else if (signaled_checkpoint_signo == SIGUSR2) {
+    cout << "User signal SIGUSR2 detected, scheduling a checkpoint and terminating simulation afterwards.\n";
+    continue_simulation = false;
+  }
+#endif
+  else if (signaled_checkpoint_signo == SIGALRM) {
+    cout << "Signal SIGALRM detected - periodic or time limit elapsed, scheduling a checkpoint ";
+    if (config.continue_after_sigalrm) {
+      cout << "and continuing simulation.\n";
+      continue_simulation = true;
+    }
+    else {
+      cout << "and terminating simulation afterwards.\n";
+      continue_simulation = false;
+    }
+  }
+  else {
+    cout << "Unexpected signal " << signaled_checkpoint_signo << " received, fatal error.\n";
+    release_assert(false);
+  }
+
+  API::CheckpointSaveEventContext ctx;
+  release_assert(signaled_checkpoint_model != nullptr);
+  ctx.model = signaled_checkpoint_model;
+  ctx.dir_prefix = config.get_default_checkpoint_dir_prefix();
+  ctx.append_it_to_dir = true;
+
+  schedule_checkpoint_event(0, continue_simulation, ctx);
+
+  // reset flag and pointer to model because we don't need it anymore
+  signaled_checkpoint_signo = API::SIGNO_NOT_SIGNALED;
+  signaled_checkpoint_model = nullptr;
+}
+
+
+void World::init_simulation(const float_t start_time) {
+
+  release_assert((int)start_time == start_time && "Iterations start time must be an integer.");
 
   // TODO: check these messages in testsuite
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
@@ -185,7 +274,7 @@ void World::init_simulation() {
 
   recompute_species_flags();
 
-  stats.reset();
+  stats.reset(false);
 
   init_fpu();
 
@@ -198,45 +287,49 @@ void World::init_simulation() {
 
   // create event that diffuses molecules
   DiffuseReactEvent* event = new DiffuseReactEvent(this);
-  event->event_time = TIME_SIMULATION_START;
+  event->event_time = start_time;
   scheduler.schedule_event(event);
 
   // create defragmentation events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
-  defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
+  defragmentation_event->event_time = get_event_start_time(start_time, DEFRAGMENTATION_PERIODICITY);
   defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
 
   PartitionShrinkEvent* partition_shrink_event = new PartitionShrinkEvent(this);
-  partition_shrink_event->event_time = PARTITION_SHRINK_PERIODICITY;
+  partition_shrink_event->event_time = get_event_start_time(start_time, PARTITION_SHRINK_PERIODICITY);
   partition_shrink_event->periodicity_interval = PARTITION_SHRINK_PERIODICITY;
   scheduler.schedule_event(partition_shrink_event);
 
   // create rxn class cleanup events
   RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
-  rxn_class_cleanup_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
-  rxn_class_cleanup_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
+  rxn_class_cleanup_event->event_time = get_event_start_time(start_time, config.rxn_class_cleanup_periodicity);
+  rxn_class_cleanup_event->periodicity_interval = config.rxn_class_cleanup_periodicity;
   scheduler.schedule_event(rxn_class_cleanup_event);
 
   SpeciesCleanupEvent* species_cleanup_event = new SpeciesCleanupEvent(this);
-  species_cleanup_event->event_time = SPECIES_CLEANUP_PERIODICITY;
-  species_cleanup_event->periodicity_interval = SPECIES_CLEANUP_PERIODICITY;
+  species_cleanup_event->event_time = get_event_start_time(start_time, config.species_cleanup_periodicity);
+  species_cleanup_event->periodicity_interval = config.species_cleanup_periodicity;
   scheduler.schedule_event(species_cleanup_event);
 
   // create subpart sorting events
   if (config.sort_mols_by_subpart) {
     SortMolsBySubpartEvent* sort_event = new SortMolsBySubpartEvent(this);
-    sort_event->event_time = 0;
+    if (start_time == 0) {
+      sort_event->event_time = TIME_SIMULATION_START;
+    }
+    else {
+      sort_event->event_time = get_event_start_time(start_time, SORT_MOLS_BY_SUBPART_PERIODICITY);
+    }
     sort_event->periodicity_interval = SORT_MOLS_BY_SUBPART_PERIODICITY;
     scheduler.schedule_event(sort_event);
   }
 
   // simulation statistics, mostly for development purposes
   if (config.simulation_stats_every_n_iterations > 0) {
-    PeriodicCallEvent* stats_event = new PeriodicCallEvent(this);
-    stats_event->function_ptr = print_periodic_stats_func;
-    stats_event->function_arg = this;
-    stats_event->event_time = 0;
+    CustomFunctionCallEvent<World*>* stats_event =
+        new CustomFunctionCallEvent<World*>(print_periodic_stats_func, this);
+    stats_event->event_time = start_time;
     stats_event->periodicity_interval = config.simulation_stats_every_n_iterations;
     scheduler.schedule_event(stats_event);
   }
@@ -262,16 +355,35 @@ void World::init_simulation() {
   // start memory check timer
   memory_limit_checker.start_timed_check(this, config.memory_limit_gb);
 
+  if (stats.get_current_iteration() == 0) {
+    // not starting from a checkpoint
+    config.initialize_run_report_file();
+    BNG::append_to_report(config.get_run_report_file_name(), "Simulation started ");
+  }
+  else {
+    cout << "Iterations: " << stats.get_current_iteration() << " of " << total_iterations << " (resuming a checkpoint)\n";
+    BNG::append_to_report(config.get_run_report_file_name(), "Simulation resumed from a checkpoint ");
+  }
+  BNG::append_to_report(config.get_run_report_file_name(),
+      "at iteration " + to_string(stats.get_current_iteration()) +
+      " and time " + BNG::get_current_date_time() + ".\n");
+
   simulation_initialized = true;
 }
 
 
-void World::run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency, const bool terminate_last_iteration_after_viz_output) {
+uint64_t World::time_to_iteration(const float_t time) {
+  return (uint64_t)(time - config.get_simulation_start_time()) + config.initial_iteration;
+}
 
-  if (!simulation_initialized) {
-    init_simulation();
-  }
 
+uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool terminate_last_iteration_after_viz_output) {
+
+  release_assert(simulation_initialized);
+
+  run_n_iterations_terminated_with_checkpoint = false;
+  uint64_t output_frequency = determine_output_frequency(total_iterations);
+  uint64_t start_iteration = stats.get_current_iteration();
   uint64_t& current_iteration = stats.get_current_iteration();
 
   // create events that are used to check whether simulation should end right after the last viz output,
@@ -288,9 +400,13 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
   uint64_t this_run_first_iteration = current_iteration;
 
   do {
+    check_checkpointing_signal();
+
     // current_iteration corresponds to the number of executed time steps
     float_t time = scheduler.get_next_event_time();
-    current_iteration = (uint64_t)time;
+
+    // convert time to iteration
+    current_iteration = time_to_iteration(time);
 
     if (current_iteration == 1 && previous_iteration == 0) {
       it1_start_time_set = true;
@@ -340,10 +456,20 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 
     // also terminate if this was the last iteration and we hit an event that represents a check for the
     // end of the simulation
-    if (terminate_last_iteration_after_viz_output &&
-       event_info.type_index == EVENT_TYPE_INDEX_SIMULATION_END_CHECK
+    if (
+        (terminate_last_iteration_after_viz_output &&
+         event_info.type_index == EVENT_TYPE_INDEX_SIMULATION_END_CHECK
+        ) ||
+        event_info.return_from_run_iterations
     ) {
-      assert(current_iteration == this_run_first_iteration + num_iterations - 1);
+      assert(
+          event_info.return_from_run_iterations ||
+          current_iteration == this_run_first_iteration + num_iterations - 1);
+
+      if (event_info.type_index == EVENT_TYPE_INDEX_CALL_START_ITERATION_CHECKPOINT) {
+        run_n_iterations_terminated_with_checkpoint = true;
+      }
+
       break;
     }
 
@@ -356,6 +482,8 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
   fflush(stdout);
   fflush(stderr);
 #endif
+
+  return current_iteration - start_iteration;
 }
 
 
@@ -379,14 +507,21 @@ void World::end_simulation(const bool print_final_report) {
     return;
   }
 
-  // executes all events up to the last viz output,
-  // this is to produce viz output and counts for the last iteration
-  run_n_iterations(1, determine_output_frequency(total_iterations), true);
+  // - execute all events up to the last viz output
+  //   to produce viz output and counts for the last iteration
+  // - must not be done if we ended with checkpoint
+  if (!run_n_iterations_terminated_with_checkpoint) {
+    run_n_iterations(1, true);
+  }
 
   flush_buffers();
 
   if (print_final_report) {
-    cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";
+    cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully";
+    if (run_n_iterations_terminated_with_checkpoint) {
+      cout << ", terminated with a checkpoint";
+    }
+    cout << "\n";
 
     stats.dump();
 
@@ -403,23 +538,28 @@ void World::end_simulation(const bool print_final_report) {
 
   }
 
+  BNG::append_to_report(config.get_run_report_file_name(),
+      "Simulation ended at iteration " + to_string(stats.get_current_iteration()) +
+      " and time " + BNG::get_current_date_time() + ", " +
+      ((run_n_iterations_terminated_with_checkpoint) ?
+          "terminated due to checkpoint.\n" :
+          "all iterations were finished.\nFINISHED\n"));
+
   simulation_ended = true;
 }
 
 
-void World::run_simulation(const bool dump_initial_state, const bool dump_with_geometry) {
+void World::init_and_run_simulation(const bool dump_initial_state, const bool dump_with_geometry) {
 
   // do initialization, also insert
   // defragmentation and end simulation event
-  init_simulation();
+  init_simulation(TIME_SIMULATION_START);
 
   if (dump_initial_state) {
     dump(dump_with_geometry);
   }
 
-  uint output_frequency = World::determine_output_frequency(total_iterations);
-
-  run_n_iterations(total_iterations, output_frequency, true);
+  run_n_iterations(total_iterations, true);
 
   // runs one more iteration but only up to the last viz output
   end_simulation(true);
@@ -499,18 +639,17 @@ void World::reset_unimol_rxn_times(const BNG::rxn_rule_id_t rxn_rule_id) {
 }
 
 
-
 std::string World::export_releases_to_bngl_seed_species(
     std::ostream& parameters, std::ostream& seed_species) const {
   seed_species << BNG::BEGIN_SEED_SPECIES << "\n";
 
   parameters << "\n" << BNG::IND << "# seed species counts\n";
 
-  vector<const BaseEvent*> release_events;
+  vector<BaseEvent*> release_events;
   scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_RELEASE, release_events);
 
   for (size_t i = 0; i < release_events.size(); i++) {
-    const ReleaseEvent* re = dynamic_cast<const ReleaseEvent*>(release_events[i]);
+    ReleaseEvent* re = dynamic_cast<ReleaseEvent*>(release_events[i]);
     assert(re != nullptr);
 
     if (re->release_shape == ReleaseShape::INITIAL_SURF_REGION) {
@@ -561,14 +700,14 @@ std::string World::export_releases_to_bngl_seed_species(
 std::string World::export_counts_to_bngl_observables(std::ostream& observables) const {
   observables << BNG::BEGIN_OBSERVABLES << "\n";
 
-  vector<const BaseEvent*> count_events;
+  vector<BaseEvent*> count_events;
   scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
 
   for (size_t i = 0; i < count_events.size(); i++) {
-    const MolOrRxnCountEvent* ce = dynamic_cast<const MolOrRxnCountEvent*>(count_events[i]);
+    MolOrRxnCountEvent* ce = dynamic_cast<MolOrRxnCountEvent*>(count_events[i]);
     assert(ce != nullptr);
 
-    for (const MolOrRxnCountItem& item: ce->mol_count_items) {
+    for (const MolOrRxnCountItem& item: ce->mol_rxn_count_items) {
       // get observable name from filename
       const string& path = get_count_buffer(item.buffer_id).get_filename();
       size_t slash_pos = path.find_last_of("/\\");

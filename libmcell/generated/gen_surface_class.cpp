@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_surface_class.h"
 #include "api/surface_class.h"
 #include "api/complex.h"
@@ -125,6 +126,69 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
       .def_property("name", &SurfaceClass::get_name, &SurfaceClass::set_name)
       .def_property("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties)
     ;
+}
+
+std::string GenSurfaceClass::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = std::string("surface_class") + "_" + (is_set(name) ? fix_id(name) : std::to_string(ctx.postinc_counter("surface_class")));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.SurfaceClass(" << nl;
+  if (type != SurfacePropertyType::UNSET) {
+    ss << ind << "type = " << type << "," << nl;
+  }
+  if (is_set(affected_complex_pattern)) {
+    ss << ind << "affected_complex_pattern = " << affected_complex_pattern->export_to_python(out, ctx) << "," << nl;
+  }
+  if (concentration != FLT_UNSET) {
+    ss << ind << "concentration = " << f_to_str(concentration) << "," << nl;
+  }
+  ss << ind << "name = " << "'" << name << "'" << "," << nl;
+  if (properties != std::vector<std::shared_ptr<SurfaceProperty>>() && !skip_vectors_export()) {
+    ss << ind << "properties = " << export_vec_properties(out, ctx, exported_name) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+}
+
+std::string GenSurfaceClass::export_vec_properties(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < properties.size(); i++) {
+    const auto& item = properties[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    if (!item->skip_python_export()) {
+      std::string name = item->export_to_python(out, ctx);
+      ss << name << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

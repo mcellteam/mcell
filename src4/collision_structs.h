@@ -48,7 +48,8 @@ enum class CollisionType {
   VOLMOL_VOLMOL,
   SURFMOL_SURFMOL,
   VOLMOL_SURFMOL,
-  UNIMOLECULAR_VOLMOL,
+  UNIMOLECULAR_VOLMOL, // TODO rename to UNIMOLECULAR
+  INTERMEMBRANE_SURFMOL_SURFMOL
 };
 
 
@@ -127,7 +128,10 @@ public:
       colliding_molecule_id(colliding_molecule_id_),
       rxn_class(rxn_class_ptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
-    assert(type == CollisionType::SURFMOL_SURFMOL && "This constructor must be used only for surfsurf collisions");
+    assert(
+        (type == CollisionType::SURFMOL_SURFMOL ||
+         type == CollisionType::INTERMEMBRANE_SURFMOL_SURFMOL) &&
+        "This constructor must be used only for surfsurf collisions");
   }
 
   Collision(
@@ -197,7 +201,11 @@ public:
   }
 
   bool is_mol_mol_reaction() const {
-    return type == CollisionType::VOLMOL_VOLMOL || type == CollisionType::SURFMOL_SURFMOL || type == CollisionType::VOLMOL_SURFMOL;
+    return
+        type == CollisionType::VOLMOL_VOLMOL ||
+        type == CollisionType::SURFMOL_SURFMOL ||
+        type == CollisionType::VOLMOL_SURFMOL ||
+        type == CollisionType::INTERMEMBRANE_SURFMOL_SURFMOL;
   }
 
   bool is_wall_collision() const {

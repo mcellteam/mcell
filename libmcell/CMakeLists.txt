@@ -19,10 +19,12 @@ include_directories(${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src -std=c++14 ${PYTHON_INCLUDES}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src ${PYTHON_INCLUDES}")
 
 set(SOURCE_FILES
+    api/api_utils.cpp
     api/bindings.cpp
+    api/checkpoint_signals.cpp
     
     api/component_type.cpp
     api/component.cpp
@@ -40,16 +42,25 @@ set(SOURCE_FILES
     api/observables.cpp
     api/model.cpp
     
-    api/geometry_utils.cpp
     api/bngl_utils.cpp
+    api/geometry_utils.cpp
+    api/run_utils.cpp
+
     api/compartment_utils.cpp
     
     api/globals.cpp
     api/mcell4_converter.cpp
     api/callbacks.cpp
+    api/python_export_utils.cpp
+    api/python_exporter.cpp
     
     api/molecule.cpp
     api/wall.cpp
+    api/introspection.cpp
+    
+    api/chkpt_vol_mol.cpp
+    api/chkpt_surf_mol.cpp
+    api/rng_state.cpp
 
     generated/gen_component_type.cpp
     generated/gen_component.cpp
@@ -84,14 +95,21 @@ set(SOURCE_FILES
     generated/gen_molecule.cpp
     generated/gen_wall.cpp
     generated/gen_wall_wall_hit_info.cpp
+    generated/gen_introspection.cpp
     
     generated/gen_mol_wall_hit_info.cpp
     generated/gen_reaction_info.cpp
+    
+    generated/gen_base_chkpt_mol.cpp
+    generated/gen_chkpt_vol_mol.cpp
+    generated/gen_chkpt_surf_mol.cpp
+    generated/gen_rng_state.cpp
 
     generated/gen_constants.cpp
 
-    generated/gen_geometry_utils.cpp
     generated/gen_bngl_utils.cpp
+    generated/gen_geometry_utils.cpp
+    generated/gen_run_utils.cpp
 )
 
 set(ALL_SOURCES
@@ -106,7 +124,7 @@ add_library(${PROJECT_NAME} STATIC
 
 add_dependencies(${PROJECT_NAME} version_h)
 
-add_library(libmcell_callbacks_empty STATIC
-    api/callbacks_empty.cpp
+add_library(libmcell_dummy STATIC
+    api/libmcell_dummy.cpp
 )
 

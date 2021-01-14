@@ -24,6 +24,7 @@
 #define API_GEN_OBSERVABLES_H
 
 #include "api/common.h"
+#include "api/base_export_class.h"
 
 namespace MCell {
 namespace API {
@@ -32,8 +33,18 @@ class Observables;
 class Count;
 class Subsystem;
 class VizOutput;
+class PythonExportContext;
 
-class GenObservables {
+#define OBSERVABLES_CTOR() \
+    Observables( \
+        const std::vector<std::shared_ptr<VizOutput>> viz_outputs_ = std::vector<std::shared_ptr<VizOutput>>(), \
+        const std::vector<std::shared_ptr<Count>> counts_ = std::vector<std::shared_ptr<Count>>() \
+    ) { \
+      viz_outputs = viz_outputs_; \
+      counts = counts_; \
+    }
+
+class GenObservables: public BaseExportClass {
 public:
   virtual ~GenObservables() {}
   virtual bool __eq__(const Observables& other) const;
@@ -41,6 +52,11 @@ public:
   bool operator == (const Observables& other) const { return __eq__(other);}
   bool operator != (const Observables& other) const { return !__eq__(other);}
   std::string to_str(const std::string ind="") const ;
+
+  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
+  virtual std::string export_vec_viz_outputs(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_counts(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+
 
   // --- attributes ---
   std::vector<std::shared_ptr<VizOutput>> viz_outputs;

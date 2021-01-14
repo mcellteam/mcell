@@ -24,10 +24,34 @@
 
 #include <iostream>
 #include <cmath>
+#include <string>
+#include <iomanip>
+
+#include "bng/bng_defines.h"
+#include "api/common.h"
 
 using namespace std;
 
 namespace MCell {
+
+// returns 'checkpoints/seed_<SEED>/it_' - without the iteration number
+std::string SimulationConfig::get_default_checkpoint_dir_prefix() const {
+  return
+      API::DEFAULT_CHECKPOINTS_DIR + BNG::PATH_SEPARATOR +
+      get_seed_dir_name(initial_seed) + BNG::PATH_SEPARATOR +
+      API::DEFAULT_ITERATION_DIR_PREFIX;
+}
+
+
+std::string SimulationConfig::get_run_report_file_name() const {
+  return std::string(BNG::REPORT_DIR) + BNG::PATH_SEPARATOR + RUN_REPORT_PREFIX + seed_as_str() + BNG::REPORT_EXT;
+}
+
+
+void SimulationConfig::initialize_run_report_file() {
+  BNG::initialize_report_file(get_run_report_file_name(), "Run");
+}
+
 
 void SimulationConfig::init_subpartition_edge_length() {
   release_assert(partition_edge_length > 0);
@@ -121,7 +145,7 @@ void SimulationConfig::init_radial_steps() {
 void SimulationConfig::dump() {
   BNGConfig::dump();
   cout << "SimulationConfig:\n";
-#define DUMP_ATTR(A) cout << "  " #A ": \t\t" << A << "t\n"
+#define DUMP_ATTR(A) cout << "  " #A ": \t\t" << A << "\n"
   DUMP_ATTR(vacancy_search_dist2);
   DUMP_ATTR(partition0_llf);
   DUMP_ATTR(partition_edge_length);
@@ -134,11 +158,20 @@ void SimulationConfig::dump() {
   DUMP_ATTR(use_expanded_list);
   DUMP_ATTR(randomize_smol_pos);
   DUMP_ATTR(check_overlapped_walls);
+  DUMP_ATTR(rxn_class_cleanup_periodicity);
+  DUMP_ATTR(species_cleanup_periodicity);
   DUMP_ATTR(sort_mols_by_subpart);
   DUMP_ATTR(memory_limit_gb);
   DUMP_ATTR(simulation_stats_every_n_iterations);
   DUMP_ATTR(has_intersecting_counted_objects);
 #undef DUMP_ATTR
+}
+
+
+std::string get_seed_dir_name(const int seed) {
+  std::stringstream seed_num;
+  seed_num << std::setfill('0') << std::setw(API::DEFAULT_SEED_DIR_DIGITS) << seed;
+  return API::DEFAULT_SEED_DIR_PREFIX + seed_num.str();
 }
 
 } // namespace MCell

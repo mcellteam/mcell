@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_molecule_release_info.h"
 #include "api/molecule_release_info.h"
 #include "api/complex.h"
@@ -34,7 +35,7 @@ void GenMoleculeReleaseInfo::check_semantics() const {
     throw ValueError("Parameter 'complex' must be set.");
   }
   if (!is_set(location)) {
-    throw ValueError("Parameter 'location' must be set.");
+    throw ValueError("Parameter 'location' must be set and the value must not be an empty list.");
   }
 }
 
@@ -108,6 +109,55 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def_property("complex", &MoleculeReleaseInfo::get_complex, &MoleculeReleaseInfo::set_complex)
       .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location)
     ;
+}
+
+std::string GenMoleculeReleaseInfo::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "molecule_release_info_" + std::to_string(ctx.postinc_counter("molecule_release_info"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.MoleculeReleaseInfo(" << nl;
+  ss << ind << "complex = " << complex->export_to_python(out, ctx) << "," << nl;
+  ss << ind << "location = " << export_vec_location(out, ctx, exported_name) << "," << nl;
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
+}
+
+std::string GenMoleculeReleaseInfo::export_vec_location(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < location.size(); i++) {
+    const auto& item = location[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    ss << f_to_str(item) << ", ";
+  }
+  ss << "]";
+  return ss.str();
 }
 
 } // namespace API

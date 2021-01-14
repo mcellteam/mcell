@@ -30,6 +30,7 @@ import yaml
 import re
 from datetime import datetime
 from copy import copy
+from pyexpat import model
 
 VERBOSE = False # may be overridden by argument -v 
 
@@ -44,7 +45,8 @@ ALL_INPUT_FILES = [
     'callbacks.yaml',
     'model.yaml',
     'introspection.yaml',
-    'submodules.yaml'
+    'checkpointing.yaml',
+    'submodules.yaml',
 ]
 
 
@@ -107,7 +109,7 @@ YAML_TYPE_PY_OBJECT = 'py::object'
 YAML_TYPE_FLOAT = 'float'
 YAML_TYPE_STR = 'str'
 YAML_TYPE_INT = 'int'
-YAML_TYPE_LONG = 'long'
+YAML_TYPE_UINT64 = 'uint64'
 YAML_TYPE_BOOL = 'bool'
 YAML_TYPE_VEC2 = 'Vec2'
 YAML_TYPE_VEC3 = 'Vec3'
@@ -124,7 +126,7 @@ PY_CAST = 'py::cast'
 CPP_TYPE_FLOAT = 'float_t'
 CPP_TYPE_STR = 'std::string'
 CPP_TYPE_INT = 'int'
-CPP_TYPE_LONG = 'long'
+CPP_TYPE_UINT64 = 'uint64_t'
 CPP_TYPE_BOOL = 'bool'
 CPP_TYPE_VEC2 = 'Vec2'
 CPP_TYPE_VEC3 = 'Vec3'
@@ -132,7 +134,7 @@ CPP_TYPE_IVEC3 = 'IVec3'
 CPP_VECTOR_TYPE = 'std::vector'
 CPP_MAP_TYPE = 'std::map'
 
-CPP_NONREFERENCE_TYPES = [CPP_TYPE_FLOAT, CPP_TYPE_INT, CPP_TYPE_LONG, CPP_TYPE_BOOL] # + CPP_VECTOR_TYPE but it must be checked with .startswith
+CPP_NONREFERENCE_TYPES = [CPP_TYPE_FLOAT, CPP_TYPE_INT, CPP_TYPE_UINT64, CPP_TYPE_BOOL] # + CPP_VECTOR_TYPE but it must be checked with .startswith
 CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3, CPP_TYPE_IVEC3, CPP_VECTOR_TYPE]
 
 UNSET_VALUE = 'unset'
@@ -141,7 +143,7 @@ EMPTY_ARRAY = 'empty'
 UNSET_VALUE_FLOAT = 'FLT_UNSET'
 UNSET_VALUE_STR = 'STR_UNSET'
 UNSET_VALUE_INT = 'INT_UNSET'
-UNSET_VALUE_LONG = 'LONG_UNSET'
+UNSET_VALUE_UINT64 = '0' # default value, not unset
 UNSET_VALUE_VEC2 = 'VEC2_UNSET'
 UNSET_VALUE_VEC3 = 'VEC3_UNSET'
 UNSET_VALUE_ORIENTATION = 'Orientation::NOT_SET'
@@ -161,6 +163,11 @@ EXT_H = 'h'
 GEN_CLASS_PREFIX = 'Gen'
 BASE_DATA_CLASS = 'BaseDataClass'
 BASE_INTROSPECTION_CLASS = 'BaseIntrospectionClass'
+BASE_EXPORT_CLASS = 'BaseExportClass'
+CLASS_NAME_MODEL = 'Model'
+CLASS_NAME_SUBSYSTEM = 'Subsystem'
+CLASS_NAME_INSTANTIATION = 'Instantiation'
+CLASS_NAME_OBSERVABLES = 'Observables'
 
 CTOR_POSTPROCESS = 'postprocess_in_ctor'
 RET_CTOR_POSTPROCESS = 'void' 
@@ -179,7 +186,18 @@ RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'
 DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
 DECL_TO_STR = 'to_str(const std::string ind) const'
+
+RET_TYPE_EXPORT_TO_PYTHON = 'std::string' 
+
+CTX = 'ctx'
+EXPORTED_NAME = 'exported_name'
+EXPORT_TO_PYTHON_ARGS = 'std::ostream& out, PythonExportContext& ' + CTX
+DECL_EXPORT_TO_PYTHON = 'export_to_python(' + EXPORT_TO_PYTHON_ARGS + ')'
+EXPORT_VEC_PREFIX = 'export_vec_'
+M_DOT = 'm.'
+
 KEYWORD_OVERRIDE = 'override'
+KEYWORD_VIRTUAL = 'virtual'
   
 CLASS_NAME_ATTR = 'class_name'
 CACHED_DATA_ARE_UPTODATE_ATTR = 'cached_data_are_uptodate'
@@ -199,13 +217,16 @@ CONSTANT_VALUE_PREFIX = 'CV_'
 
 INCLUDE_API_MCELL_H = '#include "api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "api/common.h"'
+INCLUDE_API_PYTHON_EXPORT_UTILS_H = '#include "api/python_export_utils.h"'
 INCLUDE_API_BASE_DATA_CLASS_H = '#include "api/base_data_class.h"'
+INCLUDE_API_BASE_EXPORT_CLASS_H = '#include "api/base_export_class.h"'
 INCLUDE_API_BASE_INTROSPECTION_CLASS_H = '#include "api/base_introspection_class.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
 NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
 VEC_NONPTR_TO_STR = 'vec_nonptr_to_str'
 VEC_PTR_TO_STR = 'vec_ptr_to_str'
+F_TO_STR = 'f_to_str'
 
 # --- some global data ---
 g_enums = set()
@@ -288,16 +309,19 @@ def get_first_inner_type(t):
     else: 
         return t    
 
+# returns true also for enums
 def is_base_yaml_type(t):
     return \
-        t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
+        t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_UINT64 or \
         t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or t == YAML_TYPE_IVEC3 or \
         t == YAML_TYPE_PY_OBJECT or \
         (is_yaml_function_type(t) and is_base_yaml_type(get_inner_function_type(t))) or \
         (is_yaml_list_type(t) and is_base_yaml_type(get_inner_list_type(t))) or \
         (is_yaml_dict_type(t) and is_base_yaml_type(get_inner_dict_key_type(t)) and is_base_yaml_type(get_inner_dict_value_type(t)))
 
-
+def is_base_yaml_typexx(t):xx
+    
+    
 def is_yaml_ptr_type(t):
     if t == YAML_TYPE_PY_OBJECT:
         return False
@@ -313,9 +337,9 @@ def yaml_type_to_cpp_type(t):
         return CPP_TYPE_STR
     elif t == YAML_TYPE_INT:
         return CPP_TYPE_INT
-    elif t == YAML_TYPE_LONG:
-        return CPP_TYPE_LONG
-    elif t == YAML_TYPE_LONG:
+    elif t == YAML_TYPE_UINT64:
+        return CPP_TYPE_UINT64
+    elif t == YAML_TYPE_UINT64:
         return CPP_TYPE_BOOL
     elif t == YAML_TYPE_VEC2:
         return CPP_TYPE_VEC2
@@ -358,7 +382,7 @@ def yaml_type_to_pybind_type(t):
         return CPP_TYPE_BOOL
     elif t == YAML_TYPE_INT:
         return CPP_TYPE_INT + '_'
-    elif t == YAML_TYPE_LONG:
+    elif t == YAML_TYPE_UINT64:
         return CPP_TYPE_INT + '_'
     elif t == YAML_TYPE_SPECIES:
         return PYBIND_TYPE_OBJECT
@@ -368,12 +392,14 @@ def yaml_type_to_pybind_type(t):
     
 def yaml_type_to_py_type(t):
     assert len(t) >= 1
-    if t == YAML_TYPE_LONG:
+    if t == YAML_TYPE_UINT64:
         return YAML_TYPE_INT # not sure what should be the name
     elif is_yaml_function_type(t):
         return "Callable, # " + t
     elif t == YAML_TYPE_PY_OBJECT:
         return "Any, # " + t
+    elif is_yaml_list_type(t) and get_inner_list_type(t) == YAML_TYPE_UINT64:
+        return t.replace(YAML_TYPE_UINT64, YAML_TYPE_INT)
     else:
         return t.replace('*', '')
 
@@ -432,8 +458,8 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_STR
     elif t == YAML_TYPE_INT:
         return UNSET_VALUE_INT
-    elif t == YAML_TYPE_LONG:
-        return UNSET_VALUE_LONG
+    elif t == YAML_TYPE_UINT64:
+        return UNSET_VALUE_UINT64
     elif t == YAML_TYPE_BOOL:
         assert False, "There is no unset value for bool - for " + attr[KEY_NAME]
         return "error"
@@ -470,6 +496,23 @@ def get_default_or_unset_value_py(attr):
     
     return PY_NONE
 
+
+def has_item_w_name(items, item_name):
+    for item in items:
+        if item_name == item[KEY_NAME]:
+            return True
+    return False
+
+
+def is_container_class(name):
+    return \
+        name == CLASS_NAME_MODEL or \
+        name == CLASS_NAME_SUBSYSTEM or \
+        name == CLASS_NAME_INSTANTIATION or \
+        name == CLASS_NAME_OBSERVABLES
+
+def is_container_class_no_model(name):
+    return is_container_class(name) and not name == CLASS_NAME_MODEL
 
 def write_generated_notice(f):
     now = datetime.now()
@@ -550,7 +593,8 @@ def write_ctor_define(f, class_def, class_name):
     f.write('{ \\\n')
 
     # initialization code
-    f.write('      ' + CLASS_NAME_ATTR + ' = "' + class_name + '"; \\\n')
+    if not is_container_class_no_model(class_name):
+        f.write('      ' + CLASS_NAME_ATTR + ' = "' + class_name + '"; \\\n')
     items = class_def[KEY_ITEMS] if KEY_ITEMS in class_def else []    
     num_items = len(items)
     for i in range(num_items):
@@ -564,8 +608,9 @@ def write_ctor_define(f, class_def, class_name):
         else:
             f.write('      ' + attr_name + ' = ' + get_default_or_unset_value(items[i]) + '; \\\n')
             
-    f.write('      ' + CTOR_POSTPROCESS + '();\\\n')    
-    f.write('      ' + CHECK_SEMANTICS + '();\\\n')
+    if not is_container_class_no_model(class_name):
+        f.write('      ' + CTOR_POSTPROCESS + '();\\\n')    
+        f.write('      ' + CHECK_SEMANTICS + '();\\\n')
     f.write('    }\n\n')    
     
     
@@ -690,7 +735,7 @@ def has_superclass_other_than_base(class_def):
         return False
     
     
-def write_gen_class(f, class_def, class_name):
+def write_gen_class(f, class_def, class_name, decls):
     gen_class_name = GEN_CLASS_PREFIX + class_name
     f.write('class ' + gen_class_name)
     
@@ -704,7 +749,8 @@ def write_gen_class(f, class_def, class_name):
             f.write('public ' + scs[i])
             if i + 1 != len(scs):
                 f.write(', ')
-            
+    elif is_container_class_no_model(class_name):
+        f.write(': public ' + BASE_EXPORT_CLASS)
         
     f.write( ' {\n')
     f.write('public:\n')
@@ -730,7 +776,9 @@ def write_gen_class(f, class_def, class_name):
     override = KEYWORD_OVERRIDE if has_single_superclass(class_def) else ''
     f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + override + ';\n\n')
     
-        
+    if decls:
+        f.write(decls + '\n\n')
+    
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
     for attr in items:
@@ -804,7 +852,7 @@ def write_required_includes(f, class_def):
     types = get_all_used_nonbase_types(class_def)
     inner_types = set()
     for t in types:
-        # mus be set otherwise we get duplicates
+        # must be set otherwise we get duplicates
         inner_types.add( get_first_inner_type(t) )
 
     types_no_ptrs = [ t for t in inner_types if not is_yaml_ptr_type(t) ] 
@@ -829,10 +877,12 @@ def write_forward_decls(f, class_def, class_name):
     for t in types:
         f.write('class ' + t + ';\n')
         
+    f.write('class PythonExportContext;\n')
+        
     f.write('\n')
 
     
-def generate_class_header(class_name, class_def):
+def generate_class_header(class_name, class_def, decls):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f)
@@ -850,6 +900,8 @@ def generate_class_header(class_name, class_def):
                     f.write(INCLUDE_API_BASE_DATA_CLASS_H + '\n')
                 elif class_def[KEY_SUPERCLASS] == BASE_INTROSPECTION_CLASS:
                     f.write(INCLUDE_API_BASE_INTROSPECTION_CLASS_H + '\n')
+            elif is_container_class_no_model(class_name):
+                f.write(INCLUDE_API_BASE_EXPORT_CLASS_H + '\n')
         
             if has_superclass_other_than_base(class_def):
                 f.write('#include "' + get_api_class_file_name_w_dir(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
@@ -860,14 +912,15 @@ def generate_class_header(class_name, class_def):
         
         write_forward_decls(f, class_def, class_name)
         
-        if has_single_superclass(class_def): # not sure about this condition
+        if has_single_superclass(class_def) or is_container_class_no_model(class_name): 
             write_ctor_define(f, class_def, class_name)
         
         if def_type == VALUE_CLASS:
-            write_gen_class(f, class_def, class_name)
+            write_gen_class(f, class_def, class_name, decls)
         
             f.write('class ' + class_name + ';\n')
         elif def_type == VALUE_SUBMODULE:
+            assert decls == ''
             f.write('namespace ' + class_name + ' {\n\n')
             # submodules have only functions
             methods = class_def[KEY_METHODS]
@@ -902,16 +955,22 @@ def generate_class_template(class_name, class_def):
         
         f.write('class ' + class_name + ': public ' + GEN_CLASS_PREFIX + class_name + ' {\n')
         f.write('public:\n')
-        f.write('  ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '()\n')
+        f.write('  ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '()\n\n')
+        if has_single_superclass(class_def):
+            f.write('  // defined in generated file\n') 
+        f.write('  ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + DECL_EXPORT_TO_PYTHON + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         f.write('};\n\n')
         
         f.write(NAMESPACES_END + '\n\n')
         f.write('#endif // ' + guard + '\n')
         
         
-def write_is_set_check(f, name):
+def write_is_set_check(f, name, is_list):
     f.write('  if (!is_set(' + name + ')) {\n')
-    f.write('    throw ValueError("Parameter \'' + name + '\' must be set.");\n')
+    f.write('    throw ValueError("Parameter \'' + name + '\' must be set')
+    if is_list:
+        f.write(' and the value must not be an empty list')            
+    f.write('.");\n')
     f.write('  }\n')
   
 
@@ -919,7 +978,7 @@ def write_check_semantics_implemetation(f, class_name, items):
     f.write(RET_TYPE_CHECK_SEMANTICS + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_CHECK_SEMANTICS + ' {\n') 
     for attr in items:
         if KEY_DEFAULT not in attr:
-            write_is_set_check(f, attr[KEY_NAME])
+            write_is_set_check(f, attr[KEY_NAME], is_yaml_list_type(attr[KEY_TYPE]))
     f.write('}\n\n')    
     
         
@@ -927,7 +986,7 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + ' {\n')
 
     # TODO: config etc from Model
-    if class_name == "Model":
+    if class_name == CLASS_NAME_MODEL:
         f.write('  #if 0 // not generated correctly yet\n')
 
     f.write('  std::stringstream ss;\n')
@@ -983,6 +1042,259 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
         f.write('  #endif\n')
     
     f.write('}\n\n')                
+
+
+def write_vec_export(f, return_only_name, gen_class_name, item):
+    
+    item_name = item[KEY_NAME];
+    PARENT_NAME = 'parent_name'
+    
+    name_w_args = \
+        EXPORT_VEC_PREFIX + item_name + '(' + EXPORT_TO_PYTHON_ARGS + ', const std::string& ' + PARENT_NAME + ')'
+    decl = '  virtual ' + RET_TYPE_EXPORT_TO_PYTHON + ' ' + name_w_args + ';\n'
+    f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + name_w_args + " {\n")
+    
+    if return_only_name:
+        f.write('  // prints vector into \'out\' and returns name of the generated list\n')
+    else:
+        f.write('  // does not print the array itself to \'out\' and returns the whole list\n')
+    
+    f.write('  std::stringstream ss;\n')
+    out = '  ss << '
+    if return_only_name:
+        f.write('  std::string ' + EXPORTED_NAME + ';\n' +
+                '  if (' + PARENT_NAME + ' != ""){\n' +
+                '    ' + EXPORTED_NAME + ' = ' + PARENT_NAME + '+ "_' + item_name + '";\n' +
+                '  }\n' +
+                '  else {\n' +
+                '    ' + EXPORTED_NAME + ' = "' + item_name + '";\n' +
+                '  }\n\n')
+        f.write(out + EXPORTED_NAME + ' << " = [\\n";\n')
+        spacing = '    '
+    else:
+        f.write(out + '"[";\n')
+        spacing = ' ' 
+
+    type = item[KEY_TYPE]
+    assert is_yaml_list_type(type)
+    
+    inner_type = get_inner_list_type(type)
+
+    f.write(
+        '  for (size_t i = 0; i < ' + item_name + '.size(); i++) {\n' +
+        '    const auto& item = ' + item_name + '[i];\n' +
+        '    if (i == 0) {\n' +
+        '    ' + out + '"' + spacing + '";\n' +
+        '    }\n' +
+        '    else if (i % 16 == 0) {\n' +
+        '    ' + out + '"\\n  ";\n' +
+        '    }\n'
+    )
+    
+    if is_yaml_list_type(inner_type):
+        
+        inner2_type = get_inner_list_type(inner_type)
+        
+
+        # special case for 2D arrays, they hold int or float
+        f.write(
+            '  ' + out + '"[";\n' +
+            '    for (const auto& value: item) {\n'
+        )
+
+        if inner2_type == YAML_TYPE_FLOAT:
+            f.write('    ' + out + F_TO_STR + '(value) << ", ";\n')
+        else:
+            f.write('    ' + out + 'value << ", ";\n') 
+            
+        f.write(
+            '    }\n' +
+            '  ' + out + '"], ";\n'            
+        )
+    elif not is_base_yaml_type(inner_type) and inner_type not in g_enums:
+        # array of API objects
+        f.write(
+            '    if (!item->skip_python_export()) {\n' +
+            '      std::string name = item->export_to_python(out, ctx);\n' + 
+            '    ' + out + 'name << ", ";\n' +
+            '    }\n'
+        )
+    elif inner_type == YAML_TYPE_FLOAT:
+        f.write('  ' + out + F_TO_STR + '(item) << ", ";\n')
+    elif inner_type == YAML_TYPE_STR:
+        f.write('  ' + out + '"\'" << item << "\', ";\n')
+    else:
+        # array of simple type
+        f.write('  ' + out + 'item << ", ";\n')
+
+    f.write('  }\n')
+        
+    if return_only_name:
+        f.write(out + '"\\n]\\n\\n";\n')
+        f.write('  out << ss.str();\n')
+        f.write('  return ' + EXPORTED_NAME + ';\n')
+    else:
+        f.write(out + '"]";\n')
+        f.write('  return ss.str();\n')
+        
+
+    f.write('}\n\n')
+    return decl 
+
+
+def write_export_to_python_implementation(f, class_name, class_def):
+    items = class_def[KEY_ITEMS]
+    
+    # declaration
+    if KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] == BASE_DATA_CLASS:
+        override = ' ' + KEYWORD_OVERRIDE
+        virtual = ''
+    else:
+        override = ''
+        virtual = KEYWORD_VIRTUAL + ' ' 
+
+    gen_class_name = GEN_CLASS_PREFIX + class_name
+    decl_main = '  ' + virtual + RET_TYPE_EXPORT_TO_PYTHON + ' ' + DECL_EXPORT_TO_PYTHON + override + ';\n'
+    f.write(RET_TYPE_EXPORT_TO_PYTHON + " " + gen_class_name + "::" + DECL_EXPORT_TO_PYTHON + " {\n")
+    
+    export_vecs_to_define = []
+    
+    if class_name == CLASS_NAME_MODEL:
+        f.write('# if 0 // not to be used\n')
+    
+    name_underscored = get_underscored(class_name)
+    if not is_container_class(class_name):
+        f.write(
+            '  if (!export_even_if_already_exported() && ' + CTX + '.already_exported(this)) {\n' +
+            '    return ' + CTX + '.get_exported_name(this);\n' +
+            '  }\n'
+        )
+        
+        # name generation 
+        f.write('  std::string ' + EXPORTED_NAME + ' = ') 
+        if not has_item_w_name(items, ATTR_NAME_NAME):
+            f.write('"' + name_underscored + '_" + ' + 
+                    'std::to_string(' + CTX + '.postinc_counter("' + name_underscored + '"));\n')
+        else:
+            f.write('std::string("' + name_underscored + '") + "_" + ' + 
+                    '(is_set(name) ? ' + 
+                        'fix_id(name) : ' +
+                        'std::to_string(' + CTX + '.postinc_counter("' + name_underscored + '")));\n')
+            
+        f.write(
+            '  if (!export_even_if_already_exported()) {\n' +
+            '    ' + CTX + '.add_exported(this, ' + EXPORTED_NAME + ');\n'
+            '  }\n\n'
+        )
+    else:
+        f.write('  std::string ' + EXPORTED_NAME + ' = "' + name_underscored + '";\n\n') 
+        
+    STR_EXPORT = 'str_export'
+    f.write('  bool ' + STR_EXPORT + ' = export_as_string_without_newlines();\n')
+    NL = 'nl';
+    f.write('  std::string ' + NL + ' = "";\n')  
+    IND = 'ind';
+    f.write('  std::string ' + IND + ' = " ";\n')  
+    
+    f.write('  std::stringstream ss;\n')
+    out = '  ss << '
+    
+    f.write('  if (!' + STR_EXPORT + ') {\n')
+    f.write('    ' + NL + ' = "\\n";\n')
+    f.write('    ' + IND + ' = "    ";\n')
+    f.write('  ' + out + EXPORTED_NAME + ' << " = ";\n')
+    f.write('  }\n')
+    
+    f.write(out + '"' + M_DOT + class_name + '(" << ' + NL + ';\n')
+    processed_items = set()
+
+    # we would like to export inherited fields first
+    sorted_items = [] 
+    for item in items:
+        if KEY_INHERITED in item:
+            sorted_items.append(item)
+    for item in items:
+        if KEY_INHERITED not in item:
+            sorted_items.append(item)
+    
+    for item in sorted_items:
+        
+        type = item[KEY_TYPE]
+        name = item[KEY_NAME]
+        
+        if name in processed_items:
+            continue
+        processed_items.add(name)
+        
+        export_condition = ''
+        if is_yaml_list_type(type):
+            export_condition = ' && !skip_vectors_export()'
+
+        if KEY_DEFAULT in item:
+            if is_yaml_ptr_type(type):
+                f.write('  if (is_set(' + name + ')) {\n')
+            else:
+                f.write('  if (' + name + ' != ' + get_default_or_unset_value(item) + export_condition + ') {\n')
+            f.write('  ')  
+            
+        f.write(out + IND + ' << "' + name + ' = " << ')
+                    
+        if is_yaml_list_type(type):
+            f.write(EXPORT_VEC_PREFIX + name + '(out, ' + CTX + ', ' + EXPORTED_NAME + ') << "," << ' + NL + ';\n')
+            export_vecs_to_define.append(item)
+        elif is_yaml_ptr_type(type):
+            f.write(name + '->export_to_python(out, ' + CTX + ') << "," << ' + NL + ';\n')
+        elif not is_base_yaml_type(type) and type not in g_enums:
+            f.write(name + '.export_to_python(out, ' + CTX + ') << "," << ' + NL + ';\n')
+        elif type == YAML_TYPE_STR:
+            f.write('"\'" << ' + name + ' << "\'" << "," << ' + NL + ';\n')
+        elif type == YAML_TYPE_VEC3:
+            # also other ivec*/vec2 types should be handled like this but it was not needed so far
+            f.write('"' + M_DOT + CPP_TYPE_VEC3 + '(" << ' + 
+                        F_TO_STR + '(' + name + '.x) << ", " << ' +
+                        F_TO_STR + '(' + name + '.y) << ", " << ' +
+                        F_TO_STR + '(' + name + '.z)' +
+                        '<< ")," << ' + NL + ';\n')
+        elif type == YAML_TYPE_VEC2:
+            # also other ivec*/vec2 types should be handled like this but it was not needed so far
+            f.write('"' + M_DOT + CPP_TYPE_VEC2 + '(" << ' + 
+                        F_TO_STR + '(' + name + '.u) << ", " << ' +
+                        F_TO_STR + '(' + name + '.v)' +
+                        '<< ")," << ' + NL + ';\n')
+        elif type == YAML_TYPE_FLOAT:
+            f.write(F_TO_STR + '(' + name + ') << "," << ' + NL + ';\n')
+        else:
+            # using operators << for enums
+            f.write(name + ' << "," << ' + NL + ';\n')
+            
+        if KEY_DEFAULT in item:
+            f.write('  }\n')
+            
+    f.write(out + '")" << ' + NL + ' << ' + NL + ';\n')
+    f.write('  if (!' + STR_EXPORT + ') {\n')
+    f.write('    out << ss.str();\n')
+    f.write('    return ' + EXPORTED_NAME + ';\n')
+    f.write('  }\n')
+    f.write('  else {\n')
+    f.write('    return ss.str();\n')
+    f.write('  }\n')
+    
+    if class_name == CLASS_NAME_MODEL:
+        f.write('#else // # if 0\n')
+        f.write('  assert(false);\n')
+        f.write('  return "";\n')
+        f.write('#endif\n')
+        
+    f.write('}\n\n')
+    
+    # also define export vec methods
+    decls_export_vec = ''
+    for item in export_vecs_to_define:
+        decls_export_vec += write_vec_export(f, is_container_class(class_name), gen_class_name, item)
+    
+    # return string that contains declaration of export methods, this will be later used in 
+    # .h file generation
+    return decl_main + decls_export_vec
 
 
 def write_operator_equal_body(f, class_name, class_def, skip_arrays_and_name=False):
@@ -1149,7 +1461,7 @@ def write_pybind11_bindings(f, class_name, class_def):
     
         num_items = len(items)
         if ctor_has_args:
-            if has_single_superclass(class_def):
+            if has_single_superclass(class_def) or is_container_class_no_model(class_name):
                 # init operands
                 for i in range(num_items):
                     attr = items[i]
@@ -1166,7 +1478,7 @@ def write_pybind11_bindings(f, class_name, class_def):
         
         if ctor_has_args:    
             # init argument names and default values
-            if has_single_superclass(class_def):
+            if has_single_superclass(class_def) or is_container_class_no_model(class_name):
                 if num_items != 0:
                     f.write(',')
                 f.write('\n')
@@ -1183,7 +1495,7 @@ def write_pybind11_bindings(f, class_name, class_def):
                         f.write(',\n')
         f.write('\n')          
         f.write('      )\n')            
-        
+
         # common methods
         if has_single_superclass(class_def):
             f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')
@@ -1239,6 +1551,8 @@ def write_set_all_default_or_unset(f, class_name, class_def):
 
             
 def generate_class_implementation_and_bindings(class_name, class_def):
+    # returns a list of methods to be declared 
+    decls = ''
     with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
         def_type = class_def[KEY_TYPE]
         
@@ -1247,6 +1561,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         
         f.write('#include <sstream>\n')
         f.write('#include "api/pybind11_stl_include.h"\n')
+        f.write(INCLUDE_API_PYTHON_EXPORT_UTILS_H + '\n')
 
         # includes for our class
         f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')
@@ -1270,9 +1585,15 @@ def generate_class_implementation_and_bindings(class_name, class_def):
             write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         
         write_pybind11_bindings(f, class_name, class_def)
+
+        # we do not need export for introspected classes
+        if is_container_class(class_name) or \
+            (KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] != BASE_INTROSPECTION_CLASS):
+            decls += write_export_to_python_implementation(f, class_name, class_def);
         
         f.write(NAMESPACES_END + '\n\n')
         
+    return decls 
 
 # class Model provides the same methods as Subsystem and Instantiation, 
 # this function copies the definition for pybind11 API generation
@@ -1328,8 +1649,8 @@ def generate_class_files(data_classes, class_name, class_def):
 
     class_def_w_inheritances = inherit_from_superclasses(data_classes, class_name, class_def)
     
-    generate_class_header(class_name, class_def_w_inheritances)
-    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances)
+    decls = generate_class_implementation_and_bindings(class_name, class_def_w_inheritances)
+    generate_class_header(class_name, class_def_w_inheritances, decls)
     
     generate_class_template(class_name, class_def_w_inheritances)
     
@@ -1368,12 +1689,15 @@ def write_enum_def(f, enum_def):
     f.write('};\n\n')
 
     
-    f.write('\nstatic inline  std::ostream& operator << (std::ostream& out, const ' + name + ' v) {\n')
+    f.write('\nstatic inline std::ostream& operator << (std::ostream& out, const ' + name + ' v) {\n')
     f.write('  switch (v) {\n');
     for i in range(num):
         v = values[i]
         # dumping in Python style '.' that will be most probably more common as API  
-        f.write('    case ' + name + '::' + v[KEY_NAME] + ': out << "' + name + '.' + v[KEY_NAME] + ' (' + str(v[KEY_VALUE]) + ')"; break;\n')  
+        #f.write('    case ' + name + '::' + v[KEY_NAME] + ': out << "' + name + '.' + v[KEY_NAME] + ' (' + str(v[KEY_VALUE]) + ')"; break;\n')
+        
+        # dumping as Python code  
+        f.write('    case ' + name + '::' + v[KEY_NAME] + ': out << "' + M_DOT + name + '.' + v[KEY_NAME] + '"; break;\n')
         
     f.write('  }\n')
     f.write('  return out;\n')

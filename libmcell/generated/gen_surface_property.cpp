@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include "api/pybind11_stl_include.h"
+#include "api/python_export_utils.h"
 #include "gen_surface_property.h"
 #include "api/surface_property.h"
 #include "api/complex.h"
@@ -109,6 +110,44 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       .def_property("affected_complex_pattern", &SurfaceProperty::get_affected_complex_pattern, &SurfaceProperty::set_affected_complex_pattern)
       .def_property("concentration", &SurfaceProperty::get_concentration, &SurfaceProperty::set_concentration)
     ;
+}
+
+std::string GenSurfaceProperty::export_to_python(std::ostream& out, PythonExportContext& ctx) {
+  if (!export_even_if_already_exported() && ctx.already_exported(this)) {
+    return ctx.get_exported_name(this);
+  }
+  std::string exported_name = "surface_property_" + std::to_string(ctx.postinc_counter("surface_property"));
+  if (!export_even_if_already_exported()) {
+    ctx.add_exported(this, exported_name);
+  }
+
+  bool str_export = export_as_string_without_newlines();
+  std::string nl = "";
+  std::string ind = " ";
+  std::stringstream ss;
+  if (!str_export) {
+    nl = "\n";
+    ind = "    ";
+    ss << exported_name << " = ";
+  }
+  ss << "m.SurfaceProperty(" << nl;
+  if (type != SurfacePropertyType::UNSET) {
+    ss << ind << "type = " << type << "," << nl;
+  }
+  if (is_set(affected_complex_pattern)) {
+    ss << ind << "affected_complex_pattern = " << affected_complex_pattern->export_to_python(out, ctx) << "," << nl;
+  }
+  if (concentration != FLT_UNSET) {
+    ss << ind << "concentration = " << f_to_str(concentration) << "," << nl;
+  }
+  ss << ")" << nl << nl;
+  if (!str_export) {
+    out << ss.str();
+    return exported_name;
+  }
+  else {
+    return ss.str();
+  }
 }
 
 } // namespace API

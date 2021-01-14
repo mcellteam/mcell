@@ -33,6 +33,9 @@
 namespace MCell {
 namespace API {
 
+bool is_simple_species(const std::string& name);
+Orientation convert_orientation(const orientation_t o);
+
 template<class T>
 void append_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
@@ -119,7 +122,6 @@ void append_vec_to_vec(
 }
 
 
-
 template<class T>
 void append_vec_to_vec_canonical_name(
     std::vector<std::shared_ptr<T>>& dst,
@@ -131,29 +133,7 @@ void append_vec_to_vec_canonical_name(
   }
 }
 
+} // namespace API
+} // namespace MCell
 
-static Orientation convert_orientation(const orientation_t o) {
-  switch (o) {
-    case ORIENTATION_DOWN:
-      return Orientation::DOWN;
-    case ORIENTATION_NONE:
-      return Orientation::NONE;
-    case ORIENTATION_UP:
-      return Orientation::UP;
-    case ORIENTATION_NOT_SET:
-      return Orientation::NOT_SET;
-    default:
-      assert(false);
-      return Orientation::NOT_SET;
-  }
-}
-
-static bool is_simple_species(const std::string& name) {
-  // complex species always contain a parenthesis in their name
-  return name.find('(') == std::string::npos;
-}
-
-} /* namespace API */
-} /* namespace MCell */
-
-#endif /* LIBMCELL_API_API_UTILS_H_ */
+#endif // LIBMCELL_API_API_UTILS_H_

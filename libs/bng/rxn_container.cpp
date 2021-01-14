@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <sstream>
-
+#include <bitset>
 
 using namespace std;
 
@@ -16,6 +16,10 @@ RxnContainer::~RxnContainer() {
   }
 
   for (RxnRule* rxn: rxn_rules) {
+    delete rxn;
+  }
+
+  for (ReactantClass* rxn: reactant_classes_vector) {
     delete rxn;
   }
 }
@@ -243,6 +247,109 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const Reactant& reac
 }
 
 
+void RxnContainer::compute_reacting_classes(const ReactantClass& rc) {
+  assert(rc.is_initialized());
+
+  assert(reacting_classes.size() == rc.id);
+  reacting_classes.push_back(ReactantClassIdSet());
+  ReactantClassIdSet& current_set = reacting_classes.back();
+
+  for (const ReactantClass* reacting_class: reactant_classes_set) {
+    assert(reacting_class->is_initialized());
+
+    // cross check
+    // - rule_ids[0] -> reacting_class.rule_ids[1]
+    // - rule_ids[1] -> reacting_class.rule_ids[0]
+    bool can_react =
+        (rc.reaction_id_bitsets[0] & reacting_class->reaction_id_bitsets[1]).any() ||
+        (rc.reaction_id_bitsets[1] & reacting_class->reaction_id_bitsets[0]).any();
+
+    if (can_react) {
+      // mapping A -> B
+      current_set.insert(reacting_class->id);
+
+      // update also the mapping B -> A because this is a new reactant class
+      reacting_classes[reacting_class->id].insert(rc.id);
+    }
+  }
+}
+
+
+// also computes reacting classes if this is a new reactant class
+reactant_class_id_t RxnContainer::find_or_add_reactant_class(
+    const ReactionIdBitsets& reactions_bitset_per_reactant, const bool target_only) {
+
+  reactant_class_id_t res;
+  bool is_new_reactant_class;
+
+  // NOTE: maybe search without creating the ReactantClass object
+  ReactantClass* rc = new ReactantClass;
+  rc->target_only = target_only;
+  rc->reaction_id_bitsets = reactions_bitset_per_reactant;
+  const auto it = reactant_classes_set.find(rc);
+
+  if (it != reactant_classes_set.end()) {
+    delete rc;
+    return (*it)->id;
+  }
+  else {
+    // add and compute reacting classes
+    rc->id = next_reactant_class_id;
+    next_reactant_class_id++;
+    reactant_classes_set.insert(rc);
+    reactant_classes_vector.push_back(rc);
+
+    compute_reacting_classes(*rc);
+    return rc->id;
+  }
+}
+
+
+reactant_class_id_t RxnContainer::compute_reactant_class_for_species(const species_id_t species_id) {
+
+  // prepare reactant class bitsets
+  assert(rxn_rules.empty() || rxn_rules.back()->id == rxn_rules.size() - 1);
+  ReactionIdBitsets reactions_bitset_per_reactant =
+    { boost::dynamic_bitset<>(rxn_rules.size()), boost::dynamic_bitset<>(rxn_rules.size())};
+  for (RxnRule* r: rxn_rules) {
+    if (r->is_bimol_vol_rxn()) {
+      std::vector<uint> indices;
+      r->get_reactant_indices(species_id, all_species, indices);
+      assert(indices.size() <= 2);
+
+      if (indices.empty()) {
+        continue;
+      }
+
+      if (indices.size() == 1) {
+        // species matches one of reactants
+        // set bit on position id
+        assert(indices[0] <= 1);
+        reactions_bitset_per_reactant[indices[0]][r->id] = 1;
+      }
+      else {
+        // species matches both reactants
+        assert(indices[0] + indices[1] == 1);
+        reactions_bitset_per_reactant[0][r->id] = 1;
+        reactions_bitset_per_reactant[1][r->id] = 1;
+      }
+    }
+  }
+
+  // find or add reactant class based on the computed bitsets, also compute reacting classes
+  Species& s = all_species.get(species_id);
+  reactant_class_id_t res = find_or_add_reactant_class(reactions_bitset_per_reactant, s.is_target_only());
+
+#if 0
+  cout <<
+      reactions_bitset_per_reactant[0] << "|" << reactions_bitset_per_reactant[1] <<
+      " reactant class id:" << res << ", species id:" << species_id << " (" << rxn_rules.size() << ")\n";
+#endif
+
+  return res;
+}
+
+
 // - puts pointers to all corresponding classes to the res_classes_map
 // - for bimol rxns, does not reuse already defined rxn class, e.g. when A + B was already created,
 //   rxn class for B + A will be created (NOTE: might improve if needed but so far the only issue
@@ -250,7 +357,8 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const Reactant& reac
 // - called only from get_bimol_rxns_for_reactant
 void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t species_id1, const bool for_all_known_species) {
 
-  // find all reactions for species id
+  // find all reactions for species id,
+  // also define reactant class
   small_vector<RxnRule*> rxns_for_new_species;
   for (RxnRule* r: rxn_rules) {
     if (r->is_bimol() && r->species_can_be_reactant(species_id1, all_species)) {
@@ -323,6 +431,8 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
 
           small_vector<RxnRule*> applicable_rxns;
 
+          bool has_rxn_where_both_match_both_patterns = false;
+
           for (RxnRule* matching_rxn: rxns_for_new_species) {
 
             // usually the species must be different but reactions of type A + A are allowed
@@ -331,12 +441,20 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
             }
 
             uint reac1_index, reac2_index;
+            bool both_match_both_patterns = false;
             bool reactants_match =
-                matching_rxn->species_can_be_bimol_reactants(reac1.species_id, species_id2, all_species, &reac1_index, &reac2_index);
+                matching_rxn->species_can_be_bimol_reactants(
+                    reac1.species_id, species_id2, all_species,
+                    &reac1_index, &reac2_index, &both_match_both_patterns);
+
+            if (both_match_both_patterns) {
+              has_rxn_where_both_match_both_patterns = true;
+            }
 
             if (reactants_match &&
                 matching_rxn->reactant_compatment_matches(reac1_index, reac1.compartment_id) &&
                 matching_rxn->reactant_compatment_matches(reac2_index, reac2.compartment_id)) {
+
 
               // ok, we have a reaction applicable both to new_id and second_id and compartment matches as well
               // we need to add this rxn to a rxn class for these reactants
@@ -345,8 +463,34 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
           }
 
           if (!applicable_rxns.empty()) {
+
+            Reactant reacA = reac1;
+            Reactant reacB = reac2;
+
+            // if both reactants match both patterns, and compartments are not important,
+            // we must sort the reactants so that it does not matter whether the rxn class was first created
+            // for reac1 or reac2,
+            // otherwise, this might give us different result e.g. based on the frequency of rxn class cleanup
+            // NOTE: some cases related to compartments might be missed
+            if (reac1.species_id != reac2.species_id &&
+                has_rxn_where_both_match_both_patterns &&
+                (
+                 ((reac1.compartment_id == COMPARTMENT_ID_NONE || reac1.compartment_id == COMPARTMENT_ID_ANY) &&
+                  (reac2.compartment_id == COMPARTMENT_ID_NONE || reac2.compartment_id == COMPARTMENT_ID_ANY)) ||
+                 reac1.compartment_id == reac2.compartment_id
+                )
+               ) {
+              // order by species name - the one lexicographically smaller will be the first one
+              const Species& s1 = all_species.get(reac1.species_id);
+              const Species& s2 = all_species.get(reac2.species_id);
+              if (s1.name > s2.name) {
+                reacA = reac2;
+                reacB = reac1;
+              }
+            }
+
             // get to the instance of the reaction class for (new_id, second_id) or (second_id, new_id)
-            RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(reac1, reac2);
+            RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(reacA, reacB);
 
             for (RxnRule* rxn: applicable_rxns) {
               rxn_class->add_rxn_rule_no_update(rxn);
@@ -405,8 +549,12 @@ void RxnContainer::remove_unimol_rxn_classes(const species_id_t id) {
 void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id) {
 
   // remove the rxn classes and their mappings for the second reactants
-  if (species_processed_for_bimol_rxn_classes.count(reac1_species_id) != 0) {
+  //if (species_processed_for_bimol_rxn_classes.count(reac1_species_id) != 0) {
+  if (bimol_rxn_class_map.count(reac1_species_id) != 0) {
     // forget that we processed this species
+    // does not necessarily have to be present - we might have not fully processed this species,
+    // it might present in the bimol_rxn_class_map only because it was used as a second reactant for
+    // another fully processed species
     species_processed_for_bimol_rxn_classes.erase(reac1_species_id);
 
     BimolSpeciesIt it_species1 = bimol_rxn_class_map.find(reac1_species_id);
@@ -456,10 +604,6 @@ void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id)
       bimol_rxn_class_map.erase(it_species1);
     }
   }
-  else {
-    assert(bimol_rxn_class_map.count(reac1_species_id) == 0 &&
-        "There must be no rxn class maps for unprocessed species");
-  }
 }
 
 
@@ -473,6 +617,24 @@ void RxnContainer::remove_species_id_references(const species_id_t id) {
   for (RxnRule* rxn: rxn_rules) {
     rxn->remove_species_id_references(id);
   }
+}
+
+
+void RxnContainer::remove_reactant_class(const reactant_class_id_t id) {
+  for (ReactantClassIdSet& reactants: reacting_classes) {
+    // remove if present
+    reactants.erase(id);
+  }
+  // clear reactants, later, we might need to use better containers but the
+  // number of reactant classes should't be high so let's keep it like this
+  reacting_classes[id] = ReactantClassIdSet();
+
+  // and delete the class itself
+  ReactantClass* rc = reactant_classes_vector[id];
+  assert(rc != nullptr);
+  reactant_classes_set.erase(rc);
+  delete rc;
+  reactant_classes_vector[id] = nullptr;
 }
 
 

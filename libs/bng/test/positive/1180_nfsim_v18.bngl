@@ -1,0 +1,50 @@
+# OK
+
+begin model
+
+begin parameters
+	ITERATIONS  100
+    MCELL_DIFFUSION_CONSTANT_3D_L2 1e-6
+    MCELL_DIFFUSION_CONSTANT_3D_R2 1e-6
+
+    MCELL_DEFAULT_COMPARTMENT_VOLUME (1/8)^3
+    NA_um3 6.022e8
+    VOL_RXN 1
+    UNIMOL_RXN 10000
+    MCELL_REDEFINE_VOL_RXN NA_um3
+    
+    
+    p 0.1 # dimensionless
+    koff 1*UNIMOL_RXN # /s
+    L_copyNum 500 # molecules per cell
+end parameters
+
+begin molecule types
+    L2(r,r,r)
+    R2(l)
+end molecule types
+
+begin seed species
+    L2(r!1,r!2,r!3).R2(l!1).R2(l!2).R2(l!3) L_copyNum
+end seed species
+
+begin observables
+    Species free_L2 L2(r,r,r)
+    Species singly_bound_L2 L2(r!+,r,r)
+    Species doubly_bound_L2 L2(r!+,r!+,r)
+    Species triply_bound_L2 L2(r!+,r!+,r!+)
+end observables
+
+begin reaction rules
+    L2(r!1,r!2,r!3).R2(l!1).R2(l!2).R2(l!3)->L2(r!1,r!2,r).R2(l!1).R2(l!2)+R2(l) p*koff
+    L2(r!1,r!2,r).R2(l!1).R2(l!2)->L2(r!1,r,r).R2(l!1)+R2(l) p*koff
+    L2(r!1,r,r).R2(l!1)->L2(r,r,r)+R2(l) p*koff
+    L2(r!1).R2(l!1)->L2(r)+R2(l) (1-p)*koff
+end reaction rules
+
+end model
+
+begin actions
+generate_network({overwrite=>1})
+simulate({method=>"ode",t_end=>1e-3,n_steps=>1000})
+end actions
