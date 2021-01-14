@@ -152,7 +152,7 @@ char *create_rx_name(struct pathway *p);
 
 
 //JJT:stuff I exposed from mcell_reactions.c so that nfsim-related functions can use them
-int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
+int scale_rxn_probabilities(unsigned char *reaction_prob_limit_flag,
                                struct notifications *notify,
                                struct pathway *path, struct rxn *rx,
                                double pb_factor);

@@ -24,7 +24,7 @@
 #define API_GEN_COUNT_H
 
 #include "api/common.h"
-#include "api/count_term.h"
+#include "api\count_term.h"
 
 
 namespace MCell {

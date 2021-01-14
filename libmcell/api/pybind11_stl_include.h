@@ -33,4 +33,8 @@
 #endif
 #include "libs/pybind11/include/pybind11/stl.h"
 
+#ifndef _WIN64
+#undef _hypot
+#endif
+
 #endif

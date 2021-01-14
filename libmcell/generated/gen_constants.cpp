@@ -21,7 +21,7 @@
 ******************************************************************************/
 
 #include "api/common.h"
-#include "api/species.h"
+#include "api\species.h"
 
 namespace MCell {
 namespace API {

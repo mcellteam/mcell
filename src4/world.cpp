@@ -215,8 +215,9 @@ void World::check_checkpointing_signal() {
     cout << "User signal SIGUSR2 detected, scheduling a checkpoint and terminating simulation afterwards.\n";
     continue_simulation = false;
   }
+  else
 #endif
-  else if (signaled_checkpoint_signo == SIGALRM) {
+  if (signaled_checkpoint_signo == SIGALRM) {
     cout << "Signal SIGALRM detected - periodic or time limit elapsed, scheduling a checkpoint ";
     if (config.continue_after_sigalrm) {
       cout << "and continuing simulation.\n";

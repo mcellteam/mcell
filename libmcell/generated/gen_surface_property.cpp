@@ -24,8 +24,8 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_surface_property.h"
-#include "api/surface_property.h"
-#include "api/complex.h"
+#include "api\surface_property.h"
+#include "api\complex.h"
 
 namespace MCell {
 namespace API {

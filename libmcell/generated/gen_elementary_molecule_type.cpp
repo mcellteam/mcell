@@ -24,10 +24,10 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_elementary_molecule_type.h"
-#include "api/elementary_molecule_type.h"
-#include "api/component.h"
-#include "api/component_type.h"
-#include "api/elementary_molecule.h"
+#include "api\elementary_molecule_type.h"
+#include "api\component.h"
+#include "api\component_type.h"
+#include "api\elementary_molecule.h"
 
 namespace MCell {
 namespace API {

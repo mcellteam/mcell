@@ -3,7 +3,7 @@
 #define LIBS_BNG_RXN_CONTAINER_H_
 
 #define BOOST_ALLOW_DEPRECATED_HEADERS
-#include <boost/dynamic_bitset.hpp>
+#include "libs/boost/dynamic_bitset.hpp"
 
 #include "bng/bng_defines.h"
 #include "bng/rxn_rule.h"

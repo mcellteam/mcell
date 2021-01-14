@@ -24,8 +24,8 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_region.h"
-#include "api/region.h"
-#include "api/region.h"
+#include "api\region.h"
+#include "api\region.h"
 
 namespace MCell {
 namespace API {

@@ -32,6 +32,7 @@ namespace fs = std::filesystem;
 #endif
 
 #include "api_utils.h"
+#include "bng/bng_defines.h"
 #include "src4/simulation_config.h"
 
 using namespace std;
@@ -46,7 +47,7 @@ std::string get_last_checkpoint_dir(const int seed) {
   // only supported parameter is seed for now
 
   string chkpt_seed_dir =
-      DEFAULT_CHECKPOINTS_DIR + fs::path::preferred_separator + get_seed_dir_name(seed);
+      DEFAULT_CHECKPOINTS_DIR + BNG::PATH_SEPARATOR + get_seed_dir_name(seed);
 
   string max_it_dir_name = "";
 
@@ -56,7 +57,7 @@ std::string get_last_checkpoint_dir(const int seed) {
     // find the highest iteration value
     int max = -1;
     for (const auto& entry :fs::directory_iterator(chkpt_seed_dir)) {
-      string dir_name = entry.path().filename();
+      string dir_name = entry.path().filename().string();
 
       // starts with "it_"?
       if (dir_name.find(DEFAULT_ITERATION_DIR_PREFIX) == 0) {
@@ -74,14 +75,14 @@ std::string get_last_checkpoint_dir(const int seed) {
         if (it_nr > max) {
           // remember the directory with the highest iteration number so far
           max = it_nr;
-          max_it_dir_name = entry.path().filename();
+          max_it_dir_name = entry.path().filename().string();
         }
       }
     }
   }
 
   if (max_it_dir_name != "") {
-    return chkpt_seed_dir + fs::path::preferred_separator + max_it_dir_name + fs::path::preferred_separator;
+    return chkpt_seed_dir + BNG::PATH_SEPARATOR + max_it_dir_name + BNG::PATH_SEPARATOR;
   }
   else {
     return "";
@@ -94,7 +95,7 @@ std::vector<std::string> remove_cwd(const std::vector<std::string> paths) {
   std::vector<std::string> res;
 
   // skip everything that can be interpreted as current directory
-  string cwd = fs::current_path();
+  string cwd = fs::current_path().string();
   for (const string& p: paths) {
     if (p != "" && p != "." && p != cwd) {
       res.push_back(p);

@@ -222,16 +222,16 @@ void VizOutputEvent::output_cellblender_molecules() {
     /* Write species name: */
     const BNG::Species& species = world->get_all_species().get(species_idx);
     string mol_name = species.name;
-    byte name_len = mol_name.length();
-    fwrite(&name_len, sizeof(byte), 1, custom_file);
-    fwrite(mol_name.c_str(), sizeof(char), name_len, custom_file);
+    unsigned char name_len = mol_name.length();
+    fwrite(&name_len, sizeof(unsigned char), 1, custom_file);
+    fwrite(mol_name.c_str(), sizeof(unsigned char), name_len, custom_file);
 
      /* Write species type: */
-    byte species_type = 0;
+    unsigned char species_type = 0;
     if (species.is_surf()) {
       species_type = 1;
     }
-    fwrite(&species_type, sizeof(byte), 1, custom_file);
+    fwrite(&species_type, sizeof(unsigned char), 1, custom_file);
 
     /* write number of x,y,z floats for mol positions to follow: */
     uint n_floats = 3 * species_molecules.size();

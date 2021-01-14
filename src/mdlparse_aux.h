@@ -38,7 +38,7 @@
 
 struct arg {
   struct arg *next;
-  byte arg_type; /* DBL, STR */
+  unsigned char arg_type; /* DBL, STR */
   void *arg_value;
 };
 
@@ -182,7 +182,7 @@ struct mdlparse_vars {
   char *header_comment;
 
   /* Flag indicating whether to display the exact time */
-  byte exact_time_flag;
+  unsigned char exact_time_flag;
 
   /* --------------------------------------------- */
   /* Intermediate state for regions */

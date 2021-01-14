@@ -24,15 +24,15 @@
 #define API_GEN_MODEL_H
 
 #include "api/common.h"
-#include "api/config.h"
-#include "api/mol_wall_hit_info.h"
-#include "api/notifications.h"
-#include "api/reaction_info.h"
-#include "api/warnings.h"
-#include "api/subsystem.h"
-#include "api/instantiation.h"
-#include "api/observables.h"
-#include "api/introspection.h"
+#include "api\config.h"
+#include "api\mol_wall_hit_info.h"
+#include "api\notifications.h"
+#include "api\reaction_info.h"
+#include "api\warnings.h"
+#include "api\subsystem.h"
+#include "api\instantiation.h"
+#include "api\observables.h"
+#include "api\introspection.h"
 
 namespace MCell {
 namespace API {

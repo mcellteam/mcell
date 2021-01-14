@@ -24,7 +24,7 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_release_pattern.h"
-#include "api/release_pattern.h"
+#include "api\release_pattern.h"
 
 namespace MCell {
 namespace API {

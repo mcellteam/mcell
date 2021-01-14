@@ -25,6 +25,7 @@
 #include <iostream>
 #include <set>
 #include <signal.h>
+#include <unistd.h>
 
 #include "api/common.h"
 #include "api/model.h"
@@ -34,14 +35,17 @@
 
 using namespace std;
 
+#ifndef _WIN64
+struct sigaction g_previous_sigaction_sigusr1;
+struct sigaction g_previous_sigaction_sigusr2;
+struct sigaction g_previous_sigaction_sigalrm;
+#endif
+
 namespace MCell {
 namespace API {
 
 // WARNING: not multithread-safe
 std::set<Model*> g_models;
-struct sigaction g_previous_sigaction_sigusr1;
-struct sigaction g_previous_sigaction_sigusr2;
-struct sigaction g_previous_sigaction_sigalrm;
 
 // WARNING: only limited set of calls is allowed in signal handlers,
 // e.g. no malloc
@@ -66,23 +70,23 @@ void set_checkpoint_signals(Model* model) {
 
   // Windows does not support USR signals
   if (!already_set) {
-#ifndef _WIN32
+#ifndef _WIN64
     struct sigaction sa;
     sa.sa_sigaction = NULL;
     sa.sa_handler = &checkpoint_signal_handler;
     sa.sa_flags = SA_RESTART;
     sigfillset(&sa.sa_mask);
 
-    if (sigaction(SIGUSR1, &sa, &g_previous_sigaction_sigusr1) != 0) {
+    if (::sigaction(SIGUSR1, &sa, &g_previous_sigaction_sigusr1) != 0) {
       throw RuntimeError("Failed to install SIGUSR1 signal handler.");
     }
-    if (sigaction(SIGUSR2, &sa, &g_previous_sigaction_sigusr2) != 0) {
+    if (::sigaction(SIGUSR2, &sa, &g_previous_sigaction_sigusr2) != 0) {
+      throw RuntimeError("Failed to install SIGUSR2 signal handler.");
+    }
+    if (::sigaction(SIGALRM, &sa, &g_previous_sigaction_sigalrm) != 0) {
       throw RuntimeError("Failed to install SIGUSR2 signal handler.");
     }
 #endif
-    if (sigaction(SIGALRM, &sa, &g_previous_sigaction_sigalrm) != 0) {
-      throw RuntimeError("Failed to install SIGUSR2 signal handler.");
-    }
   }
 }
 
@@ -96,6 +100,7 @@ void unset_checkpoint_signals(Model* model) {
   g_models.erase(model);
 
   // Windows does not support USR signals
+  // SIGALRM should be supported somehow but it does not work yet
   if (g_models.empty()) {
 #ifndef _WIN32
     if (sigaction(SIGUSR1, &g_previous_sigaction_sigusr1, nullptr) != 0) {
@@ -104,10 +109,10 @@ void unset_checkpoint_signals(Model* model) {
     if (sigaction(SIGUSR2, &g_previous_sigaction_sigusr2, nullptr) != 0) {
       cout << "Warning: failed to uninstall SIGUSR2 signal handler.\n";
     }
-#endif
     if (sigaction(SIGALRM, &g_previous_sigaction_sigalrm, nullptr) != 0) {
       cout << "Warning: failed to uninstall SIGALRM signal handler.\n";
     }
+#endif
   }
 }
 

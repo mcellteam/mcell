@@ -24,10 +24,10 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_observables.h"
-#include "api/observables.h"
-#include "api/count.h"
-#include "api/subsystem.h"
-#include "api/viz_output.h"
+#include "api\observables.h"
+#include "api\count.h"
+#include "api\subsystem.h"
+#include "api\viz_output.h"
 
 namespace MCell {
 namespace API {

@@ -21,10 +21,10 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "libs/pybind11/include/pybind11/stl.h"
+#include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_rng_state.h"
-#include "api/rng_state.h"
+#include "api\rng_state.h"
 
 namespace MCell {
 namespace API {

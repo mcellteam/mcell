@@ -24,7 +24,7 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_geometry_utils.h"
-#include "api/geometry_object.h"
+#include "api\geometry_object.h"
 
 namespace MCell {
 namespace API {

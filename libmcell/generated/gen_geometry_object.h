@@ -24,7 +24,7 @@
 #define API_GEN_GEOMETRY_OBJECT_H
 
 #include "api/common.h"
-#include "api/region.h"
+#include "api\region.h"
 
 
 namespace MCell {

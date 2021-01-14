@@ -24,7 +24,7 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_warnings.h"
-#include "api/warnings.h"
+#include "api\warnings.h"
 
 namespace MCell {
 namespace API {

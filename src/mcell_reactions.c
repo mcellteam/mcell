@@ -2928,7 +2928,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
  Note: This does not work properly right now. Even if rates are high and
        HIGH_REACTION_PROBABILITY is set to ERROR, the error is ignored
 *************************************************************************/
-int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
+int scale_rxn_probabilities(unsigned char *reaction_prob_limit_flag,
                         struct notifications *notify,
                         struct pathway *path, struct rxn *rx,
                         double pb_factor) {
