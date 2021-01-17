@@ -22,7 +22,7 @@ used, it is necessary to check they are correct.
 #else
 #define HAVE_GETRUSAGE  0
 #endif
-#define HAVE_GETTIMEOFDAY  1  /* if gettimeofday() */
+#define HAVE_GETTIMEOFDAY  0  /* if gettimeofday() */
 
 /*==================================================================*/
 

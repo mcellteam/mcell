@@ -12,7 +12,7 @@ it is necessary to check they are correct.
 ====================================================================*/
 
 /* Check whether various headers or options are available */
-#define HAVE_UNISTD_H  1    /* <unistd.h> */
+#define HAVE_UNISTD_H  0    /* <unistd.h> */
 #define HAVE_SYSTYPES_H  1    /* <sys/types.h> */
 #define HAVE_STDDEF_H  1     /* <stddef.h> */
 #define HAVE_STDLIB_H  1    /* <stdlib.h> */
@@ -26,7 +26,7 @@ it is necessary to check they are correct.
 #define HAS_STDIO_UNLOCK 1  /* Whether there are getc_unlocked, */
                                /* putc_unlocked,flockfile and funlockfile */
 
-#define DEFAULT_WORDSIZE 32
+#define DEFAULT_WORDSIZE 64
 
 
 /* Note that the following is only for running nauty in multiple threads
@@ -825,10 +825,13 @@ typedef unsigned long nauty_counter;
 
 #else /* not HAVE_HWLZCNT */
 
+#include <assert.h>
+
 #if WORDSIZE==64 && defined(_WIN64)
 static int msc_bsr_64(setword x) \
    { unsigned long *p; \
-     _BitScanReverse64(&p,x); return 63 - *p; }
+     assert(sizeof(setword) == 8); \
+     _BitScanReverse64(p,x); return 63 - *p; }
 #define FIRSTBITNZ(x) (msc_bsr_64(x))
 #elif WORDSIZE==32 
 #pragma intrinsic(_BitScanReverse)
