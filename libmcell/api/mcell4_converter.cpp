@@ -30,7 +30,7 @@
 #include "geometry.h"
 #include "rng.h"
 #include "isaac64.h"
-#include "mcell_structs.h"
+#include "mcell_structs_shared.h"
 #include "custom_function_call_event.h"
 
 

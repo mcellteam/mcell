@@ -24,7 +24,7 @@
 #define API_MOLECULE_H
 
 #include "generated/gen_molecule.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/species.h"
 
 namespace MCell {

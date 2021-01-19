@@ -24,9 +24,9 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_reaction_info.h"
-#include "api\reaction_info.h"
-#include "api\geometry_object.h"
-#include "api\reaction_rule.h"
+#include "api/reaction_info.h"
+#include "api/geometry_object.h"
+#include "api/reaction_rule.h"
 
 namespace MCell {
 namespace API {

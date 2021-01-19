@@ -31,6 +31,10 @@
 #define _hypot hypot
 #include <cmath>
 #endif
+#ifdef _MSC_VER
+#undef HAVE_UNISTD_H
+#undef HAVE_SYS_TIME_H
+#endif
 #include "libs/pybind11/include/pybind11/stl.h"
 
 #ifndef _WIN64

@@ -23,8 +23,8 @@
 #ifndef LIBMCELL_API_BASE_DATA_CLASS_H_
 #define LIBMCELL_API_BASE_DATA_CLASS_H_
 
-#include "common.h"
-#include "base_export_class.h"
+#include "api/api_common.h"
+#include "api/base_export_class.h"
 
 namespace MCell {
 namespace API {

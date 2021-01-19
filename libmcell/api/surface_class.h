@@ -24,7 +24,7 @@
 #define API_SURFACE_CLASS_H
 
 #include "generated/gen_surface_class.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/surface_property.h"
 
 namespace MCell {

@@ -24,7 +24,7 @@
 #define API_INSTANTIATION_H
 
 #include "generated/gen_instantiation.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/api_utils.h"
 #include "api/release_site.h"
 

@@ -24,11 +24,11 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_introspection.h"
-#include "api\introspection.h"
-#include "api\geometry_object.h"
-#include "api\molecule.h"
-#include "api\species.h"
-#include "api\wall.h"
+#include "api/introspection.h"
+#include "api/geometry_object.h"
+#include "api/molecule.h"
+#include "api/species.h"
+#include "api/wall.h"
 
 namespace MCell {
 namespace API {

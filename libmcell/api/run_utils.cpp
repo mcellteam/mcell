@@ -22,14 +22,7 @@
 
 #include "generated/gen_run_utils.h"
 
-#if __GNUC__ < 8
-// gcc 6 & 7 have filesystem still under the experimental features
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-#else
-#include <filesystem>
-namespace fs = std::filesystem;
-#endif
+#include "bng/filesystem_include.h"
 
 #include "api_utils.h"
 #include "bng/bng_defines.h"

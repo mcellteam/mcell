@@ -24,8 +24,8 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_base_chkpt_mol.h"
-#include "api\base_chkpt_mol.h"
-#include "api\species.h"
+#include "api/base_chkpt_mol.h"
+#include "api/species.h"
 
 namespace MCell {
 namespace API {

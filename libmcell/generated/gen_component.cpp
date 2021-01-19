@@ -24,8 +24,8 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_component.h"
-#include "api\component.h"
-#include "api\component_type.h"
+#include "api/component.h"
+#include "api/component_type.h"
 
 namespace MCell {
 namespace API {

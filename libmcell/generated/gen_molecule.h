@@ -23,7 +23,7 @@
 #ifndef API_GEN_MOLECULE_H
 #define API_GEN_MOLECULE_H
 
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/base_introspection_class.h"
 
 namespace MCell {

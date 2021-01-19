@@ -24,7 +24,7 @@
 #define API_SURFACE_PROPERTY_H
 
 #include "generated/gen_surface_property.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "bng/bng_defines.h"
 #include "api/complex.h"
 

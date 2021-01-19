@@ -24,7 +24,7 @@
 #define API_INITIAL_SURFACE_RELEASE_H
 
 #include "generated/gen_initial_surface_release.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/complex.h"
 
 namespace MCell {

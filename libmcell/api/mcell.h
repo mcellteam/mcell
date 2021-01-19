@@ -28,7 +28,7 @@
 #ifndef API_MCELL_H
 #define API_MCELL_H
 
-#include "api/common.h"
+#include "api/api_common.h"
 
 #include "api/component_type.h"
 #include "api/component.h"

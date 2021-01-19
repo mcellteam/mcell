@@ -35,7 +35,7 @@
 #include <map>
 #include <unordered_map>
 
-#include "mcell_structs.h" // TODO: get rid of this include
+#include "mcell_structs_shared.h"
 #include "debug_config.h"
 
 // warning: do not use floating point types from directly,
@@ -114,7 +114,7 @@ using BNGCommon::round_f;
 const float_t MIN_WALL_GAP = 1e-4; // 1 angstrom
 
 // ---------------------------------- optimization macros ----------------------------------
-#if defined(likely) or defined(unlikely)
+#if defined(likely) || defined(unlikely)
 #error "Macros 'likely' or 'unlikely' are already defined"
 #endif
 
@@ -326,6 +326,7 @@ typedef glm::fmat4x4 mat4x4;
 typedef glm::ivec3 glm_ivec3_t;
 typedef glm::uvec3 UVec3;
 typedef glm::bvec3 BVec3;
+
 
 struct IVec3: public glm_ivec3_t {
   IVec3() = default;

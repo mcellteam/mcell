@@ -25,7 +25,7 @@
 
 #include "generated/gen_species.h"
 #include "generated/gen_constants.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/api_utils.h"
 #include "api/complex.h"
 #include "elementary_molecule_type.h"

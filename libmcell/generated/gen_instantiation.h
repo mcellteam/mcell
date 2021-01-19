@@ -23,7 +23,7 @@
 #ifndef API_GEN_INSTANTIATION_H
 #define API_GEN_INSTANTIATION_H
 
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/base_export_class.h"
 
 namespace MCell {

@@ -51,7 +51,7 @@
 #include "memory_limit_checker.h"
 
 #include "logging.h"
-
+#include "rng.h"
 
 namespace Json {
 class Value;
@@ -307,11 +307,13 @@ private:
   // buffers can be flushed only once
   bool buffers_flushed;
 
+#ifndef MSC_TODO
   // several variables to report simulation time
   timeval previous_progress_report_time;
   rusage sim_start_time;
   bool it1_start_time_set;
   rusage it1_start_time; // time when 1st iteration started
+#endif
 
   // and to nicely report simulation progress
   uint64_t previous_iteration;

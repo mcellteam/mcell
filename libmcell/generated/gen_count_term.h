@@ -23,7 +23,7 @@
 #ifndef API_GEN_COUNT_TERM_H
 #define API_GEN_COUNT_TERM_H
 
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/base_data_class.h"
 
 namespace MCell {

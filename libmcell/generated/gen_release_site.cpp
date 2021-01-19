@@ -24,11 +24,11 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_release_site.h"
-#include "api\release_site.h"
-#include "api\complex.h"
-#include "api\molecule_release_info.h"
-#include "api\region.h"
-#include "api\release_pattern.h"
+#include "api/release_site.h"
+#include "api/complex.h"
+#include "api/molecule_release_info.h"
+#include "api/region.h"
+#include "api/release_pattern.h"
 
 namespace MCell {
 namespace API {

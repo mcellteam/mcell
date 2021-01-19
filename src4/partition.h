@@ -35,6 +35,8 @@
 #include "species_flags_analyzer.h"
 #include "libmcell/api/shared_structs.h"
 
+#include "rng.h"
+
 namespace Json {
 class Value;
 }

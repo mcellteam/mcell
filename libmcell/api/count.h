@@ -24,7 +24,7 @@
 #define API_COUNT_H
 
 #include "generated/gen_count.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/count_term.h"
 
 

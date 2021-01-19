@@ -25,7 +25,7 @@
 #include <string>
 #include <sstream>
 
-#include "mcell_structs.h"
+#include "mcell_structs_shared.h"
 
 #include "molecule.h"
 #include "geometry.h"

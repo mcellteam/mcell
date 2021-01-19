@@ -25,18 +25,21 @@
 
 #include "config.h"
 
-#include <limits.h>
+#ifndef _MSC_VER
+#include <sys/time.h>
 #include <sys/types.h>
+#endif
+
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
-#include <sys/time.h>
 
-#include "rng.h"
-#include "vector.h"
 #include "mem_util.h"
 #include "sched_util.h"
 #include "util.h"
+
+#include "mcell_structs_shared.h"
 
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
@@ -445,8 +448,6 @@ enum checkpoint_request_type_t {
 /* 1/2^32 */
 #define R_UINT_MAX 2.3283064365386962890625e-10
 
-#define MY_PI 3.14159265358979323846
-#define N_AV 6.0221417930e23
 #define ROUND_UP 0.5
 
 /* Placement Type Flags */
@@ -526,14 +527,6 @@ enum output_timer_type_t {
   OUTPUT_BY_STEP,
   OUTPUT_BY_TIME_LIST,
   OUTPUT_BY_ITERATION_LIST,
-};
-
-/* Visualization modes. */
-enum viz_mode_t {
-  VIZ_MODE_INVALID = -1,
-  NO_VIZ_MODE = 0,
-  ASCII_MODE = 1,
-  CELLBLENDER_MODE = 2,
 };
 
 /* Visualization Frame Data Type */

@@ -28,7 +28,7 @@
 #include "bng/bng.h"
 
 #include "logging.h"
-#include "mcell_structs.h"
+#include "mcell_structs_shared.h"
 #include "mcell3_world_converter.h"
 
 #include "world.h"

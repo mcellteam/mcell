@@ -1,7 +1,8 @@
 /******************************************************************************
  *
- * Copyright (C) 2020 by
- * The Salk Institute for Biological Studies
+ * Copyright (C) 2006-2017 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,24 +21,19 @@
  *
 ******************************************************************************/
 
-#ifndef API_WALL_H
-#define API_WALL_H
+#pragma once
 
-#include "generated/gen_wall.h"
-#include "api/api_common.h"
+#include "vector.h"
+#include "rng.h"
 
-namespace MCell {
-namespace API {
+#define MY_PI 3.14159265358979323846
+#define N_AV 6.0221417930e23
 
-class Wall: public GenWall {
-public:
-  // using default ctor
-
-  // -- overrides ---
-  void set_is_movable(const bool new_is_movable_) override;
+/* Visualization modes. */
+enum viz_mode_t {
+  VIZ_MODE_INVALID = -1,
+  NO_VIZ_MODE = 0,
+  ASCII_MODE = 1,
+  CELLBLENDER_MODE = 2,
 };
 
-} // namespace API
-} // namespace MCell
-
-#endif // API_WALL_H

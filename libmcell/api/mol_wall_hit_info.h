@@ -24,7 +24,7 @@
 #define API_MOL_WALL_HIT_INFO_H
 
 #include "generated/gen_mol_wall_hit_info.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

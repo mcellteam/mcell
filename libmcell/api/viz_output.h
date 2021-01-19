@@ -24,7 +24,7 @@
 #define API_VIZ_OUTPUT_H
 
 #include "generated/gen_viz_output.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

@@ -24,7 +24,7 @@
 #define API_RELEASE_PATTERN_H
 
 #include "generated/gen_release_pattern.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

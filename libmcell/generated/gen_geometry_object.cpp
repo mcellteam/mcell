@@ -24,11 +24,11 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_geometry_object.h"
-#include "api\geometry_object.h"
-#include "api\initial_surface_release.h"
-#include "api\region.h"
-#include "api\surface_class.h"
-#include "api\surface_region.h"
+#include "api/geometry_object.h"
+#include "api/initial_surface_release.h"
+#include "api/region.h"
+#include "api/surface_class.h"
+#include "api/surface_region.h"
 
 namespace MCell {
 namespace API {

@@ -23,7 +23,7 @@
 #ifndef LIBMCELL_API_BASE_INTROSPECTION_CLASS_H_
 #define LIBMCELL_API_BASE_INTROSPECTION_CLASS_H_
 
-#include "common.h"
+#include "api/api_common.h"
 #include "base_data_class.h"
 
 namespace MCell {

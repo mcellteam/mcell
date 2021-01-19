@@ -24,7 +24,7 @@
 #define API_CHKPT_VOL_MOL_H
 
 #include "generated/gen_chkpt_vol_mol.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/base_chkpt_mol.h"
 
 

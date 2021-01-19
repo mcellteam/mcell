@@ -23,8 +23,6 @@
 #ifndef LIBMCELL_API_COMMON_H
 #define LIBMCELL_API_COMMON_H
 
-
-
 #include <ostream>
 #include <sstream>
 #include <exception>
@@ -36,17 +34,44 @@
 #define _hypot hypot
 #include <cmath>
 #endif
+
+#include "generated/gen_constants.h"
+
+namespace MCell {
+namespace API {
+// workaround for weird MSVC behavior, this has to be defined first before anything else is included
+
+// auxiliary method to simply convert to std::string for when concatenating string
+static std::string S(const char* s) {
+  return std::string(s);
+}
+
+const std::string STR_UNSET = "unset";
+
+// Raised when an operation or function receives an argument that has the
+// right type but an inappropriate value, and the situation is not described
+// by a more precise exception such as IndexError.
+typedef std::invalid_argument ValueError; // using naming from Python
+
+// Raised when an error is detected that doesn’t fall in any of the other categories.
+// The associated value is a string indicating what precisely went wrong.
+typedef std::logic_error RuntimeError; // e.g. not defined?
+
+}
+}
+
+#ifdef _MSC_VER
+#undef HAVE_UNISTD_H
+#undef HAVE_SYS_TIME_H
+#endif
 #include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
 #include "pybind11/include/pybind11/functional.h"
-
 
 namespace py = pybind11;
 #include <vector>
 
-#include "generated/gen_constants.h"
-#include "generated/gen_names.h"
-
 #include "defines.h"
+#include "generated/gen_names.h"
 
 namespace MCell {
 namespace API {
@@ -57,15 +82,9 @@ typedef std::map<species_id_t, std::shared_ptr<Species>> IdSpeciesMap;
 class GeometryObject;
 typedef std::map<geometry_object_id_t, std::shared_ptr<GeometryObject>> IdGeometryObjectMap;
 
-// auxiliary method to simply convert to std::string for when concatenating string
-static std::string S(const char* s) {
-  return std::string(s);
-}
-
 const Vec3 VEC3_UNSET(POS_INVALID);
 const Vec2 VEC2_UNSET(POS_INVALID);
 const void* const PTR_UNSET = nullptr;
-const std::string STR_UNSET = "unset";
 
 const std::string INTROSPECTED_OBJECT = "introspected object";
 
@@ -236,16 +255,6 @@ static inline std::shared_ptr<T> vec_find_by_name(
   }
   return std::shared_ptr<T>(nullptr);
 }
-
-
-// Raised when an operation or function receives an argument that has the
-// right type but an inappropriate value, and the situation is not described
-// by a more precise exception such as IndexError.
-typedef std::invalid_argument ValueError; // using naming from Python
-
-// Raised when an error is detected that doesn’t fall in any of the other categories.
-// The associated value is a string indicating what precisely went wrong.
-typedef std::logic_error RuntimeError; // e.g. not defined?
 
 
 } // namespace API

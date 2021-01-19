@@ -26,7 +26,7 @@
 #include <functional>
 
 #include "generated/gen_subsystem.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/api_utils.h"
 #include "api/species.h"
 #include "api/surface_class.h"

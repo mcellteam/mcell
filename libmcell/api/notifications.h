@@ -23,8 +23,8 @@
 #ifndef API_NOTIFICATIONS_H
 #define API_NOTIFICATIONS_H
 
-#include "../generated/gen_notifications.h"
-#include "../api/common.h"
+#include "generated/gen_notifications.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

@@ -30,9 +30,13 @@
 #define _hypot hypot
 #include <cmath>
 #endif
+#ifdef _MSC_VER
+#undef HAVE_UNISTD_H
+#undef HAVE_SYS_TIME_H
+#endif
 #include "pybind11/include/pybind11/pybind11.h"
 
-#include "api/common.h"
+#include "api/api_common.h"
 #include "defines.h"
 #include "bng/bng_defines.h"
 

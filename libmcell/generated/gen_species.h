@@ -23,10 +23,10 @@
 #ifndef API_GEN_SPECIES_H
 #define API_GEN_SPECIES_H
 
-#include "api/common.h"
-#include "api\complex.h"
+#include "api/api_common.h"
+#include "api/complex.h"
 
-#include "api\complex.h"
+#include "api/complex.h"
 
 namespace MCell {
 namespace API {

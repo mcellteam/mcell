@@ -24,7 +24,7 @@
 #define API_INTROSPECTION_H
 
 #include "generated/gen_introspection.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 

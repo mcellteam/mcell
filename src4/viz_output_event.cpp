@@ -31,7 +31,7 @@
 #include "logging.h"
 #include "mem_util.h"
 #include "util.h"
-#include "mcell_structs.h"
+#include "mcell_structs_shared.h"
 
 #include "viz_output_event.h"
 #include "geometry.h"

@@ -26,7 +26,7 @@
 #include "bng/bng_defines.h"
 
 #include "generated/gen_elementary_molecule_type.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/elementary_molecule.h"
 
 namespace MCell {

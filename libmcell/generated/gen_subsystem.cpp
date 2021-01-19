@@ -24,11 +24,11 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_subsystem.h"
-#include "api\subsystem.h"
-#include "api\elementary_molecule_type.h"
-#include "api\reaction_rule.h"
-#include "api\species.h"
-#include "api\surface_class.h"
+#include "api/subsystem.h"
+#include "api/elementary_molecule_type.h"
+#include "api/reaction_rule.h"
+#include "api/species.h"
+#include "api/surface_class.h"
 
 namespace MCell {
 namespace API {

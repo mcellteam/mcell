@@ -24,7 +24,7 @@
 #define API_MOLECULE_RELEASE_INFO_H
 
 #include "generated/gen_molecule_release_info.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

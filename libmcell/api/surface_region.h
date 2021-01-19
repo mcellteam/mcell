@@ -24,7 +24,7 @@
 #define API_SURFACE_REGION_H
 
 #include "generated/gen_surface_region.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "defines.h"
 
 namespace MCell {

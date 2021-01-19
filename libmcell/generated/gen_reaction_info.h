@@ -23,7 +23,7 @@
 #ifndef API_GEN_REACTION_INFO_H
 #define API_GEN_REACTION_INFO_H
 
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

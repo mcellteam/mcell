@@ -26,7 +26,7 @@
 #include <memory>
 #include <vector>
 
-#include "common.h"
+#include "api/api_common.h"
 
 // functions defined here are not used in generated files
 

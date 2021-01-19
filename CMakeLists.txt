@@ -9,6 +9,13 @@ include_directories(${Python3_INCLUDE_DIRS})
 
 #TODO: unify case for cmake commands, e.g. set vs SET
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+endif(MSVC)
+
+#set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Using default gcc 8.3.0 provided in Debian 10
 # causes a segfault in nfSIM, however different gcc is ok
@@ -34,10 +41,12 @@ find_package(VTK REQUIRED)
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
-SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
+if (NOT WIN32) # TODO
+  SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
+  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
+endif()    
 
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
+if (NOT WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
   # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall 
   # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep 
   # seems to be related to AVX2, maybe gcc issue
@@ -49,7 +58,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
 endif()
 
+if (NOT WIN32) # TODO
+
 set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-class-memaccess ")
+
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")
@@ -93,8 +105,12 @@ if (ENABLE_GPROF)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_PROFILING_FLAGS}")
 endif()
 
+endif() # if (NOT WIN32) # TODO
+
 # jsoncpp_test cannot be built with gperftools linking options
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
+
+if (NOT WIN32) # TODO
 
 if (ENABLE_GPERFTOOLS)
   # build and install gperftools, for now it is done manually
@@ -138,6 +154,8 @@ endif()
 #endif()
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ ${CMAKE_INCLUDE_GPERF_FLAGS}")
 
+endif() # if (NOT WIN32) # TODO
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 # directories holding flex/bison files and out of source includes.
@@ -173,15 +191,9 @@ include_directories(
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
-  file(COPY ${CMAKE_SOURCE_DIR}/src/config-nix.h DESTINATION
-    ${CMAKE_CURRENT_BINARY_DIR}/deps)
-  file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/deps/config-nix.h
-    ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h)
+  configure_file(${CMAKE_SOURCE_DIR}/src/config-nix.h ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h COPYONLY)
 elseif (WIN32)
-  file(COPY ${CMAKE_SOURCE_DIR}/src/config-win.h DESTINATION
-    ${CMAKE_CURRENT_BINARY_DIR}/deps)
-  file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/deps/config-win.h
-    ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h)
+  configure_file(${CMAKE_SOURCE_DIR}/src/config-win.h ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h COPYONLY)
 endif()
 
 # check for bison/flex and set up code gen
@@ -223,10 +235,20 @@ endif()
 
 # linking on centos7 with 7.3.1 fails with undefined reference to `casc::detail::asc_NodeBase::~asc_NodeBase()'
 set(PYBIND11_LTO_CXX_FLAGS "")
+
+if (WIN32)
+  # not compiling for now
+  # add_subdirectory(${CMAKE_SOURCE_DIR}/libs/libunistd ${CMAKE_CURRENT_BINARY_DIR}/libs/libunistd)
+  # include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/libs/libunistd/unistd)
+endif()
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
+
+if (NOT WIN32)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
+endif()  
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/libmcell ${CMAKE_CURRENT_BINARY_DIR}/libmcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src4 ${CMAKE_CURRENT_BINARY_DIR}/src4)
@@ -304,60 +326,8 @@ if (UNIX)
   SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif()
-FIND_PACKAGE(SWIG REQUIRED)
-INCLUDE(${SWIG_USE_FILE})
 
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
-
-if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
-
-  #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
-  SET(CMAKE_SWIG_FLAGS "-c++;-ltypemaps;-py3")
-
-  SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")
-  #SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
-
-  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
-  SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES CPLUSPLUS ON)
-  SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
- 
-  
-  SWIG_ADD_LIBRARY(pymcell 
-    TYPE SHARED 
-    LANGUAGE python
-    SOURCES src/pymcell.i ${SOURCE_FILES}  ${BISON_dynGeomParser_OUTPUTS} ${FLEX_dynGeomScanner_OUTPUTS}  
-  )
-  
-  set(PYMCELL_ARCHIVES ${CMAKE_CURRENT_BINARY_DIR}/libs/bng/libbng.a ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json/libjsoncpp.a)
-  
-  if (APPLE)
-    SWIG_LINK_LIBRARIES(pymcell 
-        ${PYMCELL_ARCHIVES}         
-        ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib 
-        ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib 
-        ${PYTHON_LIBRARIES}
-    )
-  else()
-    SWIG_LINK_LIBRARIES(pymcell 
-        -Wl,--whole-archive
-        ${PYMCELL_ARCHIVES} 
-        -Wl,--no-whole-archive 
-        ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so 
-        ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so 
-        ${PYTHON_LIBRARIES}
-    )
-  endif()
-
-  # copy the pyMCell test scripts into place
-  file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
-  file(COPY ${PYMCELL_EXAMPLES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-  
-  # configure_file copies file even for subsequent runs of make
-  configure_file(${CMAKE_SOURCE_DIR}/src/data_model_import.py ${CMAKE_CURRENT_BINARY_DIR}/python/data_model_import.py COPYONLY)
-  configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_unittests.py COPYONLY)
-  configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_helpers.py COPYONLY)  
-endif()
-
 
 configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_helpers.py COPYONLY)
 
@@ -403,8 +373,8 @@ pybind11_add_module(mcell4_so MODULE
 
 if (WIN32)
     # cmake & make somehow ignore CMAKE_SHARED_LINKER_FLAGS when mcell.so is linked
-    set(CMAKE_CXX_FLAGS "-L ${CMAKE_SOURCE_DIR}/libs/windows_python35 ")
-    set(WIN_PYTHON "python35")
+    link_directories(${CMAKE_SOURCE_DIR}/libs/windows_python35)
+    set(WIN_DEPS python35 unistd)
 endif()
 
 
@@ -423,6 +393,8 @@ if (WIN32)
 else()
     set_target_properties(mcell4_so PROPERTIES SUFFIX ".so") # must be .so on MacOS as well
 endif()
+
+if (NOT WIN32) # TODO, later
 
 # build executable
 add_executable(mcell
@@ -448,3 +420,5 @@ endif()
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
+
+endif()  # if (NOT WIN32)

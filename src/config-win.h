@@ -51,6 +51,10 @@ of sigaction
 #ifndef MCELL_CONFIG_WIN_H
 #define MCELL_CONFIG_WIN_H
 
+#ifdef _MSC_VER
+typedef unsigned int mode_t;
+#endif
+
 #ifndef MINGW_HAS_SECURE_API
 #define MINGW_HAS_SECURE_API /* required for MinGW to expose _s functions */
 #endif

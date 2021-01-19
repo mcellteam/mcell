@@ -34,7 +34,7 @@
 #include "api/callbacks.h"
 
 #include "rng.h"
-#include "mcell_structs.h"
+#include "mcell_structs_shared.h"
 #include "logging.h"
 
 #include "diffuse_react_event.h"

@@ -24,7 +24,7 @@
 #define API_VOLUME_REACTION_INFO_H
 
 #include "generated/gen_reaction_info.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "bng/bng_defines.h"
 
 namespace MCell {

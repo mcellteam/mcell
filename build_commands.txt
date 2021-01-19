@@ -1,0 +1,15 @@
+C:\husar\mcell\build\mcell_tools\work\build_ninja
+cmake ..\..\..\mcell -G Ninja -DCMAKE_BUILD_TYPE=Release
+ninja mcell4_so
+
+cd C:\husar\mcell\build\mcell_tools\work\build_debug
+cmake ..\..\..\mcell -G Ninja -DCMAKE_BUILD_TYPE=Debug
+ninja mcell4_so
+
+set PYTHONPATH=C:\husar\mcell\build\mcell_tools\work\build_ninja\lib
+
+
+cd C:\husar\mcell\build\mcell_tools\work\build_msvc
+cmake ..\..\..\mcell -DCMAKE_BUILD_TYPE=Debug
+E:\VisualStudio\MSBuild\Current\Bin\MSBuild.exe ALL_BUILD.vcxproj -maxcpucount:12
+ 

@@ -25,6 +25,7 @@
 #define SRC4_VIZ_OUTPUT_EVENT_H_
 
 #include "base_event.h"
+#include "mcell_structs_shared.h"
 
 namespace MCell {
 

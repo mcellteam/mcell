@@ -25,9 +25,12 @@
 #include <iostream>
 #include <set>
 #include <signal.h>
-#include <unistd.h>
 
-#include "api/common.h"
+#ifndef _MSC_VER
+#include <unistd.h>
+#endif
+
+#include "api/api_common.h"
 #include "api/model.h"
 #include "api/python_exporter.h"
 #include "src4/world.h"

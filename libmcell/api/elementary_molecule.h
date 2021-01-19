@@ -24,7 +24,7 @@
 #define API_ELEMENTARY_MOLECULE_INSTANCE_H
 
 #include "generated/gen_elementary_molecule.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

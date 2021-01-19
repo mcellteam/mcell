@@ -24,7 +24,7 @@
 #define API_OBSERVABLES_H
 
 #include "generated/gen_observables.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/api_utils.h"
 #include "api/viz_output.h"
 #include "api/count.h"

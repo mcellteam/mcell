@@ -24,7 +24,7 @@
 #define API_MODEL_H
 
 #include "generated/gen_model.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/globals.h"
 #include "api/subsystem.h"
 #include "api/instantiation.h"

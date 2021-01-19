@@ -74,10 +74,10 @@ COPYRIGHT = \
 ******************************************************************************/\n
 """
 
-TARGET_DIRECTORY = os.path.join('..', 'generated')
-DOC_DIRECTORY = os.path.join('..', 'documentation', 'generated')
-API_DIRECTORY = os.path.join('api')
-WORK_DIRECTORY = os.path.join('..', 'work')
+TARGET_DIRECTORY = '..' + '/' + 'generated'
+DOC_DIRECTORY = '..'  + '/' + 'documentation'  + '/' + 'generated'
+API_DIRECTORY = 'api'
+WORK_DIRECTORY = '..'  + '/' + 'work'
 
 KEY_ITEMS = 'items'
 KEY_NAME = 'name'
@@ -216,7 +216,7 @@ ENUM_VALUE_PREFIX = 'EV_'
 CONSTANT_VALUE_PREFIX = 'CV_'
 
 INCLUDE_API_MCELL_H = '#include "api/mcell.h"'
-INCLUDE_API_COMMON_H = '#include "api/common.h"'
+INCLUDE_API_COMMON_H = '#include "api/api_common.h"'
 INCLUDE_API_PYTHON_EXPORT_UTILS_H = '#include "api/python_export_utils.h"'
 INCLUDE_API_BASE_DATA_CLASS_H = '#include "api/base_data_class.h"'
 INCLUDE_API_BASE_EXPORT_CLASS_H = '#include "api/base_export_class.h"'
@@ -250,19 +250,20 @@ def get_api_header_guard_name(class_name):
     return API_GUARD_PREFIX + get_underscored(class_name).upper() + GUARD_SUFFIX
 
 def get_gen_class_file_name(class_name, extension):
-    return os.path.join(GEN_PREFIX + get_underscored(class_name) + '.' + extension)
+    return GEN_PREFIX + get_underscored(class_name) + '.' + extension
 
 def get_gen_class_file_name_w_dir(class_name, extension):
-    return os.path.join(TARGET_DIRECTORY, get_gen_class_file_name(class_name, extension))
+    # using '/' intentionally to generate the same output on Windows and Linux/Mac 
+    return TARGET_DIRECTORY + '/' + get_gen_class_file_name(class_name, extension)
 
 def get_api_class_file_name(class_name, extension):
     return get_underscored(class_name) + '.' + extension
 
 def get_api_class_file_name_w_dir(class_name, extension):
-    return os.path.join(API_DIRECTORY, get_api_class_file_name(class_name, extension))
+    return API_DIRECTORY + '/' + get_api_class_file_name(class_name, extension)
    
 def get_api_class_file_name_w_work_dir(class_name, extension):
-    return os.path.join(WORK_DIRECTORY, get_api_class_file_name(class_name, extension))
+    return WORK_DIRECTORY + '/' + get_api_class_file_name(class_name, extension)
 
 def is_yaml_list_type(t):
     return t.startswith(YAML_TYPE_LIST)

@@ -24,7 +24,7 @@
 #define API_WARNINGS_H
 
 #include "../generated/gen_warnings.h"
-#include "../api/common.h"
+#include "../api/api_common.h"
 
 namespace MCell {
 namespace API {

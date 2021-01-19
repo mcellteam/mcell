@@ -24,9 +24,9 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_complex.h"
-#include "api\complex.h"
-#include "api\elementary_molecule.h"
-#include "api\species.h"
+#include "api/complex.h"
+#include "api/elementary_molecule.h"
+#include "api/species.h"
 
 namespace MCell {
 namespace API {

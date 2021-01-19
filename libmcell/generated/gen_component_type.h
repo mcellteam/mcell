@@ -23,7 +23,7 @@
 #ifndef API_GEN_COMPONENT_TYPE_H
 #define API_GEN_COMPONENT_TYPE_H
 
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/base_data_class.h"
 
 namespace MCell {

@@ -24,7 +24,7 @@
 #define API_COMPONENT_INSTANCE_H
 
 #include "generated/gen_component.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

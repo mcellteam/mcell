@@ -23,7 +23,7 @@
 
 #include "rng.h" // MCell 3
 #include "isaac64.h"
-#include "mcell_structs.h"
+#include "mcell_structs_shared.h"
 #include "logging.h"
 
 #include <iostream>

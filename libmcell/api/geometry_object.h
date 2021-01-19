@@ -26,7 +26,7 @@
 #include "bng/bng_defines.h"
 
 #include "generated/gen_geometry_object.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/surface_region.h"
 #include "defines.h"
 

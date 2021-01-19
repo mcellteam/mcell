@@ -24,7 +24,7 @@
 #define API_RNG_STATE_H
 
 #include "generated/gen_rng_state.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 struct rng_state;
 

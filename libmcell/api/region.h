@@ -24,7 +24,7 @@
 #define API_REGION_H
 
 #include "generated/gen_region.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 namespace API {

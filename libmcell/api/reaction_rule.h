@@ -24,7 +24,7 @@
 #define API_REACTION_RULE_H
 
 #include "generated/gen_reaction_rule.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "bng/bng.h"
 
 namespace MCell {

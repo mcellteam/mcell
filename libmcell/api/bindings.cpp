@@ -76,7 +76,7 @@
 #include "version.h"
 
 
-#if __cplusplus < 201402L
+#if __cplusplus < 201402L && !defined(_MSC_VER)
 #error "Pybind11 overload requires at least C++14"
 #endif
 

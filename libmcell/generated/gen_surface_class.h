@@ -23,8 +23,8 @@
 #ifndef API_GEN_SURFACE_CLASS_H
 #define API_GEN_SURFACE_CLASS_H
 
-#include "api/common.h"
-#include "api\surface_property.h"
+#include "api/api_common.h"
+#include "api/surface_property.h"
 
 
 namespace MCell {

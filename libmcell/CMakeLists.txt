@@ -19,7 +19,12 @@ include_directories(${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src ${PYTHON_INCLUDES}")
+if (NOT WIN32) # TODO
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src ${PYTHON_INCLUDES}")
+else()
+    include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src )
+    include_directories(${PYTHON_INCLUDES})
+endif()    
 
 set(SOURCE_FILES
     api/api_utils.cpp

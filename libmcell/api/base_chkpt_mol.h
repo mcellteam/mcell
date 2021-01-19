@@ -24,7 +24,7 @@
 #define API_BASE_CHKPT_MOL_H
 
 #include "generated/gen_base_chkpt_mol.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 namespace MCell {
 

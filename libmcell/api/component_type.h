@@ -24,7 +24,7 @@
 #define API_COMPONENT_TYPE_H
 
 #include "generated/gen_component_type.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/component.h"
 
 namespace MCell {

@@ -24,9 +24,9 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_chkpt_surf_mol.h"
-#include "api\chkpt_surf_mol.h"
-#include "api\geometry_object.h"
-#include "api\species.h"
+#include "api/chkpt_surf_mol.h"
+#include "api/geometry_object.h"
+#include "api/species.h"
 
 namespace MCell {
 namespace API {

@@ -29,7 +29,7 @@
 
 #include "compartment_utils.h"
 
-#include "api/common.h"
+#include "api/api_common.h"
 #include "counted_volumes_util.h"
 #include "geometry_object.h"
 

@@ -24,7 +24,7 @@
 #define API_COMPLEX_H
 
 #include "generated/gen_complex.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/api_utils.h"
 #include "api/compartment_utils.h"
 

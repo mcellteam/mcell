@@ -25,7 +25,7 @@
 #define SRC4_MCELL3_WORLD_CONVERTER_H_
 
 #include "api/callbacks.h"
-#include "mcell_structs.h"
+#include "mcell_structs_shared.h"
 
 #include "world.h"
 #include <map>

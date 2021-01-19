@@ -25,7 +25,7 @@
 
 #include "generated/gen_release_site.h"
 #include "api/molecule_release_info.h"
-#include "api/common.h"
+#include "api/api_common.h"
 #include "api/complex.h"
 #include "bng/bng_defines.h"
 
