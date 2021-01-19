@@ -550,6 +550,7 @@ uint ReleaseEvent::calculate_number_to_release() {
           case ReleaseShape::SPHERICAL_SHELL:
             mcell_error("Release site \"%s\" tries to release a concentration on a "
                         "spherical shell.", release_site_name.c_str());
+            return 0;
             break;
 
           case ReleaseShape::REGION:
@@ -560,6 +561,7 @@ uint ReleaseEvent::calculate_number_to_release() {
             mcell_internal_error("Release by concentration on invalid release site "
                                  "shape (%d) for release site \"%s\".",
                                  (int)release_shape, release_site_name.c_str());
+            return 0;
             break;
         }
         assert(concentration != FLT_INVALID);

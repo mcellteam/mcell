@@ -22,7 +22,10 @@
 
 
 #include <fenv.h> // Linux include
-#ifndef _WIN64
+
+#ifndef _MSC_VER
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/resource.h> // Linux include
 #endif
 #include <signal.h>
@@ -31,6 +34,7 @@
 
 #include "rng.h" // MCell 3
 #include "logging.h"
+#include "util.h"
 
 #include "world.h"
 #include "viz_output_event.h"

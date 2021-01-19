@@ -536,6 +536,10 @@ static inline float_t min3(const Vec3& v) {
   return glm::compMin((glm_vec3_t)v);
 }
 
+static inline float_t min3_f(float_t x, float_t y, float_t z) {
+  return (z < y) ? ((z < x) ? z : x) : ((y < x) ? y : x);
+}
+
 static inline int max3_i(const IVec3& v) {
   return glm::compMax((glm_ivec3_t)v);
 }

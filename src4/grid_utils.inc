@@ -1317,10 +1317,12 @@ static void grid_all_neighbors_across_walls_through_edges(
   tile_index_t temp_index;
 
   /* list of restricted regions */
-  region_list *rlp_head_own_wall = NULL;
+  // MCell4 - no supported yet
+  /*region_list *rlp_head_own_wall = NULL;
   region_list *rlp_head_nbr_wall_0 = NULL;
   region_list *rlp_head_nbr_wall_1 = NULL;
   region_list *rlp_head_nbr_wall_2 = NULL;
+  */
   /* flags */
   bool move_thru_border_0 = true;
   bool move_thru_border_1 = true;
@@ -2189,8 +2191,8 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
   int *grid_index_p = &grid_index;
 
   float_t search_d2;
-  if (search_diam <= EPS_C) {
-    search_d2 = EPS_C * EPS_C;
+  if (search_diam <= EPS) {
+    search_d2 = EPS * EPS;
   }
   else {
     search_d2 = search_diam * search_diam;
@@ -2220,7 +2222,7 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
   if (best_w.grid.get_molecule_on_tile(found_tile_index) != MOLECULE_ID_INVALID) {
     float_t d2 = search_d2 - best_d2;
 
-    if (d2 <= EPS_C * EPS_C) {
+    if (d2 <= EPS * EPS) {
       // no free tile close enough was found
       return MOLECULE_ID_INVALID;
     }

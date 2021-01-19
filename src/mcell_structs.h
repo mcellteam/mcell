@@ -177,35 +177,6 @@ enum manifold_flag_t {
   IS_MANIFOLD         /* Known to be manifold */
 };
 
-/* Reaction flags */
-/* RX_ABSORB_REGION_BORDER signifies that a reaction is between a surface
-   molecule and an ABSORPTIVE region border */
-/* RX_REFLEC signifies that a reaction is between a molecule and a REFLECTIVE
-   wall */
-/* RX_TRANSP signifies that a reaction is between a molecule and a TRANSPARENT
-   wall */
-/* Any value equal to or less than RX_SPECIAL refers to a special wall type */
-/* RX_BLOCKED signals a reaction that cannot take place because the grid is
-   full */
-/* Any value equal to or less than RX_NO_RX indicates that a reaction did not
-   take place */
-/* RX_FLIP signals that a molecule flips its orientation (crosses a wall if
-   it's free) */
-/* RX_DESTROY signals that the molecule no longer exists (so don't try to keep
-   using it) */
-/* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect
-   if you're free) */
-#define RX_ABSORB_REGION_BORDER -5
-#define RX_REFLEC -4
-#define RX_TRANSP -3
-#define RX_SPECIAL -3
-#define RX_BLOCKED -2
-#define RX_NO_RX -2
-#define RX_FLIP -1
-#define RX_LEAST_VALID_PATHWAY 0
-#define RX_DESTROY 0
-#define RX_A_OK 1
-#define MAX_MATCHING_RXNS 64
 
 /* Pathway flags */
 // TRANSPARENT means surface reaction between the molecule and TRANSPARENT wall
@@ -233,14 +204,6 @@ enum manifold_flag_t {
 #define Y_POS 3
 #define Z_NEG 4
 #define Z_POS 5
-
-/* Direction Bit Flags */
-#define X_NEG_BIT 0x01
-#define X_POS_BIT 0x02
-#define Y_NEG_BIT 0x04
-#define Y_POS_BIT 0x08
-#define Z_NEG_BIT 0x10
-#define Z_POS_BIT 0x20
 
 /* Collision types for rays striking surfaces */
 /* First a bunch of target types */
@@ -360,10 +323,6 @@ enum warn_level_t {
   WARN_WARN, /* do something sensible but emit a warning message */
   WARN_ERROR /* treat the warning and an error and stop */
 };
-
-/* Number of times to try diffusing on a surface before we give up (we might
- * fail if the target grid is full) */
-#define SURFACE_DIFFUSION_RETRIES 10
 
 /* Overwrite Policy Flags */
 /* Flags for different types of file output */

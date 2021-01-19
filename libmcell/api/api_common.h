@@ -35,8 +35,6 @@
 #include <cmath>
 #endif
 
-#include "generated/gen_constants.h"
-
 namespace MCell {
 namespace API {
 // workaround for weird MSVC behavior, this has to be defined first before anything else is included
@@ -71,6 +69,7 @@ namespace py = pybind11;
 #include <vector>
 
 #include "defines.h"
+#include "generated/gen_constants.h"
 #include "generated/gen_names.h"
 
 namespace MCell {

@@ -26,6 +26,11 @@
 #include <iostream>
 #include <sstream>
 
+#ifndef _MSC_VER
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+
 #ifdef DWITHGPERFTOOLS
 // using longer path to avoid collisions
 #include "install_gperftools/include/profiler.h"

@@ -265,10 +265,10 @@ static bool intersect_point_segment(
   float_t cosine_angle;         /* cosine of the angle between ba and pa */
 
   /* check for the end points */
-  if (!distinguishable_vec3(P, A, EPS_C)) {
+  if (!distinguishable_vec3(P, A, EPS)) {
     return true;
   }
-  if (!distinguishable_vec3(P, B, EPS_C)) {
+  if (!distinguishable_vec3(P, B, EPS)) {
     return true;
   }
 
@@ -280,7 +280,7 @@ static bool intersect_point_segment(
 
   /* if point intersects segment, vectors pa and ba should be collinear */
   cosine_angle = dot(ba, pa) / (ba_length * pa_length);
-  if (distinguishable(cosine_angle, 1.0, EPS_C)) {
+  if (distinguishable(cosine_angle, 1.0, EPS)) {
     return false;
   }
 
@@ -315,7 +315,7 @@ bool parallel_segments(
   prod = cross(ba, rs);
   length = len3(prod);
 
-  if (!distinguishable(length, 0, EPS_C)) {
+  if (!distinguishable(length, 0, EPS)) {
     return true;
   }
   else {
@@ -439,21 +439,21 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
 
   /* find shared vertices */
   if (gp1.wall_index == gp2.wall_index) {
-    if (!distinguishable_vec2(R, A, EPS_C) ||
-        (!distinguishable_vec2(R, B, EPS_C)) ||
-        (!distinguishable_vec2(R, C, EPS_C))) {
+    if (!distinguishable_vec2(R, A, EPS) ||
+        (!distinguishable_vec2(R, B, EPS)) ||
+        (!distinguishable_vec2(R, C, EPS))) {
       num_exact_shared_vertices++;
       R_shared = 1;
     }
-    if (!distinguishable_vec2(S, A, EPS_C) ||
-        (!distinguishable_vec2(S, B, EPS_C)) ||
-        (!distinguishable_vec2(S, C, EPS_C))) {
+    if (!distinguishable_vec2(S, A, EPS) ||
+        (!distinguishable_vec2(S, B, EPS)) ||
+        (!distinguishable_vec2(S, C, EPS))) {
       num_exact_shared_vertices++;
       S_shared = 1;
     }
-    if (!distinguishable_vec2(T, A, EPS_C) ||
-        (!distinguishable_vec2(T, B, EPS_C)) ||
-        (!distinguishable_vec2(T, C, EPS_C))) {
+    if (!distinguishable_vec2(T, A, EPS) ||
+        (!distinguishable_vec2(T, B, EPS)) ||
+        (!distinguishable_vec2(T, C, EPS))) {
       num_exact_shared_vertices++;
       T_shared = 1;
     }
@@ -461,23 +461,23 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
   } else {
     /* below there are cases when the grid structures on the neighbor
        walls are not shifted relative to one another */
-    if (!distinguishable_vec3(R_3d, A_3d, EPS_C) ||
-        (!distinguishable_vec3(R_3d, B_3d, EPS_C)) ||
-        (!distinguishable_vec3(R_3d, C_3d, EPS_C))) {
+    if (!distinguishable_vec3(R_3d, A_3d, EPS) ||
+        (!distinguishable_vec3(R_3d, B_3d, EPS)) ||
+        (!distinguishable_vec3(R_3d, C_3d, EPS))) {
       num_exact_shared_vertices++;
       R_shared = 1;
     }
 
-    if (!distinguishable_vec3(S_3d, A_3d, EPS_C) ||
-        (!distinguishable_vec3(S_3d, B_3d, EPS_C)) ||
-        (!distinguishable_vec3(S_3d, C_3d, EPS_C))) {
+    if (!distinguishable_vec3(S_3d, A_3d, EPS) ||
+        (!distinguishable_vec3(S_3d, B_3d, EPS)) ||
+        (!distinguishable_vec3(S_3d, C_3d, EPS))) {
       num_exact_shared_vertices++;
       S_shared = 1;
     }
 
-    if (!distinguishable_vec3(T_3d, A_3d, EPS_C) ||
-        (!distinguishable_vec3(T_3d, B_3d, EPS_C)) ||
-        (!distinguishable_vec3(T_3d, C_3d, EPS_C))) {
+    if (!distinguishable_vec3(T_3d, A_3d, EPS) ||
+        (!distinguishable_vec3(T_3d, B_3d, EPS)) ||
+        (!distinguishable_vec3(T_3d, C_3d, EPS))) {
       num_exact_shared_vertices++;
       T_shared = 1;
     }
@@ -782,12 +782,12 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
   dist_B_B_close_3d = distance3(B_3d, B_close_3d);
   dist_C_C_close_3d = distance3(C_3d, C_close_3d);
 
-  min_dist = min3d(dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d);
+  min_dist = min3_f(dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d);
 
-  if (!distinguishable(min_dist, dist_A_A_close_3d, EPS_C)) {
+  if (!distinguishable(min_dist, dist_A_A_close_3d, EPS)) {
     prod_pos_3d = A_close_3d;
   }
-  else if (!distinguishable(min_dist, dist_B_B_close_3d, EPS_C)) {
+  else if (!distinguishable(min_dist, dist_B_B_close_3d, EPS)) {
     prod_pos_3d = B_close_3d;
   }
   else {

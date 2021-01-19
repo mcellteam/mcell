@@ -38,7 +38,7 @@
 #include "libmcell/api/api_utils.h"
 #include "libmcell/api/python_export_constants.h"
 #include "libmcell/api/python_export_utils.h"
-#include "libmcell/api/common.h"
+#include "libmcell/api/api_common.h"
 
 #include "generator_structs.h"
 
