@@ -474,6 +474,11 @@ BNG::elem_mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
     bng_mt.component_type_ids.push_back(bng_data.find_or_add_component_type(bng_ct));
   }
 
+  if (!in_rxn_or_observables) {
+    // we can convert only definitions
+    bng_mt.compute_space_and_time_step(world->bng_engine.get_config());
+  }
+
   return bng_data.find_or_add_elem_mol_type(bng_mt);
 }
 
@@ -492,22 +497,13 @@ void MCell4Converter::convert_species() {
     BNG::Species new_species(world->bng_engine.get_data());
     new_species.name = s->name;
 
-    if (is_set(s->custom_time_step)) {
-      new_species.custom_time_step = s->custom_time_step;
-    }
-    else if (is_set(s->custom_space_step)) {
-      new_species.custom_space_step = s->custom_space_step;
-    }
-
     if (is_set(s->diffusion_constant_3d)) {
       new_species.D = s->diffusion_constant_3d;
       new_species.set_is_vol();
-      new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
     else if (is_set(s->diffusion_constant_2d)) {
       new_species.D = s->diffusion_constant_2d;
       new_species.set_is_surf();
-      new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
     else if (BNG::is_species_superclass(new_species.name)) {
       // these values are not really used, they are initialized for comparisons
@@ -665,7 +661,7 @@ void MCell4Converter::convert_surface_classes() {
     BNG::ElemMol mol_inst;
     mol_inst.elem_mol_type_id = mol_type_id;
     sc_species.elem_mols.push_back(mol_inst);
-    sc_species.finalize(world->config);
+    sc_species.finalize(world->config, false);
 
     species_id_t new_species_id = world->get_all_species().find_or_add(sc_species);
 

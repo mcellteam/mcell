@@ -38,15 +38,15 @@ public:
       reactant_class_id(REACTANT_CLASS_ID_INVALID) {
   }
 
-  void finalize(const BNGConfig& config, const bool do_update_diffusion_constant = true) {
+  void finalize(const BNGConfig& config, const bool update_diffusion_constant = true) {
     canonicalize(); // sets name as well, calls also Cplx::finalize
     set_flag(SPECIES_FLAG_CAN_DIFFUSE, D != 0);
     if (is_reactive_surface()) {
       // surfaces are always assumed to be instantiated
       set_flag(SPECIES_FLAG_WAS_INSTANTIATED);
     }
-    if (do_update_diffusion_constant) {
-      update_diffusion_constant(*bng_data, config);
+    if (update_diffusion_constant) {
+      compute_diffusion_constant_and_space_time_step(config);
     }
     set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0); // TODO: can this be removed when we set it in finalize?
   }
@@ -55,14 +55,14 @@ public:
   // id is not set and name is determined automatically
   Species(
       const Cplx& cplx_inst, const BNGData& data, const BNGConfig& config,
-      const bool do_update_diffusion_constant = true)
+      const bool update_diffusion_constant = true)
     : Cplx(&data),
       id(SPECIES_ID_INVALID),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       rxn_flags_were_updated(false), num_instantiations(0), reactant_class_id(REACTANT_CLASS_ID_INVALID) {
 
     elem_mols = cplx_inst.elem_mols;
-    finalize(config, do_update_diffusion_constant);
+    finalize(config, update_diffusion_constant);
   }
 
   // we need explicit copy ctor to call CplxInstance's copy ctor
@@ -252,14 +252,14 @@ public:
     return Cplx::matches_fully(cplx, true);
   }
 
-  // for initialization
-  void update_space_and_time_step(const BNGConfig& config);
-
   // use information from contained molecule types to compute diffusion constant
   // calls update_space_and_time_step
-  void update_diffusion_constant(const BNGData& data, const BNGConfig& config);
+  void compute_diffusion_constant_and_space_time_step(const BNGConfig& config);
 
 private:
+  // used in initialization
+  void compute_space_and_time_step(const BNGConfig& config);
+
   // rxn flags are updated when a molecule of this species is added to world
   bool rxn_flags_were_updated;
 
