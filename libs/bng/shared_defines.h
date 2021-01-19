@@ -35,6 +35,19 @@ typedef unsigned int uint;
 
 // ---------------------------------- debug ----------------------------------------
 
+#ifdef _MSC_VER
+#define MSC_TODO
+#endif
+
+#ifdef _MSC_VER
+#define __PRETTY_FUNCTION__ __FUNCTION__
+// casts
+#pragma warning (disable : 4244)
+#pragma warning (disable : 4267)
+// unsafe functions
+#pragma warning (disable : 4996)
+#endif
+
 // assert not conditioned by NDEBUG
 #define release_assert(expr) \
   (static_cast <bool> (expr)                                            \

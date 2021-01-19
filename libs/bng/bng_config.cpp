@@ -56,11 +56,16 @@ std::string BNGConfig::get_warnings_report_file_name() const {
 
 
 static bool dir_exists(const string& path) {
+#ifdef _MSC_VER
+  release_assert(false);
+  return false;
+#else
   struct stat sb;
   if (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
     return true;
   }
   return false;
+#endif
 }
 
 
@@ -81,7 +86,10 @@ static void make_reports_dir(const string& file_path) {
 #ifndef _WIN64
     res = mkdir(dir_path.c_str(), 0777);
 #else
-    res = mkdir(dir_path.c_str());
+#ifdef _MSC_VER
+    release_assert(false);
+    //    res = mkdir(dir_path.c_str());
+#endif
 #endif
     if (res != 0) {
       if (errno != EEXIST) {

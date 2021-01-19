@@ -23,7 +23,8 @@ class SpeciesContainer;
  * Structure used to represent reactants of a reaction class,
  * species_id alone is not sufficient
  */
-struct Reactant {
+class Reactant {
+public:
   explicit Reactant(
       const species_id_t species_id_,
       const compartment_id_t compartment_id_)

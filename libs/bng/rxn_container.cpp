@@ -279,9 +279,6 @@ void RxnContainer::compute_reacting_classes(const ReactantClass& rc) {
 reactant_class_id_t RxnContainer::find_or_add_reactant_class(
     const ReactionIdBitsets& reactions_bitset_per_reactant, const bool target_only) {
 
-  reactant_class_id_t res;
-  bool is_new_reactant_class;
-
   // NOTE: maybe search without creating the ReactantClass object
   ReactantClass* rc = new ReactantClass;
   rc->target_only = target_only;

@@ -12,9 +12,12 @@ include_directories(
 	"${CMAKE_CURRENT_SOURCE_DIR}/../sparsehash/src/"
 )
 
-add_definitions(-std=c++14)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-function -Wall -isystem ${CMAKE_SOURCE_DIR}/libs/ -isystem ${CMAKE_SOURCE_DIR}/libs/sparsehash/src")
+add_definitions(-DYY_NO_UNISTD_H)
 
+if (NOT WIN32) # TODO
+  add_definitions(-std=c++14)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-function -Wall -isystem ${CMAKE_SOURCE_DIR}/libs/ -isystem ${CMAKE_SOURCE_DIR}/libs/sparsehash/src")
+endif()
 
 set(SOURCE_FILES
     shared_defines.cpp

@@ -3,6 +3,10 @@
 
 #include <ostream>
 
+#ifdef _MSC_VER
+#include <io.h>
+#endif
+
 namespace BNG {
 
 class ASTBaseNode;

@@ -10,6 +10,11 @@
 
 #include "bng/shared_defines.h"
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 namespace BNG {
 
 using BNGCommon::f_to_str;
