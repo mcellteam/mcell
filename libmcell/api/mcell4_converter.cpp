@@ -1415,7 +1415,8 @@ MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
     rel_event->orientation = convert_orientation(r->complex->orientation, true, is_vol);
 
     if (world->get_all_species().get(rel_event->species_id).is_surf() &&
-        rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN) {
+        rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN &&
+        rel_event->orientation != ORIENTATION_NONE) { // none = random orientation
       throw ValueError(
           S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
           " releases a surface molecule but orientation is not set to a valid value.");
