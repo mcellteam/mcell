@@ -2145,7 +2145,12 @@ static molecule_id_t place_single_molecule_onto_grid(
 
   Molecule sm_to_add(MOLECULE_ID_INVALID, species_id, pos_on_wall, current_time);
   sm_to_add.s.wall_index = wall.index;
-  sm_to_add.s.orientation = orientation;
+  if (orientation == ORIENTATION_NONE) {
+    sm_to_add.s.orientation = (rng_uint(&rng) & 1) ? 1 : -1;
+  }
+  else {
+    sm_to_add.s.orientation = orientation;
+  }
   sm_to_add.s.grid_tile_index = tile_index;
   sm_to_add.set_flag(MOLECULE_FLAG_SURF);
   sm_to_add.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);

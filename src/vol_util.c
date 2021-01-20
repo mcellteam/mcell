@@ -2288,8 +2288,8 @@ void ht_remove(struct pointer_hash *h, struct per_species_list *psl) {
  Out: The number to release
 ***************************************************************************/
 static int test_max_release(double num_to_release, char *name) {
-  int num = (int)num_to_release;
-  if (num > INT_MAX)
+  long long num = (long long)num_to_release;
+  if (num > (long long)INT_MAX)
     mcell_error("Release site \"%s\" tries to release more than INT_MAX "
                 "(2147483647) molecules.",
                 name);

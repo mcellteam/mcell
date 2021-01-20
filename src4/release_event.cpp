@@ -515,10 +515,12 @@ bool ReleaseEvent::initialize_walls_for_release() {
 
 
 static void check_max_release_count(float_t num_to_release, const std::string& name) {
-  int num = (int)num_to_release;
-  if (num < 0 || num > INT_MAX) {
+  long long num = (long long)num_to_release;
+  if (num < 0 || num > (long long)INT_MAX) {
     mcell_error(
-        "Release site '%s' tries to release more than INT_MAX (2147483647) molecules.",
+        "Release site '%s' tries to release more than INT_MAX (2147483647) molecules, "
+        "the unit for concentration-based release into volume is M/l (molar) and "
+        "for density-based release onto surface is N/um^2 (molecules per square micron).",
         name.c_str());
   }
 }
