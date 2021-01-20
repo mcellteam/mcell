@@ -40,19 +40,19 @@
 #include "libmcell/api/python_export_utils.h"
 #include "libmcell/api/api_common.h"
 
-#include "generator_structs.h"
-
 using namespace std;
 
 namespace MCell {
 
 using namespace API;
-
 using Json::Value;
 
+class SharedGenData;
 
 const uint TESTING_RXN_CLASS_CLEANUP_PERIODICITY = 100;
 const uint TESTING_SPECIES_CLEANUP_PERIODICITY = 500;
+
+const char* const NAME_PARAMETER = "parameter";
 
 // using exception catching to recover from errors
 

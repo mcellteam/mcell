@@ -45,7 +45,9 @@ void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& 
   string python_expr;
   // replace operator ^ with operator **
   python_expr = regex_replace(parameter[KEY_PAR_EXPRESSION].asString(), regex("\\^"), "**");
-  out << fix_param_id(parameter[KEY_PAR_NAME].asString()) << " = " << python_expr;
+  string name = fix_param_id(parameter[KEY_PAR_NAME].asString());
+  data.check_if_already_defined_and_add(name, NAME_PARAMETER);
+  out << name << " = " << python_expr;
   string units = parameter[KEY_PAR_UNITS].asString();
   if (units != "") {
     out << " # units: " << units;
@@ -212,8 +214,14 @@ void PythonGenerator::generate_parameters(std::ostream& out) {
     // sort parameters by their dependence
     define_parameter_ordering(parameter_list, ordering);
 
+    // define_parameter_ordering can insert several parameters multiple times into ordering
+    // TODO: make a better fix if needed, skipping duplicates for now
+    set<size_t> already_generated;
     for (Value::ArrayIndex i: ordering) {
-      generate_single_parameter(out, parameter_list[i]);
+      if (already_generated.count(i) == 0) {
+        generate_single_parameter(out, parameter_list[i]);
+      }
+      already_generated.insert(i);
     }
   }
   out << "\n";
@@ -230,6 +238,14 @@ std::string PythonGenerator::generate_component_type(
       !bngl_component_item[KEY_CSTATES].empty();
 
   string name = mol_type_name + '_' + make_id(cname);
+
+  // generate only once
+  // TODO: do we need to check here that all the declarations are the same?
+  if (data.is_already_defined(name, NAME_CLASS_COMPONENT_TYPE)) {
+    return name;
+  }
+
+  data.check_if_already_defined_and_add(name, NAME_CLASS_COMPONENT_TYPE);
   gen_ctor_call(out, name, NAME_CLASS_COMPONENT_TYPE);
   gen_param(out, NAME_NAME, cname, has_states);
 
@@ -256,7 +272,9 @@ std::string PythonGenerator::generate_single_species_or_mol_type(
   string orig_name = molecule_list_item[KEY_MOL_NAME].asString();
   string name = make_id(orig_name);
 
-  gen_ctor_call(out, name, (generate_species) ? NAME_CLASS_SPECIES : NAME_CLASS_ELEMENTARY_MOLECULE_TYPE);
+  const char* type = (generate_species) ? NAME_CLASS_SPECIES : NAME_CLASS_ELEMENTARY_MOLECULE_TYPE;
+  data.check_if_already_defined_and_add(name, type);
+  gen_ctor_call(out, name, type);
 
   string name_to_generate = orig_name;
   if (API::is_simple_species(orig_name)) {
@@ -442,6 +460,7 @@ void PythonGenerator::generate_surface_classes(
             affected_mols, orientation_name, clamp_concentration);
 
         sc_prop_names.push_back(name);
+        data.check_if_already_defined_and_add(name, NAME_CLASS_SURFACE_PROPERTY);
         gen_ctor_call(out, name, NAME_CLASS_SURFACE_PROPERTY, true);
         gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
 
@@ -460,6 +479,7 @@ void PythonGenerator::generate_surface_classes(
 
     string name = make_id(surface_class_list_item[KEY_NAME].asString());
     sc_names.push_back(name);
+    data.check_if_already_defined_and_add(name, NAME_CLASS_SURFACE_CLASS);
     gen_ctor_call(out, name, NAME_CLASS_SURFACE_CLASS, true);
     gen_param(out, NAME_NAME, name, true);
 
@@ -573,6 +593,7 @@ std::string PythonGenerator::generate_single_reaction_rule(std::ostream& out, Js
 
   string name = get_rxn_id(reaction_list_item, data.unnamed_rxn_counter);
 
+  data.check_if_already_defined_and_add(name, NAME_CLASS_REACTION_RULE);
   gen_ctor_call(out, name, NAME_CLASS_REACTION_RULE);
   gen_param(out, NAME_NAME, name, true);
 
@@ -902,6 +923,9 @@ static void error_release_pattern(const string& name) {
 
 void PythonGenerator::generate_release_pattern(std::ostream& out, const std::string& name, std::string& delay_string) {
 
+  // generate only once, however we must return the delay string
+  bool already_generated = data.is_already_defined(name, NAME_CLASS_RELEASE_PATTERN);
+
   if (!mcell.isMember(KEY_DEFINE_RELEASE_PATTERNS)) {
     error_release_pattern(name);
   }
@@ -914,16 +938,19 @@ void PythonGenerator::generate_release_pattern(std::ostream& out, const std::str
       continue;
     }
 
-    // we found the release pattern
-    check_version(KEY_RELEASE_PATTERN_LIST, release_pattern_item, VER_DM_2018_01_11_1330);
+    if (!already_generated) {
+      // we found the release pattern
+      check_version(KEY_RELEASE_PATTERN_LIST, release_pattern_item, VER_DM_2018_01_11_1330);
 
-    gen_ctor_call(out, name, NAME_CLASS_RELEASE_PATTERN);
-    gen_param(out, NAME_NAME, name, true);
-    gen_param_expr(out, NAME_RELEASE_INTERVAL, release_pattern_item[KEY_RELEASE_INTERVAL], true);
-    gen_param_expr(out, NAME_TRAIN_DURATION, release_pattern_item[KEY_TRAIN_DURATION], true);
-    gen_param_expr(out, NAME_TRAIN_INTERVAL, release_pattern_item[KEY_TRAIN_INTERVAL], true);
-    gen_param_expr(out, NAME_NUMBER_OF_TRAINS, release_pattern_item[KEY_NUMBER_OF_TRAINS], false);
-    out << CTOR_END;
+      data.check_if_already_defined_and_add(name, NAME_CLASS_RELEASE_PATTERN);
+      gen_ctor_call(out, name, NAME_CLASS_RELEASE_PATTERN);
+      gen_param(out, NAME_NAME, name, true);
+      gen_param_expr(out, NAME_RELEASE_INTERVAL, release_pattern_item[KEY_RELEASE_INTERVAL], true);
+      gen_param_expr(out, NAME_TRAIN_DURATION, release_pattern_item[KEY_TRAIN_DURATION], true);
+      gen_param_expr(out, NAME_TRAIN_INTERVAL, release_pattern_item[KEY_TRAIN_INTERVAL], true);
+      gen_param_expr(out, NAME_NUMBER_OF_TRAINS, release_pattern_item[KEY_NUMBER_OF_TRAINS], false);
+      out << CTOR_END;
+    }
 
     delay_string = release_pattern_item[KEY_DELAY].asString();
     return;
@@ -982,6 +1009,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
 
     release_site_names.push_back(name);
 
+    data.check_if_already_defined_and_add(name, NAME_CLASS_RELEASE_SITE);
     gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
     gen_param(out, NAME_NAME, name, true);
 
@@ -1117,6 +1145,7 @@ void PythonGenerator::generate_viz_outputs(
   // CHECK_PROPERTY(viz_output[KEY_ALL_ITERATIONS].asBool()); // don't care
   CHECK_PROPERTY(viz_output[KEY_START].asString() == "0");
 
+  data.check_if_already_defined_and_add(name, NAME_CLASS_VIZ_OUTPUT);
   gen_ctor_call(out, name, NAME_CLASS_VIZ_OUTPUT);
 
   // mode is ascii by default, this information is not in datamodel
@@ -1176,6 +1205,8 @@ string PythonGenerator::generate_count_terms_for_expression(
     // generate the count term object definition if we don't already have it
     if (find(data.all_count_term_names.begin(), data.all_count_term_names.end(), name) == data.all_count_term_names.end()) {
       data.all_count_term_names.push_back(name);
+
+      data.check_if_already_defined_and_add(name, NAME_CLASS_COUNT_TERM);
       gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
 
       if (rxn_not_mol) {
@@ -1225,6 +1256,7 @@ void PythonGenerator::generate_single_count(
     const bool single_term
 ) {
 
+  data.check_if_already_defined_and_add(count_name, NAME_CLASS_COUNT);
   gen_ctor_call(out, count_name, NAME_CLASS_COUNT);
 
   if (single_term) {

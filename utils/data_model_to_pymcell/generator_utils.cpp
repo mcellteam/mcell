@@ -26,6 +26,8 @@
 #include "api/python_export_constants.h"
 #include "api/compartment_utils.h"
 
+#include "generator_structs.h"
+
 using namespace MCell::API;
 
 namespace MCell {
