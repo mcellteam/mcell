@@ -660,6 +660,8 @@ string PythonGenerator::generate_single_geometry_object(
   string parent_name = S(KEY_OBJECT_LIST) + "[" + to_string(index) + "]";
 
   string name = make_id(get_node(parent_name, object, KEY_NAME).asString());
+  data.check_if_already_defined_and_add(name, NAME_CLASS_GEOMETRY_OBJECT);
+
   Value& vertex_list = get_node(parent_name, object, KEY_VERTEX_LIST);
   Value& element_connections = get_node(parent_name, object, KEY_ELEMENT_CONNECTIONS);
   // TODO: material_names
