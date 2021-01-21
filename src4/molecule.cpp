@@ -43,8 +43,8 @@ namespace MCell {
 string get_molecule_flags_string(uint flags, bool full_dump = true) {
   string res;
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
-  DUMP_FLAG(flags, TYPE_SURF)
-  DUMP_FLAG(flags, TYPE_VOL)
+  DUMP_FLAG(flags, MOLECULE_FLAG_SURF)
+  DUMP_FLAG(flags, MOLECULE_FLAG_VOL)
   if (full_dump) {
     if ((flags & MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) != 0)
       res += string("ACT_NEWBIE") + ", ";

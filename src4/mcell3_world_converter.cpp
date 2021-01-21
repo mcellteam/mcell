@@ -28,7 +28,7 @@
 #include "bng/bng.h"
 
 #include "logging.h"
-#include "mcell_structs_shared.h"
+#include "mcell_structs.h" // need all defines
 #include "mcell3_world_converter.h"
 
 #include "world.h"
@@ -872,12 +872,6 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
-    if (spec->custom_time_step_from_mdl < 0) {
-      new_species.custom_space_step = -spec->custom_time_step_from_mdl;
-    }
-    else if (spec->custom_time_step_from_mdl > 0) {
-      new_species.custom_time_step = spec->custom_time_step_from_mdl;
-    }
 
     // remove some flags for check that are known to work in all cases
     uint flags_check = spec->flags & ~REGION_PRESENT;
@@ -972,6 +966,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     else {
       assert(false);
     }
+    mol_type.compute_space_and_time_step(world->bng_engine.get_config());
     elem_mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_elem_mol_type(mol_type);
 
     ElemMol mol_inst;

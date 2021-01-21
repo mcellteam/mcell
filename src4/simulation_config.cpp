@@ -28,7 +28,7 @@
 #include <iomanip>
 
 #include "bng/bng_defines.h"
-#include "api/common.h"
+#include "api/api_common.h"
 
 using namespace std;
 

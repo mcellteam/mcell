@@ -256,7 +256,8 @@ private:
   // impact on parallel execution
   mutable Graph graph;
 protected:
-  const BNGData* bng_data; // needed mainly for dumps and debugging
+  // needed for computation of time/space step in Species and for dumps and debugging
+  const BNGData* bng_data;
 };
 
 typedef small_vector<Cplx> CplxVector;

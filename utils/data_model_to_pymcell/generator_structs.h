@@ -28,6 +28,7 @@
 #include <set>
 #include "json/json.h"
 #include "datamodel_defines.h"
+#include "generator_utils.h"
 
 namespace MCell {
 
@@ -82,6 +83,7 @@ struct SharedGenData {
     all_reaction_rules_names.clear();
     bngl_reaction_rules_used_in_observables.clear();
     all_count_term_names.clear();
+    defined_python_objects.clear();
   }
 
   uint unnamed_rxn_counter;
@@ -102,6 +104,9 @@ struct SharedGenData {
 
   // set in MCell4Generator::analyze_and_generate_bngl_compartments
   std::set<std::string> used_compartments;
+
+  // key is object name, value is class name
+  std::map<std::string, std::string> defined_python_objects;
 
   const SpeciesOrMolType* find_species_or_mol_type_info(const std::string& name) const {
     auto it = std::find(
@@ -130,6 +135,29 @@ struct SharedGenData {
     const std::string& surf_comp = model_object[KEY_MEMBRANE_NAME].asString();
 
     return used_compartments.count(vol_comp) != 0 || used_compartments.count(surf_comp);
+  }
+
+
+  bool is_already_defined(const std::string& obj_name, const char* class_name) {
+    //return false;
+    if (defined_python_objects.count(obj_name) != 0) {
+      return defined_python_objects[obj_name] == std::string(class_name);
+    }
+    else {
+      return false;
+    }
+  }
+
+  // also adds
+  void check_if_already_defined_and_add(const std::string& obj_name, const char* class_name) {
+    //return;
+    if (defined_python_objects.count(obj_name) != 0) {
+      ERROR("Duplicate object name '" + obj_name + "', used for '" + class_name + "' and '" +
+          defined_python_objects[obj_name] + "'. Object names must be unique.");
+    }
+    else {
+      defined_python_objects[obj_name] = class_name;
+    }
   }
 
   // mcell node of the loaded JSON file

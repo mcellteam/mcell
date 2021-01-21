@@ -39,14 +39,15 @@ public:
 class ElemMolTypeSpeciesCommonData {
 public:
   ElemMolTypeSpeciesCommonData()
-    : D(FLT_INVALID), custom_time_step(0), custom_space_step(0),
+    : D(FLT_INVALID),
+      time_step(FLT_INVALID), space_step(FLT_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1) {
   }
 
   ElemMolTypeSpeciesCommonData(const ElemMolTypeSpeciesCommonData& other)
     : D(other.D),
-      custom_time_step(other.custom_time_step),
-      custom_space_step(other.custom_space_step),
+      time_step(other.time_step),
+      space_step(other.space_step),
       color_set(other.color_set),
       color_r(other.color_r), color_g(other.color_g), color_b(other.color_b),
       scale(other.scale) {
@@ -54,11 +55,9 @@ public:
 
   float_t D; // diffusion constant
 
-  // when the user supplied a custom step, the attribute
-  // is set to non-zero value, max one of them can be set to a non-zero value
-  float_t custom_time_step;
-  float_t custom_space_step;
-
+  // computed values, set differently for ElemMolType and Species
+  float_t time_step;
+  float_t space_step;
 
   // visualization
   void set_color(float_t r, float_t g, float_t b) {
@@ -83,7 +82,8 @@ public:
 // allowed components and states.
 class ElemMolType: public BaseSpeciesCplxMolFlag, public ElemMolTypeSpeciesCommonData {
 public:
-  ElemMolType() {
+  ElemMolType() :
+    custom_time_step(0), custom_space_step(0) {
     reactant_compartments.insert(COMPARTMENT_ID_ANY);
     reactant_compartments.insert(COMPARTMENT_ID_NONE);
   }
@@ -91,10 +91,21 @@ public:
   std::string name;
   std::vector<component_type_id_t> component_type_ids;
 
+  // when the user supplied a custom step, the attribute
+  // is set to non-zero value, max one of them can be set to a non-zero value
+  float_t custom_time_step;
+  float_t custom_space_step;
+
   // initialized to contain ANY and NONE compartments,
   // additional compartments are added in
   // RxnContainer::update_all_mols_and_mol_type_compartments
   CompartmentIdSet reactant_compartments;
+
+  bool has_custom_time_or_space_step() const {
+    return custom_time_step != 0 || custom_space_step != 0;
+  }
+
+  void compute_space_and_time_step(const BNGConfig& config);
 
   bool cant_initiate() const {
     return has_flag(SPECIES_MOL_FLAG_TARGET_ONLY);
@@ -121,6 +132,16 @@ public:
   std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data) const;
 };
+
+
+// auxiliary functions used by ElemMolType and Species
+float_t get_default_space_step(const BNGConfig& config, const float_t D);
+
+void get_space_and_time_step(
+    const BNGConfig& config,
+    const bool is_surf, const float_t D,
+    const float_t custom_time_step, const float_t custom_space_step,
+    float_t& time_step, float_t& space_step);
 
 } /* namespace BNG */
 

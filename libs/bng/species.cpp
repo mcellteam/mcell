@@ -132,121 +132,142 @@ void Species::update_rxn_and_custom_flags(
 }
 
 
-// based on assemble_mol_species
-/**************************************************************************
-assemble_mol_species:
-   Helper function to assemble a molecule species from its component pieces.
+void Species::compute_space_and_time_step(const BNGConfig& config) {
 
-   NOTE: A couple of comments regarding the unit conversions below:
-   Internally, mcell works with with the per species length
-   normalization factor
+  // check if any of the used elementary molecules has custom time or space step
+  // 0 means that it was not set
+  float_t min_custom_time_step = FLT_GIGANTIC;
+  float_t min_custom_space_step = FLT_GIGANTIC;
+  bool has_mol_wo_custom_time_step = false;
+  bool has_mol_wo_custom_space_step = false;
 
-      new_spec->space_step = sqrt(4*D*t), D = diffusion constant (1)
+  for (uint i = 0; i < elem_mols.size(); i++) {
+    const ElemMolType& emt = bng_data->get_elem_mol_type(elem_mols[i].elem_mol_type_id);
 
-   If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
-   it is assumed to correspond to the average diffusion step and
-   is hence equivalent to lr_bar in 2 or 3 dimensions for surface and
-   volume molecules, respectively:
-
-   lr_bar_2D = sqrt(pi*D*t)       (2)
-   lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
-
-   Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
-   solve eqs (2) and (3) for t and obtain new_spec->space_step
-   via equation (1)
-
-   2D:
-    lr_bar_2D = sqrt(pi*D*t) => t = (lr_bar_2D^2)/(pi*D)
-
-   3D:
-    lr_bar_3D = 2*sqrt(4*D*t/pi) => t = pi*(lr_bar_3D^2)/(16*D)
-
-   The remaining coefficients are:
-
-    - 1.0e8 : needed to convert D from cm^2/s to um^2/s
-    - global_time_unit, length_unit, r_length_unit: mcell
-      internal time/length conversions.
-
-In: state: the simulation state
-    sym_ptr:   symbol for the species
-    D:     diffusion constant
-    is_2d: 1 if the species is a 2D molecule, 0 if 3D
-    custom_time_step: time_step for the molecule (<0.0 for a custom space
-                      step, >0.0 for custom timestep, 0.0 for default
-                      timestep)
-    target_only: 1 if the molecule cannot initiate reactions
-Out: the species, or NULL if an error occurred
-**************************************************************************/
-// time_unit and length_unit are coming from the simulation configuration
-void Species::update_space_and_time_step(const BNGConfig& config) {
-  // Immobile (boring)
-  if (!distinguishable_f(D, 0, EPS)) {
-    space_step = 0.0;
-    time_step = 1.0;
-  }
-  // Custom timestep or spacestep
-  else if (custom_space_step > 0) {
-    float_t lr_bar = custom_space_step;
-    assert(!has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE));
-    if (has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF)) {
-      time_step =
-          lr_bar * lr_bar / (BNG_PI * 1.0e8 * D * config.time_unit);
+    if (emt.custom_time_step != 0) {
+      if (emt.custom_time_step < min_custom_time_step) {
+        min_custom_time_step = emt.custom_time_step;
+      }
     }
     else {
-      time_step =
-          lr_bar * lr_bar * BNG_PI / (16.0 * 1.0e8 * D * config.time_unit);
+      has_mol_wo_custom_time_step = true;
     }
-    space_step =
-        sqrt_f(4.0 * 1.0e8 * D * time_step * config.time_unit) * config.rcp_length_unit;
+
+    if (emt.custom_space_step != 0) {
+      if (emt.custom_space_step < min_custom_space_step) {
+        min_custom_space_step = emt.custom_space_step;
+      }
+    }
+    else {
+      has_mol_wo_custom_space_step = true;
+    }
   }
-  else if (custom_time_step > 0) {
-    space_step =
-        sqrt_f(4.0 * 1.0e8 * D * custom_time_step) * config.rcp_length_unit;
-    time_step = custom_time_step / config.time_unit;
+  // if custom time step was either not set or it is > 1.0 but at least one of the
+  // molecules does not have it set, so we must keep the default
+  if (min_custom_time_step == FLT_GIGANTIC ||
+      (has_mol_wo_custom_time_step && min_custom_time_step > DEFAULT_TIME_STEP)) {
+    min_custom_time_step = 0;
   }
-  // Global timestep (this is the typical case)
-  else /*if (!distinguishable(state->space_step, 0, EPS_C))*/ {
-    space_step = sqrt_f(4.0 * 1.0e8 * D * config.time_unit) * config.rcp_length_unit;
-    time_step = 1.0;
+
+  float_t default_space_step = get_default_space_step(config, D);
+  if (min_custom_space_step == FLT_GIGANTIC ||
+      (has_mol_wo_custom_space_step && min_custom_space_step > default_space_step)) {
+    min_custom_space_step = 0;
   }
-  /*// Global spacestep - not supported yet
+
+  if (min_custom_time_step != 0 || min_custom_space_step != 0) {
+    // custom time or space step is used either to:
+    // 1) speedup simulation if the default probability of reactions is low enough and
+    //    we don't care that the molecule diffuses further than usual or
+    // 2) lower the probability of a reaction per collision so that it is lower than 1
+    //
+    // the goal when computing space and time step for a complex with a custom time or space step
+    // is to lower the resulting probability factor so that when reaction of A + X has a certain
+    // probability (pb_factor), then the probability of A.A + X is not higher
+    // this is used only when the user specified custom time or space step, when not given,
+    // we don't care
+    //
+    // pb_factor is proportional to sqrt(time_step)
+    //
+    // simplified equations (based on RxnClass::compute_pb_factor):
+    //
+    // vol:
+    // pb_factor = 1/(C1 * (C2 + space_step/time_step))
+    // space_step/time_step = C3/sqrt(custom_time_step)
+    // -> pb_factor = C4 * sqrt(custom_time_step)  (setting C2 to 0)
+    //
+    // surf:
+    // pb_factor = C5 * sqrt(time_step)
+    //
+    // therefore, when pb_factor would double from probability for A to probability for A.A:
+    // pb_factor = sqrt(time_step_A)
+    // pb_factor = 2*sqrt(time_step_AA) ->
+    //
+    // to keep the same probability factor we would need to set:
+    //
+    // time_step_AA = time_step_A / (2^2)
+    //
+    // This seems overly conservative and probably won't be needed. E.g. for
+    // a molecule with 100 As -> the time step would have to be lowered by 100^2.
+    //
+    // We can come back to it when issues will arise, but for now,
+    // let's use the minimum custom time or space step value for the space and time step settings
+
+    if (min_custom_space_step != 0 && min_custom_time_step != 0) {
+      // both are used in our complex, use the one giving smaller result
+      float_t ts_time, ss_time;
+      get_space_and_time_step(
+          config,
+          has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF), D,
+          min_custom_time_step, 0,
+          ts_time, ss_time
+      );
+
+      float_t ts_space, ss_space;
+      get_space_and_time_step(
+          config,
+          has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF), D,
+          0, min_custom_space_step,
+          ts_space, ss_space
+      );
+
+      if (ts_time <= ts_space) {
+        assert(ss_time <= ss_space);
+        time_step = ts_time;
+        space_step = ss_time;
+      }
+      else {
+        assert(ss_space < ss_time);
+        time_step = ts_space;
+        space_step = ss_space;
+      }
+    }
+    else {
+      // one of them is 0
+      get_space_and_time_step(
+          config,
+          has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF), D,
+          min_custom_time_step, min_custom_space_step,
+          time_step, space_step
+      );
+    }
+  }
   else {
-    double space_step = state->space_step * state->length_unit;
-    if (species->is_2d) {
-      new_spec->time_step =
-          space_step * space_step /
-          (MY_PI * 1.0e8 * new_spec->D * global_time_unit);
-    }
-    else {
-      new_spec->time_step =
-          space_step * space_step * MY_PI /
-          (16.0 * 1.0e8 * new_spec->D * global_time_unit);
-    }
-    new_spec->space_step = sqrt(4.0 * 1.0e8 * new_spec->D *
-                                new_spec->time_step * global_time_unit) *
-                                state->r_length_unit;
-  }*/
+    // use default computation based on diffusion constant of the whole complex
+    space_step = get_default_space_step(config, D);
+    time_step = DEFAULT_TIME_STEP;
+  }
 }
 
 
-void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& config) {
+void Species::compute_diffusion_constant_and_space_time_step(const BNGConfig& config) {
   if (elem_mols.size() == 1) {
     // nothing to compute if we have just one molecule instance
-    const ElemMolType& mt = data.get_elem_mol_type(elem_mols[0].elem_mol_type_id);
+    const ElemMolType& mt = bng_data->get_elem_mol_type(elem_mols[0].elem_mol_type_id);
     D = mt.D;
     assert(is_reactive_surface() || D != FLT_INVALID);
-    custom_space_step = mt.custom_space_step;
-    custom_time_step = mt.custom_time_step;
   }
   else {
-    // check for custom steps that are not supported yet for complexes
-    for (const ElemMol& mi: elem_mols) {
-      const ElemMolType& mt = data.get_elem_mol_type(mi.elem_mol_type_id);
-      release_assert(mt.custom_space_step == 0 && mt.custom_time_step == 0 &&
-          "Custom time and space steps are not yet supported for complexes having more than one elementary molecule"
-      );
-    }
-
     // based on NFSim DerivedDiffusion::getDiffusionValue
     // For large complex aggregates (1 um) diffusing on 2D surface:
     //D_2D = KB*T*LOG((eta_PM*h/(Rc*(eta_EC+eta_CP)/2))-gamma)/(4*PI*eta_PM*h) (Saffman Delbruck)
@@ -267,7 +288,7 @@ void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& co
       float_t acc = 0;
       for (const ElemMol& mi: elem_mols) {
         if (mi.is_surf()) {
-          float_t mol_type_D = data.get_elem_mol_type(mi.elem_mol_type_id).D;
+          float_t mol_type_D = bng_data->get_elem_mol_type(mi.elem_mol_type_id).D;
 
           // if diffusion constant of any 2D member is zero (i.e. is immobile) then whole complex should be immobile
           if (mol_type_D == 0) {
@@ -294,7 +315,7 @@ void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& co
       float_t acc = 0;
       for (const ElemMol& mi: elem_mols) {
         assert(!mi.is_surf());
-        float_t mol_type_D = data.get_elem_mol_type(mi.elem_mol_type_id).D;
+        float_t mol_type_D = bng_data->get_elem_mol_type(mi.elem_mol_type_id).D;
 
         //  if diffusion constant of any 3D member is zero (i.e. is immobile) then whole complex should be immobile
         if (mol_type_D == 0) {
@@ -314,7 +335,7 @@ void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& co
     }
   }
 
-  update_space_and_time_step(config);
+  compute_space_and_time_step(config);
 }
 
 

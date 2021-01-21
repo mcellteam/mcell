@@ -140,12 +140,16 @@ ReleaseSite:
   - name: density
     type: float
     default: unset
-    doc: Only one of number_to_release, density, concentration or molecule_list can be set.
+    doc: |
+       Unit is molecules per square micron (for surfaces).
+       Only one of number_to_release, density, concentration or molecule_list can be set.
     
   - name: concentration
     type: float
     default: unset
-    doc: Only one of number_to_release, density, concentration or molecule_list can be set.
+    doc: |
+       Unit is molar (moles per liter) for volumes.
+       Only one of number_to_release, density, concentration or molecule_list can be set.
 
   - name: release_probability
     type: float

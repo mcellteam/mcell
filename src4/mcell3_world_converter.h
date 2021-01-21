@@ -30,6 +30,15 @@
 #include "world.h"
 #include <map>
 
+struct volume; // MCell3
+struct wall;
+struct region;
+struct region_list;
+struct geom_object;
+struct pathway;
+struct rxn;
+struct release_evaluator;
+
 namespace MCell {
 
 class ReleaseEvent;

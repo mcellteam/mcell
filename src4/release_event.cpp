@@ -515,10 +515,12 @@ bool ReleaseEvent::initialize_walls_for_release() {
 
 
 static void check_max_release_count(float_t num_to_release, const std::string& name) {
-  int num = (int)num_to_release;
-  if (num < 0 || num > INT_MAX) {
+  long long num = (long long)num_to_release;
+  if (num < 0 || num > (long long)INT_MAX) {
     mcell_error(
-        "Release site '%s' tries to release more than INT_MAX (2147483647) molecules.",
+        "Release site '%s' tries to release more than INT_MAX (2147483647) molecules, "
+        "the unit for concentration-based release into volume is M/l (molar) and "
+        "for density-based release onto surface is N/um^2 (molecules per square micron).",
         name.c_str());
   }
 }
@@ -550,6 +552,7 @@ uint ReleaseEvent::calculate_number_to_release() {
           case ReleaseShape::SPHERICAL_SHELL:
             mcell_error("Release site \"%s\" tries to release a concentration on a "
                         "spherical shell.", release_site_name.c_str());
+            return 0;
             break;
 
           case ReleaseShape::REGION:
@@ -560,6 +563,7 @@ uint ReleaseEvent::calculate_number_to_release() {
             mcell_internal_error("Release by concentration on invalid release site "
                                  "shape (%d) for release site \"%s\".",
                                  (int)release_shape, release_site_name.c_str());
+            return 0;
             break;
         }
         assert(concentration != FLT_INVALID);

@@ -24,6 +24,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <stdint.h>
 
 #define COUNT_OF(arr) (sizeof((arr)) / sizeof((arr[0])))
 

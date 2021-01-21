@@ -80,8 +80,6 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also PyMCell (MCell3 with Python interface, not maintained)" OFF)
-
 
 if (ENABLE_LTO)
   SET(CMAKE_AR "gcc-ar")
@@ -329,8 +327,6 @@ endif()
 
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_helpers.py COPYONLY)
-
 # copy tools for MDLr to MDL
 SET(MCELL_RULES_DIR ${CMAKE_SOURCE_DIR}/src/rules_py)
 configure_file(${MCELL_RULES_DIR}/grammar_definition.py ${CMAKE_CURRENT_BINARY_DIR}/grammar_definition.py COPYONLY)
@@ -408,12 +404,6 @@ add_executable(mcell
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
 target_link_libraries(mcell mcell4 libmcell_dummy bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
-
-if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
-    add_dependencies(pymcell mcell4 version_h bng nfsim_c NFsim jsoncpp_lib)
-    target_link_libraries(pymcell mcell4 nauty ${VTK_LIBRARIES})
-    set_target_properties(pymcell PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python)	
-endif()
 
 # utils
 

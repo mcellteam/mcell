@@ -24,6 +24,7 @@
 #include "count_buffer.h"
 
 #include "logging.h"
+#include "util.h"
 
 namespace MCell {
 

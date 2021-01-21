@@ -48,6 +48,7 @@ void BNGLGenerator::generate_single_bngl_parameter(Value& parameter) {
 
 void BNGLGenerator::generate_single_python_parameter(std::ostream& python_out, Value& parameter) {
   string name = fix_param_id(parameter[KEY_PAR_NAME].asString());
+  data.check_if_already_defined_and_add(name, NAME_PARAMETER);
   python_out << name << " = " << VAR_BNGL_PARAMS << "['" << name << "']\n";
 }
 

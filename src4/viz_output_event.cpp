@@ -188,11 +188,10 @@ void VizOutputEvent::output_cellblender_molecules() {
   float_t length_unit = world->config.length_unit;
 
   // sort all molecules by species
-  uint species_count = world->get_all_species().get_count();
-
   typedef pair<const Partition*, const Molecule*> PartitionMoleculePair;
-  vector< vector<PartitionMoleculePair> > volume_molecules_by_species;
-  volume_molecules_by_species.resize(species_count);
+
+  // indexed by species id
+  map<species_id_t, vector<PartitionMoleculePair> > volume_molecules_by_species;
 
   for (Partition& p: world->get_partitions()) {
     for (const Molecule& m: p.get_molecules()) {

@@ -102,19 +102,16 @@ void mcell_error_nodie(char const *fmt, ...);
 void mcell_errorv_nodie(char const *fmt, va_list args);
 
 /* Log an error and exit. */
-void mcell_error(char const *fmt, ...)
-    ;
+void mcell_error(char const *fmt, ...) NORETURN;
 
 /* Log an error and exit (va_list version). */
-void mcell_errorv(char const *fmt, va_list args)
-    NORETURN;
+void mcell_errorv(char const *fmt, va_list args) NORETURN;
 
 /* Log an internal error and exit. */
 #define mcell_internal_error(fmt, ...)                                         \
   mcell_internal_error_(__FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
 void mcell_internal_error_(char const *file, unsigned int line,
-                           char const *func, char const *fmt, ...)
-    NORETURN;
+                           char const *func, char const *fmt, ...) NORETURN;
 
 /* Log an internal error and exit (va_list version). */
 #define mcell_internal_errorv(fmt, args)                                       \
@@ -133,8 +130,7 @@ void mcell_perror_nodie(int err, char const *fmt, ...);
 void mcell_perrorv_nodie(int err, char const *fmt, va_list args);
 
 /* Log an error due to a failed standard library call, and exit. */
-void mcell_perror(int err, char const *fmt, ...)
-    NORETURN;
+void mcell_perror(int err, char const *fmt, ...) NORETURN;
 
 /* Log an error due to a failed standard library call, and exit (va_list
  * version). */
@@ -148,12 +144,10 @@ void mcell_allocfailed_nodie(char const *fmt, ...);
 void mcell_allocfailedv_nodie(char const *fmt, va_list args);
 
 /* Log an error due to failed memory allocation, and exit. */
-void mcell_allocfailed(char const *fmt, ...)
-    NORETURN;
+void mcell_allocfailed(char const *fmt, ...) NORETURN;
 
 /* Log an error due to failed memory allocation, and exit (va_list version). */
-void mcell_allocfailedv(char const *fmt, va_list args)
-    NORETURN;
+void mcell_allocfailedv(char const *fmt, va_list args) NORETURN;
 
 /* Terminate program execution due to an error. */
 void mcell_die(void) NORETURN;
