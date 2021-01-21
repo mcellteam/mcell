@@ -26,6 +26,8 @@
 #include "logging.h"
 #include "util.h"
 
+#include "bng/filesystem_utils.h"
+
 namespace MCell {
 
 void CountItem::write(std::ostream& out) const {
@@ -46,9 +48,7 @@ void CountBuffer::flush() {
 
 bool CountBuffer::open(bool error_is_fatal) {
 
-  if (::make_parent_dir(filename.c_str()) ) {
-    mcell_error("Failed to create parent directory for molecule count output.");
-  }
+  make_dir_for_file_w_multiple_attempts(filename.c_str());
 
   if (!open_for_append) {
     // create an empty file so that we know that nothing was stored

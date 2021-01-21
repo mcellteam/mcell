@@ -47,6 +47,7 @@ typedef unsigned int uint;
 #include "mcell_structs.h"
 
 #include "bng/shared_defines.h"
+#include "bng/filesystem_utils.h"
 
 /*******************************************************************
 new_bit_array: mallocs an array of the desired number of bits
@@ -903,42 +904,16 @@ int is_writable_dir(char const *path) {
 
 /*************************************************************************
 make_parent_dir:
-    Utility to make the (possibly nested) parent directory of a file.  Will
-    attempt to create a directory with full rwx permission.  If the directory
-    already exists and has rwx permission for the user, this function will
-    return success.  Essentially, this works like mkdirs, but it strips off the
-    last path element first.
+    Utility to make the (possibly nested) parent directory of a file.
+    If the directory already exists. this function will
+    return success.
 
         In:  char const *path - absolute or relative path of file
-        Out: 0 on success, 1 on failure
+        Out: 0 on success, terminates with exit(1) on failure
 **************************************************************************/
 int make_parent_dir(char const *path) {
-#ifdef _MSC_VER // TODO
-  release_assert(false);
-  return false;
-#else
-  char *pathtmp = CHECKED_STRDUP(path, "directory path");
-  char *last_slash = strrchr(pathtmp, '/');
-  if (last_slash) {
-    *last_slash = '\0';
-    uint num_attemts = 0;
-    int res;
-    // multiple runs may collide when creating the directories,
-    // trying it multiple times
-    while ((res = mkdirs(pathtmp)) == 1 && num_attemts < 3) {
-      mcell_log("Could not create directory %s, trying again after 1s.\n", pathtmp);
-      num_attemts++;
-      sleep(1);
-    }
-    if (res != 0) {
-      free(pathtmp);
-      return 1;
-    }
-  }
-
-  free(pathtmp);
+  make_dir_for_file_w_multiple_attempts(path);
   return 0;
-#endif
 }
 
 /*************************************************************************
@@ -995,14 +970,6 @@ int mkdirs(char const *path) {
   }
   free(pathtmp);
 
-#ifdef _MSC_VER
-  release_assert(false);
-  return false;
-#else
-  if (access(path, R_OK | W_OK | X_OK) != 0) {
-    return 1;
-  }
-#endif
   return 0;
 }
 

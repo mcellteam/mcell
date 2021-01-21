@@ -55,6 +55,8 @@
 #include "api/geometry_object.h"
 #include "api/model.h"
 
+#include "bng/filesystem_utils.h"
+
 using namespace std;
 
 const double USEC_IN_SEC = 1000000.0;
@@ -861,9 +863,9 @@ void World::export_data_model_to_dir(const std::string& prefix, const bool only_
       ".json";
 
   // create directories if needed
-  ::make_parent_dir(path.str().c_str());
+  make_dir_for_file_w_multiple_attempts(path.str());
 
-  export_data_model(path.str().c_str(), only_for_viz);
+  export_data_model(path.str(), only_for_viz);
 }
 
 

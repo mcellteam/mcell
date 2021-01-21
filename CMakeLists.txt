@@ -15,6 +15,18 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
 endif(MSVC)
 
+# set default locations of libraries and executables
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin )
+set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib )
+set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/archives )
+# Second, for multi-config builds (e.g. msvc)
+foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
+  string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+  set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/bin )
+  set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/lib )
+  set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/archives  )
+endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
+
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Using default gcc 8.3.0 provided in Debian 10
@@ -38,7 +50,6 @@ endif()
 # add VTK libs VTK and headers
 set(VTK_DIR ${CMAKE_SOURCE_DIR}/../mcell_tools/work/build_vtk)
 find_package(VTK REQUIRED)
-message(STATUS VTK libraries: ${VTK_LIBRARIES})
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
@@ -402,6 +413,14 @@ add_executable(mcell
   ${BISON_dynGeomParser_OUTPUTS}  
   ${FLEX_mdlScanner_OUTPUTS}
   ${FLEX_dynGeomScanner_OUTPUTS})
+
+# mcell must be for backwards compatibility located in the root directory
+set_target_properties(mcell PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}"
+)
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  

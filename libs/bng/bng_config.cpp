@@ -9,6 +9,7 @@
 
 #include "bng/shared_defines.h"
 #include "bng/bng_defines.h" // includes bng_config.h
+#include "bng/filesystem_utils.h"
 
 using namespace std;
 
@@ -55,72 +56,6 @@ std::string BNGConfig::get_warnings_report_file_name() const {
 }
 
 
-static bool dir_exists(const string& path) {
-#ifdef _MSC_VER
-  release_assert(false);
-  return false;
-#else
-  struct stat sb;
-  if (stat(path.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)) {
-    return true;
-  }
-  return false;
-#endif
-}
-
-
-static void make_reports_dir(const string& file_path) {
-  size_t pos = file_path.find_last_of("/\\");
-  assert(pos != string::npos);
-  string dir_path = file_path.substr(0, pos);
-
-  if (dir_exists(dir_path)) {
-    return;
-  }
-
-  // parallel runs may collide when creating the directories,
-  // trying it multiple times
-  int res;
-  uint num_attemts = 0;
-  do {
-#ifndef _WIN64
-    res = mkdir(dir_path.c_str(), 0777);
-#else
-#ifdef _MSC_VER
-    release_assert(false);
-    //    res = mkdir(dir_path.c_str());
-#endif
-#endif
-    if (res != 0) {
-      if (errno != EEXIST) {
-        cerr << "Could not create directory '" << dir_path << "', trying again after 1s.\n";
-        num_attemts++;
-        errno = 0;
-#ifndef _WIN64
-        sleep(1);
-#else
-        // not sure, maybe gets optimized away
-        int i = 0;
-        while (i < 1000000) {
-          i++;
-        }
-#endif
-      }
-      else {
-        // directory now exists
-        res = 0;
-        errno = 0;
-      }
-    }
-  } while (res != 0 && num_attemts < 3);
-
-  if (res != 0) {
-    cerr << "Could not create directory '" << dir_path << "', terminating simulation.\n";
-    exit(1);
-  }
-}
-
-
 void BNGConfig::initialize_bng_report_files() {
   remove_report_file(get_warnings_report_file_name(), "Warnings");
   if (rxn_and_species_report) {
@@ -144,7 +79,7 @@ std::string get_current_date_time() {
 
 void append_to_report(const std::string& report_fname, const std::string& msg) {
   // check whether the directory exists and make it if not
-  make_reports_dir(report_fname);
+  make_dir_for_file_w_multiple_attempts(report_fname);
 
   // then open or append
   ofstream of;
@@ -158,7 +93,7 @@ void append_to_report(const std::string& report_fname, const std::string& msg) {
 
 void initialize_report_file(const std::string& fname, const char* report_name) {
   // first check whether the directory exists and make it
-  make_reports_dir(fname);
+  make_dir_for_file_w_multiple_attempts(fname);
 
   ofstream of;
   of.open(fname, fstream::out);
