@@ -530,7 +530,7 @@ static int test_many_bimolecular(
   cum_rxn_class_probs.resize(2 * n, 0.0);
 
   int m;
-  float_t p, f;
+  float_t p;
 
   if (all_neighbors_flag && local_prob_factor <= 0) {
     mcell_internal_error(

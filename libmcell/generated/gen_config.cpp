@@ -24,7 +24,7 @@
 #include "api/pybind11_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_config.h"
-#include "api/config.h"
+#include "api/api_config.h"
 #include "api/rng_state.h"
 
 namespace MCell {

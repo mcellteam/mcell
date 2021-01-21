@@ -260,6 +260,10 @@ def get_api_class_file_name(class_name, extension):
     return get_underscored(class_name) + '.' + extension
 
 def get_api_class_file_name_w_dir(class_name, extension):
+    if class_name == "Config":
+        # config.h is be called api_config.h due to include collisions with MSVC 
+        class_name = 'ApiConfig'
+
     return API_DIRECTORY + '/' + get_api_class_file_name(class_name, extension)
    
 def get_api_class_file_name_w_work_dir(class_name, extension):

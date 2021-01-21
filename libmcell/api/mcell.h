@@ -55,7 +55,7 @@
 #include "api/viz_output.h"
 #include "api/observables.h"
 
-#include "api/config.h"
+#include "api/api_config.h"
 #include "api/notifications.h"
 #include "api/warnings.h"
 #include "api/model.h"

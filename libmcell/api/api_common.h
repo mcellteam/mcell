@@ -29,15 +29,11 @@
 #include <string>
 #include <memory>
 #include <functional>
-#ifdef _WIN64
-// fix for _hypot compilation issue
-#define _hypot hypot
-#include <cmath>
-#endif
 
 namespace MCell {
 namespace API {
 // workaround for weird MSVC behavior, this has to be defined first before anything else is included
+// TODO: can we move this below?
 
 // auxiliary method to simply convert to std::string for when concatenating string
 static std::string S(const char* s) {
@@ -61,6 +57,11 @@ typedef std::logic_error RuntimeError; // e.g. not defined?
 #ifdef _MSC_VER
 #undef HAVE_UNISTD_H
 #undef HAVE_SYS_TIME_H
+#endif
+#ifdef _WIN64
+// fix for _hypot compilation issue
+#define _hypot hypot
+#include <cmath>
 #endif
 #include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
 #include "pybind11/include/pybind11/functional.h"

@@ -29,7 +29,7 @@
 #include "api/subsystem.h"
 #include "api/instantiation.h"
 #include "api/observables.h"
-#include "api/config.h"
+#include "api/api_config.h"
 #include "api/warnings.h"
 #include "api/notifications.h"
 #include "api/shared_structs.h"

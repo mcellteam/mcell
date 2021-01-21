@@ -53,6 +53,7 @@ of sigaction
 
 #ifdef _MSC_VER
 typedef unsigned int mode_t;
+#pragma warning( disable : 4996 )
 #endif
 
 #ifndef MINGW_HAS_SECURE_API
@@ -700,6 +701,7 @@ inline static unsigned alarm(unsigned seconds) {
   return retval;
 }
 
+#ifndef _MSC_VER
 /* atomic rename wrapped function */
 /* Windows rename is not atomic, but there is ReplaceFile (only when actually
  * replacing though) */
@@ -719,6 +721,7 @@ inline static int _win_rename(const char *old, const char *new_name) {
     return rename(old, new_name);
   }
 }
+#endif
 #define rename _win_rename
 
 /* mkdir wrapped function */

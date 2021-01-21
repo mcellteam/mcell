@@ -26,7 +26,7 @@
 #include "gen_model.h"
 #include "api/model.h"
 #include "api/base_chkpt_mol.h"
-#include "api/config.h"
+#include "api/api_config.h"
 #include "api/count.h"
 #include "api/elementary_molecule_type.h"
 #include "api/geometry_object.h"

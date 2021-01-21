@@ -20,6 +20,10 @@
  *
 ******************************************************************************/
 
+// NOTE: this file should be called config.h, however with MSVC, there is
+// an include collision and pybind11 includes it instead of some other file
+
+
 #ifndef API_CONFIG_H
 #define API_CONFIG_H
 

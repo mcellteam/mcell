@@ -24,7 +24,7 @@
 #define API_GEN_MODEL_H
 
 #include "api/api_common.h"
-#include "api/config.h"
+#include "api/api_config.h"
 #include "api/mol_wall_hit_info.h"
 #include "api/notifications.h"
 #include "api/reaction_info.h"

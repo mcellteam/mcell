@@ -1792,9 +1792,11 @@ Attributes:
   | Value is truncated (floored) to an integer.
 
 * | **density**: float = None
+  | Unit is molecules per square micron (for surfaces).
   | Only one of number_to_release, density, concentration or molecule_list can be set.
 
 * | **concentration**: float = None
+  | Unit is molar (moles per liter) for volumes.
   | Only one of number_to_release, density, concentration or molecule_list can be set.
 
 * | **release_probability**: float = None
