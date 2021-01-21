@@ -42,8 +42,6 @@ set(SRC4_SOURCE_FILES
     simulation_config.cpp
     counted_volumes_util.cpp
     bng_data_to_datamodel_converter.cpp
-    
-    legacy_callback_info.cpp    
 )
 
 add_library(${PROJECT_NAME} STATIC

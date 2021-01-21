@@ -864,7 +864,7 @@ bisect:
       float_t we are using to bisect the array
   Out: index of the largest element in the array smaller than the bisector
 *************************************************************************/
-static int bisect(float_t *list, int n, float_t val) {
+static int bisect(const std::vector<float_t>& list, int n, float_t val) {
   int lo = 0;
   int hi = n;
   int mid = 0;
@@ -880,39 +880,6 @@ static int bisect(float_t *list, int n, float_t val) {
   return lo;
 }
 
-/*************************************************************************
-bisect_near:
-  In: array of float_ts, sorted low to high
-      int saying how many float_ts there are
-      float_t we are using to bisect the array
-  Out: index of the element closest to val
-*************************************************************************/
-static int bisect_near(float_t *list, int n, float_t val) {
-  int lo = 0;
-  int hi = n - 1;
-  int mid = 0;
-  while (hi - lo > 1) {
-    mid = (hi + lo) / 2;
-    if (list[mid] > val)
-    {
-      hi = mid;
-    } else {
-      lo = mid;
-    }
-  }
-  if (val > list[hi]) {
-    return hi;
-  }
-  else if (val < list[lo]) {
-    return lo;
-  }
-  else if (val - list[lo] < list[hi] - val) {
-    return lo;
-  }
-  else {
-    return hi;
-  }
-}
 
 /*************************************************************************
 bisect_high:
@@ -921,7 +888,7 @@ bisect_high:
       float_t we are using to bisect the array
   Out: index of the smallest element in the array larger than the bisector
 *************************************************************************/
-static int bisect_high(float_t *list, int n, float_t val) {
+static int bisect_high(const std::vector<float_t>& list, int n, float_t val) {
   int lo = 0;
   int hi = n - 1;
   int mid = 0;
@@ -996,13 +963,15 @@ static int add_more_tile_neighbors_to_list_fast(
   /* number of tile vertices on the common edge */
   const int new_pos_size = new_grid.num_tiles_along_axis + 1;
   /* array of the positions of tile vertices on the common edge */
-  float_t new_pos[new_pos_size];
+  std::vector<float_t> new_pos;
+  new_pos.resize(new_pos_size);
 
   /* each tile vertex on the common shared edge is connected to
      3 tiles (the end points of the shared edge are connected
      to 1 tile). */
   /* 2-dimensional array of the tile indices */
-  tile_index_t new_tile_indices[new_pos_size][3];
+  std::vector<tile_index_t[3]> new_tile_indices;
+  new_pos.resize(new_pos_size);
 
   int i, k;
 

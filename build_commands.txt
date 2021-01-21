@@ -13,3 +13,15 @@ cd C:\husar\mcell\build\mcell_tools\work\build_msvc
 cmake ..\..\..\mcell -DCMAKE_BUILD_TYPE=Debug
 E:\VisualStudio\MSBuild\Current\Bin\MSBuild.exe ALL_BUILD.vcxproj -maxcpucount:12
  
+ 
+ 
+ VTK
+ 
+ cmake ..\..\..\VTK\ -DCMAKE_BUILD_TYPE=Release -DVTK_BUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF
+ 
+ E:\VisualStudio\MSBuild\Current\Bin\MSBuild.exe ALL_BUILD.vcxproj -maxcpucount:12
+ 
+ 
+ Testing
+ 
+ python run_tests.py -m C:\husar\mcell\build\mcell_tools\work\build_msvc

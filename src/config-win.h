@@ -93,7 +93,6 @@ typedef unsigned long u_long;
 #undef FILE_CREATE
 
 #ifdef _MSC_VER
-#define inline __inline
 #define getcwd _getcwd
 #define strdup _strdup
 #define va_copy(d, s) ((d) = (s))
@@ -701,28 +700,12 @@ inline static unsigned alarm(unsigned seconds) {
   return retval;
 }
 
-#ifndef _MSC_VER
 /* atomic rename wrapped function */
 /* Windows rename is not atomic, but there is ReplaceFile (only when actually
  * replacing though) */
-inline static int _win_rename(const char *old, const char *new_name) {
-  DWORD dwAttrib = GetFileAttributes(new_name);
-  if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
-      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-    /* new_name file exists */
-    if (ReplaceFile(new_name, old, NULL, REPLACEFILE_WRITE_THROUGH, NULL, NULL)) {
-      return 0;
-    }
-    /* fixme: set errno based on GetLastError() [possibly doing some filtering
-     * before] */
-    errno = EACCES;
-    return -1;
-  } else {
-    return rename(old, new_name);
-  }
-}
-#endif
-#define rename _win_rename
+int _win_rename(const char *old, const char *new_name);
+
+//#define rename _win_rename
 
 /* mkdir wrapped function */
 inline static int _win_mkdir(const char *pathname, mode_t mode) {

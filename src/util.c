@@ -32,10 +32,11 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <stdbool.h>
+#include <vector>
 
-#ifndef _WIN64
+#ifndef _MSC_VER
+#include <unistd.h>
 #include <sys/resource.h> // Linux include
 #else
 typedef unsigned int uint;
@@ -44,6 +45,8 @@ typedef unsigned int uint;
 #include "logging.h"
 #include "util.h"
 #include "mcell_structs.h"
+
+#include "bng/shared_defines.h"
 
 /*******************************************************************
 new_bit_array: mallocs an array of the desired number of bits
@@ -867,11 +870,16 @@ dir_exists:
         Out: 1 if it's a directory, 0 if not
 **************************************************************************/
 int dir_exists(char const *path) {
+#ifdef _MSC_VER // TODO
+  release_assert(false);
+  return false;
+#else
   struct stat sb;
   if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode)) {
     return 1;
   }
   return 0;
+#endif
 }
 
 /*************************************************************************
@@ -882,10 +890,15 @@ is_writable_dir:
         Out: 1 if writable, 0 if not
 **************************************************************************/
 int is_writable_dir(char const *path) {
+#ifdef _MSC_VER // TODO
+  release_assert(false);
+  return false;
+#else
   if (dir_exists(path) && !access(path, R_OK | W_OK | X_OK)) {
     return 1;
   }
   return 0;
+#endif
 }
 
 /*************************************************************************
@@ -900,6 +913,10 @@ make_parent_dir:
         Out: 0 on success, 1 on failure
 **************************************************************************/
 int make_parent_dir(char const *path) {
+#ifdef _MSC_VER // TODO
+  release_assert(false);
+  return false;
+#else
   char *pathtmp = CHECKED_STRDUP(path, "directory path");
   char *last_slash = strrchr(pathtmp, '/');
   if (last_slash) {
@@ -921,6 +938,7 @@ int make_parent_dir(char const *path) {
 
   free(pathtmp);
   return 0;
+#endif
 }
 
 /*************************************************************************
@@ -977,9 +995,14 @@ int mkdirs(char const *path) {
   }
   free(pathtmp);
 
+#ifdef _MSC_VER
+  release_assert(false);
+  return false;
+#else
   if (access(path, R_OK | W_OK | X_OK) != 0) {
     return 1;
   }
+#endif
   return 0;
 }
 
@@ -1414,8 +1437,13 @@ int is_wildcard_match(char *wild, char *tame) {
   if (nstars == 0)
     return (is_feral_nabbrev(wild, n, tame) == (int)strlen(tame));
   else {
-    int staridx[nstars];
-    int idxA[nstars + 1], idxB[nstars + 1];
+    std::vector<int> staridx;
+    staridx.resize(nstars);
+    std::vector<int> idxA;
+    idxA.resize(nstars + 1);
+    std::vector<int> idxB;
+    idxB.resize(nstars + 1);
+
     char *m;
     int nidx;
     int i, j;
@@ -2258,4 +2286,25 @@ void reset_rusage(rusage* r) {
   r->ru_stime.tv_sec = 0;
   r->ru_stime.tv_usec = 0;
 }
+
+
+
+#ifdef _MSC_VER
+int _win_rename(const char *old, const char *new_name) {
+  DWORD dwAttrib = GetFileAttributes(new_name);
+  if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
+    /* new_name file exists */
+    if (ReplaceFile(new_name, old, NULL, REPLACEFILE_WRITE_THROUGH, NULL, NULL)) {
+      return 0;
+    }
+    /* fixme: set errno based on GetLastError() [possibly doing some filtering
+     * before] */
+    errno = EACCES;
+    return -1;
+  } else {
+    return rename(old, new_name);
+  }
+}
+#endif
 

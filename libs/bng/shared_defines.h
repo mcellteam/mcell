@@ -41,11 +41,17 @@ typedef unsigned int uint;
 
 #ifdef _MSC_VER
 #define __PRETTY_FUNCTION__ __FUNCTION__
+
+// pybind11\detail/common.h(117,1):
+// fatal error C1189: #error:  Macro clash with min and max -- define NOMINMAX when compiling your program on Windows
+#define NOMINMAX
+
 // casts
 #pragma warning (disable : 4244)
 #pragma warning (disable : 4267)
 // unsafe functions
 #pragma warning (disable : 4996)
+
 #endif
 
 // assert not conditioned by NDEBUG

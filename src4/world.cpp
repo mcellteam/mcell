@@ -100,7 +100,9 @@ World::World(API::Callbacks& callbacks_)
 
   // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
   // uninitialized variable
+#ifndef MSC_TODO
   reset_rusage(&sim_start_time);
+#endif
 }
 
 

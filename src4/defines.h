@@ -118,8 +118,13 @@ const float_t MIN_WALL_GAP = 1e-4; // 1 angstrom
 #error "Macros 'likely' or 'unlikely' are already defined"
 #endif
 
+#ifndef _MSC_VER
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
+#else
+#define likely(x)       (x)
+#define unlikely(x)     (x)
+#endif
 
 // ---------------------------------- float types ----------------------------------
 

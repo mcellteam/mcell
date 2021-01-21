@@ -38,6 +38,7 @@ endif()
 # add VTK libs VTK and headers
 set(VTK_DIR ${CMAKE_SOURCE_DIR}/../mcell_tools/work/build_vtk)
 find_package(VTK REQUIRED)
+message(STATUS VTK libraries: ${VTK_LIBRARIES})
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
@@ -371,13 +372,14 @@ if (WIN32)
     # cmake & make somehow ignore CMAKE_SHARED_LINKER_FLAGS when mcell.so is linked
     link_directories(${CMAKE_SOURCE_DIR}/libs/windows_python35)
     set(WIN_DEPS python35 unistd)
+else()
+    set(STDC_FS stdc++fs)
 endif()
-
 
 add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} stdc++fs ${WIN_PYTHON}
+    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS} ${WIN_PYTHON}
     PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
 )
 

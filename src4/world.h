@@ -46,7 +46,6 @@
 #include "geometry.h"
 #include "count_buffer.h"
 #include "counted_volumes_util.h"
-#include "legacy_callback_info.h"
 #include "species_flags_analyzer.h"
 #include "memory_limit_checker.h"
 
