@@ -90,21 +90,17 @@ World::World(API::Callbacks& callbacks_)
     run_n_iterations_terminated_with_checkpoint(false),
     simulation_ended(false),
     buffers_flushed(false),
-#ifndef MSC_TODO
-    previous_progress_report_time({0, 0}),
     it1_start_time_set(false),
-#endif
     previous_iteration(0),
-    signaled_checkpoint_signo(API::SIGNO_NOT_SIGNALED)
+    signaled_checkpoint_signo(API::SIGNO_NOT_SIGNALED),
+    signaled_checkpoint_model(nullptr)
 {
   config.partition_edge_length = FLT_INVALID;
   config.num_subpartitions_per_partition_edge = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 
   // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
   // uninitialized variable
-#ifndef MSC_TODO
   reset_rusage(&sim_start_time);
-#endif
 }
 
 
@@ -118,9 +114,11 @@ World::~World() {
   }
 }
 
+
 void World::init_fpu() {
   // empty
 }
+
 
 uint64_t World::determine_output_frequency(uint64_t iterations) {
   uint64_t frequency;
@@ -345,12 +343,10 @@ void World::init_simulation(const float_t start_time) {
     scheduler.schedule_event(stats_event);
   }
 
-#ifndef MSC_TODO
   // initialize timing
-  previous_progress_report_time = {0, 0};
+  previous_progress_report_time = chrono::steady_clock::now();
   reset_rusage(&sim_start_time);
   getrusage(RUSAGE_SELF, &sim_start_time);
-#endif
 
   // iteration counter to report progress
   previous_iteration = 0;
@@ -421,11 +417,9 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
     current_iteration = time_to_iteration(time);
 
     if (current_iteration == 1 && previous_iteration == 0) {
-#ifndef MSC_TODO
       it1_start_time_set = true;
       reset_rusage(&it1_start_time);
       getrusage(RUSAGE_SELF, &it1_start_time);
-#endif
     }
 
 #ifdef DEBUG_SCHEDULER
@@ -446,16 +440,15 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
       if (current_iteration % output_frequency == 0) {
         cout << "Iterations: " << current_iteration << " of " << total_iterations;
 
-#ifndef MSC_TODO
-        timeval current_progress_report_time;
-        gettimeofday(&current_progress_report_time, NULL);
-        if (previous_progress_report_time.tv_usec > 0) {
-          double time_diff = tousecs(current_progress_report_time) - tousecs(previous_progress_report_time);
-          time_diff /= (double)output_frequency;
-          cout << " (" << 1000000.0/time_diff << " iter/sec)";
-        }
-        previous_progress_report_time = current_progress_report_time;
-#endif
+        auto current_time = std::chrono::steady_clock::now();
+
+        double iters_per_sec =
+			    1000000.0 /
+  		    ((chrono::duration_cast<chrono::microseconds>(current_time - previous_progress_report_time).count() /
+           (double)output_frequency));
+        cout << " (" << iters_per_sec << " iter/sec)";
+        previous_progress_report_time = current_time;
+
         cout << " " << bng_engine.get_stats_report();
 
         cout << "\n";
@@ -540,7 +533,6 @@ void World::end_simulation(const bool print_final_report) {
 
     stats.dump();
 
-#ifndef MSC_TODO
     // report final time
     rusage run_time;
     reset_rusage(&run_time);
@@ -551,7 +543,6 @@ void World::end_simulation(const bool print_final_report) {
     cout << "Simulation CPU time without iteration 0 = "
       << tosecs(run_time.ru_utime) - tosecs(it1_start_time.ru_utime) <<  "(user) and "
       << tosecs(run_time.ru_stime) - tosecs(it1_start_time.ru_stime) <<  "(system)\n";
-#endif
   }
 
   BNG::append_to_report(config.get_run_report_file_name(),

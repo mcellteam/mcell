@@ -30,6 +30,7 @@
 #include <sys/resource.h> // Linux include
 #endif
 #include <functional>
+#include <chrono>
 
 #include <vector>
 #include <string>
@@ -306,13 +307,11 @@ private:
   // buffers can be flushed only once
   bool buffers_flushed;
 
-#ifndef MSC_TODO
   // several variables to report simulation time
-  timeval previous_progress_report_time;
+  std::chrono::time_point<std::chrono::steady_clock> previous_progress_report_time;
   rusage sim_start_time;
   bool it1_start_time_set;
   rusage it1_start_time; // time when 1st iteration started
-#endif
 
   // and to nicely report simulation progress
   uint64_t previous_iteration;

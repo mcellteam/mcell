@@ -428,8 +428,8 @@ target_link_libraries(mcell mcell4 libmcell_dummy bng nfsim_c_static NFsim_stati
 
 # utils
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer)
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
-
 endif()  # if (NOT WIN32)
+
+# add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer)
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)

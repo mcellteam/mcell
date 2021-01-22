@@ -36,10 +36,6 @@ typedef unsigned int uint;
 // ---------------------------------- debug ----------------------------------------
 
 #ifdef _MSC_VER
-#define MSC_TODO
-#endif
-
-#ifdef _MSC_VER
 #define __PRETTY_FUNCTION__ __FUNCTION__
 
 // pybind11\detail/common.h(117,1):

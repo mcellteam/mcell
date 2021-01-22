@@ -32,7 +32,7 @@
 #include "generated/gen_subsystem.h"
 
 #include "generated/gen_region.h"
-#include "generated/gen_initial_surface_release.cpp"
+#include "generated/gen_initial_surface_release.h"
 #include "generated/gen_surface_region.h"
 #include "generated/gen_geometry_object.h"
 #include "generated/gen_release_pattern.h"
