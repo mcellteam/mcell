@@ -22,7 +22,7 @@ void make_dir_for_file_w_multiple_attempts(const std::string& file_path) {
 
 
 void make_dir_w_multiple_attempts(const std::string& dir_path) {
-  if (fs::is_directory(dir_path)) {
+  if (fs::path(dir_path).empty() || fs::is_directory(dir_path)) {
     return;
   }
 
