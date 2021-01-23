@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
+ * Copyright (C) 2006-2017,2021 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -408,6 +408,8 @@ __attribute__((__format__(
 }
 #define strftime _win_strftime
 
+#if 0
+
 /* gethostname wrapped function */
 #define WSADESCRIPTION_LEN 256
 #define WSASYS_STATUS_LEN 128
@@ -429,6 +431,7 @@ typedef struct WSAData {
   char *lpVendorInfo;
 #endif
 } WSADATA, *LPWSADATA;
+#endif
 
 #if 0
 typedef long long int(WINAPI *FUNC_WSAStartup)(WORD wVersionRequested,
@@ -483,7 +486,7 @@ inline static int gethostname(char *name, size_t len) {
 #endif
 
 /* getrusage emulated function, normally in <sys/resources.h> */
-#ifndef _TIMEVAL_DEFINED
+#if !defined(_TIMEVAL_DEFINED) // && !defined(_MSC_VER)
 #define _TIMEVAL_DEFINED
 struct timeval {
   long tv_sec;

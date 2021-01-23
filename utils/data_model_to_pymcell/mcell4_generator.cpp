@@ -523,7 +523,7 @@ static string get_count_multiplier(const string& mdl_string) {
       stod(substr);
       multiplier_str = substr;
     }
-    catch (const std::exception& e) {
+    catch (const std::exception&) {
       ERROR("Could not convert multiplier from " + mdl_string_wo_comment + ".");
     }
   }

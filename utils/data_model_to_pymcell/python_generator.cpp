@@ -1015,7 +1015,6 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
     gen_param(out, NAME_NAME, name, true);
 
-    bool is_vol;
     string compartment;
     if (shape != VALUE_LIST) {
       string cplx = release_site_item[KEY_MOLECULE].asString();

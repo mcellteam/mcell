@@ -26,12 +26,12 @@
 #include "win_getopt/win_getopt.h"
 #endif
 
-#include <utils/data_model_to_pymcell/mcell4_generator.h>
 #include <iostream>
 #include <cassert>
 #include <string>
 #include <ctype.h>
 
+#include "mcell4_generator.h"
 #include "generator_structs.h"
 
 

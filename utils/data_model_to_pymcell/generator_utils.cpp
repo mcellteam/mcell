@@ -443,7 +443,7 @@ void process_single_count_term(
 
   where_to_count = mdl_string.substr(comma + 1, end_brace - comma - 1);
   size_t dot_pos = where_to_count.find('.');
-  if (dot_pos !=- string::npos) {
+  if (dot_pos != string::npos) {
     where_to_count = where_to_count.substr(dot_pos + 1);
   }
   where_to_count = trim(where_to_count);
@@ -476,7 +476,7 @@ bool get_parameter_value(Json::Value& mcell, const string& name_or_value, double
     val = stod(name_or_value);
     return true;
   }
-  catch (const std::invalid_argument& ia) {
+  catch (const std::invalid_argument&) {
     // not a float, try to get parameter value
     if (mcell.isMember(KEY_PARAMETER_SYSTEM) && mcell.isMember(KEY_MODEL_PARAMETERS)) {
       Json::Value& params = mcell[KEY_PARAMETER_SYSTEM][KEY_MODEL_PARAMETERS];
@@ -491,7 +491,7 @@ bool get_parameter_value(Json::Value& mcell, const string& name_or_value, double
             }
             return true;
           }
-          catch (const std::invalid_argument& ia) {
+          catch (const std::invalid_argument&) {
             return false;
           }
         }

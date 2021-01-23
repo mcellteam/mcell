@@ -147,26 +147,7 @@ if (ENABLE_SANITIZER)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
 endif()
 
-#if (CMAKE_BUILD_TYPE STREQUAL "Release")
-#  SET(GPERFTOOLS_MCELLSO_DEP "tcmalloc")
-#  SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
-#  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_INCLUDE_GPERF_FLAGS} -ltcmalloc")
-#  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_INCLUDE_GPERF_FLAGS} -ltcmalloc")
-#  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/libtcmalloc.so.4 ${CMAKE_CURRENT_BINARY_DIR}/lib/libtcmalloc.so.4 COPYONLY)
-#  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/libtcmalloc.so.4.5.3 ${CMAKE_CURRENT_BINARY_DIR}/lib/libtcmalloc.so.4.5.3 COPYONLY)
-#else()
-#  SET(GPERFTOOLS_MCELLSO_DEP "tcmalloc_debug")
-#  SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
-#  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_INCLUDE_GPERF_FLAGS} -ltcmalloc_debug")
-#  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_INCLUDE_GPERF_FLAGS} -ltcmalloc_debug")
-#  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/libtcmalloc_debug.so.4 ${CMAKE_CURRENT_BINARY_DIR}/lib/libtcmalloc_debug.so.4 COPYONLY)
-#  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/libtcmalloc_debug.so.4.5.3 ${CMAKE_CURRENT_BINARY_DIR}/lib/libtcmalloc_debug.so.4.5.3 COPYONLY)
-#endif()
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/ ${CMAKE_INCLUDE_GPERF_FLAGS}")
-
 endif() # if (NOT WIN32) # TODO
-
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
@@ -379,29 +360,6 @@ pybind11_add_module(mcell4_so MODULE
     libmcell/api/exports.cpp
 )
 
-if (WIN32)
-    # cmake & make somehow ignore CMAKE_SHARED_LINKER_FLAGS when mcell.so is linked
-    link_directories(${CMAKE_SOURCE_DIR}/libs/windows_python35)
-    set(WIN_DEPS python35 unistd)
-else()
-    set(STDC_FS stdc++fs)
-endif()
-
-add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
-target_link_libraries(mcell4_so 
-    PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS} ${WIN_PYTHON}
-    PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
-)
-
-set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_target_properties(mcell4_so PROPERTIES PREFIX "")
-set_target_properties(mcell4_so PROPERTIES OUTPUT_NAME "mcell")
-if (WIN32)
-    set_target_properties(mcell4_so PROPERTIES SUFFIX ".pyd") 
-else()
-    set_target_properties(mcell4_so PROPERTIES SUFFIX ".so") # must be .so on MacOS as well
-endif()
 
 if (NOT WIN32) # TODO, later
 
@@ -426,9 +384,32 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
 target_link_libraries(mcell mcell4 libmcell_dummy bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
 
-# utils
-
 endif()  # if (NOT WIN32)
 
-#add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
+
+# for some reason MSVC searches for python library when linking utils although they should not need it
+get_filename_component(PYTHON_LIB_DIR ${Python3_LIBRARY_RELEASE} DIRECTORY)
+link_directories(${PYTHON_LIB_DIR})
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
+
+if (NOT WIN32)
+    set(STDC_FS stdc++fs)
+endif()
+
+add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
+target_link_libraries(mcell4_so 
+    PUBLIC libmcell
+    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS} ${WIN_PYTHON}
+    PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
+)
+
+set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(mcell4_so PROPERTIES PREFIX "")
+set_target_properties(mcell4_so PROPERTIES OUTPUT_NAME "mcell")
+if (WIN32)
+    set_target_properties(mcell4_so PROPERTIES SUFFIX ".pyd") 
+else()
+    set_target_properties(mcell4_so PROPERTIES SUFFIX ".so") # must be .so on MacOS as well
+endif()
