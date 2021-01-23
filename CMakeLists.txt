@@ -6,6 +6,8 @@ find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interp
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 include_directories(${Python3_INCLUDE_DIRS})
 
+add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
+
 
 #TODO: unify case for cmake commands, e.g. set vs SET
 
@@ -16,15 +18,15 @@ if(MSVC)
 endif(MSVC)
 
 # set default locations of libraries and executables
-set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin )
-set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib )
-set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/archives )
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin )
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib )
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/archives )
 # Second, for multi-config builds (e.g. msvc)
-foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
-  string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
-  set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/bin )
-  set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/lib )
-  set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/archives  )
+foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
+  string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/bin )
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/lib )
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/archives  )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 #set(CMAKE_CXX_EXTENSIONS OFF)
@@ -38,116 +40,102 @@ if(CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 8.3.0)
   )
 endif()
 
-# silence UseSWIG warnings
-if (${CMAKE_VERSION} VERSION_GREATER "3.13")
-  cmake_policy(SET CMP0078 NEW)
-endif()
-
-if (${CMAKE_VERSION} VERSION_GREATER "3.13")
-  cmake_policy(SET CMP0086 NEW)
-endif()
 
 # add VTK libs VTK and headers
 set(VTK_DIR ${CMAKE_SOURCE_DIR}/../mcell_tools/work/build_vtk)
 find_package(VTK REQUIRED)
 
-add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
-
-if (NOT WIN32) # TODO
-  SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
-endif()    
-
-if (NOT WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
-  # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall 
-  # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep 
-  # seems to be related to AVX2, maybe gcc issue
-  # changing to sandybridge gives 2-6% in performance (in executed instructions), however 
-  # MCell does not work afterwards on machines such as Mac Mini 2018 with Intel i5 
-  SET(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
-  
-  # must not be used for pymcell (at least for now)
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
-endif()
-
-if (NOT WIN32) # TODO
-
-set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-class-memaccess ")
-
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")
-endif()
-
-set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++17 -fpermissive ")
-
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
-
-
-option(ENABLE_LTO "Use link-time optimization" OFF)
-option(ENABLE_GCOV "Use gcc coverage" OFF) 
-option(ENABLE_GPROF "Use gprof profiling" OFF)
-option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
-option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-
-if (ENABLE_LTO)
-  SET(CMAKE_AR "gcc-ar")
-  SET(CMAKE_LD "gcc-ld")
-  SET(CMAKE_RANLIB "gcc-ranlib")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto ")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto ")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
-endif()
-
-if (ENABLE_GCOV)
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage ")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage ")
-endif()
-
-if (ENABLE_GPROF)
-  # gcc 6.3 generates PIC code by default, this does not work with gprof, -no-pie disables it
-  SET(COMMON_PROFILING_FLAGS "-pg -no-pie -fno-omit-frame-pointer -finline-limit=20")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_PROFILING_FLAGS}")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_PROFILING_FLAGS}")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_PROFILING_FLAGS}")
-endif()
-
-endif() # if (NOT WIN32) # TODO
-
 # jsoncpp_test cannot be built with gperftools linking options
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
 
-if (NOT WIN32) # TODO
 
-if (ENABLE_GPERFTOOLS)
-  # build and install gperftools, for now it is done manually
-  # usign script build_gperftools.sh
-  # then to run profiling 
-  # CPUPROFILE=./prof.out mcell
-  # pprof --text <app> ./prof.out # text output
-  # pprof --gv <app> ./prof.out # graphical output, requires gv installed
-  # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
-  # pybind11 ignores CMAKE_SHARED_LINKER_FLAGS so we must put the -L args to CXX flags as well 
-  SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/ ${CMAKE_INCLUDE_GPERF_FLAGS}")
-  SET(CMAKE_LD_GPERF_FLAGS "${CMAKE_INCLUDE_GPERF_FLAGS} -lprofiler ")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
-  SET(GPERFTOOLS_LIB "profiler")
-else()
-  SET(GPERFTOOLS_LIB "")
-endif()
-	
-if (ENABLE_SANITIZER)
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address ")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address ")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
-endif()
+if (NOT WIN32) 
+  SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
+  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
-endif() # if (NOT WIN32) # TODO
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall 
+    # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep 
+    # seems to be related to AVX2, maybe gcc issue
+    # changing to sandybridge gives 2-6% in performance (in executed instructions), however 
+    # MCell does not work afterwards on machines such as Mac Mini 2018 with Intel i5 
+    set(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
+      
+      # must not be used for pymcell (at least for now)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
+  endif()
+
+
+  set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-class-memaccess ")
+
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")
+  endif()
+
+  set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
+  set(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++17 -fpermissive ")
+
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
+
+  # special performance and debug options are not supported on Windows 
+  option(ENABLE_LTO "Use link-time optimization" OFF)
+  option(ENABLE_GCOV "Use gcc coverage" OFF) 
+  option(ENABLE_GPROF "Use gprof profiling" OFF)
+  option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
+  option(ENABLE_SANITIZER "Use address sanitizer" OFF)
+
+  if (ENABLE_LTO)
+    SET(CMAKE_AR "gcc-ar")
+    SET(CMAKE_LD "gcc-ld")
+    SET(CMAKE_RANLIB "gcc-ranlib")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto ")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto ")
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
+  endif()
+
+  if (ENABLE_GCOV)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage ")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage ")
+  endif()
+
+  if (ENABLE_GPROF)
+    # gcc 6.3 generates PIC code by default, this does not work with gprof, -no-pie disables it
+    SET(COMMON_PROFILING_FLAGS "-pg -no-pie -fno-omit-frame-pointer -finline-limit=20")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_PROFILING_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_PROFILING_FLAGS}")
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_PROFILING_FLAGS}")
+  endif()
+
+
+  if (ENABLE_GPERFTOOLS)
+    # build and install gperftools, for now it is done manually
+    # using script build_gperftools.sh
+    # then to run profiling 
+    # CPUPROFILE=./prof.out mcell
+    # pprof --text <app> ./prof.out # text output
+    # pprof --gv <app> ./prof.out # graphical output, requires gv installed
+    # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
+    # pybind11 ignores CMAKE_SHARED_LINKER_FLAGS so we must put the -L args to CXX flags as well 
+    SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/ ${CMAKE_INCLUDE_GPERF_FLAGS}")
+    SET(CMAKE_LD_GPERF_FLAGS "${CMAKE_INCLUDE_GPERF_FLAGS} -lprofiler ")
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
+    SET(GPERFTOOLS_LIB "profiler")
+  else()
+    SET(GPERFTOOLS_LIB "")
+  endif()
+    
+  if (ENABLE_SANITIZER)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address ")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address ")
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
+  endif()
+
+endif() # if (NOT WIN32) 
+
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
@@ -161,22 +149,22 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/libs"  
   "${CMAKE_SOURCE_DIR}/libmcell"  
       
-   # VTK - should be set by find_package but it does not work somehow...
-   "${CMAKE_SOURCE_DIR}/../VTK/Common/DataModel/"
-   "${VTK_DIR}/Common/DataModel/"
-   "${CMAKE_SOURCE_DIR}/../VTK/Common/Core/"
-   "${VTK_DIR}/Common/Core/"
-   "${CMAKE_SOURCE_DIR}/../VTK/Common/Transforms/"
-   "${VTK_DIR}/Common/Transforms/"
-   "${CMAKE_SOURCE_DIR}/../VTK/Common/Math/"
-   "${VTK_DIR}/Common/Math/"
-   "${CMAKE_SOURCE_DIR}/../VTK/Filters/Core/"
-   "${VTK_DIR}/Filters/Core/"
-   "${CMAKE_SOURCE_DIR}/../VTK/Filters/Modeling/"
-   "${VTK_DIR}/Filters/Modeling/"
-   "${CMAKE_SOURCE_DIR}/../VTK/Common/ExecutionModel/"
-   "${VTK_DIR}/Common/ExecutionModel/"
-   "${CMAKE_SOURCE_DIR}/../VTK/Utilities/KWIML/"
+  # VTK - should be set by find_package but it does not work somehow...
+  "${CMAKE_SOURCE_DIR}/../VTK/Common/DataModel/"
+  "${VTK_DIR}/Common/DataModel/"
+  "${CMAKE_SOURCE_DIR}/../VTK/Common/Core/"
+  "${VTK_DIR}/Common/Core/"
+  "${CMAKE_SOURCE_DIR}/../VTK/Common/Transforms/"
+  "${VTK_DIR}/Common/Transforms/"
+  "${CMAKE_SOURCE_DIR}/../VTK/Common/Math/"
+  "${VTK_DIR}/Common/Math/"
+  "${CMAKE_SOURCE_DIR}/../VTK/Filters/Core/"
+  "${VTK_DIR}/Filters/Core/"
+  "${CMAKE_SOURCE_DIR}/../VTK/Filters/Modeling/"
+  "${VTK_DIR}/Filters/Modeling/"
+  "${CMAKE_SOURCE_DIR}/../VTK/Common/ExecutionModel/"
+  "${VTK_DIR}/Common/ExecutionModel/"
+  "${CMAKE_SOURCE_DIR}/../VTK/Utilities/KWIML/"
 )
 
 
@@ -224,6 +212,7 @@ elseif (WIN32)
                    copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()                    
 
+
 # linking on centos7 with 7.3.1 fails with undefined reference to `casc::detail::asc_NodeBase::~asc_NodeBase()'
 set(PYBIND11_LTO_CXX_FLAGS "")
 
@@ -237,8 +226,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/l
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 
 if (NOT WIN32)
-add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
-add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
 endif()  
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/libmcell ${CMAKE_CURRENT_BINARY_DIR}/libmcell)
