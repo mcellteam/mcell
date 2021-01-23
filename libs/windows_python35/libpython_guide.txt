@@ -1,2 +1,0 @@
-pexports.exe python35.dll > python35.def
-dlltool.exe  --dllname python35.dll --def python35.def --output-lib libpython35.a

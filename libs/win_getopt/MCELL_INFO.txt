@@ -1,0 +1,4 @@
+Downloaded on 01/23/2021 from https://github.com/skandhurkat/Getopt-for-Visual-Studio. 
+hash 6567b18
+
+Needed a simple solution with MSVC, ignored deprecation notice at the page above.

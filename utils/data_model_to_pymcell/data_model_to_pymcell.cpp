@@ -20,7 +20,12 @@
  *
 ******************************************************************************/
 
+#ifndef _MSC_VER
 #include <getopt.h>
+#else
+#include "win_getopt/win_getopt.h"
+#endif
+
 #include <utils/data_model_to_pymcell/mcell4_generator.h>
 #include <iostream>
 #include <cassert>
