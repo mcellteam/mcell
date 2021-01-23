@@ -225,10 +225,8 @@ endif()
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 
-if (NOT WIN32)
-  add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
-  add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
-endif()  
+add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/libmcell ${CMAKE_CURRENT_BINARY_DIR}/libmcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src4 ${CMAKE_CURRENT_BINARY_DIR}/src4)
