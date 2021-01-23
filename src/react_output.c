@@ -29,7 +29,9 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <signal.h>
 #include <errno.h>
 
@@ -130,13 +132,16 @@ int truncate_output_file(char *name, double start_value) {
                   name);
               /*goto failure;*/
             }
-
-            if (ftruncate(fileno(f), where + lf)) {
-              mcell_perror(errno,
-                           "Failed to truncate reaction data output file '%s'",
-                           name);
-              /*goto failure;*/
-            }
+            #ifndef _MSC_VER
+              if (ftruncate(fileno(f), where + lf)) {
+                mcell_perror(errno,
+                             "Failed to truncate reaction data output file '%s'",
+                             name);
+                /*goto failure;*/
+              }
+            #else
+              mcell_error("TODO: ftruncate is not supported on windows");
+            #endif
             fclose(f);
             free(buffer);
             return 0;
@@ -713,6 +718,7 @@ int check_reaction_output_file(struct output_set *os) {
     fclose(f);
     break;
   case FILE_CREATE:
+#ifndef _MSC_VER
     i = access(name, F_OK);
     if (!i) {
       i = stat(name, &fs);
@@ -723,6 +729,7 @@ int check_reaction_output_file(struct output_set *os) {
         return 1;
       }
     }
+#endif
     f = fopen(name, "w");
     if (f == NULL) {
       switch (errno) {

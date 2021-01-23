@@ -3,8 +3,12 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
+  #ifndef _MSC_VER
   #include <unistd.h>
-
+  #else
+  #include <io.h>
+  #endif
+  
   #include "strfunc.h"
   #include "mdlparse_aux.h"
   #include "mdlparse.hpp"

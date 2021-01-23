@@ -27,6 +27,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <vector>
 
 #include "logging.h"
 #include "rng.h"
@@ -128,9 +129,9 @@ void tiny_diffuse_3D(
     struct wall *w) {
 
   struct vector3 temp_displacement = {
-    .x = displacement->x,
-    .y = displacement->y,
-    .z = displacement->z
+    displacement->x,
+    displacement->y,
+    displacement->z
   };
   struct collision *shead = ray_trace(
       world, pos, NULL, subvol, &temp_displacement, w);
@@ -163,9 +164,9 @@ place_volume_product(struct volume *world, struct species *product_species, stru
    * to ensure they end up on the correct side of the plane. */
   if (w) {
     double bump = (orient > 0) ? EPS_C : -EPS_C;
-    struct vector3 displacement = { .x = 2 * bump * w->normal.x,
-                                    .y = 2 * bump * w->normal.y,
-                                    .z = 2 * bump * w->normal.z,
+    struct vector3 displacement = {2 * bump * w->normal.x,
+                                   2 * bump * w->normal.y,
+                                   2 * bump * w->normal.z,
                                   };
     tiny_diffuse_3D(world, subvol, &displacement, &pos, w);
   }
@@ -381,14 +382,14 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   struct species **rx_players = rx->players + i0; 
 
   int const n_players = iN - i0;                /* number of reaction players */
-  struct abstract_molecule *product[n_players]; /* array of products */
+  std::vector<struct abstract_molecule *> product(n_players); /* array of products */
   /* array that decodes the type of each product */
-  char product_type[n_players]; 
-  short product_orient[n_players]; /* array of orientations for each product */
+  std::vector<char> product_type(n_players);
+  std::vector<short> product_orient(n_players); /* array of orientations for each product */
   /* array of surface_grids for products */
-  struct surface_grid *product_grid[n_players];
-  int product_grid_idx[n_players]; /* array of grid indices for products */
-  byte product_flag[n_players];    /* array of placement flags for products */
+  std::vector<struct surface_grid *> product_grid(n_players);
+  std::vector<int> product_grid_idx(n_players); /* array of grid indices for products */
+  std::vector<byte> product_flag(n_players);    /* array of placement flags for products */
 
   /* Unimol rxn (not mol-mol, not mol-wall) */
   bool const is_unimol = is_rxn_unimol(rx);
@@ -445,7 +446,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   }
   assert(reacA != NULL);
 
-  add_reactants_to_product_list(rx, reacA, reacB, NULL, product, product_type);
+  add_reactants_to_product_list(rx, reacA, reacB, NULL, &product[0], &product_type[0]);
 
   /* Determine whether any of the reactants can be replaced by a product.
      This is only useful for surface molecules to make sure reactions of the

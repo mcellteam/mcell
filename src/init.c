@@ -28,12 +28,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <math.h>
 #include <float.h>
 #include <time.h>
+#ifndef _MSC_VER
+#include <unistd.h>
 #include <sys/types.h>
-#ifndef _WIN64
 #include <sys/resource.h>
 #endif
 
@@ -248,7 +248,7 @@ int init_variables(struct volume *world) {
   world->chkpt_seq_num = 0;
   world->keep_chkpts = 0;
 
-  world->last_timing_time = (struct timeval) { 0, 0 };
+  world->last_timing_time = { 0, 0 };
   world->last_timing_iteration = 0;
 
   world->chkpt_flag = 0;
@@ -1471,7 +1471,7 @@ int init_partitions(struct volume *world) {
     mcell_allocfailed("Failed to create memory pool for storage list.");
 
   /* Allocate the storages */
-  struct storage *shared_mem[nx * ny * nz];
+  std::vector<struct storage *> shared_mem(nx * ny * nz);
   int cx = 0, cy = 0, cz = 0;
   for (int i = 0; i < nx * ny * nz; ++i) {
     /* Determine the number of subvolumes included in this subdivision */
@@ -2800,8 +2800,8 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
       if (p_index == -1)
         continue;
 
-      struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-      struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+      struct periodic_image periodic_box = {0, 0, 0};
+      struct vector3 pos3d = {0, 0, 0};
       short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
       struct surface_molecule *new_sm = place_single_molecule(
           world, w, n_tile, sm[p_index], 0, flags, orientation[p_index], 0, 0, 0,
@@ -2993,8 +2993,8 @@ int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
             no_printf("convert remaining bread_crumbs to actual molecules\n");
             for (unsigned int j = 0; j < n_free_sm; j++) {
               if (*tiles[j] == bread_crumb) {
-                struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-                struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+                struct periodic_image periodic_box = {0, 0, 0};
+                struct vector3 pos3d = {0, 0, 0};
                 struct surface_molecule *new_sm = place_single_molecule(
                     world, walls[j], idx[j], sm, 0, flags, orientation, 0, 0, 0,
                     &periodic_box, &pos3d);
@@ -3014,8 +3014,8 @@ int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
               while (1) {
                 int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                 if (*tiles[slot_num] == NULL) {
-                  struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-                  struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+                  struct periodic_image periodic_box = {0, 0, 0};
+                  struct vector3 pos3d = {0, 0, 0};
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[slot_num], idx[slot_num], sm, 0, flags,
                       orientation, 0, 0, 0, &periodic_box, &pos3d);
@@ -3146,8 +3146,8 @@ int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
               no_printf("convert remaining bread_crumbs to actual molecules\n");
               for (unsigned int j = 0; j < n_free_sm; j++) {
                 if (*tiles[j] == bread_crumb) {
-                  struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-                  struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+                  struct periodic_image periodic_box = {0, 0, 0};
+                  struct vector3 pos3d = {0, 0, 0};
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[j], idx[j], sm, 0, flags, orientation, 0, 0, 0,
                       &periodic_box, &pos3d);
@@ -3167,8 +3167,8 @@ int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
                 while (1) {
                   int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                   if (*tiles[slot_num] == NULL) {
-                    struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-                    struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+                    struct periodic_image periodic_box = {0, 0, 0};
+                    struct vector3 pos3d = {0, 0, 0};
                     struct surface_molecule *new_sm = place_single_molecule(
                         world, walls[slot_num], idx[slot_num], sm, 0, flags,
                         orientation, 0, 0, 0, &periodic_box, &pos3d);
@@ -3416,11 +3416,11 @@ static int eval_rel_region_expr(struct release_evaluator *expr, int n,
                       bit_op);
       }
     } else {
-      struct bit_array *res2[n];
+      std::vector<struct bit_array*> res2(n);
       for (int i = 0; i < n; i++)
         res2[i] = NULL;
 
-      if (eval_rel_region_expr((struct release_evaluator *)expr->right, n, objs, res2))
+      if (eval_rel_region_expr((struct release_evaluator *)expr->right, n, objs, &res2[0]))
         return 1;
 
       for (int i = 0; i < n; i++) {
@@ -3732,8 +3732,8 @@ static void output_relreg_eval_tree(FILE *f, const char *prefix, char cA, char c
   if (expr->op & REXP_NO_OP) {
     fprintf(f, "%s >%s\n", prefix, ((struct region *)(expr->left))->sym->name);
   } else {
-    char prefixA[l + 3];
-    char prefixB[l + 3];
+    char* prefixA = new char[l + 3];
+    char* prefixB = new char[l + 3];
     strncpy(prefixA, prefix, l);
     strncpy(prefixB, prefix, l);
     prefixA[l] = cA;
@@ -3764,6 +3764,9 @@ static void output_relreg_eval_tree(FILE *f, const char *prefix, char cA, char c
     } else {
       output_relreg_eval_tree(f, prefixA, '|', ' ', (struct release_evaluator *)expr->right);
     }
+
+    delete prefixA;
+    delete prefixB;
   }
 }
 

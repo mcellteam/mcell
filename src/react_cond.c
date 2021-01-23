@@ -27,6 +27,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 
 #include "logging.h"
 #include "rng.h"
@@ -201,7 +202,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
                           double local_prob_factor, int n, int *chosen_pathway,
                           struct rng_state *rng,
                           int all_neighbors_flag) {
-  double rxp[2 * n]; /* array of cumulative rxn probabilities */
+  std::vector<double> rxp(2 * n); /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
   int i; /* index in the array of reactions - return value */
   int m, M;
@@ -256,7 +257,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
   }
 
   /* Pick the reaction that happens */
-  i = binary_search_double(rxp, p, n - 1, 1);
+  i = binary_search_double(&rxp[0], p, n - 1, 1);
 
   my_rx = rx[i];
   if (i > 0)
@@ -336,7 +337,7 @@ int test_many_intersect(struct rxn **rx, double scaling, int n,
     return test_intersect(rx[0], scaling, rng);
 
   // array of cumulative rxn probabilities
-  double rxp[n];
+  std::vector<double> rxp(n);
   rxp[0] = rx[0]->max_fixed_p / scaling;
   int i; /* index in the array of reactions - return value */
   for (i = 1; i < n; i++) {
@@ -359,7 +360,7 @@ int test_many_intersect(struct rxn **rx, double scaling, int n,
   }
 
   /* Pick the reaction that happens */
-  i = binary_search_double(rxp, p, n - 1, 1);
+  i = binary_search_double(&rxp[0], p, n - 1, 1);
 
   struct rxn *my_rx = rx[i];
 
@@ -394,7 +395,7 @@ struct rxn *test_many_unimol(struct rxn **rx, int n,
     return rx[0];
   }
 
-  double rxp[n]; /* array of cumulative rxn probabilities */
+  std::vector<double> rxp(n); /* array of cumulative rxn probabilities */
   rxp[0] = rx[0]->max_fixed_p;
 
   int i; /* index in the array of reactions - return value */
@@ -405,7 +406,7 @@ struct rxn *test_many_unimol(struct rxn **rx, int n,
   double p = rng_dbl(rng) * rxp[n - 1];
 
   /* Pick the reaction that happens */
-  i = binary_search_double(rxp, p, n - 1, 1);
+  i = binary_search_double(&rxp[0], p, n - 1, 1);
 
   return rx[i];
 }
@@ -568,7 +569,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
   if (n == 1)
     return test_bimolecular(rx[0], scaling[0], local_prob_factor[0], NULL, NULL, rng);
 
-  double rxp[n]; /* array of cumulative rxn probabilities */
+  std::vector<double> rxp(n); /* array of cumulative rxn probabilities */
   if (local_prob_factor[0] > 0) {
     rxp[0] = (rx[0]->max_fixed_p) * local_prob_factor[0] / scaling[0];
   } else {
@@ -607,7 +608,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
   }
 
   /* Pick the reaction that happens */
-  int i = binary_search_double(rxp, p, n - 1, 1);
+  int i = binary_search_double(&rxp[0], p, n - 1, 1);
 
   struct rxn *my_rx = rx[i];
 

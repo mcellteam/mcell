@@ -24,9 +24,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _MSC_VER
 #include <unistd.h>
-#include <time.h>
 #include <sys/time.h>
+#endif
+#include <time.h>
 
 #include "config.h"
 #include "version_info.h"

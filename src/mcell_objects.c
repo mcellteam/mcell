@@ -82,13 +82,13 @@ MCELL_STATUS mcell_create_periodic_box(
     struct vector3 *urb) {
   
   double sf = 100.0; // scaling factor
-  struct vector3 llf_sm = { .x=llf->x/sf,
-                            .y=llf->y/sf,
-                            .z=llf->z/sf,
+  struct vector3 llf_sm = {llf->x/sf,
+                           llf->y/sf,
+                           llf->z/sf,
   };
-  struct vector3 urb_sm = { .x=urb->x/sf,
-                            .y=urb->y/sf,
-                            .z=urb->z/sf,
+  struct vector3 urb_sm = {urb->x/sf,
+                           urb->y/sf,
+                           urb->z/sf,
   };
 
   struct vertex_list *verts = mcell_add_to_vertex_list(

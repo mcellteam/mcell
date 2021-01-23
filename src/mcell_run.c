@@ -24,11 +24,14 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
-#include <unistd.h>
 
-#ifndef _WIN64
+#ifndef _MSC_VER
+#include <unistd.h>
 #include <sys/resource.h>
+#else
+#include <process.h> // getpid
 #endif
+
 #if defined(__linux__)
 #include <fenv.h>
 #endif

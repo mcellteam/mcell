@@ -3,8 +3,12 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
+  #ifndef _MSC_VER
   #include <unistd.h>
-
+  #else
+  #include <io.h>
+  #endif
+  
   #include "dyngeom_parse_extras.h"
   #include "dyngeom_yacc.hpp"
   #if __cplusplus

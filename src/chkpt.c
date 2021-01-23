@@ -785,11 +785,12 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state) {
   DATACHECK(version_length >= 100000,
             "Length field for MCell version is too long (%u).", version_length);
 
-  char mcell_version[version_length + 1];
+  char* mcell_version = new char[version_length + 1];
   READSTRING(mcell_version, version_length);
 
   mcell_log("Checkpoint file was created with MCell Version %s.",
             mcell_version);
+  delete mcell_version;
 
   return 0;
 }
@@ -1095,7 +1096,7 @@ static int read_species_table(struct volume *world, FILE *fs) {
         species_name_length);
 
     /* Read species fields. */
-    char species_name[species_name_length + 1];
+    char* species_name = new char[species_name_length + 1];
     unsigned int external_species_id;
 
     READSTRING(species_name, species_name_length);
@@ -1113,6 +1114,8 @@ static int read_species_table(struct volume *world, FILE *fs) {
                                      "species '%s', which does not exist in "
                                      "this simulation.",
               species_name);
+
+    delete species_name;
   }
 
   return 0;
@@ -1324,10 +1327,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
               external_species_id);
 
     /* Create and add molecule to scheduler */
-    struct periodic_image periodic_box = { .x = 0,
-                                           .y = 0,
-                                           .z = 0
-                                         };
+    struct periodic_image periodic_box = {  0, 0, 0 };
+
     if ((properties->flags & NOT_FREE) == 0) { /* 3D molecule */
 
       /* set molecule characteristics */

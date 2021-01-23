@@ -363,8 +363,8 @@ struct vector3* reflect_periodic_2D(
 
   struct vector3 target_xyz;
   struct vector2 target_uv = {
-    .u = origin_uv->u + disp_uv->u,
-    .v = origin_uv->v + disp_uv->v
+    origin_uv->u + disp_uv->u,
+    origin_uv->v + disp_uv->v
   };
   // Still within current wall, but we might have hit the periodic box
   // set the target_xyz
@@ -722,18 +722,18 @@ struct wall *ray_trace_2D(
 
   struct wall *this_wall = sm->grid->surface;
 
-  struct vector2 orig_pos = { .u = sm->s_pos.u,
-                               .v = sm->s_pos.v
+  struct vector2 orig_pos = { sm->s_pos.u,
+                              sm->s_pos.v
                             };
-  struct vector2 this_pos = { .u = sm->s_pos.u,
-                              .v = sm->s_pos.v
+  struct vector2 this_pos = { sm->s_pos.u,
+                             sm->s_pos.v
                             };
-  struct vector2 this_disp = { .u = disp->u,
-                               .v = disp->v
+  struct vector2 this_disp = { disp->u,
+                              disp->v
                              };
-  struct periodic_image orig_box = { .x = sm->periodic_box->x,
-                                     .y = sm->periodic_box->y,
-                                     .z = sm->periodic_box->z
+  struct periodic_image orig_box = {sm->periodic_box->x,
+                                    sm->periodic_box->y,
+                                    sm->periodic_box->z
                                    };
   struct vector3 origin_xyz;
   uv2xyz(&this_pos, this_wall, &origin_xyz);
@@ -763,9 +763,9 @@ struct wall *ray_trace_2D(
 
       // We hit the periodic box! Update PBC, "reflect", and keep moving.
       if (hit_xyz) {
-        struct vector3 teleport_xyz = { .x = hit_xyz->x,
-                                        .y = hit_xyz->y,
-                                        .z = hit_xyz->z
+        struct vector3 teleport_xyz = {hit_xyz->x,
+                                       hit_xyz->y,
+                                       hit_xyz->z
                                       };
         change_boxes_2D(
           world->periodic_traditional, sm, world->periodic_box_obj, hit_xyz,
@@ -774,18 +774,18 @@ struct wall *ray_trace_2D(
           // Some of these uv coords might not be valid (i.e. they fall off
           // edge of triangle), but (i think) that's okay. we're ultimately
           // just trying to get remaining uv displacement.
-          struct vector2 target_uv = { .u = this_pos.u + this_disp.u,
-                                       .v = this_pos.v + this_disp.v
+          struct vector2 target_uv = { this_pos.u + this_disp.u,
+                                      this_pos.v + this_disp.v
                                      };
           struct vector3 target_xyz;
           uv2xyz(&target_uv, this_wall, &target_xyz);
-          struct vector3 remaining_disp_xyz = { .x = target_xyz.x - hit_xyz->x,
-                                                .y = target_xyz.y - hit_xyz->y,
-                                                .z = target_xyz.z - hit_xyz->z
+          struct vector3 remaining_disp_xyz = {target_xyz.x - hit_xyz->x,
+                                               target_xyz.y - hit_xyz->y,
+                                               target_xyz.z - hit_xyz->z
                                               };
-          struct vector3 new_target_xyz = { .x = teleport_xyz.x + remaining_disp_xyz.x,
-                                            .y = teleport_xyz.y + remaining_disp_xyz.y,
-                                            .z = teleport_xyz.z + remaining_disp_xyz.z,
+          struct vector3 new_target_xyz = {teleport_xyz.x + remaining_disp_xyz.x,
+                                           teleport_xyz.y + remaining_disp_xyz.y,
+                                           teleport_xyz.z + remaining_disp_xyz.z,
                                           };
           int grid_index = 0;
           int *grid_index_p = &grid_index;
@@ -837,8 +837,8 @@ struct wall *ray_trace_2D(
     }
     // Not ambiguous (-2) or inside wall (-1), must have hit edge (0, 1, 2)
 
-    struct vector2 old_pos = {.u = this_pos.u,
-                              .v = this_pos.v
+    struct vector2 old_pos = {this_pos.u,
+                             this_pos.v
                              };
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
@@ -3463,9 +3463,9 @@ struct surface_molecule *diffuse_2D(
   world->diffusion_number++;
   world->diffusion_cumtime += steps;
 
-  struct periodic_image previous_box = { .x = sm->periodic_box->x,
-                                         .y = sm->periodic_box->y,
-                                         .z = sm->periodic_box->z
+  struct periodic_image previous_box = {sm->periodic_box->x,
+                                        sm->periodic_box->y,
+                                        sm->periodic_box->z
                                        };
   struct hit_data *hd_info = NULL;
   for (int find_new_position = (SURFACE_DIFFUSION_RETRIES + 1);
@@ -3606,13 +3606,16 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
   const int num_nbrs = list_length;
   int max_size = num_nbrs * MAX_MATCHING_RXNS;
-  struct rxn *rxn_array[max_size]; /* array of reaction objects with neighbor
-                                     molecules */
+
+  /* array of reaction objects with neighbor molecules */
+  std::vector<struct rxn *> rxn_array(max_size);
+
   double local_prob_factor; /* local probability factor for the
                                  reactions */
-  double cf[max_size]; /* Correction factors for area for those molecules */
 
-  struct surface_molecule *smol[max_size]; /* points to neighbor molecules */
+  std::vector<double> cf(max_size); /* Correction factors for area for those molecules */
+
+  std::vector<struct surface_molecule *> smol(max_size); /* points to neighbor molecules */
 
   /* Calculate local_prob_factor for the reaction probability.
      Here we convert from 3 neighbor tiles (upper probability
@@ -3699,7 +3702,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   } else {
     // previously "test_many_bimolecular_all_neighbors"
     int all_neighbors_flag = 1;
-    j = test_many_bimolecular(rxn_array, cf, local_prob_factor, n, &(i), 
+    j = test_many_bimolecular(&rxn_array[0], &cf[0], local_prob_factor, n, &(i),
                               world->rng, all_neighbors_flag);
   }
 
@@ -4144,10 +4147,7 @@ void run_clamp(struct volume *world, double t_now) {
           vm.previous_wall = w;
           // TODO: This isn't right. We need to figure out what PB these should
           // really be created in.
-          struct periodic_image periodic_box = {.x = 0,
-                                                .y = 0,
-                                                .z = 0
-                                               };
+          struct periodic_image periodic_box = {0, 0, 0};
           
           vm.periodic_box = &periodic_box;
 
@@ -4434,10 +4434,11 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
                                    reaction */
       int max_size = num_nbrs * MAX_MATCHING_RXNS;
       /* array of reaction objects with neighbor mols */
-      struct rxn *rxn_array[max_size];
-      /* correction factors for areas for these mols */
-      double cf[max_size];
-      struct surface_molecule *smol[max_size]; /* points to neighbor mols */
+      std::vector<struct rxn *> rxn_array(max_size);
+
+      std::vector<double> cf(max_size); /* Correction factors for area for those molecules */
+
+      std::vector<struct surface_molecule *> smol(max_size); /* points to neighbor molecules */
 
       local_prob_factor = 3.0 / num_nbrs;
       jj = RX_NO_RX;
@@ -4508,7 +4509,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
       } else if (n > 1) {
         // previously "test_many_bimolecular_all_neighbors"
         int all_neighbors_flag = 1;
-        jj = test_many_bimolecular(rxn_array, cf, local_prob_factor,
+        jj = test_many_bimolecular(&rxn_array[0], &cf[0], local_prob_factor,
           n, &(ii), world->rng, all_neighbors_flag);
       }
 

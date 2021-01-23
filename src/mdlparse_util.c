@@ -32,7 +32,9 @@
 #include <limits.h>
 #include <errno.h>
 #include <sys/stat.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <signal.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -3249,7 +3251,7 @@ find_corresponding_region(struct region *old_r, struct geom_object *old_ob,
     const size_t max_name_len = new_name_len + just_region_name_len + 1;
 
     /* Build new name. */
-    char new_name[max_name_len];
+    char* new_name = new char[max_name_len];
     strncpy(new_name, new_ob->sym->name, new_prefix_idx);
     strncpy(new_name + new_prefix_idx,         /* new prefix */
             old_r->sym->name + old_prefix_idx, /* old suffix + region name */
@@ -3257,6 +3259,7 @@ find_corresponding_region(struct region *old_r, struct geom_object *old_ob,
 
     /* Finally, retrieve symbol from newly-constructed name. */
     gp = retrieve_sym(new_name, symhash);
+    delete new_name;
     if (gp == NULL)
       return NULL;
     else

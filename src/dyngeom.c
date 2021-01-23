@@ -1124,9 +1124,9 @@ void place_mol_relative_to_mesh(struct volume *state,
   }
 
   double bump = (out_to_in > 0) ? EPS_C : -EPS_C;
-  struct vector3 displacement = { .x = 2 * bump * best_w->normal.x,
-                                  .y = 2 * bump * best_w->normal.y,
-                                  .z = 2 * bump * best_w->normal.z,
+  struct vector3 displacement = {2 * bump * best_w->normal.x,
+                                 2 * bump * best_w->normal.y,
+                                 2 * bump * best_w->normal.z,
                                 };
   struct subvolume *new_sv = find_subvolume(state, &v, NULL);
   tiny_diffuse_3D(state, new_sv, &displacement, &v, best_w);
@@ -1924,12 +1924,13 @@ int add_dynamic_geometry_events(
         char *line_ending = strchr(buf + i, '\n');
         int line_ending_idx = line_ending - buf;
         int file_name_length = line_ending_idx - i + 1;
-        char file_name[file_name_length];
+        char* file_name = new char[file_name_length];
         strncpy(file_name, buf + i, file_name_length);
         file_name[file_name_length - 1] = '\0';
         // Expand path name if needed
         char *full_file_name = mcell_find_include_file(
           file_name, dynamic_geometry_filepath);
+        delete file_name;
         // Treat time 0 as if it were an include file.
         if (!distinguishable(time, 0, EPS_C)) {
           if (zero_file_name) {

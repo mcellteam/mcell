@@ -34,6 +34,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <vector>
 
 #include "logging.h"
 #include "rng.h"
@@ -1882,13 +1883,13 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head,
   /* number of tile vertices on the common edge */
   const int new_pos_size = new_grid->n + 1;
   /* array of the positions of tile vertices on the common edge */
-  double new_pos[new_pos_size];
+  std::vector<double> new_pos(new_pos_size);
 
   /* each tile vertex on the common shared edge is connected to
      3 tiles (the end points of the shared edge are connected
      to 1 tile). */
   /* 2-dimensional array of the tile indices */
-  int new_tile_idx[new_pos_size][3];
+  std::vector<int[3]> new_tile_idx(new_pos_size);
 
   int i, k;
   /* what vertices of new wall are shared with original wall */
@@ -2100,16 +2101,16 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head,
 
   int ind_high, ind_low = -1;
   if (orig_pos_1 > orig_pos_2) {
-    ind_high = bisect_high(new_pos, new_pos_size, orig_pos_1);
+    ind_high = bisect_high(&new_pos[0], new_pos_size, orig_pos_1);
     if (orig_pos_2 > 0) {
-      ind_low = bisect(new_pos, new_pos_size, orig_pos_2);
+      ind_low = bisect(&new_pos[0], new_pos_size, orig_pos_2);
     }
 
   } else {
-    ind_high = bisect_high(new_pos, new_pos_size, orig_pos_2);
+    ind_high = bisect_high(&new_pos[0], new_pos_size, orig_pos_2);
 
     if (orig_pos_1 > 0) {
-      ind_low = bisect(new_pos, new_pos_size, orig_pos_1);
+      ind_low = bisect(&new_pos[0], new_pos_size, orig_pos_1);
     }
   }
 

@@ -31,9 +31,14 @@
 
 #include <stdarg.h>       /* for va_start, va_end, va_list */
 #include <string.h>       /* for strdup */
-#include <getopt.h>       /* for getopt_long_only, struct option, ... */
 #include <stdio.h>        /* for *printf functions */
 #include <stdlib.h>       /* for strtol, strtoll, strtoul, free */
+
+#ifndef _MSC_VER
+#include <getopt.h>
+#else
+#include "win_getopt/win_getopt.h"
+#endif
 
 #include <nfsim_c.h> /* for the nfsim initialization stuff */
 

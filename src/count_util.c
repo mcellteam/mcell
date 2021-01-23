@@ -507,7 +507,7 @@ void count_region_from_scratch(struct volume *world,
     struct waypoint *wp = &(world->waypoints[this_sv]);
     struct subvolume *my_sv = &(world->subvol[this_sv]);
 
-    struct vector3 here = {.x = wp->loc.x, .y = wp->loc.y, .z = wp->loc.z};
+    struct vector3 here = {wp->loc.x, wp->loc.y, wp->loc.z};
 
     struct region_list *all_regs = NULL;
     struct region_list *all_antiregs = NULL;

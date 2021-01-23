@@ -14,7 +14,8 @@ add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
+  add_definitions(-DYY_NO_UNISTD_H)
 endif(MSVC)
 
 # set default locations of libraries and executables
@@ -188,13 +189,13 @@ BISON_TARGET(dynGeomParser ${CMAKE_SOURCE_DIR}/src/dyngeom_parse.y
 configure_file(${CMAKE_SOURCE_DIR}/src/mdllex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l COPYONLY)
 
 FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.cpp COMPILE_FLAGS -Crema)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.cpp COMPILE_FLAGS -Cema)
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
 configure_file(${CMAKE_SOURCE_DIR}/src/dyngeom_lex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.l COPYONLY)
 
 FLEX_TARGET(dynGeomScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.l
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.cpp COMPILE_FLAGS -Crema)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.cpp COMPILE_FLAGS -Cema)
 ADD_FLEX_BISON_DEPENDENCY(dynGeomScanner dynGeomParser dyngeomlex_l)
 
 
@@ -347,8 +348,9 @@ pybind11_add_module(mcell4_so MODULE
     libmcell/api/exports.cpp
 )
 
-
-if (NOT WIN32) # TODO, later
+# for some reason MSVC searches for python library when linking utils although they should not need it
+get_filename_component(PYTHON_LIB_DIR ${Python3_LIBRARY_RELEASE} DIRECTORY)
+link_directories(${PYTHON_LIB_DIR})
 
 # build executable
 add_executable(mcell
@@ -370,13 +372,6 @@ set_target_properties(mcell PROPERTIES
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
 target_link_libraries(mcell mcell4 libmcell_dummy bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
-
-endif()  # if (NOT WIN32)
-
-
-# for some reason MSVC searches for python library when linking utils although they should not need it
-get_filename_component(PYTHON_LIB_DIR ${Python3_LIBRARY_RELEASE} DIRECTORY)
-link_directories(${PYTHON_LIB_DIR})
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
