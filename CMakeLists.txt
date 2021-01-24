@@ -374,6 +374,7 @@ add_dependencies(mcell version_h mcell4)
 target_link_libraries(mcell mcell4 libmcell_dummy bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer) # used in MCell4 vs MCell4 validation
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
 
 if (NOT WIN32)
