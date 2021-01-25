@@ -2502,8 +2502,17 @@ int DiffuseReactEvent::outcome_products_random(
 
     if (species.is_vol()) {
       // create and place a volume molecule
-
-      Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, collision.pos, time);
+      Vec3 pos;
+      if (!collision.has_pos()) {
+        // only surf-surf rxns don't have position
+        assert(reacA->is_surf());
+        const Wall& w_pos = p.get_wall(reacA->s.wall_index);
+        pos = GeometryUtil::uv2xyz(reacA->s.pos, w_pos, p.get_wall_vertex(w_pos, 0));
+      }
+      else {
+        pos = collision.pos;
+      }
+      Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, pos, time);
 
       assert(is_orientable
           || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)

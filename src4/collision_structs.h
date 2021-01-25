@@ -192,6 +192,13 @@ public:
   // valid only for COLLISION_WALL*
   wall_index_t colliding_wall_index;
 
+  bool has_pos() const {
+    return
+        type != CollisionType::INVALID &&
+        type != CollisionType::SURFMOL_SURFMOL &&
+        type != CollisionType::INTERMEMBRANE_SURFMOL_SURFMOL;
+  }
+
   bool is_vol_mol_vol_mol_collision() const {
     return type == CollisionType::VOLMOL_VOLMOL;
   }
