@@ -963,15 +963,13 @@ static int add_more_tile_neighbors_to_list_fast(
   /* number of tile vertices on the common edge */
   const int new_pos_size = new_grid.num_tiles_along_axis + 1;
   /* array of the positions of tile vertices on the common edge */
-  std::vector<float_t> new_pos;
-  new_pos.resize(new_pos_size);
+  std::vector<float_t> new_pos(new_pos_size);
 
   /* each tile vertex on the common shared edge is connected to
      3 tiles (the end points of the shared edge are connected
      to 1 tile). */
   /* 2-dimensional array of the tile indices */
-  std::vector<tile_index_t[3]> new_tile_indices;
-  new_pos.resize(new_pos_size);
+  std::vector<tile_index_t[3]> new_tile_indices(new_pos_size);
 
   int i, k;
 
