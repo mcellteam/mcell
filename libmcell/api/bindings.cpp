@@ -84,6 +84,8 @@
 #error "PYBIND11_OVERLOAD_CAST must be defined"
 #endif
 
+#include "pybind11_stl_include.h"
+
 namespace MCell {
 namespace API {
 
@@ -110,7 +112,7 @@ void define_pybinding_Vec3(py::module& m) {
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + ")"; } )
       .def("__repr__",  [](const Vec3& a)
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + ")"; } )
-      .def("to_list",  [](const Vec3& a) { return std::vector<float_t>{a.x, a.y, a.z}; } )
+      .def("to_list",  [](const Vec3& a) { return py::cast(std::vector<float_t>{a.x, a.y, a.z}); } )
       .def_readwrite("x", &Vec3::x)
       .def_readwrite("y", &Vec3::y)
       .def_readwrite("z", &Vec3::z)
