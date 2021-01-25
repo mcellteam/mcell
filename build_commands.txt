@@ -1,36 +1,24 @@
-C:\husar\mcell\build\mcell_tools\work\build_ninja
-cmake ..\..\..\mcell -G Ninja -DCMAKE_BUILD_TYPE=Release
-ninja mcell4_so
-
-cd C:\husar\mcell\build\mcell_tools\work\build_debug
-cmake ..\..\..\mcell -G Ninja -DCMAKE_BUILD_TYPE=Debug
-ninja mcell4_so
-
-set PYTHONPATH=C:\husar\mcell\build\mcell_tools\work\build_ninja\lib
-
+Notes for Windows builds: 
 
 cd C:\husar\mcell\build\mcell_tools\work\build_msvc
 cmake ..\..\..\mcell -DCMAKE_BUILD_TYPE=Debug
+cmake --build . --target ALL_BUILD --config Debug -j 24
 
-
+cd C:\husar\mcell\build\mcell_tools\work\build_msvc_release
 cmake ..\..\..\mcell -DCMAKE_BUILD_TYPE=Release
 cmake --build . --target ALL_BUILD --config Release -j 24
-
-E:\VisualStudio\MSBuild\Current\Bin\MSBuild.exe ALL_BUILD.vcxproj -maxcpucount:12
-
-cd C:\husar\mcell\build\mcell_tests 
-python run_tests.py -m C:\husar\mcell\build\mcell_tools\work\build_msvc  -b C:\husar\mcell\build\mcell_tools\work\build_cellblender\cellblender\ -c test_configs\mcell3_all.tomlpython run_tests.py -m C:\husar\mcell\build\mcell_tools\work\build_msvc  -b C:\husar\mcell\build\mcell_tools\work\build_cellblender\cellblender\ -c test_configs\mcell3_all.toml
  
- VTK
-
- 
+VTK:
 cmake ..\..\..\VTK\ -DCMAKE_BUILD_TYPE=Release -DVTK_BUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF
 cmake --build . --target ALL_BUILD --config Release -j 24
 
  
- E:\VisualStudio\MSBuild\Current\Bin\MSBuild.exe ALL_BUILD.vcxproj -maxcpucount:12
+Tests:
+cd C:\husar\mcell\build\mcell_tests 
+python run_tests.py -m C:\husar\mcell\build\mcell_tools\work\build_msvc  -b C:\husar\mcell\build\mcell_tools\work\build_cellblender\cellblender\ -c test_configs\mcell3_all.tomlpython run_tests.py -m C:\husar\mcell\build\mcell_tools\work\build_msvc  -b C:\husar\mcell\build\mcell_tools\work\build_cellblender\cellblender\ -c test_configs\mcell3_all.toml
  
  
- Testing
  
- python run_tests.py -m C:\husar\mcell\build\mcell_tools\work\build_msvc
+Cleanup:
+
+taskkill /IM msbuild.exe /F | taskkill /IM python.exe /F | taskkill /IM python3.exe /F | taskkill /IM mcell.exe /F
