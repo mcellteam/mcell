@@ -107,7 +107,14 @@ def check_prerequisites():
         print("Error: system variable MCELL_PATH that is used to find the mcell library was not set.")
         sys.exit(1)
     
-    mcell_so_path = os.path.join(MCELL_PATH, 'lib', 'mcell.so')
+    if os.name == 'nt':
+        ext = '.pyd'
+    else:
+        ext = '.so'
+    
+    mcell_so_path = os.path.join(MCELL_PATH, 'lib', 'mcell' + ext)
+    
+    
     if not os.path.exists(mcell_so_path):
         print("Could not find library '" + mcell_so_path + ".")
         sys.exit(1)
