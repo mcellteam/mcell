@@ -2517,14 +2517,16 @@ int DiffuseReactEvent::outcome_products_random(
             p, w, product_orientation, vm_initialization);
       }
 
-      // adding molecule might invalidate references of already existing molecules and also of species
-      Molecule& new_vm = p.add_volume_molecule(vm_initialization, 0);
-
-      // id and position is used to schedule a diffusion action
-      new_m_id = new_vm.id;
+      //  position is used to schedule a diffusion action
       if (surf_reac != nullptr) {
         where_is_vm_created = surf_reac_wall_tile;
       }
+
+      // adding molecule might invalidate references of already existing molecules and also of species
+      Molecule& new_vm = p.add_volume_molecule(vm_initialization, 0);
+
+      // id used to schedule a diffusion action
+      new_m_id = new_vm.id;
 
       const BNG::Species& species_new_ref = p.get_all_species().get(product_species_id);
       new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -2533,8 +2535,10 @@ int DiffuseReactEvent::outcome_products_random(
       if (is_orientable) {
         // - for an orientable reaction, we need to move products away from the surface
         //   to ensure they end up on the correct side of the plane.
+        assert(surf_reac_id != MOLECULE_ID_INVALID);
+        const Molecule& surf_reac_new_ref = p.get_m(surf_reac_id);
         update_vol_mol_after_rxn_with_surf_mol(
-            p, surf_reac, product_orientation, collision, new_vm
+            p, &surf_reac_new_ref, product_orientation, collision, new_vm
         );
       }
     #ifdef DEBUG_RXNS
