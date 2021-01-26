@@ -754,7 +754,17 @@ protected:
                     for (auto kwarg : kwargs) {
                         if (first) first = false;
                         else msg += ", ";
+
+                        // MCell modification
+                        std::string arg_str = pybind11::str("{}={!r}").format(kwarg.first, kwarg.second);
+                        if (arg_str.size() > 64) {
+                          arg_str = arg_str.substr(0, 64) + " ...";
+                        }
+                        msg += arg_str;
+#if 0
+                        // original code
                         msg += pybind11::str("{}={!r}").format(kwarg.first, kwarg.second);
+#endif
                     }
                 }
             }
