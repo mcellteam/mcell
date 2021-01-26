@@ -10,6 +10,10 @@
 #include <iostream>
 #include <cassert>
 
+#ifndef _MSC_VER
+#include <unistd.h>
+#endif
+
 #include "filesystem_include.h"
 
 using namespace std;

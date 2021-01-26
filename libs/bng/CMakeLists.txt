@@ -68,15 +68,21 @@ set(ALL_SOURCES
     ${FLEX_bngl_scanner_OUTPUTS}    
 )
 
+
+if (NOT WIN32)
+    set(STDC_FS stdc++fs)
+endif()
+
 add_library(${PROJECT_NAME} ${ALL_SOURCES})
 target_link_libraries(${PROJECT_NAME}
-	PRIVATE nauty
+	PRIVATE nauty ${STDC_FS}
 )
 
 add_executable(test_${PROJECT_NAME}
     ${ALL_SOURCES}
 	test.cpp # only for development
 )
+
 target_link_libraries(test_${PROJECT_NAME}
-	PUBLIC nauty
+	PUBLIC nauty ${STDC_FS}
 )
