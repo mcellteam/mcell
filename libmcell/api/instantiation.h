@@ -37,8 +37,6 @@ class Compartment;
 namespace MCell {
 namespace API {
 
-class Subsystem;
-
 class Instantiation: public GenInstantiation {
 public:
   INSTANTIATION_CTOR()
@@ -62,7 +60,6 @@ public:
 
   void load_bngl_seed_species(
       const std::string& file_name,
-      std::shared_ptr<Subsystem> subsystem,
       std::shared_ptr<Region> default_release_region = nullptr,
       const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
   ) override;
@@ -81,7 +78,6 @@ public:
 protected:
   void convert_bng_data_to_instantiation(
       const BNG::BNGData& bng_data,
-      Subsystem& subsystem,
       std::shared_ptr<Region> default_release_region);
 
 private:
@@ -91,7 +87,6 @@ private:
   void convert_single_seed_species_to_release_site(
       const BNG::BNGData& bng_data,
       const BNG::SeedSpecies& bng_ss,
-      Subsystem& subsystem,
       std::shared_ptr<Region> default_release_region);
 };
 

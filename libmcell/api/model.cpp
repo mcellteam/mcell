@@ -439,9 +439,9 @@ void Model::load_bngl(
   convert_bng_data_to_subsystem_data(bng_data);
 
   // needs subsystem data created in the last step
-  convert_bng_data_to_instantiation(bng_data, *this, default_release_region);
+  convert_bng_data_to_instantiation(bng_data, default_release_region);
 
-  convert_bng_data_to_observables_data(bng_data, *this, observables_files_prefix);
+  convert_bng_data_to_observables_data(bng_data, observables_files_prefix);
 }
 
 

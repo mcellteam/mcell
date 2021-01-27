@@ -240,10 +240,7 @@ Instantiation:
     params:
     - name: file_name
       type: str  
-      
-    - name: subsystem
-      type: Subsystem*
-      
+
     - name: default_release_region
       type: Region*
       default: unset

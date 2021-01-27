@@ -67,7 +67,7 @@ if (NOT WIN32)
   endif()
 
 
-  set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-class-memaccess ")
+  set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable ")
 
   if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")

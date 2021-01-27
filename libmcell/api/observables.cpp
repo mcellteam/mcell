@@ -65,7 +65,6 @@ std::string Observables::get_first_viz_output_files_prefix(const char* method_na
 
 void Observables::load_bngl_observables(
     const std::string& file_name,
-    std::shared_ptr<Subsystem> subsystem,
     const std::string& output_files_prefix,
     const std::map<std::string, float_t>& parameter_overrides) {
   BNG::BNGData bng_data;
@@ -77,17 +76,16 @@ void Observables::load_bngl_observables(
 
   // now convert everything we parsed into the API classes so that the user can
   // inspect or manipulate it if needed
-  convert_bng_data_to_observables_data(bng_data, *subsystem, output_files_prefix);
+  convert_bng_data_to_observables_data(bng_data, output_files_prefix);
 }
 
 
 void Observables::convert_bng_data_to_observables_data(
     const BNG::BNGData& bng_data,
-    Subsystem& subsystem,
     const std::string& output_files_prefix) {
 
   for (const Observable& o: bng_data.get_observables()) {
-    convert_observable(o, bng_data, subsystem, output_files_prefix);
+    convert_observable(o, bng_data, output_files_prefix);
   }
 }
 
@@ -95,7 +93,6 @@ void Observables::convert_bng_data_to_observables_data(
 void Observables::convert_observable(
     const BNG::Observable& o,
     const BNG::BNGData& bng_data,
-    Subsystem& subsystem,
     const std::string& output_files_prefix) {
 
   if (o.patterns.size() != 1) {
@@ -123,7 +120,6 @@ void Observables::convert_observable(
   // region that represents this compartment handled in initialization
   // because compartments are referenced by their name and
   // we might not know them yet
-
   counts.push_back(count);
 }
 

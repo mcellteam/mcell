@@ -29,7 +29,6 @@
 #include "api/geometry_object.h"
 #include "api/region.h"
 #include "api/release_site.h"
-#include "api/subsystem.h"
 
 namespace MCell {
 namespace API {
@@ -77,7 +76,7 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
       .def("find_geometry_object", &Instantiation::find_geometry_object, py::arg("name"))
       .def("find_volume_compartment", &Instantiation::find_volume_compartment, py::arg("name"))
       .def("find_surface_compartment", &Instantiation::find_surface_compartment, py::arg("name"))
-      .def("load_bngl_seed_species", &Instantiation::load_bngl_seed_species, py::arg("file_name"), py::arg("subsystem"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
+      .def("load_bngl_seed_species", &Instantiation::load_bngl_seed_species, py::arg("file_name"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
       .def("dump", &Instantiation::dump)
       .def_property("release_sites", &Instantiation::get_release_sites, &Instantiation::set_release_sites)
       .def_property("geometry_objects", &Instantiation::get_geometry_objects, &Instantiation::set_geometry_objects)

@@ -185,9 +185,6 @@ Observables:
     - name: file_name
       type: str   
       doc: BNGL file name.
-           
-    - name: subsystem
-      type: Subsystem*
 
     - name: output_files_prefix
       type: str

@@ -72,7 +72,6 @@ std::shared_ptr<GeometryObject> Instantiation::find_surface_compartment(const st
 
 void Instantiation::load_bngl_seed_species(
     const std::string& file_name,
-    std::shared_ptr<Subsystem> subsystem,
     std::shared_ptr<Region> default_release_region,
     const std::map<std::string, float_t>& parameter_overrides) {
 
@@ -85,19 +84,18 @@ void Instantiation::load_bngl_seed_species(
 
   // now convert everything we parsed into the API classes so that the user can
   // inspect or manipulate it if needed
-  convert_bng_data_to_instantiation(bng_data, *subsystem, default_release_region);
+  convert_bng_data_to_instantiation(bng_data, default_release_region);
 }
 
 
 void Instantiation::convert_bng_data_to_instantiation(
     const BNG::BNGData& bng_data,
-    Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
 
   convert_compartments(bng_data);
 
   for (const BNG::SeedSpecies& bng_ss: bng_data.get_seed_species()) {
-    convert_single_seed_species_to_release_site(bng_data, bng_ss, subsystem, default_release_region);
+    convert_single_seed_species_to_release_site(bng_data, bng_ss, default_release_region);
   }
 }
 
@@ -144,7 +142,6 @@ void Instantiation::convert_compartments(const BNG::BNGData& bng_data) {
 void Instantiation::convert_single_seed_species_to_release_site(
     const BNG::BNGData& bng_data,
     const BNG::SeedSpecies& bng_ss,
-    Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
 
   auto rel_site = make_shared<API::ReleaseSite>();

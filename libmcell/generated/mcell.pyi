@@ -605,7 +605,6 @@ class Instantiation():
     def load_bngl_seed_species(
             self,
             file_name : str,
-            subsystem : Subsystem,
             default_release_region : Region = None,
             parameter_overrides : Dict[str, float] = None
         ) -> None:
@@ -913,7 +912,6 @@ class Model():
     def load_bngl_seed_species(
             self,
             file_name : str,
-            subsystem : Subsystem,
             default_release_region : Region = None,
             parameter_overrides : Dict[str, float] = None
         ) -> None:
@@ -940,7 +938,6 @@ class Model():
     def load_bngl_observables(
             self,
             file_name : str,
-            subsystem : Subsystem,
             output_files_prefix : str = '',
             parameter_overrides : Dict[str, float] = None
         ) -> None:
@@ -1092,7 +1089,6 @@ class Observables():
     def load_bngl_observables(
             self,
             file_name : str,
-            subsystem : Subsystem,
             output_files_prefix : str = '',
             parameter_overrides : Dict[str, float] = None
         ) -> None:

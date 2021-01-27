@@ -715,7 +715,6 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
         out, OBSERVABLES,
         NAME_LOAD_BNGL_OBSERVABLES,
         get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)) + ", " +
-        SUBSYSTEM + ", " +
         "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'"
     );
 

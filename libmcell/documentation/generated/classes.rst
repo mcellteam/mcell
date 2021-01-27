@@ -814,7 +814,6 @@ Methods:
 * | **load_bngl_seed_species**
 
    * | file_name: str
-   * | subsystem: Subsystem
    * | default_release_region: Region = None
      | Used for seed species that have no compartments specified
 
@@ -1285,7 +1284,6 @@ Methods:
 * | **load_bngl_seed_species**
 
    * | file_name: str
-   * | subsystem: Subsystem
    * | default_release_region: Region = None
      | Used for seed species that have no compartments specified
 
@@ -1317,7 +1315,6 @@ Methods:
    * | file_name: str
      | BNGL file name.
 
-   * | subsystem: Subsystem
    * | output_files_prefix: str = ''
      | Prefix to be used when creating files with observable values.
 
@@ -1546,7 +1543,6 @@ Methods:
    * | file_name: str
      | BNGL file name.
 
-   * | subsystem: Subsystem
    * | output_files_prefix: str = ''
      | Prefix to be used when creating files with observable values.
 
