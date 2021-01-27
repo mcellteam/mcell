@@ -136,8 +136,8 @@ Constants
 * | **PARTITION_EDGE_EXTRA_MARGIN_UM**: float = 0.01
   | Internal constant used to match partition setup when comparing models against their MDL variant.
 
-* | **DEFAULT_COUNT_BUFFER_SIZE**: int = 10000
-  | Internal constant used to initialize buffer size for mol and rxn counts.
+* | **DEFAULT_COUNT_BUFFER_SIZE**: int = 100
+  | Internal constant used to initialize buffer size for molecule and reaction counts.
 
 * | **ALL_MOLECULES**: str = ALL_MOLECULES
 * | **ALL_VOLUME_MOLECULES**: str = ALL_VOLUME_MOLECULES
@@ -249,11 +249,11 @@ Attributes:
 ***********
 * | **name**: str = None
   | When set, this complex instance is initialized from a BNGL string passed as this argument, 
-  | the string is parsed during model initialization so the molecule types it uses
-  | don't have to be defined before initialization.
+  | the string is parsed and elementary_molecules and compartment are initialized.
 
 * | **elementary_molecules**: List[ElementaryMolecule] = None
   | Individual molecule instances contained in the complex.
+  | This information is used during model initialization.
 
 * | **orientation**: Orientation = Orientation.DEFAULT
   | Specifies orientation of a molecule. 
@@ -1884,11 +1884,11 @@ Attributes:
 
 * | **name**: str = None
   | When set, this complex instance is initialized from a BNGL string passed as this argument, 
-  | the string is parsed during model initialization so the molecule types it uses
-  | don't have to be defined before initialization.
+  | the string is parsed and elementary_molecules and compartment are initialized.
 
 * | **elementary_molecules**: List[ElementaryMolecule] = None
   | Individual molecule instances contained in the complex.
+  | This information is used during model initialization.
 
 * | **orientation**: Orientation = Orientation.DEFAULT
   | Specifies orientation of a molecule. 

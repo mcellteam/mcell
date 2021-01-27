@@ -20,8 +20,11 @@ class BNGData;
 class ComponentType {
 public:
   // name of the component itself is not sufficient to uniquely identify it,
-  // it must be always searched with its molecule type in context
+  // it must be always searched with its elementary molecule type name in context
   std::string name;
+  // using elementary molecule type name instead of ID becaue during construction
+  std::string elem_mol_type_name;
+
   uint_set<state_id_t> allowed_state_ids;
 
   bool operator ==(const ComponentType& ct2) const {

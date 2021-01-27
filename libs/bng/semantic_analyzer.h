@@ -37,6 +37,7 @@ private:
 
   state_id_t convert_state_name(const ASTStrNode* s);
   ComponentType convert_component_type(
+      const std::string& elem_mol_type_name,
       const ASTComponentNode* c,
       const bool allow_components_to_have_bonds = false
   );

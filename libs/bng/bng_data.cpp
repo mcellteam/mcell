@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <algorithm>
 
 #include "bng/bng_data.h"
 #include "bng/bngl_names.h"
@@ -47,11 +48,35 @@ state_id_t BNGData::find_state_id(const std::string& name) const {
 }
 
 
-
-component_type_id_t BNGData::find_or_add_component_type(const ComponentType& ct) {
+component_type_id_t BNGData::find_or_add_component_type(
+    const ComponentType& ct,
+    const bool merge_allowed_states) {
+  assert(ct.elem_mol_type_name != "");
   for (component_type_id_t i = 0; i < component_types.size(); i++) {
-    if (component_types[i] == ct) {
-      return i;
+    if (component_types[i].elem_mol_type_name == ct.elem_mol_type_name &&
+        component_types[i].name == ct.name) {
+
+      if (!merge_allowed_states) {
+        // check that the allowed_state_ids is equal or a subset
+        if (std::includes(
+            component_types[i].allowed_state_ids.begin(),
+            component_types[i].allowed_state_ids.end(),
+            ct.allowed_state_ids.begin(),
+            ct.allowed_state_ids.end()
+        )) {
+          return i;
+        }
+        else {
+          return COMPONENT_TYPE_ID_INVALID;
+        }
+      }
+      else {
+        // merge allowed states and return current id
+        component_types[i].allowed_state_ids.insert(
+            ct.allowed_state_ids.begin(),
+            ct.allowed_state_ids.end());
+        return i;
+      }
     }
   }
 

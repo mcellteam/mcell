@@ -141,7 +141,11 @@ public:
 
   // -------- components --------
 
-  component_type_id_t find_or_add_component_type(const ComponentType& ct);
+  // - returns COMPONENT_TYPE_ID_INVALID when merge_allowed_states is false and
+  //   a component with the same name exists but its allowed states are not a subset
+  // - when merge_allowed_states is true, checks only name and merges allowed states
+  component_type_id_t find_or_add_component_type(
+      const ComponentType& ct, const bool merge_allowed_states = false);
 
   // may return COMPONENT_TYPE_ID_INVALID when the name was not found
   // among components allowed for this molecule type

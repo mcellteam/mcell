@@ -100,12 +100,18 @@ public:
 
   void dump() const;
 
-  // auxiliary methods used also from Instantiation
-  std::shared_ptr<API::Complex> convert_cplx(
+
+  // auxiliary methods used also from Instantiation and other places
+  // TODO: move into ElementaryMoleculeType and Complex
+  static std::shared_ptr<API::ElementaryMoleculeType> convert_elementary_molecule_type(
+      const BNG::BNGData& bng_data,
+      const BNG::ElemMolType& bng_mt);
+
+  static std::shared_ptr<API::Complex> convert_cplx(
       const BNG::BNGData& bng_data,
       const BNG::Cplx& bng_inst);
 
-  std::shared_ptr<API::Complex> convert_cplx_w_orientation(
+  static std::shared_ptr<API::Complex> convert_cplx_w_orientation(
       const BNG::BNGData& bng_data,
       const BNG::Cplx& bng_inst,
       const Orientation orientation);
@@ -114,7 +120,6 @@ protected:
   void convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data);
 
 private:
-  void convert_elementary_molecule_type(const BNG::BNGData& bng_data, const BNG::ElemMolType& bng_mt);
   void convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::RxnRule& bng_rr);
 };
 

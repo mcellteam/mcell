@@ -131,6 +131,17 @@ public:
       // TODO: we can check that the BNGL string is correct here
       check_no_extra_fields_are_set();
     }
+
+    // compartment must not be set for species
+    std::vector<std::string> compartments;
+    get_compartment_names(name, compartments);
+    if (is_set(compartment_name) || !compartments.empty()) {
+      throw ValueError(S(NAME_CLASS_SPECIES) + " with " + NAME_NAME + " " +
+          name + " must not use any compartment.");
+    }
+
+    // need to finalize the initialization
+    Complex::postprocess_in_ctor();
   }
 
   bool __eq__(const Species& other) const override;

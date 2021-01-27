@@ -40,34 +40,12 @@ public:
   static std::shared_ptr<API::Complex> make_shared_empty() {
     // to avoid Complex object semantic check, we need to insert a dummy name
     // when creating the object
-    auto res_cplx_inst = std::make_shared<API::Complex>("TMP_NAME");
+    auto res_cplx_inst = std::make_shared<API::Complex>(STR_UNSET);
     res_cplx_inst->name = STR_UNSET;
     return res_cplx_inst;
   }
 
-  void postprocess_in_ctor() override {
-    // set compartment_name and check that there is only one
-    if (is_set(name)) {
-      std::vector<std::string> compartments;
-      // we do not want to use the BNG parser at thsi point
-      // or do we?
-      get_compartment_names(name, compartments);
-      if (!compartments.empty()) {
-        if (is_set(compartment_name)) {
-          throw ValueError("Complex " + name + " is defined with both compartment name in " +
-              NAME_NAME + " and in " + NAME_COMPARTMENT_NAME + ", only one is allowed.");
-        }
-
-        std::string single_compartment_name = compartments[0];
-        for (size_t i = 1; i < compartments.size(); i++) {
-          if (single_compartment_name != compartments[i]) {
-            throw ValueError("Complex cannot be in multiple compartments, error for " + name + ".");
-          }
-        }
-        compartment_name = single_compartment_name;
-      }
-    }
-  }
+  void postprocess_in_ctor() override;
 
   void check_semantics() const override {
     if (is_species_object()) {
@@ -75,18 +53,7 @@ public:
       return;
     }
     GenComplex::check_semantics();
-    if (get_num_set(name, elementary_molecules) != 1) {
-      throw ValueError(
-          S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULES +
-          " must be set for " + NAME_CLASS_COMPLEX + ".");
-    }
 
-    if (is_set(name)) {
-      if (is_simple_species(name) && name.find('.') != std::string::npos) {
-        throw ValueError("Simple species name must not contain '.', this is incompatible with BNGL definition"
-            ", error for " + name + ".");
-      }
-    }
   }
 
   bool __eq__(const Complex& other) const override;

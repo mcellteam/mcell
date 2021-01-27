@@ -203,12 +203,14 @@ state_id_t SemanticAnalyzer::convert_state_name(const ASTStrNode* s) {
 
 
 ComponentType SemanticAnalyzer::convert_component_type(
+    const std::string& elem_mol_type_name,
     const ASTComponentNode* c,
     const bool allow_components_to_have_bonds
 ) {
 
   ComponentType ct;
   ct.name = c->name;
+  ct.elem_mol_type_name = elem_mol_type_name;
 
   // states
   for (const ASTBaseNode* state: c->states->items) {
@@ -244,15 +246,15 @@ ElemMolType SemanticAnalyzer::convert_molecule_type(
     component_type_id_t ct_id = bng_data->find_component_type_id(mt, comp->name);
     if (ct_id == COMPONENT_TYPE_ID_INVALID) {
       // new component type
-      ComponentType ct = convert_component_type(to_component_node(c), parsing_single_cplx);
-      component_type_id_t new_ct_id = bng_data->find_or_add_component_type(ct);
+      ComponentType ct = convert_component_type(mt.name, to_component_node(c), parsing_single_cplx);
+      component_type_id_t new_ct_id = bng_data->find_or_add_component_type(ct, parsing_single_cplx);
       mt.component_type_ids.push_back(new_ct_id);
     }
     else {
       // check or add states used in the new component against
       // what we defined before
       ComponentType& existing_ct = bng_data->get_component_type(ct_id);
-      ComponentType new_ct = convert_component_type(comp, parsing_single_cplx);
+      ComponentType new_ct = convert_component_type(mt.name, comp, parsing_single_cplx);
       assert(existing_ct.name == new_ct.name);
       if (!parsing_single_cplx) {
         if (existing_ct.allowed_state_ids != new_ct.allowed_state_ids) {
@@ -492,6 +494,7 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
     for (auto comp_info_it: max_component_count_per_all_mts) {
       ComponentType new_ct;
       new_ct.name = comp_info_it.first;
+      new_ct.elem_mol_type_name = new_mt.name;
 
       for (const string& s: component_state_names[new_ct.name]) {
         state_id_t s_id = bng_data->find_or_add_state_name(s);
@@ -1014,7 +1017,7 @@ void SemanticAnalyzer::extend_molecule_type_definitions(const ASTCplxNode* cplx_
           // there is no such component, this may happen in cases such as:
           // CaMKII(l!1,Y286~0,cam!2).CaM(C~0,N~0,camkii!2).CaMKII(r!1,Y286~P)
           // we must add the component to the molecule type
-          ComponentType ct = convert_component_type(to_component_node(c), true);
+          ComponentType ct = convert_component_type(mt.name, to_component_node(c), true);
           component_type_id_t new_ct_id = bng_data->find_or_add_component_type(ct);
           mt.component_type_ids.push_back(new_ct_id);
         }

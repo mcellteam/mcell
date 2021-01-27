@@ -51,7 +51,8 @@ void append_to_vec(
         if (!item->__eq__(*existing)) {
           throw ValueError(
               "Adding object of " + item->class_name + " with name '" + item->name +
-              "' caused an error, object with the same name is already present but it is different."
+              "' caused an error, object with the same name is already present but it is different, " +
+              "\nexisting:\n" + existing->to_str() + "\nvs. new\n:" + item->to_str() + "."
           );
         }
         else {
@@ -84,7 +85,8 @@ void append_to_vec_canonical_name(
       // must be identical
       if (!are_equal) {
         throw ValueError(
-            "Adding " + name_in_msg + " caused an error, object with the same canonical name is already present but it is different."
+            "Adding " + name_in_msg + " caused an error, object with the same canonical name is already present but it is different, "
+            "\nexisting:\n" + existing->to_str() + "\nvs. new:\n " + item->to_str() + "."
         );
       }
       else {

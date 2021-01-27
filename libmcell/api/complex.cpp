@@ -22,6 +22,7 @@
 
 #include "api/complex.h"
 #include "api/species.h"
+#include "api/subsystem.h"
 #include "api/elementary_molecule.h"
 #include "api/elementary_molecule_type.h"
 #include "bng/bng.h"
@@ -30,6 +31,70 @@ using namespace std;
 
 namespace MCell {
 namespace API {
+
+void Complex::postprocess_in_ctor() {
+  if (name == STR_UNSET) {
+    // ignore
+    return;
+  }
+
+  // species did its own pre-initialization and simple complex has its
+  // elementary molecule fully defined
+  if (!is_species_object() && get_num_set(name, elementary_molecules) != 1) {
+    throw ValueError(
+        S("Exactly one of ") + NAME_NAME + " or " + NAME_ELEMENTARY_MOLECULES +
+        " must be set for " + NAME_CLASS_COMPLEX + ".");
+  }
+
+  if (is_set(name)) {
+    if (is_simple_species(name) && name.find('.') != std::string::npos) {
+      throw ValueError("Simple species or complex name must not contain '.', this is incompatible with BNGL definition"
+          ", error for " + name + ".");
+    }
+  }
+
+  // set compartment_name and check that there is only one
+  if (is_set(name)) {
+    std::vector<std::string> compartments;
+    // TODO: we do not want to use the BNG parser at this point or do we?
+    get_compartment_names(name, compartments);
+    if (!compartments.empty()) {
+      if (is_set(compartment_name)) {
+        throw ValueError("Complex " + name + " is defined with both compartment name in " +
+            NAME_NAME + " and in " + NAME_COMPARTMENT_NAME + ", only one is allowed.");
+      }
+
+      std::string single_compartment_name = compartments[0];
+      for (size_t i = 1; i < compartments.size(); i++) {
+        if (single_compartment_name != compartments[i]) {
+          throw ValueError("Complex cannot be in multiple compartments, error for " + name + ".");
+        }
+      }
+      compartment_name = single_compartment_name;
+    }
+  }
+
+  // if name was set, parse it and initialize elementary_molecules
+  if (is_set(name) && !is_set(elementary_molecules)) {
+    // parse BNGL string
+    BNG::BNGData local_bng_data;
+    BNG::Cplx bng_cplx(&local_bng_data);
+    int num_errors = BNG::parse_single_cplx_string(name, local_bng_data, bng_cplx);
+    if (num_errors) {
+      throw ValueError("Could not parse BNGL string " + name + " that defines a " + NAME_CLASS_COMPLEX + ".");
+    }
+
+    // convert BNG data to elementary_molecules
+    std::shared_ptr<API::Complex> converted_complex = Subsystem::convert_cplx(local_bng_data, bng_cplx);
+
+    // and copy resulting elementary molecules array
+    elementary_molecules = converted_complex->elementary_molecules;
+    assert(!is_set(converted_complex->compartment_name) || compartment_name == converted_complex->compartment_name);
+  }
+
+  assert(!elementary_molecules.empty());
+}
+
 
 const std::string& Complex::get_canonical_name() const {
   if (cached_data_are_uptodate && canonical_name != "") {

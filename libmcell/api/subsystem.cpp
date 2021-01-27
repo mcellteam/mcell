@@ -56,7 +56,8 @@ void Subsystem::unify_and_register_elementary_molecule_types() {
   // then go through Species
   for (std::shared_ptr<Species> s: species) {
     for (size_t i = 0; i < s->elementary_molecules.size(); i++) {
-      std::shared_ptr<ElementaryMoleculeType> emt = s->elementary_molecules[i]->elementary_molecule_type;
+      // note the reference, we might be changing this spared ptr
+      std::shared_ptr<ElementaryMoleculeType>& emt = s->elementary_molecules[i]->elementary_molecule_type;
 
       // do we have this exact object already?
       auto it_ptr_eq = std::find_if(
@@ -82,12 +83,41 @@ void Subsystem::unify_and_register_elementary_molecule_types() {
         // destroy the previous one (creation of the EMT object to be destroyed
         // occurs mainly when defining simple species, so the link from species to this emt
         // is internal and not visible to the user)
-        s->elementary_molecules[i]->elementary_molecule_type = *it_contents_eq;
+        emt = *it_contents_eq;
+        continue;
       }
-      else{
-        // no such object is in the emt list, add it (reports error if such object already exists)
-        add_elementary_molecule_type(emt);
+
+      // one more option is that some of the elementary molecule types that we encounter are not
+      // fully initialized, for now expecting that the the fully initialized one is already present
+      auto it_name_eq = std::find_if(
+          elementary_molecule_types.begin(), elementary_molecule_types.end(),
+          [&emt] (const std::shared_ptr<ElementaryMoleculeType> emt_existing) {
+            return emt_existing->name == emt->name; // comparing contents
+          }
+      );
+      if (it_name_eq != elementary_molecule_types.end()) {
+        // use the one that is initialized
+        if (!(*it_name_eq)->all_numerical_attributes_are_unset() &&
+            emt->all_numerical_attributes_are_unset()
+        ) {
+          // update the pointer used in the Species object
+          emt = *it_name_eq;
+          continue;
+        }
+
+        if ((*it_name_eq)->all_numerical_attributes_are_unset() &&
+            !emt->all_numerical_attributes_are_unset()
+        ) {
+          // update the one in elementary_molecule_types using the Species object
+          *it_name_eq = emt;
+          continue;
+        }
+
+        // other cases are error and will be reported in add_elementary_molecule_type
       }
+
+      // no such object is in the emt list, add it (reports error if such object already exists)
+      add_elementary_molecule_type(emt);
     }
   }
 }
@@ -113,7 +143,8 @@ void Subsystem::load_bngl_molecule_types_and_reaction_rules(
 void Subsystem::convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data) {
   // elementary molecules
   for (const BNG::ElemMolType& mt: bng_data.get_elem_mol_types()) {
-    convert_elementary_molecule_type(bng_data, mt);
+    auto res_mt = convert_elementary_molecule_type(bng_data, mt);
+    append_to_vec_canonical_name(elementary_molecule_types, res_mt);
   }
 
   // reaction rules
@@ -123,7 +154,8 @@ void Subsystem::convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data)
 }
 
 
-void Subsystem::convert_elementary_molecule_type(const BNG::BNGData& bng_data, const BNG::ElemMolType& bng_mt) {
+std::shared_ptr<API::ElementaryMoleculeType> Subsystem::convert_elementary_molecule_type(
+    const BNG::BNGData& bng_data, const BNG::ElemMolType& bng_mt) {
 
   const string& name = bng_mt.name;
   auto res_mt = make_shared<API::ElementaryMoleculeType>(name);
@@ -162,7 +194,7 @@ void Subsystem::convert_elementary_molecule_type(const BNG::BNGData& bng_data, c
     res_mt->components.push_back(ct);
   }
 
-  append_to_vec_canonical_name(elementary_molecule_types, res_mt);
+  return res_mt;
 }
 
 
@@ -217,7 +249,6 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 }
 
 
-
 std::shared_ptr<API::Complex> Subsystem::convert_cplx(
     const BNG::BNGData& bng_data,
     const BNG::Cplx& bng_cplx) {
@@ -228,8 +259,9 @@ std::shared_ptr<API::Complex> Subsystem::convert_cplx(
   for (const BNG::ElemMol& bmg_mi: bng_cplx.elem_mols) {
 
     // find molecule type and create an instance
-    const string& mt_name = bng_data.get_elem_mol_type(bmg_mi.elem_mol_type_id).name;
-    std::shared_ptr<ElementaryMoleculeType> api_emt = find_elementary_molecule_type(mt_name);
+    const BNG::ElemMolType& emt = bng_data.get_elem_mol_type(bmg_mi.elem_mol_type_id);
+    std::shared_ptr<ElementaryMoleculeType> api_emt =
+        Subsystem::convert_elementary_molecule_type(bng_data, emt);
     assert(is_set(api_emt));
 
     // prepare a vector of component instances with their bonds set

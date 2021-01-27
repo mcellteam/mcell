@@ -152,13 +152,14 @@ Complex:
     default: empty
     doc: | 
        When set, this complex instance is initialized from a BNGL string passed as this argument, 
-       the string is parsed during model initialization so the molecule types it uses
-       don't have to be defined before initialization.
+       the string is parsed and elementary_molecules and compartment are initialized.
   
   - name: elementary_molecules
     type: List[ElementaryMolecule*]
     default: empty
-    doc: Individual molecule instances contained in the complex.
+    doc: |
+       Individual molecule instances contained in the complex.
+       This information is used during model initialization.
 
   - name: orientation
     type: Orientation 

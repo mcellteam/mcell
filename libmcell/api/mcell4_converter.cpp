@@ -173,7 +173,7 @@ species_id_t MCell4Converter::get_species_id_for_complex(
   if (!bng_ci.is_fully_qualified()) {
     // TODO: add test
     throw ValueError(
-        error_msg + ": " + NAME_COMPLEX + "'" + bng_ci.to_str() + "' must be fully qualified " +
+        error_msg + ": " + NAME_COMPLEX + " '" + bng_ci.to_str() + "' must be fully qualified " +
         "(all components must be present and their state set).");
   }
 
@@ -430,7 +430,6 @@ BNG::elem_mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
     return api_mt.mol_type_id;
   }
 
-
   BNG::BNGData& bng_data = world->bng_engine.get_data();
 
   BNG::ElemMolType bng_mt;
@@ -466,12 +465,18 @@ BNG::elem_mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
     BNG::ComponentType bng_ct;
 
     bng_ct.name = api_ct->name;
+    bng_ct.elem_mol_type_name = bng_mt.name;
 
     for (const string& state: api_ct->states) {
       bng_ct.allowed_state_ids.insert_unique(bng_data.find_or_add_state_name(state));
     }
 
-    bng_mt.component_type_ids.push_back(bng_data.find_or_add_component_type(bng_ct));
+    BNG::component_type_id_t ct_id = bng_data.find_or_add_component_type(bng_ct);
+    if (ct_id == BNG::COMPONENT_TYPE_ID_INVALID) {
+      throw ValueError("Conflicting component type " + api_ct->to_bngl_str() + ", " +
+          " component with the same name already exists but has different allowed states.");
+    }
+    bng_mt.component_type_ids.push_back(ct_id);
   }
 
   if (!in_rxn_or_observables) {
@@ -511,7 +516,8 @@ void MCell4Converter::convert_species() {
       new_species.space_step = 0;
       new_species.time_step = 0;
     }
-    else if (s->elementary_molecules.empty()) {
+    else {
+      // this is a declaration of a possibly complex molecule, all used elementary molecules must be defined
 
       if (is_set(s->custom_time_step) || is_set(s->custom_space_step)) {
         throw ValueError("Species declaration " + new_species.name + " must not use " +
@@ -520,7 +526,6 @@ void MCell4Converter::convert_species() {
         );
       }
 
-      // this is a declaration of a possibly complex molecule, all used elementary molecules must be defined
       BNG::Cplx bng_cplx(&world->bng_engine.get_data());
       new_species.elem_mols = convert_complex(*s, false, false).elem_mols;
 
@@ -530,19 +535,23 @@ void MCell4Converter::convert_species() {
         throw ValueError("Species declaration " + new_species.name + " must use a fully qualified BNGL string for initialization.");
       }
 
+      // check that all used elementary molecule types have their diffusion constant specified
+      for (const BNG::ElemMol& em: new_species.elem_mols) {
+        const BNG::ElemMolType& emt = world->bng_engine.get_data().get_elem_mol_type(em.elem_mol_type_id);
+
+        if (emt.D == FLT_INVALID) {
+          throw ValueError(S("Neither ") + NAME_DIFFUSION_CONSTANT_2D + " nor " +
+              NAME_DIFFUSION_CONSTANT_3D + " was set for an elementary molecule " + emt.name +
+              " used in " + NAME_CLASS_SPECIES + " " + s->to_bngl_str() + ".");
+        }
+      }
+
       // register and remember which species we created
       species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
       s->species_id = new_species_id;
 
       // we completely converted this declaration
       continue;
-    }
-    else if (!is_set(model->find_elementary_molecule_type(s->name))) {
-      // report error if we don't have an elementary molecule type for this simple species
-      // TODO: complex species cannot be defined like this
-      throw ValueError(S("Neither ") + NAME_DIFFUSION_CONSTANT_2D + " nor " +
-          NAME_DIFFUSION_CONSTANT_3D + " was set for " + NAME_CLASS_SPECIES + " " +
-          s->to_bngl_str() + ".");
     }
 	
     new_species.set_flag(BNG::SPECIES_MOL_FLAG_TARGET_ONLY, s->target_only); // default is false
@@ -681,23 +690,32 @@ void MCell4Converter::convert_surface_classes() {
 }
 
 
-BNG::component_type_id_t MCell4Converter::convert_component_type(API::ComponentType& api_ct) {
+BNG::component_type_id_t MCell4Converter::convert_component_type(
+    const std::string& elem_mol_type_name, API::ComponentType& api_ct) {
   // component types are identified by their name and set of allowed states, not just by their name
   BNG::ComponentType bng_ct;
 
   bng_ct.name = api_ct.name;
+  bng_ct.elem_mol_type_name = elem_mol_type_name;
 
   for (string& s: api_ct.states) {
     bng_ct.allowed_state_ids.insert( world->bng_engine.get_data().find_or_add_state_name(s) );
   }
 
-  return world->bng_engine.get_data().find_or_add_component_type(bng_ct);
+  BNG::component_type_id_t ct_id = world->bng_engine.get_data().find_or_add_component_type(bng_ct);
+  if (ct_id == BNG::COMPONENT_TYPE_ID_INVALID) {
+    throw ValueError("Conflicting component type " + api_ct.to_bngl_str() + ", " +
+        " component with the same name already exists but has different allowed states.");
+  }
+
+  return ct_id;
 }
 
 
-BNG::Component MCell4Converter::convert_component_instance(API::Component& api_ci) {
+BNG::Component MCell4Converter::convert_component_instance(
+    const std::string& elem_mol_type_name, API::Component& api_ci) {
 
-  BNG::Component res(convert_component_type(*api_ci.component_type));
+  BNG::Component res(convert_component_type(elem_mol_type_name, *api_ci.component_type));
 
   if (api_ci.state == STATE_UNSET) {
     res.state_id = BNG::STATE_ID_DONT_CARE;
@@ -731,7 +749,7 @@ BNG::ElemMol MCell4Converter::convert_molecule_instance(API::ElementaryMolecule&
   res.elem_mol_type_id = convert_elementary_molecule_type(*mi.elementary_molecule_type, in_rxn_or_observables);
 
   for (std::shared_ptr<API::Component>& api_ci: mi.components) {
-    res.components.push_back(convert_component_instance(*api_ci));
+    res.components.push_back(convert_component_instance(mi.elementary_molecule_type->name, *api_ci));
   }
 
   // we must also copy flags from the mol type
@@ -752,15 +770,12 @@ BNG::Cplx MCell4Converter::convert_complex(API::Complex& api_cplx, const bool in
       bng_cplx.elem_mols.push_back(mi);
     }
   }
-  else if (is_set(api_cplx.name)) {
-    // parse BNGL string
-    int num_errors = BNG::parse_single_cplx_string(api_cplx.name, world->bng_engine.get_data(), bng_cplx);
-    if (num_errors) {
-      throw ValueError("Could not parse BNGL string " + api_cplx.name + " that defines a " + NAME_CLASS_COMPLEX + ".");
-    }
-  }
   else {
-    release_assert(false);
+    throw ValueError(
+        "Complex with name " + api_cplx.name + " does not have its " + NAME_ELEMENTARY_MOLECULES + " set. "
+        "It should be always set because initialization of " + NAME_CLASS_COMPLEX + " from " + NAME_NAME + " is done "
+        "in this class' constructor."
+    );
   }
 
   // orientation or compartment does not have to be set for finalization,

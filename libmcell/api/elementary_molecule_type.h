@@ -54,6 +54,17 @@ public:
   // added methods
   std::string get_canonical_name() const;
 
+  bool all_numerical_attributes_are_unset() const {
+    // NOTE: this must be updated when attributtes are added
+    return
+      !is_set(diffusion_constant_2d) &&
+      !is_set(diffusion_constant_3d) &&
+      !is_set(custom_time_step) &&
+      !is_set(custom_space_step) &&
+      !target_only
+    ;
+  }
+
   bool warn_if_adding_identical_object() const { return false; }
 
   // mapping to MCell4
