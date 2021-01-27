@@ -216,7 +216,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 ) {
   Molecule& m_initial = p.get_m(m_id);
   float_t diffusion_start_time = m_initial.diffusion_time;
-  assert(diffusion_start_time >= event_time && before_this_iterations_end(diffusion_start_time));
+  assert(diffusion_start_time + EPS >= event_time && before_this_iterations_end(diffusion_start_time));
   assert(m_initial.birthday != TIME_INVALID && m_initial.birthday <= diffusion_start_time);
 
   if (m_initial.is_defunct()) {
