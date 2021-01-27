@@ -623,20 +623,28 @@ void World::reset_unimol_rxn_times(const BNG::rxn_rule_id_t rxn_rule_id) {
   const BNG::RxnRule* rxn = get_all_rxns().get(rxn_rule_id);
   assert(rxn->is_unimol());
 
-  set<species_id_t> affected_species;
-  const auto& users = rxn->get_rxn_classed_where_used();
-  for (const auto& u: users) {
-    assert(u->specific_reactants.size() == 1);
-    affected_species.insert(u->specific_reactants[0].species_id);
-  }
-
   // and then reset unimol time for each molecule of that species
   for (Partition& p: partitions) {
     for (Molecule& m: p.get_molecules()) {
-      if (affected_species.count(m.species_id) != 0) {
+
+      assert((rxn->species_applicable_as_any_reactant.count(m.species_id) != 0 ||
+          rxn->species_not_applicable_as_any_reactant.count(m.species_id) != 0) &&
+          "This unimol rxn must have been analyzed for this species because the species are instantiated");
+
+      if (rxn->species_applicable_as_any_reactant.count(m.species_id) != 0) {
         // new unimol time will be computed when the molecule is diffused
         // the next time (we cannot change it right away for molecules that
         // have longer timestep anyway because they were already diffused to the future)
+
+        // is this a nondiffusible molecule? - these don't have to be not scheduled and therefore
+        // their unimol rxn time does not need to be recomputed
+        const BNG::Species& s = get_all_species().get(m.species_id);
+        if (!s.can_diffuse() && (m.diffusion_time == TIME_FOREVER || m.diffusion_time == m.unimol_rx_time)) {
+          // we cannot change the unimol rate if we are currently diffusing, but
+          // let's update it as soon as possible
+          m.diffusion_time = scheduler.get_next_event_time();
+        }
+
         m.unimol_rx_time = TIME_INVALID;
         m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
         m.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);

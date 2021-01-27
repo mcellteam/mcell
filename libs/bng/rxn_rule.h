@@ -229,8 +229,10 @@ private:
   uint next_variable_rate_index;
 
   // maintain information on where this reaction was used in order to
-  // update all classes if this reaction's rate constant changes
-  // TODO: check that this does not grow too much
+  // update all classes if this reaction's rate constant changes due to variable reaction
+  // rate MDL feature, not used in
+  // WARNING: do not use to figure out whether which species may be affected because this
+  // gets periodically cleaned
   std::set<RxnClass*> rxn_classes_where_used;
 
 public:
@@ -449,10 +451,6 @@ public:
 
   void add_rxn_class_where_used(RxnClass* rxn_class) {
     rxn_classes_where_used.insert(rxn_class);
-  }
-
-  const std::set<RxnClass*>& get_rxn_classed_where_used() const {
-    return rxn_classes_where_used;
   }
 
   void reset_rxn_classes_where_used() {

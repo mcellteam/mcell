@@ -659,8 +659,6 @@ void RxnContainer::print_periodic_stats() const {
     not_applicable_total += rxn->species_not_applicable_as_any_reactant.size();
     not_applicable_total += rxn->species_not_applicable_as_reactant[0].size();
     not_applicable_total += rxn->species_not_applicable_as_reactant[1].size();
-
-    rnx_class_users_total += rxn->get_rxn_classed_where_used().size();
   }
 
   std::cout <<
@@ -674,9 +672,7 @@ void RxnContainer::print_periodic_stats() const {
       "RxnContainer: rxn_rules - total species applicable as reactant = " <<
         applicable_total << "\n" <<
       "RxnContainer: rxn_rules - total species not applicable as reactant = " <<
-        not_applicable_total << "\n"
-      "RxnContainer: rxn_rules - total rxn classes where used = " <<
-        rnx_class_users_total << "\n";
+        not_applicable_total << "\n";
 
 #undef ITEM_SIZE
 }
