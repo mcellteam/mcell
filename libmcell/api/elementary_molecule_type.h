@@ -29,6 +29,11 @@
 #include "api/api_common.h"
 #include "api/elementary_molecule.h"
 
+namespace BNG {
+class BNGData;
+class ElemMolType;
+}
+
 namespace MCell {
 namespace API {
 
@@ -36,6 +41,10 @@ class ElementaryMoleculeType:
     public GenElementaryMoleculeType, public std::enable_shared_from_this<ElementaryMoleculeType> {
 public:
   ELEMENTARY_MOLECULE_TYPE_CTOR()
+
+  static std::shared_ptr<API::ElementaryMoleculeType> construct_from_bng_elem_mol_type(
+    const BNG::BNGData& bng_data,
+    const BNG::ElemMolType& bng_mt);
 
   void postprocess_in_ctor() override {
     mol_type_id = BNG::MOL_TYPE_ID_INVALID;

@@ -108,7 +108,7 @@ void Observables::convert_observable(
   count->file_name = output_files_prefix + o.name + ".dat";
 
   std::shared_ptr<API::Complex> pattern =
-      subsystem.convert_cplx(bng_data, o.patterns[0]);
+      Complex::construct_from_bng_cplx(bng_data, o.patterns[0]);
 
   if (o.type == ObservableType::Molecules) {
     count->molecules_pattern = pattern;

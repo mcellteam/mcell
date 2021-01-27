@@ -28,6 +28,11 @@
 #include "api/api_utils.h"
 #include "api/compartment_utils.h"
 
+namespace BNG {
+class BNGData;
+class Cplx;
+}
+
 namespace MCell {
 namespace API {
 
@@ -37,13 +42,22 @@ class Complex: public GenComplex {
 public:
   COMPLEX_CTOR()
 
-  static std::shared_ptr<API::Complex> make_shared_empty() {
+  static std::shared_ptr<API::Complex> construct_empty() {
     // to avoid Complex object semantic check, we need to insert a dummy name
     // when creating the object
     auto res_cplx_inst = std::make_shared<API::Complex>(STR_UNSET);
     res_cplx_inst->name = STR_UNSET;
     return res_cplx_inst;
   }
+
+  static std::shared_ptr<API::Complex> construct_from_bng_cplx(
+      const BNG::BNGData& bng_data,
+      const BNG::Cplx& bng_inst);
+
+  static std::shared_ptr<API::Complex> construct_from_bng_cplx_w_orientation(
+      const BNG::BNGData& bng_data,
+      const BNG::Cplx& bng_inst,
+      const Orientation orientation);
 
   void postprocess_in_ctor() override;
 

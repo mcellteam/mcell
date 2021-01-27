@@ -100,22 +100,6 @@ public:
 
   void dump() const;
 
-
-  // auxiliary methods used also from Instantiation and other places
-  // TODO: move into ElementaryMoleculeType and Complex
-  static std::shared_ptr<API::ElementaryMoleculeType> convert_elementary_molecule_type(
-      const BNG::BNGData& bng_data,
-      const BNG::ElemMolType& bng_mt);
-
-  static std::shared_ptr<API::Complex> convert_cplx(
-      const BNG::BNGData& bng_data,
-      const BNG::Cplx& bng_inst);
-
-  static std::shared_ptr<API::Complex> convert_cplx_w_orientation(
-      const BNG::BNGData& bng_data,
-      const BNG::Cplx& bng_inst,
-      const Orientation orientation);
-
 protected:
   void convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data);
 

@@ -151,7 +151,7 @@ void Instantiation::convert_single_seed_species_to_release_site(
 
   // we need to create API representation for the cplx instance we got
   rel_site->complex =
-      Subsystem::convert_cplx(bng_data, bng_ss.cplx);
+      Complex::construct_from_bng_cplx(bng_data, bng_ss.cplx);
 
   // releases from BNGL always used the default orientation
   rel_site->complex->orientation = Orientation::DEFAULT;

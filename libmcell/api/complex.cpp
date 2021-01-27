@@ -23,6 +23,8 @@
 #include "api/complex.h"
 #include "api/species.h"
 #include "api/subsystem.h"
+#include "api/component.h"
+#include "api/component_type.h"
 #include "api/elementary_molecule.h"
 #include "api/elementary_molecule_type.h"
 #include "bng/bng.h"
@@ -31,6 +33,96 @@ using namespace std;
 
 namespace MCell {
 namespace API {
+
+
+
+static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
+  // we would like the BNG library to be independent, therefore
+  // the BNG library does not use the same constants as the API
+  switch (bng_bond_value) {
+    case BNG::BOND_VALUE_INVALID:
+      release_assert("Invalid bond value"); // should not really happen
+      return -2;
+    case BNG::BOND_VALUE_BOUND: // represents !+
+      return BOND_BOUND;
+    case BNG::BOND_VALUE_ANY: // represents !+
+      return BOND_ANY;
+    case BNG::BOND_VALUE_UNBOUND: // no
+      return BOND_UNBOUND;
+    default:
+      return bng_bond_value;
+  }
+}
+
+
+std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
+    const BNG::BNGData& bng_data,
+    const BNG::Cplx& bng_cplx) {
+
+  std::shared_ptr<API::Complex> res_cplx_inst = API::Complex::construct_empty();
+
+  // convert each molecule instance
+  for (const BNG::ElemMol& bmg_mi: bng_cplx.elem_mols) {
+
+    // find molecule type and create an instance
+    const BNG::ElemMolType& emt = bng_data.get_elem_mol_type(bmg_mi.elem_mol_type_id);
+    std::shared_ptr<ElementaryMoleculeType> api_emt =
+        ElementaryMoleculeType::construct_from_bng_elem_mol_type(bng_data, emt);
+    assert(is_set(api_emt));
+
+    // prepare a vector of component instances with their bonds set
+    std::vector<std::shared_ptr<API::Component>> api_comp_instances;
+    for (const BNG::Component& bng_ci: bmg_mi.components) {
+      const std::string& ct_name = bng_data.get_component_type(bng_ci.component_type_id).name;
+
+      // we need to define component type here, they are not global
+      // and belong to the elementary molecule type
+      std::shared_ptr<API::ComponentType> api_ct = vec_find_by_name(api_emt->components, ct_name);
+      auto api_comp_inst = make_shared<API::Component>(api_ct);
+
+      if (bng_ci.state_id != BNG::STATE_ID_DONT_CARE) {
+        api_comp_inst->state = bng_data.get_state_name(bng_ci.state_id);
+      }
+      api_comp_inst->bond = convert_bond_value(bng_ci.bond_value);
+
+      api_comp_instances.push_back(api_comp_inst);
+    }
+
+    // and append instantiated elementary molecule type
+    res_cplx_inst->elementary_molecules.push_back(api_emt->inst(api_comp_instances));
+  }
+
+  // set compartment
+  if (bng_cplx.has_compartment()) {
+    if (bng_cplx.has_compartment_class_in_out()) {
+      res_cplx_inst->compartment_name = BNG::compartment_id_to_str(bng_cplx.get_compartment_id());
+    }
+    else {
+      res_cplx_inst->compartment_name = bng_data.get_compartment(bng_cplx.get_compartment_id()).name;
+    }
+  }
+
+  return res_cplx_inst;
+}
+
+
+// sets orientation if the resulting cplx is a surface cplx
+std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx_w_orientation(
+    const BNG::BNGData& bng_data,
+    const BNG::Cplx& bng_inst,
+    const Orientation orientation) {
+  shared_ptr<API::Complex> res =
+      Complex::construct_from_bng_cplx(bng_data, bng_inst);
+
+  // only after conversion we can know whether a molecule is of surface volume type,
+  // it is determined from the diffusion constants set with MCELL_DIFFUSION_CONSTANT_*
+  if (res->is_surf()) {
+    res->orientation = orientation;
+  }
+
+  return res;
+}
+
 
 void Complex::postprocess_in_ctor() {
   if (name == STR_UNSET) {
@@ -85,7 +177,8 @@ void Complex::postprocess_in_ctor() {
     }
 
     // convert BNG data to elementary_molecules
-    std::shared_ptr<API::Complex> converted_complex = Subsystem::convert_cplx(local_bng_data, bng_cplx);
+    std::shared_ptr<API::Complex> converted_complex =
+        Complex::construct_from_bng_cplx(local_bng_data, bng_cplx);
 
     // and copy resulting elementary molecules array
     elementary_molecules = converted_complex->elementary_molecules;
