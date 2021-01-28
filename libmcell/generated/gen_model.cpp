@@ -26,6 +26,7 @@
 #include "gen_model.h"
 #include "api/model.h"
 #include "api/base_chkpt_mol.h"
+#include "api/complex.h"
 #include "api/api_config.h"
 #include "api/count.h"
 #include "api/elementary_molecule_type.h"
@@ -151,7 +152,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("add_count", &Model::add_count, py::arg("count"))
       .def("find_count", &Model::find_count, py::arg("name"))
       .def("load_bngl_observables", &Model::load_bngl_observables, py::arg("file_name"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>())
-      .def("get_molecule_ids", &Model::get_molecule_ids, py::arg("species") = nullptr)
+      .def("get_molecule_ids", &Model::get_molecule_ids, py::arg("pattern") = nullptr)
       .def("get_molecule", &Model::get_molecule, py::arg("id"))
       .def("get_species_name", &Model::get_species_name, py::arg("species_id"))
       .def("get_vertex", &Model::get_vertex, py::arg("object"), py::arg("vertex_index"))

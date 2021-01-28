@@ -44,7 +44,7 @@ public:
 
   void initialize_introspection(Model* model_);
 
-  std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
+  std::vector<int> get_molecule_ids(std::shared_ptr<Complex> pattern = nullptr) override;
   std::shared_ptr<Molecule> get_molecule(const int id) override;
 
   std::string get_species_name(const int species_id) override;

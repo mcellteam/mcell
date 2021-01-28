@@ -618,7 +618,7 @@ class Introspection():
 
     def get_molecule_ids(
             self,
-            species : Species = None
+            pattern : Complex = None
         ) -> 'List[int]':
         pass
 
@@ -945,7 +945,7 @@ class Model():
 
     def get_molecule_ids(
             self,
-            species : Species = None
+            pattern : Complex = None
         ) -> 'List[int]':
         pass
 

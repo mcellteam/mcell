@@ -39,6 +39,7 @@ namespace API {
 
 class Model;
 class BaseChkptMol;
+class Complex;
 class Config;
 class Count;
 class ElementaryMoleculeType;

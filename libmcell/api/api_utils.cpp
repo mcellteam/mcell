@@ -23,11 +23,14 @@
 #include "api/api_utils.h"
 
 #include <time.h>
+#include <string>
+
+using namespace std;
 
 namespace MCell {
 namespace API {
 
-Orientation convert_orientation(const orientation_t o) {
+Orientation convert_mcell_orientation(const orientation_t o) {
   switch (o) {
     case ORIENTATION_DOWN:
       return Orientation::DOWN;
@@ -40,6 +43,34 @@ Orientation convert_orientation(const orientation_t o) {
     default:
       assert(false);
       return Orientation::NOT_SET;
+  }
+}
+
+
+orientation_t convert_api_orientation(const Orientation o, const bool allow_default, const bool is_vol) {
+  switch (o) {
+    case Orientation::DEFAULT:
+      if (!allow_default) {
+        throw ValueError("Invalid Orientation value " + to_string((int)o) + " (DEFAULT).");
+      }
+      if (is_vol) {
+        return ORIENTATION_NONE;
+      }
+      else {
+        return ORIENTATION_UP;
+      }
+    case Orientation::DOWN:
+      return ORIENTATION_DOWN;
+    case Orientation::NONE:
+      return ORIENTATION_NONE;
+    case Orientation::UP:
+      return ORIENTATION_UP;
+    case Orientation::NOT_SET:
+      throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
+    case Orientation::ANY:
+      return ORIENTATION_NONE;
+    default:
+      throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
   }
 }
 

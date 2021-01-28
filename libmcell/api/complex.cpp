@@ -194,6 +194,8 @@ const std::string& Complex::get_canonical_name() const {
     return canonical_name;
   }
 
+  // note: using the elementary_molecules array would be faster but using parser is simpler to implement
+
   // get BNGL string and parse it, then get canonical name
   BNG::BNGConfig bng_config;
   BNG::BNGEngine bng_engine(bng_config);

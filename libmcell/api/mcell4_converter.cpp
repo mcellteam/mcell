@@ -46,33 +46,6 @@ using namespace std;
 namespace MCell {
 namespace API {
 
-static orientation_t convert_orientation(const Orientation o, const bool allow_default = false, const bool is_vol = true) {
-  switch (o) {
-    case Orientation::DEFAULT:
-      if (!allow_default) {
-        throw ValueError("Invalid Orientation value " + to_string((int)o) + " (DEFAULT).");
-      }
-      if (is_vol) {
-        return ORIENTATION_NONE;
-      }
-      else {
-        return ORIENTATION_UP;
-      }
-    case Orientation::DOWN:
-      return ORIENTATION_DOWN;
-    case Orientation::NONE:
-      return ORIENTATION_NONE;
-    case Orientation::UP:
-      return ORIENTATION_UP;
-    case Orientation::NOT_SET:
-      throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
-    case Orientation::ANY:
-      return ORIENTATION_NONE;
-    default:
-      throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
-  }
-}
-
 
 static viz_mode_t convert_viz_mode(const VizMode m) {
   switch (m) {
@@ -83,6 +56,12 @@ static viz_mode_t convert_viz_mode(const VizMode m) {
     default:
       throw ValueError("Invalid VizMode value " + to_string((int)m) + ".");
   }
+}
+
+
+MCell4Converter::MCell4Converter(Model* model_, World* world_) :
+  model(model_), world(world_),
+  bng_converter(world_->bng_engine.get_data(), world_->bng_engine.get_config()) {
 }
 
 
@@ -169,7 +148,7 @@ species_id_t MCell4Converter::get_species_id_for_complex(
     API::Complex& ci, const std::string error_msg, const bool check_orientation) {
   // check that the complex instance if fully qualified
 
-  BNG::Cplx bng_ci = convert_complex(ci, true, !check_orientation);
+  BNG::Cplx bng_ci = bng_converter.convert_complex(ci, true, !check_orientation);
   if (!bng_ci.is_fully_qualified()) {
     // TODO: add test
     throw ValueError(
@@ -423,76 +402,12 @@ void MCell4Converter::convert_simulation_setup() {
 }
 
 
-BNG::elem_mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
-    API::ElementaryMoleculeType& api_mt, const bool in_rxn_or_observables) {
-  if (api_mt.mol_type_id != BNG::MOL_TYPE_ID_INVALID) {
-    // already converted
-    return api_mt.mol_type_id;
-  }
-
-  BNG::BNGData& bng_data = world->bng_engine.get_data();
-
-  BNG::ElemMolType bng_mt;
-
-  bng_mt.name = api_mt.name;
-
-  if (!in_rxn_or_observables) {
-    if (is_set(api_mt.diffusion_constant_2d)) {
-      bng_mt.set_is_surf();
-      bng_mt.D = api_mt.diffusion_constant_2d;
-    }
-    else if (is_set(api_mt.diffusion_constant_3d)) {
-      bng_mt.set_is_vol();
-      bng_mt.D = api_mt.diffusion_constant_3d;
-    }
-    else {
-      throw RuntimeError(S("Diffusion constant for ") + NAME_CLASS_ELEMENTARY_MOLECULE_TYPE +
-          " '" + bng_mt.name + "' was not set.");
-    }
-
-    if (is_set(api_mt.custom_time_step)) {
-      bng_mt.custom_time_step = api_mt.custom_time_step;
-    }
-    else if (is_set(api_mt.custom_space_step)) {
-      bng_mt.custom_space_step = api_mt.custom_space_step;
-    }
-
-    bng_mt.set_flag(BNG::SPECIES_MOL_FLAG_TARGET_ONLY, api_mt.target_only);
-  }
-
-  // components
-  for (std::shared_ptr<API::ComponentType> api_ct: api_mt.components) {
-    BNG::ComponentType bng_ct;
-
-    bng_ct.name = api_ct->name;
-    bng_ct.elem_mol_type_name = bng_mt.name;
-
-    for (const string& state: api_ct->states) {
-      bng_ct.allowed_state_ids.insert_unique(bng_data.find_or_add_state_name(state));
-    }
-
-    BNG::component_type_id_t ct_id = bng_data.find_or_add_component_type(bng_ct);
-    if (ct_id == BNG::COMPONENT_TYPE_ID_INVALID) {
-      throw ValueError("Conflicting component type " + api_ct->to_bngl_str() + ", " +
-          " component with the same name already exists but has different allowed states.");
-    }
-    bng_mt.component_type_ids.push_back(ct_id);
-  }
-
-  if (!in_rxn_or_observables) {
-    // we can convert only definitions
-    bng_mt.compute_space_and_time_step(world->bng_engine.get_config());
-  }
-
-  return bng_data.find_or_add_elem_mol_type(bng_mt);
-}
-
 
 void MCell4Converter::convert_elementary_molecule_types() {
   BNG::BNGData& bng_data = world->bng_engine.get_data();
 
   for (std::shared_ptr<API::ElementaryMoleculeType>& api_mt: model->elementary_molecule_types) {
-    convert_elementary_molecule_type(*api_mt);
+    bng_converter.convert_elementary_molecule_type(*api_mt);
   }
 }
 
@@ -527,7 +442,7 @@ void MCell4Converter::convert_species() {
       }
 
       BNG::Cplx bng_cplx(&world->bng_engine.get_data());
-      new_species.elem_mols = convert_complex(*s, false, false).elem_mols;
+      new_species.elem_mols = bng_converter.convert_complex(*s, false, false).elem_mols;
 
       new_species.finalize(world->config);
 
@@ -597,7 +512,7 @@ void MCell4Converter::convert_surface_class_rxn(
     API::SurfaceProperty& sp, const BNG::Species& surface_reactant) {
 
   BNG::Cplx affected_pattern =
-      convert_complex(*sp.affected_complex_pattern, false, true);
+      bng_converter.convert_complex(*sp.affected_complex_pattern, false, true);
 
   BNG::RxnRule rxn(&world->bng_engine.get_data());
 
@@ -632,7 +547,7 @@ void MCell4Converter::convert_surface_class_rxn(
   affected_pattern.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
 
   // NONE is ANY in rxns
-  orientation_t orient = convert_orientation(sp.affected_complex_pattern->orientation, true);
+  orientation_t orient = convert_api_orientation(sp.affected_complex_pattern->orientation, true);
   rxn.append_reactant(affected_pattern);
 
   rxn.append_reactant(surface_reactant); // copies the input reactant
@@ -690,153 +605,6 @@ void MCell4Converter::convert_surface_classes() {
 }
 
 
-BNG::component_type_id_t MCell4Converter::convert_component_type(
-    const std::string& elem_mol_type_name, API::ComponentType& api_ct) {
-  // component types are identified by their name and set of allowed states, not just by their name
-  BNG::ComponentType bng_ct;
-
-  bng_ct.name = api_ct.name;
-  bng_ct.elem_mol_type_name = elem_mol_type_name;
-
-  for (string& s: api_ct.states) {
-    bng_ct.allowed_state_ids.insert( world->bng_engine.get_data().find_or_add_state_name(s) );
-  }
-
-  BNG::component_type_id_t ct_id = world->bng_engine.get_data().find_or_add_component_type(bng_ct);
-  if (ct_id == BNG::COMPONENT_TYPE_ID_INVALID) {
-    throw ValueError("Conflicting component type " + api_ct.to_bngl_str() + ", " +
-        " component with the same name already exists but has different allowed states.");
-  }
-
-  return ct_id;
-}
-
-
-BNG::Component MCell4Converter::convert_component_instance(
-    const std::string& elem_mol_type_name, API::Component& api_ci) {
-
-  BNG::Component res(convert_component_type(elem_mol_type_name, *api_ci.component_type));
-
-  if (api_ci.state == STATE_UNSET) {
-    res.state_id = BNG::STATE_ID_DONT_CARE;
-  }
-  else {
-    res.state_id = world->bng_engine.get_data().find_state_id(api_ci.state);
-    assert(res.state_id != BNG::STATE_ID_INVALID);
-  }
-
-  if (api_ci.bond == BOND_BOUND) {
-    res.bond_value = BNG::BOND_VALUE_BOUND;
-  }
-  else if (api_ci.bond == BOND_UNBOUND) {
-    res.bond_value = BNG::BOND_VALUE_UNBOUND;
-  }
-  else if (api_ci.bond == BOND_ANY) {
-    res.bond_value = BNG::BOND_VALUE_ANY;
-  }
-  else {
-    res.bond_value = api_ci.bond;
-    assert(res.bond_value != BNG::BOND_VALUE_INVALID);
-  }
-
-  return res;
-}
-
-
-BNG::ElemMol MCell4Converter::convert_molecule_instance(API::ElementaryMolecule& mi, const bool in_rxn_or_observables) {
-  BNG::ElemMol res;
-
-  res.elem_mol_type_id = convert_elementary_molecule_type(*mi.elementary_molecule_type, in_rxn_or_observables);
-
-  for (std::shared_ptr<API::Component>& api_ci: mi.components) {
-    res.components.push_back(convert_component_instance(mi.elementary_molecule_type->name, *api_ci));
-  }
-
-  // we must also copy flags from the mol type
-  res.finalize_flags_and_sort_components(world->bng_engine.get_data());
-
-  return res;
-}
-
-
-BNG::Cplx MCell4Converter::convert_complex(API::Complex& api_cplx, const bool in_observables, const bool in_rxn) {
-  // create a temporary cplx instance that we will use for search
-  BNG::Cplx bng_cplx(&world->bng_engine.get_data());
-
-  if (is_set(api_cplx.elementary_molecules)) {
-    for (std::shared_ptr<API::ElementaryMolecule>& m: api_cplx.elementary_molecules) {
-      BNG::ElemMol mi = convert_molecule_instance(*m, in_observables || in_rxn);
-
-      bng_cplx.elem_mols.push_back(mi);
-    }
-  }
-  else {
-    throw ValueError(
-        "Complex with name " + api_cplx.name + " does not have its " + NAME_ELEMENTARY_MOLECULES + " set. "
-        "It should be always set because initialization of " + NAME_CLASS_COMPLEX + " from " + NAME_NAME + " is done "
-        "in this class' constructor."
-    );
-  }
-
-  // orientation or compartment does not have to be set for finalization,
-  // this sets whether this is a surf or vol cplx
-  bng_cplx.finalize();
-
-  // BNG compartments were already created
-  const BNG::BNGData& bng_data = world->bng_engine.get_data();
-  if (is_set(api_cplx.compartment_name)) {
-    BNG::compartment_id_t in_out_id = BNG::get_in_or_out_compartment_id(api_cplx.compartment_name);
-    if (in_out_id != BNG::COMPARTMENT_ID_INVALID) {
-      bng_cplx.set_compartment_id(in_out_id);
-    }
-    else {
-      const BNG::Compartment* bng_comp = bng_data.find_compartment(api_cplx.compartment_name);
-      if (bng_cplx.is_vol() && (bng_comp == nullptr || !bng_comp->is_3d)) {
-        throw ValueError("Did not find volume compartment " + api_cplx.compartment_name +
-            " for a volume complex " + bng_cplx.to_str() + ".");
-      }
-
-      if (bng_cplx.is_surf() && (bng_comp == nullptr || bng_comp->is_3d)) {
-        throw ValueError("Did not find surface compartment " + api_cplx.compartment_name +
-            " for a surface complex " + bng_cplx.to_str() + ".");
-      }
-
-      bng_cplx.set_compartment_id(bng_comp->id);
-    }
-  }
-  else {
-    bng_cplx.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
-
-    if (!in_rxn && bng_cplx.is_vol() && api_cplx.orientation != Orientation::NONE && api_cplx.orientation != Orientation::DEFAULT) {
-      throw ValueError("Orientation for a volume complex " + bng_cplx.to_str() +
-          " must be set either to " + NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE + " or " +
-          NAME_ENUM_ORIENTATION + "." + NAME_EV_DEFAULT + ".");
-    }
-    else if (bng_cplx.is_surf() && api_cplx.orientation == Orientation::NONE) {
-      throw ValueError("Orientation for a surface complex " + bng_cplx.to_str() +
-          " must be set to a value other than " +  NAME_ENUM_ORIENTATION + "." + NAME_EV_NONE +
-          " when " + NAME_COMPARTMENT_NAME + " is not specified.");
-    }
-
-    orientation_t orient = convert_orientation(api_cplx.orientation, true, bng_cplx.is_vol());
-    bng_cplx.set_orientation(orient);
-  }
-
-
-  if (!in_observables && !in_rxn) {
-    // register complex as new species
-    species_id_t species_id = world->get_all_species().find_full_match(bng_cplx);
-    if (species_id == SPECIES_ID_INVALID) {
-      BNG::Species new_species = BNG::Species(bng_cplx, world->bng_engine.get_data(), world->bng_engine.get_config());
-      species_id = world->get_all_species().find_or_add(new_species);
-    }
-    assert(species_id != SPECIES_ID_INVALID);
-  }
-
-  return bng_cplx;
-}
-
-
 void MCell4Converter::check_intermembrane_surface_reaction(const BNG::RxnRule& rxn) {
   if (rxn.reactants.size() !=2 || rxn.products.size() != 2) {
     throw ValueError("Intermembrane reaction must have exactly 2 reactants and 2 products, error for " +
@@ -881,7 +649,7 @@ void MCell4Converter::convert_rxns() {
 
     for (std::shared_ptr<API::Complex>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
-      BNG::Cplx reactant = convert_complex(*rinst, false, true);
+      BNG::Cplx reactant = bng_converter.convert_complex(*rinst, false, true);
       // set ANY compartment if it was not specified
       if (reactant.get_compartment_id() == BNG::COMPARTMENT_ID_NONE) {
         reactant.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
@@ -891,7 +659,7 @@ void MCell4Converter::convert_rxns() {
 
     for (std::shared_ptr<API::Complex>& pinst: r->products) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
-      BNG::Cplx product = convert_complex(*pinst, false, true);
+      BNG::Cplx product = bng_converter.convert_complex(*pinst, false, true);
 
       if (product.get_compartment_id() == BNG::COMPARTMENT_ID_NONE) {
         // set ANY compartment for products to be consistent with reactants
@@ -999,7 +767,7 @@ void MCell4Converter::convert_initial_surface_releases(
     species_id_t species_id =
         get_species_id_for_complex(*api_rel->complex, NAME_CLASS_INITIAL_SURFACE_RELEASE);
 
-    orientation_t orientation = convert_orientation(api_rel->complex->orientation);
+    orientation_t orientation = convert_api_orientation(api_rel->complex->orientation);
 
     if (is_set(api_rel->number_to_release)) {
       mcell_releases.push_back(
@@ -1047,7 +815,7 @@ void MCell4Converter::convert_concentration_clamp_release(
 
   // on which side
   clamp_event->orientation =
-      convert_orientation(surface_class.affected_complex_pattern->orientation, true, true);
+      convert_api_orientation(surface_class.affected_complex_pattern->orientation, true, true);
 
   assert(world->bng_engine.get_all_species().get(surface_class.species_id).is_reactive_surface());
   clamp_event->surf_class_species_id = surface_class.species_id;
@@ -1400,7 +1168,7 @@ void MCell4Converter::convert_molecule_list(
     info.pos.y = item->location[1] * world->config.rcp_length_unit;
     info.pos.z = item->location[2] * world->config.rcp_length_unit;
     bool is_vol = world->get_all_species().get(info.species_id).is_vol();
-    info.orientation = convert_orientation(item->complex->orientation, true, is_vol); // not set is not allowed
+    info.orientation = convert_api_orientation(item->complex->orientation, true, is_vol); // not set is not allowed
 
     if (world->get_all_species().get(info.species_id).is_vol() &&
         rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
@@ -1427,7 +1195,7 @@ MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
         *r->complex, S(NAME_CLASS_RELEASE_SITE) + " '" + r->name + "'");
 
     bool is_vol = world->get_all_species().get(rel_event->species_id).is_vol();
-    rel_event->orientation = convert_orientation(r->complex->orientation, true, is_vol);
+    rel_event->orientation = convert_api_orientation(r->complex->orientation, true, is_vol);
 
     if (world->get_all_species().get(rel_event->species_id).is_surf() &&
         rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN &&
@@ -1632,11 +1400,11 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
 
     if (is_set(ct->species_pattern)) {
       res.species_pattern_type = SpeciesPatternType::SpeciesPattern;
-      res.species_molecules_pattern = convert_complex(*ct->species_pattern, true);
+      res.species_molecules_pattern = bng_converter.convert_complex(*ct->species_pattern, true);
     }
     else {
       res.species_pattern_type = SpeciesPatternType::MoleculesPattern;
-      res.species_molecules_pattern = convert_complex(*ct->molecules_pattern, true);
+      res.species_molecules_pattern = bng_converter.convert_complex(*ct->molecules_pattern, true);
     }
 
     // we must throw away the compartment because it was already handled
@@ -1958,7 +1726,7 @@ void MCell4Converter::convert_checkpointed_molecules() {
       const shared_ptr<ChkptSurfMol>& sm = dynamic_pointer_cast<ChkptSurfMol>(m);
 
       res_m.s.pos = sm->pos * Vec2(world->config.rcp_length_unit);
-      res_m.s.orientation = convert_orientation(sm->orientation, false);
+      res_m.s.orientation = convert_api_orientation(sm->orientation, false);
       res_m.s.wall_index = sm->geometry_object->get_partition_wall_index(sm->wall_index);
       res_m.s.grid_tile_index = sm->grid_tile_index;
 

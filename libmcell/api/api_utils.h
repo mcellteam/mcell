@@ -34,7 +34,8 @@ namespace MCell {
 namespace API {
 
 bool is_simple_species(const std::string& name);
-Orientation convert_orientation(const orientation_t o);
+Orientation convert_mcell_orientation(const orientation_t o);
+orientation_t convert_api_orientation(const Orientation o, const bool allow_default = false, const bool is_vol = true);
 
 template<class T>
 void append_to_vec(

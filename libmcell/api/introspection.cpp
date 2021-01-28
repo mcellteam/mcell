@@ -44,9 +44,12 @@ void Introspection::initialize_introspection(Model* model_) {
 }
 
 
-std::vector<int> Introspection::get_molecule_ids(std::shared_ptr<Species> species) {
-  // NOTE: not very efficient
+std::vector<int> Introspection::get_molecule_ids(std::shared_ptr<Complex> pattern) {
   std::vector<int> res;
+
+  if (is_set(pattern)) {
+    // convert to its BNG representation for matching
+  }
 
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   std::vector<MCell::Molecule>& molecules = p.get_molecules();
@@ -54,13 +57,15 @@ std::vector<int> Introspection::get_molecule_ids(std::shared_ptr<Species> specie
     if (m.is_defunct()) {
       continue;
     }
-
+#if 0
+    // FIXME
     if (is_set(species) && species->species_id == m.species_id) {
       res.push_back(m.id);
     }
     else {
-      res.push_back(m.id);
     }
+#endif
+    res.push_back(m.id);
   }
 
   return res;
@@ -86,7 +91,7 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
     res->type = MoleculeType::SURFACE;
     res->pos2d = m.s.pos * Vec2(world->config.length_unit);
     res->pos3d = GeometryUtil::uv2xyz(m.s.pos, w, w_vert0) * Vec3(world->config.length_unit);
-    res->orientation = convert_orientation(m.s.orientation);
+    res->orientation = convert_mcell_orientation(m.s.orientation);
 
     res->geometry_object = model_inst->get_geometry_object_with_id(w.object_id);
     assert(is_set(res->geometry_object));

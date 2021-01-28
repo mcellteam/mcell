@@ -54,6 +54,7 @@ set(SOURCE_FILES
     api/compartment_utils.cpp
     
     api/globals.cpp
+    api/bng_converter.cpp
     api/mcell4_converter.cpp
     api/callbacks.cpp
     api/python_export_utils.cpp

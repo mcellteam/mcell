@@ -837,12 +837,14 @@ Methods:
 *********
 * | **get_molecule_ids**
 
-   * | species: Species = None
+   * | pattern: Complex = None
    * | return type: List[int]
 
 
-  | Returns a list of ids of molecules of given Species existing in the simulated environment,
-  | if the argument species is not set, returns list of all molecules.
+  | Returns a list of ids of molecules.
+  | If the arguments pattern is not set, the list of all molecule ids is returned.  
+  | If the argument pattern is set, the list of all molecule ids whose species match 
+  | the pattern is returned.
 
 
 * | **get_molecule**
@@ -1326,12 +1328,14 @@ Methods:
 
 * | **get_molecule_ids**
 
-   * | species: Species = None
+   * | pattern: Complex = None
    * | return type: List[int]
 
 
-  | Returns a list of ids of molecules of given Species existing in the simulated environment,
-  | if the argument species is not set, returns list of all molecules.
+  | Returns a list of ids of molecules.
+  | If the arguments pattern is not set, the list of all molecule ids is returned.  
+  | If the argument pattern is set, the list of all molecule ids whose species match 
+  | the pattern is returned.
 
 
 * | **get_molecule**

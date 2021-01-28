@@ -26,6 +26,7 @@
 #include <vector>
 #include "defines.h"
 #include "mol_or_rxn_count_event.h"
+#include "api/bng_converter.h"
 
 namespace BNG {
 class ComponentType;
@@ -71,9 +72,7 @@ class RngState;
 
 class MCell4Converter {
 public:
-  MCell4Converter(Model* model_, World* world_) :
-    model(model_), world(world_){
-  }
+  MCell4Converter(Model* model_, World* world_);
 
   // convert all items in Model into the World representation
   // throws exception if anything went wrong
@@ -100,13 +99,6 @@ private:
 
   void convert_surface_class_rxn(API::SurfaceProperty& sp, const BNG::Species& surface_reactant);
   void convert_surface_classes();
-
-  BNG::component_type_id_t convert_component_type(const std::string& elem_mol_type_name, API::ComponentType& api_ct);
-  BNG::elem_mol_type_id_t convert_elementary_molecule_type(API::ElementaryMoleculeType& mt, const bool in_rxn_or_observables = false);
-
-  BNG::Component convert_component_instance(const std::string& elem_mol_type_name, API::Component& api_ci);
-  BNG::ElemMol convert_molecule_instance(API::ElementaryMolecule& mi, const bool in_rxn_or_observables = false);
-  BNG::Cplx convert_complex(API::Complex& inst, const bool in_observables = false, const bool in_rxn = false);
 
   void check_surface_compartments(const BNG::RxnRule& r, BNG::compartment_id_t& surf_comp_id);
   void set_vol_rxn_substance_orientation_from_compartment(
@@ -174,6 +166,7 @@ private:
 
   Model* model;
   World* world;
+  BNGConverter bng_converter;
 };
 
 } // namespace API

@@ -29,9 +29,9 @@ namespace MCell {
 namespace API {
 
 class Introspection;
+class Complex;
 class GeometryObject;
 class Molecule;
-class Species;
 class Wall;
 class PythonExportContext;
 
@@ -46,7 +46,7 @@ public:
 
   // --- attributes ---
   // --- methods ---
-  virtual std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) = 0;
+  virtual std::vector<int> get_molecule_ids(std::shared_ptr<Complex> pattern = nullptr) = 0;
   virtual std::shared_ptr<Molecule> get_molecule(const int id) = 0;
   virtual std::string get_species_name(const int species_id) = 0;
   virtual Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) = 0;

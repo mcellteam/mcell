@@ -25,9 +25,9 @@
 #include "api/python_export_utils.h"
 #include "gen_introspection.h"
 #include "api/introspection.h"
+#include "api/complex.h"
 #include "api/geometry_object.h"
 #include "api/molecule.h"
-#include "api/species.h"
 #include "api/wall.h"
 
 namespace MCell {
@@ -57,7 +57,7 @@ py::class_<Introspection> define_pybinding_Introspection(py::module& m) {
       )
       .def("__str__", &Introspection::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Introspection::__eq__, py::arg("other"))
-      .def("get_molecule_ids", &Introspection::get_molecule_ids, py::arg("species") = nullptr)
+      .def("get_molecule_ids", &Introspection::get_molecule_ids, py::arg("pattern") = nullptr)
       .def("get_molecule", &Introspection::get_molecule, py::arg("id"))
       .def("get_species_name", &Introspection::get_species_name, py::arg("species_id"))
       .def("get_vertex", &Introspection::get_vertex, py::arg("object"), py::arg("vertex_index"))

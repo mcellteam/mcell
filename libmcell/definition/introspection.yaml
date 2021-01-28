@@ -121,12 +121,15 @@ Introspection:
   methods:      
   - name: get_molecule_ids
     doc: | 
-      Returns a list of ids of molecules of given Species existing in the simulated environment,
-      if the argument species is not set, returns list of all molecules.      
+      Returns a list of ids of molecules.
+      If the arguments pattern is not set, the list of all molecule ids is returned.  
+      If the argument pattern is set, the list of all molecule ids whose species match 
+      the pattern is returned.
+    todo: add some caching for patterns 
     return_type: List[int]
     params:
-    - name: species
-      type: Species*
+    - name: pattern
+      type: Complex*
       default: unset
   
   - name: get_molecule

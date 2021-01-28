@@ -204,6 +204,7 @@ const char* const NAME_OUTPUT_FILES_PREFIX = "output_files_prefix";
 const char* const NAME_PARAMETER_OVERRIDES = "parameter_overrides";
 const char* const NAME_PARTITION_DIMENSION = "partition_dimension";
 const char* const NAME_PATHS = "paths";
+const char* const NAME_PATTERN = "pattern";
 const char* const NAME_POS = "pos";
 const char* const NAME_POS2D = "pos2d";
 const char* const NAME_POS3D = "pos3d";
