@@ -25,6 +25,7 @@
 #include "bngl_generator.h"
 #include "libmcell/api/api_utils.h"
 #include "bng/bng_defines.h"
+#include "bng/bngl_names.h"
 
 using namespace std;
 
@@ -48,6 +49,12 @@ void BNGLGenerator::generate_single_bngl_parameter(Value& parameter) {
 
 void BNGLGenerator::generate_single_python_parameter(std::ostream& python_out, Value& parameter) {
   string name = fix_param_id(parameter[KEY_PAR_NAME].asString());
+
+  // skip MCELL_REDEFINE_ params
+  if (name.find(BNG::MCELL_REDEFINE_PREFIX) == 0) {
+    return;
+  }
+
   data.check_if_already_defined_and_add(name, NAME_PARAMETER);
   python_out << name << " = " << VAR_BNGL_PARAMS << "['" << name << "']\n";
 }
