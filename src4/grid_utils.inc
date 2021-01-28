@@ -969,7 +969,10 @@ static int add_more_tile_neighbors_to_list_fast(
      3 tiles (the end points of the shared edge are connected
      to 1 tile). */
   /* 2-dimensional array of the tile indices */
-  std::vector<tile_index_t[3]> new_tile_indices(new_pos_size);
+  std::vector<std::vector<tile_index_t>> new_tile_indices(new_pos_size);
+  for (auto& elem: new_tile_indices) {
+    elem.resize(3);
+  }
 
   int i, k;
 

@@ -1889,7 +1889,10 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head,
      3 tiles (the end points of the shared edge are connected
      to 1 tile). */
   /* 2-dimensional array of the tile indices */
-  std::vector<int[3]> new_tile_idx(new_pos_size);
+  std::vector<std::vector<int>> new_tile_idx(new_pos_size);
+  for (auto& elem: new_tile_idx) {
+    elem.resize(3);
+  }
 
   int i, k;
   /* what vertices of new wall are shared with original wall */
