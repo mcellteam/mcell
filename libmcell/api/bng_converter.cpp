@@ -213,17 +213,6 @@ BNG::Cplx BNGConverter::convert_complex(API::Complex& api_cplx, const bool in_ob
     bng_cplx.set_orientation(orient);
   }
 
-
-  /*if (!in_observables && !in_rxn) {
-    // register complex as new species - is this really needed?
-    species_id_t species_id = world->get_all_species().find_full_match(bng_cplx);
-    if (species_id == SPECIES_ID_INVALID) {
-      BNG::Species new_species = BNG::Species(bng_cplx, bng_data, bng_config);
-      species_id = world->get_all_species().find_or_add(new_species);
-    }
-    assert(species_id != SPECIES_ID_INVALID);
-  }*/
-
   return bng_cplx;
 }
 

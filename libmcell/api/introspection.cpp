@@ -27,10 +27,11 @@
 #include "api/molecule.h"
 #include "api/wall.h"
 #include "api/geometry_object.h"
+#include "api/bng_converter.h"
 
 #include "world.h"
 #include "src4/geometry_utils.h" // TODO: we should rename the src4 directory
-
+#include "bng/cplx.h"
 
 using namespace std;
 
@@ -47,8 +48,13 @@ void Introspection::initialize_introspection(Model* model_) {
 std::vector<int> Introspection::get_molecule_ids(std::shared_ptr<Complex> pattern) {
   std::vector<int> res;
 
+  // NOTE: some caching might be useful here if this function is called often
+  uint_set<species_id_t> matching_species, not_matching_species;
+  BNG::Cplx bng_pattern(&world->bng_engine.get_data());
   if (is_set(pattern)) {
     // convert to its BNG representation for matching
+    BNGConverter converter(world->bng_engine.get_data(), world->bng_engine.get_config());
+    bng_pattern = converter.convert_complex(*pattern, true);
   }
 
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
@@ -57,15 +63,30 @@ std::vector<int> Introspection::get_molecule_ids(std::shared_ptr<Complex> patter
     if (m.is_defunct()) {
       continue;
     }
-#if 0
-    // FIXME
-    if (is_set(species) && species->species_id == m.species_id) {
-      res.push_back(m.id);
+    if (is_set(pattern)) {
+      // include only molecules that match the pattern
+      if (matching_species.count(m.species_id) != 0) {
+        res.push_back(m.id);
+      }
+      else if (not_matching_species.count(m.species_id) != 0) {
+        // nothing to do
+      }
+      else {
+        // not seen species
+        const BNG::Species& species = world->get_all_species().get(m.species_id);
+        bool match = species.matches_pattern(bng_pattern, true);
+        if (match) {
+          matching_species.insert(m.species_id);
+          res.push_back(m.id);
+        }
+        else {
+          not_matching_species.insert(m.species_id);
+        }
+      }
     }
     else {
+      res.push_back(m.id);
     }
-#endif
-    res.push_back(m.id);
   }
 
   return res;

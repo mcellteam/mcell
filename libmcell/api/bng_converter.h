@@ -46,6 +46,8 @@ public:
   BNG::ElemMol convert_molecule_instance(
       API::ElementaryMolecule& mi, const bool in_rxn_or_observables = false);
 
+  // in_observables should be set to true if we are converting a pattern for
+  // matching purposes
   BNG::Cplx convert_complex(
       API::Complex& inst, const bool in_observables = false, const bool in_rxn = false);
 
