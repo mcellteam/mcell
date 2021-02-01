@@ -99,7 +99,7 @@ FILE* VizOutputEvent::create_and_open_output_file_name() {
    );
   assert(cf_name != nullptr);
 
-  make_dir_for_file_w_multiple_attempts(cf_name);
+  FSUtils::make_dir_for_file_w_multiple_attempts(cf_name);
   FILE *custom_file = ::open_file(cf_name, (viz_mode == ASCII_MODE) ? "w" : "wb");
   if (custom_file == nullptr)
     mcell_die();

@@ -22,9 +22,10 @@
 
 #include "generated/gen_run_utils.h"
 
-#include "bng/filesystem_include.h"
+#include "bng/filesystem_utils.h"
 
-#include "api_utils.h"
+#include "api/api_utils.h"
+#include "generated/gen_names.h"
 #include "bng/bng_defines.h"
 #include "src4/simulation_config.h"
 
@@ -45,12 +46,13 @@ std::string get_last_checkpoint_dir(const int seed) {
   string max_it_dir_name = "";
 
   // do we have a checkpoints/seed directory?
-  if (fs::exists(chkpt_seed_dir)) {
+  if (FSUtils::is_dir(chkpt_seed_dir)) {
 
     // find the highest iteration value
     int max = -1;
-    for (const auto& entry :fs::directory_iterator(chkpt_seed_dir)) {
-      string dir_name = entry.path().filename().string();
+    std::vector<std::string> dirs;
+    FSUtils::list_dir(chkpt_seed_dir, dirs);
+    for (const string& dir_name: dirs) {
 
       // starts with "it_"?
       if (dir_name.find(DEFAULT_ITERATION_DIR_PREFIX) == 0) {
@@ -68,7 +70,7 @@ std::string get_last_checkpoint_dir(const int seed) {
         if (it_nr > max) {
           // remember the directory with the highest iteration number so far
           max = it_nr;
-          max_it_dir_name = entry.path().filename().string();
+          max_it_dir_name = dir_name;
         }
       }
     }
@@ -88,7 +90,7 @@ std::vector<std::string> remove_cwd(const std::vector<std::string> paths) {
   std::vector<std::string> res;
 
   // skip everything that can be interpreted as current directory
-  string cwd = fs::current_path().string();
+  string cwd = FSUtils::get_current_dir();
   for (const string& p: paths) {
     if (p != "" && p != "." && p != cwd) {
       res.push_back(p);

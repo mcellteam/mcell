@@ -48,7 +48,7 @@ void CountBuffer::flush() {
 
 bool CountBuffer::open(bool error_is_fatal) {
 
-  make_dir_for_file_w_multiple_attempts(filename.c_str());
+  FSUtils::make_dir_for_file_w_multiple_attempts(filename);
 
   if (!open_for_append) {
     // create an empty file so that we know that nothing was stored

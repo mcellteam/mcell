@@ -862,7 +862,7 @@ void World::export_data_model_to_dir(const std::string& prefix, const bool only_
       ".json";
 
   // create directories if needed
-  make_dir_for_file_w_multiple_attempts(path.str());
+  FSUtils::make_dir_for_file_w_multiple_attempts(path.str());
 
   export_data_model(path.str(), only_for_viz);
 }
