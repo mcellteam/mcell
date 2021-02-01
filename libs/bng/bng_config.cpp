@@ -79,7 +79,7 @@ std::string get_current_date_time() {
 
 void append_to_report(const std::string& report_fname, const std::string& msg) {
   // check whether the directory exists and make it if not
-  make_dir_for_file_w_multiple_attempts(report_fname);
+  FSUtils::make_dir_for_file_w_multiple_attempts(report_fname);
 
   // then open or append
   ofstream of;
@@ -93,7 +93,7 @@ void append_to_report(const std::string& report_fname, const std::string& msg) {
 
 void initialize_report_file(const std::string& fname, const char* report_name) {
   // first check whether the directory exists and make it
-  make_dir_for_file_w_multiple_attempts(fname);
+  FSUtils::make_dir_for_file_w_multiple_attempts(fname);
 
   ofstream of;
   of.open(fname, fstream::out);

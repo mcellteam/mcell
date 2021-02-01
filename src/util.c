@@ -912,7 +912,7 @@ make_parent_dir:
         Out: 0 on success, terminates with exit(1) on failure
 **************************************************************************/
 int make_parent_dir(char const *path) {
-  make_dir_for_file_w_multiple_attempts(path);
+  FSUtils::make_dir_for_file_w_multiple_attempts(path);
   return 0;
 }
 
