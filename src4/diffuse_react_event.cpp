@@ -1469,7 +1469,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
       continue;
     }
 
-    int selected_pathway_index;
+    int selected_pathway_index = RX_NO_RX;
     int rxn_class_index;
     if (matching_rxn_classes.size() == 1) {
       selected_pathway_index = RxnUtil::test_bimolecular(
