@@ -377,7 +377,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer) # used in MCell4 vs MCell4 validation
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
 
-if (NOT WIN32)
+if (NOT WIN32 AND NOT APPLE)
     set(STDC_FS stdc++fs)
 endif()
 
