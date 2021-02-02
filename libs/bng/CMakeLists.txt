@@ -69,7 +69,7 @@ set(ALL_SOURCES
 )
 
 
-if (NOT WIN32)
+if (NOT WIN32 AND NOT APPLE)
     set(STDC_FS stdc++fs)
 endif()
 
