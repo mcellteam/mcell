@@ -97,14 +97,17 @@ public:
     }
   }
 
-  void translate(const Vec3& move) override {
+  void translate(const std::vector<float_t> move) override {
+    if (move.size() != 3) {
+      throw ValueError(S("Argument ") + NAME_MOVE + " must be a list containing exactly 3 floats.");
+    }
     if (geometry_object_id != GEOMETRY_OBJECT_ID_INVALID) {
       throw RuntimeError(S("Method ") + NAME_TRANSLATE + " may be called only before model initialization.");
     }
     for (auto& v: vertex_list) {
-      v[0] += move.x;
-      v[1] += move.y;
-      v[2] += move.z;
+      v[0] += move[0];
+      v[1] += move[1];
+      v[2] += move[2];
     }
   }
 

@@ -310,7 +310,7 @@ std::vector<int> Model::run_reaction(
 
 
 void Model::add_vertex_move(
-    std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement
+    std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<float_t> displacement
 ) {
   // - currently, it is not expected that the user will have access to the scheduled vertex moves
   // - later we can use the object id to determine the partition
@@ -322,12 +322,17 @@ void Model::add_vertex_move(
       world->get_partition(PARTITION_ID_INITIAL).get_geometry_vertex_count()
   );
 
+  if (displacement.size() != 3) {
+    throw ValueError(S("Argument ") + NAME_DISPLACEMENT + " must be a list of exactly three floats.");
+  }
+  Vec3 disp_vec = Vec3(displacement);
+
   vertex_moves.push_back(
       VertexMoveInfo(
           PARTITION_ID_INITIAL,
           object->geometry_object_id,
           object->get_partition_vertex_index(vertex_index),
-          displacement * Vec3(world->config.rcp_length_unit) // convert to internal units
+          disp_vec * Vec3(world->config.rcp_length_unit) // convert to internal units
       )
   );
 }

@@ -193,7 +193,7 @@ public:
   }
 
   // --- methods ---
-  virtual void translate(const Vec3& move) = 0;
+  virtual void translate(const std::vector<float_t> move) = 0;
 }; // GenGeometryObject
 
 class GeometryObject;

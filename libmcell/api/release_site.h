@@ -129,6 +129,16 @@ public:
           S("Either compartment or exactly one of ") + NAME_REGION + ", " + NAME_MOLECULE_LIST +
           " or " + NAME_LOCATION + " must be set.");
     }
+
+    if (shape == Shape::SPHERICAL && !is_set(location)) {
+      throw ValueError(
+          S("When ") + NAME_SHAPE + " is set to " + NAME_ENUM_SHAPE + "." + NAME_EV_LIST +
+          " " + NAME_LOCATION + " must be set.");
+    }
+
+    if (is_set(location) && location.size() != 3) {
+      throw ValueError(S("Argument ") + NAME_LOCATION + " must be a list containing 3 floats.");
+    }
   }
 };
 

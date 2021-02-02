@@ -520,7 +520,7 @@ class GeometryObject():
 
     def translate(
             self,
-            move : Vec3
+            move : List[float]
         ) -> None:
         pass
 
@@ -762,7 +762,7 @@ class Model():
             self,
             object : GeometryObject,
             vertex_index : int,
-            displacement : Vec3
+            displacement : List[float]
         ) -> None:
         pass
 
@@ -1201,7 +1201,7 @@ class ReleaseSite():
             release_pattern : ReleasePattern = None,
             shape : Shape = Shape.UNSET,
             region : Region = None,
-            location : Vec3 = None,
+            location : List[float] = None,
             site_diameter : float = 0,
             site_radius : float = None,
             number_to_release : float = None,

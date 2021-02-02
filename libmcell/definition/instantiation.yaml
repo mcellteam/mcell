@@ -111,7 +111,7 @@ ReleaseSite:
     doc: Sets shape to Shape.REGION_EXPR. 
 
   - name: location
-    type: Vec3 # Vec3 and Vec2 are built-in data types
+    type: List[float] # Vec3 and Vec2 are built-in data types
     default: unset # null is equivalent to None in YAML
     
   - name: site_diameter

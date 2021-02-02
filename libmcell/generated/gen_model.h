@@ -120,7 +120,7 @@ public:
   virtual void export_viz_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void release_molecules(std::shared_ptr<ReleaseSite> release_site) = 0;
   virtual std::vector<int> run_reaction(std::shared_ptr<ReactionRule> reaction_rule, const std::vector<int> reactant_ids, const float_t time) = 0;
-  virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement) = 0;
+  virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<float_t> displacement) = 0;
   virtual std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) = 0;
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
   virtual void register_reaction_callback(const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function, py::object context, std::shared_ptr<ReactionRule> reaction_rule) = 0;

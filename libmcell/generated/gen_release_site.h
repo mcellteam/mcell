@@ -45,7 +45,7 @@ class PythonExportContext;
         std::shared_ptr<ReleasePattern> release_pattern_ = nullptr, \
         const Shape shape_ = Shape::UNSET, \
         std::shared_ptr<Region> region_ = nullptr, \
-        const Vec3& location_ = VEC3_UNSET, \
+        const std::vector<float_t> location_ = std::vector<float_t>(), \
         const float_t site_diameter_ = 0, \
         const float_t site_radius_ = FLT_UNSET, \
         const float_t number_to_release_ = FLT_UNSET, \
@@ -87,6 +87,7 @@ public:
 
   std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
   virtual std::string export_vec_molecule_list(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
+  virtual std::string export_vec_location(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);
 
 
   // --- attributes ---
@@ -174,8 +175,8 @@ public:
     return region;
   }
 
-  Vec3 location;
-  virtual void set_location(const Vec3& new_location_) {
+  std::vector<float_t> location;
+  virtual void set_location(const std::vector<float_t> new_location_) {
     if (initialized) {
       throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -183,7 +184,7 @@ public:
     cached_data_are_uptodate = false;
     location = new_location_;
   }
-  virtual const Vec3& get_location() const {
+  virtual std::vector<float_t> get_location() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return location;
   }

@@ -714,7 +714,7 @@ Methods:
 *********
 * | **translate**
 
-   * | move: Vec3
+   * | move: List[float]
 
   | Move object by a specified vector, must be done before model initialization.
 
@@ -1054,8 +1054,9 @@ Methods:
    * | vertex_index: int
      | Index of vertex in object's vertex list that will be changed
 
-   * | displacement: Vec3
-     | Change of vertex coordinates (in um), will be added to the current coordinates of the vertex
+   * | displacement: List[float]
+     | Change of vertex coordinates (in um), will be added to the current coordinates of the vertex,
+     | must contain exactly three floating point values.
 
 
   | Adds a displacement for given object's vertex, only stored until apply_vertex_moves is called
@@ -1776,7 +1777,7 @@ Attributes:
 * | **region**: Region = None
   | Sets shape to Shape.REGION_EXPR.
 
-* | **location**: Vec3 = None
+* | **location**: List[float] = None
 
 * | **site_diameter**: float = 0
   | For a geometrical release site, this releases molecules uniformly within

@@ -79,7 +79,7 @@ public:
       const float_t time) override;
 
   void add_vertex_move(
-      std::shared_ptr<GeometryObject> object, const int vertex_index, const Vec3& displacement
+      std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<float_t> displacement
   ) override;
 
   std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) override;

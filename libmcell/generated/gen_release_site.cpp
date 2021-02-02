@@ -62,7 +62,7 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   release_pattern = nullptr;
   shape = Shape::UNSET;
   region = nullptr;
-  location = VEC3_UNSET;
+  location = std::vector<float_t>();
   site_diameter = 0;
   site_radius = FLT_UNSET;
   number_to_release = FLT_UNSET;
@@ -158,7 +158,7 @@ bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other, const bool
           true
         )
      )  &&
-    location == other.location &&
+    true /*location*/ &&
     site_diameter == other.site_diameter &&
     site_radius == other.site_radius &&
     number_to_release == other.number_to_release &&
@@ -177,7 +177,7 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
       "\n" << ind + "  " << "release_pattern=" << "(" << ((release_pattern != nullptr) ? release_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "shape=" << shape << ", " <<
       "\n" << ind + "  " << "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "location=" << location << ", " <<
+      "location=" << vec_nonptr_to_str(location, ind + "  ") << ", " <<
       "site_diameter=" << site_diameter << ", " <<
       "site_radius=" << site_radius << ", " <<
       "number_to_release=" << number_to_release << ", " <<
@@ -198,7 +198,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             std::shared_ptr<ReleasePattern>,
             const Shape,
             std::shared_ptr<Region>,
-            const Vec3&,
+            const std::vector<float_t>,
             const float_t,
             const float_t,
             const float_t,
@@ -213,7 +213,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("release_pattern") = nullptr,
           py::arg("shape") = Shape::UNSET,
           py::arg("region") = nullptr,
-          py::arg("location") = VEC3_UNSET,
+          py::arg("location") = std::vector<float_t>(),
           py::arg("site_diameter") = 0,
           py::arg("site_radius") = FLT_UNSET,
           py::arg("number_to_release") = FLT_UNSET,
@@ -280,8 +280,8 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   if (is_set(region)) {
     ss << ind << "region = " << region->export_to_python(out, ctx) << "," << nl;
   }
-  if (location != VEC3_UNSET) {
-    ss << ind << "location = " << "m.Vec3(" << f_to_str(location.x) << ", " << f_to_str(location.y) << ", " << f_to_str(location.z)<< ")," << nl;
+  if (location != std::vector<float_t>() && !skip_vectors_export()) {
+    ss << ind << "location = " << export_vec_location(out, ctx, exported_name) << "," << nl;
   }
   if (site_diameter != 0) {
     ss << ind << "site_diameter = " << f_to_str(site_diameter) << "," << nl;
@@ -327,6 +327,24 @@ std::string GenReleaseSite::export_vec_molecule_list(std::ostream& out, PythonEx
       std::string name = item->export_to_python(out, ctx);
       ss << name << ", ";
     }
+  }
+  ss << "]";
+  return ss.str();
+}
+
+std::string GenReleaseSite::export_vec_location(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name) {
+  // does not print the array itself to 'out' and returns the whole list
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < location.size(); i++) {
+    const auto& item = location[i];
+    if (i == 0) {
+      ss << " ";
+    }
+    else if (i % 16 == 0) {
+      ss << "\n  ";
+    }
+    ss << f_to_str(item) << ", ";
   }
   ss << "]";
   return ss.str();

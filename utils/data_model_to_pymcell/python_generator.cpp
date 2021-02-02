@@ -1043,7 +1043,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
         ERROR("Cannot use compartment " + compartment + " with spherical release.");
       }
       gen_param_enum(out, NAME_SHAPE, NAME_ENUM_SHAPE, NAME_EV_SPHERICAL, true);
-      gen_param_vec3(
+      gen_param_list_3_floats(
           out, NAME_LOCATION,
           release_site_item[KEY_LOCATION_X], release_site_item[KEY_LOCATION_Y], release_site_item[KEY_LOCATION_Z],
           true

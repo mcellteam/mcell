@@ -1251,7 +1251,8 @@ MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
   switch (r->shape) {
     case Shape::SPHERICAL:
       rel_event->release_shape = ReleaseShape::SPHERICAL;
-      rel_event->location = r->location * world->config.rcp_length_unit;
+      assert(r->location.size() == 3);
+      rel_event->location = Vec3(r->location) * world->config.rcp_length_unit;
       rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
       break;
     case Shape::REGION_EXPR:

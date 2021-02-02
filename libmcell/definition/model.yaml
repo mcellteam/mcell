@@ -128,8 +128,10 @@ Model:
       type: int
       doc: Index of vertex in object's vertex list that will be changed
     - name: displacement
-      type: Vec3
-      doc: Change of vertex coordinates (in um), will be added to the current coordinates of the vertex 
+      type: List[float]
+      doc: |
+        Change of vertex coordinates (in um), will be added to the current coordinates of the vertex,
+        must contain exactly three floating point values.
       
   - name: apply_vertex_moves
     doc: | 

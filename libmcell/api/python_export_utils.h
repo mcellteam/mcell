@@ -192,9 +192,9 @@ static void gen_param_list(std::ostream& out, std::string name, const std::vecto
   out << "]" << (comma?",":"") << "\n";
 }
 
-static void gen_param_vec3(std::ostream& out, std::string name, Json::Value& x, Json::Value& y, Json::Value& z, bool comma) {
+static void gen_param_list_3_floats(std::ostream& out, std::string name, Json::Value& x, Json::Value& y, Json::Value& z, bool comma) {
   out << IND <<
-      name << " = " << MDOT << VEC3 <<
+      name << " = " <<
       "(" << x.asString() << ", " << y.asString() << ", " << z.asString() << ")" << (comma?",":"") << "\n";
 }
 
