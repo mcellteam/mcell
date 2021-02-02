@@ -69,7 +69,7 @@ static bool make_dir(const std::string& dir_path) {
 
 
 static std::string get_parent_path(const std::string& path) {
-  size_t pos = path.find_last_of(BNG::PATH_SEPARATOR);
+  size_t pos = path.find_last_of("/\\");
   if (pos != string::npos) {
     return path.substr(0, pos);
   }
