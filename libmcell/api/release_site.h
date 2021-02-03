@@ -71,7 +71,7 @@ public:
         throw ValueError(S("When ") + NAME_LOCATION + " is set, "
             "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_SPHERICAL + ".");
       }
-      shape = Shape::LIST;
+      shape = Shape::SPHERICAL;
     }
   }
 
