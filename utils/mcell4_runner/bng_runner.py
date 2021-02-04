@@ -94,14 +94,14 @@ def process_opts():
     return opts
         
 
-def run_bng(dir, opts):
+def run_bng(abs_dir, opts):
     
-    os.chdir(dir)
+    os.chdir(abs_dir)
     
     cmd_str = 'perl ' + opts.bng2pl_path + ' ' + TEST_BNGL
-    print("Running " + cmd_str + " in " + dir)
+    print("Running " + cmd_str + " in " + abs_dir)
         
-    log_name = opts.main_model_file + '_' + dir + '.bng2pl.log'
+    log_name = opts.main_model_file + '_' + os.path.basename(abs_dir) + '.bng2pl.log'
     
     exit_code = 1
     with open(log_name, "w") as f:
@@ -155,6 +155,7 @@ def run_bng_parallel(opts, seeds):
         
     else:
         # NFSim - multiple runs are needed
+        cwd = os.getcwd()
         dirs = []
         for s in seeds:
             dir = 'nf_' + str(s).zfill(5)
@@ -170,7 +171,7 @@ def run_bng_parallel(opts, seeds):
         
             # update seed value
             replace_in_file(os.path.join(dir, TEST_BNGL), 'seed=>1', 'seed=>' + str(s))
-            dirs.append(dir)
+            dirs.append(os.path.join(cwd, dir))
         
         if opts.max_cores:
             # maximum number of processes specified

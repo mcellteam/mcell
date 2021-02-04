@@ -194,7 +194,7 @@ def run_mcell4_parallel(opts, args):
     
     # run the jobs
     args_str_w_opts = zip(args, itertools.repeat(opts))
-    res_codes = pool.map(run_mcell4, args_str_w_opts)
+    res_codes = pool.map(run_mcell4, args_str_w_opts, 1)
 
     num_total = 0
     num_failed = 0
