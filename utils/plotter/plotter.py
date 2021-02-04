@@ -123,7 +123,9 @@ def process_nsfim_gdat_file(full_dir, counts):
             counts[observable][col_name] = df.iloc[:, i]             
                 
                 
-def get_nfsim_observables_counts(dir, single_bng_run):
+def get_nfsim_observables_counts(opts):
+    single_bng_run = opts.single_bng_run
+    dir = opts.bng_dir
     counts = {}
     
     if not single_bng_run:
@@ -169,9 +171,9 @@ def main():
     if opts.bng_dir:
         if os.path.exists(opts.bng_dir):
             print("Reading BNG data from " + opts.bng_dir)
-            counts.append(get_nfsim_observables_counts(opts.bng_dir, opts.single_bng_run))
+            counts.append(get_nfsim_observables_counts(opts))
         else:
-            print("Error: directory " + opts.mcell3_dir + " with BNG data not found, ignored")
+            print("Error: directory " + opts.bng_dir + " with BNG data not found, ignored")
             sys.exit(1)
     else:
         counts.append({})
