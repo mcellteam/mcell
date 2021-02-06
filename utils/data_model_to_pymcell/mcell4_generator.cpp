@@ -92,7 +92,8 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   }
   python_gen = new PythonGenerator(data);
 
-  CHECK(check_scripting(), failed);
+
+  CHECK(generate_scripting(), failed);
 
   CHECK(generate_parameters(), failed);
   CHECK(generate_subsystem(), failed);
@@ -101,7 +102,7 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   CHECK(generate_instantiation(geometry_names), failed);
   CHECK(generate_observables(opts.cellblender_viz), failed);
   CHECK(generate_model(failed), failed);
-  CHECK(generate_customization(), failed);
+  CHECK(generate_customization_template(), failed);
 
   // delete generators
   if (data.bng_mode) {
@@ -115,16 +116,93 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   return !failed;
 }
 
-void MCell4Generator::check_scripting() {
-  if (data.mcell.isMember(KEY_SCRIPTING)) {
-    Value& scripting = get_node(data.mcell, KEY_SCRIPTING);
-    if (scripting.isMember(KEY_SCRIPTING_LIST)) {
-      Value& scripting_list = get_node(scripting, KEY_SCRIPTING_LIST);
-      if (!scripting_list.empty()) {
-        ERROR("Data model contains scripting. To convert this model, generate first MDL, "
-            "then  convert MDL to data model and then use this converter. "
-            "Conversion will continue, but it will be wrong."
-        );
+
+static std::string get_file_base_name(const std::string& path) {
+  size_t pos = path.find_last_of("/\\");
+  if (pos != string::npos) {
+    return path.substr(pos + 1);
+  }
+  else {
+    return path;
+  }
+}
+
+
+void MCell4Generator::generate_scripting() {
+  // first check unsupported MCell3 scripting
+  Value& scripting = get_node(data.mcell, KEY_SCRIPTING);
+  if (scripting.isMember(KEY_SCRIPTING_LIST)) {
+    Value& scripting_list = get_node(scripting, KEY_SCRIPTING_LIST);
+    if (!scripting_list.empty()) {
+      ERROR("Data model contains MCell3 scripting. To convert this model: 1) disable MCell3 mode, 2) generate MDL, "
+          "3) convert MDL to data model and 4) use this converter. "
+          "Conversion will now continue, but it will be missing the scripted code."
+      );
+    }
+  }
+
+  // copy files from MCell4 scripting
+  if (scripting.isMember(KEY_MCELL4_SCRIPTING_LIST)) {
+    Value& mcell4_scripting_list = get_node(scripting, KEY_MCELL4_SCRIPTING_LIST);
+    for (Value::ArrayIndex i = 0; i < mcell4_scripting_list.size(); i++) {
+      Value& item = mcell4_scripting_list[i];
+      bool internal;
+      string internal_external = get_node(item, KEY_INTERNAL_EXTERNAL).asString();
+      if (internal_external == VALUE_INTERNAL) {
+        internal = true;
+      }
+      else if (internal_external == VALUE_EXTERNAL) {
+        internal = false;
+      }
+      else {
+        ERROR(S(KEY_INTERNAL_EXTERNAL) + " may be either " + VALUE_INTERNAL + " or " + VALUE_EXTERNAL +
+            ", not " + internal_external + ".");
+      }
+
+      if (internal) {
+        // create a file from internal script
+        string fname = get_node(item, KEY_INTERNAL_FILE_NAME).asString();
+        Value& script_texts = get_node(scripting, KEY_SCRIPT_TEXTS);
+        if (!script_texts.isMember(fname)) {
+          ERROR("Internal script " + fname + " was not found.");
+        }
+        // expecting the the file can be represented as text (it must be since it is in a JSON format)
+        string code = get_node(script_texts, fname).asString();
+        ofstream fout;
+        fout.open(fname);
+        if (!fout.is_open()) {
+          ERROR("Could not open file " + fname + " for writing for internal script export.");
+        }
+
+        cout << "Creating " + fname + " from internal script file.\n";
+        fout.write(code.c_str(), code.size());
+        fout.close();
+      }
+      else {
+        // copy external file
+        string fname = get_node(item, KEY_EXTERNAL_FILE_NAME).asString();
+
+        ifstream fin;
+        fin.open(fname);
+        if (!fin.is_open()) {
+          ERROR("Could not open file " + fname + " for reading for external script export.");
+        }
+
+        // get base path
+        string exported_fname = get_file_base_name(fname);
+        cout << "exported_fname: " << exported_fname << "\n";
+        ofstream fout;
+        fout.open(exported_fname);
+        if (!fout.is_open()) {
+          fin.close();
+          ERROR("Could not open file " + fname + " for writing for external script export.");
+        }
+
+        // copy data
+        cout << "Copying " + fname + " to " + exported_fname + ".\n";
+        fout << fin.rdbuf();
+        fin.close();
+        fout.close();
       }
     }
   }
@@ -834,7 +912,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << MCELL_IMPORT;
 
   string parameters_module = get_module_name(PARAMETERS);
-  string customization_module = get_module_name(CUSTOMIZATION);
+  string customization_module = CUSTOMIZATION;
 
   out <<
       "# parameters are intentionally not imported using from ... import *\n" <<
@@ -930,27 +1008,27 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
 }
 
 
-void MCell4Generator::generate_customization() {
+void MCell4Generator::generate_customization_template() {
   // check if file exists, do not overwrite
-  string cust_filename = get_filename(data.output_files_prefix, CUSTOMIZATION, PY_EXT);
+  string cust_filename = S(CUSTOMIZATION) + PY_EXT;
   ifstream tmp;
   tmp.open(cust_filename);
   if (tmp.is_open()) {
-    // TODO: test
     cout << "Message: custom file " + cust_filename + " already exists, keeping it as it is.\n";
     tmp.close();
     return;
   }
 
   ofstream out;
-  open_and_check_file(CUSTOMIZATION, out);
+  open_and_check_file_w_prefix("", CUSTOMIZATION, out);
 
   out <<
-      "# This file hooks to override default MCell4 model\n"
+      "# This file contains hooks to override default MCell4 model\n"
       "# code behavior for models generated from CellBlender\n";
 
   out << MCELL_IMPORT;
-  out << IMPORT << " " << get_module_name(PARAMETERS) << "\n\n";
+  // TODO: figure out how to handle parameter overrides in customization
+  //out << IMPORT << " " << get_module_name(PARAMETERS) << "\n\n";
 
   out << TEMPLATE_CUSTOM_ARGPARSE_AND_PARAMETERS << "\n";
   out << TEMPLATE_CUSTOM_CONFIG << "\n";

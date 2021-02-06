@@ -53,7 +53,7 @@ private:
       const bool for_append = false,
       const bool bngl = false);
 
-  void check_scripting();
+  void generate_scripting();
 
   void generate_parameters();
 
@@ -77,7 +77,7 @@ private:
 
   void generate_config(std::ostream& out);
   void generate_model(const bool print_failed_marker);
-  void generate_customization();
+  void generate_customization_template();
 private:
   BNGLGenerator* bng_gen;
   std::ofstream bng_out;

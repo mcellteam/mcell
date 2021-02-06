@@ -253,6 +253,13 @@ const char* const KEY_MOLECULE_DENSITY = "molecule_density";
 
 const char* const KEY_SCRIPTING = "scripting";
 const char* const KEY_SCRIPTING_LIST = "scripting_list";
+const char* const KEY_MCELL4_SCRIPTING_LIST = "mcell4_scripting_list";
+const char* const KEY_INTERNAL_EXTERNAL = "internal_external";
+const char* const VALUE_INTERNAL = "internal";
+const char* const VALUE_EXTERNAL = "external";
+const char* const KEY_INTERNAL_FILE_NAME = "internal_file_name";
+const char* const KEY_EXTERNAL_FILE_NAME = "external_file_name";
+
 const char* const KEY_SCRIPT_TEXTS = "script_texts";
 const char* const KEY_DM_INTERNAL_FILE_NAME = "dm_internal_file_name";
 const char* const KEY_FORCE_PROPERTY_UPDATE = "force_property_update";
