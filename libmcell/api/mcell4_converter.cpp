@@ -979,7 +979,8 @@ void MCell4Converter::check_surface_compartment_name_collision(const std::string
     for (std::shared_ptr<API::SurfaceRegion>& s: o->surface_regions) {
       if (s->name == surface_compartment_name) {
         throw RuntimeError("Geometry object's " + o->name + " surface region " + s->name + " uses the same name "
-            "as a compartment, this is not allowed yet.");
+            "as a compartment, this is not allowed yet. Please use a different name either for the surface region or "
+            "for the compartment.");
       }
     }
   }
