@@ -18,8 +18,12 @@ Model:
   - name: initialize
     doc: | 
       Initializes model, initialization blocks most of changes to 
-      contained components (the attributes 
-
+      contained components. 
+    params:
+    - name: print_copyright
+      type: bool
+      default: True
+      
   - name: run_iterations
     doc: | 
        Runs specified number of iterations. Returns the number of iterations

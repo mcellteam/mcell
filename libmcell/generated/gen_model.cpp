@@ -113,7 +113,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       )
       .def("__str__", &Model::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Model::__eq__, py::arg("other"))
-      .def("initialize", &Model::initialize)
+      .def("initialize", &Model::initialize, py::arg("print_copyright") = true)
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("end_simulation", &Model::end_simulation, py::arg("print_final_report") = true)
       .def("add_subsystem", &Model::add_subsystem, py::arg("subsystem"))

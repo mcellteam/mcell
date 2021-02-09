@@ -694,6 +694,7 @@ class Model():
 
     def initialize(
             self,
+            print_copyright : bool = True
         ) -> None:
         pass
 

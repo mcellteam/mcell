@@ -952,9 +952,10 @@ Methods:
 *********
 * | **initialize**
 
+   * | print_copyright: bool = True
 
   | Initializes model, initialization blocks most of changes to 
-  | contained components (the attributes
+  | contained components.
 
 
 * | **run_iterations**

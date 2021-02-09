@@ -90,7 +90,7 @@ void Model::add_observables(std::shared_ptr<Observables> observables) {
 }
 
 
-void Model::initialize() {
+void Model::initialize(const bool print_copyright) {
   if (world != nullptr) {
     throw RuntimeError("Model.initialize() can be called only once");
   }
@@ -130,6 +130,20 @@ void Model::initialize() {
   set_checkpoint_signals(this);
 
   initialized = true;
+
+  if (print_copyright) {
+    cout <<
+      "Copyright (C) 2006-2021 by\n"
+      "  The National Center for Multiscale Modeling of Biological Systems,\n"
+      "  The Salk Institute for Biological Studies, and\n"
+      "  Pittsburgh Supercomputing Center, Carnegie Mellon University,\n"
+      "\n"
+      "**********************************************************************\n"
+      "MCell development is supported by the NIGMS-funded (P41GM103712)\n"
+      "National Center for Multiscale Modeling of Biological Systems (MMBioS).\n"
+      "Please acknowledge MCell in your publications.\n"
+      "**********************************************************************\n\n";
+  }
 }
 
 

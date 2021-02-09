@@ -109,7 +109,7 @@ public:
   }
 
   // --- methods ---
-  virtual void initialize() = 0;
+  virtual void initialize(const bool print_copyright = true) = 0;
   virtual uint64_t run_iterations(const float_t iterations) = 0;
   virtual void end_simulation(const bool print_final_report = true) = 0;
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
