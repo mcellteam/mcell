@@ -49,7 +49,6 @@ static const option long_options[] = {
     { "debug", 0, 0, 'g' },
     { "testing", 0, 0, 't' },
     { "checkpoint_iters", 1, 0, 'k' },
-    { "cellblender_viz", 0, 0, 'c' },
     { "bng", 0, 0, 'b' },
     { "output_file_prefix", 1, 0, 'o'},
     { nullptr, 0, 0, 0 }
@@ -146,9 +145,6 @@ int process_args(
       case 'k':
         opts.checkpoint_iterations = parse_checkpoint_iters(optarg);
         opts.testing_mode = true;
-        break;
-      case 'c':
-        opts.cellblender_viz = true;
         break;
       case 'b':
         opts.bng_mode = true;

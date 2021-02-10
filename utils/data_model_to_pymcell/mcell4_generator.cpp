@@ -100,7 +100,7 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   std::vector<std::string> geometry_names;
   CHECK(geometry_names = generate_geometry(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
-  CHECK(generate_observables(opts.cellblender_viz), failed);
+  CHECK(generate_observables(), failed);
   CHECK(generate_model(failed), failed);
   CHECK(generate_customization_template(), failed);
 
@@ -753,7 +753,7 @@ void MCell4Generator::generate_counts(
 }
 
 
-void MCell4Generator::generate_observables(const bool cellblender_viz) {
+void MCell4Generator::generate_observables() {
 
   ofstream out;
   open_and_check_file(OBSERVABLES, out);
@@ -771,8 +771,16 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
   out << "\n";
   out << make_section_comment(OBSERVABLES);
 
+  bool use_cellblender_output;
+  if (data.mcell[KEY_INITIALIZATION].isMember(KEY_EXPORT_ALL_ASCII)) {
+    use_cellblender_output = !data.mcell[KEY_INITIALIZATION][KEY_EXPORT_ALL_ASCII].asBool();
+  }
+  else {
+    use_cellblender_output = false;
+  }
+
   vector<string> viz_outputs;
-  python_gen->generate_viz_outputs(out, cellblender_viz, viz_outputs);
+  python_gen->generate_viz_outputs(out, use_cellblender_output, viz_outputs);
 
   vector<string> counts;
   bool has_bngl_observables;
