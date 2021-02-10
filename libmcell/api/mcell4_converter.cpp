@@ -977,10 +977,13 @@ void MCell4Converter::convert_geometry_objects() {
 void MCell4Converter::check_surface_compartment_name_collision(const std::string& surface_compartment_name) {
   for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
     for (std::shared_ptr<API::SurfaceRegion>& s: o->surface_regions) {
-      if (s->name == surface_compartment_name) {
+      // o->wall_indices contains all the walls (with values counted from 0), so if size is the same
+      // the contents are the same
+      if (s->name == surface_compartment_name && o->wall_list.size() != s->wall_indices.size()) {
         throw RuntimeError("Geometry object's " + o->name + " surface region " + s->name + " uses the same name "
-            "as a compartment, this is not allowed yet. Please use a different name either for the surface region or "
-            "for the compartment.");
+            "as a compartment, but the surface region does not represent the whole surface of the object. "
+            "This is not allowed because it would lead to inconsistencies when comparing to BNGL variant of the model. "
+            "Please use a different name either for the surface region or for the compartment.");
       }
     }
   }
