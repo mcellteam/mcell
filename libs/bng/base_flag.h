@@ -36,10 +36,6 @@ enum species_cplx_mol_rxn_flag_t {
   // the code that references them must be able to handle their deletion
   SPECIES_FLAG_IS_REMOVABLE = 0x2000,
 
-  // set when molecule type is used in reaction along with specific compartment
-  // TODO: remove and use Species::reactant_compartments instead?
-  SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS = 0x4000,
-
   SPECIES_FLAG_NEEDS_COUNTED_VOLUME = 0x10000, // this value is CAN_VOLSURFSURF in MCell3
 
   SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // not supported - TODO LATER: remove

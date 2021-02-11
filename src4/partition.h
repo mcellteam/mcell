@@ -583,11 +583,10 @@ public:
 
     // set compartment if needed
     BNG::Species& species = get_all_species().get(new_sm.species_id);
-    if (species.needs_compartment()) {
-      const Wall& w = get_wall(new_sm.s.wall_index);
-      const GeometryObject& o = get_geometry_object(w.object_index);
-      new_sm.reactant_compartment_id = species.get_as_reactant_compartment(o.surf_compartment_id);
-    }
+
+    const Wall& w = get_wall(new_sm.s.wall_index);
+    const GeometryObject& o = get_geometry_object(w.object_index);
+    new_sm.reactant_compartment_id = species.get_as_reactant_compartment(o.surf_compartment_id);
 
     return new_sm;
   }

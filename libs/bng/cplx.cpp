@@ -126,10 +126,6 @@ void Cplx::update_flag_and_compartments_used_in_rxns() {
         mt.reactant_compartments.begin(),
         mt.reactant_compartments.end()
     );
-
-    if (mt.has_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS)) {
-      set_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
-    }
   }
 }
 

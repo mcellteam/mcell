@@ -183,12 +183,8 @@ public:
   }
 
   bool needs_counted_volume() const {
-    return has_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME) ||
-        has_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
-  }
-
-  bool needs_compartment() const {
-      return has_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
+    //return has_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
+    return true;
   }
 
   bool has_unimol_rxn() const {

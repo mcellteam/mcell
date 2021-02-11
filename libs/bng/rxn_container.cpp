@@ -105,12 +105,9 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
           for (const ElemMol& mi: reac.elem_mols) {
             ElemMolType& mt = bng_data.get_elem_mol_type(mi.elem_mol_type_id);
 
-            mt.set_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
             // collect compartments (ignore in and out)
             mt.reactant_compartments.insert(reac.get_compartment_id(true));
           }
-          // and also complexes used as reactants
-          reac.set_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
         }
       }
     }
