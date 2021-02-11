@@ -544,7 +544,6 @@ public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0) {
     assert(vm_copy.is_vol());
-    update_species_for_new_molecule(vm_copy);
 
     // TODO: use Species::is_instantiated instead of the known_vol_species
     if (known_vol_species.count(vm_copy.species_id) == 0) {
@@ -559,22 +558,25 @@ public:
     // and add this molecule to a map that tells which species can react with it
     new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
     new_vm.v.reactant_subpart_index = new_vm.v.subpart_index;
-    // might invalidate species references
-    change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
 
-    // we must refresh the species reference
-    BNG::Species& sp_new_ref = get_all_species().get(vm_copy.species_id);
     // compute counted volume id for a new molecule, may define a new counted volume
     if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
       new_vm.set_counted_volume_and_compartment(*this, compute_counted_volume_using_waypoints(new_vm.v.pos));
     }
+
+    // TODO: set compartment and change species to reflect it if needed
+
+    update_species_for_new_molecule(vm_copy);
+
+    // might invalidate species references
+    change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
+
     return new_vm;
   }
 
 
   Molecule& add_surface_molecule(const Molecule& sm_copy, const float_t release_delay_time = 0) {
     assert(sm_copy.is_surf() && sm_copy.s.wall_index != WALL_INDEX_INVALID);
-    update_species_for_new_molecule(sm_copy);
 
     Molecule& new_sm = add_molecule(sm_copy, false, release_delay_time);
 
@@ -584,6 +586,10 @@ public:
     const Wall& w = get_wall(new_sm.s.wall_index);
     const GeometryObject& o = get_geometry_object(w.object_index);
     new_sm.reactant_compartment_id = species.get_as_reactant_compartment(o.surf_compartment_id);
+
+    // TODO: set compartment and change species to reflect it if needed
+
+    update_species_for_new_molecule(sm_copy);
 
     return new_sm;
   }
