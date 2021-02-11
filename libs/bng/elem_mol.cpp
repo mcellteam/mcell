@@ -248,7 +248,7 @@ std::string ElemMol::to_str(const BNGData& bng_data) const {
 }
 
 
-void ElemMol::to_str(const BNGData& bng_data, std::string& res) const {
+void ElemMol::to_str(const BNGData& bng_data, std::string& res, const bool include_compartment) const {
   const ElemMolType& mt = bng_data.get_elem_mol_type(elem_mol_type_id);
 
   res += mt.name;
@@ -270,6 +270,15 @@ void ElemMol::to_str(const BNGData& bng_data, std::string& res) const {
   if (!components.empty()) {
     res += ")";
   }
+
+  if (include_compartment) {
+    if (is_in_out_compartment_id(compartment_id)) {
+      res += "@" + compartment_id_to_str(compartment_id);
+    }
+    else if (!is_nonprintable_compartment_id(compartment_id)) {
+      res += "@" + bng_data.get_compartment(compartment_id).name;
+    }
+  }
 }
 
 
@@ -281,6 +290,7 @@ void ElemMol::dump(const BNGData& bng_data, const bool for_diff, const std::stri
     const ElemMolType& mt = bng_data.get_elem_mol_type(elem_mol_type_id);
     cout << ind << "mol_type_id: " << elem_mol_type_id << " (" << mt.name << ")\n";
     cout << ind << "flags: " << BaseSpeciesCplxMolFlag::to_str() << "\n";
+    cout << ind << "compartment: " << compartment_id_to_str(compartment_id) << "\n";
     cout << ind << "components: \n";
     for (const Component& ci: components) {
       ci.dump(bng_data, ind + "  ");

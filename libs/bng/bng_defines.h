@@ -79,8 +79,21 @@ const compartment_id_t COMPARTMENT_ID_OUT = UINT32_MAX - 4;
 const char* const COMPARTMENT_NAME_IN = "IN";
 const char* const COMPARTMENT_NAME_OUT = "OUT";
 
+static bool is_nonprintable_compartment_id(const compartment_id_t id) {
+  return id == COMPARTMENT_ID_NONE || id == COMPARTMENT_ID_ANY;
+}
+
 static bool is_in_out_compartment_id(const compartment_id_t id) {
   return id == COMPARTMENT_ID_IN || id == COMPARTMENT_ID_OUT;
+}
+
+static bool compartment_matches(const compartment_id_t id1, const compartment_id_t id2) {
+  if (id1 == COMPARTMENT_ID_ANY || id2 == COMPARTMENT_ID_ANY) {
+    return true;
+  }
+  else {
+    return id1 == id2;
+  }
 }
 
 // returns COMPARTMENT_ID_INVALID if name is not IN or OUT

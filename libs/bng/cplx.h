@@ -40,15 +40,12 @@ private:
   // used in reactions, not in species
   orientation_t orientation;
 
-  compartment_id_t compartment_id;
-
   // all possible compartments where this cplx might be used in reactions
   CompartmentIdSet reactant_compartments;
 
 public:
   Cplx(const BNGData* bng_data_)
     : orientation(ORIENTATION_NONE),
-      compartment_id(COMPARTMENT_ID_INVALID),
       bng_data(bng_data_)
       {
   }
@@ -60,7 +57,6 @@ public:
   Cplx& operator =(const Cplx& other) {
     elem_mols = other.elem_mols;
     orientation = other.orientation;
-    compartment_id = other.compartment_id;
     bng_data = other.bng_data;
     reactant_compartments = other.reactant_compartments;
 
@@ -84,6 +80,18 @@ public:
   void update_flag_and_compartments_used_in_rxns();
 
   void create_graph();
+
+  compartment_id_t get_primary_compartment_id() const {
+    if (elem_mols.size() == 1) {
+      return elem_mols[0].compartment_id;
+    }
+    else {
+      return get_complex_compartment_id();
+    }
+  }
+
+  bool uses_single_compartment() const;
+
 
   const Graph& get_graph() const {
     assert(is_finalized());
@@ -125,13 +133,15 @@ public:
   }
 
   bool has_compartment() const {
-    assert(compartment_id != COMPARTMENT_ID_INVALID);
-    return compartment_id != COMPARTMENT_ID_NONE && compartment_id != COMPARTMENT_ID_ANY;
+    compartment_id_t id = get_primary_compartment_id();
+    assert(id != COMPARTMENT_ID_INVALID);
+    return id != COMPARTMENT_ID_NONE && id != COMPARTMENT_ID_ANY;
   }
 
   bool has_compartment_class_in_out() const {
-    assert(compartment_id != COMPARTMENT_ID_INVALID);
-    return compartment_id == COMPARTMENT_ID_IN || compartment_id == COMPARTMENT_ID_OUT;
+    compartment_id_t id = get_primary_compartment_id();
+    assert(id != COMPARTMENT_ID_INVALID);
+    return id == COMPARTMENT_ID_IN || id == COMPARTMENT_ID_OUT;
   }
 
   compartment_id_t get_compartment_id(const bool in_out_as_any = false) const {
@@ -139,14 +149,12 @@ public:
       return COMPARTMENT_ID_ANY;
     }
     else {
-      return compartment_id;
+      return get_primary_compartment_id();
     }
   }
 
-  void set_compartment_id(const compartment_id_t cid) {
-    // TODO: here could be some extra checks related to orientation
-    compartment_id = cid;
-  }
+  // sets compartment to all contained elementary molecules
+  void set_compartment_id(const compartment_id_t cid);
 
   // returns true if this object as a pattern matches second instance
   bool matches_pattern(const Cplx& pattern, const bool ignore_orientation = false) const {
@@ -244,6 +252,8 @@ private:
     }
     return elem_mols[0].matches_simple(other.elem_mols[0]);
   }
+
+  compartment_id_t get_complex_compartment_id() const;
 
   bool matches_complex_pattern_ignore_orientation(const Cplx& pattern) const;
   bool matches_complex_fully_ignore_orientation(const Cplx& pattern) const;

@@ -545,13 +545,6 @@ public:
   Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0) {
     assert(vm_copy.is_vol());
 
-    // TODO: use Species::is_instantiated instead of the known_vol_species
-    if (known_vol_species.count(vm_copy.species_id) == 0) {
-      // we must update reactant maps if new species were added
-      update_reactants_maps_for_new_species(vm_copy.species_id);
-      known_vol_species.insert(vm_copy.species_id);
-    }
-
     // molecule must be added after the update because it was not fully set up
     Molecule& new_vm = add_molecule(vm_copy, true, release_delay_time);
 
@@ -561,12 +554,41 @@ public:
 
     // compute counted volume id for a new molecule, may define a new counted volume
     if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
+      // TODOCOMP: do not set compartment here
       new_vm.set_counted_volume_and_compartment(*this, compute_counted_volume_using_waypoints(new_vm.v.pos));
     }
 
-    // TODO: set compartment and change species to reflect it if needed
+    BNG::Species& species = get_all_species().get(new_vm.species_id);
+    if (new_vm.v.counted_volume_index != COUNTED_VOLUME_INDEX_INVALID) {
+      // set compartment/define new species if needed, volume species may have only one compartment
+      // TODOCOMP: why do we need species for get_reactant_compartment_id_for_counted_volume?
+      BNG::compartment_id_t compartment_id =
+          get_reactant_compartment_id_for_counted_volume(species, new_vm.v.counted_volume_index);
 
-    update_species_for_new_molecule(vm_copy);
+      if (species.get_primary_compartment_id() != compartment_id) {
+        // making a copy
+        BNG::Species new_species = get_all_species().get(new_vm.species_id);
+        new_species.set_compartment_id(compartment_id);
+        // TODOCOMP FIXME: this will be super slow to do for each molecule,
+        // but for now let's keep it like this..
+        // TODOCOMP: move this to releases?
+        new_species.finalize(bng_engine.get_config());
+        new_vm.species_id = get_all_species().find_or_add(new_species, true);
+      }
+    }
+    else {
+      // species must not use compartment because we are outside
+      assert(species.get_primary_compartment_id() == BNG::COMPARTMENT_ID_NONE);
+    }
+
+    update_species_for_new_molecule(new_vm);
+
+    // TODO: use Species::is_instantiated instead of the known_vol_species
+    if (known_vol_species.count(new_vm.species_id) == 0) {
+      // we must update reactant maps if new species were added
+      update_reactants_maps_for_new_species(vm_copy.species_id);
+      known_vol_species.insert(new_vm.species_id);
+    }
 
     // might invalidate species references
     change_vol_reactants_map_from_orig_to_current(new_vm, true, false);

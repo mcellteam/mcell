@@ -628,23 +628,6 @@ void SemanticAnalyzer::convert_cplx(
     const ASTCplxNode* cplx_node,
     Cplx& bng_cplx
 ) {
-
-  // determine compartment
-  string compartment_name = get_compartment_name(cplx_node);
-  if (compartment_name != "") {
-    compartment_id_t cid =
-        bng_data->find_compartment_id(compartment_name);
-    if (cid == COMPARTMENT_ID_INVALID) {
-        errs_loc(cplx_node) <<
-            "Compartment '" << compartment_name << "' was not defined.\n"; // tests N0305, N0306
-        ctx->inc_error_count();
-    }
-    bng_cplx.set_compartment_id(cid);
-  }
-  else {
-    bng_cplx.set_compartment_id(COMPARTMENT_ID_NONE);
-  }
-
   for (const ASTMolNode* m: cplx_node->mols) {
 
     // molecule ids are based on their name
@@ -676,6 +659,22 @@ void SemanticAnalyzer::convert_cplx(
       ctx->inc_error_count();
       return;
     }
+  }
+
+  // determine compartment
+  string compartment_name = get_compartment_name(cplx_node);
+  if (compartment_name != "") {
+    compartment_id_t cid =
+        bng_data->find_compartment_id(compartment_name);
+    if (cid == COMPARTMENT_ID_INVALID) {
+        errs_loc(cplx_node) <<
+            "Compartment '" << compartment_name << "' was not defined.\n"; // tests N0305, N0306
+        ctx->inc_error_count();
+    }
+    bng_cplx.set_compartment_id(cid);
+  }
+  else {
+    bng_cplx.set_compartment_id(COMPARTMENT_ID_NONE);
   }
 
   bng_cplx.finalize();

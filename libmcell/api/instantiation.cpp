@@ -183,7 +183,7 @@ void Instantiation::convert_single_seed_species_to_release_site(
     if (!is_set(default_release_region)) {
       throw ValueError(S("Seed species specification for complex instance ") +
           rel_site->complex->to_bngl_str() + " does not have a compartment and " +
-          NAME_DEFAULT_RELEASE_REGION + " was set, don't know where to release.\n"
+          NAME_DEFAULT_RELEASE_REGION + " was not set, don't know where to release.\n"
       );
     }
 

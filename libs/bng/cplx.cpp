@@ -170,6 +170,75 @@ void Cplx::create_graph() {
 }
 
 
+bool Cplx::uses_single_compartment() const {
+  uint_set<compartment_id_t> compartments;
+
+  assert(elem_mols.size() > 0);
+  for (const ElemMol& em: elem_mols) {
+    compartments.insert(em.compartment_id);
+  }
+  return compartments.size() == 1;
+}
+
+
+compartment_id_t Cplx::get_complex_compartment_id() const {
+#ifndef NDEBUG
+  // consistency check of compartments
+  bool all_are_none = true;
+  uint_set<compartment_id_t> vol_compartments;
+  uint_set<compartment_id_t> surf_compartments;
+
+  assert(elem_mols.size() > 0);
+  for (const ElemMol& em: elem_mols) {
+    if (em.compartment_id == COMPARTMENT_ID_NONE) {
+      // continue
+    }
+    else if (bng_data->get_compartment(em.compartment_id).is_3d) {
+      vol_compartments.insert(em.compartment_id);
+      all_are_none = false;
+    }
+    else {
+      surf_compartments.insert(em.compartment_id);
+      all_are_none = false;
+    }
+  }
+
+  if (all_are_none) {
+    // ok
+  }
+  else if (is_vol()) {
+    // only one vol compartment
+    assert(vol_compartments.size() == 1 && surf_compartments.empty());
+  }
+  else {
+    // only one surf compartment, vol compartments are neighbors
+    assert(vol_compartments.size() <= 2 && surf_compartments.size() == 1);
+
+    const Compartment& comp = bng_data->get_compartment(*surf_compartments.begin());
+
+    for (compartment_id_t vol_id: vol_compartments) {
+      assert(comp.parent_compartment_id == vol_id || comp.children_compartments.count(vol_id) != 0);
+    }
+  }
+#endif
+
+  if (is_surf()) {
+    // get the first surface elem mol
+    for (const ElemMol& em: elem_mols) {
+      if (em.is_surf()) {
+        return em.compartment_id;
+      }
+    }
+    assert(false);
+    return COMPARTMENT_ID_INVALID;
+  }
+  else {
+    // all are volume and must have the same compartment
+    return elem_mols[0].compartment_id;
+  }
+}
+
+
 bool Cplx::matches_complex_pattern_ignore_orientation(const Cplx& pattern) const {
 
 #ifdef DEBUG_CPLX_MATCHING
@@ -195,6 +264,19 @@ bool Cplx::matches_complex_pattern_ignore_orientation(const Cplx& pattern) const
 #endif
   // we need at least one match
   return !mappings.empty();
+}
+
+
+// sets compartment to all contained elementary molecules
+void Cplx::set_compartment_id(const compartment_id_t cid) {
+  // TODO: here could be some extra checks related to orientation
+  // set compartment to all elementary molecules
+  assert(!elem_mols.empty());
+  for (ElemMol& em: elem_mols) {
+    assert((cid == COMPARTMENT_ID_NONE || cid == COMPARTMENT_ID_ANY ||
+        bng_data->get_compartment(cid).is_3d == em.is_vol_no_finalized_check()) && "Compartment type must match");
+    em.compartment_id = cid;
+  }
 }
 
 
@@ -515,14 +597,19 @@ std::string Cplx::to_str(bool in_surf_reaction) const {
 
 
 void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
+
+
+  bool use_individual_compartments = !uses_single_compartment() || elem_mols.size() == 1;
+
   for (size_t i = 0; i < elem_mols.size(); i++) {
-    elem_mols[i].to_str(*bng_data, res);
+    elem_mols[i].to_str(*bng_data, res, use_individual_compartments);
 
     if (i != elem_mols.size() - 1) {
       res += ".";
     }
   }
 
+  compartment_id_t compartment_id = get_primary_compartment_id();
   bool no_specific_compartment =
      (compartment_id == COMPARTMENT_ID_INVALID ||
       compartment_id == COMPARTMENT_ID_ANY ||
@@ -539,12 +626,13 @@ void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
       res += ";";
     }
   }
-  else {
+  else if (!use_individual_compartments) {
+    // single compartment is used as prefix when all compartments are the same
     if (is_in_out_compartment_id(compartment_id)) {
-      res += "@" + compartment_id_to_str(compartment_id);
+      res = "@" + compartment_id_to_str(compartment_id) + ":" + res;
     }
     else {
-      res += "@" + bng_data->get_compartment(compartment_id).name;
+      res = "@" + bng_data->get_compartment(compartment_id).name  + ":" + res;
     }
   }
 }
@@ -556,18 +644,6 @@ void Cplx::dump(const bool for_diff, const std::string ind) const {
   }
   else {
     cout << ind << "orientation: " << orientation << "\n";
-    cout << ind << "compartment: ";
-    if (compartment_id != COMPARTMENT_ID_NONE &&
-        compartment_id != COMPARTMENT_ID_ANY &&
-        compartment_id != COMPARTMENT_ID_INVALID &&
-        !is_in_out_compartment_id(compartment_id) ) {
-
-      cout << bng_data->get_compartment(compartment_id).name << "\n";
-    }
-    else {
-      cout << compartment_id_to_str(compartment_id) << "\n";
-    }
-
     cout << ind << "mol_instances:\n";
     for (size_t i = 0; i < elem_mols.size(); i++) {
       cout << ind << i << ":\n";

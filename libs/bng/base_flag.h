@@ -156,6 +156,11 @@ public:
     return !has_flag(SPECIES_CPLX_MOL_FLAG_SURF) && !has_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
   }
 
+  bool is_vol_no_finalized_check() const {
+    return !has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF) &&
+        !has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
+  }
+
   bool is_reactive_surface() const {
     return has_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
   }
