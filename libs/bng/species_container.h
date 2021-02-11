@@ -234,10 +234,10 @@ public:
   // flag_analyzer is a customizable class that provides interface
   // that the flags update method may query to set other flags unrelated to
   // the BNG engine itself
-  void recompute_species_flags(RxnContainer& all_rxns, BaseCustomFlagsAnalyzer* flags_analyzer = nullptr) {
+  void recompute_species_flags(RxnContainer& all_rxns) {
     for (Species* sp: species) {
       release_assert(sp != nullptr);
-      sp->update_rxn_and_custom_flags(*this, all_rxns, flags_analyzer);
+      sp->update_rxn_and_custom_flags(*this, all_rxns);
     }
   }
 

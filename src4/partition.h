@@ -32,7 +32,6 @@
 #include "scheduler.h"
 #include "geometry.h"
 #include "simulation_config.h"
-#include "species_flags_analyzer.h"
 #include "libmcell/api/shared_structs.h"
 
 #include "rng.h"
@@ -213,8 +212,7 @@ public:
       const Vec3& origin_corner_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
-      SimulationStats& stats_,
-      SpeciesFlagsAnalyzer& species_flags_analyzer_
+      SimulationStats& stats_
   )
     : origin_corner(origin_corner_),
       next_molecule_id(0),
@@ -222,8 +220,7 @@ public:
       id(id_),
       config(config_),
       bng_engine(bng_engine_),
-      stats(stats_),
-      species_flags_analyzer(species_flags_analyzer_) {
+      stats(stats_) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
 
@@ -532,7 +529,7 @@ private:
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(m.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
-      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
+      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns());
     }
     if (!sp.was_instantiated()) {
       // update rxn classes for this new species, may create new species and
@@ -568,7 +565,7 @@ public:
     // we must refresh the species reference
     BNG::Species& sp_new_ref = get_all_species().get(vm_copy.species_id);
     // compute counted volume id for a new molecule, may define a new counted volume
-    if (sp_new_ref.needs_counted_volume() && new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
+    if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
       new_vm.set_counted_volume_and_compartment(*this, compute_counted_volume_using_waypoints(new_vm.v.pos));
     }
     return new_vm;
@@ -1124,7 +1121,6 @@ public:
   const SimulationConfig& config;
   BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
-  SpeciesFlagsAnalyzer& species_flags_analyzer;
 };
 
 typedef std::vector<Partition> PartitionVector;

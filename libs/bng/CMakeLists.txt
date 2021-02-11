@@ -20,7 +20,7 @@ if (NOT WIN32) # TODO
 endif()
 
 set(SOURCE_FILES
-    shared_defines.cpp
+  shared_defines.cpp
 	ast.cpp
 	base_flag.cpp
 	bng_data.cpp

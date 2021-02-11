@@ -92,8 +92,7 @@ public:
   }
 
   void update_rxn_and_custom_flags(
-      const SpeciesContainer& all_species, RxnContainer& all_rxns,
-      const BaseCustomFlagsAnalyzer* flags_analyzer = nullptr
+      const SpeciesContainer& all_species, RxnContainer& all_rxns
   );
 
   uint get_num_instantiations() const {
@@ -180,11 +179,6 @@ public:
 
   float_t get_space_step() const {
     return space_step;
-  }
-
-  bool needs_counted_volume() const {
-    //return has_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
-    return true;
   }
 
   bool has_unimol_rxn() const {

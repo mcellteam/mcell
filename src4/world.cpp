@@ -150,15 +150,6 @@ void World::create_initial_surface_region_release_event() {
 }
 
 
-void World::recompute_species_flags() {
-  // collect all MolOrRxnCountEvent to initialize species_flags_analyzer that is then used to set
-  // certain species flags
-  vector<BaseEvent*> count_events;
-  scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
-  species_flags_analyzer.initialize(count_events, unscheduled_count_events);
-  get_all_species().recompute_species_flags(get_all_rxns(), &species_flags_analyzer);
-}
-
 void World::init_counted_volumes() {
   assert(partitions.size() == 1);
 
@@ -280,8 +271,6 @@ void World::init_simulation(const float_t start_time) {
     mcell_log("Error: there must be at least one species!");
     exit(1);
   }
-
-  recompute_species_flags();
 
   stats.reset(false);
 

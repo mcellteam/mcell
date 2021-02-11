@@ -36,7 +36,6 @@ set(SRC4_SOURCE_FILES
     wall_overlap.cpp
     grid_position.cpp
     geometry.cpp
-    species_flags_analyzer.cpp
     memory_limit_checker.cpp
     world.cpp
     simulation_config.cpp

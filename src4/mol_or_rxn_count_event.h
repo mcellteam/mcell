@@ -183,20 +183,16 @@ enum class CountSpeciesInfoType {
 struct CountSpeciesInfo {
   CountSpeciesInfo()
     : type(CountSpeciesInfoType::NotSeen),
-      needs_counted_volume(false),
       all_are_world_mol_counts(true) {
   }
 
   CountSpeciesInfoType type;
-
-  bool needs_counted_volume;
 
   // when true, all count items that count this species are listed in
   // the world_count_item_indices
   bool all_are_world_mol_counts;
 
   // indices of count items that count this species in the whole world
-  // when needs_counted_volume is false, these are the only counts we care about
   uint_set<uint> world_count_item_indices;
 };
 
@@ -236,12 +232,6 @@ public:
       count_rxns = true;
     }
   }
-
-  // returns true if this count event count these specific species
-  // and whether the species are counted in volume regions so that they
-  // need the Molecule's attribute counted_volume to be maintained
-  // is cached
-  bool species_needs_counted_volume(const species_id_t species_id);
 
   MolOrRxnCountItemVector mol_rxn_count_items;
 

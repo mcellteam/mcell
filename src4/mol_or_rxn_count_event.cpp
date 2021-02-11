@@ -639,9 +639,6 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
 
       if (matches) {
         info.type = CountSpeciesInfoType::Counted;
-        if (term.type == CountType::EnclosedInVolumeRegion) {
-          info.needs_counted_volume = true;
-        }
         if (count_item.is_world_mol_count()) {
           // optimization for faster counting
           info.world_count_item_indices.insert(count_item.index);
@@ -653,11 +650,6 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
       }
     } // for count_item.terms
   } // for mol_count_items
-}
-
-
-bool MolOrRxnCountEvent::species_needs_counted_volume(const species_id_t species_id) {
-  return get_or_compute_count_species_info(species_id).needs_counted_volume;
 }
 
 

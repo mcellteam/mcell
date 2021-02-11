@@ -36,8 +36,6 @@ enum species_cplx_mol_rxn_flag_t {
   // the code that references them must be able to handle their deletion
   SPECIES_FLAG_IS_REMOVABLE = 0x2000,
 
-  SPECIES_FLAG_NEEDS_COUNTED_VOLUME = 0x10000, // this value is CAN_VOLSURFSURF in MCell3
-
   SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // not supported - TODO LATER: remove
   SPECIES_FLAG_SET_MAX_STEP_LENGTH = 0x80000, // not supported
 
@@ -167,25 +165,6 @@ public:
 
 
 class Species;
-/**
- * Some flags need to be set according to data and code outside of
- * this BNG library. To allow the code separation, the user may define
- * a derived class and pass it wherever needed.
- * Currently it is used in Species::update_rxn_and_custom_flags.
- */
-class BaseCustomFlagsAnalyzer {
-public:
-  virtual ~BaseCustomFlagsAnalyzer() {
-  }
-
-  // returns a mask of all custom flags for species,
-  // used to clear any pre-existing flag values
-  virtual uint get_custom_species_flags_mask() const = 0;
-
-  // returns a mask of all custom flags for species that should be set
-  virtual uint get_custom_species_flags_to_set(const Species& species) const = 0;
-};
-
 
 } // namespace BNG
 
