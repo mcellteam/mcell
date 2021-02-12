@@ -62,14 +62,14 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
     // get reactions, this also creates all reaction classes for the species that we are processing
     // we are getting reactions for all known species because these flags must be initialized
     // before we have any instance of these species
-    BNG::ReactantRxnClassesMap* rxn_classes = get_bimol_rxns_for_reactant(Reactant(sp.id, COMPARTMENT_ID_ANY), true);
+    BNG::ReactantRxnClassesMap* rxn_classes = get_bimol_rxns_for_reactant(sp.id, true);
     if (rxn_classes == nullptr) {
       continue;
     }
 
     // go through all applicable reactants
     for (auto it: *rxn_classes) {
-      const BNG::RxnClass* rxn_class = it.second[COMPARTMENT_ID_ANY];
+      const BNG::RxnClass* rxn_class = it.second[COMPARTMENT_ID_NONE];
       assert(rxn_class->is_bimol());
 
       const BNG::Species& sp2 = all_species.get(rxn_class->get_second_species_id(sp.id));
@@ -94,57 +94,26 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
       }
     }
   }
-
-  // set flag to all MolTypes that use compartments
-  // this does not update already existing complexes,
-  for (RxnRule* rxn: rxn_rules) {
-    if (rxn->reactants_use_compartments()) {
-      for (Cplx& reac: rxn->reactants) {
-        if (reac.has_compartment()) {
-          // update molecule types
-          for (const ElemMol& mi: reac.elem_mols) {
-            ElemMolType& mt = bng_data.get_elem_mol_type(mi.elem_mol_type_id);
-
-            // collect compartments (ignore in and out)
-            mt.reactant_compartments.insert(reac.get_compartment_id(true));
-          }
-        }
-      }
-    }
-  }
-
-  // update this flag in cplxs of rxn products as well
-  // this is run during initialization and no other complexes shoudl exist
-  for (RxnRule* rxn: rxn_rules) {
-    for (Cplx& reac: rxn->products) {
-      reac.update_flag_and_compartments_used_in_rxns();
-    }
-  }
-
-  // and also update all existing species
-  for (Species* s: all_species.get_species_vector()) {
-    s->update_flag_and_compartments_used_in_rxns();
-  }
 }
 
 
-RxnClass* RxnContainer::get_or_create_empty_unimol_rxn_class(const Reactant& reac) {
+RxnClass* RxnContainer::get_or_create_empty_unimol_rxn_class(const species_id_t reac_id) {
 
-  ReactantSpeciesIt it_species = unimol_rxn_class_map.find(reac.species_id);
+  ReactantSpeciesIt it_species = unimol_rxn_class_map.find(reac_id);
 
   if (it_species != unimol_rxn_class_map.end()) {
     // map for this species id was already created,
     // was this compartment handled as well?
-    ReactantCompartmentIt it_comp = it_species->second.find(reac.compartment_id);
+    ReactantCompartmentIt it_comp = it_species->second.find(COMPARTMENT_ID_NONE);
     if (it_comp != it_species->second.end()) {
       return it_comp->second;
     }
   }
 
   // no created yet
-  RxnClass* new_rxn_class = new RxnClass(*this, all_species, bng_config, reac);
+  RxnClass* new_rxn_class = new RxnClass(*this, all_species, bng_config, reac_id);
   rxn_classes.insert(new_rxn_class);
-  unimol_rxn_class_map[reac.species_id][reac.compartment_id] = new_rxn_class;
+  unimol_rxn_class_map[reac_id][COMPARTMENT_ID_NONE] = new_rxn_class;
   return new_rxn_class;
 }
 
@@ -162,18 +131,19 @@ void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t 
   if (!rxns_for_new_species.empty()) {
 
     // for each compartment
-    const CompartmentIdSet& reactant_compartments =
-        all_species.get(species_id).get_reactant_compartments();
+    // TODO: remove
+    CompartmentIdSet reactant_compartments;
+    reactant_compartments.insert(COMPARTMENT_ID_NONE);
+
     for (compartment_id_t compartment_id1: reactant_compartments) {
-      Reactant reac = Reactant(species_id, compartment_id1);
 
       // 1) first we need to get to the instance of the reaction class for new_id
-      RxnClass* rxn_class = get_or_create_empty_unimol_rxn_class(reac);
+      RxnClass* rxn_class = get_or_create_empty_unimol_rxn_class(species_id);
 
       // create reactions classes specific for our species
       for (RxnRule* matching_rxn: rxns_for_new_species) {
         // 2) check if compartment matches
-        if (!matching_rxn->reactant_compatment_matches(0, reac.compartment_id)) {
+        if (!matching_rxn->reactant_compatment_matches(0, COMPARTMENT_ID_NONE)) {
           continue;
         }
 
@@ -192,53 +162,53 @@ void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t 
 }
 
 
-RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const Reactant& reac1, const Reactant& reac2) {
+RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t reac1_id, const species_id_t reac2_id) {
   // TODO: simplify, can we use []?
-  BimolSpeciesIt it_species1 = bimol_rxn_class_map.find(reac1.species_id);
+  BimolSpeciesIt it_species1 = bimol_rxn_class_map.find(reac1_id);
   if (it_species1 == bimol_rxn_class_map.end()) {
-    auto it_species_pair = bimol_rxn_class_map.insert( make_pair(reac1.species_id, BimolCompartmentRxnClassesMap()) );
+    auto it_species_pair = bimol_rxn_class_map.insert( make_pair(reac1_id, BimolCompartmentRxnClassesMap()) );
     it_species1 = it_species_pair.first;
   }
-  BimolCompartmentIt it_species1_comp1 = it_species1->second.find(reac1.compartment_id);
+  BimolCompartmentIt it_species1_comp1 = it_species1->second.find(COMPARTMENT_ID_NONE);
   if (it_species1_comp1 == it_species1->second.end()) {
-    auto it_comp_pair = it_species1->second.insert( make_pair(reac1.compartment_id, ReactantRxnClassesMap()) );
+    auto it_comp_pair = it_species1->second.insert( make_pair(COMPARTMENT_ID_NONE, ReactantRxnClassesMap()) );
     it_species1_comp1 = it_comp_pair.first;
   }
 
-  BimolSpeciesIt it_species2 = bimol_rxn_class_map.find(reac2.species_id);
+  BimolSpeciesIt it_species2 = bimol_rxn_class_map.find(reac2_id);
   if (it_species2 == bimol_rxn_class_map.end()) {
-    auto it_species_pair = bimol_rxn_class_map.insert( make_pair(reac2.species_id, BimolCompartmentRxnClassesMap()) );
+    auto it_species_pair = bimol_rxn_class_map.insert( make_pair(reac2_id, BimolCompartmentRxnClassesMap()) );
     it_species2 = it_species_pair.first;
   }
-  BimolCompartmentIt it_species2_comp2 = it_species2->second.find(reac2.compartment_id);
+  BimolCompartmentIt it_species2_comp2 = it_species2->second.find(COMPARTMENT_ID_NONE);
   if (it_species2_comp2 == it_species2->second.end()) {
-    auto it_comp_pair = it_species2->second.insert( make_pair(reac2.compartment_id, ReactantRxnClassesMap()) );
+    auto it_comp_pair = it_species2->second.insert( make_pair(COMPARTMENT_ID_NONE, ReactantRxnClassesMap()) );
     it_species2_comp2 = it_comp_pair.first;
   }
 
-  ReactantSpeciesIt it_species1_comp1_species2 = it_species1_comp1->second.find(reac2.species_id);
+  ReactantSpeciesIt it_species1_comp1_species2 = it_species1_comp1->second.find(reac2_id);
 
   // do we already have a reaction class for (reac1, reac2)?
   if (it_species1_comp1_species2 != it_species1_comp1->second.end() &&
-      it_species1_comp1_species2->second.find(reac2.compartment_id) != it_species1_comp1_species2->second.end()) {
+      it_species1_comp1_species2->second.find(COMPARTMENT_ID_NONE) != it_species1_comp1_species2->second.end()) {
 #ifndef NDEBUG
-    ReactantSpeciesIt it_species2_comp2_species1 = it_species2_comp2->second.find(reac1.species_id);
+    ReactantSpeciesIt it_species2_comp2_species1 = it_species2_comp2->second.find(reac1_id);
     assert(it_species2_comp2_species1 != it_species2_comp2->second.end() && "Map for id1->id2 implies that there must be a map for id2->id1");
-    assert(it_species1_comp1_species2->second.count(reac2.compartment_id));
-    assert(it_species2_comp2_species1->second.count(reac1.compartment_id));
-    assert(it_species1_comp1_species2->second[reac2.compartment_id] == it_species2_comp2_species1->second[reac1.compartment_id] &&
+    assert(it_species1_comp1_species2->second.count(COMPARTMENT_ID_NONE));
+    assert(it_species2_comp2_species1->second.count(COMPARTMENT_ID_NONE));
+    assert(it_species1_comp1_species2->second[COMPARTMENT_ID_NONE] == it_species2_comp2_species1->second[COMPARTMENT_ID_NONE] &&
         "Map for id1->id2 must be the same as a map for id2->id1");
 #endif
-    return it_species1_comp1_species2->second[reac2.compartment_id];
+    return it_species1_comp1_species2->second[COMPARTMENT_ID_NONE];
   }
   else {
     // create a new one
-    RxnClass* new_rxn_class = new RxnClass(*this, all_species, bng_config, reac1, reac2);
+    RxnClass* new_rxn_class = new RxnClass(*this, all_species, bng_config, reac1_id, reac2_id);
     rxn_classes.insert(new_rxn_class);
 
     // insert it into maps
-    it_species1_comp1->second[reac2.species_id][reac2.compartment_id] = new_rxn_class;
-    it_species2_comp2->second[reac1.species_id][reac1.compartment_id] = new_rxn_class;
+    it_species1_comp1->second[reac2_id][COMPARTMENT_ID_NONE] = new_rxn_class;
+    it_species2_comp2->second[reac1_id][COMPARTMENT_ID_NONE] = new_rxn_class;
     return new_rxn_class;
   }
 }
@@ -364,10 +334,9 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
   // do nothing if this species cannot react
   if (!rxns_for_new_species.empty()) {
 
-    const CompartmentIdSet& reactant_compartments1 =
-        all_species.get(species_id1).get_reactant_compartments();
+    CompartmentIdSet reactant_compartments1;
+    reactant_compartments1.insert(COMPARTMENT_ID_NONE);
     for (compartment_id_t compartment_id1: reactant_compartments1) {
-      Reactant reac1 = Reactant(species_id1, compartment_id1);
 
       // create reactions classes specific for our species
       // rxn_class->update_rxn_pathways may create new species, therefore we
@@ -385,7 +354,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
         // TODO: simplify condition - is_species_superclass check does not have to be there
         if (!for_all_known_species &&
             !species->was_instantiated()  &&
-            !(reac1.species_id == species_id2) && // we would miss A+A type reactions
+            !(species_id1 == species_id2) && // we would miss A+A type reactions
             !all_species.is_species_superclass(species_id2)) {
           // we do not care about molecules that do not exist yet, however we must process superclasses
           continue;
@@ -394,27 +363,25 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
         // TODO: can we share RxnClass object for cases when ANY and NONE are the same?
         //       what about cleanup?
         // for each applicable compartment for this species
-        const CompartmentIdSet& reactant_compartments2 =
-            all_species.get(species_id2).get_reactant_compartments();
+        CompartmentIdSet reactant_compartments2;
+        reactant_compartments2.insert(COMPARTMENT_ID_NONE);
         for (compartment_id_t compartment_id2: reactant_compartments2) {
-
-          Reactant reac2(species_id2, compartment_id2);
 
           // don't we have a rxn class for this pair of special already?
           // (only created in different order, e.g. in A + B and now we are checking for B + A)
           // TODO: move to a function
           // a) second species
-          BimolSpeciesIt it_species2 = bimol_rxn_class_map.find(reac2.species_id);
+          BimolSpeciesIt it_species2 = bimol_rxn_class_map.find(species_id2);
           if (it_species2 != bimol_rxn_class_map.end()) {
             // b) second compartment
-            BimolCompartmentIt it_species2_comp2 = it_species2->second.find(reac2.compartment_id);
+            BimolCompartmentIt it_species2_comp2 = it_species2->second.find(COMPARTMENT_ID_NONE);
             if (it_species2_comp2 != it_species2->second.end()) {
               // c) first species
-              ReactantSpeciesIt it_species2_comp2_species1 = it_species2_comp2->second.find(reac1.species_id);
+              ReactantSpeciesIt it_species2_comp2_species1 = it_species2_comp2->second.find(species_id1);
               if (it_species2_comp2_species1 != it_species2_comp2->second.end()) {
                 // d) first compartment
                 ReactantCompartmentIt it_species2_comp2_species1_comp1 =
-                    it_species2_comp2_species1->second.find(reac1.compartment_id);
+                    it_species2_comp2_species1->second.find(COMPARTMENT_ID_NONE);
                 if (it_species2_comp2_species1_comp1 != it_species2_comp2_species1->second.end()) {
                   // nothing to do here, this rxn class is already correctly mapped in rxn class map
                   continue;
@@ -430,7 +397,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
           for (RxnRule* matching_rxn: rxns_for_new_species) {
 
             // usually the species must be different but reactions of type A + A are allowed
-            if (reac1.species_id == species_id2 && !matching_rxn->species_is_both_bimol_reactants(reac1.species_id, all_species)) {
+            if (species_id1 == species_id2 && !matching_rxn->species_is_both_bimol_reactants(species_id1, all_species)) {
               continue;
             }
 
@@ -438,7 +405,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
             bool both_match_both_patterns = false;
             bool reactants_match =
                 matching_rxn->species_can_be_bimol_reactants(
-                    reac1.species_id, species_id2, all_species,
+                    species_id1, species_id2, all_species,
                     &reac1_index, &reac2_index, &both_match_both_patterns);
 
             if (both_match_both_patterns) {
@@ -446,8 +413,8 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
             }
 
             if (reactants_match &&
-                matching_rxn->reactant_compatment_matches(reac1_index, reac1.compartment_id) &&
-                matching_rxn->reactant_compatment_matches(reac2_index, reac2.compartment_id)) {
+                matching_rxn->reactant_compatment_matches(reac1_index, COMPARTMENT_ID_NONE) &&
+                matching_rxn->reactant_compatment_matches(reac2_index, COMPARTMENT_ID_NONE)) {
 
 
               // ok, we have a reaction applicable both to new_id and second_id and compartment matches as well
@@ -458,33 +425,27 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
 
           if (!applicable_rxns.empty()) {
 
-            Reactant reacA = reac1;
-            Reactant reacB = reac2;
+            species_id_t reacA_id = species_id1;
+            species_id_t reacB_id = species_id2;
 
-            // if both reactants match both patterns, and compartments are not important,
+            // if both reactants match both patterns,
             // we must sort the reactants so that it does not matter whether the rxn class was first created
             // for reac1 or reac2,
             // otherwise, this might give us different result e.g. based on the frequency of rxn class cleanup
             // NOTE: some cases related to compartments might be missed
-            if (reac1.species_id != reac2.species_id &&
-                has_rxn_where_both_match_both_patterns &&
-                (
-                 ((reac1.compartment_id == COMPARTMENT_ID_NONE || reac1.compartment_id == COMPARTMENT_ID_ANY) &&
-                  (reac2.compartment_id == COMPARTMENT_ID_NONE || reac2.compartment_id == COMPARTMENT_ID_ANY)) ||
-                 reac1.compartment_id == reac2.compartment_id
-                )
-               ) {
+            if (species_id1 != species_id2 &&
+                has_rxn_where_both_match_both_patterns) {
               // order by species name - the one lexicographically smaller will be the first one
-              const Species& s1 = all_species.get(reac1.species_id);
-              const Species& s2 = all_species.get(reac2.species_id);
+              const Species& s1 = all_species.get(species_id1);
+              const Species& s2 = all_species.get(species_id2);
               if (s1.name > s2.name) {
-                reacA = reac2;
-                reacB = reac1;
+                reacA_id = species_id2;
+                reacB_id = species_id1;
               }
             }
 
             // get to the instance of the reaction class for (new_id, second_id) or (second_id, new_id)
-            RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(reacA, reacB);
+            RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(reacA_id, reacB_id);
 
             for (RxnRule* rxn: applicable_rxns) {
               rxn_class->add_rxn_rule_no_update(rxn);
@@ -494,7 +455,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t s
             if (bng_config.bng_verbosity_level >= 2) {
               cout <<
                   "BNG: Created or updated a new bimolecular reaction class for species " <<
-                  all_species.get(reac1.species_id).name << " (" << reac1.species_id << "):\n";
+                  all_species.get(species_id1).name << " (" << species_id2 << "):\n";
               rxn_class->dump("  ");
             }
           }

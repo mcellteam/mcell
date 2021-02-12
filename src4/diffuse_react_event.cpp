@@ -1741,7 +1741,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     return true;
   }
   else {
-    RxnClass* unimol_rxn_class = world->get_all_rxns().get_unimol_rxn_class(m.as_reactant());
+    RxnClass* unimol_rxn_class = world->get_all_rxns().get_unimol_rxn_class(m.species_id);
     assert(unimol_rxn_class != nullptr && unimol_rxn_class->get_num_reactions() >= 1);
 
     unimol_rxn_class->update_rxn_rates_if_needed(scheduled_time);
@@ -1876,10 +1876,10 @@ int DiffuseReactEvent::outcome_intersect(
   bool keep_reacA = true, keep_reacB = true;
 
   // expecting that the surface is always the second reactant
-  assert(p.get_all_species().get(rxn_class->specific_reactants[1].species_id).is_reactive_surface());
+  assert(p.get_all_species().get(rxn_class->specific_reactants[1]).is_reactive_surface());
 
-  if (rxn_class->specific_reactants[0].species_id == all_molecules_id ||
-      rxn_class->specific_reactants[0].species_id == all_volume_molecules_id) {
+  if (rxn_class->specific_reactants[0] == all_molecules_id ||
+      rxn_class->specific_reactants[0] == all_volume_molecules_id) {
     assert(rxn_class->get_num_reactions() == 1);
     keep_reacA = false;
     result = RX_DESTROY;

@@ -40,9 +40,6 @@ private:
   // used in reactions, not in species
   orientation_t orientation;
 
-  // all possible compartments where this cplx might be used in reactions
-  CompartmentIdSet reactant_compartments;
-
 public:
   Cplx(const BNGData* bng_data_)
     : orientation(ORIENTATION_NONE),
@@ -58,7 +55,6 @@ public:
     elem_mols = other.elem_mols;
     orientation = other.orientation;
     bng_data = other.bng_data;
-    reactant_compartments = other.reactant_compartments;
 
     set_flags(other.get_flags());
 
@@ -75,9 +71,6 @@ public:
   // must be called after initialization, sets up flags
   // also creates graphs for non-simple complexes
   void finalize(const bool init_flags_and_compartments = true);
-
-  // called automatically from finalize but needed elsewhere as well
-  void update_flag_and_compartments_used_in_rxns();
 
   void create_graph();
 
@@ -211,30 +204,6 @@ public:
   // the same ordering
   // default sorting of components is according to molecule types
   void canonicalize(const bool sort_components_by_name_do_not_finalize = false);
-
-  const CompartmentIdSet& get_reactant_compartments() const {
-    assert(!reactant_compartments.empty() && "Not initialized");
-    return reactant_compartments;
-  }
-
-  bool is_reactant_compartment(const compartment_id_t compartment_id) const {
-    assert(!reactant_compartments.empty() && "Not initialized");
-    return reactant_compartments.count(compartment_id) != 0;
-  }
-
-  // if the compartment passed as argument is in a set of applicable compartments then
-  // returns its value, otherwise returns COMPARTMENT_ID_NONE because we must not
-  // set a compartment ID that is not applicable, e.g. the RxnContaines counts on it
-  compartment_id_t get_as_reactant_compartment(const compartment_id_t compartment_id) const {
-    assert(!reactant_compartments.empty() && "Not initialized");
-    if (is_reactant_compartment(compartment_id)) {
-      return compartment_id;
-    }
-    else {
-      // outside of any compartment important for this species
-      return COMPARTMENT_ID_NONE;
-    }
-  }
 
   // appends to string res
   void to_str(std::string& res, const bool in_surf_reaction = false) const;

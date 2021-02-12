@@ -87,8 +87,6 @@ class ElemMolType: public BaseSpeciesCplxMolFlag, public ElemMolTypeSpeciesCommo
 public:
   ElemMolType() :
     custom_time_step(0), custom_space_step(0) {
-    reactant_compartments.insert(COMPARTMENT_ID_ANY);
-    reactant_compartments.insert(COMPARTMENT_ID_NONE);
   }
 
   std::string name;
@@ -98,11 +96,6 @@ public:
   // is set to non-zero value, max one of them can be set to a non-zero value
   float_t custom_time_step;
   float_t custom_space_step;
-
-  // initialized to contain ANY and NONE compartments,
-  // additional compartments are added in
-  // RxnContainer::update_all_mols_and_mol_type_compartments
-  CompartmentIdSet reactant_compartments;
 
   bool has_custom_time_or_space_step() const {
     return custom_time_step != 0 || custom_space_step != 0;

@@ -16,8 +16,6 @@
 
 namespace BNG {
 
-class Reactant;
-
 // using templates instead of virtual methods? -> rather a template
 // with virtual methods, this container would not be able to create new
 // objects by its own
@@ -174,8 +172,6 @@ public:
         id < species_id_to_index_mapping.size() &&
         species_id_to_index_mapping[id] < species.size();
   }
-
-  bool is_valid_reactant(const Reactant& reac) const;
 
   const Cplx& get_as_cplx(const species_id_t id) const {
     return get(id);

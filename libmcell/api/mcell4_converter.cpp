@@ -566,9 +566,6 @@ void MCell4Converter::convert_surface_classes() {
     BNG::Species sc_species(world->bng_engine.get_data());
     sc_species.name = sc->name;
 
-    // we do not care about compartments for surface classes
-    sc_species.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
-
     sc_species.set_is_reactive_surface();
     // sets steps to 0
     sc_species.space_step = 0;
@@ -585,6 +582,10 @@ void MCell4Converter::convert_surface_classes() {
     BNG::ElemMol mol_inst;
     mol_inst.elem_mol_type_id = mol_type_id;
     sc_species.elem_mols.push_back(mol_inst);
+
+    // we do not care about compartments for surface classes
+    sc_species.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
+
     sc_species.finalize(world->config, false);
 
     species_id_t new_species_id = world->get_all_species().find_or_add(sc_species);

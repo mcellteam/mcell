@@ -176,10 +176,6 @@ public:
     } s;
   };
 
-  BNG::Reactant as_reactant() const {
-    return BNG::Reactant(species_id, reactant_compartment_id);
-  }
-
   bool has_flag(uint flag) const {
     assert(__builtin_popcount(flag) == 1);
     return (flags & flag) != 0;

@@ -277,7 +277,7 @@ std::vector<int> Model::run_reaction(
   if (rxn->is_unimol()) {
     // check if the requested rxn is applicable for our reactant
     // also determine pathway index
-    BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(m1.as_reactant());
+    BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(m1.species_id);
     rxn_class->init_rxn_pathways_and_rates(); // initialize if needed
     rxn_class_pathway_index_t index = 0;
     while (index < (rxn_class_pathway_index_t)rxn_class->get_num_pathways() &&

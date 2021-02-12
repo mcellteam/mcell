@@ -556,7 +556,7 @@ static void collide_mol_loop_body(
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
 
     BNG::RxnClass* rxn_class =
-        p.get_all_rxns().get_bimol_rxn_class(vm.as_reactant(), colliding_vm.as_reactant());
+        p.get_all_rxns().get_bimol_rxn_class(vm.species_id, colliding_vm.species_id);
 
     if (rxn_class == nullptr) {
       // reactants are not in compartments that match

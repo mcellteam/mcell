@@ -142,15 +142,6 @@ void SpeciesContainer::defragment() {
 }
 
 
-bool SpeciesContainer::is_valid_reactant(const Reactant& reac) const {
-  if (!is_valid_id(reac.species_id)) {
-    return false;
-  }
-
-  return get(reac.species_id).is_reactant_compartment(reac.compartment_id);
-}
-
-
 void SpeciesContainer::dump() const {
   Species::dump_array(bng_data, species);
 }

@@ -105,8 +105,6 @@ void Cplx::finalize(const bool init_flags_and_compartments) {
       }
     }
     set_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
-
-    update_flag_and_compartments_used_in_rxns();
   }
 
   // we need graphs even for simple complexes because they can be used in reaction patterns
@@ -114,19 +112,6 @@ void Cplx::finalize(const bool init_flags_and_compartments) {
   create_graph();
 
   set_finalized();
-}
-
-
-void Cplx::update_flag_and_compartments_used_in_rxns() {
-  for (ElemMol& mi: elem_mols) {
-
-    const ElemMolType& mt = bng_data->get_elem_mol_type(mi.elem_mol_type_id);
-
-    reactant_compartments.insert(
-        mt.reactant_compartments.begin(),
-        mt.reactant_compartments.end()
-    );
-  }
 }
 
 
