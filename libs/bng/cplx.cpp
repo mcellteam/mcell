@@ -170,26 +170,26 @@ bool Cplx::uses_single_compartment() const {
 compartment_id_t Cplx::get_complex_compartment_id() const {
 #ifndef NDEBUG
   // consistency check of compartments
-  bool all_are_none = true;
+  bool all_are_none_or_any = true;
   uint_set<compartment_id_t> vol_compartments;
   uint_set<compartment_id_t> surf_compartments;
 
   assert(elem_mols.size() > 0);
   for (const ElemMol& em: elem_mols) {
-    if (em.compartment_id == COMPARTMENT_ID_NONE) {
+    if (em.compartment_id == COMPARTMENT_ID_NONE || em.compartment_id == COMPARTMENT_ID_ANY) {
       // continue
     }
     else if (bng_data->get_compartment(em.compartment_id).is_3d) {
       vol_compartments.insert(em.compartment_id);
-      all_are_none = false;
+      all_are_none_or_any = false;
     }
     else {
       surf_compartments.insert(em.compartment_id);
-      all_are_none = false;
+      all_are_none_or_any = false;
     }
   }
 
-  if (all_are_none) {
+  if (all_are_none_or_any) {
     // ok
   }
   else if (is_vol()) {
