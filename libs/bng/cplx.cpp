@@ -259,8 +259,8 @@ void Cplx::set_compartment_id(const compartment_id_t cid) {
   // set compartment to all elementary molecules
   assert(!elem_mols.empty());
   for (ElemMol& em: elem_mols) {
-    assert((cid == COMPARTMENT_ID_NONE || cid == COMPARTMENT_ID_ANY ||
-        bng_data->get_compartment(cid).is_3d == em.is_vol_no_finalized_check()) && "Compartment type must match");
+    // we cannot check here whether compartment type (2d/3d matches surf/vol) because
+    // we do not necessarily know the the of the elementary molecules at all times
     em.compartment_id = cid;
   }
 }
