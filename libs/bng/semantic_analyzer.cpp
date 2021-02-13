@@ -315,6 +315,14 @@ void SemanticAnalyzer::convert_and_store_compartments() {
       ctx->inc_error_count();
       continue;
     }
+
+    if (n->name == DEFAULT_COMPARTMENT_NAME) {
+      errs_loc(n) <<
+          "Compartment name '" << n->name << "' is reserved, please use a different name.\n"; // test TODO
+      ctx->inc_error_count();
+      continue;
+    }
+
     c.name = n->name;
 
     // dimensions

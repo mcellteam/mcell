@@ -51,6 +51,12 @@ const char* const IND = "  ";
 const char* const MCELL_COMPARTMENT_UP = "@_UP_";
 const char* const MCELL_COMPARTMENT_DOWN = "@_DOWN_";
 
+// reserved name of a default compartment that is not printed when a complex's name is printed
+const char* const DEFAULT_COMPARTMENT_NAME = "default_compartment";
+
+// special BNGL parameter name used to specify defualt compartment volume
+const char* const MCELL_DEFAULT_COMPARTMENT_VOLUME = "MCELL_DEFAULT_COMPARTMENT_VOLUME";
+
 } // namespace BNG
 
 #endif // LIBS_BNG_BNGL_NAMES_H_

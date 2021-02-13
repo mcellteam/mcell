@@ -11,7 +11,8 @@
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
 #include "bng/cplx.h"
-#include "elem_mol_type.h"
+#include "bng/bngl_names.h"
+#include "bng/elem_mol_type.h"
 
 using namespace std;
 
@@ -276,7 +277,10 @@ void ElemMol::to_str(const BNGData& bng_data, std::string& res, const bool inclu
       res += "@" + compartment_id_to_str(compartment_id);
     }
     else if (!is_nonprintable_compartment_id(compartment_id)) {
-      res += "@" + bng_data.get_compartment(compartment_id).name;
+      const string& compartment_name = bng_data.get_compartment(compartment_id).name;
+      if (compartment_name != DEFAULT_COMPARTMENT_NAME) {
+        res = "@" + bng_data.get_compartment(compartment_id).name  + ":" + res;
+      }
     }
   }
 }

@@ -692,8 +692,12 @@ std::string World::export_releases_to_bngl_seed_species(
     }
     const GeometryObject& obj = get_geometry_object(region.geometry_object_id);
     const BNG::Species& species = bng_engine.get_all_species().get(re->species_id);
-    seed_species << BNG::IND <<
-        "@" <<  obj.name << ":" << species.name << " " << seed_count_name << "\n";
+
+    seed_species << BNG::IND;
+    if (obj.name != BNG::DEFAULT_COMPARTMENT_NAME) {
+      seed_species << "@" <<  obj.name << ":";
+    }
+    seed_species << species.name << " " << seed_count_name << "\n";
   }
 
   seed_species << BNG::END_SEED_SPECIES << "\n";
@@ -735,7 +739,10 @@ std::string World::export_counts_to_bngl_observables(std::ostream& observables) 
 
       string compartment_prefix = "";
       if (term.type == CountType::EnclosedInVolumeRegion) {
-        compartment_prefix = "@" + get_geometry_object(term.geometry_object_id).name + ":";
+        const string& compartment_name = get_geometry_object(term.geometry_object_id).name;
+        if (compartment_name != BNG::DEFAULT_COMPARTMENT_NAME) {
+          compartment_prefix = "@" + get_geometry_object(term.geometry_object_id).name + ":";
+        }
       }
 
       // Species or Molecules
@@ -794,6 +801,10 @@ std::string World::export_to_bngl(const std::string& file_name) const {
   parameters << BNG::IND << BNG::ITERATIONS << " " << total_iterations << "\n";
   parameters << BNG::IND << BNG::MCELL_TIME_STEP << " " << f_to_str(config.time_unit) << "\n";
 
+  if (obj.name == BNG::DEFAULT_COMPARTMENT_NAME) {
+    parameters << BNG::IND << BNG::MCELL_DEFAULT_COMPARTMENT_VOLUME << " " << f_to_str(volume) << "\n";
+  }
+
   string err_msg = bng_engine.export_to_bngl(
       parameters, molecule_types, reaction_rules, volume);
   if (err_msg != "") {
@@ -821,10 +832,12 @@ std::string World::export_to_bngl(const std::string& file_name) const {
   out << parameters.str() << "\n";
   out << molecule_types.str() << "\n";
 
-  // compartments
-  out << BNG::BEGIN_COMPARTMENTS << "\n";
-  out << BNG::IND << obj.name << " 3 " << BNG::PARAM_V << " * 1e15 # volume in fL (um^3)\n";
-  out << BNG::END_COMPARTMENTS << "\n\n";
+  // compartments, only one for now
+  if (obj.name != BNG::DEFAULT_COMPARTMENT_NAME) {
+    out << BNG::BEGIN_COMPARTMENTS << "\n";
+    out << BNG::IND << obj.name << " 3 " << BNG::PARAM_V << " * 1e15 # volume in fL (um^3)\n";
+    out << BNG::END_COMPARTMENTS << "\n\n";
+  }
 
   out << seed_species.str() << "\n";
   out << observables.str() << "\n";

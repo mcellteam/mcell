@@ -24,6 +24,7 @@
 #include "debug_config.h"
 
 #include "bng/cplx.h"
+#include "bng/bngl_names.h"
 
 //#define DEBUG_CANONICALIZATION
 
@@ -617,7 +618,10 @@ void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
       res = "@" + compartment_id_to_str(compartment_id) + ":" + res;
     }
     else {
-      res = "@" + bng_data->get_compartment(compartment_id).name  + ":" + res;
+      const string& compartment_name = bng_data->get_compartment(compartment_id).name;
+      if (compartment_name != DEFAULT_COMPARTMENT_NAME) {
+        res = "@" + bng_data->get_compartment(compartment_id).name  + ":" + res;
+      }
     }
   }
 }

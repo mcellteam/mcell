@@ -27,6 +27,7 @@
 #include "api/api_common.h"
 #include "api/api_utils.h"
 #include "api/compartment_utils.h"
+#include "bng/bngl_names.h"
 
 namespace BNG {
 class BNGData;
@@ -66,6 +67,11 @@ public:
       // all semantic checks will be done in Species
       return;
     }
+
+    if (compartment_name == BNG::DEFAULT_COMPARTMENT_NAME) {
+      throw ValueError("Compartment name '" + compartment_name + "' is reserved, please use a different name.");
+    }
+
     GenComplex::check_semantics();
 
   }
