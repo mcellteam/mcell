@@ -726,7 +726,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(
     convert_cplx(cplx, pattern);
     // for reactants, set ANY compartment if it was not specified
     if (reactants_side && pattern.get_compartment_id() == COMPARTMENT_ID_NONE) {
-      pattern.set_compartment_id(COMPARTMENT_ID_ANY);
+      pattern.set_compartment_id(COMPARTMENT_ID_NONE);
     }
     if (ctx->get_error_count() > 0) {
       return;

@@ -94,7 +94,7 @@ static string check_vol_have_in_out_compartment(const RxnRule& r, const CplxVect
 }
 
 
-// surf_comp is set to a value other than COMPARTMENT_ID_ANY when the rxn
+// surf_comp is set to a value other than COMPARTMENT_ID_NONE when the rxn
 // has surface reactants that use specific compartment,
 // also sets uses_in_out_compartment to true if the rxn uses @IN or @OUT
 // (only surface rxns may use these compartment classes)
@@ -104,7 +104,7 @@ static string check_surface_compartments(
   // NOTE: this seems to belongs to the BNGL library but we do not know
   // whether the molecules types are surface or volume there
 
-  surf_comp_id = COMPARTMENT_ID_ANY;
+  surf_comp_id = COMPARTMENT_ID_NONE;
   uses_in_out_compartment = false;
 
   // this is applicable only when there is a surface reactant
@@ -128,9 +128,6 @@ static string check_surface_compartments(
   vector<compartment_id_t> surf_compartments;
   for (size_t i = 0; i < r.reactants.size(); i++) {
     const Cplx& reac = r.reactants[i];
-
-    assert(reac.get_compartment_id() != COMPARTMENT_ID_NONE &&
-        "Compartment none is used only for molecules, rxn patterns must use ANY");
 
     if (reac.is_surf()) {
       // remember the first surface compartment
@@ -186,7 +183,7 @@ static string check_surface_compartments(
     }
 
     bool surf_reac_has_compartment =
-        surf_comp_id != COMPARTMENT_ID_INVALID && surf_comp_id != COMPARTMENT_ID_ANY;
+        surf_comp_id != COMPARTMENT_ID_INVALID && surf_comp_id != COMPARTMENT_ID_NONE;
 
     string comp_name;
     if (surf_reac_has_compartment) {
@@ -284,7 +281,7 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
   compartment_id_t surf_comp_id;
   bool uses_in_out_compartments;
   CHECK(check_surface_compartments(bng_data, r, surf_comp_id, uses_in_out_compartments));
-  if (surf_comp_id == COMPARTMENT_ID_ANY && !uses_in_out_compartments) {
+  if (surf_comp_id == COMPARTMENT_ID_NONE && !uses_in_out_compartments) {
     // does not have surface reactants that use compartment, nothing to do,
     // this is for example the case when MCell style orientations are specified by the user
     return "";

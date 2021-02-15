@@ -176,7 +176,7 @@ compartment_id_t Cplx::get_complex_compartment_id() const {
 
   assert(elem_mols.size() > 0);
   for (const ElemMol& em: elem_mols) {
-    if (em.compartment_id == COMPARTMENT_ID_NONE || em.compartment_id == COMPARTMENT_ID_ANY) {
+    if (em.compartment_id == COMPARTMENT_ID_NONE) {
       // continue
     }
     else if (bng_data->get_compartment(em.compartment_id).is_3d) {
@@ -598,7 +598,6 @@ void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
   compartment_id_t compartment_id = get_primary_compartment_id();
   bool no_specific_compartment =
      (compartment_id == COMPARTMENT_ID_INVALID ||
-      compartment_id == COMPARTMENT_ID_ANY ||
       compartment_id == COMPARTMENT_ID_NONE);
 
   if (no_specific_compartment) {

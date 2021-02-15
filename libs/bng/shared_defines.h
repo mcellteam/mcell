@@ -317,14 +317,18 @@ public:
   // insert with check that the item is not there yet
   // for insertions without this check use 'insert'
   void insert_unique(const Key id_or_index) {
+    // TODOCOMP
     assert(this->count(id_or_index) == 0);
+    //release_assert(this->count(id_or_index) == 0);
     this->insert(id_or_index);
   }
 
   // erase with check that the item is present
   // for insertions without this check use 'erase'
   void erase_existing(const Key id_or_index) {
+    // TODOCOMP
     assert(this->count(id_or_index) == 1);
+    //release_assert(this->count(id_or_index) == 1);
     this->erase(id_or_index);
   }
 

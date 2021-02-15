@@ -128,19 +128,19 @@ public:
   bool has_compartment() const {
     compartment_id_t id = get_primary_compartment_id();
     assert(id != COMPARTMENT_ID_INVALID);
-    return id != COMPARTMENT_ID_NONE && id != COMPARTMENT_ID_ANY;
+    return id != COMPARTMENT_ID_NONE;
   }
 
   bool has_compartment_class_in_out() const {
     compartment_id_t id = get_primary_compartment_id();
     assert(id != COMPARTMENT_ID_INVALID);
-    return id == COMPARTMENT_ID_IN || id == COMPARTMENT_ID_OUT;
+    return is_in_out_compartment_id(id);;
   }
 
   // TODOCOMP: remove?
   compartment_id_t get_compartment_id(const bool in_out_as_any = false) const {
     if (in_out_as_any && has_compartment_class_in_out()) {
-      return COMPARTMENT_ID_ANY;
+      return COMPARTMENT_ID_NONE;
     }
     else {
       return get_primary_compartment_id();
@@ -213,14 +213,14 @@ public:
   void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:
-  bool matches_simple(const Cplx& other, const bool ignore_orientation = false) const {
-    assert(is_simple() && other.is_simple());
-    assert(elem_mols.size() == 1 && other.elem_mols.size() == 1);
+  bool matches_simple(const Cplx& pattern, const bool ignore_orientation = false) const {
+    assert(is_simple() && pattern.is_simple());
+    assert(elem_mols.size() == 1 && pattern.elem_mols.size() == 1);
 
-    if (!ignore_orientation && orientation != other.orientation) {
+    if (!ignore_orientation && orientation != pattern.orientation) {
       return false;
     }
-    return elem_mols[0].matches_simple(other.elem_mols[0]);
+    return pattern.elem_mols[0].matches_simple(elem_mols[0]);
   }
 
   compartment_id_t get_complex_compartment_id() const;

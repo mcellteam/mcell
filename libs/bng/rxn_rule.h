@@ -284,17 +284,6 @@ public:
         base_rate_constant == rr2.base_rate_constant;
   }
 
-  bool reactant_compatment_matches(const uint index, const compartment_id_t compartment_id) {
-    assert(index < reactants.size());
-    if (compartment_id == COMPARTMENT_ID_ANY ||
-        reactants[index].get_compartment_id(true) == COMPARTMENT_ID_ANY) {
-      return true;
-    }
-    else {
-      return reactants[index].get_compartment_id() == compartment_id;
-    }
-  }
-
   // used in semantic check
   bool check_reactants_products_mapping(std::ostream& out);
 

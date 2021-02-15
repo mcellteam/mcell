@@ -544,7 +544,7 @@ void MCell4Converter::convert_surface_class_rxn(
   rxn.base_rate_constant = FLT_GIGANTIC;
 
   // any compartment of the
-  affected_pattern.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
+  affected_pattern.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
 
   // NONE is ANY in rxns
   orientation_t orient = convert_api_orientation(sp.affected_complex_pattern->orientation, true);
@@ -584,7 +584,7 @@ void MCell4Converter::convert_surface_classes() {
     sc_species.elem_mols.push_back(mol_inst);
 
     // we do not care about compartments for surface classes
-    sc_species.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
+    sc_species.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
 
     sc_species.finalize(world->config, false);
 
@@ -651,21 +651,12 @@ void MCell4Converter::convert_rxns() {
     for (std::shared_ptr<API::Complex>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
       BNG::Cplx reactant = bng_converter.convert_complex(*rinst, false, true);
-      // set ANY compartment if it was not specified
-      if (reactant.get_compartment_id() == BNG::COMPARTMENT_ID_NONE) {
-        reactant.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
-      }
       rxn.append_reactant(reactant);
     }
 
     for (std::shared_ptr<API::Complex>& pinst: r->products) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
       BNG::Cplx product = bng_converter.convert_complex(*pinst, false, true);
-
-      if (product.get_compartment_id() == BNG::COMPARTMENT_ID_NONE) {
-        // set ANY compartment for products to be consistent with reactants
-        product.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
-      }
       rxn.append_product(product);
     }
 
@@ -960,8 +951,7 @@ void MCell4Converter::convert_geometry_objects() {
     // set MCell:GeometryObject compartment ids
     if (o->is_bngl_compartment) {
       assert(o->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
-          o->vol_compartment_id != BNG::COMPARTMENT_ID_NONE &&
-          o->vol_compartment_id != BNG::COMPARTMENT_ID_ANY
+          o->vol_compartment_id != BNG::COMPARTMENT_ID_NONE
       );
 
       obj.vol_compartment_id = o->vol_compartment_id;

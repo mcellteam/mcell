@@ -568,8 +568,9 @@ public:
       // set compartment/define new species if needed, volume species may have only one compartment
       // so it is safe to override
       BNG::compartment_id_t species_compartment_id = species.get_primary_compartment_id();
+      assert(!BNG::is_in_out_compartment_id(species_compartment_id));
 
-      // do we need to change the compartment?
+      // do we need to change the compartment? (@IN and @OUT are only placeholders)
       if (species_compartment_id != target_compartment_id) {
         if (species_compartment_id == BNG::COMPARTMENT_ID_NONE) {
           // change to species that use the target compartment

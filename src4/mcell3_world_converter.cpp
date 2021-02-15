@@ -1152,13 +1152,13 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     if (current_pathway->reactant1 != nullptr) {
       species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
       rxn.append_reactant(
-          world->bng_engine.create_cplx_from_species(reactant1_id, current_pathway->orientation1, BNG::COMPARTMENT_ID_ANY));
+          world->bng_engine.create_cplx_from_species(reactant1_id, current_pathway->orientation1, BNG::COMPARTMENT_ID_NONE));
       reactant_species_ids.push_back(reactant1_id);
 
       if (current_pathway->reactant2 != nullptr) {
         species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
         rxn.append_reactant(
-            world->bng_engine.create_cplx_from_species(reactant2_id, current_pathway->orientation2, BNG::COMPARTMENT_ID_ANY));
+            world->bng_engine.create_cplx_from_species(reactant2_id, current_pathway->orientation2, BNG::COMPARTMENT_ID_NONE));
         reactant_species_ids.push_back(reactant2_id);
 
         if (current_pathway->reactant3 != nullptr) {
@@ -1213,7 +1213,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
         species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
         rxn.append_product(
-            world->bng_engine.create_cplx_from_species(product_id, product_ptr->orientation, BNG::COMPARTMENT_ID_ANY));
+            world->bng_engine.create_cplx_from_species(product_id, product_ptr->orientation, BNG::COMPARTMENT_ID_NONE));
 
         product_ptr = product_ptr->next;
       }
