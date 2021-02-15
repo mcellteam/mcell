@@ -544,31 +544,36 @@ public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0) {
     assert(vm_copy.is_vol());
-    
-    update_species_for_new_molecule(vm_copy);
 
-    // TODO: use Species::is_instantiated instead of the known_vol_species
-    if (known_vol_species.count(vm_copy.species_id) == 0) {
-      // we must update reactant maps if new species were added
-      update_reactants_maps_for_new_species(vm_copy.species_id);
-      known_vol_species.insert(vm_copy.species_id);
-    }
-
-    // molecule must be added after the update because it was not fully set up
+    // add a new molecule
     Molecule& new_vm = add_molecule(vm_copy, true, release_delay_time);
 
-    // and add this molecule to a map that tells which species can react with it
-    new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
+    // set subpart indices for vol-vol rxn handling
+    new_vm.v.subpart_index = get_subpart_index(new_vm.v.pos);
     new_vm.v.reactant_subpart_index = new_vm.v.subpart_index;
+
+    // compute counted volume id for a new molecule, might be used to determine compartment
+    counted_volume_index_t counted_volume_index = new_vm.v.counted_volume_index;
+    if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
+      new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
+    }
+
+    // make sure that the rxn for this species flags are up-to-date and
+    // increment number of instantiations of this species
+    update_species_for_new_molecule(new_vm);
+
+    // TODO: use Species::is_instantiated instead of the known_vol_species
+    if (known_vol_species.count(new_vm.species_id) == 0) {
+      // we must update reactant maps if new species were added,
+      // uses reactant_subpart_index of existing molecules
+      update_reactants_maps_for_new_species(new_vm.species_id);
+      known_vol_species.insert(new_vm.species_id);
+    }
+
+    // and add this molecule to a map that tells which species can react with it
     // might invalidate species references
     change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
 
-    // we must refresh the species reference
-    BNG::Species& sp_new_ref = get_all_species().get(vm_copy.species_id);
-    // compute counted volume id for a new molecule, may define a new counted volume
-    if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
-      new_vm.set_counted_volume_and_compartment(*this, compute_counted_volume_using_waypoints(new_vm.v.pos));
-    }
     return new_vm;
     
 #if 0
@@ -582,7 +587,7 @@ public:
     // compute counted volume id for a new molecule, may define a new counted volume
     if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
       // TODOCOMP: do not set compartment here
-      new_vm.set_counted_volume_and_compartment(*this, compute_counted_volume_using_waypoints(new_vm.v.pos));
+      new_vm.set_counted_volume(*this, compute_counted_volume_using_waypoints(new_vm.v.pos));
     }
 
     BNG::Species& species = get_all_species().get(new_vm.species_id);

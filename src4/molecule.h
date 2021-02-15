@@ -244,12 +244,6 @@ public:
     }
   }
 
-  // only for vol mols
-  void set_counted_volume_and_compartment(
-      Partition& p,
-      const counted_volume_index_t counted_volume_index_
-  );
-
   void dump(const std::string ind) const;
   void dump(
       const Partition& p,

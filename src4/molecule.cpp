@@ -59,17 +59,6 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
 }
 
 
-void Molecule::set_counted_volume_and_compartment(
-    Partition& p,
-    const counted_volume_index_t counted_volume_index_
-) {
-  assert(is_vol());
-  v.counted_volume_index = counted_volume_index_;
-
-  const BNG::Species& species = p.get_all_species().get(species_id);
-}
-
-
 void Molecule::dump(const string ind) const {
   if (is_vol()) {
     cout << ind << "pos: \t\t" << v.pos << " [vec3_t]\n";
