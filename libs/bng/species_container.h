@@ -16,6 +16,11 @@
 
 namespace BNG {
 
+typedef std::map<compartment_id_t, species_id_t> CompartmentSpeciesMap;
+typedef std::map<species_id_t, CompartmentSpeciesMap> NoCompartmentToPrimaryCompartmentSpeciesMap;
+typedef std::map<species_id_t, species_id_t> CompartmentToNoCompartmentSpeciesMap;
+
+
 // using templates instead of virtual methods? -> rather a template
 // with virtual methods, this container would not be able to create new
 // objects by its own
@@ -94,6 +99,9 @@ public:
   species_id_t add(Species* new_species, const bool removable = false);
 
   void remove(const species_id_t id);
+
+  species_id_t get_species_id_with_compartment(
+      const species_id_t no_compartment_species_id, const compartment_id_t compartment_id);
 
   // searches for identical species
   // returns SPECIES_ID_INVALID if not found
@@ -275,6 +283,12 @@ private:
 
   SpeciesVector species;
   std::map<std::string, species_id_t> canonical_species_map;
+
+  // caching of species without a compartment to species that use a single compartment for all
+  // elementary molecules
+  NoCompartmentToPrimaryCompartmentSpeciesMap compartment_species_cache;
+  // reverse mapping for fast removal
+  CompartmentToNoCompartmentSpeciesMap compartment_to_no_compartment_species_cache;
 
   // ids of species superclasses, SPECIES_ID_INVALID if not set
   // it might seem that this should belong into SpeciesInfo but this class needs this information

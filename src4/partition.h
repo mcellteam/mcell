@@ -459,12 +459,13 @@ public:
   }
 
 private:
-  // internal methods that sets molecule's id and
-  // adds it to all relevant structures
-
+  // internal methods that sets molecule's id and adds it to all relevant structures,
+  // do not use species-id here because it may change
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol, const float_t release_delay_time) {
+#ifndef NDEBUG
     const BNG::Species& species = get_all_species().get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
+#endif
 
     if (vm_copy.id == MOLECULE_ID_INVALID) {
       // assign new ID
@@ -542,7 +543,9 @@ private:
 
 public:
   // any molecule flags are set by caller after the molecule is created by this method
-  Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0) {
+  // molecule releases should use update_compartment = true,
+  // when a molecule is created by a reaction, the compartment is usually known and update_compartment may be false for efficiency
+  Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0, const bool update_compartment = true) {
     assert(vm_copy.is_vol());
 
     // add a new molecule
@@ -556,6 +559,29 @@ public:
     counted_volume_index_t counted_volume_index = new_vm.v.counted_volume_index;
     if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
       new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
+    }
+
+    if (update_compartment) {
+      const BNG::Species& species = get_all_species().get(new_vm.species_id);
+      BNG::compartment_id_t target_compartment_id = get_compartment_id_for_counted_volume(new_vm.v.counted_volume_index);
+
+      // set compartment/define new species if needed, volume species may have only one compartment
+      // so it is safe to override
+      BNG::compartment_id_t species_compartment_id = species.get_primary_compartment_id();
+
+      // do we need to change the compartment?
+      if (species_compartment_id != target_compartment_id) {
+        if (species_compartment_id == BNG::COMPARTMENT_ID_NONE) {
+          // change to species that use the target compartment
+          // TODOCOMP: fix case when removing compartment, i.e. from @PM to @NONE
+          new_vm.species_id = get_all_species().get_species_id_with_compartment(new_vm.species_id, target_compartment_id);
+        }
+        else  {
+          errs() << "Invalid compartment specified, trying to release " << species.name << " in " <<
+              bng_engine.get_data().get_compartment(target_compartment_id).name << ".\n";
+          exit(1);
+        }
+      }
     }
 
     // make sure that the rxn for this species flags are up-to-date and
@@ -945,11 +971,9 @@ public:
     return walls_using_vertex_mapping[vertex_index];
   }
 
-/*
-  TODOCOMP
   BNG::compartment_id_t get_compartment_id_for_counted_volume(
       const counted_volume_index_t counted_volume_index);
-*/
+
   // ---------------------------------- dynamic vertices ----------------------------------
 
   // may change the displacements in vertex_moves in some cases, do not use it afterwards
@@ -1167,6 +1191,9 @@ private:
   std::vector<CountedVolume> counted_volumes_vector;
   // set for fast search
   std::set<CountedVolume> counted_volumes_set;
+
+
+  std::map<counted_volume_index_t, BNG::compartment_id_t> counted_volume_index_to_compartment_id_cache;
 
   // indexed by [x][y][z]
   std::vector< std::vector< std::vector< Waypoint > > > waypoints;

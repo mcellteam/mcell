@@ -137,6 +137,7 @@ public:
     return id == COMPARTMENT_ID_IN || id == COMPARTMENT_ID_OUT;
   }
 
+  // TODOCOMP: remove?
   compartment_id_t get_compartment_id(const bool in_out_as_any = false) const {
     if (in_out_as_any && has_compartment_class_in_out()) {
       return COMPARTMENT_ID_ANY;

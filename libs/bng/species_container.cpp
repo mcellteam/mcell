@@ -74,9 +74,63 @@ void SpeciesContainer::remove(const species_id_t id) {
   s.set_is_defunct();
 
   // also remove from name cache
-  auto it = canonical_species_map.find(s.name);
-  assert(it != canonical_species_map.end());
-  canonical_species_map.erase(it);
+  auto it_canonical = canonical_species_map.find(s.name);
+  assert(it_canonical != canonical_species_map.end());
+  canonical_species_map.erase(it_canonical);
+
+  compartment_id_t primary_compartment = get(id).get_primary_compartment_id();
+  if (primary_compartment == COMPARTMENT_ID_NONE) {
+    // species have no compartment
+    compartment_species_cache.erase(id);
+  }
+  else {
+    // species have compartment therefore have to be removed as a single item from
+    // compartment_species_cache
+    auto it_no_compartment_species = compartment_to_no_compartment_species_cache.find(id);
+    if (it_no_compartment_species != compartment_to_no_compartment_species_cache.end()) {
+
+      // present in cache, remove it
+      assert(id == compartment_species_cache[it_no_compartment_species->second][primary_compartment]);
+      compartment_species_cache[it_no_compartment_species->second].erase(primary_compartment);
+      compartment_to_no_compartment_species_cache.erase(id);
+    }
+  }
+}
+
+
+species_id_t SpeciesContainer::get_species_id_with_compartment(
+    const species_id_t no_compartment_species_id, const compartment_id_t compartment_id) {
+
+  assert(get(no_compartment_species_id).get_primary_compartment_id() == COMPARTMENT_ID_NONE);
+  assert(!is_in_out_compartment_id(compartment_id) && !is_nonprintable_compartment_id(compartment_id) &&
+      compartment_id != COMPARTMENT_ID_INVALID);
+
+  auto it_map = compartment_species_cache.find(no_compartment_species_id);
+  if (it_map == compartment_species_cache.end()) {
+    auto it_species = it_map->second.find(compartment_id);
+    if (it_species != it_map->second.end()) {
+      // found
+      return it_species->second;
+    }
+  }
+  else {
+    // add empty mapping for the new no_compartment_species_id
+    compartment_species_cache[no_compartment_species_id] = CompartmentSpeciesMap();
+  }
+
+  // create new species with compartment_id
+  Species s = get(no_compartment_species_id);
+  s.set_compartment_id(compartment_id);
+  s.finalize(bng_config, false);
+
+  // and add it
+  species_id_t res = find_or_add(s, true);
+
+  // remember in cache
+  compartment_species_cache[no_compartment_species_id][compartment_id] = res;
+  compartment_to_no_compartment_species_cache[res] = no_compartment_species_id;
+
+  return res;
 }
 
 
