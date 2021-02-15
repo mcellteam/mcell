@@ -534,7 +534,7 @@ private:
     if (!sp.was_instantiated()) {
       // update rxn classes for this new species, may create new species and
       // invalidate Species reference
-      get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(sp.id);
+      get_all_rxns().get_bimol_rxns_for_reactant(sp.id);
     }
     // we must get a new reference
     get_all_species().get(m.species_id).inc_num_instantiations();

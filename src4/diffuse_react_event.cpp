@@ -1359,8 +1359,8 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   subpart_index_t subpart_index = p.get_subpart_index_from_3d_indices(subpart_indices);
 
   // with what species we may react? (this should be cached)
-  const BNG::ReactantRxnClassesMap* rxns_classes_map =
-      p.get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(sm.species_id);
+  const BNG::SpeciesRxnClassesMap* rxns_classes_map =
+      p.get_all_rxns().get_bimol_rxns_for_reactant(sm.species_id);
   if (rxns_classes_map == nullptr || rxns_classes_map->empty()) {
     assert(false && "No rxns");
     return true;
@@ -1368,8 +1368,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
 
   uint_set<species_id_t> reacting_species;
   for (const auto& second_reactant_info: *rxns_classes_map) {
-    const BNG::RxnClass* rxn_class =
-        BNG::get_rxn_class_for_any_compartment(second_reactant_info.second);
+    const BNG::RxnClass* rxn_class = second_reactant_info.second;
 
     if (!rxn_class->is_intermembrane_surf_surf_rxn_class()) {
       continue;
