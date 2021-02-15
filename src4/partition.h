@@ -636,7 +636,6 @@ public:
     const GeometryObject& o = get_geometry_object(w.object_index);
     // TODOCOMP: remove later
     // surface mol
-    new_sm.reactant_compartment_id = species.get_primary_compartment_id();
 
     // TODO: set compartment and change species to reflect it if needed
 
@@ -941,10 +940,11 @@ public:
     return walls_using_vertex_mapping[vertex_index];
   }
 
-
+/*
+  TODOCOMP
   BNG::compartment_id_t get_compartment_id_for_counted_volume(
       const counted_volume_index_t counted_volume_index);
-
+*/
   // ---------------------------------- dynamic vertices ----------------------------------
 
   // may change the displacements in vertex_moves in some cases, do not use it afterwards

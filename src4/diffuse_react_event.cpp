@@ -2014,6 +2014,8 @@ int DiffuseReactEvent::find_surf_product_positions(
     BNG::compartment_id_t compartment_prod0 = rxn->products[0].get_compartment_id();
     BNG::compartment_id_t compartment_prod1 = rxn->products[1].get_compartment_id();
 
+    release_assert(false && "TODO");
+    /*
     // use compartment to determine location
     if (reacA->reactant_compartment_id == compartment_prod0) {
       // in the same order
@@ -2029,6 +2031,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assigned_surf_product_positions[1] = recycled_surf_prod_positions[0];
       assigned_surf_product_positions[1].set_reac_type(GridPosType::REACA_UV);
     }
+    */
   }
   else if (needed_surface_positions == 1 && num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
     if (initiator_recycled_index == INDEX_INVALID) {

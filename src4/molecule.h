@@ -62,7 +62,6 @@ public:
   // Warning: ctors do not reset surf or vol data
   Molecule()
     : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
-      reactant_compartment_id(BNG::COMPARTMENT_ID_NONE),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_FOREVER),
       birthday(TIME_INVALID) {
   }
@@ -77,7 +76,6 @@ public:
       const Vec3& pos_, const float_t birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
-      reactant_compartment_id(BNG::COMPARTMENT_ID_NONE),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
       birthday(birthday_) {
     v.pos = pos_;
@@ -93,7 +91,6 @@ public:
       const Vec2& pos2d, const float_t birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
-      reactant_compartment_id(BNG::COMPARTMENT_ID_NONE),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
       birthday(birthday_) {
     s.pos = pos2d;
@@ -127,14 +124,6 @@ public:
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
   species_id_t species_id;
   uint flags;
-
-  // - compartment used when obtaining reactions for this molecule
-  // - when there is no reaction specific for a given compartment and species of this molecule,
-  //   the value is BNG::COMPARTMENT_ID_NONE (even when the molecule is in a specific compartment)
-  // - example: I have reactions A -> B and A@CP -> C, when this molecule is in compartment CP
-  //   then the compartment set is CP but when it is in another compartment such as EC,
-  //   the compartment is NONE because we do not care about this specific compartment when evaluating reactions
-  BNG::compartment_id_t reactant_compartment_id;
 
   // time for which it was scheduled, based on this value Partition creates 'ready list'
   // for DiffuseAndReactEvent

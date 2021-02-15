@@ -67,7 +67,6 @@ void Molecule::set_counted_volume_and_compartment(
   v.counted_volume_index = counted_volume_index_;
 
   const BNG::Species& species = p.get_all_species().get(species_id);
-  reactant_compartment_id = p.get_compartment_id_for_counted_volume(counted_volume_index_);
 }
 
 
