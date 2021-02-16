@@ -641,7 +641,7 @@ public:
       }
     }
 
-    update_species_for_new_molecule(sm_copy);
+    update_species_for_new_molecule(new_sm);
 
     return new_sm;
   }

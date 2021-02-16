@@ -116,7 +116,7 @@ public:
         "Method can be used only for simple complexes, i.e. without components.");
 
     return elem_mol_type_id == inst.elem_mol_type_id &&
-        (compartment_id == COMPARTMENT_ID_NONE || compartment_id == inst.compartment_id);
+        (compartment_id == COMPARTMENT_ID_NONE || is_in_out_compartment_id(compartment_id) || compartment_id == inst.compartment_id);
   }
 
   bool operator == (const ElemMol& other) const  {
