@@ -448,14 +448,17 @@ class ElementaryMolecule():
     def __init__(
             self,
             elementary_molecule_type : ElementaryMoleculeType,
-            components : List[Component] = None
+            components : List[Component] = None,
+            compartment_name : str = None
         ):
         self.elementary_molecule_type = elementary_molecule_type
         self.components = components
+        self.compartment_name = compartment_name
 
 
     def to_bngl_str(
             self,
+            with_compartment : bool = True
         ) -> 'str':
         pass
 

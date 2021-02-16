@@ -75,6 +75,8 @@ public:
   void create_graph();
 
   compartment_id_t get_primary_compartment_id() const {
+    assert(is_finalized());
+
     if (elem_mols.size() == 1) {
       return elem_mols[0].compartment_id;
     }

@@ -128,11 +128,25 @@ ElementaryMolecule:
     type: List[Component*]
     default: empty
 
+  - name: compartment_name
+    type: str
+    default: unset
+    doc:
+       Corresponds to BNGL specification 'EM@COMP'.
+       If a 2D/surface compartment is specified, the elementary moelcule must be of surface type.
+       If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.
+
   methods:
   - name: to_bngl_str
     return_type: str
     doc: Creates a string that corresponds to its BNGL representation 
     is_const: true    
+    params: 
+    - name: with_compartment
+      type: bool
+      default: true
+      doc: Include compartment name in returned BNGL string.
+    
     
 Complex:    
   superclass: BaseDataClass
@@ -144,6 +158,7 @@ Complex:
      can be provided such as in observable Count.  
      Comparison operator __eq__ first converts complexes to their canonical representation and 
      then does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').
+     
   internal: | 
      Ctor Species(Complex& cplx_inst) must be updated if if attributes change     
   items:
@@ -175,18 +190,21 @@ Complex:
     type: str
     default: unset
     doc: | 
-       Specifies compartment name of this Complex. 
+       Specifies compartment name of this Complex.
        Only one of 'orientation' and 'compartment_name' can be set. 
+       May be used only when elementary_molecules do not specify a compartment.
+       Corresponds to BNGL specification '@COMP\:'.
        If a 2D/surface compartment is specified, the complex must be a surface complex and 
        orientation is set to Orientation.UP.
        If a 3D/volume compartment is specified, the complex must be a volume complex and
        orientation is set to Orientation.NONE. 
-       Ignored by derived class Species.
+       All compartments of surface elementary molecules must be the same.
+       All compartments of volume elementary molecules must be from the two neighboring volume compartments.
       
   methods:
   - name: to_bngl_str
     return_type: str
-    doc: Creates a string that corresponds to its BNGL representation
+    doc: Creates a string that corresponds to its BNGL representation including compartments.
     is_const: true 
     
   - name: as_species
@@ -195,7 +213,6 @@ Complex:
        Returns a Species object based on this Complex. All species-specific 
        attributes are set to their default values and 'name' is set to value returned by 
        'to_bngl_str()'.
-      
       
 Species:
   superclass: Complex

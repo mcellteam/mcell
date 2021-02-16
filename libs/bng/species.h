@@ -40,8 +40,10 @@ public:
 
   void finalize(const BNGConfig& config, const bool update_diffusion_constant = true) {
     // species must not use IN/OUT, remove it automatically when defining species
-    if (is_in_out_compartment_id(get_primary_compartment_id())) {
-      set_compartment_id(COMPARTMENT_ID_NONE);
+    for (auto& em: elem_mols) {
+      if (is_in_out_compartment_id(em.compartment_id)) {
+        em.compartment_id = COMPARTMENT_ID_NONE;
+      }
     }
 
     canonicalize(); // sets name as well, calls also Cplx::finalize

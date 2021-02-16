@@ -35,7 +35,9 @@ public:
 
   bool __eq__(const ElementaryMolecule& other) const override;
 
-  std::string to_bngl_str() const override;
+  std::string to_bngl_str(const bool with_compartment = true) const override;
+
+  bool is_surf() const;
 };
 
 } // namespace API

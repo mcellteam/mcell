@@ -52,6 +52,13 @@ public:
     orientation = cplx_inst.orientation;
   }
 
+  void set_name(const std::string& name_) override {
+    BaseDataClass::set_name(name_);
+    // rerun initialization because the name is parsed as a BNGL string
+    elementary_molecules.clear();
+    postprocess_in_ctor();
+  }
+
   void check_no_extra_fields_are_set() const {
     std::string msg =
         " must not be set for complex species because it is derived from its elementary molecule types.";
@@ -121,14 +128,10 @@ public:
           std::make_shared<ElementaryMolecule>(mt)
       );
     }
-    // 2) complex species defined through elementary_molecule_instances
-    else if (!elementary_molecules.empty()) {
-      // do semantic check
-      check_no_extra_fields_are_set();
-    }
-    // 3) declaration
+    // 2) complex species defined through elementary_molecule_instances, or
+    // 3) declaration (name is parsed in Complex::postprocess_in_ctor)
     else {
-      // TODO: we can check that the BNGL string is correct here
+      // do semantic check
       check_no_extra_fields_are_set();
     }
 
@@ -137,7 +140,7 @@ public:
     get_compartment_names(name, compartments);
     if (is_set(compartment_name) || !compartments.empty()) {
       throw ValueError(S(NAME_CLASS_SPECIES) + " with " + NAME_NAME + " " +
-          name + " must not use any compartment.");
+          name + " must not use any compartment, compartment will be set as needed.");
     }
 
     // need to finalize the initialization
@@ -154,7 +157,7 @@ public:
     // simply downcast to Complex and set extra attributes
     Complex res = *dynamic_cast<Complex*>(this);
     res.orientation = orientation;
-    res.compartment_name = compartment_name;
+    res.set_compartment_name(compartment_name);
     return res;
   }
 

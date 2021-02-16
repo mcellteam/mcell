@@ -52,7 +52,7 @@ bool ElementaryMolecule::__eq__(const ElementaryMolecule& other) const {
 }
 
 
-std::string ElementaryMolecule::to_bngl_str() const {
+std::string ElementaryMolecule::to_bngl_str(const bool with_compartment) const {
   std::string res;
 
   res = elementary_molecule_type->name;
@@ -68,7 +68,17 @@ std::string ElementaryMolecule::to_bngl_str() const {
     res += ")";
   }
 
+  if (with_compartment && is_set(compartment_name)) {
+    res += "@" + compartment_name;
+  }
+
   return res;
+}
+
+
+bool ElementaryMolecule::is_surf() const {
+  assert(is_set(elementary_molecule_type));
+  return is_set(elementary_molecule_type->diffusion_constant_2d);
 }
 
 } // namespace API

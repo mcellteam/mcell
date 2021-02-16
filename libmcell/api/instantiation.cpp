@@ -170,7 +170,7 @@ void Instantiation::convert_single_seed_species_to_release_site(
       );
     }
 
-    rel_site->complex->compartment_name = c.name;
+    rel_site->complex->set_compartment_name(c.name);
     rel_site->shape = Shape::COMPARTMENT;
 
     rel_site->name =

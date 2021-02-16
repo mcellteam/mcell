@@ -290,6 +290,7 @@ const char* const NAME_WALL_INDEX = "wall_index";
 const char* const NAME_WALL_INDICES = "wall_indices";
 const char* const NAME_WALL_LIST = "wall_list";
 const char* const NAME_WARNINGS = "warnings";
+const char* const NAME_WITH_COMPARTMENT = "with_compartment";
 
 const char* const NAME_ENUM_EXPR_NODE_TYPE = "ExprNodeType";
 const char* const NAME_ENUM_MOLECULE_TYPE = "MoleculeType";

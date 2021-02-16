@@ -81,6 +81,14 @@ BNG::ElemMol BNGConverter::convert_molecule_instance(API::ElementaryMolecule& mi
     res.components.push_back(convert_component_instance(mi.elementary_molecule_type->name, *api_ci));
   }
 
+  if (is_set(mi.compartment_name)) {
+    BNG::compartment_id_t comp_id = bng_data.find_compartment_id(mi.compartment_name);
+    if (comp_id == BNG::COMPARTMENT_ID_INVALID) {
+      throw ValueError("Elementary molecule " + mi.to_bngl_str() + " uses unknown compartment " + mi.compartment_name + ".");
+    }
+    res.compartment_id = comp_id;
+  }
+
   // we must also copy flags from the mol type
   res.finalize_flags_and_sort_components(bng_data);
 

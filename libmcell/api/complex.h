@@ -39,6 +39,7 @@ namespace API {
 
 class Species;
 
+// WARNING: do not set compartment_name through attribute, use set_compartment_name
 class Complex: public GenComplex {
 public:
   COMPLEX_CTOR()
@@ -59,6 +60,13 @@ public:
       const BNG::BNGData& bng_data,
       const BNG::Cplx& bng_inst,
       const Orientation orientation);
+
+  void set_name(const std::string& name_) override {
+    BaseDataClass::set_name(name_);
+    // rerun initialization because the name is parsed as a BNGL string
+    elementary_molecules.clear();
+    postprocess_in_ctor();
+  }
 
   void postprocess_in_ctor() override;
 
@@ -115,7 +123,16 @@ public:
   // not really const, sets mutable members that serve as cache
   const std::string& get_canonical_name() const;
 
+  const std::string& get_primary_compartment_name() const;
+
+
+  void set_compartment_name(const std::string& new_compartment_name) {
+    compartment_name = new_compartment_name;
+    check_and_set_compartments();
+  }
+
 private:
+  void check_and_set_compartments();
   bool is_species_object() const;
 
   // set when __eq__ is called, valid if cached_data_are_uptodate is true
