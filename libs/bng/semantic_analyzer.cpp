@@ -318,8 +318,7 @@ void SemanticAnalyzer::convert_and_store_compartments() {
 
     if (n->name == DEFAULT_COMPARTMENT_NAME) {
       errs_loc(n) <<
-          "Compartment name '" << n->name << "' is reserved, please use a different name.\n"; // test TODO
-      ctx->inc_error_count();
+          "Compartment name '" << n->name << "' is reserved, the specification will be ignored.\n"; // test TODO
       continue;
     }
 
@@ -358,7 +357,11 @@ void SemanticAnalyzer::convert_and_store_compartments() {
     const ASTCompartmentNode* n = to_compartment_node(ctx->compartments.items[i]);
 
     Compartment* c = bng_data->find_compartment(n->name);
-    assert(c != nullptr);
+    if (c == nullptr) {
+      // ignoring default_compartment
+      assert(n->name == DEFAULT_COMPARTMENT_NAME);
+      continue;
+    }
     if (n->parent_name != "") {
 
       compartment_id_t parent_compartment_id = bng_data->find_compartment_id(n->parent_name);
@@ -396,6 +399,11 @@ void SemanticAnalyzer::convert_and_store_compartments() {
 
     // check that the lowest level children is 3d
     const Compartment* c = bng_data->find_compartment(n->name);
+    if (c == nullptr) {
+      // ignoring default_compartment
+      assert(n->name == DEFAULT_COMPARTMENT_NAME);
+      continue;
+    }
     if (!c->has_children() && !c->is_3d) {
       errs() <<
           "Compartment without sub-compartments '" + c->name + "' must be a 3D compartment.\n"; // test TODO
