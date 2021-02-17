@@ -135,16 +135,14 @@ public:
       check_no_extra_fields_are_set();
     }
 
-    // compartment must not be set for species
-    std::vector<std::string> compartments;
-    get_compartment_names(name, compartments);
-    if (is_set(compartment_name) || !compartments.empty()) {
-      throw ValueError(S(NAME_CLASS_SPECIES) + " with " + NAME_NAME + " " +
-          name + " must not use any compartment, compartment will be set as needed.");
-    }
-
-    // need to finalize the initialization
+    // need to finalize the initialization, also processes compartments
     Complex::postprocess_in_ctor();
+
+    if (get_primary_compartment_name() == BNG::COMPARTMENT_NAME_IN ||
+        get_primary_compartment_name() == BNG::COMPARTMENT_NAME_OUT) {
+      throw ValueError(S(NAME_CLASS_SPECIES) + " with " + NAME_NAME + " " + name +
+          " must not use compartments " + BNG::COMPARTMENT_NAME_IN + " or " + BNG::COMPARTMENT_NAME_OUT + ".");
+    }
   }
 
   bool __eq__(const Species& other) const override;
