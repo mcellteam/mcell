@@ -732,8 +732,12 @@ void SemanticAnalyzer::convert_rxn_rule_side(
 
     Cplx pattern(bng_data);
     convert_cplx(cplx, pattern);
+    if (ctx->get_error_count() > 0) {
+      return;
+    }
+    pattern.finalize();
     // for reactants, set ANY compartment if it was not specified
-    if (reactants_side && pattern.get_compartment_id() == COMPARTMENT_ID_NONE) {
+    if (reactants_side && pattern.get_primary_compartment_id() == COMPARTMENT_ID_NONE) {
       pattern.set_compartment_id(COMPARTMENT_ID_NONE);
     }
     if (ctx->get_error_count() > 0) {
@@ -864,7 +868,7 @@ void SemanticAnalyzer::convert_seed_species() {
 
     if (ss.cplx.has_compartment_class_in_out()) {
       errs_loc(ss_node->cplx) <<
-          "It is not allowed to use compartment @" << compartment_id_to_str(ss.cplx.get_compartment_id()) <<
+          "It is not allowed to use compartment @" << compartment_id_to_str(ss.cplx.get_primary_compartment_id()) <<
           " in the seed species section.\n"; // test N0601
       ctx->inc_error_count();
       return;
@@ -911,7 +915,7 @@ void SemanticAnalyzer::convert_observables() {
 
       if (cplx.has_compartment_class_in_out()) {
         errs_loc(cplx_pat) <<
-            "It is not allowed to use compartment @" << compartment_id_to_str(cplx.get_compartment_id()) <<
+            "It is not allowed to use compartment @" << compartment_id_to_str(cplx.get_primary_compartment_id()) <<
             " in the observables section.\n"; // test N0602
         ctx->inc_error_count();
         return;

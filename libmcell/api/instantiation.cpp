@@ -155,7 +155,7 @@ void Instantiation::convert_single_seed_species_to_release_site(
 
   if (bng_ss.cplx.has_compartment()) {
     bool surf_release = rel_site->complex->is_surf();
-    const BNG::Compartment& c = bng_data.get_compartment(bng_ss.cplx.get_compartment_id());
+    const BNG::Compartment& c = bng_data.get_compartment(bng_ss.cplx.get_primary_compartment_id());
     // check that dimensionality of compartment matches the released molecule
     if (surf_release && c.is_3d) {
       throw ValueError(S("Seed species specification for complex instance ") +

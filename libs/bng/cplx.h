@@ -75,8 +75,6 @@ public:
   void create_graph();
 
   compartment_id_t get_primary_compartment_id() const {
-    assert(is_finalized());
-
     if (elem_mols.size() == 1) {
       return elem_mols[0].compartment_id;
     }
@@ -137,16 +135,6 @@ public:
     compartment_id_t id = get_primary_compartment_id();
     assert(id != COMPARTMENT_ID_INVALID);
     return is_in_out_compartment_id(id);;
-  }
-
-  // TODOCOMP: remove?
-  compartment_id_t get_compartment_id(const bool in_out_as_any = false) const {
-    if (in_out_as_any && has_compartment_class_in_out()) {
-      return COMPARTMENT_ID_NONE;
-    }
-    else {
-      return get_primary_compartment_id();
-    }
   }
 
   // sets compartment to all contained elementary molecules

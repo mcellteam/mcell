@@ -2011,8 +2011,8 @@ int DiffuseReactEvent::find_surf_product_positions(
     release_assert(needed_surface_positions == 2 && num_tiles_to_recycle == 2);
     release_assert(rxn->products.size() == 2);
 
-    BNG::compartment_id_t compartment_prod0 = rxn->products[0].get_compartment_id();
-    BNG::compartment_id_t compartment_prod1 = rxn->products[1].get_compartment_id();
+    BNG::compartment_id_t compartment_prod0 = rxn->products[0].get_primary_compartment_id();
+    BNG::compartment_id_t compartment_prod1 = rxn->products[1].get_primary_compartment_id();
 
     release_assert(false && "TODO");
     /*

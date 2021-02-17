@@ -95,10 +95,10 @@ std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
   // set compartment
   if (bng_cplx.has_compartment()) {
     if (bng_cplx.has_compartment_class_in_out()) {
-      res_cplx_inst->set_compartment_name(BNG::compartment_id_to_str(bng_cplx.get_compartment_id()));
+      res_cplx_inst->set_compartment_name(BNG::compartment_id_to_str(bng_cplx.get_primary_compartment_id()));
     }
     else {
-      res_cplx_inst->set_compartment_name(bng_data.get_compartment(bng_cplx.get_compartment_id()).name);
+      res_cplx_inst->set_compartment_name(bng_data.get_compartment(bng_cplx.get_primary_compartment_id()).name);
     }
   }
 

@@ -28,7 +28,7 @@ static string check_no_in_out_compartment(const RxnRule& r, const CplxVector& su
   for (const Cplx& subst: substances) {
     if (subst.has_compartment_class_in_out()) {
       return "Reaction rule " + r.to_str(false, false, false) + ": compartment class " +
-          compartment_id_to_str(subst.get_compartment_id()) + " is not allowed in volume reactions.";
+          compartment_id_to_str(subst.get_primary_compartment_id()) + " is not allowed in volume reactions.";
     }
   }
   return "";
@@ -131,7 +131,7 @@ static string check_surface_compartments(
 
     if (reac.is_surf()) {
       // remember the first surface compartment
-      surf_compartments.push_back(reac.get_compartment_id());
+      surf_compartments.push_back(reac.get_primary_compartment_id());
     }
 
     uses_in_out_compartment = uses_in_out_compartment || reac.has_compartment_class_in_out();
@@ -196,7 +196,7 @@ static string check_surface_compartments(
     // do all the surface products use the same compartment?
     if (!r.is_intermembrane_surf_rxn()) {
       for (const Cplx& prod: r.products) {
-        if (prod.is_surf() && prod.get_compartment_id() != surf_comp_id) {
+        if (prod.is_surf() && prod.get_primary_compartment_id() != surf_comp_id) {
 
           return "Reaction rule " + r.to_str(false, false, false) + ": all compartments of surface molecules on the " +
               "products side must use the same compartment " + comp_name + " as reactants " +
@@ -230,10 +230,10 @@ static string check_surface_compartments(
 static void set_substances_orientation_from_in_out_compartments(CplxVector& substances) {
   for (Cplx& subst: substances) {
     if (subst.is_vol()) {
-      if (subst.get_compartment_id() == COMPARTMENT_ID_IN) {
+      if (subst.get_primary_compartment_id() == COMPARTMENT_ID_IN) {
         subst.set_orientation(ORIENTATION_DOWN);
       }
-      else if (subst.get_compartment_id() == COMPARTMENT_ID_OUT) {
+      else if (subst.get_primary_compartment_id() == COMPARTMENT_ID_OUT) {
         subst.set_orientation(ORIENTATION_UP);
       }
       else {
@@ -255,7 +255,7 @@ static std::string set_vol_rxn_substance_orientation_from_compartment(
         substance.to_str() + " does not have its compartment set.";
   }
 
-  const Compartment& vol_comp = bng_data.get_compartment(substance.get_compartment_id());
+  const Compartment& vol_comp = bng_data.get_compartment(substance.get_primary_compartment_id());
 
   // up or down?
   if (surf_comp.parent_compartment_id == vol_comp.id) {

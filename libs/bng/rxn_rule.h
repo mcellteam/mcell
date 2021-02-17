@@ -288,12 +288,12 @@ public:
   bool check_reactants_products_mapping(std::ostream& out);
 
   void append_reactant(const Cplx& pattern) {
-    assert(pattern.get_compartment_id() != COMPARTMENT_ID_INVALID);
+    assert(pattern.get_primary_compartment_id() != COMPARTMENT_ID_INVALID);
     reactants.push_back(pattern);
   }
 
   void append_product(const Cplx& cplx) {
-    assert(cplx.get_compartment_id() != COMPARTMENT_ID_INVALID);
+    assert(cplx.get_primary_compartment_id() != COMPARTMENT_ID_INVALID);
     products.push_back(cplx);
   }
 
