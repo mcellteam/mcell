@@ -550,7 +550,9 @@ static vertex_descriptor_t get_bond_target(
       mol_found = true; // just for debug
     }
     else {
-      release_assert(!comp_found);
+      // TODO, see test tests/bngl/0967_vol_in_a_plus_surf_b_to_surf_c_cplx_reusing_mol_in_prod
+      release_assert(!comp_found &&
+          "Used rule is not supported yet, probably due to finding only a partial match from reactant to product such as sb(b!1).sy(y!1) -> sc(c!1).sy(y!1)");
       comp_found = true;
       res = n_desc;
     }
