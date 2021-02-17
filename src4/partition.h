@@ -350,10 +350,12 @@ public:
   }
 
 
-  // called when a volume molecule is added and it is detected that
-  // this is a new species
+  // - called when a volume molecule is added and it is detected that this is a new species,
+  // - ignore the current molecule because it will be added a little later,
+  //   not ignoring the molecule would cause an assert in uint_set::insert_unique called from 
+  //   SubpartReactantsSet::insert_unique in case that there are reactions of type A+A
   void update_reactants_maps_for_new_species(
-      const species_id_t new_species_id
+      const species_id_t new_species_id, const molecule_id_t current_molecule_id
   ) {
     // can the new species initiate a reaction?
     const BNG::Species& initiator_reactant_species = get_all_species().get(new_species_id);
@@ -371,7 +373,7 @@ public:
 
     // let's go through all molecules and update whether they can react with our new species
     for (const Molecule& m: molecules) {
-      if (!m.is_vol() || m.is_defunct()) {
+      if (!m.is_vol() || m.is_defunct() || m.id == current_molecule_id) {
         continue;
       }
 
@@ -595,7 +597,7 @@ public:
     if (known_vol_species.count(new_vm.species_id) == 0) {
       // we must update reactant maps if new species were added,
       // uses reactant_subpart_index of existing molecules
-      update_reactants_maps_for_new_species(new_vm.species_id);
+      update_reactants_maps_for_new_species(new_vm.species_id, new_vm.id);
       known_vol_species.insert(new_vm.species_id);
     }
 
