@@ -25,6 +25,7 @@
 
 #include "bng/cplx.h"
 #include "bng/bngl_names.h"
+#include "bng/semantic_analyzer.h" // only for insert_compartment_id_to_set_based_on_type
 
 //#define DEBUG_CANONICALIZATION
 
@@ -156,56 +157,37 @@ void Cplx::create_graph() {
 }
 
 
-bool Cplx::uses_single_compartment() const {
-  uint_set<compartment_id_t> compartments;
+void Cplx::get_used_compartments(uint_set<compartment_id_t>& compartments) const {
+  compartments.clear();
 
   assert(elem_mols.size() > 0);
   for (const ElemMol& em: elem_mols) {
     compartments.insert(em.compartment_id);
   }
-  return compartments.size() == 1;
 }
 
 
 compartment_id_t Cplx::get_complex_compartment_id() const {
 #ifndef NDEBUG
   // consistency check of compartments
-  bool all_are_none_or_any = true;
+  // similar as in SemanticAnalyzer::convert_cplx
+  bool ignored;
+  bool all_are_none_or_inout = true;
   uint_set<compartment_id_t> vol_compartments;
   uint_set<compartment_id_t> surf_compartments;
 
   assert(elem_mols.size() > 0);
   for (const ElemMol& em: elem_mols) {
-    if (em.compartment_id == COMPARTMENT_ID_NONE) {
-      // continue
-    }
-    else if (bng_data->get_compartment(em.compartment_id).is_3d) {
-      vol_compartments.insert(em.compartment_id);
-      all_are_none_or_any = false;
-    }
-    else {
-      surf_compartments.insert(em.compartment_id);
-      all_are_none_or_any = false;
-    }
+    insert_compartment_id_to_set_based_on_type(
+        bng_data, em.compartment_id,
+        all_are_none_or_inout, ignored, vol_compartments, surf_compartments);
   }
 
-  if (all_are_none_or_any) {
-    // ok
-  }
-  else if (is_vol()) {
-    // only one vol compartment
-    assert(vol_compartments.size() == 1 && surf_compartments.empty());
-  }
-  else {
-    // only one surf compartment, vol compartments are neighbors
-    assert(vol_compartments.size() <= 2 && surf_compartments.size() == 1);
-
-    const Compartment& comp = bng_data->get_compartment(*surf_compartments.begin());
-
-    for (compartment_id_t vol_id: vol_compartments) {
-      assert(comp.parent_compartment_id == vol_id || comp.children_compartments.count(vol_id) != 0);
-    }
-  }
+  // we might not know whether our compartment is surf or vol, so the check is weaker
+  assert(
+      all_are_none_or_inout ||
+      (vol_compartments.size() == 1 && surf_compartments.empty()) ||
+      (vol_compartments.size() <= 2 && surf_compartments.size() == 1));
 #endif
 
   if (is_surf()) {
@@ -587,8 +569,9 @@ std::string Cplx::to_str(bool in_surf_reaction) const {
 
 void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
 
-
-  bool use_individual_compartments = !uses_single_compartment() || elem_mols.size() == 1;
+  uint_set<compartment_id_t> used_compartments;
+  get_used_compartments(used_compartments);
+  bool use_individual_compartments = !(used_compartments.size() == 1) || elem_mols.size() == 1;
 
   for (size_t i = 0; i < elem_mols.size(); i++) {
     elem_mols[i].to_str(*bng_data, res, use_individual_compartments);
@@ -598,12 +581,7 @@ void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
     }
   }
 
-  compartment_id_t compartment_id = get_primary_compartment_id();
-  bool no_specific_compartment =
-     (compartment_id == COMPARTMENT_ID_INVALID ||
-      compartment_id == COMPARTMENT_ID_NONE);
-
-  if (no_specific_compartment) {
+  if (used_compartments.size() == 1 && *used_compartments.begin() == COMPARTMENT_ID_NONE) {
     if (orientation == ORIENTATION_UP) {
       res += "'";
     }
@@ -615,14 +593,15 @@ void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
     }
   }
   else if (!use_individual_compartments) {
+    compartment_id_t single_compartment_id = *used_compartments.begin();
     // single compartment is used as prefix when all compartments are the same
-    if (is_in_out_compartment_id(compartment_id)) {
-      res = "@" + compartment_id_to_str(compartment_id) + ":" + res;
+    if (is_in_out_compartment_id(single_compartment_id)) {
+      res = "@" + compartment_id_to_str(single_compartment_id) + ":" + res;
     }
     else {
-      const string& compartment_name = bng_data->get_compartment(compartment_id).name;
+      const string& compartment_name = bng_data->get_compartment(single_compartment_id).name;
       if (compartment_name != DEFAULT_COMPARTMENT_NAME) {
-        res = "@" + bng_data->get_compartment(compartment_id).name  + ":" + res;
+        res = "@" + bng_data->get_compartment(single_compartment_id).name  + ":" + res;
       }
     }
   }

@@ -545,7 +545,22 @@ ElemMol SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
   const ElemMolType& mt = bng_data->get_elem_mol_type(molecule_type_id);
   mi.elem_mol_type_id = molecule_type_id;
 
-
+  // process compartment
+  compartment_id_t cid = COMPARTMENT_ID_NONE;
+  if (m->compartment != nullptr) {
+    string compartment_name = m->compartment->str;
+    if (compartment_name != "") {
+      cid = bng_data->find_compartment_id(compartment_name);
+      if (cid == COMPARTMENT_ID_INVALID) {
+        errs_loc(m) <<
+            "Compartment '" << compartment_name << "' was not defined.\n"; // test XXX
+        ctx->inc_error_count();
+        return mi;
+      }
+    }
+  }
+  mi.compartment_id = cid;
+  
   // make a multiset of components type ids so that we can check that
   // out molecule instance does not use wrong or too many components
   multiset<component_type_id_t> remaining_component_ids;
@@ -639,6 +654,32 @@ ElemMol SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
 }
 
 
+void insert_compartment_id_to_set_based_on_type(
+    const BNGData* bng_data,
+    const compartment_id_t cid,
+    bool& all_are_none_or_inout,
+    bool& has_compartment_none,
+    uint_set<compartment_id_t>& vol_compartments,
+    uint_set<compartment_id_t>& surf_compartments) {
+
+  if (cid == COMPARTMENT_ID_NONE) {
+    has_compartment_none = true;
+  }
+  else if (cid == COMPARTMENT_ID_IN ||
+      cid == COMPARTMENT_ID_OUT) {
+    // continue
+  }
+  else if (bng_data->get_compartment(cid).is_3d) {
+    vol_compartments.insert(cid);
+    all_are_none_or_inout = false;
+  }
+  else {
+    surf_compartments.insert(cid);
+    all_are_none_or_inout = false;
+  }
+}
+
+
 // for a pattern it is ok to not to list all components
 void SemanticAnalyzer::convert_cplx(
     const ASTCplxNode* cplx_node,
@@ -677,21 +718,67 @@ void SemanticAnalyzer::convert_cplx(
     }
   }
 
-  // determine compartment
-  string compartment_name = get_compartment_name(cplx_node);
-  if (compartment_name != "") {
-    compartment_id_t cid =
-        bng_data->find_compartment_id(compartment_name);
-    if (cid == COMPARTMENT_ID_INVALID) {
+
+  // global compartment
+  compartment_id_t global_compartment_id = COMPARTMENT_ID_NONE;
+  if (cplx_node->compartment != nullptr) {
+    string compartment_name = cplx_node->compartment->str;
+    if (compartment_name != "") {
+      global_compartment_id = bng_data->find_compartment_id(compartment_name);
+      if (global_compartment_id == COMPARTMENT_ID_INVALID) {
         errs_loc(cplx_node) <<
             "Compartment '" << compartment_name << "' was not defined.\n"; // tests N0305, N0306
         ctx->inc_error_count();
+        return;
+      }
     }
-    bng_cplx.set_compartment_id(cid);
   }
-  else {
-    bng_cplx.set_compartment_id(COMPARTMENT_ID_NONE);
+
+  // apply global compartment to elem mols that were not specified
+  if (global_compartment_id != COMPARTMENT_ID_NONE) {
+    for (auto& em: bng_cplx.elem_mols) {
+      if (em.compartment_id == COMPARTMENT_ID_NONE) {
+        em.compartment_id = global_compartment_id;
+      }
+    }
   }
+
+  // check that compartments are used consistently
+  // we do not know yet whether elementary molecules are surface or not, but
+  // compartments were already defined
+  uint_set<compartment_id_t> vol_compartments;
+  uint_set<compartment_id_t> surf_compartments;
+  bool all_are_none_or_inout = true;
+  bool has_compartment_none = false;
+  for (const auto& em: bng_cplx.elem_mols) {
+    insert_compartment_id_to_set_based_on_type(
+        bng_data, em.compartment_id,
+        all_are_none_or_inout, has_compartment_none, vol_compartments, surf_compartments);
+  }
+
+  uint_set<compartment_id_t> all_vol_surf_compartment_ids;
+  all_vol_surf_compartment_ids.insert(vol_compartments.begin(), vol_compartments.end());
+  all_vol_surf_compartment_ids.insert(surf_compartments.begin(), surf_compartments.end());
+
+  if (!all_are_none_or_inout && surf_compartments.empty() && vol_compartments.size() > 1) {
+    errs_loc(cplx_node->mols[0]) <<
+        "The maximum number of compartments that a volume complex may use is 1, error for '" << bng_cplx.to_str() << "'.\n"; // test N307
+    ctx->inc_error_count();
+    return;
+  }
+  if (!all_are_none_or_inout && surf_compartments.size() > 1) {
+    errs_loc(cplx_node->mols[0]) <<
+        "The maximum number of surface compartments that a surface complex may use is 1, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+    ctx->inc_error_count();
+    return;
+  }
+  if (!all_are_none_or_inout && surf_compartments.size() == 1 && vol_compartments.size() > 2) {
+    errs_loc(cplx_node->mols[0]) <<
+        "The maximum number of volume compartments that a surface complex may use is 2, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+    ctx->inc_error_count();
+    return;
+  }
+
 
   bng_cplx.finalize();
   if (!bng_cplx.is_connected()) {
@@ -719,7 +806,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(
       if (is_thrash_or_null(m->name)) {
         if (reactants_side) {
           errs_loc(m) <<
-              "Null/Trash product cannot be used on the reactants side of a reeaction rule.\n"; // test XXX
+              "Null/Trash product cannot be used on the reactants side of a reeaction rule.\n"; // test N0620
           ctx->inc_error_count();
           return;
         }
@@ -827,7 +914,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
   }
 }
 
-
+/*
 string SemanticAnalyzer::get_compartment_name(const ASTCplxNode* cplx) {
   string res = "";
 
@@ -853,7 +940,7 @@ string SemanticAnalyzer::get_compartment_name(const ASTCplxNode* cplx) {
   }
   return res;
 }
-
+*/
 
 void SemanticAnalyzer::convert_seed_species() {
   for (const ASTBaseNode* n: ctx->seed_species.items) {
@@ -873,6 +960,17 @@ void SemanticAnalyzer::convert_seed_species() {
       ctx->inc_error_count();
       return;
     }
+
+    uint_set<compartment_id_t> used_compartments;
+    ss.cplx.get_used_compartments(used_compartments);
+    if (used_compartments.count(COMPARTMENT_ID_NONE) && used_compartments.size() > 1) {
+      errs_loc(n) <<
+          "In the seed species section either all elementary molecules must have their compartment specified or none, error for '" <<
+          ss.cplx.to_str() << "'.\n"; // test N0621
+      ctx->inc_error_count();
+      return;
+    }
+
 
     ASTExprNode* orig_expr = to_expr_node(ss_node->count);
     ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);

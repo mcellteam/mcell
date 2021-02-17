@@ -1,5 +1,5 @@
 # FAIL
-# OUTPUT: error: Compartment mismatch, complex cannot be in two different compartments 'C' and 'B'.
+# OUTPUT: error: The maximum number of compartments that a volume complex may use is 1, error for 'A(a!1)@C.A(a!1)@B'.
 
 begin compartments
    B 3 1

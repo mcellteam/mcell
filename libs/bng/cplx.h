@@ -75,6 +75,7 @@ public:
   void create_graph();
 
   compartment_id_t get_primary_compartment_id() const {
+    assert(is_finalized());
     if (elem_mols.size() == 1) {
       return elem_mols[0].compartment_id;
     }
@@ -83,7 +84,7 @@ public:
     }
   }
 
-  bool uses_single_compartment() const;
+  void get_used_compartments(uint_set<compartment_id_t>& compartments) const;
 
 
   const Graph& get_graph() const {

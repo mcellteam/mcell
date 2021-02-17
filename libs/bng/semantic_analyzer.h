@@ -71,8 +71,6 @@ private:
   void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction);
   void convert_and_store_rxn_rules();
 
-  std::string get_compartment_name(const ASTCplxNode* cplx_node);
-
   void convert_seed_species();
   void convert_observables();
 
@@ -85,6 +83,17 @@ private:
   ParserContext* ctx;
   BNGData* bng_data;
 };
+
+
+// auxiliary function also used in Cplx
+// TODOCOMP
+void insert_compartment_id_to_set_based_on_type(
+    const BNGData* bng_data,
+    const compartment_id_t cid,
+    bool& all_are_none_or_inout,
+    bool& has_compartment_none,
+    uint_set<compartment_id_t>& vol_compartments,
+    uint_set<compartment_id_t>& surf_compartments);
 
 } /* namespace BNG */
 
