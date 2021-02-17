@@ -111,12 +111,19 @@ public:
 
   // returns true if this object as a pattern matches second instance,
   // order is important for compartment matching
-  bool matches_simple(const ElemMol& inst) const {
+  bool matches_simple_pattern(const ElemMol& inst) const {
     assert(components.size() == 0 && inst.components.size() == 0 &&
         "Method can be used only for simple complexes, i.e. without components.");
 
     return elem_mol_type_id == inst.elem_mol_type_id &&
         (compartment_id == COMPARTMENT_ID_NONE || is_in_out_compartment_id(compartment_id) || compartment_id == inst.compartment_id);
+  }
+
+  bool matches_simple_fully(const ElemMol& inst) const {
+    assert(components.size() == 0 && inst.components.size() == 0 &&
+        "Method can be used only for simple complexes, i.e. without components.");
+
+    return elem_mol_type_id == inst.elem_mol_type_id && compartment_id == inst.compartment_id;
   }
 
   bool operator == (const ElemMol& other) const  {

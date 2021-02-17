@@ -156,7 +156,7 @@ public:
   bool matches_pattern(const Cplx& pattern, const bool ignore_orientation = false) const {
     assert(is_finalized() && pattern.is_finalized());
     if (is_simple() && pattern.is_simple()) {
-      return matches_simple(pattern, ignore_orientation);
+      return matches_simple_pattern(pattern, ignore_orientation);
     }
     else {
       if (!ignore_orientation && orientation != pattern.orientation) {
@@ -172,7 +172,7 @@ public:
    // used for counting of molecule pattern type observables
   uint get_pattern_num_matches(const Cplx& pattern) const;
 
-  // returns true if this complex is equivalent
+  // returns true if this complex is equivalent, neither of the complexes is a pattern
   bool matches_fully(const Cplx& other, const bool ignore_orientation = false) const {
 #ifdef DEBUG_CPLX_MATCHING_EXTRA_COMPARE
       std::cout << "Comparing: ";
@@ -182,7 +182,7 @@ public:
 #endif
     assert(is_finalized() && other.is_finalized());
     if (is_simple() && other.is_simple()) {
-      return matches_simple(other, ignore_orientation);
+      return matches_simple_fully(other, ignore_orientation);
     }
     else if (is_simple() != other.is_simple()) {
       // cannot be identical when one is simple and the other not
@@ -215,14 +215,24 @@ public:
   void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:
-  bool matches_simple(const Cplx& pattern, const bool ignore_orientation = false) const {
+  bool matches_simple_pattern(const Cplx& pattern, const bool ignore_orientation = false) const {
     assert(is_simple() && pattern.is_simple());
     assert(elem_mols.size() == 1 && pattern.elem_mols.size() == 1);
 
     if (!ignore_orientation && orientation != pattern.orientation) {
       return false;
     }
-    return pattern.elem_mols[0].matches_simple(elem_mols[0]);
+    return pattern.elem_mols[0].matches_simple_pattern(elem_mols[0]);
+  }
+
+  bool matches_simple_fully(const Cplx& pattern, const bool ignore_orientation = false) const {
+    assert(is_simple() && pattern.is_simple());
+    assert(elem_mols.size() == 1 && pattern.elem_mols.size() == 1);
+
+    if (!ignore_orientation && orientation != pattern.orientation) {
+      return false;
+    }
+    return pattern.elem_mols[0].matches_simple_fully(elem_mols[0]);
   }
 
   compartment_id_t get_complex_compartment_id() const;

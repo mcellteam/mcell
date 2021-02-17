@@ -284,6 +284,9 @@ bool Cplx::matches_complex_fully_ignore_orientation(const Cplx& pattern) const {
   get_subgraph_isomorphism_mappings(pattern.graph, graph, true, mappings);
   assert((mappings.size() == 0 || mappings.size()) == 1 && "We are searching only for the first match");
 
+  // TODOCOMP: compare also compartments because get_subgraph_isomorphism_mappings
+  // considers the first complex to be a pattern
+
   return mappings.size() == 1 && mappings[0].size() == graph.m_vertices.size();
 }
 

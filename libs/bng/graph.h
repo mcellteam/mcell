@@ -68,6 +68,7 @@ struct Node {
       ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
   }
 
+  // returns true if n2 matches pattern represented by 'this'
   bool compare(const Node& n2) const {
     const Node& n1 = *this;
 
@@ -88,19 +89,32 @@ struct Node {
       return false;
     }
     else if (n1.is_mol) {
+      // molecule
       assert(n2.is_mol);
       assert(n1.mol != nullptr);
       assert(n2.mol != nullptr);
 
-      // molecule
-      return n1.mol->elem_mol_type_id == n2.mol->elem_mol_type_id;
+      // molecule type
+      if (n1.mol->elem_mol_type_id != n2.mol->elem_mol_type_id) {
+        return false;
+      }
+
+      // does compartment match?
+      if (n1.mol->compartment_id != COMPARTMENT_ID_NONE &&
+          !is_in_out_compartment_id(n1.mol->compartment_id) &&
+          n1.mol->compartment_id != n2.mol->compartment_id) {
+        return false;
+      }
+
+      return true;
     }
     else {
+      // component
       assert(!n1.is_mol && !n2.is_mol);
       assert(n1.component != nullptr);
       assert(n2.component != nullptr);
 
-      // component
+      // component type
       if (n1.component->component_type_id != n2.component->component_type_id) {
         // must be the same
         return false;
