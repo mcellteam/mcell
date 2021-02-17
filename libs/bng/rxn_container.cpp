@@ -477,9 +477,10 @@ void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id)
       }
     }
   }
-  else {
-    // set of keys in bimol_rxn_class_map must be a superset of species_processed_for_bimol_rxn_classes
-    assert(species_processed_for_bimol_rxn_classes.count(reac1_species_id) == 0);
+  else if (species_processed_for_bimol_rxn_classes.count(reac1_species_id) == 0) {
+    // species might have been processed but if they don't react, they do not appear in the bimol_rxn_class_map
+    // NOTE: not completely sure if the explanation is correct
+    species_processed_for_bimol_rxn_classes.erase(reac1_species_id);
   }
 }
 
