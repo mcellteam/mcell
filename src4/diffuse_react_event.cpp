@@ -2007,17 +2007,16 @@ int DiffuseReactEvent::find_surf_product_positions(
   // assignment of positions
   uint num_tiles_to_recycle = min(actual_products.size(), recycled_surf_prod_positions.size());
   if (rxn->is_intermembrane_surf_rxn()) {
-    // special case A + B -> C + D
+    // special case limited to A@C1 + B@C2 -> C@C1 + D@C2
     release_assert(needed_surface_positions == 2 && num_tiles_to_recycle == 2);
     release_assert(rxn->products.size() == 2);
 
     BNG::compartment_id_t compartment_prod0 = rxn->products[0].get_primary_compartment_id();
-    BNG::compartment_id_t compartment_prod1 = rxn->products[1].get_primary_compartment_id();
 
-    release_assert(false && "TODO");
-    /*
-    // use compartment to determine location
-    if (reacA->reactant_compartment_id == compartment_prod0) {
+    BNG::compartment_id_t compartment_reacA = p.get_all_species().get(reacA->species_id).get_primary_compartment_id();
+
+    // use compartment to determine location (
+    if (compartment_reacA == compartment_prod0) {
       // in the same order
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[0];
       assigned_surf_product_positions[0].set_reac_type(GridPosType::REACA_UV);
@@ -2025,13 +2024,16 @@ int DiffuseReactEvent::find_surf_product_positions(
       assigned_surf_product_positions[1].set_reac_type(GridPosType::REACB_UV);
     }
     else {
+#ifndef NDEBUG
+      BNG::compartment_id_t compartment_prod1 = rxn->products[1].get_primary_compartment_id();
+      assert(compartment_reacA == compartment_prod1);
+#endif
       // switched order
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[1];
       assigned_surf_product_positions[0].set_reac_type(GridPosType::REACB_UV);
       assigned_surf_product_positions[1] = recycled_surf_prod_positions[0];
       assigned_surf_product_positions[1].set_reac_type(GridPosType::REACA_UV);
     }
-    */
   }
   else if (needed_surface_positions == 1 && num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
     if (initiator_recycled_index == INDEX_INVALID) {
