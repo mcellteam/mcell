@@ -442,13 +442,12 @@ void RxnContainer::remove_unimol_rxn_classes(const species_id_t id) {
 void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id) {
 
   // remove the rxn classes and their mappings for the second reactants
-  if (species_processed_for_bimol_rxn_classes.count(reac1_species_id) != 0) {
-    // forget that we processed this species
+  if (bimol_rxn_class_map.count(reac1_species_id) != 0) {
+
+    // forget that we processed this species (might not be present)
     species_processed_for_bimol_rxn_classes.erase(reac1_species_id);
 
-    // remove the rxn classes and their mappings for second
-    // reactants
-
+    // remove the rxn classes and their mappings for second reactants
     auto it_class_map = bimol_rxn_class_map.find(reac1_species_id);
     if (it_class_map != bimol_rxn_class_map.end()) {
 
@@ -479,8 +478,8 @@ void RxnContainer::remove_bimol_rxn_classes(const species_id_t reac1_species_id)
     }
   }
   else {
-    assert(bimol_rxn_class_map.count(reac1_species_id) == 0 &&
-        "There must be no rxn class maps for unprocessed species");
+    // set of keys in bimol_rxn_class_map must be a superset of species_processed_for_bimol_rxn_classes
+    assert(species_processed_for_bimol_rxn_classes.count(reac1_species_id) == 0);
   }
 }
 
