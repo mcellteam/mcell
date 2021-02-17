@@ -69,6 +69,9 @@ void SpeciesContainer::remove(const species_id_t id) {
   Species& s = get(id);
   assert(s.is_removable());
 
+  // get compartment before we 'defunct' species because of debug checks
+  compartment_id_t primary_compartment = get(id).get_primary_compartment_id();
+
   // do not erase directly just set that this species does not exist anymore,
   // will be physically removed on 'defragment'
   s.set_is_defunct();
@@ -78,7 +81,6 @@ void SpeciesContainer::remove(const species_id_t id) {
   assert(it_canonical != canonical_species_map.end());
   canonical_species_map.erase(it_canonical);
 
-  compartment_id_t primary_compartment = get(id).get_primary_compartment_id();
   if (primary_compartment == COMPARTMENT_ID_NONE) {
     // species have no compartment
     compartment_species_cache.erase(id);
