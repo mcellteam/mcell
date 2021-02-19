@@ -139,7 +139,7 @@ public:
   }
 
   // sets compartment to all contained elementary molecules
-  void set_compartment_id(const compartment_id_t cid);
+  void set_compartment_id(const compartment_id_t cid, const bool override_only_compartment_none = false);
 
   // returns true if this object as a pattern matches second instance
   bool matches_pattern(const Cplx& pattern, const bool ignore_orientation = false) const {

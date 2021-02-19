@@ -1322,14 +1322,14 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
 
   // handle compartments
   const shared_ptr<Complex> pattern = ct->get_pattern();
-  if (is_set(pattern) && is_set(pattern->compartment_name)) {
-    const string& compartment_name = pattern->compartment_name;
+  if (is_set(pattern) && is_set(pattern->get_primary_compartment_name())) {
+    const string& compartment_name = pattern->get_primary_compartment_name();
     // only one region or compartment may be set (unless they are the same)
     if (is_set(ct->region) && is_set(compartment_name)) {
 
       bool error = true;
 
-      // set error to fale if there is no collision
+      // set error to false if there is no collision
       if (ct->region->is_geometry_object) {
         std::shared_ptr<API::GeometryObject> geom_obj = dynamic_pointer_cast<API::GeometryObject>(ct->region);
 

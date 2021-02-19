@@ -100,12 +100,13 @@ static string check_vol_have_in_out_compartment(const RxnRule& r, const CplxVect
 // (only surface rxns may use these compartment classes)
 static string check_surface_compartments(
     const BNGData& bng_data, const RxnRule& r,
-    compartment_id_t& surf_comp_id, bool& uses_in_out_compartment) {
+    compartment_id_t& surf_comp_id, bool& uses_in_out_compartment, bool& has_surf_mols_and_vol_compartments) {
   // NOTE: this seems to belongs to the BNGL library but we do not know
   // whether the molecules types are surface or volume there
 
   surf_comp_id = COMPARTMENT_ID_NONE;
   uses_in_out_compartment = false;
+  has_surf_mols_and_vol_compartments = false;
 
   // this is applicable only when there is a surface reactant
   if (!r.is_surf_rxn()) {
@@ -125,17 +126,31 @@ static string check_surface_compartments(
   }
 
   // do we have a surface compartment specified?
+  bool has_surf_reactants = false;
+  bool uses_vol_compartments = false;
   vector<compartment_id_t> surf_compartments;
   for (size_t i = 0; i < r.reactants.size(); i++) {
     const Cplx& reac = r.reactants[i];
 
     if (reac.is_surf()) {
+      has_surf_reactants = true;
       // remember the first surface compartment
       surf_compartments.push_back(reac.get_primary_compartment_id());
     }
 
+    uint_set<compartment_id_t> used_compartments;
+    reac.get_used_compartments(used_compartments);
+    for (compartment_id_t cid: used_compartments) {
+
+      if (is_specific_compartment_id(cid) && bng_data.get_compartment(cid).is_3d) {
+        uses_vol_compartments = true;
+      }
+    }
+
     uses_in_out_compartment = uses_in_out_compartment || reac.has_compartment_class_in_out();
   }
+
+  has_surf_mols_and_vol_compartments = has_surf_reactants && uses_vol_compartments;
 
   if (!uses_in_out_compartment) {
     // 3. In a surface reaction:
@@ -280,9 +295,14 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
 
   compartment_id_t surf_comp_id;
   bool uses_in_out_compartments;
-  CHECK(check_surface_compartments(bng_data, r, surf_comp_id, uses_in_out_compartments));
-  if (surf_comp_id == COMPARTMENT_ID_NONE && !uses_in_out_compartments) {
-    // does not have surface reactants that use compartment, nothing to do,
+  bool has_surf_mols_and_vol_compartments;
+  CHECK(
+      check_surface_compartments(
+          bng_data, r, surf_comp_id, uses_in_out_compartments, has_surf_mols_and_vol_compartments)
+  );
+
+  if (surf_comp_id == COMPARTMENT_ID_NONE && !uses_in_out_compartments && !has_surf_mols_and_vol_compartments) {
+    // does not have surface reactants, nothing to do,
     // this is for example the case when MCell style orientations are specified by the user
     return "";
   }

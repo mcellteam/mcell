@@ -111,6 +111,9 @@ ElementaryMoleculeType:
     - name: components
       type: List[Component*]
       default: empty
+    - name: compartment_name
+      type: str
+      default: unset
 
   - name: to_bngl_str
     return_type: str
@@ -288,11 +291,9 @@ Species:
       
   methods:
   - name: inst
-    return_type: Complex
-    todo: Where is this used and why the limitation?, remove?
+    return_type: Complex*
     doc: | 
-       Creates a Complex of this Species. Can be currently used only for simple species, i.e. those that
-       have a single molecule instance and no components.
+       Creates a copy of a Complex from this Species with specified orientation and compartment name. 
     params:
     - name: orientation
       type: Orientation 

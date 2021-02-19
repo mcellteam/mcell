@@ -664,6 +664,7 @@ Methods:
 * | **inst**
 
    * | components: List[Component] = None
+   * | compartment_name: str = None
    * | return type: ElementaryMolecule
 
 
@@ -1934,8 +1935,7 @@ Methods:
    * | return type: Complex
 
 
-  | Creates a Complex of this Species. Can be currently used only for simple species, i.e. those that
-  | have a single molecule instance and no components.
+  | Creates a copy of a Complex from this Species with specified orientation and compartment name.
 
 
 * | **to_bngl_str**

@@ -84,7 +84,13 @@ static bool is_nonprintable_compartment_id(const compartment_id_t id) {
 }
 
 static bool is_in_out_compartment_id(const compartment_id_t id) {
+  assert(id != COMPARTMENT_ID_INVALID);
   return id == COMPARTMENT_ID_IN || id == COMPARTMENT_ID_OUT;
+}
+
+static bool is_specific_compartment_id(const compartment_id_t id) {
+  assert(id != COMPARTMENT_ID_INVALID);
+  return id != COMPARTMENT_ID_NONE && !is_in_out_compartment_id(id);
 }
 
 // returns COMPARTMENT_ID_INVALID if name is not IN or OUT

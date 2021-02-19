@@ -55,6 +55,22 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 }
 
 
+// make a deep copy, used from Species::inst
+std::shared_ptr<Complex> Complex::clone() const {
+  std::shared_ptr<Complex> res = make_shared<Complex>();
+
+  res->name = name;
+  res->orientation = orientation;
+  res->compartment_name = compartment_name;
+
+  for (const auto& em: elementary_molecules) {
+    res->elementary_molecules.push_back(em->clone());
+  }
+
+  return res;
+}
+
+
 std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
     const BNG::BNGData& bng_data,
     const BNG::Cplx& bng_cplx) {
@@ -62,17 +78,17 @@ std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
   std::shared_ptr<API::Complex> res_cplx_inst = API::Complex::construct_empty();
 
   // convert each molecule instance
-  for (const BNG::ElemMol& bmg_mi: bng_cplx.elem_mols) {
+  for (const BNG::ElemMol& bmg_em: bng_cplx.elem_mols) {
 
     // find molecule type and create an instance
-    const BNG::ElemMolType& emt = bng_data.get_elem_mol_type(bmg_mi.elem_mol_type_id);
+    const BNG::ElemMolType& emt = bng_data.get_elem_mol_type(bmg_em.elem_mol_type_id);
     std::shared_ptr<ElementaryMoleculeType> api_emt =
         ElementaryMoleculeType::construct_from_bng_elem_mol_type(bng_data, emt);
     assert(is_set(api_emt));
 
     // prepare a vector of component instances with their bonds set
     std::vector<std::shared_ptr<API::Component>> api_comp_instances;
-    for (const BNG::Component& bng_ci: bmg_mi.components) {
+    for (const BNG::Component& bng_ci: bmg_em.components) {
       const std::string& ct_name = bng_data.get_component_type(bng_ci.component_type_id).name;
 
       // we need to define component type here, they are not global
@@ -88,19 +104,32 @@ std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
       api_comp_instances.push_back(api_comp_inst);
     }
 
+    // determine compartment name
+    BNG::compartment_id_t cid = bmg_em.compartment_id;
+    string compartment_name;
+    if (cid == BNG::COMPARTMENT_ID_NONE) {
+      compartment_name = STR_UNSET;
+    }
+    else if (BNG::is_in_out_compartment_id(cid)) {
+      compartment_name = BNG::compartment_id_to_str(cid);
+    }
+    else {
+      compartment_name = bng_data.get_compartment(cid).name;
+    }
+
     // and append instantiated elementary molecule type
-    res_cplx_inst->elementary_molecules.push_back(api_emt->inst(api_comp_instances));
+    res_cplx_inst->elementary_molecules.push_back(api_emt->inst(api_comp_instances, compartment_name));
   }
 
   // set compartment
-  if (bng_cplx.has_compartment()) {
+  /*if (bng_cplx.has_compartment()) {
     if (bng_cplx.has_compartment_class_in_out()) {
       res_cplx_inst->set_compartment_name(BNG::compartment_id_to_str(bng_cplx.get_primary_compartment_id()));
     }
     else {
       res_cplx_inst->set_compartment_name(bng_data.get_compartment(bng_cplx.get_primary_compartment_id()).name);
     }
-  }
+  }*/
 
   return res_cplx_inst;
 }
@@ -242,16 +271,19 @@ bool Complex::__eq__(const Complex& other) const {
 std::string Complex::to_bngl_str_w_custom_orientation(
     const bool replace_orientation_w_up_down_compartments, const bool ignore_orientation_and_compartment) const {
   string res;
-  bool add_compartment = false;
   bool orientation_replaced = false;
 
+  // individual compartments are printed if all elem mols do not use the same compartment
   set<string> used_compartments;
+  size_t num_specific_compartments = 0;
   for (const auto& em: elementary_molecules) {
     if (is_set(em->compartment_name)) {
+      num_specific_compartments++;
       used_compartments.insert(em->compartment_name);
     }
   }
-  bool print_individual_compartments = used_compartments.size() > 1;
+  bool print_individual_compartments =
+      used_compartments.size() > 1 || num_specific_compartments != elementary_molecules.size();
 
   for (size_t i = 0; i < elementary_molecules.size(); i++) {
     res += elementary_molecules[i]->to_bngl_str(print_individual_compartments);
@@ -279,20 +311,16 @@ std::string Complex::to_bngl_str_w_custom_orientation(
         orientation_replaced = true;
       }
     }
-
-    if (is_set(compartment_name)) {
-      add_compartment = true;
-    }
   }
 
 
-  if (add_compartment) {
+  if (!print_individual_compartments && used_compartments.size() == 1) {
     string at_str = (orientation_replaced) ? "" : "@";
     if (elementary_molecules.size() != 1) {
-      res = at_str + compartment_name + ":" + res;
+      res = at_str + *used_compartments.begin() + ":" + res;
     }
     else {
-      res += at_str + compartment_name;
+      res += at_str + *used_compartments.begin();
     }
   }
 

@@ -484,7 +484,8 @@ class ElementaryMoleculeType():
 
     def inst(
             self,
-            components : List[Component] = None
+            components : List[Component] = None,
+            compartment_name : str = None
         ) -> 'ElementaryMolecule':
         pass
 

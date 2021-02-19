@@ -236,14 +236,16 @@ bool Cplx::matches_complex_pattern_ignore_orientation(const Cplx& pattern) const
 
 
 // sets compartment to all contained elementary molecules
-void Cplx::set_compartment_id(const compartment_id_t cid) {
+void Cplx::set_compartment_id(const compartment_id_t cid, const bool override_only_compartment_none) {
   // TODO: here could be some extra checks related to orientation
   // set compartment to all elementary molecules
   assert(!elem_mols.empty());
   for (ElemMol& em: elem_mols) {
     // we cannot check here whether compartment type (2d/3d matches surf/vol) because
     // we do not necessarily know the the of the elementary molecules at all times
-    em.compartment_id = cid;
+    if (!override_only_compartment_none || em.compartment_id == COMPARTMENT_ID_NONE) {
+      em.compartment_id = cid;
+    }
   }
 }
 

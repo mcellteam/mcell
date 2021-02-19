@@ -147,15 +147,15 @@ public:
 
   bool __eq__(const Species& other) const override;
 
-  Complex inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = "") override {
+  std::shared_ptr<Complex> inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = "") override {
     if (orientation != Orientation::DEFAULT && is_set(compartment_name)) {
       throw ValueError(S("Maximum one of ") + NAME_ORIENTATION + " or " + NAME_COMPARTMENT_NAME + " can be set not both.");
     }
 
-    // simply downcast to Complex and set extra attributes
-    Complex res = *dynamic_cast<Complex*>(this);
-    res.orientation = orientation;
-    res.set_compartment_name(compartment_name);
+    // make a deep copy and set extra attributes
+    std::shared_ptr<Complex> res = clone();
+    res->orientation = orientation;
+    res->set_compartment_name(compartment_name);
     return res;
   }
 
