@@ -875,6 +875,19 @@ static void apply_rxn_on_reactants_graph(
         }
       } // if (prod_ci.bond_value != reac_ci.bond_value)
     } // if (!prod_comp.is_mol)
+    else {
+      // elementary molecule (mol)
+      assert(prod_node.mol != nullptr);
+      const ElemMol& prod_em = *prod_node.mol;
+
+      assert(reac_node.mol != nullptr);
+      ElemMol& reac_em = *reac_node.mol;
+
+      // update compartment if needed
+      if (is_specific_compartment_id(prod_em.compartment_id)) {
+        reac_em.compartment_id = prod_em.compartment_id;
+      }
+    }
   } // for (auto prod_pat_it: prod_pattern_mapping)
 
   // remove bonds
