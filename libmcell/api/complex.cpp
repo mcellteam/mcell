@@ -210,7 +210,7 @@ const std::string& Complex::get_canonical_name() const {
   BNG::BNGEngine bng_engine(bng_config);
 
   // parse cplx string
-  string bngl_str = to_bngl_str_w_custom_orientation(true);
+  string bngl_str = to_bngl_str_w_custom_orientation();
   BNG::Cplx cplx_inst(&bng_engine.get_data());
   int num_errors = BNG::parse_single_cplx_string(
       bngl_str, bng_engine.get_data(),
@@ -258,8 +258,7 @@ bool Complex::__eq__(const Complex& other) const {
 }
 
 
-std::string Complex::to_bngl_str_w_custom_orientation(
-    const bool replace_orientation_w_up_down_compartments, const bool ignore_orientation_and_compartment) const {
+std::string Complex::to_bngl_str_w_custom_orientation(const bool include_mcell_orientation) const {
   string res;
   bool orientation_replaced = false;
 
@@ -282,27 +281,14 @@ std::string Complex::to_bngl_str_w_custom_orientation(
     }
   }
 
-  if (!ignore_orientation_and_compartment) {
-    if (!replace_orientation_w_up_down_compartments) {
-      if (orientation == Orientation::UP) {
-        res += "'";
-      }
-      else if (orientation == Orientation::DOWN) {
-        res += ",";
-      }
+  if (include_mcell_orientation) {
+    if (orientation == Orientation::UP) {
+      res += "'";
     }
-    else {
-      if (orientation == Orientation::UP) {
-        res += BNG::MCELL_COMPARTMENT_UP;
-        orientation_replaced = true;
-      }
-      else if (orientation == Orientation::DOWN) {
-        res += BNG::MCELL_COMPARTMENT_DOWN;
-        orientation_replaced = true;
-      }
+    else if (orientation == Orientation::DOWN) {
+      res += ",";
     }
   }
-
 
   if (!print_individual_compartments && used_compartments.size() == 1) {
     string at_str = (orientation_replaced) ? "" : "@";

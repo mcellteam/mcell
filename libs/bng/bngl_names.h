@@ -48,9 +48,6 @@ const char* const PARAM_V = "V";
 
 const char* const IND = "  ";
 
-const char* const MCELL_COMPARTMENT_UP = "@_UP_";
-const char* const MCELL_COMPARTMENT_DOWN = "@_DOWN_";
-
 // reserved name of a default compartment that is not printed when a complex's name is printed
 const char* const DEFAULT_COMPARTMENT_NAME = "default_compartment";
 
