@@ -132,9 +132,10 @@ struct SharedGenData {
 
   bool is_used_compartment(Json::Value& model_object) {
     const std::string& vol_comp = model_object[KEY_NAME].asString();
+    assert(vol_comp != "");
     const std::string& surf_comp = model_object[KEY_MEMBRANE_NAME].asString();
 
-    return used_compartments.count(vol_comp) != 0 || used_compartments.count(surf_comp);
+    return used_compartments.count(vol_comp) != 0 || (surf_comp != "" && used_compartments.count(surf_comp) != 0);
   }
 
 
