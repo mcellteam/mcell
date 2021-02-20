@@ -1396,7 +1396,13 @@ void PythonGenerator::generate_compartment_assignments(std::ostream& out) {
   for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
     Value& model_object = model_object_list[i];
 
-    if (data.is_used_compartment(model_object)) {
+    // older data model files don't have to have this attribute
+    // therefore we are also checking for used compartments in
+    // data.is_used_compartment
+    bool is_bngl_compartment =
+        model_object.isMember(KEY_IS_BNGL_COMPARTMENT) && model_object[KEY_IS_BNGL_COMPARTMENT].asBool();
+
+    if (is_bngl_compartment || data.is_used_compartment(model_object)) {
       // name is the name of the object
       const string& name = model_object[KEY_NAME].asString();
       const string& membrane_name = model_object[KEY_MEMBRANE_NAME].asString();

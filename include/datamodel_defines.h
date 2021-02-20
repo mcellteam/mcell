@@ -99,6 +99,7 @@ const char* const KEY_OBJECT_SOURCE = "object_source";
 const char* const KEY_DYNAMIC_DISPLAY_SOURCE = "dynamic_display_source";
 const char* const KEY_SCRIPT_NAME = "script_name";
 const char* const KEY_MEMBRANE_NAME = "membrane_name";
+const char* const KEY_IS_BNGL_COMPARTMENT = "is_bngl_compartment";
 const char* const KEY_DYNAMIC = "dynamic";
 
 const char* const KEY_MOL_VIZ = "mol_viz";

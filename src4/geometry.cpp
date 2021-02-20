@@ -500,6 +500,8 @@ void GeometryObject::to_data_model_as_model_object(
   const BNG::BNGData& bng_data = p.get_all_species().get_bng_data();
 
   if (represents_compartment()) {
+    model_object[KEY_IS_BNGL_COMPARTMENT] = true;
+
     const BNG::Compartment& comp3d = bng_data.get_compartment(vol_compartment_id);
     assert(comp3d.is_3d);
     if (comp3d.name != obj_name) {
@@ -527,6 +529,9 @@ void GeometryObject::to_data_model_as_model_object(
         model_object[KEY_PARENT_OBJECT] = comp_parent.name;
       }
     }
+  }
+  else {
+    model_object[KEY_IS_BNGL_COMPARTMENT] = false;
   }
 
   model_object[KEY_DYNAMIC] = false;
