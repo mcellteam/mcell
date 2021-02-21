@@ -167,7 +167,7 @@ void Cplx::get_used_compartments(uint_set<compartment_id_t>& compartments) const
 }
 
 
-compartment_id_t Cplx::get_complex_compartment_id() const {
+compartment_id_t Cplx::get_complex_compartment_id(const bool override_is_surface_cplx) const {
 #ifndef NDEBUG
   // consistency check of compartments
   // similar as in SemanticAnalyzer::convert_cplx
@@ -190,7 +190,19 @@ compartment_id_t Cplx::get_complex_compartment_id() const {
       (vol_compartments.size() <= 2 && surf_compartments.size() == 1));
 #endif
 
-  if (is_surf()) {
+  if (override_is_surface_cplx) {
+    // get the first surface compartment because we do not know
+    // the types of elementary molecules
+    for (const ElemMol& em: elem_mols) {
+      compartment_id_t cid = em.compartment_id;
+      if (is_specific_compartment_id(cid) && !bng_data->get_compartment(cid).is_3d) {
+        return cid;
+      }
+    }
+    // no specific compartment was set
+    return COMPARTMENT_ID_NONE;
+  }
+  else if (is_surf()) {
     // get the first surface elem mol
     for (const ElemMol& em: elem_mols) {
       if (em.is_surf()) {

@@ -192,7 +192,7 @@ void Complex::postprocess_in_ctor() {
     elementary_molecules = converted_complex->elementary_molecules;
   }
 
-  check_and_set_compartments();
+  set_unset_compartments_of_elementary_molecules();
 
   assert(!elementary_molecules.empty());
 }
@@ -314,20 +314,13 @@ bool Complex::is_surf() const {
 }
 
 
-void Complex::check_and_set_compartments() {
+void Complex::set_unset_compartments_of_elementary_molecules() {
   // called after all initialization including parsing of the BNGL name
   // does not check that compartment types are correctly used (surf/vol) because we do not know them yet
-  // TODOCOMP: check this in conversion
   if (is_set(compartment_name)) {
     // set the name to all contained elementary molecules
     for (auto& em: elementary_molecules) {
-      if (is_set(em->compartment_name) && em->compartment_name != compartment_name) {
-        throw ValueError("Cannot override compartment of elementary molecule type of " + em->elementary_molecule_type->name +
-            " that uses compartment " + em->compartment_name + " with compartment " + compartment_name +
-            " of the Complex " + name + ". If different compartments for individual elementary molecules are needed, " +
-            " do not set the Complex's " + NAME_COMPARTMENT_NAME + ".");
-      }
-      else {
+      if (!is_set(em->compartment_name)) {
         em->compartment_name = compartment_name;
       }
     }

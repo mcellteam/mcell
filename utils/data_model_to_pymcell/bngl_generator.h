@@ -61,7 +61,6 @@ public:
   void generate_single_count(
       const std::string& observable_name,
       const std::string& what_to_count,
-      const std::string& compartment,
       const bool molecules_not_species);
   void close_observables_section() { bng_out << BNG::END_OBSERVABLES << "\n"; }
 

@@ -129,11 +129,11 @@ public:
 
   void set_compartment_name(const std::string& new_compartment_name) {
     compartment_name = new_compartment_name;
-    check_and_set_compartments();
+    set_unset_compartments_of_elementary_molecules();
   }
 
 private:
-  void check_and_set_compartments();
+  void set_unset_compartments_of_elementary_molecules();
   bool is_species_object() const;
 
   // set when __eq__ is called, valid if cached_data_are_uptodate is true

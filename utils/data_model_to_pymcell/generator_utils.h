@@ -190,8 +190,7 @@ static string trim(const string& str)
 string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter);
 
 string create_count_name(
-    const string& what_to_count, const string& compartmnent, const string& where_to_count,
-    const bool molecules_not_species);
+    const string& what_to_count, const string& where_to_count, const bool molecules_not_species);
 
 uint get_num_counts_in_mdl_string(const string& mdl_string);
 
@@ -203,7 +202,6 @@ void process_single_count_term(
     bool& rxn_not_mol,
     bool& molecules_not_species,
     string& what_to_count,
-    string& compartment,
     string& where_to_count,
     string& orientation);
 

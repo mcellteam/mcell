@@ -213,6 +213,7 @@ string remove_compartments(const std::string& species_name) {
 }
 
 
+// returns "" if there are multiple compartments
 string get_single_compartment(const std::string& name) {
   std::vector<std::string> compartments;
   API::get_compartment_names(name, compartments);
@@ -224,7 +225,8 @@ string get_single_compartment(const std::string& name) {
     string res = compartments[0];
     for (size_t i = 1; i < compartments.size(); i++) {
       if (res != compartments[i]) {
-        ERROR("Complexes may use a single compartment for now, error for " + name + ".");
+        // multiple compartments
+        return "";
       }
     }
     return res;
@@ -332,7 +334,7 @@ string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter) {
 
 
 string create_count_name(
-    const string& what_to_count, const string& compartmnent, const string& where_to_count,
+    const string& what_to_count, const string& where_to_count,
     const bool molecules_not_species) {
 
   // first remove all cterm_refixes
@@ -342,10 +344,6 @@ string create_count_name(
 
   if (!molecules_not_species) {
     res += "_species";
-  }
-
-  if (compartmnent != "") {
-    res += "_at_" + compartmnent;
   }
 
   if (where_to_count != WORLD && where_to_count != "") {
@@ -378,7 +376,6 @@ void process_single_count_term(
     bool& rxn_not_mol,
     bool& molecules_not_species,
     string& what_to_count,
-    string& compartment,
     string& where_to_count,
     string& orientation) {
 
@@ -398,13 +395,6 @@ void process_single_count_term(
 
   what_to_count = mdl_string.substr(start_brace + 1, comma - start_brace - 1);
   what_to_count = trim(what_to_count);
-
-  size_t pos_at = what_to_count.find('@');
-  compartment = ""; // FIXME: use get_single_compartment & remove_compartment
-  if (pos_at != string::npos) {
-    compartment = what_to_count.substr(pos_at + 1);
-    what_to_count = what_to_count.substr(0, pos_at);
-  }
 
   // default is 'molecules_pattern', for now we are storing the
   // as a comment because the counting type belongs to the count term,
@@ -460,10 +450,6 @@ void process_single_count_term(
     else {
       where_to_count[brace] = '_';
     }
-  }
-
-  if (compartment != "" && where_to_count != "") {
-      ERROR("Cannot both specify location and compartment for a count location '" + mdl_string + "'.");
   }
 }
 

@@ -148,19 +148,21 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
 
   res << "COUNT[";
 
+
+  string pattern;
   switch(type) {
     case CountType::EnclosedInWorld:
     case CountType::EnclosedInVolumeRegion:
     case CountType::PresentOnSurfaceRegion:
       switch (species_pattern_type) {
         case SpeciesPatternType::SpeciesId:
-          res << world->get_all_species().get(species_id).name;
+          pattern = world->get_all_species().get(species_id).name;
           break;
         case SpeciesPatternType::SpeciesPattern:
-          res << species_molecules_pattern.to_str() << MARKER_SPECIES_COMMENT;
+          pattern = species_molecules_pattern.to_str() + MARKER_SPECIES_COMMENT;
           break;
         case SpeciesPatternType::MoleculesPattern:
-          res << species_molecules_pattern.to_str() << MARKER_MOLECULES_COMMENT;
+          pattern = species_molecules_pattern.to_str() + MARKER_MOLECULES_COMMENT;
           break;
         default:
           assert(false);
@@ -171,39 +173,61 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
     case CountType::RxnCountOnSurfaceRegion: {
         string rxn_name = world->get_all_rxns().get(rxn_rule_id)->name;
         CONVERSION_CHECK(rxn_name != "", "Counted reaction has no name");
-        res << rxn_name;
+        pattern = rxn_name;
       }
       break;
     default:
       assert(false);
   }
 
-  res << ",";
-
+  string where;
   switch(type) {
     case CountType::EnclosedInWorld:
     case CountType::RxnCountInWorld:
-      res << VALUE_WORLD;
+      where = VALUE_WORLD;
       break;
     case CountType::EnclosedInVolumeRegion:
     case CountType::RxnCountInVolumeRegion: {
+        // TODOCOMP: we might want to transform
         string obj_name = world->get_geometry_object(geometry_object_id).name;
         CONVERSION_CHECK(obj_name != "", "Counted object has no name");
-        res << obj_name;
+        where = obj_name;
       }
       break;
     case CountType::PresentOnSurfaceRegion:
     case CountType::RxnCountOnSurfaceRegion:{
-      string reg_name = world->get_region(region_id).name;
-      CONVERSION_CHECK(reg_name != "", "Counted region has no name");
-      res << DMUtil::get_object_w_region_name(reg_name, false);
+      // if possible, we should use 2d compartment name because in MCell
+      // the encompassing region name is the same as the name of the object,
+      // this would lead to the same name for A@CP and A@PM
+      bool surf_compartment_used = false;
+      const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+      for (const auto& geom_obj: p.get_geometry_objects()) {
+        if (geom_obj.encompassing_region_id == region_id && \
+            geom_obj.surf_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+
+          const BNG::Compartment& comp = world->bng_engine.get_data().get_compartment(geom_obj.surf_compartment_id);
+          assert(!comp.is_3d);
+          pattern = "@" + comp.name + ":" + pattern;
+
+          where = VALUE_WORLD;
+
+          surf_compartment_used = true;
+          break;
+        }
+      }
+
+      if (!surf_compartment_used) {
+        string reg_name = world->get_region(region_id).name;
+        CONVERSION_CHECK(reg_name != "", "Counted region has no name");
+        res << "," << DMUtil::get_object_w_region_name(reg_name, false);
+      }
     }
     break;
 
     default:
       assert(false);
   }
-  res << "]";
+  res << pattern << "," << where << "]";
   return res.str();
 }
 

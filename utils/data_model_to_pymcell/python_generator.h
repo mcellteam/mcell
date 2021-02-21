@@ -64,7 +64,6 @@ public:
       const std::string& count_name,
       const std::string& observable_name,
       const std::string& what_to_count,
-      const std::string& compartment,
       const std::string& where_to_count, // empty for WORLD
       const std::string& orientation,
       const std::string& multiplier_str,

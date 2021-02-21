@@ -581,7 +581,7 @@ void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& sub
 
     string orient = convert_orientation(orientations[i], true);
     string compartment = get_single_compartment(substances[i]);
-    out << make_species_or_cplx(data, remove_compartments(substances[i]), orient, compartment);
+    out << make_species_or_cplx(data, substances[i], orient, compartment);
     print_comma(out, i, substances);
   }
   out << " ]";
@@ -1198,10 +1198,10 @@ string PythonGenerator::generate_count_terms_for_expression(
 
     process_single_count_term(
         data, mdl_string.substr(start, end - start + 1),
-        rxn_not_mol, molecules_not_species, what_to_count, compartment, where_to_count, orientation
+        rxn_not_mol, molecules_not_species, what_to_count, where_to_count, orientation
     );
 
-    string name = COUNT_TERM_PREFIX + create_count_name(what_to_count, compartment, where_to_count, molecules_not_species);
+    string name = COUNT_TERM_PREFIX + create_count_name(what_to_count, where_to_count, molecules_not_species);
 
     // generate the count term object definition if we don't already have it
     if (find(data.all_count_term_names.begin(), data.all_count_term_names.end(), name) == data.all_count_term_names.end()) {
@@ -1247,7 +1247,6 @@ void PythonGenerator::generate_single_count(
     const std::string& count_name,
     const std::string& observable_name,
     const std::string& what_to_count,
-    const std::string& compartment,
     const std::string& where_to_count, // empty for WORLD
     const std::string& orientation,
     const std::string& multiplier_str,
@@ -1268,7 +1267,7 @@ void PythonGenerator::generate_single_count(
       const char* count_type =
           (molecules_not_species) ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN;
 
-      gen_param_expr(out, count_type, make_species_or_cplx(data, what_to_count, orientation, compartment), true);
+      gen_param_expr(out, count_type, make_species_or_cplx(data, what_to_count, orientation), true);
     }
   }
   else {

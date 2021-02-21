@@ -74,13 +74,14 @@ public:
 
   void create_graph();
 
-  compartment_id_t get_primary_compartment_id() const {
+  // if override_is_surface_cplx is true, assumes that this is a surface complex
+  compartment_id_t get_primary_compartment_id(const bool override_is_surface_cplx = false) const {
     assert(is_finalized());
     if (elem_mols.size() == 1) {
       return elem_mols[0].compartment_id;
     }
     else {
-      return get_complex_compartment_id();
+      return get_complex_compartment_id(override_is_surface_cplx);
     }
   }
 
@@ -224,7 +225,7 @@ private:
     return pattern.elem_mols[0].matches_simple_fully(elem_mols[0]);
   }
 
-  compartment_id_t get_complex_compartment_id() const;
+  compartment_id_t get_complex_compartment_id(const bool override_is_surface_cplx = false) const;
 
   bool matches_complex_pattern_ignore_orientation(const Cplx& pattern) const;
   bool matches_complex_fully_ignore_orientation(const Cplx& pattern) const;

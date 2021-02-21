@@ -1351,7 +1351,7 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
 
     // if compartment is set, set/overwrite region
     shared_ptr<GeometryObject> comp_obj;
-    comp_obj = model->find_volume_compartment(compartment_name);
+    comp_obj = model->find_volume_compartment_object(compartment_name);
     if (is_set(comp_obj)) {
       // 3d
       if (!comp_obj->child_compartments.empty()) {
@@ -1361,7 +1361,7 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
       ct->region = comp_obj;
     }
     else {
-      comp_obj = model->find_surface_compartment(compartment_name);
+      comp_obj = model->find_surface_compartment_object(compartment_name);
       if (!is_set(comp_obj)) {
         throw ValueError("Did not find compartment '" + compartment_name + " for " +
             NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");

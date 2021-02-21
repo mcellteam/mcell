@@ -809,13 +809,13 @@ Methods:
    * | return type: GeometryObject
 
 
-* | **find_volume_compartment**
+* | **find_volume_compartment_object**
 
    * | name: str
    * | return type: GeometryObject
 
 
-* | **find_surface_compartment**
+* | **find_surface_compartment_object**
 
    * | name: str
    * | return type: GeometryObject
@@ -1283,13 +1283,13 @@ Methods:
    * | return type: GeometryObject
 
 
-* | **find_volume_compartment**
+* | **find_volume_compartment_object**
 
    * | name: str
    * | return type: GeometryObject
 
 
-* | **find_surface_compartment**
+* | **find_surface_compartment_object**
 
    * | name: str
    * | return type: GeometryObject

@@ -594,13 +594,13 @@ class Instantiation():
         ) -> 'GeometryObject':
         pass
 
-    def find_volume_compartment(
+    def find_volume_compartment_object(
             self,
             name : str
         ) -> 'GeometryObject':
         pass
 
-    def find_surface_compartment(
+    def find_surface_compartment_object(
             self,
             name : str
         ) -> 'GeometryObject':
@@ -902,13 +902,13 @@ class Model():
         ) -> 'GeometryObject':
         pass
 
-    def find_volume_compartment(
+    def find_volume_compartment_object(
             self,
             name : str
         ) -> 'GeometryObject':
         pass
 
-    def find_surface_compartment(
+    def find_surface_compartment_object(
             self,
             name : str
         ) -> 'GeometryObject':

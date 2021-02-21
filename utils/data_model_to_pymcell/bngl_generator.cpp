@@ -425,13 +425,11 @@ bool BNGLGenerator::can_express_count_with_bngl(
 void BNGLGenerator::generate_single_count(
     const std::string& observable_name,
     const std::string& what_to_count,
-    const std::string& compartment,
     const bool molecules_not_species) {
 
   bng_out << IND <<
       ((molecules_not_species) ? BNG::OBSERVABLE_MOLECULES : BNG::OBSERVABLE_SPECIES) << " " <<
       fix_id(observable_name) << " " <<
-      ((compartment != "") ? ("@" + compartment + ":") : string("")) <<
       what_to_count << "\n";
 }
 

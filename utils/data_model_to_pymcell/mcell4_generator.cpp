@@ -638,7 +638,6 @@ void MCell4Generator::generate_counts(
     bool molecules_not_species;
     bool single_term;
     string what_to_count;
-    string compartment;
     string where_to_count; // empty for WORLD
     string orientation;
 
@@ -657,7 +656,7 @@ void MCell4Generator::generate_counts(
         single_term = true;
         process_single_count_term(
             data, mdl_string, rxn_not_mol, molecules_not_species,
-            what_to_count, compartment, where_to_count, orientation);
+            what_to_count, where_to_count, orientation);
       }
       else {
         must_be_in_python = true;
@@ -727,18 +726,16 @@ void MCell4Generator::generate_counts(
       bng_gen->generate_single_count(
           observable_name,
           what_to_count,
-          compartment,
           molecules_not_species);
       has_bng_observables = true;
     }
     else {
-      string name = create_count_name(what_to_count, compartment, where_to_count, molecules_not_species);
+      string name = create_count_name(what_to_count, where_to_count, molecules_not_species);
       python_gen->generate_single_count(
           out,
           name,
           observable_name,
           what_to_count,
-          compartment,
           where_to_count, // empty for WORLD
           orientation,
           multiplier_str,
