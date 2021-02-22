@@ -272,8 +272,8 @@ public:
 
   // mcell3 variant of maintaining substances,
   // e.g. for A + B -> A : reactant A is maintained
-  bool is_cplx_reactant_on_both_sides_of_rxn(const uint index) const;
-  bool is_cplx_product_on_both_sides_of_rxn(const uint index) const;
+  bool is_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(const uint index) const;
+  bool is_cplx_product_on_both_sides_of_rxn_w_identical_compartments(const uint index) const;
 
   bool operator ==(const RxnRule& rr2) {
     // ordering of components in a molecule is not important
@@ -405,7 +405,7 @@ public:
   // returns true if two reactants match each other and species 'id' matches one of the reactants
   bool species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species);
 
-  bool get_assigned_simple_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
+  bool get_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
 
   void set_is_counted_in_world() {
     set_flag(RXN_FLAG_COUNTED_IN_WORLD);
@@ -533,10 +533,10 @@ private:
   mutable Graph products_graph;
   VertexMapping products_to_patterns_mapping;
 
-  // information for MCell3 reactions,
-  // maps simple complexes from their pattern to the product
-  // ignores complex complexes
-  small_vector<CplxIndexPair> simple_cplx_mapping;
+  // maps complexes from their pattern to the product, they must use the same compartments
+  // used mainly for handling of MCell3 reaction behavior where reactants that stay the same on the 
+  // products side are kept unchanged in a reaction
+  small_vector<CplxIndexPair> pat_prod_cplx_mapping;
 
   const BNGData* bng_data; // needed to create results of complex reactions
 };

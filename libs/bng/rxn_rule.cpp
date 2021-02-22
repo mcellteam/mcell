@@ -367,9 +367,12 @@ static int get_component_instance_matching_score(
 
 
 static int get_mol_instance_matching_score(const ElemMol& pat, const ElemMol& prod) {
+
+  // elementary molecule type must be the same
   if (pat.elem_mol_type_id != prod.elem_mol_type_id) {
     return -1;
   }
+
   int res = 0;
 
   // add a lot of points if we have the same number of components
@@ -386,6 +389,11 @@ static int get_mol_instance_matching_score(const ElemMol& pat, const ElemMol& pr
     if (i < prod.components.size()) {
       res += get_component_instance_matching_score(pat_compi, prod.components[i]);
     }
+  }
+  
+  // add extra point if compartment is the same 
+  if (pat.compartment_id == prod.compartment_id) {
+    res++;
   }
 
   return res;
@@ -1432,12 +1440,12 @@ void RxnRule::define_rxn_pathway_using_mapping(
 }
 
 
-bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
+bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(const uint index) const {
 #ifdef MCELL4_DO_NOT_REUSE_REACTANT
   return false;
 #endif
   assert(is_finalized());
-  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
+  for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
     if (index == cplx_index_pair.reactant_index) {
       return true;
     }
@@ -1446,12 +1454,13 @@ bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
 }
 
 
-bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
+// ignores compartments
+bool RxnRule::is_cplx_product_on_both_sides_of_rxn_w_identical_compartments(const uint index) const {
 #ifdef MCELL4_DO_NOT_REUSE_REACTANT
   return false;
 #endif
   assert(is_finalized());
-  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
+  for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
     if (index == cplx_index_pair.product_index) {
       return true;
     }
@@ -1460,9 +1469,9 @@ bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
 }
 
 
-bool RxnRule::get_assigned_simple_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
+bool RxnRule::get_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
   // this is not a time critical search
-  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
+  for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
     if (product_index == cplx_index_pair.product_index) {
       reactant_index = cplx_index_pair.reactant_index;
       return true;
@@ -1509,8 +1518,8 @@ void RxnRule::compute_reactants_products_mapping() {
   VertexNameMap patterns_index = boost::get(boost::vertex_name, patterns_graph);
   VertexNameMap products_index = boost::get(boost::vertex_name, products_graph);
 
-  // also compute simple_cplx_mapping
-  simple_cplx_mapping.clear();
+  // also compute pat_prod_cplx_mapping
+  pat_prod_cplx_mapping.clear();
   // and set mol_instances_are_fully_maintained
   uint num_prod_molecule_instances = 0;
   uint num_mapped_molecule_instances = 0;
@@ -1545,18 +1554,22 @@ void RxnRule::compute_reactants_products_mapping() {
       continue;
     }
 
-    // ok, we can finally define our mapping
     const Node& pat_mol = patterns_index[map_it->second];
     assert(pat_mol.is_mol);
 
+    // the molecules must have the same compartment,
+    // the search above in find_best_product_to_pattern_mapping must ignore compartments
+    if (pat_mol.mol->compartment_id != prod_mol.mol->compartment_id) {
+      continue;
+    }
 
     // the graph has just a pointer to the molecule instance and since the graph
     // should be independent on the reactions, we are not storing any indices there
     uint reac_cplx_index = find_mol_instance_with_address(reactants, pat_mol.mol);
     uint prod_cplx_index = find_mol_instance_with_address(products, prod_mol.mol);
 
-
-    simple_cplx_mapping.push_back(CplxIndexPair(reac_cplx_index, prod_cplx_index));
+    // we can finally define our mapping
+    pat_prod_cplx_mapping.push_back(CplxIndexPair(reac_cplx_index, prod_cplx_index));
   }
 
   // count number of molecules in pattern
@@ -1701,7 +1714,7 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
   // for each reactant (from the end since we want the products to be ordered in the same way)
   for (int pi = products.size() - 1; pi > 0; pi--) {
     uint ri;
-    bool found = get_assigned_simple_cplx_reactant_for_product(pi, ri);
+    bool found = get_assigned_cplx_reactant_for_product(pi, ri);
 
     if (found) {
       // move product to the front
