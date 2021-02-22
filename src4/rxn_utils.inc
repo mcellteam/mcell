@@ -145,7 +145,7 @@ static void find_reactions_with_surf_classes_for_rxn_class_map(
     return;
   }
 
-  // TODOCOMP: how to handle compartments here?
+  // NOTE: do we need to handle compartments here?
   BNG::RxnClass* rxn_class = reactions_reacA_and_surface_it->second;
 
   assert(rxn_class->is_bimol());

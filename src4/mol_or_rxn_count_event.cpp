@@ -188,7 +188,6 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
       break;
     case CountType::EnclosedInVolumeRegion:
     case CountType::RxnCountInVolumeRegion: {
-        // TODOCOMP: we might want to transform
         string obj_name = world->get_geometry_object(geometry_object_id).name;
         CONVERSION_CHECK(obj_name != "", "Counted object has no name");
         where = obj_name;

@@ -86,7 +86,6 @@ private:
 
 
 // auxiliary function also used in Cplx
-// TODOCOMP
 void insert_compartment_id_to_set_based_on_type(
     const BNGData* bng_data,
     const compartment_id_t cid,

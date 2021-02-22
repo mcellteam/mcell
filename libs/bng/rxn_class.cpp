@@ -30,25 +30,25 @@ RxnClass::~RxnClass() {
 // might need to be different for NFsim
 // not sure if this belongs here
 float_t RxnClass::get_reactant_space_step(const uint reactant_index) const {
-  assert(reactant_index < specific_reactants.size());
+  assert(reactant_index < reactant_ids.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index]);
+  const Species& s = all_species.get(reactant_ids[reactant_index]);
   return s.space_step;
 }
 
 
 float_t RxnClass::get_reactant_time_step(const uint reactant_index) const {
-  assert(reactant_index < specific_reactants.size());
+  assert(reactant_index < reactant_ids.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index]);
+  const Species& s = all_species.get(reactant_ids[reactant_index]);
   return s.time_step;
 }
 
 
 float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
-  assert(reactant_index < specific_reactants.size());
+  assert(reactant_index < reactant_ids.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index]);
+  const Species& s = all_species.get(reactant_ids[reactant_index]);
   return s.D;
 }
 
@@ -122,7 +122,7 @@ void RxnClass::define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t 
   release_assert(pathways_and_rates_initialized);
 
   vector<species_id_t> reactant_species;
-  for (auto& r: specific_reactants) {
+  for (auto& r: reactant_ids) {
     reactant_species.push_back(r);
   }
 
@@ -198,8 +198,8 @@ float_t RxnClass::compute_pb_factor() const {
   float_t rx_radius_3d_mul_length_unit = bng_config.rx_radius_3d * bng_config.length_unit;
 
   small_vector<const Species*> reactant_species;
-  for (uint n_reactant = 0; n_reactant < specific_reactants.size(); n_reactant++) {
-    const Species& s = all_species.get(specific_reactants[n_reactant]);
+  for (uint n_reactant = 0; n_reactant < reactant_ids.size(); n_reactant++) {
+    const Species& s = all_species.get(reactant_ids[n_reactant]);
     reactant_species.push_back(&s);
     if (s.is_surf()) {
       num_surf_reactants++;
@@ -216,8 +216,8 @@ float_t RxnClass::compute_pb_factor() const {
   float_t pb_factor = 0.0;
 
   /* determine reaction probability by proper conversion of the reaction rate constant */
-  assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
-  if (specific_reactants.size() == 1 || is_intermembrane_surf_surf_rxn_class()) {
+  assert(reactant_ids.size() == 1 || reactant_ids.size() == 2);
+  if (reactant_ids.size() == 1 || is_intermembrane_surf_surf_rxn_class()) {
     // unimolecular or
     // experimental surf-surf on different objects
     pb_factor = bng_config.time_unit;
@@ -418,7 +418,7 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
     return;
   }
 
-  assert(!specific_reactants.empty());
+  assert(!reactant_ids.empty());
 
 #ifdef ORDER_RXNS_IN_RXN_CLASS_BY_NAME
   sort(rxn_rules.begin(), rxn_rules.end(),
@@ -442,8 +442,8 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
     rxn->define_rxn_pathways_for_specific_reactants(
         all_species,
         bng_config,
-        specific_reactants[0],
-        (is_bimol() ? specific_reactants[1] : SPECIES_ID_INVALID),
+        reactant_ids[0],
+        (is_bimol() ? reactant_ids[1] : SPECIES_ID_INVALID),
         pb_factor,
         pathways
     );
@@ -547,9 +547,9 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
 
 std::string RxnClass::reactants_to_str() const {
   stringstream ss;
-  ss << all_species.get(specific_reactants[0]).name << " (" << specific_reactants[0] << ")";
-  if (specific_reactants.size() == 2) {
-    ss << " + " << all_species.get(specific_reactants[1]).name << " (" << specific_reactants[1] << ")";
+  ss << all_species.get(reactant_ids[0]).name << " (" << reactant_ids[0] << ")";
+  if (reactant_ids.size() == 2) {
+    ss << " + " << all_species.get(reactant_ids[1]).name << " (" << reactant_ids[1] << ")";
   }
   return ss.str();
 }
@@ -557,7 +557,7 @@ std::string RxnClass::reactants_to_str() const {
 
 std::string RxnClass::to_str(const std::string ind) const {
   stringstream out;
-  assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
+  assert(reactant_ids.size() == 1 || reactant_ids.size() == 2);
   out << ind << "rxn class for reactants: \n    " << reactants_to_str() << "\n";
 
   if (!pathways_and_rates_initialized) {

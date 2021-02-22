@@ -35,8 +35,7 @@ public:
   // the rxn class was created specifically for a single or a pair of reactants, therefore
   // the species id is is a specific instance of a complex that matches our pattern
   // and if there are multiple species that match, multiple rxn classes are created
-  // TODOCOMP: rename to reactant_ids or something similar
-  std::vector<species_id_t> specific_reactants;
+  std::vector<species_id_t> reactant_ids;
 
   // - information on products for specific reactions, based on all reactions of the class,
   // - the size of this vector is >= than the number of rxn rules in this class because
@@ -77,9 +76,9 @@ public:
       bimol_vol_rxn_flag(false), intermembrane_surf_surf_rxn_flag(false),
       pathways_and_rates_initialized(false)
     {
-    specific_reactants.push_back(reactant1_id);
+    reactant_ids.push_back(reactant1_id);
     if (reactant2_id != SPECIES_ID_INVALID) {
-      specific_reactants.push_back(reactant2_id);
+      reactant_ids.push_back(reactant2_id);
     }
   }
 
@@ -148,11 +147,11 @@ public:
   }
 
   bool is_unimol() const {
-    return specific_reactants.size() == 1;
+    return reactant_ids.size() == 1;
   }
 
   bool is_bimol() const {
-    return specific_reactants.size() == 2;
+    return reactant_ids.size() == 2;
   }
 
   bool is_bimol_vol_rxn_class() const {
@@ -175,11 +174,11 @@ public:
 
   species_id_t get_second_species_id(species_id_t reactant_id) const {
     assert(is_bimol());
-    if (specific_reactants[0] != reactant_id) {
-      return specific_reactants[0];
+    if (reactant_ids[0] != reactant_id) {
+      return reactant_ids[0];
     }
     else {
-      return specific_reactants[1];
+      return reactant_ids[1];
     }
   }
 
