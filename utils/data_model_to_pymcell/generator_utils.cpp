@@ -293,7 +293,7 @@ string make_species_or_cplx(
   }
 
   // otherwise we will generate a BNGL string
-  return make_cplx(remove_compartments(name), orient, compartment);
+  return make_cplx(name, orient, compartment);
 }
 
 
@@ -422,14 +422,9 @@ void process_single_count_term(
   if (data.find_reaction_rule_info(what_to_count) != nullptr) {
     rxn_not_mol = true;
   }
-  else if (data.bng_mode ||
-      data.find_species_or_mol_type_info(what_to_count) != nullptr ||
-      !API::is_simple_species(what_to_count)) {
-    // if we did not find the name to be a reaction, we assume it is simple species or complex pattern
-    rxn_not_mol = false;
-  }
   else {
-    ERROR("Identifier '" + what_to_count + "' is neither species nor reaction, from mdl_string '" + mdl_string + "'.");
+    // if we did not find the name to be a reaction, we assume it is a BNGL pattern
+    rxn_not_mol = false;
   }
 
   where_to_count = mdl_string.substr(comma + 1, end_brace - comma - 1);

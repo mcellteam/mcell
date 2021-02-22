@@ -1317,61 +1317,6 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   assert(is_set(ct));
   assert(ct->node_type == API::ExprNodeType::LEAF);
 
-  // set when this is a volume compartment that has children
-  GeometryObjectSet child_compartments;
-
-  // handle compartments
-  const shared_ptr<Complex> pattern = ct->get_pattern();
-  if (is_set(pattern) && is_set(pattern->get_primary_compartment_name())) {
-    const string& compartment_name = pattern->get_primary_compartment_name();
-    // only one region or compartment may be set (unless they are the same)
-    if (is_set(ct->region) && is_set(compartment_name)) {
-
-      bool error = true;
-
-      // set error to false if there is no collision
-      if (ct->region->is_geometry_object) {
-        std::shared_ptr<API::GeometryObject> geom_obj = dynamic_pointer_cast<API::GeometryObject>(ct->region);
-
-        if (geom_obj->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
-            world->bng_engine.get_data().get_compartment(geom_obj->vol_compartment_id).name == compartment_name) {
-          error = false;
-        }
-        else if (geom_obj->surf_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
-            world->bng_engine.get_data().get_compartment(geom_obj->surf_compartment_id).name == compartment_name) {
-          error = false;
-        }
-      }
-
-      if (error) {
-        throw ValueError(S("Only one of ") + NAME_REGION + " or compartment may be set for " +
-            NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
-      }
-    }
-
-    // if compartment is set, set/overwrite region
-    shared_ptr<GeometryObject> comp_obj;
-    comp_obj = model->find_volume_compartment_object(compartment_name);
-    if (is_set(comp_obj)) {
-      // 3d
-      if (!comp_obj->child_compartments.empty()) {
-        // we must create multiple MolOrRxnCountTerms where we subtract all children
-        child_compartments = comp_obj->child_compartments;
-      }
-      ct->region = comp_obj;
-    }
-    else {
-      comp_obj = model->find_surface_compartment_object(compartment_name);
-      if (!is_set(comp_obj)) {
-        throw ValueError("Did not find compartment '" + compartment_name + " for " +
-            NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
-      }
-
-      // 2d
-      ct->region = comp_obj;
-    }
-  }
-
   // check region to determine where to count
   bool is_obj_not_surf_reg = false; // to silence compiler warning
   geometry_object_id_t obj_id = GEOMETRY_OBJECT_ID_INVALID;
@@ -1402,10 +1347,6 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
       res.species_pattern_type = SpeciesPatternType::MoleculesPattern;
       res.species_molecules_pattern = bng_converter.convert_complex(*ct->molecules_pattern, true);
     }
-
-    // we must throw away the compartment because it was already handled
-    // and export to data model would keep the compartment name there
-    res.species_molecules_pattern.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
 
     bool is_vol = res.species_molecules_pattern.is_vol();
     string name = res.species_molecules_pattern.to_str();
@@ -1497,11 +1438,6 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   }
 
   terms.push_back(res);
-
-  // handle child volume compartments
-  if (!child_compartments.empty()) {
-    append_subtracted_volume_compartments(res, child_compartments, terms);
-  }
 }
 
 

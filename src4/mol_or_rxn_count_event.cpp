@@ -219,7 +219,7 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
       if (!surf_compartment_used) {
         string reg_name = world->get_region(region_id).name;
         CONVERSION_CHECK(reg_name != "", "Counted region has no name");
-        res << "," << DMUtil::get_object_w_region_name(reg_name, false);
+        where = DMUtil::get_object_w_region_name(reg_name, false);
       }
     }
     break;
