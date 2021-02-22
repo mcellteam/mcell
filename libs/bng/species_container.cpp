@@ -104,8 +104,7 @@ species_id_t SpeciesContainer::get_species_id_with_compartment(
     const species_id_t no_compartment_species_id, const compartment_id_t compartment_id) {
 
   assert(get(no_compartment_species_id).get_primary_compartment_id() == COMPARTMENT_ID_NONE);
-  assert(!is_in_out_compartment_id(compartment_id) && !is_nonprintable_compartment_id(compartment_id) &&
-      compartment_id != COMPARTMENT_ID_INVALID);
+  assert(is_specific_compartment_id(compartment_id));
 
   auto it_map = compartment_species_cache.find(no_compartment_species_id);
   if (it_map == compartment_species_cache.end()) {

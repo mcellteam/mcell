@@ -276,7 +276,7 @@ void ElemMol::to_str(const BNGData& bng_data, std::string& res, const bool inclu
     if (is_in_out_compartment_id(compartment_id)) {
       res += "@" + compartment_id_to_str(compartment_id);
     }
-    else if (!is_nonprintable_compartment_id(compartment_id)) {
+    else if (compartment_id != COMPARTMENT_ID_NONE) {
       const string& compartment_name = bng_data.get_compartment(compartment_id).name;
       if (compartment_name != DEFAULT_COMPARTMENT_NAME) {
         res += "@" + bng_data.get_compartment(compartment_id).name;

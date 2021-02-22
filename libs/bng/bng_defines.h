@@ -78,11 +78,6 @@ const compartment_id_t COMPARTMENT_ID_OUT = UINT32_MAX - 4;
 const char* const COMPARTMENT_NAME_IN = "IN";
 const char* const COMPARTMENT_NAME_OUT = "OUT";
 
-// TODOCOMP: remove
-static bool is_nonprintable_compartment_id(const compartment_id_t id) {
-  return id == COMPARTMENT_ID_NONE;
-}
-
 static bool is_in_out_compartment_id(const compartment_id_t id) {
   assert(id != COMPARTMENT_ID_INVALID);
   return id == COMPARTMENT_ID_IN || id == COMPARTMENT_ID_OUT;
