@@ -543,33 +543,37 @@ private:
     get_all_species().get(m.species_id).inc_num_instantiations();
   }
 
+  void update_compartment(Molecule& new_m, const BNG::compartment_id_t target_compartment_id) {
+    BNG::Species& species = get_all_species().get(new_m.species_id);
+
+    // set compartment/define new species if needed, surface species may have only one surface compartment
+    BNG::compartment_id_t species_compartment_id = species.get_primary_compartment_id();
+    assert(!BNG::is_in_out_compartment_id(species_compartment_id));
+
+    // change only if it was not set
+    if (species_compartment_id != target_compartment_id) {
+      if (species_compartment_id == BNG::COMPARTMENT_ID_NONE) {
+        // desired compartment was not set
+        release_assert(target_compartment_id != BNG::COMPARTMENT_ID_NONE && "Not 100% sure whether this can occur");
+        new_m.species_id = get_all_species().get_species_id_with_compartment(new_m.species_id, target_compartment_id);
+      }
+      else  {
+        errs() << "Invalid compartment specified, trying to create " << species.name << " in " <<
+            bng_engine.get_data().get_compartment(target_compartment_id).name << ".\n";
+        exit(1);
+      }
+    }
+  }
 
   void update_volume_compartment(Molecule& new_vm) {
     const BNG::Species& species = get_all_species().get(new_vm.species_id);
      BNG::compartment_id_t target_compartment_id = get_compartment_id_for_counted_volume(new_vm.v.counted_volume_index);
+     assert(bng_engine.get_data().get_compartment(target_compartment_id).is_3d);
 
-     // set compartment/define new species if needed, volume species may have only one compartment
-     // so it is safe to override
-     BNG::compartment_id_t species_compartment_id = species.get_primary_compartment_id();
-     assert(!BNG::is_in_out_compartment_id(species_compartment_id));
-
-     // do we need to change the compartment? (@IN and @OUT are only placeholders)
-     if (species_compartment_id != target_compartment_id) {
-       if (species_compartment_id == BNG::COMPARTMENT_ID_NONE) {
-         // change to species that use the target compartment
-         // TODOCOMP: fix case when removing compartment, i.e. from @PM to @NONE
-         new_vm.species_id = get_all_species().get_species_id_with_compartment(new_vm.species_id, target_compartment_id);
-       }
-       else  {
-         errs() << "Invalid compartment specified, trying to create " << species.name << " in " <<
-             bng_engine.get_data().get_compartment(target_compartment_id).name << ".\n";
-         exit(1);
-       }
-     }
+     update_compartment(new_vm, target_compartment_id);
   }
 
   void update_surface_compartment(Molecule& new_sm) {
-    BNG::Species& species = get_all_species().get(new_sm.species_id);
     const Wall& w = get_wall(new_sm.s.wall_index);
     const GeometryObject& o = get_geometry_object(w.object_index);
 
@@ -577,23 +581,7 @@ private:
       BNG::compartment_id_t target_compartment_id = o.surf_compartment_id;
       assert(!bng_engine.get_data().get_compartment(target_compartment_id).is_3d);
 
-      // set compartment/define new species if needed, surface species may have only one surface compartment
-      BNG::compartment_id_t species_compartment_id = species.get_primary_compartment_id();
-      assert(!BNG::is_in_out_compartment_id(species_compartment_id));
-
-      // change only if it was not set
-      if (species_compartment_id != target_compartment_id) {
-        if (species_compartment_id == BNG::COMPARTMENT_ID_NONE) {
-          // desired compartment was not set
-          // TODOCOMP: fix case when removing compartment, i.e. from @PM to @NONE
-          new_sm.species_id = get_all_species().get_species_id_with_compartment(new_sm.species_id, target_compartment_id);
-        }
-        else  {
-          errs() << "Invalid compartment specified, trying to create " << species.name << " in " <<
-              bng_engine.get_data().get_compartment(target_compartment_id).name << ".\n";
-          exit(1);
-        }
-      }
+      update_compartment(new_sm, target_compartment_id);
     }
   }
 
