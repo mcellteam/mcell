@@ -38,7 +38,7 @@ public:
       reactant_class_id(REACTANT_CLASS_ID_INVALID) {
   }
 
-  void finalize(const BNGConfig& config, const bool update_diffusion_constant = true) {
+  void finalize_species(const BNGConfig& config, const bool update_diffusion_constant = true) {
     // species must not use IN/OUT, remove it automatically when defining species
     for (auto& em: elem_mols) {
       if (is_in_out_compartment_id(em.compartment_id)) {
@@ -69,7 +69,7 @@ public:
       rxn_flags_were_updated(false), num_instantiations(0), reactant_class_id(REACTANT_CLASS_ID_INVALID) {
 
     elem_mols = cplx_inst.elem_mols;
-    finalize(config, update_diffusion_constant);
+    finalize_species(config, update_diffusion_constant);
   }
 
   // we need explicit copy ctor to call CplxInstance's copy ctor

@@ -780,7 +780,7 @@ void SemanticAnalyzer::convert_cplx(
   }
 
 
-  bng_cplx.finalize();
+  bng_cplx.finalize_cplx();
   if (!bng_cplx.is_connected()) {
     errs_loc(cplx_node->mols[0]) <<
         "All complexes must be currently fully connected, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
@@ -822,7 +822,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(
     if (ctx->get_error_count() > 0) {
       return;
     }
-    pattern.finalize();
+    pattern.finalize_cplx();
     patterns.push_back(pattern);
   }
 }

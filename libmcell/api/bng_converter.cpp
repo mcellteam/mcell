@@ -183,7 +183,7 @@ BNG::Cplx BNGConverter::convert_complex(API::Complex& api_cplx, const bool in_ob
 
   // orientation or compartment does not have to be set for finalization,
   // this sets whether this is a surf or vol cplx
-  bng_cplx.finalize();
+  bng_cplx.finalize_cplx();
 
   // BNG compartments were already created, they were also set for individual molecules
   if (is_set(api_cplx.compartment_name)) {

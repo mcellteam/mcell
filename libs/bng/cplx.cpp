@@ -63,7 +63,7 @@ bool Cplx::is_connected() const {
 }
 
 
-void Cplx::finalize(const bool init_flags_and_compartments) {
+void Cplx::finalize_cplx(const bool init_flags_and_compartments) {
   if (elem_mols.empty()) {
     return; // empty complex, ignoring finalization
   }
@@ -199,7 +199,7 @@ compartment_id_t Cplx::get_complex_compartment_id(const bool override_is_surface
         return cid;
       }
     }
-    // no specific compartment was set
+    // no specific surface compartment was set
     return COMPARTMENT_ID_NONE;
   }
   else if (is_surf()) {
@@ -337,7 +337,7 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
     }
 
     if (!sort_components_by_name_do_not_finalize) {
-      finalize();
+      finalize_cplx();
     }
     set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
     return;
@@ -570,7 +570,7 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
 
   // 8) update the boost graph representation
   if (!sort_components_by_name_do_not_finalize) {
-    finalize();
+    finalize_cplx();
   }
 
   set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);

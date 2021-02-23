@@ -207,12 +207,12 @@ void RxnRule::finalize() {
 
   // finalize all reactants and products
   for (Cplx& ci: reactants) {
-    ci.finalize();
+    ci.finalize_cplx();
     simple = simple && ci.is_simple();
   }
 
   for (Cplx& ci: products) {
-    ci.finalize();
+    ci.finalize_cplx();
     simple = simple && ci.is_simple();
   }
 
@@ -1003,6 +1003,48 @@ static bool convert_graph_component_to_product_cplx_inst(
 }
 
 
+// product compartment may be set only partially in the rxn rule, this sets them accordingly
+static void set_product_compartments(Species* product_species) {
+  // first we need to sef surf/vol flags
+  product_species->finalize_cplx();
+
+  compartment_id_t primary_compartment_id = product_species->get_primary_compartment_id();
+  bool is_surf = product_species->is_surf();
+  assert(!is_in_out_compartment_id(primary_compartment_id));
+
+  // we will be setting compartments only when the primary compartment is set, otherwise the
+  // compartment is set when a molecule is added to a partition
+  if (primary_compartment_id != COMPARTMENT_ID_NONE) {
+
+    for (ElemMol& em: product_species->elem_mols) {
+      if (is_surf) {
+        if (em.is_surf()) {
+          // all surface elementary molecules must get the primary surface compartment
+          em.compartment_id = primary_compartment_id;
+        }
+        else {
+          // compartments for volume elem mols must be set
+          // TODO: there should be a check for this e.g. during initialization
+          release_assert(em.compartment_id != COMPARTMENT_ID_NONE &&
+              "Rxn product sets surface compartment but volume compartment is unset, this is not supported because "
+              "it is not clear which compartment should the volume elementary molecule use, please check your reaction rules");
+        }
+      }
+      else {
+        // volume - if set, all elem mols must have the same compartment
+        assert(em.is_vol());
+        if (em.compartment_id == COMPARTMENT_ID_NONE) {
+          em.compartment_id = primary_compartment_id;
+        }
+        else {
+          release_assert(em.compartment_id == primary_compartment_id && "Volume compartment mismatch in rxn product");
+        }
+      }
+    }
+  }
+}
+
+
 static void create_products_from_reactants_graph(
     const BNGData* bng_data,
     Graph& reactants_graph,
@@ -1038,6 +1080,8 @@ static void create_products_from_reactants_graph(
 
     if (is_rxn_product) {
       release_assert(!product_indices.empty());
+
+      set_product_compartments(product_species);
 
       // remember product with its indices
       created_products.push_back(ProductSpeciesPtrWIndices(product_species, product_indices));
@@ -1356,7 +1400,7 @@ void RxnRule::create_products_for_complex_rxn(
     // iterating over map sorted by product indices
     for (ProductSpeciesPtrWIndices& product_w_indices: product_cplxs) {
       // need to transform cplx into species id, the possibly new species will be removable
-      product_w_indices.product_species->finalize(bng_config);
+      product_w_indices.product_species->finalize_species(bng_config);
       species_id_t species_id = all_species.find_or_add_delete_if_exist(
           product_w_indices.product_species, true);
 
@@ -1425,7 +1469,7 @@ void RxnRule::define_rxn_pathway_using_mapping(
   // we are not setting the resulting compartment, neither orientation
   for (ProductSpeciesPtrWIndices& product_w_indices: product_cplxs) {
     // need to transform cplx into species id, the possibly new species will be removable
-    product_w_indices.product_species->finalize(bng_config);
+    product_w_indices.product_species->finalize_species(bng_config);
     species_id_t species_id = all_species.find_or_add_delete_if_exist(
         product_w_indices.product_species, true);
 

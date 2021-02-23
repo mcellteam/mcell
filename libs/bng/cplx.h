@@ -61,7 +61,7 @@ public:
     // copy ctor is needed because we must recreate graph that has pointers to
     // molecule and complex instances, finalize also sets some flags
     if (other.is_finalized()) {
-      finalize(false);
+      finalize_cplx(false);
     }
 
     return *this;
@@ -70,7 +70,7 @@ public:
 
   // must be called after initialization, sets up flags
   // also creates graphs for non-simple complexes
-  void finalize(const bool init_flags_and_compartments = true);
+  void finalize_cplx(const bool init_flags_and_compartments = true);
 
   void create_graph();
 

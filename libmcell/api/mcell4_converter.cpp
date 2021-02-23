@@ -444,7 +444,7 @@ void MCell4Converter::convert_species() {
       BNG::Cplx bng_cplx(&world->bng_engine.get_data());
       new_species.elem_mols = bng_converter.convert_complex(*s, false, false).elem_mols;
 
-      new_species.finalize(world->config);
+      new_species.finalize_species(world->config);
 
       if (!new_species.is_fully_qualified()) {
         throw ValueError("Species declaration " + new_species.name + " must use a fully qualified BNGL string for initialization.");
@@ -487,7 +487,7 @@ void MCell4Converter::convert_species() {
 
     new_species.elem_mols.push_back(mol_inst);
 
-    new_species.finalize(world->config);
+    new_species.finalize_species(world->config);
     species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
 
     // remember which species we created
@@ -586,7 +586,7 @@ void MCell4Converter::convert_surface_classes() {
     // we do not care about compartments for surface classes
     sc_species.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
 
-    sc_species.finalize(world->config, false);
+    sc_species.finalize_species(world->config, false);
 
     species_id_t new_species_id = world->get_all_species().find_or_add(sc_species);
 

@@ -122,7 +122,7 @@ species_id_t SpeciesContainer::get_species_id_with_compartment(
   // create new species with compartment_id
   Species s = get(no_compartment_species_id);
   s.set_compartment_id(compartment_id);
-  s.finalize(bng_config, false);
+  s.finalize_species(bng_config, false);
 
   // and add it
   species_id_t res = find_or_add(s, true);
