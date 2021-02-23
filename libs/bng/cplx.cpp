@@ -203,18 +203,26 @@ compartment_id_t Cplx::get_complex_compartment_id(const bool override_is_surface
     return COMPARTMENT_ID_NONE;
   }
   else if (is_surf()) {
-    // get the first surface elem mol
+    // get the first set surface elem mol
     for (const ElemMol& em: elem_mols) {
-      if (em.is_surf()) {
+      if (em.is_surf() && em.compartment_id != COMPARTMENT_ID_NONE) {
         return em.compartment_id;
       }
     }
-    assert(false);
-    return COMPARTMENT_ID_INVALID;
+    // no compartment is set
+    return COMPARTMENT_ID_NONE;
   }
   else {
-    // all are volume and must have the same compartment
-    return elem_mols[0].compartment_id;
+    // all are volume and must have the same compartment but in patterns,
+    // not all need to be set
+    // get the first set surface elem mol
+    for (const ElemMol& em: elem_mols) {
+      if (em.compartment_id != COMPARTMENT_ID_NONE) {
+        return em.compartment_id;
+      }
+    }
+    // no compartment is set
+    return COMPARTMENT_ID_NONE;
   }
 }
 

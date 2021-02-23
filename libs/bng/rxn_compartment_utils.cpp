@@ -260,28 +260,50 @@ static void set_substances_orientation_from_in_out_compartments(CplxVector& subs
 
 
 static std::string set_vol_rxn_substance_orientation_from_compartment(
-    const BNGData& bng_data, RxnRule& r, const Compartment& surf_comp, Cplx& substance) {
+    const BNGData& bng_data, RxnRule& r, const compartment_id_t surf_comp_id, Cplx& substance) {
 
   assert(substance.is_vol());
+  assert(!is_in_out_compartment_id(surf_comp_id));
 
-  // volume molecules must have compartments set in this case
-  if (!substance.has_compartment()) {
-    return "Reaction rule " + r.name + ": surface reactants use compartments but volume reactant or product " +
-        substance.to_str() + " does not have its compartment set.";
-  }
+  compartment_id_t vol_comp_id = substance.get_primary_compartment_id();
+  assert(!is_in_out_compartment_id(vol_comp_id) && "Handled elsewhere");
 
-  const Compartment& vol_comp = bng_data.get_compartment(substance.get_primary_compartment_id());
+  if (surf_comp_id != COMPARTMENT_ID_NONE) {
+    const Compartment& surf_comp = bng_data.get_compartment(surf_comp_id);
 
-  // up or down?
-  if (surf_comp.parent_compartment_id == vol_comp.id) {
-    substance.set_orientation(ORIENTATION_UP);
-  }
-  else if (surf_comp.children_compartments.count(vol_comp.id)) {
-    substance.set_orientation(ORIENTATION_DOWN);
+    if (vol_comp_id != COMPARTMENT_ID_NONE) {
+      const Compartment& vol_comp = bng_data.get_compartment(vol_comp_id);
+
+      // up or down?
+      if (surf_comp.parent_compartment_id == vol_comp.id) {
+        substance.set_orientation(ORIENTATION_UP);
+      }
+      else if (surf_comp.children_compartments.count(vol_comp.id)) {
+        substance.set_orientation(ORIENTATION_DOWN);
+      }
+      else {
+        return "Reaction rule " + r.to_str(false, true, false) + ": surface reactants use compartment " + surf_comp.name +
+            " but volume reactant's compartment " + vol_comp.name + " is neither parent nor child of it.";
+      }
+    }
+    else {
+      // no volume compartment set
+      substance.set_orientation(ORIENTATION_NONE); // ANY
+    }
   }
   else {
-    return "Reaction rule " + r.name + ": surface reactants use compartment " + surf_comp.name +
-        " but volume reactant's compartment " + vol_comp.name + " is neither parent nor child of it.";
+    // surface compartment is not known
+    if (vol_comp_id != COMPARTMENT_ID_NONE) {
+      const Compartment& vol_comp = bng_data.get_compartment(vol_comp_id);
+      return "Reaction rule " + r.to_str(false, true, false) + ": surface reactants do not have a compartment specified " +
+          "but volume reactant's compartment " + vol_comp.name + " is set and it is not clear what whether " +
+          "it shoudl be reacting from inside or outside, either specify a surface compartment for the surface reactant or use @IN or @OUT " +
+          "compartment class.";
+    }
+    else {
+      // no volume compartment set
+      substance.set_orientation(ORIENTATION_NONE); // ANY
+    }
   }
 
   return "";
@@ -324,9 +346,7 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
     }
   }
   else {
-    const Compartment& surf_comp = bng_data.get_compartment(surf_comp_id);
-
-    // set orientations
+    // set orientations of reactants
     for (Cplx& reac: r.reactants) {
       if (reac.is_surf()) {
         // overwrite orientation if compartments are used or it was not set
@@ -335,14 +355,14 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
         }
       }
       else if (reac.is_vol()) {
-        CHECK(set_vol_rxn_substance_orientation_from_compartment(bng_data, r, surf_comp, reac));
+        CHECK(set_vol_rxn_substance_orientation_from_compartment(bng_data, r, surf_comp_id, reac));
       }
       else {
         assert(reac.is_reactive_surface());
       }
     }
 
-    // set orientations
+    // set orientations of products
     for (Cplx& prod: r.products) {
       if (prod.is_surf()) {
         if (prod.has_compartment() || prod.get_orientation() == ORIENTATION_NONE) {
@@ -350,7 +370,7 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
         }
       }
       else if (prod.is_vol()) {
-        CHECK(set_vol_rxn_substance_orientation_from_compartment(bng_data, r, surf_comp, prod));
+        CHECK(set_vol_rxn_substance_orientation_from_compartment(bng_data, r, surf_comp_id, prod));
       }
       else {
         // TODO: there should be a general check somewhere for this
