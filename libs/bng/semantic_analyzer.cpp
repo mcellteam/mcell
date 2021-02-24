@@ -683,7 +683,8 @@ void insert_compartment_id_to_set_based_on_type(
 // for a pattern it is ok to not to list all components
 void SemanticAnalyzer::convert_cplx(
     const ASTCplxNode* cplx_node,
-    Cplx& bng_cplx
+    Cplx& bng_cplx,
+    const bool check_compartments
 ) {
   for (const ASTMolNode* m: cplx_node->mols) {
 
@@ -743,49 +744,51 @@ void SemanticAnalyzer::convert_cplx(
     }
   }
 
-  // check that compartments are used consistently
-  // we do not know yet whether elementary molecules are surface or not, but
-  // compartments were already defined
-  uint_set<compartment_id_t> vol_compartments;
-  uint_set<compartment_id_t> surf_compartments;
-  bool all_are_none_or_inout = true;
-  bool has_compartment_none = false;
-  for (const auto& em: bng_cplx.elem_mols) {
-    insert_compartment_id_to_set_based_on_type(
-        bng_data, em.compartment_id,
-        all_are_none_or_inout, has_compartment_none, vol_compartments, surf_compartments);
-  }
+  if (check_compartments) {
+    // check that compartments are used consistently
+    // we do not know yet whether elementary molecules are surface or not, but
+    // compartments were already defined in case we are parsing whole BNGL file
+    uint_set<compartment_id_t> vol_compartments;
+    uint_set<compartment_id_t> surf_compartments;
+    bool all_are_none_or_inout = true;
+    bool has_compartment_none = false;
+    for (const auto& em: bng_cplx.elem_mols) {
+      insert_compartment_id_to_set_based_on_type(
+          bng_data, em.compartment_id,
+          all_are_none_or_inout, has_compartment_none, vol_compartments, surf_compartments);
+    }
 
-  uint_set<compartment_id_t> all_vol_surf_compartment_ids;
-  all_vol_surf_compartment_ids.insert(vol_compartments.begin(), vol_compartments.end());
-  all_vol_surf_compartment_ids.insert(surf_compartments.begin(), surf_compartments.end());
+    uint_set<compartment_id_t> all_vol_surf_compartment_ids;
+    all_vol_surf_compartment_ids.insert(vol_compartments.begin(), vol_compartments.end());
+    all_vol_surf_compartment_ids.insert(surf_compartments.begin(), surf_compartments.end());
 
-  if (!all_are_none_or_inout && surf_compartments.empty() && vol_compartments.size() > 1) {
-    errs_loc(cplx_node->mols[0]) <<
-        "The maximum number of compartments that a volume complex may use is 1, error for '" << bng_cplx.to_str() << "'.\n"; // test N307
-    ctx->inc_error_count();
-    return;
-  }
-  if (!all_are_none_or_inout && surf_compartments.size() > 1) {
-    errs_loc(cplx_node->mols[0]) <<
-        "The maximum number of surface compartments that a surface complex may use is 1, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
-    ctx->inc_error_count();
-    return;
-  }
-  if (!all_are_none_or_inout && surf_compartments.size() == 1 && vol_compartments.size() > 2) {
-    errs_loc(cplx_node->mols[0]) <<
-        "The maximum number of volume compartments that a surface complex may use is 2, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
-    ctx->inc_error_count();
-    return;
-  }
+    if (!all_are_none_or_inout && surf_compartments.empty() && vol_compartments.size() > 1) {
+      errs_loc(cplx_node->mols[0]) <<
+          "The maximum number of compartments that a volume complex may use is 1, error for '" << bng_cplx.to_str() << "'.\n"; // test N307
+      ctx->inc_error_count();
+      return;
+    }
+    if (!all_are_none_or_inout && surf_compartments.size() > 1) {
+      errs_loc(cplx_node->mols[0]) <<
+          "The maximum number of surface compartments that a surface complex may use is 1, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+      ctx->inc_error_count();
+      return;
+    }
+    if (!all_are_none_or_inout && surf_compartments.size() == 1 && vol_compartments.size() > 2) {
+      errs_loc(cplx_node->mols[0]) <<
+          "The maximum number of volume compartments that a surface complex may use is 2, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+      ctx->inc_error_count();
+      return;
+    }
 
 
-  bng_cplx.finalize_cplx();
-  if (!bng_cplx.is_connected()) {
-    errs_loc(cplx_node->mols[0]) <<
-        "All complexes must be currently fully connected, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
-    ctx->inc_error_count();
-    return;
+    bng_cplx.finalize_cplx();
+    if (!bng_cplx.is_connected()) {
+      errs_loc(cplx_node->mols[0]) <<
+          "All complexes must be currently fully connected, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+      ctx->inc_error_count();
+      return;
+    }
   }
 }
 
@@ -1183,7 +1186,7 @@ bool SemanticAnalyzer::check_and_convert_single_cplx(
 
   define_compartments_used_by_cplx_as_3d_compartments(ctx->single_cplx);
 
-  convert_cplx(ctx->single_cplx, res);
+  convert_cplx(ctx->single_cplx, res, false);
   if (ctx->get_error_count() != 0) {
     return false;
   }

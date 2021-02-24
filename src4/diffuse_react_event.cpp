@@ -2234,6 +2234,36 @@ void DiffuseReactEvent::handle_rxn_callback(
   }
 }
 
+
+orientation_t DiffuseReactEvent::determine_orientation_depending_on_surf_comp(
+    const species_id_t prod_species_id, const Molecule* surf_reac) {
+  assert(surf_reac != nullptr);
+
+  // get compartment of the surface molecule
+  const Species& surf_species = world->get_all_species().get(surf_reac->species_id);
+  BNG::compartment_id_t surf_comp_id = surf_species.get_primary_compartment_id();
+  release_assert(surf_comp_id != BNG::COMPARTMENT_ID_NONE && "Invalid compartments used in rxn in form V(s!1).S(v!1) -> V(s) + S(v)");
+  const BNG::Compartment& surf_comp = world->bng_engine.get_data().get_compartment(surf_comp_id);
+
+  // get compartment of the product
+  const Species& prod_species = world->get_all_species().get(prod_species_id);
+  BNG::compartment_id_t prod_comp_id = prod_species.get_primary_compartment_id();
+  release_assert(prod_comp_id != BNG::COMPARTMENT_ID_NONE && "Invalid compartments used in rxn in form V(s!1).S(v!1) -> V(s) + S(v)");
+
+  // is the product's compartment a child or parent?
+  if (surf_comp.parent_compartment_id == prod_comp_id) {
+    return ORIENTATION_UP;
+  }
+  else if (surf_comp.children_compartments.count(prod_comp_id) != 0) {
+    return ORIENTATION_DOWN;
+  }
+  else {
+    release_assert(false && "Invalid compartments used in rxn in form V(s!1).S(v!1) -> V(s) + S(v)");
+    return ORIENTATION_NOT_SET;
+  }
+}
+
+
 // why is this called "random"? - check if reaction occurs is in test_bimolecular
 // ! might invalidate references
 // might return RX_BLOCKED
@@ -2420,7 +2450,13 @@ int DiffuseReactEvent::outcome_products_random(
         product_orientations.push_back( (rng_uint(&world->rng) & 1) ? ORIENTATION_UP : ORIENTATION_DOWN);
       }
       else {
-        product_orientations.push_back(product.get_orientation());
+        orientation_t orient = product.get_orientation();
+
+        if (orient == ORIENTATION_DEPENDS_ON_SURF_COMP) {
+          orient = determine_orientation_depending_on_surf_comp(actual_products[product_index].product_species_id, surf_reac);
+        }
+
+        product_orientations.push_back(orient);
       }
     }
   }

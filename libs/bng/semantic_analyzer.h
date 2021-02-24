@@ -60,7 +60,8 @@ private:
   ElemMol convert_molecule_pattern(const ASTMolNode* m);
   void convert_cplx(
       const ASTCplxNode* cplx_node,
-      Cplx& pattern
+      Cplx& pattern,
+      const bool check_compartments = true
   );
   void convert_rxn_rule_side(
       const ASTListNode* rule_side,

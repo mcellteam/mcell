@@ -311,6 +311,11 @@ private:
       const MoleculeIdsVector& product_ids
   );
 
+  orientation_t determine_orientation_depending_on_surf_comp(
+      const species_id_t prod_species_id,
+      const Molecule* surf_reac
+  );
+
   int outcome_products_random(
       Partition& p,
       const Collision& collision,
