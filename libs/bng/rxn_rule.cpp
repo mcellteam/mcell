@@ -1484,13 +1484,13 @@ void RxnRule::define_rxn_pathway_using_mapping(
 }
 
 
-bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(const uint index) const {
+bool RxnRule::is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(const uint index) const {
 #ifdef MCELL4_DO_NOT_REUSE_REACTANT
   return false;
 #endif
   assert(is_finalized());
   for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
-    if (index == cplx_index_pair.reactant_index) {
+    if (index == cplx_index_pair.reactant_index && cplx_index_pair.is_simple_mapping) {
       return true;
     }
   }
@@ -1499,13 +1499,13 @@ bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(con
 
 
 // ignores compartments
-bool RxnRule::is_cplx_product_on_both_sides_of_rxn_w_identical_compartments(const uint index) const {
+bool RxnRule::is_simple_cplx_product_on_both_sides_of_rxn_w_identical_compartments(const uint index) const {
 #ifdef MCELL4_DO_NOT_REUSE_REACTANT
   return false;
 #endif
   assert(is_finalized());
   for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
-    if (index == cplx_index_pair.product_index) {
+    if (index == cplx_index_pair.product_index && cplx_index_pair.is_simple_mapping) {
       return true;
     }
   }
@@ -1513,9 +1513,14 @@ bool RxnRule::is_cplx_product_on_both_sides_of_rxn_w_identical_compartments(cons
 }
 
 
-bool RxnRule::get_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
+bool RxnRule::get_assigned_cplx_reactant_for_product(
+    const uint product_index, const bool only_simple, uint& reactant_index) const {
   // this is not a time critical search
   for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
+    if (only_simple && !cplx_index_pair.is_simple_mapping) {
+      continue;
+    }
+
     if (product_index == cplx_index_pair.product_index) {
       reactant_index = cplx_index_pair.reactant_index;
       return true;
@@ -1592,11 +1597,10 @@ void RxnRule::compute_reactants_products_mapping() {
     // the complex must be simple for the simple_cplx_mapping, i.e. have no edge
     // note that we could compute the full mapping but we need this just for mcell3
     // and code for complexes that are not simple would be longer
+
     boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
     boost::tie(ei,edge_end) = boost::out_edges(prod_mol_desc, products_graph);
-    if (ei != edge_end) {
-      continue;
-    }
+    bool is_simple_mapping = ei == edge_end;
 
     const Node& pat_mol = patterns_index[map_it->second];
     assert(pat_mol.is_mol);
@@ -1613,7 +1617,7 @@ void RxnRule::compute_reactants_products_mapping() {
     uint prod_cplx_index = find_mol_instance_with_address(products, prod_mol.mol);
 
     // we can finally define our mapping
-    pat_prod_cplx_mapping.push_back(CplxIndexPair(reac_cplx_index, prod_cplx_index));
+    pat_prod_cplx_mapping.push_back(CplxIndexPair(reac_cplx_index, prod_cplx_index, is_simple_mapping));
   }
 
   // count number of molecules in pattern
@@ -1758,7 +1762,8 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
   // for each reactant (from the end since we want the products to be ordered in the same way)
   for (int pi = products.size() - 1; pi > 0; pi--) {
     uint ri;
-    bool found = get_assigned_cplx_reactant_for_product(pi, ri);
+    // doing this only for simple complexes to keep compatibility with MCell3
+    bool found = get_assigned_cplx_reactant_for_product(pi, true, ri);
 
     if (found) {
       // move product to the front

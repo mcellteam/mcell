@@ -2349,13 +2349,13 @@ int DiffuseReactEvent::outcome_products_random(
     assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
     assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[1], reacB->species_id));
 
-    keep_reacB = rxn->is_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(1);
+    keep_reacB = rxn->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(1);
   }
   else {
     surf_reac = reacA->is_surf() ? reacA : nullptr;
   }
   assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
-  keep_reacA = rxn->is_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0);
+  keep_reacA = rxn->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0);
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 
@@ -2458,9 +2458,9 @@ int DiffuseReactEvent::outcome_products_random(
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
-    if (actual_prod_is_single_rxn_prod && rxn->is_cplx_product_on_both_sides_of_rxn_w_identical_compartments(single_rxn_product_index)) {
+    if (actual_prod_is_single_rxn_prod && rxn->is_simple_cplx_product_on_both_sides_of_rxn_w_identical_compartments(single_rxn_product_index)) {
       uint reactant_index;
-      bool ok = rxn->get_assigned_cplx_reactant_for_product(single_rxn_product_index, reactant_index);
+      bool ok = rxn->get_assigned_cplx_reactant_for_product(single_rxn_product_index, true, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
       Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
@@ -2712,7 +2712,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
 
     // and defunct this molecule if it was not kept
     assert(unimol_rx->reactants.size() == 1);
-    if (outcome_res != RX_BLOCKED && !unimol_rx->is_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0)) {
+    if (outcome_res != RX_BLOCKED && !unimol_rx->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0)) {
     #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
         m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);

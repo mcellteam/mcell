@@ -35,9 +35,7 @@ static string check_no_in_out_compartment(const RxnRule& r, const CplxVector& su
 }
 
 
-
 static bool has_vol_substance(const CplxVector& substances) {
-  // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
     if (subst.is_vol()) {
       return true;
@@ -58,7 +56,6 @@ static bool has_only_simple_substances(const CplxVector& substances) {
 
 
 static bool all_have_compartment(const CplxVector& substances) {
-  // 5. It is not allowed to use @IN or @OUT in a volume reaction
   for (const Cplx& subst: substances) {
     if (!subst.has_compartment()) {
       return false;
@@ -158,32 +155,6 @@ static string check_surface_compartments(
     //     all substances must have their specific compartments specified
     //  b. if reaction does not use @IN/@OUT:
     //     all surface substances have the same compartment or no compartment at all
-
-    //  c. check for cases that we cannot handle yet because we have a single compartment for
-    //     a complex:
-    //
-    // S + * -> V + *
-    //    - allowed only:
-    //        - when all substances are simple - we cannot distinguish
-    //          it from MCell reaction S; + * -> V; + *
-    //          or
-    //        - when compartments are specified for all substances
-    //
-    bool has_vol_product = has_vol_substance(r.products);
-
-    if (has_vol_product) {
-
-      bool only_simple = has_only_simple_substances(r.reactants) && has_only_simple_substances(r.products);
-      bool all_compartments = all_have_compartment(r.reactants) && all_have_compartment(r.reactants);
-
-      if (!(only_simple || all_compartments)) {
-        return "Cannot determine orientation or compartment of a volume product of a surface reaction rule " + r.to_str(false, false, false) + ". "
-            "Legal BNGL reactions in the form S(s!1).V(v!1) -> V(s) + S(s) are not supported yet. " +
-            "Either specify compartments for each reactant and product or use compartment class "
-            "@" + COMPARTMENT_NAME_IN + " or @" + COMPARTMENT_NAME_OUT + " for the volume products "
-            "(these compartment classes are however not supported by official BioNetGen tool yet).";
-      }
-    }
 
     assert(surf_compartments.size() <= 2);
     if (surf_compartments.size() == 1) {
@@ -310,6 +281,52 @@ static std::string set_vol_rxn_substance_orientation_from_compartment(
 }
 
 
+static std::string set_reactants_orientations_from_compartment(
+    const BNGData& bng_data, const compartment_id_t surf_comp_id, RxnRule& r) {
+
+  // set orientations of reactants
+  for (Cplx& reac: r.reactants) {
+    if (reac.is_surf()) {
+      // overwrite orientation if compartments are used or it was not set
+      if (reac.has_compartment() || reac.get_orientation() == ORIENTATION_NONE) {
+        reac.set_orientation(ORIENTATION_UP);
+      }
+    }
+    else if (reac.is_vol()) {
+      CHECK(set_vol_rxn_substance_orientation_from_compartment(bng_data, r, surf_comp_id, reac));
+    }
+    else {
+      assert(reac.is_reactive_surface());
+    }
+  }
+  return "";
+}
+
+
+static std::string set_products_orientations_to_depend_on_reactant_compartment(RxnRule& r) {
+  assert(r.is_surf_rxn());
+
+  // this is a reaction in the form S(s!1).V(v!1) -> V(s) + S(s)
+
+  for (size_t i = 0; i < r.products.size(); i++) {
+    Cplx& prod = r.products[i];
+    if (prod.is_vol()) {
+      uint reactant_index_ignored;
+      bool found = r.get_assigned_cplx_reactant_for_product(i, false, reactant_index_ignored);
+      if (!found) {
+        return "Reaction rule " + r.to_str(false, true, false) + ": product " + prod.to_str(true) +
+            " if a surface reaction does not have a compartment and is not present as a reactant, cannot determine what"
+            " should be its target compartment.";
+      }
+
+      prod.set_orientation(ORIENTATION_DEPENDS_ON_SURF_COMP);
+    }
+  }
+
+  return "";
+}
+
+
 // returns empty string if there was no error, otherwise the returned string specifies
 // error message
 std::string check_compartments_and_set_orientations(const BNGData& bng_data, RxnRule& r) {
@@ -324,12 +341,21 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
   );
 
   if (surf_comp_id == COMPARTMENT_ID_NONE && !uses_in_out_compartments && !has_surf_mols_and_vol_compartments) {
-    // does not have surface reactants, nothing to do,
-    // this is for example the case when MCell style orientations are specified by the user
-    return "";
+    // does not have surface compartment
+    // this is for example the case when MCell style orientations are specified by the user but
+    // also can be reaction in the form S(s!1).V(v!1) -> V(s) + S(s)
+    if (r.is_surf_rxn() && has_vol_substance(r.products)) {
+      bool only_simple = has_only_simple_substances(r.reactants) && has_only_simple_substances(r.products);
+      bool all_compartments = all_have_compartment(r.reactants) && all_have_compartment(r.reactants);
+      if (!(only_simple || all_compartments)) {
+        // we need to use the volume compartment of an elementary molecule from the reactant to determine the
+        // target compartment of a volume product
+        CHECK(set_reactants_orientations_from_compartment(bng_data, surf_comp_id, r));
+        CHECK(set_products_orientations_to_depend_on_reactant_compartment(r));
+      }
+    }
   }
-
-  if (uses_in_out_compartments) {
+  else if (uses_in_out_compartments) {
     // with IN/OUT compartments the orientation assignment is easy - IN is DOWN and OUT is UP
     set_substances_orientation_from_in_out_compartments(r.reactants);
     set_substances_orientation_from_in_out_compartments(r.products);
@@ -346,21 +372,7 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
     }
   }
   else {
-    // set orientations of reactants
-    for (Cplx& reac: r.reactants) {
-      if (reac.is_surf()) {
-        // overwrite orientation if compartments are used or it was not set
-        if (reac.has_compartment() || reac.get_orientation() == ORIENTATION_NONE) {
-          reac.set_orientation(ORIENTATION_UP);
-        }
-      }
-      else if (reac.is_vol()) {
-        CHECK(set_vol_rxn_substance_orientation_from_compartment(bng_data, r, surf_comp_id, reac));
-      }
-      else {
-        assert(reac.is_reactive_surface());
-      }
-    }
+    CHECK(set_reactants_orientations_from_compartment(bng_data, surf_comp_id, r));
 
     // set orientations of products
     for (Cplx& prod: r.products) {

@@ -228,6 +228,9 @@ const orientation_t ORIENTATION_DOWN = -1;
 const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 const orientation_t ORIENTATION_NOT_SET = 2;
+// needed for handling of reaction in the form S(s!1).V(v!1) -> V(s) + S(s),
+// used only for volume products of a reaction
+const orientation_t ORIENTATION_DEPENDS_ON_SURF_COMP = 3;
 
 char orientation_to_char(const orientation_t o);
 
