@@ -1305,6 +1305,18 @@ static void append_subtracted_volume_compartments(
 }
 
 
+static void remove_compartment_from_elementary_molecules(BNG::Cplx& pattern, BNG::compartment_id_t cid) {
+  if (cid == BNG::COMPARTMENT_ID_NONE) {
+    return;
+  }
+  release_assert(!BNG::is_in_out_compartment_id(cid));
+  for (auto& em: pattern.elem_mols) {
+    if (em.compartment_id == cid) {
+      em.compartment_id = BNG::COMPARTMENT_ID_NONE;
+    }
+  }
+}
+
 // appends new term to the vector terms, does not clear it
 void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
     const std::shared_ptr<API::CountTerm> ct,
@@ -1347,6 +1359,14 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
       res.species_pattern_type = SpeciesPatternType::MoleculesPattern;
       res.species_molecules_pattern = bng_converter.convert_complex(*ct->molecules_pattern, true);
     }
+
+    // to maintain compatibility with BioNetGen counting, we must remove the primary compartment
+    // from elementary molecules and keep it separately, e.g.: pattern @PM:V(s!1).S(v!1)
+    // which is after being read from BNGL in reality V(s!1)@PM.S(v!1)@PM must match
+    // V(s!1)@CP.S(v!1)@PM, therefore if we make the pattern to be V(s!1).S(v!1) + PM, it will match
+    res.primary_compartment_id = res.species_molecules_pattern.get_primary_compartment_id();
+    remove_compartment_from_elementary_molecules(res.species_molecules_pattern, res.primary_compartment_id);
+
 
     bool is_vol = res.species_molecules_pattern.is_vol();
     string name = res.species_molecules_pattern.to_str();

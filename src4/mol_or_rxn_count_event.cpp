@@ -132,6 +132,7 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
 
   cout << ind << "species_id: " << species_id << " [species_id_t]\n";
   cout << ind << "species_molecules_pattern: " << species_molecules_pattern.to_str() << " [CplxInstance]\n";
+  cout << ind << "primary_compartment_id: " << primary_compartment_id << " [compartment_id_t]\n";
   cout << ind << "rxn_rule_id: " << rxn_rule_id << " [rxn_rule_id_t]\n";
   cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t]\n";
 }
@@ -148,21 +149,24 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
 
   res << "COUNT[";
 
-
   string pattern;
   switch(type) {
     case CountType::EnclosedInWorld:
     case CountType::EnclosedInVolumeRegion:
     case CountType::PresentOnSurfaceRegion:
+      if (primary_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+        pattern = "@" + world->bng_engine.get_data().get_compartment(primary_compartment_id).name + ":";
+      }
+
       switch (species_pattern_type) {
         case SpeciesPatternType::SpeciesId:
-          pattern = world->get_all_species().get(species_id).name;
+          pattern += world->get_all_species().get(species_id).name;
           break;
         case SpeciesPatternType::SpeciesPattern:
-          pattern = species_molecules_pattern.to_str() + MARKER_SPECIES_COMMENT;
+          pattern += species_molecules_pattern.to_str() + MARKER_SPECIES_COMMENT;
           break;
         case SpeciesPatternType::MoleculesPattern:
-          pattern = species_molecules_pattern.to_str() + MARKER_MOLECULES_COMMENT;
+          pattern += species_molecules_pattern.to_str() + MARKER_MOLECULES_COMMENT;
           break;
         default:
           assert(false);
@@ -653,6 +657,13 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
 
         const BNG::Species& species = world->get_all_species().get(species_id);
         uint num_matches = species.get_pattern_num_matches(term.species_molecules_pattern);
+
+        // also the primary compartment id must match
+        if (term.primary_compartment_id != BNG::COMPARTMENT_ID_NONE &&
+            term.primary_compartment_id != species.get_primary_compartment_id()) {
+          num_matches = 0;
+        }
+
         if (num_matches > 0) {
           // we must also remember that this species id matches the term's pattern
           term.species_ids_matching_pattern_w_multiplier_cache[species_id] = num_matches;

@@ -67,6 +67,7 @@ public:
       species_pattern_type(SpeciesPatternType::Invalid),
       species_id(SPECIES_ID_INVALID),
       species_molecules_pattern(nullptr),
+      primary_compartment_id(BNG::COMPARTMENT_ID_NONE),
       rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
       geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
       region_id(REGION_ID_INVALID),
@@ -116,6 +117,10 @@ public:
 
   // valid when species_pattern_type is SpeciesPattern or MoleculesPattern
   BNG::Cplx species_molecules_pattern;
+
+  // when primary_compartment_id is COMPARTMENT_ID_NONE, it is ignored
+  // used only for molecule counting
+  BNG::compartment_id_t primary_compartment_id;
 
   // set in compute_count_species_info based on species_molecules_pattern
   // presence is tested when species_pattern_type is SpeciesPattern
