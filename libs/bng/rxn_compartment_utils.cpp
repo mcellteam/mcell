@@ -97,12 +97,12 @@ static string check_vol_have_in_out_compartment(const RxnRule& r, const CplxVect
 // (only surface rxns may use these compartment classes)
 static string check_surface_compartments(
     const BNGData& bng_data, const RxnRule& r,
-    compartment_id_t& surf_comp_id, bool& uses_in_out_compartment, bool& has_surf_mols_and_vol_compartments) {
+    compartment_id_t& surf_comp_id, bool& reactants_use_in_out_compartment, bool& has_surf_mols_and_vol_compartments) {
   // NOTE: this seems to belongs to the BNGL library but we do not know
   // whether the molecules types are surface or volume there
 
   surf_comp_id = COMPARTMENT_ID_NONE;
-  uses_in_out_compartment = false;
+  reactants_use_in_out_compartment = false;
   has_surf_mols_and_vol_compartments = false;
 
   // this is applicable only when there is a surface reactant
@@ -144,12 +144,12 @@ static string check_surface_compartments(
       }
     }
 
-    uses_in_out_compartment = uses_in_out_compartment || reac.has_compartment_class_in_out();
+    reactants_use_in_out_compartment = reactants_use_in_out_compartment || reac.has_compartment_class_in_out();
   }
 
   has_surf_mols_and_vol_compartments = has_surf_reactants && uses_vol_compartments;
 
-  if (!uses_in_out_compartment) {
+  if (!reactants_use_in_out_compartment) {
     // 3. In a surface reaction:
     //  a. if reaction does not use @IN/@OUT and a volume reactant or product is present:
     //     all substances must have their specific compartments specified
@@ -237,9 +237,15 @@ static std::string set_vol_rxn_substance_orientation_from_compartment(
   assert(!is_in_out_compartment_id(surf_comp_id));
 
   compartment_id_t vol_comp_id = substance.get_primary_compartment_id();
-  assert(!is_in_out_compartment_id(vol_comp_id) && "Handled elsewhere");
-
-  if (surf_comp_id != COMPARTMENT_ID_NONE) {
+  if (is_in_out_compartment_id(vol_comp_id)) {
+    if (vol_comp_id == COMPARTMENT_ID_IN) {
+      substance.set_orientation(ORIENTATION_DOWN);
+    }
+    else {
+      substance.set_orientation(ORIENTATION_UP);
+    }
+  }
+  else if (surf_comp_id != COMPARTMENT_ID_NONE) {
     const Compartment& surf_comp = bng_data.get_compartment(surf_comp_id);
 
     if (vol_comp_id != COMPARTMENT_ID_NONE) {
@@ -270,10 +276,6 @@ static std::string set_vol_rxn_substance_orientation_from_compartment(
           "but volume reactant's compartment " + vol_comp.name + " is set and it is not clear what whether " +
           "it shoudl be reacting from inside or outside, either specify a surface compartment for the surface reactant or use @IN or @OUT " +
           "compartment class.";
-    }
-    else {
-      // no volume compartment set
-      substance.set_orientation(ORIENTATION_NONE); // ANY
     }
   }
 
@@ -333,29 +335,55 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
   assert(r.is_finalized() && "Types of substances (vol,surf,...) are not set without finalization.");
 
   compartment_id_t surf_comp_id;
-  bool uses_in_out_compartments;
+  bool reactants_use_in_out_compartments;
   bool has_surf_mols_and_vol_compartments;
   CHECK(
       check_surface_compartments(
-          bng_data, r, surf_comp_id, uses_in_out_compartments, has_surf_mols_and_vol_compartments)
+          bng_data, r, surf_comp_id, reactants_use_in_out_compartments, has_surf_mols_and_vol_compartments)
   );
 
-  if (surf_comp_id == COMPARTMENT_ID_NONE && !uses_in_out_compartments && !has_surf_mols_and_vol_compartments) {
-    // does not have surface compartment
-    // this is for example the case when MCell style orientations are specified by the user but
-    // also can be reaction in the form S(s!1).V(v!1) -> V(s) + S(s)
-    if (r.is_surf_rxn() && has_vol_substance(r.products)) {
-      bool only_simple = has_only_simple_substances(r.reactants) && has_only_simple_substances(r.products);
-      bool all_compartments = all_have_compartment(r.reactants) && all_have_compartment(r.reactants);
-      if (!(only_simple || all_compartments)) {
+  if (!r.is_surf_rxn()) {
+    // nothing to do anymore for volume reactions, they orientations are NONE/ANY
+    return "";
+  }
+
+  if (surf_comp_id == COMPARTMENT_ID_NONE && !reactants_use_in_out_compartments && !has_surf_mols_and_vol_compartments) {
+    bool only_simple = has_only_simple_substances(r.reactants) && has_only_simple_substances(r.products);
+    bool all_compartments = all_have_compartment(r.reactants) && all_have_compartment(r.reactants);
+
+    if (!(only_simple || all_compartments)) {
+      // does not have surface compartment
+      // this is for example the case when MCell style orientations are specified by the user but
+      // also can be reaction in the form S(s!1).V(v!1) -> V(s) + S(s)
+      if (has_vol_substance(r.products)) {
         // we need to use the volume compartment of an elementary molecule from the reactant to determine the
         // target compartment of a volume product
         CHECK(set_reactants_orientations_from_compartment(bng_data, surf_comp_id, r));
         CHECK(set_products_orientations_to_depend_on_reactant_compartment(r));
+        return "";
+      }
+      else if (has_vol_substance(r.reactants)){
+        // special case - cannot be applied to reactions with simple species
+        // V(s) + S(s) -> S(s!1).V(v!1)
+        // MCell3R assigns orientations to reactants but for simple species the orientations must be ANY for MCell3 compatibility
+        for (Cplx& c: r.reactants) {
+          if (c.is_surf()) {
+            assert(c.get_orientation() == ORIENTATION_NONE || c.get_orientation() == ORIENTATION_UP);
+            // this also controls the probability factor given to this reaction,
+            // see RxnClass::compute_pb_factor
+            c.set_orientation(ORIENTATION_UP);
+          }
+          else if (c.is_vol()) {
+            assert(c.get_orientation() == ORIENTATION_NONE);
+            c.set_orientation(ORIENTATION_DEPENDS_ON_SURF_COMP);
+          }
+        }
+        return "";
       }
     }
   }
-  else if (uses_in_out_compartments) {
+
+  if (reactants_use_in_out_compartments) {
     // with IN/OUT compartments the orientation assignment is easy - IN is DOWN and OUT is UP
     set_substances_orientation_from_in_out_compartments(r.reactants);
     set_substances_orientation_from_in_out_compartments(r.products);

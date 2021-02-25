@@ -80,15 +80,13 @@ static void trigger_bimolecular(
   }
   assert(rxn_class->is_bimol() && "We already checked that there must be 2 reactants");
 
-  // TODO_COMPARTMENTS check compartments
-
   /* Check to see if orientation classes are zero/different */
-  // !! THIS is wrong, we are not creating rxn classes based on their orientation,
-  // every rxn in the class may have different orientation requirements
   int test_wall = 0;
   orientation_t geomA = rxn_class->get_reactant_orientation(0);
   orientation_t geomB = rxn_class->get_reactant_orientation(1);
-  if (geomA == ORIENTATION_NONE || geomB == ORIENTATION_NONE || (geomA + geomB) * (geomA - geomB) != 0) {
+  if (geomA == ORIENTATION_NONE || geomA == ORIENTATION_DEPENDS_ON_SURF_COMP ||
+      geomB == ORIENTATION_NONE || geomB == ORIENTATION_DEPENDS_ON_SURF_COMP ||
+      (geomA + geomB) * (geomA - geomB) != 0) {
     matching_rxn_classes.push_back(rxn_class);
   }
   else if (orientA != ORIENTATION_NONE && orientA * orientB * geomA * geomB > 0) {

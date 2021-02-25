@@ -1458,13 +1458,14 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   for (const IdDist2Pair& id_dist2_pair: reactants_dist2) {
     Molecule& sm2 = p.get_m(id_dist2_pair.first);
 
-    // get what reaction should happen
+    // get what reaction should happen, the default orientation of molecules is UP and
+    // also the rxn rule's pattern expects UP
     RxnClassesVector matching_rxn_classes;
     RxnUtil::trigger_bimolecular(
-        p.bng_engine, sm, sm2, ORIENTATION_NONE, ORIENTATION_NONE, matching_rxn_classes);
+        p.bng_engine, sm, sm2, sm.s.orientation, sm2.s.orientation, matching_rxn_classes);
 
     if (matching_rxn_classes.empty()) {
-      assert(false && "We already filtered-out molcules that can react");
+      assert(false && "We already filtered-out molecules that can react");
       continue;
     }
 

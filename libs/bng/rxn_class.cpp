@@ -290,8 +290,10 @@ float_t RxnClass::compute_pb_factor() const {
           volume_molecules are in the same orientation class as
           surface_molecule.
       */
-      assert(orient0 == ORIENTATION_UP || orient0 == ORIENTATION_NONE || orient0 == ORIENTATION_DOWN);
-      assert(orient1 == ORIENTATION_UP || orient1 == ORIENTATION_NONE || orient1 == ORIENTATION_DOWN);
+      assert(orient0 == ORIENTATION_UP || orient0 == ORIENTATION_NONE ||
+          orient0 == ORIENTATION_DOWN || orient0 == ORIENTATION_DEPENDS_ON_SURF_COMP);
+      assert(orient1 == ORIENTATION_UP || orient1 == ORIENTATION_NONE ||
+          orient1 == ORIENTATION_DOWN || orient1 == ORIENTATION_DEPENDS_ON_SURF_COMP);
 
       // original condition: ((orient0 + orient1) * (orient0 - orient1) == 0) && (orient0 * orient1 != 0)
       // the first condition is not required

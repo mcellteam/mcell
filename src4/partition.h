@@ -568,7 +568,8 @@ private:
   void update_volume_compartment(Molecule& new_vm) {
     const BNG::Species& species = get_all_species().get(new_vm.species_id);
      BNG::compartment_id_t target_compartment_id = get_compartment_id_for_counted_volume(new_vm.v.counted_volume_index);
-     assert(bng_engine.get_data().get_compartment(target_compartment_id).is_3d);
+     assert(target_compartment_id == BNG::COMPARTMENT_ID_NONE ||
+         bng_engine.get_data().get_compartment(target_compartment_id).is_3d);
 
      update_compartment(new_vm, target_compartment_id);
   }
