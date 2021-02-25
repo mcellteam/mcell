@@ -305,7 +305,7 @@ static std::string set_reactants_orientations_from_compartment(
 }
 
 
-static std::string set_products_orientations_to_depend_on_reactant_compartment(RxnRule& r) {
+static std::string set_products_orientations_that_may_depend_on_reactant_compartment(const BNGData& bng_data, RxnRule& r) {
   assert(r.is_surf_rxn());
 
   // this is a reaction in the form S(s!1).V(v!1) -> V(s) + S(s)
@@ -313,15 +313,23 @@ static std::string set_products_orientations_to_depend_on_reactant_compartment(R
   for (size_t i = 0; i < r.products.size(); i++) {
     Cplx& prod = r.products[i];
     if (prod.is_vol()) {
-      uint reactant_index_ignored;
-      bool found = r.get_assigned_cplx_reactant_for_product(i, false, reactant_index_ignored);
-      if (!found) {
-        return "Reaction rule " + r.to_str(false, true, false) + ": product " + prod.to_str(true) +
-            " if a surface reaction does not have a compartment and is not present as a reactant, cannot determine what"
-            " should be its target compartment.";
-      }
+      // is compartment specified?
+      compartment_id_t cid = prod.get_primary_compartment_id();
 
-      prod.set_orientation(ORIENTATION_DEPENDS_ON_SURF_COMP);
+      if (cid == COMPARTMENT_ID_NONE) {
+        uint reactant_index_ignored;
+        bool found = r.get_assigned_cplx_reactant_for_product(i, false, reactant_index_ignored);
+        if (!found) {
+          return "Reaction rule " + r.to_str(false, true, false) + ": product " + prod.to_str(true) +
+              " in a surface reaction does not have a compartment and is not present as a reactant, cannot determine what"
+              " should be its target compartment.";
+        }
+        prod.set_orientation(ORIENTATION_DEPENDS_ON_SURF_COMP);
+      }
+      else {
+        // use compartment
+        CHECK(set_vol_rxn_substance_orientation_from_compartment(bng_data, r, COMPARTMENT_ID_NONE, prod));
+      }
     }
   }
 
@@ -359,7 +367,7 @@ std::string check_compartments_and_set_orientations(const BNGData& bng_data, Rxn
         // we need to use the volume compartment of an elementary molecule from the reactant to determine the
         // target compartment of a volume product
         CHECK(set_reactants_orientations_from_compartment(bng_data, surf_comp_id, r));
-        CHECK(set_products_orientations_to_depend_on_reactant_compartment(r));
+        CHECK(set_products_orientations_that_may_depend_on_reactant_compartment(bng_data, r));
         return "";
       }
       else if (has_vol_substance(r.reactants)){

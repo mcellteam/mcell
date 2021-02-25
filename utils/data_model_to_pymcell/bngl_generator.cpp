@@ -306,10 +306,13 @@ static bool has_in_out_compartments(const vector<string>& substances) {
 static void check_that_only_allowed_orientations_are_set(
     const vector<string>& orientations, const bool has_in_out_compartments) {
 
+  // if IN/OUT is not used, volume molecules must not have orientation and
+  // surface molecules must be UP
+  // NOTE: this check can be improed with detection of what type of complex it is surface or volume
   for (const string& s: orientations) {
     release_assert(
-        ((s == "") ||
-         (has_in_out_compartments && s == "'")) &&
+        ((s == "" || s == "'") ||
+         (has_in_out_compartments && (s == "'" || s == ","))) &&
         "Orientation in BNGL is not supported, should have been checked before");
   }
 }

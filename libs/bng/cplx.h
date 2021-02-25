@@ -228,7 +228,7 @@ private:
   compartment_id_t get_complex_compartment_id(const bool override_is_surface_cplx = false) const;
 
   bool matches_complex_pattern_ignore_orientation(const Cplx& pattern) const;
-  bool matches_complex_fully_ignore_orientation(const Cplx& pattern) const;
+  bool matches_complex_fully_ignore_orientation(const Cplx& other) const;
 
   void sort_components_and_mols();
   void renumber_bonds();

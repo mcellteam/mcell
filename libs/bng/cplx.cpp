@@ -278,20 +278,52 @@ uint Cplx::get_pattern_num_matches(const Cplx& pattern) const {
 }
 
 
-bool Cplx::matches_complex_fully_ignore_orientation(const Cplx& pattern) const {
-  if (graph.m_vertices.size() != pattern.graph.m_vertices.size()) {
+bool Cplx::matches_complex_fully_ignore_orientation(const Cplx& other) const {
+  if (graph.m_vertices.size() != other.graph.m_vertices.size()) {
     // we need full match
     return false;
   }
 
   VertexMappingVector mappings;
-  get_subgraph_isomorphism_mappings(pattern.graph, graph, true, mappings);
+  get_subgraph_isomorphism_mappings(other.graph, graph, true, mappings);
   assert((mappings.size() == 0 || mappings.size()) == 1 && "We are searching only for the first match");
 
-  // TODO: compare also compartments because get_subgraph_isomorphism_mappings
-  // considers the first complex to be a pattern
+  if (mappings.size() != 1 || mappings[0].size() != graph.m_vertices.size()) {
+    // no mapping found or not all nodes match
+    return false;
+  }
 
-  return mappings.size() == 1 && mappings[0].size() == graph.m_vertices.size();
+  // we must also check that compartments are the same,
+  // this must be done separately because the Graph object Node allows only
+  // one type of comparison and the one used considers one graph a pattern,
+  // however we must compare for equality here
+  VertexNameMap graph1_index = boost::get(boost::vertex_name, graph);
+  VertexNameMap graph2_index = boost::get(boost::vertex_name, other.graph);
+
+  // for each molecule instance
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  std::pair<vertex_iter, vertex_iter> graph1_mol_it;
+  for (graph1_mol_it = boost::vertices(graph); graph1_mol_it.first != graph1_mol_it.second; ++graph1_mol_it.first) {
+    vertex_descriptor_t graph1_mol_desc = *graph1_mol_it.first;
+
+    const Node& graph1_mol = graph1_index[graph1_mol_desc];
+    if (!graph1_mol.is_mol) {
+      continue;
+    }
+
+    // get corresponding molecule from the 2nd graph
+    auto graph2_mol_it = mappings[0].find(graph1_mol_desc);
+    assert(graph2_mol_it != mappings[0].end() && "Mapping must exist");
+    vertex_descriptor_t graph2_mol_desc = graph2_mol_it->second;
+
+    const Node& graph2_mol = graph2_index[graph2_mol_desc];
+    assert(graph2_mol.is_mol);
+
+    if (graph1_mol.mol->compartment_id != graph2_mol.mol->compartment_id) {
+      return false;
+    }
+  }
+  return true;
 }
 
 

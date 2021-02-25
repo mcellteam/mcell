@@ -1010,11 +1010,11 @@ static void set_product_compartments(Species* product_species) {
 
   compartment_id_t primary_compartment_id = product_species->get_primary_compartment_id();
   bool is_surf = product_species->is_surf();
-  assert(!is_in_out_compartment_id(primary_compartment_id));
 
   // we will be setting compartments only when the primary compartment is set, otherwise the
   // compartment is set when a molecule is added to a partition
-  if (primary_compartment_id != COMPARTMENT_ID_NONE) {
+  // IN/OUT compartments are allowed but ignored because they were replaced with orientation
+  if (primary_compartment_id != COMPARTMENT_ID_NONE && !is_in_out_compartment_id(primary_compartment_id)) {
 
     for (ElemMol& em: product_species->elem_mols) {
       if (is_surf) {
