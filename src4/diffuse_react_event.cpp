@@ -542,9 +542,9 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
           if (collide_res == WallRxnResult::Transparent) {
             // update molecules' counted volume, time and displacement and continue
-            CollisionUtil::cross_transparent_wall(
-                p, collision, displacement,
-                vm_new_ref, remaining_displacement, t_steps, elapsed_molecule_time, last_hit_wall_index
+            was_defunct = !cross_transparent_wall(
+                p, collision, vm_new_ref, remaining_displacement,
+                t_steps, elapsed_molecule_time, last_hit_wall_index
             );
 
             // continue with diffusion
@@ -2770,6 +2770,95 @@ bool DiffuseReactEvent::outcome_unimolecular(
 }
 
 
+// returns true if molecule survived
+bool DiffuseReactEvent::cross_transparent_wall(
+    Partition& p,
+    const Collision& collision,
+    Molecule& vm, // moves vm to the reflection point
+    Vec3& remaining_displacement,
+    float_t& t_steps,
+    float_t& elapsed_molecule_time,
+    wall_index_t& last_hit_wall_index
+) {
+#ifdef DEBUG_COUNTED_VOLUMES
+  vm.dump(p, "- Before crossing: ");
+#endif
+
+  const Wall& w = p.get_wall(collision.colliding_wall_index);
+
+#ifdef DEBUG_TRANSPARENT_SURFACES
+  std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
+#endif
+
+  // check if we are not crossing a compartment boundary
+  const GeometryObject& obj = p.get_geometry_object(w.object_index);
+  if (obj.represents_compartment()) {
+    molecule_id_t orig_vm_id = vm.id;
+
+    // get species, pretty inefficient, may need to be cached if this is a feature that is used often
+    BNG::Species new_species = p.get_all_species().get(vm.species_id);
+    new_species.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
+    new_species.finalize_species(world->bng_engine.get_config(), true);
+    species_id_t new_species_id = p.get_all_species().find_or_add(new_species, true);
+
+    // we create a new molecule on the boundary, move it a tiny bit in the right direction
+    // TODO: not completely sure that the time calculation is correct, but assuming that we are just moving the molecule across
+    // the boundary
+    Molecule vm_initialization(
+        MOLECULE_ID_INVALID, new_species_id,
+        collision.pos + remaining_displacement * Vec3(EPS),
+        event_time + collision.time);
+    vm_initialization.v.previous_wall_index = w.index;
+    Molecule& new_vm = p.add_volume_molecule(vm_initialization);
+    new_vm.set_flag(MOLECULE_FLAG_VOL);
+    new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+
+    // schedule a diffusion action
+    new_vm.diffusion_time = new_vm.birthday;
+    if (before_this_iterations_end(new_vm.birthday)) {
+      new_diffuse_actions.push_back(DiffuseAction(new_vm.id));
+    }
+
+    // and destroy the previous one
+    Molecule& orig_vm_new_ref = p.get_m(orig_vm_id);
+    p.set_molecule_as_defunct(orig_vm_new_ref);
+
+#ifdef DEBUG_COUNTED_VOLUMES
+    vm_initialization.dump(p, "- After crossing: ");
+#endif
+    return false;
+  }
+  else {
+    // keep the current molecule and just move it
+
+    // Update molecule location to the point of wall crossing
+    vm.v.pos = collision.pos;
+    vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
+
+    const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
+    CollisionUtil::update_counted_volume_id_when_crossing_wall(
+        p, w, collision.get_orientation_against_wall(), vm);
+
+    // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
+    // same time step
+    float_t t_smash = collision.time;
+
+    remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
+    elapsed_molecule_time += t_steps * t_smash;
+
+    t_steps *= (1.0 - t_smash);
+    if (t_steps < EPS) {
+      t_steps = EPS;
+    }
+
+    last_hit_wall_index = w.index;
+#ifdef DEBUG_COUNTED_VOLUMES
+  vm.dump(p, "- After crossing: ");
+#endif
+
+    return true;
+  }
+}
 
 // ---------------------------------- dumping methods ----------------------------------
 

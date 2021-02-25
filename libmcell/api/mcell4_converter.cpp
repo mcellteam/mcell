@@ -909,7 +909,10 @@ void MCell4Converter::convert_geometry_objects() {
 
     // TODO: move surf class handling code to a function and share with convert_surface_region
     if (is_set(o->surface_class)) {
-      assert(o->surface_class->species_id != SPECIES_ID_INVALID);
+      if (o->surface_class->species_id == SPECIES_ID_INVALID) {
+        throw RuntimeError("Geometry object " + o->name + " is using surface class " + o->surface_class->name +
+            " but this surface class was not added to the model. To add it, use method Model.add_surface_class or Subsystem.add_surface_class.");
+      }
       reg_all.species_id = o->surface_class->species_id;
 
       // define releases for concentration clamp

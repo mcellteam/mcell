@@ -1696,53 +1696,6 @@ static void update_counted_volume_id_when_crossing_wall(
 
 // ---------------------------------- reflections and other wall interactions ----------------------------------
 
-static void cross_transparent_wall(
-    Partition& p,
-    const Collision& collision,
-    const Vec3& full_displacement, // whole displacement computed for this molecule // TODO: not used
-    Molecule& vm, // moves vm to the reflection point
-    Vec3& remaining_displacement,
-    float_t& t_steps,
-    float_t& elapsed_molecule_time,
-    wall_index_t& last_hit_wall_index
-) {
-#ifdef DEBUG_COUNTED_VOLUMES
-  vm.dump(p, "- Before crossing: ");
-#endif
-
-  const Wall& w = p.get_wall(collision.colliding_wall_index);
-
-  // Update molecule location to the point of wall crossing
-  vm.v.pos = collision.pos;
-  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
-
-  const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
-  update_counted_volume_id_when_crossing_wall(
-      p, w, collision.get_orientation_against_wall(), vm);
-
-#ifdef DEBUG_TRANSPARENT_SURFACES
-  std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
-#endif
-
-  // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
-  // same time step
-  float_t t_smash = collision.time;
-
-  remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
-  elapsed_molecule_time += t_steps * t_smash;
-
-  t_steps *= (1.0 - t_smash);
-  if (t_steps < EPS) {
-    t_steps = EPS;
-  }
-
-  last_hit_wall_index = w.index;
-
-#ifdef DEBUG_COUNTED_VOLUMES
-  vm.dump(p, "- After crossing: ");
-#endif
-}
-
 /******************************************************************************
  *
  * the reflect_or_periodic_bc helper function is used in diffuse_3D to handle

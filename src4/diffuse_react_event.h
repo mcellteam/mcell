@@ -181,6 +181,17 @@ public:
       MoleculeIdsVector* optional_product_ids = nullptr
   );
 
+  // returns true if molecule survived
+  bool cross_transparent_wall(
+      Partition& p,
+      const Collision& collision,
+      Molecule& vm, // moves vm to the reflection point
+      Vec3& remaining_displacement,
+      float_t& t_steps,
+      float_t& elapsed_molecule_time,
+      wall_index_t& last_hit_wall_index
+  );
+
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
