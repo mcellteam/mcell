@@ -240,7 +240,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
   );
   if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)) {
     m.clear_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
-    pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m); // TODO: rename, this function does not create any action
+    pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
   }
 
   // we might need to change the reaction rate right now
@@ -251,7 +251,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
     pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
   }
 
-  float_t unimol_rx_time = m.unimol_rx_time; // copy to avoid unnecessary loads
+  float_t unimol_rx_time = m.unimol_rx_time; // copy for a minor compiler optimization
 
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
@@ -429,8 +429,6 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   CollisionsVector molecule_collisions;
   bool was_defunct = false;
   wall_index_t last_hit_wall_index = WALL_INDEX_INVALID;
-
-  //float_t updated_remaining_time_step = remaining_time_step; // == t_steps
 
   float_t elapsed_molecule_time = diffusion_start_time; // == vm->t
   bool can_vol_react = species.can_vol_react();

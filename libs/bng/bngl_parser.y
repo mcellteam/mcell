@@ -1,6 +1,5 @@
 // Deviations from official BNGL parser  
-// - whitespace (except for newline) is ignored:
-//   e.g. it is allowed to write "begin     parameters" 
+// - whitespace (except for newline) is ignored 
 
 
 // for top of bngl_parser.hpp
