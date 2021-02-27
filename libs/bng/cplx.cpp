@@ -614,6 +614,19 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
 }
 
 
+void Cplx::remove_compartment_from_elem_mols(BNG::compartment_id_t cid) {
+  if (cid == BNG::COMPARTMENT_ID_NONE) {
+    return;
+  }
+  release_assert(!BNG::is_in_out_compartment_id(cid));
+  for (auto& em: elem_mols) {
+    if (em.compartment_id == cid) {
+      em.compartment_id = BNG::COMPARTMENT_ID_NONE;
+    }
+  }
+}
+
+
 std::string Cplx::to_str(bool in_surf_reaction) const {
   std::string res;
   to_str(res, in_surf_reaction);

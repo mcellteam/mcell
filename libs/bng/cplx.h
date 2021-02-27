@@ -142,6 +142,9 @@ public:
   // sets compartment to all contained elementary molecules
   void set_compartment_id(const compartment_id_t cid, const bool override_only_compartment_none = false);
 
+  // go trough all elementary molecules and if compartment is set to cid, set it to NONE
+  void remove_compartment_from_elem_mols(const compartment_id_t cid);
+
   // returns true if this object as a pattern matches second instance
   bool matches_pattern(const Cplx& pattern, const bool ignore_orientation = false) const {
     assert(is_finalized() && pattern.is_finalized());
