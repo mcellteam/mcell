@@ -2451,8 +2451,26 @@ int DiffuseReactEvent::outcome_products_random(
       else {
         orientation_t orient = product.get_orientation();
 
+        // set orientation relative to the durface comparmtment?
         if (orient == ORIENTATION_DEPENDS_ON_SURF_COMP) {
           orient = determine_orientation_depending_on_surf_comp(actual_products[product_index].product_species_id, surf_reac);
+        }
+        // flip orientation? e.g. such as for MCell3 rxn v' + s, -> s, + r, with reactants v + s'
+        else if (rxn->is_bimol() && rxn->is_surf_rxn()) {
+          // see if orientations of the surface reactants from rule are different from the reactants
+          int reacA_match = 1;
+          if (reacA->is_surf() && rxn->reactants[0].get_orientation() != ORIENTATION_NONE &&
+              reacA->s.orientation != rxn->reactants[0].get_orientation()) {
+            reacA_match = -1;
+          }
+          int reacB_match = 1;
+          if (reacB->is_surf() && rxn->reactants[1].get_orientation() != ORIENTATION_NONE &&
+              reacB->s.orientation != rxn->reactants[1].get_orientation()) {
+            reacB_match = -1;
+          }
+
+          // flip orientation as needed
+          orient = orient * reacA_match * reacB_match;
         }
 
         product_orientations.push_back(orient);

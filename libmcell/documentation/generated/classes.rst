@@ -854,7 +854,8 @@ Methods:
   | Returns a list of ids of molecules.
   | If the arguments pattern is not set, the list of all molecule ids is returned.  
   | If the argument pattern is set, the list of all molecule ids whose species match 
-  | the pattern is returned.
+  | the pattern is returned. Matching of patterns with compartments works exactly in the 
+  | same was as in observables.
 
 
 * | **get_molecule**
@@ -1347,7 +1348,8 @@ Methods:
   | Returns a list of ids of molecules.
   | If the arguments pattern is not set, the list of all molecule ids is returned.  
   | If the argument pattern is set, the list of all molecule ids whose species match 
-  | the pattern is returned.
+  | the pattern is returned. Matching of patterns with compartments works exactly in the 
+  | same was as in observables.
 
 
 * | **get_molecule**
