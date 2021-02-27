@@ -2518,13 +2518,14 @@ int DiffuseReactEvent::outcome_products_random(
 
       Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
 
-      if (rxn->reactants[reactant_index].get_orientation() != product_orientation) {
-        // initiator volume molecule passes through wall?
+      // we are keeping the molecule, only the orientation changes?
+      if (rxn->reactants[reactant_index].get_orientation() != product_orientation ||
+          (reactant->is_surf() && reactant->s.orientation != product_orientation)) {
+        // initiator volume molecule passes through wall or was flipped?
         // any surf mol -> set new orient
 
         // if not swapped, reacA is the diffused molecule and matches the reactant with index 0
         // reacA  matches reactant with index 0, reacB matches reactant with index 1
-        Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
         assert(reactant != nullptr);
         assert(p.bng_engine.matches_ignore_orientation(rxn->products[single_rxn_product_index], reactant->species_id));
 
