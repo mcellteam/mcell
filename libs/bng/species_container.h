@@ -65,6 +65,7 @@ public:
     if (it == canonical_species_map.end()) {
       // make a copy and add if not found
       Species* new_species_copy = new Species(new_species);
+      new_species_copy->reset_num_instantiations();
       species_id_t res = add(new_species_copy, removable);
       return res;
     }

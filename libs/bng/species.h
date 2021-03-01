@@ -81,6 +81,11 @@ public:
       reactant_class_id(other.reactant_class_id) {
   }
 
+  // used when these species are added as new to the species container
+  void reset_num_instantiations() {
+    num_instantiations = 0;
+  }
+
   // TODO: maybe an assignment operator is needed, e.g. in the CplxInstance case, the copy ctor was not
   // called all the time (not sure why...) and assignment operator was needed to fix an issue
 
