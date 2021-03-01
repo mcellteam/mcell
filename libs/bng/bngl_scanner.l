@@ -37,7 +37,8 @@ STR \"([^\\\"]|\\.)*\"
 [ \t]+          ; /* whitespaces are ignored, not sure if this is correct */ 
 "\n"            { LOC(); return TOK_NL; }
 "\r"            ; /* Windows end line character is ignored */
-"\\\n"			; /* Canceling newline preceded by backslash */
+"\\\n"	    		; /* Canceling newline preceded by backslash */
+"\\\r\n"        ; /* Canceling newline preceded by backslash */
 <<EOF>>         {   
                   // we must return newline for EOF only once otherwise 
                   // the parsing won't end  
