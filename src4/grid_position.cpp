@@ -25,8 +25,8 @@
 #include "geometry.h"
 #include "logging.h"
 
-#include "geometry_utils.inc"
-#include "grid_utils.inc"
+#include "geometry_utils.inl"
+#include "grid_utils.inl"
 
 namespace MCell {
 namespace GridPosition {

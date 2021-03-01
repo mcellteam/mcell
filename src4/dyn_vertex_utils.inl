@@ -31,11 +31,11 @@
 #include "partition.h"
 #include "dyn_vertex_structs.h"
 #include "geometry.h"
-#include "grid_utils.inc"
-#include "geometry_utils.inc"
-#include "diffusion_utils.inc"
-#include "collision_utils.inc"
-#include "wall_utils.inc"
+#include "grid_utils.inl"
+#include "geometry_utils.inl"
+#include "diffusion_utils.inl"
+#include "collision_utils.inl"
+#include "wall_utils.inl"
 
 using namespace std;
 

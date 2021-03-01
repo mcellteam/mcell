@@ -29,9 +29,9 @@
 #include "datamodel_defines.h"
 
 #include "wall_utils.h"
-#include "dyn_vertex_utils.inc"
-#include "collision_utils.inc"
-#include "wall_utils.inc"
+#include "dyn_vertex_utils.inl"
+#include "collision_utils.inl"
+#include "wall_utils.inl"
 #include "wall_overlap.h"
 
 using namespace std;

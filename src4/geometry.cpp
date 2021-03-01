@@ -37,8 +37,8 @@
 #include "datamodel_defines.h"
 
 #include "geometry_utils.h"
-#include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
-#include "collision_utils.inc"
+#include "geometry_utils.inl" // uses get_wall_bounding_box, maybe not include this file
+#include "collision_utils.inl"
 #include "dump_state.h"
 
 using namespace std;

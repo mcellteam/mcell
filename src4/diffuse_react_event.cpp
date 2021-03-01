@@ -27,7 +27,6 @@
 #include <sstream>
 #include <algorithm>
 #include <boost/container/flat_set.hpp>
-#include <rxn_utils.inc>
 
 #include "api/mol_wall_hit_info.h"
 #include "api/reaction_info.h"
@@ -48,12 +47,13 @@
 
 // include implementations of utility functions
 #include "geometry_utils.h"
-#include "geometry_utils.inc"
-#include "collision_utils.inc"
-#include "exact_disk_utils.inc"
-#include "diffusion_utils.inc"
-#include "grid_utils.inc"
-#include "wall_utils.inc"
+#include "geometry_utils.inl"
+#include "collision_utils.inl"
+#include "exact_disk_utils.inl"
+#include "diffusion_utils.inl"
+#include "rxn_utils.inl"
+#include "grid_utils.inl"
+#include "wall_utils.inl"
 
 using namespace std;
 using namespace BNG;

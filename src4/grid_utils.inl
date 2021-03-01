@@ -40,8 +40,8 @@
 #include "geometry.h"
 #include "debug_config.h"
 
-#include "wall_utils.inc"
-#include "geometry_utils.inc"
+#include "wall_utils.inl"
+#include "geometry_utils.inl"
 
 namespace MCell {
 

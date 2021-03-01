@@ -43,7 +43,7 @@
 #include "scheduler.h"
 #include "diffuse_react_event.h"
 #include "release_event.h"
-#include "rxn_utils.inc"
+#include "rxn_utils.inl"
 #include "molecule.h"
 #include "viz_output_event.h"
 #include "custom_function_call_event.h"
