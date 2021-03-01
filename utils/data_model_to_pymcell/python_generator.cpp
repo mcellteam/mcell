@@ -185,6 +185,9 @@ static void define_parameter_ordering(Value& parameter_list, vector<size_t>& ord
     get_used_ids(expr, used_ids);
     for (const string& id: used_ids) {
       ExprDepNode* used_node = defines[id];
+      if (used_node == nullptr) {
+        ERROR("Did not find definition of identifier '" + id + "' when converting parameters.");
+      }
       // make a bidirectional link
       n->parents.push_back(used_node);
       used_node->children.push_back(n);
