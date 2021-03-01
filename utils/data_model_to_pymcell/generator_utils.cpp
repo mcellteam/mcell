@@ -213,10 +213,15 @@ string remove_compartments(const std::string& species_name) {
 }
 
 
-// returns "" if there are multiple compartments
-string get_single_compartment(const std::string& name) {
+// returns "" if there are multiple compartments and sets *has_multiple_compartments to
+// true if it is not nullptr
+string get_single_compartment(const std::string& name, bool* has_multiple_compartments) {
   std::vector<std::string> compartments;
   API::get_compartment_names(name, compartments);
+
+  if (has_multiple_compartments != nullptr) {
+    *has_multiple_compartments = false;
+  }
 
   if (compartments.empty()) {
     return "";
@@ -226,6 +231,9 @@ string get_single_compartment(const std::string& name) {
     for (size_t i = 1; i < compartments.size(); i++) {
       if (res != compartments[i]) {
         // multiple compartments
+        if (has_multiple_compartments != nullptr) {
+          *has_multiple_compartments = true;
+        }
         return "";
       }
     }
@@ -483,5 +491,77 @@ bool get_parameter_value(Json::Value& mcell, const string& name_or_value, double
   return false;
 }
 
+
+bool is_volume_mol_type(Json::Value& mcell, const std::string& mol_type_name) {
+
+  string mol_type_name_no_comp = remove_compartments(mol_type_name);
+
+  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
+
+  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
+  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
+    Value& molecule_list_item = molecule_list[i];
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
+
+    string name = molecule_list_item[KEY_MOL_NAME].asString();
+    if (name != mol_type_name_no_comp) {
+      continue;
+    }
+
+    string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
+    CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
+    return mol_type == VALUE_MOL_TYPE_3D;
+  }
+
+  ERROR("Could not find species or molecule type " + mol_type_name_no_comp + ".");
+}
+
+
+static void get_mol_types_in_species(const std::string& species_name, vector<string>& mol_types) {
+  mol_types.clear();
+
+  size_t i = 0;
+  string current_name;
+  bool in_name = true;
+  while (i < species_name.size()) {
+    char c = species_name[i];
+    if (c == '(') {
+      in_name = false;
+      assert(current_name != "");
+      mol_types.push_back(current_name);
+      current_name = "";
+    }
+    else if (c == '.') {
+      in_name = true;
+    }
+    else if (in_name && !isspace(c)) {
+      current_name += c;
+    }
+    i++;
+  }
+
+  if (current_name != "") {
+    mol_types.push_back(current_name);
+  }
+}
+
+
+bool is_volume_species(Json::Value& mcell, const std::string& species_name) {
+  if (is_simple_species(species_name)) {
+    return is_volume_mol_type(mcell, species_name);
+  }
+  else {
+    vector<string> mol_types;
+    get_mol_types_in_species( species_name, mol_types);
+    for (string& mt: mol_types) {
+      if (!is_volume_mol_type(mcell, mt)) {
+        // surface
+        return false;
+      }
+    }
+    return true;
+  }
+}
 
 } // namespace MCell

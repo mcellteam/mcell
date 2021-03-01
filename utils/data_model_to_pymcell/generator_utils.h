@@ -111,7 +111,7 @@ static string fix_dots_in_simple_species(const string& s) {
 
 string remove_compartments(const std::string& species_name);
 
-string get_single_compartment(const std::string& name);
+string get_single_compartment(const std::string& name, bool* has_multiple_compartments = nullptr);
 
 string make_species_or_cplx(
     const SharedGenData& data,
@@ -211,6 +211,8 @@ void process_single_count_term(
 // parameters are not evaluated and only one level is tried,
 // returns false if value was not obtained
 bool get_parameter_value(Json::Value& mcell, const string& name_or_value, double& val);
+
+bool is_volume_species(Json::Value& mcell, const std::string& species_name);
 
 } // namespace MCell
 

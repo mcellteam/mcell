@@ -112,8 +112,12 @@ void print_comma(std::ostream& out, size_t index, const std::vector<T>& array) {
 void gen_ctor_call(std::ostream& out, std::string name, std::string class_name, bool has_params = true);
 
 
-static void gen_method_call(std::ostream& out, std::string obj, std::string method, std::string param = "") {
-  out << obj << "." << method << "(" << param << ")\n";
+static void gen_method_call(std::ostream& out, std::string obj, std::string method, std::string param1 = "", std::string param2 = "") {
+  out << obj << "." << method << "(" << param1;
+  if (param2 != "") {
+    out << ", " << param2;
+  }
+  out << ")\n";
 }
 
 

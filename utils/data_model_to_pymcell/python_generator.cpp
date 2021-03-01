@@ -761,80 +761,10 @@ void PythonGenerator::generate_geometry(std::ostream& out, std::vector<std::stri
   for (Value::ArrayIndex i = 0; i < object_list.size(); i++) {
     Value& object = object_list[i];
     string name = generate_single_geometry_object(out, i, object);
+    if (name == BNG::DEFAULT_COMPARTMENT_NAME) {
+      data.has_default_compartment_object = true;
+    }
     geometry_objects.push_back(name);
-  }
-}
-
-
-bool PythonGenerator::is_volume_mol_type(const std::string& mol_type_name) {
-
-  string mol_type_name_no_comp = remove_compartments(mol_type_name);
-
-  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
-  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
-
-  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
-  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
-    Value& molecule_list_item = molecule_list[i];
-    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
-
-    string name = molecule_list_item[KEY_MOL_NAME].asString();
-    if (name != mol_type_name_no_comp) {
-      continue;
-    }
-
-    string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
-    CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
-    return mol_type == VALUE_MOL_TYPE_3D;
-  }
-
-  ERROR("Could not find species or molecule type " + mol_type_name_no_comp + ".");
-}
-
-
-static void get_mol_types_in_species(const std::string& species_name, vector<string>& mol_types) {
-  mol_types.clear();
-
-  size_t i = 0;
-  string current_name;
-  bool in_name = true;
-  while (i < species_name.size()) {
-    char c = species_name[i];
-    if (c == '(') {
-      in_name = false;
-      assert(current_name != "");
-      mol_types.push_back(current_name);
-      current_name = "";
-    }
-    else if (c == '.') {
-      in_name = true;
-    }
-    else if (in_name && !isspace(c)) {
-      current_name += c;
-    }
-    i++;
-  }
-
-  if (current_name != "") {
-    mol_types.push_back(current_name);
-  }
-}
-
-
-bool PythonGenerator::is_volume_species(const std::string& species_name) {
-  if (is_simple_species(species_name)) {
-    return is_volume_mol_type(species_name);
-  }
-  else {
-    vector<string> mol_types;
-    get_mol_types_in_species(species_name, mol_types);
-    for (string& mt: mol_types) {
-      if (!is_volume_mol_type(mt)) {
-        // surface
-        return false;
-      }
-    }
-    return true;
   }
 }
 
@@ -872,7 +802,7 @@ std::string PythonGenerator::generate_single_molecule_release_info_array(
       out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(\n";
 
       string cplx = release_site_item[KEY_MOLECULE].asString();
-      bool is_vol = is_volume_species(cplx);
+      bool is_vol = is_volume_species(mcell, cplx);
       string orient = convert_orientation(release_site_item[KEY_ORIENT].asString(), !is_vol);
       out << "    ";
       gen_param_expr(out, NAME_COMPLEX,
@@ -1018,7 +948,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     string compartment;
     if (shape != VALUE_LIST) {
       string cplx = release_site_item[KEY_MOLECULE].asString();
-      bool is_vol = is_volume_species(cplx);
+      bool is_vol = is_volume_species(data.mcell, cplx);
       string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString(), !is_vol);
       if (orientation != "" && is_vol) {
           cout <<
@@ -1080,7 +1010,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
       }
       else if (quantity_type == VALUE_DENSITY) {
         string species_name = release_site_item[KEY_MOLECULE].asString();
-        if (is_volume_species(species_name)) {
+        if (is_volume_species(data.mcell, species_name)) {
           gen_param_expr(out, NAME_CONCENTRATION, release_site_item[KEY_QUANTITY], false);
         }
         else {
@@ -1409,6 +1339,7 @@ void PythonGenerator::generate_compartment_assignments(std::ostream& out) {
       gen_assign(out, name, NAME_IS_BNGL_COMPARTMENT, true);
       if (membrane_name != "") {
         gen_assign_str(out, name, NAME_SURFACE_COMPARTMENT_NAME, membrane_name);
+        data.surface_to_volume_compartments_map[membrane_name] = name;
       }
       out << "\n";
     }

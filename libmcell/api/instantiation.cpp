@@ -154,21 +154,9 @@ void Instantiation::convert_single_seed_species_to_release_site(
   rel_site->complex->orientation = Orientation::DEFAULT;
 
   if (bng_ss.cplx.has_compartment()) {
-    bool surf_release = rel_site->complex->is_surf();
-    const BNG::Compartment& c = bng_data.get_compartment(bng_ss.cplx.get_primary_compartment_id(surf_release));
-    // check that dimensionality of compartment matches the released molecule
-    if (surf_release && c.is_3d) {
-      throw ValueError(S("Seed species specification for complex instance ") +
-          bng_ss.cplx.to_str() + ": cannot release surface molecules " +
-          "into a 3d compartment " + c.name + ".\n"
-      );
-    }
-    else if (!surf_release && !c.is_3d) {
-      throw ValueError(S("Seed species specification for complex instance ") +
-          bng_ss.cplx.to_str() + ": cannot release volume molecules " +
-          "onto a 2d compartment " + c.name + ".\n"
-      );
-    }
+    // we might not know the types of elementary molecules at this point so we cannot check
+    // that molecule and compartment are of the same type (vol or surf)
+    const BNG::Compartment& c = bng_data.get_compartment(bng_ss.cplx.get_primary_compartment_id(true));
 
     rel_site->complex->set_compartment_name(c.name);
     rel_site->shape = Shape::COMPARTMENT;

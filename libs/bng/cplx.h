@@ -74,14 +74,15 @@ public:
 
   void create_graph();
 
-  // if override_is_surface_cplx is true, assumes that this is a surface complex
-  compartment_id_t get_primary_compartment_id(const bool override_is_surface_cplx = false) const {
+  // if dont_know_elem_mol_types is true, we do not know the types elementary molecules
+  // (whether they are vol or surf),
+  compartment_id_t get_primary_compartment_id(const bool dont_know_elem_mol_types = false) const {
     assert(is_finalized());
     if (elem_mols.size() == 1) {
       return elem_mols[0].compartment_id;
     }
     else {
-      return get_complex_compartment_id(override_is_surface_cplx);
+      return get_complex_compartment_id(dont_know_elem_mol_types);
     }
   }
 

@@ -460,11 +460,10 @@ void MCell4Generator::generate_subsystem() {
 
   out << IMPORT_OS;
   out << MCELL_IMPORT;
-  out << MODEL_PATH_SETUP << "\n";
-
   out << make_import(PARAMETERS);
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
+  out << MODEL_PATH_SETUP << "\n";
 
   string bngl_mol_types_initialization =
       generate_species_and_mol_types(out, data.all_species_and_mol_type_names);
@@ -546,32 +545,80 @@ vector<string> MCell4Generator::generate_geometry() {
 }
 
 
+void MCell4Generator::generate_release_sites(std::ostream& out, std::vector<std::string>& release_site_names) {
+
+  if (!data.mcell.isMember(KEY_RELEASE_SITES)) {
+    return;
+  }
+
+  Value& release_sites = data.mcell[KEY_RELEASE_SITES];
+  check_version(KEY_RELEASE_SITES, release_sites, VER_DM_2014_10_24_1638);
+  Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
+  if (release_site_list.empty()) {
+    return;
+  }
+
+  if (data.bng_mode) {
+    bool can_express_all_releases_with_bngl = true;
+
+    for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
+      // simulation result differs based on the order of releases so we must either generate all
+      // releases into BNGL or none
+      Value& release_site_item = release_site_list[i];
+      if (!bng_gen->can_express_release_with_bngl(release_site_item)) {
+        can_express_all_releases_with_bngl = false;
+        break;
+      }
+    }
+    if (can_express_all_releases_with_bngl) {
+      bng_gen->open_seed_species_section();
+
+      for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
+        // simulation result differs based on the order of releases so we must either generate all
+        // releases into BNGL or none
+        const Value& release_site_item = release_site_list[i];
+        bng_gen->generate_single_release_site(
+            release_site_item[KEY_MOLECULE].asString(), release_site_item[KEY_QUANTITY].asString());
+      }
+
+      bng_gen->close_seed_species_section();
+
+      // all done
+      return;
+    }
+  }
+
+  // python variant - used either without bng mode or as a fallback for bng mode
+  python_gen->generate_release_sites(out, release_site_names);
+}
+
+
 void MCell4Generator::generate_instantiation(const vector<string>& geometry_objects) {
 
   ofstream out;
   open_and_check_file(INSTANTIATION, out);
   out << GENERATED_WARNING << "\n";
 
+  out << IMPORT_OS;
   out << MCELL_IMPORT;
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
   if (geometry_generated) {
     out << make_import(GEOMETRY);
   }
+  out << MODEL_PATH_SETUP << "\n";
   out << "\n";
   out << make_section_comment(INSTANTIATION);
   out << make_section_comment("release sites");
-
-  // BNGL instantiation through seed species are not supported yet, everything is defined through Python
-
-  vector<string> release_sites;
-  python_gen->generate_release_sites(out, release_sites);
 
   out << make_section_comment("surface classes assignment");
   python_gen->generate_surface_classes_assignments(out);
 
   out << make_section_comment("compartments assignment");
   python_gen->generate_compartment_assignments(out);
+
+  vector<string> release_sites;
+  generate_release_sites(out, release_sites);
 
   out << make_section_comment("create instantiation object and add components");
 
@@ -581,6 +628,18 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
   }
   for (const string& r: release_sites) {
     gen_method_call(out, INSTANTIATION, NAME_ADD_RELEASE_SITE, r);
+  }
+
+  if (data.bng_mode) {
+    out << "\n# load seed species information from bngl file\n";
+
+    gen_method_call(
+        out, INSTANTIATION,
+        NAME_LOAD_BNGL_SEED_SPECIES,
+        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)),
+        data.has_default_compartment_object ? BNG::DEFAULT_COMPARTMENT_NAME : ""
+    );
+    out << "\n";
   }
 
   out.close();
@@ -758,13 +817,12 @@ void MCell4Generator::generate_observables() {
 
   out << IMPORT_OS;
   out << MCELL_IMPORT;
-  out << MODEL_PATH_SETUP << "\n";
-
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
   if (geometry_generated) {
     out << make_import(GEOMETRY);
   }
+  out << MODEL_PATH_SETUP << "\n";
   out << "\n";
   out << make_section_comment(OBSERVABLES);
 

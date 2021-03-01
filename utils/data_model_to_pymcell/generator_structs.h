@@ -84,6 +84,8 @@ struct SharedGenData {
     bngl_reaction_rules_used_in_observables.clear();
     all_count_term_names.clear();
     defined_python_objects.clear();
+    surface_to_volume_compartments_map.clear();
+    has_default_compartment_object = false;
   }
 
   uint unnamed_rxn_counter;
@@ -102,11 +104,17 @@ struct SharedGenData {
   std::vector<std::string> bngl_reaction_rules_used_in_observables;
   std::vector<std::string> all_count_term_names;
 
+  // set in PythonGenerator::generate_geometry
+  bool has_default_compartment_object;
+
   // set in MCell4Generator::analyze_and_generate_bngl_compartments
   std::set<std::string> used_compartments;
 
   // key is object name, value is class name
   std::map<std::string, std::string> defined_python_objects;
+
+  // key is surface compartment name, value is volume compartment name
+  std::map<std::string, std::string> surface_to_volume_compartments_map;
 
   const SpeciesOrMolType* find_species_or_mol_type_info(const std::string& name) const {
     auto it = std::find(

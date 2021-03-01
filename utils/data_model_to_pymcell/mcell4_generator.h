@@ -70,6 +70,7 @@ private:
       std::ofstream& out, const int index, Json::Value& object);
   std::vector<std::string> generate_geometry();
 
+  void generate_release_sites(std::ostream& out, std::vector<std::string>& release_site_names);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
   void generate_counts(std::ostream& out, std::vector<std::string>& python_counts, bool& has_bng_observables);
