@@ -20,7 +20,6 @@
  * USA.
  *
 ******************************************************************************/
-// TODO_LATER: optimization for diffusion constant 0, e.g. test 1172
 // TODO: make this file shorter
 
 #include <iostream>
@@ -514,8 +513,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         // check possible reaction with surface molecules
         if (p.get_species(vm_new_ref.species_id).has_flag(SPECIES_FLAG_CAN_VOLSURF) && colliding_wall.has_initialized_grid()) {
           int collide_res = collide_and_react_with_surf_mol(
-              p, collision, t_steps,
-              r_rate_factor,
+              p, collision, r_rate_factor,
               wall_tile_pair_where_created_this_iteration,
               last_hit_wall_index,
               remaining_displacement,
@@ -816,11 +814,9 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
  *
  ******************************************************************************/
 // TODO: return enum
-// TODO: remove the remaining_time_step argument - same as t_steps
 int DiffuseReactEvent::collide_and_react_with_surf_mol(
     Partition& p,
     const Collision& collision,
-    const float_t remaining_time_step,
     const float_t r_rate_factor,
     WallTileIndexPair& where_created_this_iteration,
     wall_index_t& last_hit_wall_index,
@@ -883,7 +879,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     scaling_coefs.push_back(r_rate_factor / grid.binding_factor);
   }
 
-  float_t collision_time = elapsed_molecule_time + remaining_time_step * collision.time;
+  float_t collision_time = elapsed_molecule_time + t_steps * collision.time;
 
   int selected_rx_pathway;
   if (matching_rxn_classes.size() == 1) {
@@ -2818,13 +2814,16 @@ bool DiffuseReactEvent::cross_transparent_wall(
     new_species.finalize_species(world->bng_engine.get_config(), true);
     species_id_t new_species_id = p.get_all_species().find_or_add(new_species, true);
 
+    // using the same computation of collision time as in collide_and_react_with_surf_mol
+    float_t collision_time = elapsed_molecule_time + t_steps * collision.time;
+
     // we create a new molecule on the boundary, move it a tiny bit in the right direction
     // TODO: not completely sure that the time calculation is correct, but assuming that we are just moving the molecule across
     // the boundary
     Molecule vm_initialization(
         MOLECULE_ID_INVALID, new_species_id,
         collision.pos + remaining_displacement * Vec3(EPS),
-        event_time + collision.time);
+        event_time + collision_time);
     vm_initialization.v.previous_wall_index = w.index;
     Molecule& new_vm = p.add_volume_molecule(vm_initialization);
     new_vm.set_flag(MOLECULE_FLAG_VOL);

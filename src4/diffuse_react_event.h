@@ -229,15 +229,14 @@ private:
       Partition& p,
       const Collision& collision,
       Vec3& displacement,
-      const float_t remaining_time_step,
+      const float_t t_steps,
       const float_t r_rate_factor,
-      const float_t molecule_time
+      const float_t elapsed_molecule_time
   );
 
   int collide_and_react_with_surf_mol(
       Partition& p,
       const Collision& collision,
-      const float_t remaining_time_step,
       const float_t r_rate_factor,
       WallTileIndexPair& where_created_this_iteration,
       wall_index_t& last_hit_wall_index,
