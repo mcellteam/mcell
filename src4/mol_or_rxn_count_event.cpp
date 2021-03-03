@@ -117,12 +117,15 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
       break;
     case SpeciesPatternType::SpeciesId:
       cout << "SpeciesId";
+      cout << ind << "species_id: " << species_id << " [species_id_t]\n";
       break;
     case SpeciesPatternType::SpeciesPattern:
       cout << "SpeciesPattern";
+      cout << ind << "species_molecules_pattern: " << species_molecules_pattern.to_str() << " [CplxInstance]\n";
       break;
     case SpeciesPatternType::MoleculesPattern:
       cout << "MoleculesPattern";
+      cout << ind << "species_molecules_pattern: " << species_molecules_pattern.to_str() << " [CplxInstance]\n";
       break;
 
     default:
@@ -130,8 +133,6 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
   }
   cout << "\n";
 
-  cout << ind << "species_id: " << species_id << " [species_id_t]\n";
-  cout << ind << "species_molecules_pattern: " << species_molecules_pattern.to_str() << " [CplxInstance]\n";
   cout << ind << "primary_compartment_id: " << primary_compartment_id << " [compartment_id_t]\n";
   cout << ind << "rxn_rule_id: " << rxn_rule_id << " [rxn_rule_id_t]\n";
   cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t]\n";
