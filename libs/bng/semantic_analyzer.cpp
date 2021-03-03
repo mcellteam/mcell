@@ -6,6 +6,7 @@
  */
 
 #include <sstream>
+#include <cmath>
 
 #include "bng/semantic_analyzer.h"
 
@@ -23,10 +24,82 @@ namespace BNG {
 const char* const DIR_FORWARD = "forward";
 const char* const DIR_REVERSE = "reverse";
 
+
+// function names - name and number of arguments, list used by data model to pymcell4 converter
+// is in generator_utils.h: mdl_functions_to_py_bngl_map
+struct BnglFunctionInfo {
+  uint num_arguments;
+  double (*eval_1_arg_func_call)(double);
+  double (*eval_2_args_func_call)(double, double);
+};
+
+static double bngl_max(const double a, const double b) {
+  return (a<b)?b:a;
+}
+
+static double bngl_min(const double a, const double b) {
+  return !(b<a)?a:b;
+}
+
+// TODO: check allowed argument ranges e.g. for asin
+// TODO: only the intersection of MDL and BNGL functions is supported now, some BNGL functios are missing
+static const std::map<std::string, BnglFunctionInfo> bngl_function_infos {
+  { "sqrt", {1, sqrt, nullptr} },
+  { "exp", {1, exp, nullptr} },
+  { "ln", {1, log, nullptr} },
+  { "log10", {1, log10, nullptr} },
+  { "sin", {1, sin, nullptr} },
+  { "cos", {1, cos, nullptr} },
+  { "tan", {1, tan, nullptr} },
+  { "asin", {1, asin, nullptr} },
+  { "acos", {1, acos, nullptr} },
+  { "atan", {1, atan, nullptr} },
+  { "abs", {1, fabs, nullptr} },
+  { "ceil", {1, ceil, nullptr} },
+  { "floor", {1, floor, nullptr} },
+  { "max", {2, nullptr, bngl_max} },
+  { "min", {2, nullptr, bngl_min} }
+};
+
 static bool is_thrash_or_null(const string& name) {
   // same check as in nfsim
   return (name == COMPLEX_Null || name == COMPLEX_NULL || name == COMPLEX_null ||
       name == COMPLEX_Trash || name == COMPLEX_TRASH || name == COMPLEX_trash);
+}
+
+
+double SemanticAnalyzer::evaluate_function_call(ASTExprNode* call_node, const std::vector<double>& arg_values) {
+  assert(call_node != nullptr);
+  const string& name = call_node->get_function_name();
+  const auto& func_info_it = bngl_function_infos.find(name);
+  if (func_info_it != bngl_function_infos.end()) {
+    if (arg_values.size() == func_info_it->second.num_arguments) {
+      const BnglFunctionInfo& info = func_info_it->second;
+      if (info.num_arguments == 1) {
+        return info.eval_1_arg_func_call(arg_values[0]);
+      }
+      else if (info.num_arguments == 2) {
+        return info.eval_2_args_func_call(arg_values[0], arg_values[1]);
+      }
+      else {
+        assert(false);
+        return 0;
+      }
+    }
+    else {
+      errs_loc(call_node) <<
+          "Invalid number of arguments for function '" << name << "', got " << arg_values.size() <<
+          " expected " << func_info_it->second.num_arguments << ".\n"; // test TODO
+      ctx->inc_error_count();
+      return 0;
+    }
+  }
+  else {
+    errs_loc(call_node) <<
+        "Unknown function '" << name << "' encountered.\n"; // test TODO
+    ctx->inc_error_count();
+    return 0;
+  }
 }
 
 
@@ -37,12 +110,10 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
     // already computed
     return root;
   }
-
-  if (root->is_llong()) {
+  else if (root->is_llong()) {
     return ctx->new_dbl_node(root->get_llong(), root);
   }
-
-  if (root->is_id()) {
+  else if (root->is_id()) {
     const string& id = root->get_id();
     if (used_ids.count(id) != 0) {
       errs_loc(root) <<
@@ -67,15 +138,13 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
     used_ids.insert(id);
     return evaluate_to_dbl(to_expr_node(val), used_ids);
   }
-
-  if (root->is_unary_expr()) {
+  else if (root->is_unary_expr()) {
     assert(root->get_left() != nullptr);
     assert(root->get_right() == nullptr);
     double res = evaluate_to_dbl(root->get_left(), used_ids)->get_dbl();
     return ctx->new_dbl_node( (root->get_op() == ExprType::UnaryMinus) ? -res : res, root);
   }
-
-  if (root->is_binary_expr()) {
+  else if (root->is_binary_expr()) {
     assert(root->get_left() != nullptr);
     assert(root->get_right() != nullptr);
     double res_left = evaluate_to_dbl(root->get_left(), used_ids)->get_dbl();
@@ -106,6 +175,17 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
       default:
         release_assert(false && "Invalid operator");
     }
+    return ctx->new_dbl_node(res, root);
+  }
+  else if (root->is_function_call()) {
+    assert(root->get_args() != nullptr);
+    // evaluate all arguments
+    vector<double> arg_values;
+    for (ASTBaseNode* base_arg_node: root->get_args()->items) {
+      ASTExprNode* arg_node = to_expr_node(base_arg_node);
+      arg_values.push_back(evaluate_to_dbl(arg_node, used_ids)->get_dbl());
+    }
+    double res = evaluate_function_call(root, arg_values);
     return ctx->new_dbl_node(res, root);
   }
 

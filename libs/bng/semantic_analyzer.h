@@ -30,6 +30,7 @@ public:
       ParserContext* ctx_, BNGData* res_bng, Cplx& res);
 
 private:
+  double evaluate_function_call(ASTExprNode* call_node, const std::vector<double>& arg_values);
   ASTExprNode* evaluate_to_dbl(ASTExprNode* root, std::set<std::string> used_ids={});
   void resolve_rxn_rates();
 

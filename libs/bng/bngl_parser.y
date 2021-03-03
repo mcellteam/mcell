@@ -140,6 +140,8 @@ namespace BNG {
 %type <cplx_node> cplx
 %type <cplx_node> cplx_no_compartment
 %type <str_node> compartment_for_cplx_maybe_empty
+%type <list_node> expr_list_maybe_empty
+%type <list_node> expr_list
 
 // operator associativities and precendences
 // unary minus has really lower precendence than power 
@@ -628,7 +630,28 @@ expr:
     | expr '^' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Pow, $3, @2); }
     | '+' expr %prec UNARYPLUS      { $$ = g_ctx->new_expr_node($2, BNG::ExprType::UnaryPlus, nullptr, @1); }
     | '-' expr %prec UNARYMINUS     { $$ = g_ctx->new_expr_node($2, BNG::ExprType::UnaryMinus, nullptr, @1); }
+    | TOK_ID '(' expr_list_maybe_empty ')'  { $$ = g_ctx->new_expr_node($1, $3, @1); }
 ;
+   
+expr_list_maybe_empty:
+      expr_list {
+        $$ = $1;
+      }
+    | /* empty */ {
+        $$ = g_ctx->new_list_node();
+      }
+;    
+
+expr_list:
+      expr_list ',' expr {
+        $1->append($3);
+        $$ = $1;
+      }
+    | expr {
+        $$ = g_ctx->new_list_node()->append($1);
+      }
+;    
+ 
     
 %%
 
