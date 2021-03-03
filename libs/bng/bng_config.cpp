@@ -69,7 +69,10 @@ void BNGConfig::print_final_warnings() const {
   if (bimol_rxn_probability_over_1) {
     cerr <<
         "Warning: There was a bimolecular reaction with probability p > 1.0. This means that some reactions were missed. " <<
-        "See report file " << get_warnings_report_file_name() << " for more details. A shorter time step may be needed.\n";
+        "See report file " << get_warnings_report_file_name() << " for more details. A shorter time step may be needed.\n" <<
+        "Additional details may be found in " << get_rxn_report_file_name() <<
+        ", if it does not exist, it can be enabled by setting 'rxn_and_species_report' to true.\n";
+
   }
   if (bimol_rxn_probability_over_05_less_1) {
     cerr <<
