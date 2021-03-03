@@ -79,6 +79,10 @@ const char* const IMPORT_OS =
     "import os\n"
 ;
 
+const char* const IMPORT_MATH =
+    "import math\n"
+;
+
 #define MODEL_PATH "MODEL_PATH"
 
 const char* const MODEL_PATH_SETUP =

@@ -32,6 +32,83 @@ using namespace MCell::API;
 
 namespace MCell {
 
+static std::string replace_id_with_function(const std::string& id, const bool use_python_functions) {
+  const auto& func_it = mdl_functions_to_py_bngl_map.find(id);
+  if (func_it != mdl_functions_to_py_bngl_map.end()) {
+    // replace
+    if (use_python_functions) {
+      return func_it->second.first;
+    }
+    else {
+      // BNGL variant
+      return func_it->second.second;
+    }
+  }
+  else {
+    // other id, keep it as it is
+    return id;
+  }
+}
+
+// when use_python_functions is true, function calls are replaced with Python function names
+// when False, they are replaced with BNGL function names
+std::string replace_function_calls_in_expr(const std::string& data_model_expr, const bool use_python_functions) {
+  std::string res;
+
+  // all function names are represented as ids, i.e. [a-zA-Z_][a-zA-Z0-9_]*
+  // practically the same automaton as in get_used_ids
+  enum state_t {
+    START,
+    IN_ID,
+    IN_NUM
+  };
+  state_t state = START;
+  string curr_id;
+  for (char c: data_model_expr) {
+    switch (state) {
+      case START:
+        if (isalpha(c) || c == '_') {
+          state = IN_ID;
+          curr_id += c;
+        }
+        else if (isdigit(c)) {
+          state = IN_NUM;
+          res += c;
+        }
+        else {
+          res += c;
+        }
+        break;
+      case IN_ID:
+        if (isalnum(c) || c == '_') {
+          curr_id += c;
+        }
+        else {
+          res += replace_id_with_function(curr_id, use_python_functions);
+          res += c;
+          curr_id = "";
+          state = START;
+        }
+        break;
+      case IN_NUM:
+        if (isdigit(c) || c == '.' || c == 'e' || c == '+' || c == '-') {
+          // ok
+        }
+        else {
+          state = START;
+        }
+        res += c;
+        break;
+    }
+  }
+  if (state == IN_ID) {
+    res += replace_id_with_function(curr_id, use_python_functions);
+  }
+
+  return res;
+}
+
+
 std::string get_module_name_w_prefix(const std::string& output_files_prefix, const std::string file_suffix) {
 
   if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {

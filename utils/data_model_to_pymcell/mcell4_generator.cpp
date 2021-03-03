@@ -214,6 +214,7 @@ void MCell4Generator::generate_parameters() {
   open_and_check_file(PARAMETERS, out);
   out << GENERATED_WARNING << "\n";
   out << IMPORT_OS;
+  out << IMPORT_MATH;
   out << MCELL_IMPORT;
   out << MODEL_PATH_SETUP << "\n";
   out << make_section_comment("model parameters");

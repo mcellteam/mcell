@@ -55,7 +55,6 @@ const uint TESTING_SPECIES_CLEANUP_PERIODICITY = 500;
 const char* const NAME_PARAMETER = "parameter";
 
 // using exception catching to recover from errors
-
 #define CHECK(stmt, failed) \
   do { \
     try { \
@@ -76,6 +75,31 @@ const char* const NAME_PARAMETER = "parameter";
   } while (0)
 
 #define ERROR(msg) throw ConversionError(S("Error: ") + msg + " (function " + __FUNCTION__ + ")")
+
+
+// key - MDL name, used in data model, value.first - Python name, value.second - BNGL name
+const std::map<const std::string, std::pair<const std::string, const std::string>> mdl_functions_to_py_bngl_map {
+  { "SQRT", {"math.sqrt", "sqrt"} },
+  { "EXP", {"math.exp", "exp"} },
+  { "LOG", {"math.log", "ln"} },
+  { "LOG10", {"math.log10", "log10"} },
+  { "SIN", {"math.sin", "sin"} },
+  { "COS", {"math.cos", "cos"} },
+  { "TAN", {"math.tan", "tan"} },
+  { "ASIN", {"math.asin", "asin"} },
+  { "ACOS", {"math.acos", "acos"} },
+  { "ATAN", {"math.atan", "atan"} },
+  { "ABS", {"abs", "abs"} },
+  { "CEIL", {"math.ceil", "ceil"} },
+  { "FLOOR", {"math.floor", "floor"} },
+  { "MAX", {"max", "max"} },
+  { "MIN", {"min", "min"} }
+};
+
+
+// when use_python_functions is true, function calls are replaced with Python function names
+// when False, they are replaced with BNGL function names
+std::string replace_function_calls_in_expr(const std::string& data_model_expr, const bool use_python_functions);
 
 std::string get_module_name_w_prefix(const std::string& output_files_prefix, const std::string file_suffix);
 

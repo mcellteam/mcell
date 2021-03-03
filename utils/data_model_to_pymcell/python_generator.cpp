@@ -45,6 +45,7 @@ void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& 
   string python_expr;
   // replace operator ^ with operator **
   python_expr = regex_replace(parameter[KEY_PAR_EXPRESSION].asString(), regex("\\^"), "**");
+  python_expr = replace_function_calls_in_expr(python_expr, true);
   string name = fix_param_id(parameter[KEY_PAR_NAME].asString());
   data.check_if_already_defined_and_add(name, NAME_PARAMETER);
   out << name << " = " << python_expr;
@@ -59,6 +60,7 @@ void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& 
 static void get_used_ids(const string& expr, vector<string>& used_ids) {
   used_ids.clear();
 
+  // same automaton but with different actions is used in replace_function_calls_in_expr
   enum state_t {
     START,
     IN_ID,
@@ -82,7 +84,10 @@ static void get_used_ids(const string& expr, vector<string>& used_ids) {
           curr_id += c;
         }
         else {
-          used_ids.push_back(curr_id);
+          if (mdl_functions_to_py_bngl_map.count(curr_id) == 0) {
+            // count only IDs
+            used_ids.push_back(curr_id);
+          }
           curr_id = "";
           state = START;
         }
@@ -94,10 +99,14 @@ static void get_used_ids(const string& expr, vector<string>& used_ids) {
         else {
           state = START;
         }
+        break;
     }
   }
   if (state == IN_ID) {
-    used_ids.push_back(curr_id);
+    if (mdl_functions_to_py_bngl_map.count(curr_id) == 0) {
+      // count only IDs
+      used_ids.push_back(curr_id);
+    }
   }
 }
 
@@ -121,6 +130,7 @@ public:
 
   ExprDepNode* create_node(const size_t index) {
     ExprDepNode* res = new ExprDepNode();
+    nodes.push_back(res);
     res->index = index;
     return res;
   }
@@ -129,6 +139,7 @@ public:
 };
 
 
+// collects
 static void traverse_given_level(
     const ExprDepNode* n, const uint level, vector<size_t>& level_ordering) {
 
@@ -161,6 +172,39 @@ static void level_order_traversal(
 }
 
 
+// not very efficient but the parameter systems in data models are not so huge
+static void order_by_dependencies(const vector<ExprDepNode*>& nodes, vector<size_t>& ordering) {
+  vector<bool> already_handled(nodes.size(), false);
+
+  while (ordering.size() != nodes.size()) {
+
+    for (size_t i = 0; i < nodes.size(); i++) {
+      ExprDepNode* n = nodes[i];
+
+      if (already_handled[n->index]) {
+        continue;
+      }
+
+      bool all_parents_are_handled = true;
+      for (auto& p: n->parents) {
+        if (!already_handled[p->index]) {
+          // skip, not ready for this parameter yet
+          all_parents_are_handled = false;
+          break;
+        }
+      }
+
+      if (!all_parents_are_handled) {
+        continue;
+      }
+
+      ordering.push_back(n->index);
+      already_handled[n->index] = true;
+    }
+  }
+}
+
+
 static void define_parameter_ordering(Value& parameter_list, vector<size_t>& ordering) {
   ExprDepNodeContainer nodes;
   map<string, ExprDepNode*> defines;
@@ -185,8 +229,12 @@ static void define_parameter_ordering(Value& parameter_list, vector<size_t>& ord
     get_used_ids(expr, used_ids);
     for (const string& id: used_ids) {
       ExprDepNode* used_node = defines[id];
+      // check function name
       if (used_node == nullptr) {
-        ERROR("Did not find definition of identifier '" + id + "' when converting parameters.");
+        assert(mdl_functions_to_py_bngl_map.count(id) == 0);
+        ERROR("Did not find definition of identifier '" + id + "' when converting parameters, some MDL "
+            "constants or functions are not supported."
+        );
       }
       // make a bidirectional link
       n->parents.push_back(used_node);
@@ -195,16 +243,19 @@ static void define_parameter_ordering(Value& parameter_list, vector<size_t>& ord
   }
 
   // now we might have multiple roots (nodes without uses), create just one
-  ExprDepNode* root = nodes.create_node(INDEX_INVALID);
+  /*ExprDepNode* root = nodes.create_node(INDEX_INVALID);
   for (auto node_it: defines) {
     if (node_it.second->parents.empty()) {
       root->children.push_back(node_it.second);
       node_it.second->parents.push_back(root);
     }
-  }
+  }*/
+
+  // order nodes by dependencies
+  order_by_dependencies(nodes.nodes, ordering);
 
   // finally do a level-order traversal of the created dependency graph
-  level_order_traversal(root, ordering);
+  //level_order_traversal(root, ordering);
 }
 
 
