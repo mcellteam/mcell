@@ -65,6 +65,22 @@ void BNGConfig::initialize_bng_report_files() {
 }
 
 
+void BNGConfig::print_final_warnings() const {
+  if (bimol_rxn_probability_over_1) {
+    cerr <<
+        "Warning: There was a bimolecular reaction with probability p > 1.0. This means that some reactions were missed. " <<
+        "See report file " << get_warnings_report_file_name() << " for more details. A shorter time step may be needed.\n";
+  }
+  if (bimol_rxn_probability_over_05_less_1) {
+    cerr <<
+        "Warning: There was a bimolecular reaction with probability p > 0.5 and p < 1.0. " <<
+        "For best results, the probability of bimolecular reactions should be <= 0.5. " <<
+        "See report file " << get_rxn_report_file_name() <<
+        ", if it does not exist, it can be enabled by setting 'rxn_and_species_report' to true.\n";
+  }
+}
+
+
 // get current date/time, format is YYYY-MM-DD HH:mm:ss
 std::string get_current_date_time() {
     time_t     now = time(0);

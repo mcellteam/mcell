@@ -489,14 +489,21 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
   }
 
   // reactive surfaces have always maximum probability
-  if (max_fixed_p > 1.0 &&
-      !rxn_rule_ids.empty() &&
+  if (!rxn_rule_ids.empty() &&
       !all_rxns.get(rxn_rule_ids[0])->is_unimol() &&
       !all_rxns.get(rxn_rule_ids[0])->is_reactive_surface_rxn()) {
-    stringstream ss;
-    ss << "Warning: total probability of reaction is > 1 (" << max_fixed_p << ")";
-    cout << ss.str() << ", for reactant(s) " << reactants_to_str() << ".\n";
-    append_to_report(bng_config.get_warnings_report_file_name(), ss.str() + "\n" + to_str());
+
+    if (max_fixed_p > 1.0) {
+      stringstream ss;
+      ss << "Warning: total probability of reaction is > 1 (" << max_fixed_p << ")";
+      cout << ss.str() << ", for reactant(s) " << reactants_to_str() << ".\n";
+      append_to_report(bng_config.get_warnings_report_file_name(), ss.str() + "\n" + to_str());
+      bng_config.bimol_rxn_probability_over_1 = true;
+    }
+    else if (max_fixed_p > 0.5) {
+      // print final report after simulation ended
+      bng_config.bimol_rxn_probability_over_05_less_1 = true;
+    }
   }
 
   if (is_unimol() && max_fixed_p > MAX_UNIMOL_RXN_PROBABILITY) {

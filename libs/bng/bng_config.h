@@ -63,7 +63,10 @@ public:
       rx_radius_3d(0),
       intermembrane_rx_radius_3d(0),
       rxn_and_species_report(true),
-      bng_verbosity_level(0) {
+      bng_verbosity_level(0),
+      bimol_rxn_probability_over_05_less_1(false),
+      bimol_rxn_probability_over_1(false)
+      {
   }
 
   // configuration
@@ -87,6 +90,10 @@ public:
 
   BNGNotifications notifications;
 
+  // status
+  mutable bool bimol_rxn_probability_over_05_less_1; // set to true if probability of a bimol rxn was > 0.5 but < 1
+  mutable bool bimol_rxn_probability_over_1; // set to true if probability of a bimol rxn was > 1
+
   void init() {
     rcp_length_unit = 1/length_unit;
     initialize_bng_report_files();
@@ -95,6 +102,9 @@ public:
   std::string get_rxn_report_file_name() const;
   std::string get_species_report_file_name() const;
   std::string get_warnings_report_file_name() const;
+
+  // prints warnings at the end of simulation if needed (to the standard error output)
+  void print_final_warnings() const;
 
   void dump() const;
 

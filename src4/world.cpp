@@ -532,6 +532,9 @@ void World::end_simulation(const bool print_final_report) {
     cout << "Simulation CPU time without iteration 0 = "
       << tosecs(run_time.ru_utime) - tosecs(it1_start_time.ru_utime) <<  "(user) and "
       << tosecs(run_time.ru_stime) - tosecs(it1_start_time.ru_stime) <<  "(system)\n";
+
+    // and warnings
+    bng_engine.get_config().print_final_warnings();
   }
 
   BNG::append_to_report(config.get_run_report_file_name(),
