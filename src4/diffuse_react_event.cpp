@@ -1208,7 +1208,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   const Wall& wall = p.get_wall(sm.s.wall_index);
 
   TileNeighborVector neighbors;
-  GridUtil::find_neighbor_tiles(p, sm, wall, sm.s.grid_tile_index, false, /* true,*/ neighbors);
+  GridUtil::find_neighbor_tiles(p, sm, wall, sm.s.grid_tile_index, false, true, neighbors);
 
   if (neighbors.empty()) {
     return true;
@@ -1980,7 +1980,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     Wall& wall = p.get_wall(surf_reac->s.wall_index);
     Grid& grid = wall.grid;
     TileNeighborVector neighbor_tiles;
-    GridUtil::find_neighbor_tiles(p, *surf_reac, wall, surf_reac->s.grid_tile_index, true, /* false,*/ neighbor_tiles);
+    GridUtil::find_neighbor_tiles(p, *surf_reac, wall, surf_reac->s.grid_tile_index, true, false, neighbor_tiles);
 
     // we care only about the vacant ones (NOTE: this filtering out might be done in find_neighbor_tiles)
     // mcell3 reverses the ordering here
@@ -2415,7 +2415,6 @@ int DiffuseReactEvent::outcome_products_random(
   }
 
   // free up tiles that we are probably going to reuse
-  //bool one_of_reactants_is_surf = false;
   if (reacA->is_surf() && !keep_reacA) {
     p.get_wall(reacA->s.wall_index).grid.reset_molecule_tile(reacA->s.grid_tile_index);
     reacA->s.grid_tile_index = TILE_INDEX_INVALID;

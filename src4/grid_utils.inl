@@ -757,7 +757,7 @@ static void grid_all_neighbors_across_walls_through_vertices(
     const wall_indices_t& neighboring_walls,
     const Wall& wall,
     bool create_grid_flag,
-    //bool search_for_reactant,
+    bool search_for_reactant, // TODO: this argument is ignored currently but seems important
     TileNeighborVector& neighbors
 ) {
   const Grid& grid = wall.grid;
@@ -783,7 +783,7 @@ static void grid_all_neighbors_across_walls_through_vertices(
       }
     }
 
-    /* if there is a restricted region list  for own wall
+    /* if there is a restricted region list for own wall
        and neighbor wall does NOT belong to all regions in this list -
        we assume that neighbor wall lies outside the
        restricted region boundary and we DO NOT add
@@ -1276,7 +1276,7 @@ static void grid_all_neighbors_across_walls_through_edges(
     const Wall& wall,
     const tile_index_t tile_index,
     bool create_grid_flag,
-//    bool search_for_reactant,
+    bool search_for_reactant,
     TileNeighborVector& neighbors
 ) {
   const Grid& grid = wall.grid;
@@ -1308,7 +1308,7 @@ static void grid_all_neighbors_across_walls_through_edges(
      that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
      checks against molecule's own wall and neighbor wall */
   const BNG::Species& species = p.get_all_species().get(sm.species_id);
-  if (species.can_interact_with_border()) {
+  if (search_for_reactant && species.can_interact_with_border()) {
     assert(sm.s.wall_index == wall.index);
 
     uint_set<region_index_t> regions;
@@ -1735,7 +1735,7 @@ static wall_index_t find_neighbor_tiles(
     const Wall& wall,
     tile_index_t tile_index,
     bool create_grid_flag,
-    //bool search_for_reactant,
+    bool search_for_reactant,
     TileNeighborVector& neighbors
 ) {
   const Grid& grid = wall.grid;
@@ -1760,20 +1760,16 @@ static wall_index_t find_neighbor_tiles(
 
       if (!neighboring_walls.empty()) {
         grid_all_neighbors_across_walls_through_vertices(
-            p, sm, neighboring_walls, wall, create_grid_flag,
-            neighbors
-        );
+            p, sm, neighboring_walls, wall, create_grid_flag, search_for_reactant, neighbors);
       }
 
       grid_all_neighbors_across_walls_through_edges(
-          p, sm, wall, tile_index, create_grid_flag, neighbors
-      );
+          p, sm, wall, tile_index, create_grid_flag, search_for_reactant, neighbors);
 
     }
     else {
       grid_all_neighbors_across_walls_through_edges(
-          p, sm, wall, tile_index, create_grid_flag, neighbors
-      );
+          p, sm, wall, tile_index, create_grid_flag, search_for_reactant, neighbors);
     }
   }
 
