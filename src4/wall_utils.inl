@@ -645,9 +645,10 @@ static bool walls_belong_to_at_least_one_different_restricted_region(
     }
   }
 
-  // check whether the intersection of the two sets is not empty
+  // return true if the 2nd set of regions does not contain all the regions that 
+  // the 1st set contains
   for (region_index_t region_index: regions1) {
-    if (regions2.count(region_index) != 0) {
+    if (regions2.count(region_index) == 0) {
       return true;
     }
   }
