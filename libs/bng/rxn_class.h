@@ -169,11 +169,20 @@ public:
     return type == RxnType::AbsorbRegionBorder;
   }
 
-  // mostly for debug purposes
   bool is_simple() const;
+
+  bool is_reactant_species_id(species_id_t reactant_id) const {
+    if (is_unimol()) {
+      return reactant_id == reactant_ids[0];
+    }
+    else {
+      return reactant_id == reactant_ids[0] || reactant_id == reactant_ids[1];
+    }
+  }
 
   species_id_t get_second_species_id(species_id_t reactant_id) const {
     assert(is_bimol());
+    assert(is_reactant_species_id(reactant_id));
     if (reactant_ids[0] != reactant_id) {
       return reactant_ids[0];
     }
@@ -181,6 +190,9 @@ public:
       return reactant_ids[1];
     }
   }
+
+  // asserts if there is no such reactant
+  species_id_t get_reactive_surface_reactant_species_id() const;
 
   // initializes pathways, called automatically once rates of
   // products of this rxn class are needed, called on-demand

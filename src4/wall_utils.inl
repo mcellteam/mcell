@@ -532,6 +532,7 @@ static void find_restricted_regions_by_wall(
     uint_set<region_index_t>& regions) {
 
   assert(regions.empty() && "Function does not clean the resulting array");
+  assert(sm.is_surf());
 
   const BNG::Species& species = p.get_all_species().get(sm.species_id);
 
@@ -551,7 +552,9 @@ static void find_restricted_regions_by_wall(
     if (rxn_class->is_reflect() || rxn_class->is_absorb_region_border()) {
       assert(rxn_class->is_bimol());
 
-      species_id_t second_reactant_id = rxn_class->get_second_species_id(sm.species_id);
+      // rxn class may use ALL_MOLECULES or ALL_SURFACE_MOLECULES therefore we cannot use 
+      // rxn_class->get_second_species_id
+      species_id_t second_reactant_id = rxn_class->get_reactive_surface_reactant_species_id();
       assert(p.get_all_species().get(second_reactant_id).is_reactive_surface());
 
       restricted_surf_classes.insert(second_reactant_id);
