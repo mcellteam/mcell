@@ -246,6 +246,7 @@ const region_id_t REGION_ID_INVALID = ID_INVALID;
 
 typedef uint region_index_t; // index in partition's regions
 const region_index_t REGION_INDEX_INVALID = INDEX_INVALID;
+typedef std::set<region_index_t> RegionIndicesSet;
 
 typedef uint geometry_object_index_t;
 const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = INDEX_INVALID;

@@ -928,7 +928,7 @@ void MCell4Converter::convert_geometry_objects() {
     region_indices.push_back(ri_all);
 
     // we must remember that this region belongs to our object
-    obj.encompassing_region_id = ri_all;
+    obj.encompassing_region_index = ri_all;
 
     // regions from surface areas
     // mcell3 stores the regions in reverse, so we can too...
@@ -947,6 +947,7 @@ void MCell4Converter::convert_geometry_objects() {
         MCell::Region& reg = p.get_region(ri);
         if (reg.walls_and_edges.count(wi) == 1) {
           w.regions.insert(ri);
+          obj.regions.insert(ri);
         }
       }
     }
@@ -1382,8 +1383,8 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
         if (is_obj_not_surf_reg) {
           // need to get the region of this object
           MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
-          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
-          reg_id = obj.encompassing_region_id;
+          assert(obj.encompassing_region_index != MCell::REGION_ID_INVALID);
+          reg_id = obj.encompassing_region_index;
         }
 
         res.type = MCell::CountType::PresentOnSurfaceRegion;
@@ -1427,8 +1428,8 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
         if (is_obj_not_surf_reg) {
           // need to get the region of this object
           MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
-          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
-          reg_id = obj.encompassing_region_id;
+          assert(obj.encompassing_region_index != MCell::REGION_ID_INVALID);
+          reg_id = obj.encompassing_region_index;
         }
 
         res.region_id = reg_id;

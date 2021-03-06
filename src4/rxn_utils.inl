@@ -257,10 +257,11 @@ static void find_volume_mol_reactions_with_surf_classes(
  *      adds matching reactions to matching_rxns array
  *
  *************************************************************************/
-static void find_surface_mol_reactions_with_surf_classes(
+template<typename WallOrObj>
+void find_surface_mol_reactions_with_surf_classes(
     Partition& p,
     const Molecule& reacA,
-    const Wall& w,
+    const WallOrObj& regions_list,
     BNG::RxnClassesVector& matching_rxns
 ) {
 
@@ -279,7 +280,7 @@ static void find_surface_mol_reactions_with_surf_classes(
   }
 
   // for all reactive regions of a wall
-  for (region_index_t region_index: w.regions) {
+  for (region_index_t region_index: regions_list.regions) {
     const Region& reg = p.get_region(region_index);
     if (!reg.is_reactive()) {
       continue;

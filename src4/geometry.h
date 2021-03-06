@@ -74,7 +74,7 @@ class GeometryObject {
 public:
   GeometryObject()
     : id(GEOMETRY_OBJECT_ID_INVALID), index(GEOMETRY_OBJECT_INDEX_INVALID),
-      encompassing_region_id(REGION_ID_INVALID),
+      encompassing_region_index(REGION_ID_INVALID),
       vol_compartment_id(BNG::COMPARTMENT_ID_NONE),
       surf_compartment_id(BNG::COMPARTMENT_ID_NONE),
       counted_volume_index_inside(COUNTED_VOLUME_INDEX_INVALID),
@@ -86,7 +86,7 @@ public:
   geometry_object_id_t id; // world-unique geometry object ID
   geometry_object_index_t index; // partition-unique geometry object index
 
-  region_id_t encompassing_region_id; // ID of Region that represents this whole object, used only in pymcell4 for now
+  region_id_t encompassing_region_index; // ID of Region that represents this whole object, used only in pymcell4 for now
 
   // ID of compartment that represents volume enclosed by this object,none by default
   BNG::compartment_id_t vol_compartment_id;
@@ -98,6 +98,9 @@ public:
 
   // all walls (triangles) that form this object
   std::vector<wall_index_t> wall_indices;
+
+  // all regions located on this object
+  uint_set<region_index_t> regions;
 
   bool represents_compartment() const {
     return vol_compartment_id != BNG::COMPARTMENT_ID_NONE;
@@ -200,8 +203,9 @@ public:
   region_id_t id;
   region_index_t index;
 
-  // the reactivity of the region is modeled using reactions and
-  // this region has its species specified
+  // the reactivity of a region is modeled using reactions,
+  // if this region belongs to a surface class, species_id is to to represent the surface class
+  // may be SPECIES_ID_INVALID is there is not surface class assigned to this region
   species_id_t species_id;
 
   // to which object this region belongs
@@ -607,6 +611,7 @@ public:
 
   // regions, one wall can belong to multiple regions, regions are owned by partition
   // region may represent a surface class
+  // all regions listed here must be a part of 'regions' in the parwent geometry object
   uint_set<region_index_t> regions;
 
   // indices of the three triangle's vertices,

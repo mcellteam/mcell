@@ -41,6 +41,8 @@
 #include "partition.h"
 #include "geometry.h"
 #include "grid_position.h"
+#include "region_util.h"
+
 #include "debug_config.h"
 #include "debug.h"
 
@@ -1939,6 +1941,15 @@ int DiffuseReactEvent::find_surf_product_positions(
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
   uint initiator_recycled_index = INDEX_INVALID;
 
+  /* list of the restricted regions for the reactants by wall */
+  RegionIndicesSet rlp_wall_1, rlp_wall_2;
+  /* list of the restricted regions for the reactants by object */
+  RegionIndicesSet rlp_obj_1, rlp_obj_2;
+
+  int sm_bitmask = RegionUtil::determine_molecule_region_topology(
+      p, reacA, reacB, rxn->is_unimol(),
+      rlp_wall_1, rlp_wall_2, rlp_obj_1, rlp_obj_2);
+
   // find which tiles can be recycled
   if (reacA->is_surf()) {
     if (!keep_reacA) {
@@ -2100,18 +2111,32 @@ int DiffuseReactEvent::find_surf_product_positions(
         assert(num_vacant_tiles != 0);
         uint rnd_num = rng_uint(&world->rng) % num_vacant_tiles;
 
-        if (!used_vacant_tiles[rnd_num]) {
-          WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
-          assigned_surf_product_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
-          assigned_surf_product_positions[product_index].set_reac_type(GridPosType::RANDOM);
-          used_vacant_tiles[rnd_num] = true;
-          found = true;
+        // is this vacant tile already used?
+        if (used_vacant_tiles[rnd_num]) {
+          num_attempts++;
+          continue;
         }
 
-        // TODO: in MCell3
-        /* make sure we can get to the tile given the surface regions defined in the model */
+        WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
 
-        num_attempts++;
+        /*
+        //TODO_REG
+        // make sure we can get to the tile given the surface regions defined in the model
+        if (!product_tile_can_be_reached(p, grid_tile_index_pair,
+            rlp_head_wall_1, rlp_head_wall_2, rlp_head_obj_1, rlp_head_obj_2, sm_bitmask,
+            rxn->is_unimol())) {
+
+          // we do not want to be checking this tile anymore
+          used_vacant_tiles[rnd_num] = true;
+          num_attempts++;
+          continue;
+        }
+        */
+
+        assigned_surf_product_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
+        assigned_surf_product_positions[product_index].set_reac_type(GridPosType::RANDOM);
+        used_vacant_tiles[rnd_num] = true;
+        found = true;
       }
       if (num_attempts >= SURFACE_DIFFUSION_RETRIES) {
         return RX_BLOCKED;

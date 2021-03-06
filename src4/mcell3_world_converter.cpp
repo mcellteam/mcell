@@ -596,6 +596,7 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
 
       region_index_t region_index = pindex.second;
       wall.regions.insert_unique(region_index);
+      object.regions.insert(region_index);
 
       // add our wall to the region
       Region& mcell4_reg = p.get_region(region_index);
