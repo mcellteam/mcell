@@ -2119,19 +2119,15 @@ int DiffuseReactEvent::find_surf_product_positions(
 
         WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
 
-        /*
-        //TODO_REG
         // make sure we can get to the tile given the surface regions defined in the model
-        if (!product_tile_can_be_reached(p, grid_tile_index_pair,
-            rlp_head_wall_1, rlp_head_wall_2, rlp_head_obj_1, rlp_head_obj_2, sm_bitmask,
-            rxn->is_unimol())) {
+        if (!RegionUtil::product_tile_can_be_reached(p, grid_tile_index_pair.wall_index,
+            rxn->is_unimol(), sm_bitmask, rlp_wall_1, rlp_wall_2, rlp_obj_1, rlp_obj_2)) {
 
           // we do not want to be checking this tile anymore
           used_vacant_tiles[rnd_num] = true;
           num_attempts++;
           continue;
         }
-        */
 
         assigned_surf_product_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
         assigned_surf_product_positions[product_index].set_reac_type(GridPosType::RANDOM);

@@ -26,10 +26,24 @@
 
 #include "partition.h"
 
+#include "geometry_utils.h"
+#include "geometry_utils.inl"
 #include "rxn_utils.inl"
+#include "wall_utils.inl"
 
 namespace MCell {
 namespace RegionUtil {
+
+
+static bool is_any_rxn_reflect_or_absorb_region_border(const BNG::RxnClassesVector& rxns) {
+  for (const BNG::RxnClass* rxn_class: rxns) {
+    if (rxn_class->is_reflect() || rxn_class->is_absorb_region_border()) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 
 /***********************************************************************
@@ -40,7 +54,7 @@ are_restricted_regions_for_species_on_object:
        to the surface molecule on this object
        false - if no such regions found
 ************************************************************************/
-bool are_restricted_regions_for_species_on_object(
+static bool are_restricted_regions_for_species_on_object(
     Partition& p,
     const GeometryObject& obj,
     const Molecule& sm) {
@@ -48,7 +62,6 @@ bool are_restricted_regions_for_species_on_object(
 
   wall_index_t wall_idx = WALL_INDEX_INVALID;
   const BNG::Species& s = p.get_all_species().get(sm.species_id);
-
   if (!s.can_interact_with_border()) {
     return false;
   }
@@ -58,17 +71,63 @@ bool are_restricted_regions_for_species_on_object(
   BNG::RxnClassesVector matching_rxns;
   RxnUtil::find_surface_mol_reactions_with_surf_classes(p, sm, obj, matching_rxns);
 
-#if 0
-    if (num_matching_rxns > 0) {
-      for (int kk = 0; kk < num_matching_rxns; kk++) {
-        if ((matching_rxns[kk]->n_pathways == RX_REFLEC) ||
-            (matching_rxns[kk]->n_pathways == RX_ABSORB_REGION_BORDER)) {
-          return 1;
-        }
-      }
+  return is_any_rxn_reflect_or_absorb_region_border(matching_rxns);
+}
+
+
+/***********************************************************************
+find_restricted_regions_by_object:
+  In: object
+      surface molecule
+  Out: an object's region list that are restrictive (REFL/ABSORB)
+       to the surface molecule
+       NULL - if no such regions found
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
+        included in the return "region list".
+************************************************************************/
+static void find_restricted_regions_by_object(
+    Partition& p, const GeometryObject& obj, const Molecule& sm,
+    RegionIndicesSet& res) {
+
+  res.clear();
+
+  const BNG::Species& s = p.get_all_species().get(sm.species_id);
+  if (!s.can_interact_with_border()) {
+    return;
+  }
+
+  struct region *rp;
+  struct region_list *rlp, *rlps, *rlp_head = NULL;
+  int kk, i, wall_idx = INT_MIN;
+  struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+
+
+  for (region_index_t ri: obj.regions) {
+    if (ri == obj.encompassing_region_index) {
+      continue;
     }
-#endif
-  return false;
+
+    // find any wall that belongs to this region
+    const Region& reg = p.get_region(ri);
+    if (reg.walls_and_edges.empty()) {
+      continue;
+    }
+
+    // we care only about reactive surfaces
+    if (!reg.has_surface_class()) {
+      continue;
+    }
+
+    BNG::RxnClassesVector matching_rxns;
+    // NOTE: MCell 3 calls also find_unimol_reactions_with_surf_classes
+    // however all reactions should be covered by surface_mol_reactions_with_surf_classes,
+    // reactions with surf classes should be always bimolecular - molecule + surf class
+    RxnUtil::find_surface_mol_reactions_with_surf_classes(p, sm, obj, matching_rxns);
+
+    if (is_any_rxn_reflect_or_absorb_region_border(matching_rxns)) {
+      res.insert(ri);
+    }
+  }
 }
 
 
@@ -89,8 +148,8 @@ bool are_restricted_regions_for_species_on_object(
  *      and returned
  *
  ***********************************************************************/
-int determine_molecule_region_topology(
-    const Partition& p,
+uint determine_molecule_region_topology(
+    Partition& p,
     const Molecule* reacA,
     const Molecule* reacB,
     const bool is_unimol,
@@ -99,106 +158,95 @@ int determine_molecule_region_topology(
     RegionIndicesSet& rlp_obj_1,
     RegionIndicesSet& rlp_obj_2) {
 
-/*
-    struct volume *world, struct surface_molecule *sm_1,
-    struct surface_molecule *sm_2, struct region_list **rlp_wall_1_ptr,
-    struct region_list **rlp_wall_2_ptr, struct region_list **rlp_obj_1_ptr,
-    struct region_list **rlp_obj_2_ptr, bool is_unimol) {*/
-
   assert(reacA != nullptr);
   const Molecule* sm_1 = (reacA->is_surf()) ? reacA : nullptr;
   const Molecule* sm_2 = (reacB != nullptr && reacB->is_surf()) ? reacB : nullptr;
 
-  const Wall& w_1 = p.get_wall(sm_1->s.wall_index);
-  const Wall& w_2 = p.get_wall(sm_2->s.wall_index);
+  uint sm_bitmask = 0;
+  rlp_wall_1.clear();
+  rlp_wall_2.clear();
+  rlp_obj_1.clear();
+  rlp_obj_2.clear();
 
-  const GeometryObject& go_1 = p.get_geometry_object(w_1.object_index);
-  const GeometryObject& go_2 = p.get_geometry_object(w_2.object_index);
-
-  int sm_bitmask = 0;
-  /*struct wall *w_1, *w_2;
-  struct region_list *rlp_head_wall_1 = NULL;
-  struct region_list *rlp_head_wall_2 = NULL;
-  struct region_list *rlp_head_obj_1 = NULL;
-  struct region_list *rlp_head_obj_2 = NULL;*/
-
-#if 0
   /* bimolecular surf-surf reaction */
   if (sm_1 != NULL && sm_2 != NULL) {
     const BNG::Species& species1 = p.get_all_species().get(sm_1->species_id);
     const BNG::Species& species2 = p.get_all_species().get(sm_2->species_id);
 
+    const Wall& w_1 = p.get_wall(sm_1->s.wall_index);
+    const Wall& w_2 = p.get_wall(sm_2->s.wall_index);
+
+    const GeometryObject& go_1 = p.get_geometry_object(w_1.object_index);
+    const GeometryObject& go_2 = p.get_geometry_object(w_2.object_index);
+
     /* both reactants have restrictive region borders */
-    if (species1.can_interact_with_border() && species2.can_interact_with_border() &&
-        are_restricted_regions_for_species_on_object(
-            p, go_1, sm_1) &&
-        are_restricted_regions_for_species_on_object(
-            world, sm_2->grid->surface->parent_object, sm_2)) {
-      w_1 = sm_1->grid->surface;
-      w_2 = sm_2->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
-      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2);
+    if (
+        species1.can_interact_with_border() &&
+        are_restricted_regions_for_species_on_object(p, go_1, *sm_1) &&
+        species2.can_interact_with_border() &&
+        are_restricted_regions_for_species_on_object(p, go_2, *sm_2)
+     ) {
+
+      WallUtil::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
+      WallUtil::find_restricted_regions_by_wall(p, w_2, *sm_2, rlp_wall_2);
 
       /* both reactants are inside their respective restricted regions */
-      if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 != NULL)) {
+      if (!rlp_wall_1.empty() && !rlp_wall_2.empty()) {
         sm_bitmask |= ALL_INSIDE;
       }
       /* both reactants are outside their respective restricted regions */
-      else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 == NULL)) {
-        rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
-        rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+      else if (rlp_wall_1.empty() && rlp_wall_2.empty()) {
+        find_restricted_regions_by_object(p, go_1, *sm_1, rlp_obj_1);
+        find_restricted_regions_by_object(p, go_2, *sm_2, rlp_obj_2);
         sm_bitmask |= ALL_OUTSIDE;
       }
       /* grid1 is inside and grid2 is outside of its respective
        * restrictive region */
-      else if ((rlp_head_wall_1 != NULL) && (rlp_head_wall_2 == NULL)) {
-        rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+      else if (!rlp_wall_1.empty() && rlp_wall_2.empty()) {
+        find_restricted_regions_by_object(p, go_2, *sm_2, rlp_obj_2);
         sm_bitmask |= SURF1_IN_SURF2_OUT;
       }
       /* grid2 is inside and grid1 is outside of its respective
        * restrictive region */
-      else if ((rlp_head_wall_1 == NULL) && (rlp_head_wall_2 != NULL)) {
-        rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+      else if (rlp_wall_1.empty() && !rlp_wall_2.empty()) {
+        find_restricted_regions_by_object(p, go_1, *sm_1, rlp_obj_1);
         sm_bitmask |= SURF1_OUT_SURF2_IN;
+      }
+      else {
+        assert(false);
       }
     }
 
     /* only reactant sm_1 has restrictive region border property */
-    else if ((sm_1->properties->flags & CAN_REGION_BORDER) &&
-             are_restricted_regions_for_species_on_object(
-                 world, sm_1->grid->surface->parent_object, sm_1) &&
-             (!(sm_2->properties->flags & CAN_REGION_BORDER) ||
-              !are_restricted_regions_for_species_on_object(
-                   world, sm_2->grid->surface->parent_object, sm_2))) {
-      w_1 = sm_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
-      if (rlp_head_wall_1 != NULL) {
+    else if (
+         (species1.can_interact_with_border() &&
+          are_restricted_regions_for_species_on_object(p, go_1, *sm_1)) &&
+        !(species2.can_interact_with_border() &&
+          are_restricted_regions_for_species_on_object(p, go_2, *sm_2))
+    ){
+      WallUtil::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
+      if (!rlp_wall_1.empty()) {
         sm_bitmask |= SURF1_IN;
-      } else {
-        rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+      }
+      else {
+        find_restricted_regions_by_object(p, go_1, *sm_1, rlp_obj_1);
         sm_bitmask |= SURF1_OUT;
       }
     }
 
     /* only reactant "sm_2" has restrictive region border property */
-    else if ((sm_2->properties->flags & CAN_REGION_BORDER) &&
-             are_restricted_regions_for_species_on_object(
-                 world, sm_2->grid->surface->parent_object, sm_2) &&
-             (!(sm_1->properties->flags & CAN_REGION_BORDER) ||
-              !are_restricted_regions_for_species_on_object(
-                   world, sm_1->grid->surface->parent_object, sm_1))) {
-      w_2 = sm_2->grid->surface;
-      rlp_head_wall_2 = find_restricted_regions_by_wall(world, w_2, sm_2);
-      if (rlp_head_wall_2 != NULL) {
+    else if (
+        !(species1.can_interact_with_border() &&
+          are_restricted_regions_for_species_on_object(p, go_1, *sm_1)) &&
+         (species2.can_interact_with_border() &&
+          are_restricted_regions_for_species_on_object(p, go_2, *sm_2))
+    ){
+      WallUtil::find_restricted_regions_by_wall(p, w_2, *sm_2, rlp_wall_2);
+      if (!rlp_wall_2.empty()) {
         sm_bitmask |= SURF2_IN;
-      } else {
-        rlp_head_obj_2 =
-            find_restricted_regions_by_object(world, w_2->parent_object, sm_2);
+      }
+      else {
+        find_restricted_regions_by_object(p, go_2, *sm_2, rlp_obj_2);
         sm_bitmask |= SURF2_OUT;
       }
     }
@@ -206,28 +254,114 @@ int determine_molecule_region_topology(
 
   /* unimolecular reactions */
   else if ((sm_1 != NULL) && is_unimol) {
-    if ((sm_1->properties->flags & CAN_REGION_BORDER) &&
-        are_restricted_regions_for_species_on_object(
-            world, sm_1->grid->surface->parent_object, sm_1)) {
-      w_1 = sm_1->grid->surface;
-      rlp_head_wall_1 = find_restricted_regions_by_wall(world, w_1, sm_1);
-      if (rlp_head_wall_1 != NULL) {
+    const BNG::Species& species1 = p.get_all_species().get(sm_1->species_id);
+    const Wall& w_1 = p.get_wall(sm_1->s.wall_index);
+    const GeometryObject& go_1 = p.get_geometry_object(w_1.object_index);
+
+    if (
+        (species1.can_interact_with_border() &&
+         are_restricted_regions_for_species_on_object(p, go_1, *sm_1))
+    ){
+      WallUtil::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
+      if (!rlp_wall_1.empty()) {
         sm_bitmask |= ALL_INSIDE;
-      } else {
-        rlp_head_obj_1 =
-            find_restricted_regions_by_object(world, w_1->parent_object, sm_1);
+      }
+      else {
+        find_restricted_regions_by_object(p, go_1, *sm_1, rlp_obj_1);
         sm_bitmask |= ALL_OUTSIDE;
       }
     }
   }
 
-  *rlp_wall_1_ptr = rlp_head_wall_1;
-  *rlp_wall_2_ptr = rlp_head_wall_2;
-  *rlp_obj_1_ptr = rlp_head_obj_1;
-  *rlp_obj_2_ptr = rlp_head_obj_2;
-#endif
   return sm_bitmask;
 }
+
+
+/***********************************************************************
+ *
+ * this function tests if wall target can be reached for product placement
+ * based on the previously stored reactant topology based on
+ * sm_bitmask. Below, wall 1 is the wall containing reactant 1 and
+ * wall 2 is the wall containing reactant 2.
+ *
+ * in: wall to test for product placement
+ *     pointer to array with regions that contain wall 1
+ *     pointer to array with regions that contain wall 2
+ *     pointer to array with regions that do not contain wall 1
+ *     pointer to array with regions that do not contain wall 2
+ *
+ * out: returns true or false depending if wall target can be
+ *      used for product placement.
+ *
+ ***********************************************************************/
+bool product_tile_can_be_reached(
+    const Partition& p,
+    const wall_index_t wall_index,
+    const bool is_unimol,
+    const uint sm_bitmask,
+    const RegionIndicesSet& rlp_wall_1,
+    const RegionIndicesSet& rlp_wall_2,
+    const RegionIndicesSet& rlp_obj_1,
+    const RegionIndicesSet& rlp_obj_2) {
+
+  bool status = true;
+
+  const Wall& target = p.get_wall(wall_index);
+
+  if (sm_bitmask & ALL_INSIDE) {
+    if (is_unimol) {
+      if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1)) {
+        status = false;
+      }
+    } else {
+      /* bimol reaction */
+      if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1) ||
+          !WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
+        status = false;
+      }
+    }
+  } else if (sm_bitmask & ALL_OUTSIDE) {
+    if (is_unimol) {
+      if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1)) {
+        status = false;
+      }
+    } else {
+      if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1) ||
+          WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
+        status = false;
+      }
+    }
+  } else if (sm_bitmask & SURF1_IN_SURF2_OUT) {
+    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1) ||
+        WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
+      status = false;
+    }
+  } else if (sm_bitmask & SURF1_OUT_SURF2_IN) {
+    if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1) ||
+        !WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
+      status = false;
+    }
+  } else if (sm_bitmask & SURF1_IN) {
+    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1)) {
+      status = false;
+    }
+  } else if (sm_bitmask & SURF1_OUT) {
+    if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1)) {
+      status = false;
+    }
+  } else if (sm_bitmask & SURF2_IN) {
+    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
+      status = false;
+    }
+  } else if (sm_bitmask & SURF2_OUT) {
+    if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
+      status = false;
+    }
+  }
+
+  return status;
+}
+
 
 } // namespace RegionUtil
 } // namespace MCell

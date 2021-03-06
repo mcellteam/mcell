@@ -529,7 +529,7 @@ static void find_restricted_regions_by_wall(
     Partition& p,
     const Wall& this_wall,
     const Molecule& sm,
-    uint_set<region_index_t>& regions) {
+	RegionIndicesSet& regions) {
 
   assert(regions.empty() && "Function does not clean the resulting array");
   assert(sm.is_surf());
@@ -580,7 +580,7 @@ wall_belongs_to_all_regions_in_region_list:
   Note: Wall can belong to several regions simultaneously.
 ******************************************************************/
 static bool wall_belongs_to_all_regions_in_region_list(
-    const Wall& this_wall, const uint_set<region_index_t>& regions) {
+    const Wall& this_wall, const RegionIndicesSet& regions) {
 
   if (regions.empty()) {
     return false;
@@ -594,6 +594,30 @@ static bool wall_belongs_to_all_regions_in_region_list(
 
   return true;
 }
+
+
+/*****************************************************************
+wall_belongs_to_any_region_in_region_list:
+  In: wall
+      region_list
+  Out: 1 if wall belongs to any region in the region list
+       0 otherwise.
+  Note: Wall can be belong to several regions simultaneously.
+  Note: It is assumed that both wall and region list are defined for
+        the same object.
+******************************************************************/
+static bool wall_belongs_to_any_region_in_region_list(
+		const Wall& this_wall, const RegionIndicesSet& regions) {
+	
+  for (region_index_t region_index: regions) {
+    if (this_wall.regions.count(region_index) != 0) {
+      return true;
+    }
+  }  
+
+  return false;
+}
+
 
 /*****************************************************************
 walls_belong_to_at_least_one_different_restricted_region:
@@ -610,10 +634,10 @@ static bool walls_belong_to_at_least_one_different_restricted_region(
     Partition& p,
     const Wall& w1, const Molecule& sm1,
     const Wall& w2, const Molecule& sm2) {
-
-  uint_set<region_index_t> regions1;
+  
+  RegionIndicesSet regions1;
   find_restricted_regions_by_wall(p, w1, sm1, regions1);
-  uint_set<region_index_t> regions2;
+  RegionIndicesSet regions2;
   find_restricted_regions_by_wall(p, w2, sm2, regions2);
 
   if (regions1.empty() && regions2.empty()) {

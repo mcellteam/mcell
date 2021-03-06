@@ -208,6 +208,10 @@ public:
   // may be SPECIES_ID_INVALID is there is not surface class assigned to this region
   species_id_t species_id;
 
+  bool has_surface_class() const {
+    return species_id != SPECIES_ID_INVALID;
+  }
+
   // to which object this region belongs
   geometry_object_id_t geometry_object_id;
 
