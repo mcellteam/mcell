@@ -55,6 +55,9 @@ private:
 
   void generate_scripting();
 
+  void generate_shared();
+
+  void generate_simulation_setup_parameter(std::ostream& out, const string& name, const string& value);
   void generate_parameters();
 
   std::string generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);

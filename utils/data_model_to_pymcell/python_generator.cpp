@@ -48,7 +48,14 @@ void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& 
   python_expr = replace_function_calls_in_expr(python_expr, true);
   string name = fix_param_id(parameter[KEY_PAR_NAME].asString());
   data.check_if_already_defined_and_add(name, NAME_PARAMETER);
-  out << name << " = " << python_expr;
+
+  string ind;
+  if (!data.not_overridable_python_params) {
+    // allow params to be overridden
+    out << "if " << NOT_DEFINED << "('" << name << "'):\n";
+    ind = IND4;
+  }
+  out << ind << name << " = " << python_expr;
   string units = parameter[KEY_PAR_UNITS].asString();
   if (units != "") {
     out << " # units: " << units;

@@ -304,7 +304,7 @@ std::string PythonExporter::export_model(
 
   // imports
   out << INTERPRETER;
-  out << BASE_MODEL_IMPORTS;
+  out << IMPORT_SYS_OS;
   out << "\n";
   out << MCELL_PATH_SETUP;
   out << "\n";

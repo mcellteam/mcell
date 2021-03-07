@@ -75,8 +75,8 @@ struct SharedGenData {
     output_files_prefix = "";
     debug_mode = false;
     testing_mode = false;
-    cellblender_viz = false;
     bng_mode = false;
+    not_overridable_python_params = false;
 
     unnamed_rxn_counter = 0;
     all_species_and_mol_type_names.clear();
@@ -97,7 +97,7 @@ struct SharedGenData {
   bool debug_mode;
   bool testing_mode;
   std::vector<int> checkpoint_iterations;
-  bool cellblender_viz;
+  bool not_overridable_python_params;
 
   std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
   std::vector<IdLoc> all_reaction_rules_names;

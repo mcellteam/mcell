@@ -95,6 +95,7 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
 
   CHECK(generate_scripting(), failed);
 
+  CHECK(generate_shared(), failed);
   CHECK(generate_parameters(), failed);
   CHECK(generate_subsystem(), failed);
   std::vector<std::string> geometry_names;
@@ -209,15 +210,49 @@ void MCell4Generator::generate_scripting() {
 }
 
 
+void MCell4Generator::generate_shared() {
+  ofstream out;
+  open_and_check_file_w_prefix("", SHARED, out);
+  out << GENERATED_WARNING << "\n";
+  out <<
+      "# This is an auxiliary module containing only a dictionary for parameter overrides.\n" <<
+      "# It has to be a separate module so that it can be shared easily among all modules.\n";
+  out << PARAMETER_OVERRIDES << " = {}\n";
+  out.close();
+}
+
+
+void MCell4Generator::generate_simulation_setup_parameter(
+    std::ostream& out, const string& name, const string& value) {
+  string ind;
+  if (!data.not_overridable_python_params) {
+    // allow params to be overridden
+    out << "if " << NOT_DEFINED << "('" << name << "'):\n";
+    ind = IND4;
+  }
+  out << ind << name << " = " << value << "\n\n";
+}
+
+
 void MCell4Generator::generate_parameters() {
   ofstream out;
   open_and_check_file(PARAMETERS, out);
   out << GENERATED_WARNING << "\n";
-  out << IMPORT_OS;
+  out << IMPORT_SYS_OS;
   out << IMPORT_MATH;
+  out << IMPORT_SHARED;
   out << MCELL_IMPORT;
   out << MODEL_PATH_SETUP << "\n";
   out << make_section_comment("model parameters");
+
+  out <<
+    "# declare all items from parameter_overrides as variables\n" <<
+    "for parameter_name, value in " << SHARED << "." << PARAMETER_OVERRIDES << ".items():\n" <<
+    "    setattr(sys.modules[__name__], parameter_name, value)\n" <<
+    "\n" <<
+    "# auxiliary function used to determine whether a parameter was defined\n" <<
+    "def " << NOT_DEFINED << "(parameter_name):\n" <<
+    "    return parameter_name not in globals()\n\n";
 
   if (data.mcell.isMember(KEY_PARAMETER_SYSTEM)) {
     if (data.bng_mode) {
@@ -230,11 +265,11 @@ void MCell4Generator::generate_parameters() {
 
   out << make_section_comment("simulation setup");
 
-  out << PARAM_ITERATIONS << " = " << data.mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
-  out << PARAM_TIME_STEP << " = " << data.mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
-  out << PARAM_DUMP << " = " << (data.debug_mode ? "True" : "False") << "\n";
-  out << PARAM_EXPORT_DATA_MODEL << " = True\n";
-  out << PARAM_SEED << " = 1 # may be overwritten based on commandline arguments\n";
+  generate_simulation_setup_parameter(out, PARAM_ITERATIONS, data.mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString());
+  generate_simulation_setup_parameter(out, PARAM_TIME_STEP, data.mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString());
+  generate_simulation_setup_parameter(out, PARAM_DUMP, (data.debug_mode ? "True" : "False"));
+  generate_simulation_setup_parameter(out, PARAM_EXPORT_DATA_MODEL, "True");
+  generate_simulation_setup_parameter(out, PARAM_SEED, "1");
   out << "\n";
 
   out.close();
@@ -966,7 +1001,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
         "best-effort conversion and will contain errors that might need to be fixed manually.\n\n";
   }
 
-  out << BASE_MODEL_IMPORTS;
+  out << IMPORT_SYS_OS;
   out << get_import("importlib.util");
   out << "\n";
   out << MODEL_PATH_SETUP;
@@ -977,14 +1012,13 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
 
   string parameters_module = get_module_name(PARAMETERS);
   string customization_module = CUSTOMIZATION;
+  string shared_module = SHARED;
 
-  out <<
-      "# parameters are intentionally not imported using from ... import *\n" <<
-      "# because we may need to make changes to the module's variables\n" <<
-      IMPORT << " " << parameters_module << "\n\n";
+  out << "\n" << make_section_comment("customization and argument processing");
+  out << "# this module is used to hold any overrides of parameter values\n";
+  out << IMPORT_SHARED;
 
-  out << get_resume_from_checkpoint_code(parameters_module);
-
+  out << "# import the customization.py module if it exists\n";
   out << get_customization_import(customization_module);
   out << "\n";
 
@@ -992,8 +1026,8 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
     out << CHECKPOINT_ITERATION << " = None\n\n";
   }
 
+  out << "# process command-line arguments\n";
   out << get_argparse_w_customization_begin(parameters_module, customization_module);
-
   if (data.testing_mode) {
     out << get_argparse_checkpoint_iteration(parameters_module);
   }
@@ -1001,12 +1035,14 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << get_argparse_w_customization_end();
   out << "\n";
 
-  out << get_import(get_module_name(SUBSYSTEM));
-  out << get_import(get_module_name(INSTANTIATION));
-  if (observables_generated) {
-    out << get_import(get_module_name(OBSERVABLES));
-  }
-  out << "\n";
+  out <<
+      S("\n# the module parameters uses ") + SHARED + "." + PARAMETER_OVERRIDES + " to override parameter values\n" <<
+      IMPORT << " " << parameters_module << "\n\n";
+
+  out << get_resume_from_checkpoint_code(parameters_module);
+
+
+  out << "\n" << make_section_comment("model creation and simulation");
 
   out << "# create main model object\n";
   gen_ctor_call(out, MODEL, NAME_CLASS_MODEL, false);
@@ -1026,6 +1062,13 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << "\n";
 
   out << make_section_comment("add components");
+  out << get_import(get_module_name(SUBSYSTEM));
+  out << get_import(get_module_name(INSTANTIATION));
+  if (observables_generated) {
+    out << get_import(get_module_name(OBSERVABLES));
+  }
+  out << "\n";
+
   gen_method_call(out, MODEL, NAME_ADD_SUBSYSTEM, get_module_name(SUBSYSTEM) + "." + SUBSYSTEM);
   gen_method_call(out, MODEL, NAME_ADD_INSTANTIATION, get_module_name(INSTANTIATION) + "." + INSTANTIATION);
   if (observables_generated) {
