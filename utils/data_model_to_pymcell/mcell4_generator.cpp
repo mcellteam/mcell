@@ -495,6 +495,7 @@ void MCell4Generator::generate_subsystem() {
   out << GENERATED_WARNING << "\n";
 
   out << IMPORT_OS;
+  out << IMPORT_SHARED;
   out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << "\n";
@@ -539,7 +540,8 @@ void MCell4Generator::generate_subsystem() {
     gen_method_call(
         out, SUBSYSTEM,
         NAME_LOAD_BNGL_MOLECULE_TYPES_AND_REACTION_RULES,
-        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT))
+        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)),
+        S(SHARED) + "." + PARAMETER_OVERRIDES
     );
     out << "\n" << bngl_mol_types_initialization;
 
@@ -636,6 +638,7 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
   out << GENERATED_WARNING << "\n";
 
   out << IMPORT_OS;
+  out << IMPORT_SHARED;
   out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
@@ -673,7 +676,8 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
         out, INSTANTIATION,
         NAME_LOAD_BNGL_SEED_SPECIES,
         get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)),
-        data.has_default_compartment_object ? BNG::DEFAULT_COMPARTMENT_NAME : ""
+        data.has_default_compartment_object ? BNG::DEFAULT_COMPARTMENT_NAME : "None",
+        S(SHARED) + "." + PARAMETER_OVERRIDES
     );
     out << "\n";
   }
@@ -852,6 +856,7 @@ void MCell4Generator::generate_observables() {
   out << GENERATED_WARNING << "\n";
 
   out << IMPORT_OS;
+  out << IMPORT_SHARED;
   out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
@@ -892,7 +897,8 @@ void MCell4Generator::generate_observables() {
         out, OBSERVABLES,
         NAME_LOAD_BNGL_OBSERVABLES,
         get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)) + ", " +
-        "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'"
+        "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'",
+        S(SHARED) + "." + PARAMETER_OVERRIDES
     );
 
     bng_gen->close_observables_section();

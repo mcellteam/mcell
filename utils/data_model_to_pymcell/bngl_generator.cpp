@@ -61,13 +61,14 @@ void BNGLGenerator::generate_single_python_parameter(std::ostream& python_out, V
 }
 
 
-// NOTE: this belongs rather to python generator
+// NOTE: this belongs rather to the python generator
 void BNGLGenerator::generate_parameters(std::ostream& python_out) {
 
   python_out << "# load parameters from BNGL\n";
   python_out <<
-      VAR_BNGL_PARAMS << " = m.bngl_utils.load_bngl_parameters(" <<
-      get_abs_path(bngl_filename) << ")\n\n";
+      VAR_BNGL_PARAMS << " = m.bngl_utils." << NAME_LOAD_BNGL_PARAMETERS << "(" <<
+      get_abs_path(bngl_filename) << ", " <<
+      S(SHARED) + "." + PARAMETER_OVERRIDES << ")\n\n";
 
   // and generate BNGL parameters and also their Python representations
   bng_out << BNG::BEGIN_PARAMETERS << "\n";
