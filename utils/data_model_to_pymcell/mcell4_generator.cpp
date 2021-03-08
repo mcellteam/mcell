@@ -241,7 +241,7 @@ void MCell4Generator::generate_parameters() {
   out << IMPORT_SYS_OS;
   out << IMPORT_MATH;
   out << IMPORT_SHARED;
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
   out << MODEL_PATH_SETUP << "\n";
   out << make_section_comment("model parameters");
 
@@ -495,7 +495,7 @@ void MCell4Generator::generate_subsystem() {
   out << GENERATED_WARNING << "\n";
 
   out << IMPORT_OS;
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
@@ -568,7 +568,7 @@ vector<string> MCell4Generator::generate_geometry() {
   open_and_check_file(GEOMETRY, out);
   out << GENERATED_WARNING << "\n";
 
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
 
   python_gen->generate_geometry(out, geometry_objects);
 
@@ -636,7 +636,7 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
   out << GENERATED_WARNING << "\n";
 
   out << IMPORT_OS;
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
   if (geometry_generated) {
@@ -852,7 +852,7 @@ void MCell4Generator::generate_observables() {
   out << GENERATED_WARNING << "\n";
 
   out << IMPORT_OS;
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
   if (geometry_generated) {
@@ -1008,7 +1008,7 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << "\n";
   out << MCELL_PATH_SETUP;
   out << "\n";
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
 
   string parameters_module = get_module_name(PARAMETERS);
   string customization_module = CUSTOMIZATION;
@@ -1133,7 +1133,8 @@ void MCell4Generator::generate_customization_template() {
       "# This file contains hooks to override default MCell4 model\n"
       "# code behavior for models generated from CellBlender\n";
 
-  out << MCELL_IMPORT;
+  out << IMPORT_SHARED;
+  out << IMPORT_MCELL_AS_M;
   // TODO: figure out how to handle parameter overrides in customization
   //out << IMPORT << " " << get_module_name(PARAMETERS) << "\n\n";
 

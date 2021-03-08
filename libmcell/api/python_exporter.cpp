@@ -102,7 +102,7 @@ void PythonExporter::save_checkpoint(const std::string& output_dir_) {
 std::string PythonExporter::export_subsystem(PythonExportContext& ctx) {
   ofstream out;
   open_and_check_file(SUBSYSTEM, out);
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
 
   string res_name = model->Subsystem::export_to_python(out, ctx);
 
@@ -114,7 +114,7 @@ std::string PythonExporter::export_subsystem(PythonExportContext& ctx) {
 std::string PythonExporter::export_geometry(PythonExportContext& ctx) {
   ofstream out;
   open_and_check_file(GEOMETRY, out);
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
   out << get_import_star(SUBSYSTEM);
 
   string res_name = model->export_vec_geometry_objects(out, ctx, "");
@@ -129,7 +129,7 @@ std::string PythonExporter::export_instantiation(PythonExportContext& ctx, const
   // for checkpointing, we always need to fully finish the current iteration and then start the new one
   std::ofstream out;
   open_and_check_file(INSTANTIATION, out);
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
   out << get_import_star(GEOMETRY);
   out << "\n";
 
@@ -148,7 +148,7 @@ std::string PythonExporter::export_instantiation(PythonExportContext& ctx, const
 std::string PythonExporter::export_observables(PythonExportContext& ctx) {
   ofstream out;
   open_and_check_file(OBSERVABLES, out);
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
   out << get_import_star(SUBSYSTEM);
   out << get_import_star(GEOMETRY);
   out << get_import_star(INSTANTIATION);
@@ -189,7 +189,7 @@ void PythonExporter::export_simulation_state(
 ) {
   ofstream out;
   open_and_check_file(SIMULATION_STATE, out);
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
   out << get_import_star(SUBSYSTEM);
   out << get_import_star(GEOMETRY);
   out << "\n";
@@ -308,7 +308,7 @@ std::string PythonExporter::export_model(
   out << "\n";
   out << MCELL_PATH_SETUP;
   out << "\n";
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
 
   // TODO: version check, warning
   out << make_section_comment("import model and saved simulation state");

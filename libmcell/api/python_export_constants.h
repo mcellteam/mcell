@@ -109,7 +109,7 @@ const char* const MCELL_PATH_SETUP =
     "    sys.exit(1)\n"
 ;
 
-const char* const MCELL_IMPORT = "import mcell as m\n\n";
+const char* const IMPORT_MCELL_AS_M = "import mcell as m\n\n";
 
 static std::string get_customization_import(const std::string& customization_module) {
   return
@@ -222,6 +222,8 @@ const char* const TEMPLATE_CUSTOM_ARGPARSE_AND_PARAMETERS =
     "    # It is executed before any of the automatically generated \n"
     "    # parameter values are set so one can override the parameter \n"
     "    # values here as well.\n"
+    "    # To override parameter values, add or overwrite an item in dictionary\n"
+    "    # shared.parameter_overrides, e.g. shared.parameter_overrides['SEED'] = 10\n"
     "    pass\n"
     "\"\"\"\n"
 ;
