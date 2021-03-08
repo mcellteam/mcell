@@ -37,9 +37,9 @@
 #include "datamodel_defines.h"
 
 #include "geometry_utils.h"
-#include "geometry_utils.inc"
-#include "collision_utils.inc"
-#include "grid_utils.inc"
+#include "geometry_utils.inl"
+#include "collision_utils.inl"
+#include "grid_utils.inl"
 
 
 using namespace std;

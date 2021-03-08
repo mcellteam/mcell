@@ -32,7 +32,6 @@
 #include "scheduler.h"
 #include "geometry.h"
 #include "simulation_config.h"
-#include "species_flags_analyzer.h"
 #include "libmcell/api/shared_structs.h"
 
 #include "rng.h"
@@ -213,8 +212,7 @@ public:
       const Vec3& origin_corner_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
-      SimulationStats& stats_,
-      SpeciesFlagsAnalyzer& species_flags_analyzer_
+      SimulationStats& stats_
   )
     : origin_corner(origin_corner_),
       next_molecule_id(0),
@@ -222,8 +220,7 @@ public:
       id(id_),
       config(config_),
       bng_engine(bng_engine_),
-      stats(stats_),
-      species_flags_analyzer(species_flags_analyzer_) {
+      stats(stats_) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
 
@@ -353,10 +350,12 @@ public:
   }
 
 
-  // called when a volume molecule is added and it is detected that
-  // this is a new species
+  // - called when a volume molecule is added and it is detected that this is a new species,
+  // - ignore the current molecule because it will be added a little later,
+  //   not ignoring the molecule would cause an assert in uint_set::insert_unique called from 
+  //   SubpartReactantsSet::insert_unique in case that there are reactions of type A+A
   void update_reactants_maps_for_new_species(
-      const species_id_t new_species_id
+      const species_id_t new_species_id, const molecule_id_t current_molecule_id
   ) {
     // can the new species initiate a reaction?
     const BNG::Species& initiator_reactant_species = get_all_species().get(new_species_id);
@@ -374,7 +373,7 @@ public:
 
     // let's go through all molecules and update whether they can react with our new species
     for (const Molecule& m: molecules) {
-      if (!m.is_vol() || m.is_defunct()) {
+      if (!m.is_vol() || m.is_defunct() || m.id == current_molecule_id) {
         continue;
       }
 
@@ -462,12 +461,13 @@ public:
   }
 
 private:
-  // internal methods that sets molecule's id and
-  // adds it to all relevant structures
-
+  // internal methods that sets molecule's id and adds it to all relevant structures,
+  // do not use species-id here because it may change
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol, const float_t release_delay_time) {
+#ifndef NDEBUG
     const BNG::Species& species = get_all_species().get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
+#endif
 
     if (vm_copy.id == MOLECULE_ID_INVALID) {
       // assign new ID
@@ -532,62 +532,111 @@ private:
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(m.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
-      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
+      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns());
     }
     if (!sp.was_instantiated()) {
       // update rxn classes for this new species, may create new species and
       // invalidate Species reference
-      get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(sp.id);
+      get_all_rxns().get_bimol_rxns_for_reactant(sp.id);
     }
     // we must get a new reference
     get_all_species().get(m.species_id).inc_num_instantiations();
   }
 
+  void update_compartment(Molecule& new_m, const BNG::compartment_id_t target_compartment_id) {
+    BNG::Species& species = get_all_species().get(new_m.species_id);
+
+    // set compartment/define new species if needed, surface species may have only one surface compartment
+    BNG::compartment_id_t species_compartment_id = species.get_primary_compartment_id();
+    assert(!BNG::is_in_out_compartment_id(species_compartment_id));
+
+    // change only if it was not set
+    if (species_compartment_id != target_compartment_id) {
+      if (species_compartment_id == BNG::COMPARTMENT_ID_NONE) {
+        // desired compartment was not set
+        release_assert(target_compartment_id != BNG::COMPARTMENT_ID_NONE && "Not 100% sure whether this can occur");
+        new_m.species_id = get_all_species().get_species_id_with_compartment(new_m.species_id, target_compartment_id);
+      }
+      else  {
+        errs() << "Invalid compartment specified, trying to create " << species.name << " in " <<
+            bng_engine.get_data().get_compartment(target_compartment_id).name << ".\n";
+        exit(1);
+      }
+    }
+  }
+
+  void update_volume_compartment(Molecule& new_vm) {
+    const BNG::Species& species = get_all_species().get(new_vm.species_id);
+     BNG::compartment_id_t target_compartment_id = get_compartment_id_for_counted_volume(new_vm.v.counted_volume_index);
+     assert(target_compartment_id == BNG::COMPARTMENT_ID_NONE ||
+         bng_engine.get_data().get_compartment(target_compartment_id).is_3d);
+
+     update_compartment(new_vm, target_compartment_id);
+  }
+
+  void update_surface_compartment(Molecule& new_sm) {
+    const Wall& w = get_wall(new_sm.s.wall_index);
+    const GeometryObject& o = get_geometry_object(w.object_index);
+
+    if (o.surf_compartment_id !=  BNG::COMPARTMENT_ID_NONE) {
+      BNG::compartment_id_t target_compartment_id = o.surf_compartment_id;
+      assert(!bng_engine.get_data().get_compartment(target_compartment_id).is_3d);
+
+      update_compartment(new_sm, target_compartment_id);
+    }
+  }
+
 public:
   // any molecule flags are set by caller after the molecule is created by this method
+  // molecule releases should use update_compartment = true,
+  // when a molecule is created by a reaction, the compartment is usually known and update_compartment may be false for efficiency
   Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0) {
     assert(vm_copy.is_vol());
-    update_species_for_new_molecule(vm_copy);
 
-    // TODO: use Species::is_instantiated instead of the known_vol_species
-    if (known_vol_species.count(vm_copy.species_id) == 0) {
-      // we must update reactant maps if new species were added
-      update_reactants_maps_for_new_species(vm_copy.species_id);
-      known_vol_species.insert(vm_copy.species_id);
-    }
-
-    // molecule must be added after the update because it was not fully set up
+    // add a new molecule
     Molecule& new_vm = add_molecule(vm_copy, true, release_delay_time);
 
-    // and add this molecule to a map that tells which species can react with it
-    new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
+    // set subpart indices for vol-vol rxn handling
+    new_vm.v.subpart_index = get_subpart_index(new_vm.v.pos);
     new_vm.v.reactant_subpart_index = new_vm.v.subpart_index;
+
+    // compute counted volume id for a new molecule, might be used to determine compartment
+    counted_volume_index_t counted_volume_index = new_vm.v.counted_volume_index;
+    if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
+      new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
+    }
+
+    update_volume_compartment(new_vm);
+
+    // make sure that the rxn for this species flags are up-to-date and
+    // increment number of instantiations of this species
+    update_species_for_new_molecule(new_vm);
+
+    // TODO: use Species::is_instantiated instead of the known_vol_species
+    if (known_vol_species.count(new_vm.species_id) == 0) {
+      // we must update reactant maps if new species were added,
+      // uses reactant_subpart_index of existing molecules
+      update_reactants_maps_for_new_species(new_vm.species_id, new_vm.id);
+      known_vol_species.insert(new_vm.species_id);
+    }
+
+    // and add this molecule to a map that tells which species can react with it
     // might invalidate species references
     change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
 
-    // we must refresh the species reference
-    BNG::Species& sp_new_ref = get_all_species().get(vm_copy.species_id);
-    // compute counted volume id for a new molecule, may define a new counted volume
-    if (sp_new_ref.needs_counted_volume() && new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
-      new_vm.set_counted_volume_and_compartment(*this, compute_counted_volume_using_waypoints(new_vm.v.pos));
-    }
     return new_vm;
   }
 
 
   Molecule& add_surface_molecule(const Molecule& sm_copy, const float_t release_delay_time = 0) {
     assert(sm_copy.is_surf() && sm_copy.s.wall_index != WALL_INDEX_INVALID);
-    update_species_for_new_molecule(sm_copy);
 
     Molecule& new_sm = add_molecule(sm_copy, false, release_delay_time);
 
     // set compartment if needed
-    BNG::Species& species = get_all_species().get(new_sm.species_id);
-    if (species.needs_compartment()) {
-      const Wall& w = get_wall(new_sm.s.wall_index);
-      const GeometryObject& o = get_geometry_object(w.object_index);
-      new_sm.reactant_compartment_id = species.get_as_reactant_compartment(o.surf_compartment_id);
-    }
+    update_surface_compartment(new_sm);
+
+    update_species_for_new_molecule(new_sm);
 
     return new_sm;
   }
@@ -888,9 +937,8 @@ public:
     return walls_using_vertex_mapping[vertex_index];
   }
 
-
-  BNG::compartment_id_t get_reactant_compartment_id_for_counted_volume(
-      const BNG::Species& species, const counted_volume_index_t counted_volume_index);
+  BNG::compartment_id_t get_compartment_id_for_counted_volume(
+      const counted_volume_index_t counted_volume_index);
 
   // ---------------------------------- dynamic vertices ----------------------------------
 
@@ -1110,6 +1158,9 @@ private:
   // set for fast search
   std::set<CountedVolume> counted_volumes_set;
 
+
+  std::map<counted_volume_index_t, BNG::compartment_id_t> counted_volume_index_to_compartment_id_cache;
+
   // indexed by [x][y][z]
   std::vector< std::vector< std::vector< Waypoint > > > waypoints;
 
@@ -1125,7 +1176,6 @@ public:
   const SimulationConfig& config;
   BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
-  SpeciesFlagsAnalyzer& species_flags_analyzer;
 };
 
 typedef std::vector<Partition> PartitionVector;

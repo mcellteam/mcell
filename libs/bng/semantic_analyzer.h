@@ -30,6 +30,7 @@ public:
       ParserContext* ctx_, BNGData* res_bng, Cplx& res);
 
 private:
+  double evaluate_function_call(ASTExprNode* call_node, const std::vector<double>& arg_values);
   ASTExprNode* evaluate_to_dbl(ASTExprNode* root, std::set<std::string> used_ids={});
   void resolve_rxn_rates();
 
@@ -60,7 +61,8 @@ private:
   ElemMol convert_molecule_pattern(const ASTMolNode* m);
   void convert_cplx(
       const ASTCplxNode* cplx_node,
-      Cplx& pattern
+      Cplx& pattern,
+      const bool check_compartments = true
   );
   void convert_rxn_rule_side(
       const ASTListNode* rule_side,
@@ -70,8 +72,6 @@ private:
 
   void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction);
   void convert_and_store_rxn_rules();
-
-  std::string get_compartment_name(const ASTCplxNode* cplx_node);
 
   void convert_seed_species();
   void convert_observables();
@@ -85,6 +85,16 @@ private:
   ParserContext* ctx;
   BNGData* bng_data;
 };
+
+
+// auxiliary function also used in Cplx
+void insert_compartment_id_to_set_based_on_type(
+    const BNGData* bng_data,
+    const compartment_id_t cid,
+    bool& all_are_none_or_inout,
+    bool& has_compartment_none,
+    uint_set<compartment_id_t>& vol_compartments,
+    uint_set<compartment_id_t>& surf_compartments);
 
 } /* namespace BNG */
 

@@ -64,7 +64,6 @@ public:
       const std::string& count_name,
       const std::string& observable_name,
       const std::string& what_to_count,
-      const std::string& compartment,
       const std::string& where_to_count, // empty for WORLD
       const std::string& orientation,
       const std::string& multiplier_str,
@@ -74,6 +73,15 @@ public:
       const bool single_term
   );
   std::string generate_count_terms_for_expression(std::ostream& out, const std::string& mdl_string);
+
+  std::string generate_single_molecule_release_info_array(
+      std::ostream& out,
+      std::string& rel_site_name,
+      Json::Value& release_site_list,
+      Json::Value::ArrayIndex begin,
+      Json::Value::ArrayIndex end);
+
+  void generate_release_pattern(std::ostream& out, const std::string& name, std::string& delay_string);
 
 private:
   void generate_single_parameter(std::ostream& out, Json::Value& parameter);
@@ -101,16 +109,6 @@ private:
       std::ostream& out, const int index, Json::Value& object);
 
   bool is_volume_mol_type(const std::string& mol_type_name);
-  bool is_volume_species(const std::string& species_name);
-
-  std::string generate_single_molecule_release_info_array(
-      std::ostream& out,
-      std::string& rel_site_name,
-      Json::Value& release_site_list,
-      Json::Value::ArrayIndex begin,
-      Json::Value::ArrayIndex end);
-
-  void generate_release_pattern(std::ostream& out, const std::string& name, std::string& delay_string);
 
   std::vector<std::string> get_species_to_visualize();
 

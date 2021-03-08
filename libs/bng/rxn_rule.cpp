@@ -207,12 +207,12 @@ void RxnRule::finalize() {
 
   // finalize all reactants and products
   for (Cplx& ci: reactants) {
-    ci.finalize();
+    ci.finalize_cplx();
     simple = simple && ci.is_simple();
   }
 
   for (Cplx& ci: products) {
-    ci.finalize();
+    ci.finalize_cplx();
     simple = simple && ci.is_simple();
   }
 
@@ -367,9 +367,12 @@ static int get_component_instance_matching_score(
 
 
 static int get_mol_instance_matching_score(const ElemMol& pat, const ElemMol& prod) {
+
+  // elementary molecule type must be the same
   if (pat.elem_mol_type_id != prod.elem_mol_type_id) {
     return -1;
   }
+
   int res = 0;
 
   // add a lot of points if we have the same number of components
@@ -386,6 +389,11 @@ static int get_mol_instance_matching_score(const ElemMol& pat, const ElemMol& pr
     if (i < prod.components.size()) {
       res += get_component_instance_matching_score(pat_compi, prod.components[i]);
     }
+  }
+  
+  // add extra point if compartment is the same 
+  if (pat.compartment_id == prod.compartment_id) {
+    res++;
   }
 
   return res;
@@ -550,7 +558,9 @@ static vertex_descriptor_t get_bond_target(
       mol_found = true; // just for debug
     }
     else {
-      release_assert(!comp_found);
+      // TODO, see test tests/bngl/0967_vol_in_a_plus_surf_b_to_surf_c_cplx_reusing_mol_in_prod
+      release_assert(!comp_found &&
+          "Used rule is not supported yet, probably due to finding only a partial match from reactant to product such as sb(b!1).sy(y!1) -> sc(c!1).sy(y!1)");
       comp_found = true;
       res = n_desc;
     }
@@ -873,6 +883,19 @@ static void apply_rxn_on_reactants_graph(
         }
       } // if (prod_ci.bond_value != reac_ci.bond_value)
     } // if (!prod_comp.is_mol)
+    else {
+      // elementary molecule (mol)
+      assert(prod_node.mol != nullptr);
+      const ElemMol& prod_em = *prod_node.mol;
+
+      assert(reac_node.mol != nullptr);
+      ElemMol& reac_em = *reac_node.mol;
+
+      // update compartment if needed
+      if (is_specific_compartment_id(prod_em.compartment_id)) {
+        reac_em.compartment_id = prod_em.compartment_id;
+      }
+    }
   } // for (auto prod_pat_it: prod_pattern_mapping)
 
   // remove bonds
@@ -980,6 +1003,48 @@ static bool convert_graph_component_to_product_cplx_inst(
 }
 
 
+// product compartment may be set only partially in the rxn rule, this sets them accordingly
+static void set_product_compartments(Species* product_species) {
+  // first we need to sef surf/vol flags
+  product_species->finalize_cplx();
+
+  compartment_id_t primary_compartment_id = product_species->get_primary_compartment_id();
+  bool is_surf = product_species->is_surf();
+
+  // we will be setting compartments only when the primary compartment is set, otherwise the
+  // compartment is set when a molecule is added to a partition
+  // IN/OUT compartments are allowed but ignored because they were replaced with orientation
+  if (primary_compartment_id != COMPARTMENT_ID_NONE && !is_in_out_compartment_id(primary_compartment_id)) {
+
+    for (ElemMol& em: product_species->elem_mols) {
+      if (is_surf) {
+        if (em.is_surf()) {
+          // all surface elementary molecules must get the primary surface compartment
+          em.compartment_id = primary_compartment_id;
+        }
+        else {
+          // compartments for volume elem mols must be set
+          // TODO: there should be a check for this e.g. during initialization
+          release_assert(em.compartment_id != COMPARTMENT_ID_NONE &&
+              "Rxn product sets surface compartment but volume compartment is unset, this is not supported because "
+              "it is not clear which compartment should the volume elementary molecule use, please check your reaction rules");
+        }
+      }
+      else {
+        // volume - if set, all elem mols must have the same compartment
+        assert(em.is_vol());
+        if (em.compartment_id == COMPARTMENT_ID_NONE) {
+          em.compartment_id = primary_compartment_id;
+        }
+        else {
+          release_assert(em.compartment_id == primary_compartment_id && "Volume compartment mismatch in rxn product");
+        }
+      }
+    }
+  }
+}
+
+
 static void create_products_from_reactants_graph(
     const BNGData* bng_data,
     Graph& reactants_graph,
@@ -1015,6 +1080,8 @@ static void create_products_from_reactants_graph(
 
     if (is_rxn_product) {
       release_assert(!product_indices.empty());
+
+      set_product_compartments(product_species);
 
       // remember product with its indices
       created_products.push_back(ProductSpeciesPtrWIndices(product_species, product_indices));
@@ -1333,7 +1400,7 @@ void RxnRule::create_products_for_complex_rxn(
     // iterating over map sorted by product indices
     for (ProductSpeciesPtrWIndices& product_w_indices: product_cplxs) {
       // need to transform cplx into species id, the possibly new species will be removable
-      product_w_indices.product_species->finalize(bng_config);
+      product_w_indices.product_species->finalize_species(bng_config);
       species_id_t species_id = all_species.find_or_add_delete_if_exist(
           product_w_indices.product_species, true);
 
@@ -1402,7 +1469,7 @@ void RxnRule::define_rxn_pathway_using_mapping(
   // we are not setting the resulting compartment, neither orientation
   for (ProductSpeciesPtrWIndices& product_w_indices: product_cplxs) {
     // need to transform cplx into species id, the possibly new species will be removable
-    product_w_indices.product_species->finalize(bng_config);
+    product_w_indices.product_species->finalize_species(bng_config);
     species_id_t species_id = all_species.find_or_add_delete_if_exist(
         product_w_indices.product_species, true);
 
@@ -1417,13 +1484,13 @@ void RxnRule::define_rxn_pathway_using_mapping(
 }
 
 
-bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
+bool RxnRule::is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(const uint index) const {
 #ifdef MCELL4_DO_NOT_REUSE_REACTANT
   return false;
 #endif
   assert(is_finalized());
-  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
-    if (index == cplx_index_pair.reactant_index) {
+  for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
+    if (index == cplx_index_pair.reactant_index && cplx_index_pair.is_simple_mapping) {
       return true;
     }
   }
@@ -1431,13 +1498,14 @@ bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
 }
 
 
-bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
+// ignores compartments
+bool RxnRule::is_simple_cplx_product_on_both_sides_of_rxn_w_identical_compartments(const uint index) const {
 #ifdef MCELL4_DO_NOT_REUSE_REACTANT
   return false;
 #endif
   assert(is_finalized());
-  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
-    if (index == cplx_index_pair.product_index) {
+  for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
+    if (index == cplx_index_pair.product_index && cplx_index_pair.is_simple_mapping) {
       return true;
     }
   }
@@ -1445,9 +1513,14 @@ bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
 }
 
 
-bool RxnRule::get_assigned_simple_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
+bool RxnRule::get_assigned_cplx_reactant_for_product(
+    const uint product_index, const bool only_simple, uint& reactant_index) const {
   // this is not a time critical search
-  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
+  for (const CplxIndexPair& cplx_index_pair: pat_prod_cplx_mapping) {
+    if (only_simple && !cplx_index_pair.is_simple_mapping) {
+      continue;
+    }
+
     if (product_index == cplx_index_pair.product_index) {
       reactant_index = cplx_index_pair.reactant_index;
       return true;
@@ -1494,8 +1567,8 @@ void RxnRule::compute_reactants_products_mapping() {
   VertexNameMap patterns_index = boost::get(boost::vertex_name, patterns_graph);
   VertexNameMap products_index = boost::get(boost::vertex_name, products_graph);
 
-  // also compute simple_cplx_mapping
-  simple_cplx_mapping.clear();
+  // also compute pat_prod_cplx_mapping
+  pat_prod_cplx_mapping.clear();
   // and set mol_instances_are_fully_maintained
   uint num_prod_molecule_instances = 0;
   uint num_mapped_molecule_instances = 0;
@@ -1524,24 +1597,27 @@ void RxnRule::compute_reactants_products_mapping() {
     // the complex must be simple for the simple_cplx_mapping, i.e. have no edge
     // note that we could compute the full mapping but we need this just for mcell3
     // and code for complexes that are not simple would be longer
+
     boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
     boost::tie(ei,edge_end) = boost::out_edges(prod_mol_desc, products_graph);
-    if (ei != edge_end) {
-      continue;
-    }
+    bool is_simple_mapping = ei == edge_end;
 
-    // ok, we can finally define our mapping
     const Node& pat_mol = patterns_index[map_it->second];
     assert(pat_mol.is_mol);
 
+    // the molecules must have the same compartment,
+    // the search above in find_best_product_to_pattern_mapping must ignore compartments
+    if (pat_mol.mol->compartment_id != prod_mol.mol->compartment_id) {
+      continue;
+    }
 
     // the graph has just a pointer to the molecule instance and since the graph
     // should be independent on the reactions, we are not storing any indices there
     uint reac_cplx_index = find_mol_instance_with_address(reactants, pat_mol.mol);
     uint prod_cplx_index = find_mol_instance_with_address(products, prod_mol.mol);
 
-
-    simple_cplx_mapping.push_back(CplxIndexPair(reac_cplx_index, prod_cplx_index));
+    // we can finally define our mapping
+    pat_prod_cplx_mapping.push_back(CplxIndexPair(reac_cplx_index, prod_cplx_index, is_simple_mapping));
   }
 
   // count number of molecules in pattern
@@ -1686,7 +1762,8 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
   // for each reactant (from the end since we want the products to be ordered in the same way)
   for (int pi = products.size() - 1; pi > 0; pi--) {
     uint ri;
-    bool found = get_assigned_simple_cplx_reactant_for_product(pi, ri);
+    // doing this only for simple complexes to keep compatibility with MCell3
+    bool found = get_assigned_cplx_reactant_for_product(pi, true, ri);
 
     if (found) {
       // move product to the front

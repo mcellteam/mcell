@@ -53,8 +53,11 @@ private:
       const bool for_append = false,
       const bool bngl = false);
 
-  void check_scripting();
+  void generate_scripting();
 
+  void generate_shared();
+
+  void generate_simulation_setup_parameter(std::ostream& out, const string& name, const string& value);
   void generate_parameters();
 
   std::string generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
@@ -70,14 +73,15 @@ private:
       std::ofstream& out, const int index, Json::Value& object);
   std::vector<std::string> generate_geometry();
 
+  void generate_release_sites(std::ostream& out, std::vector<std::string>& release_site_names);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
   void generate_counts(std::ostream& out, std::vector<std::string>& python_counts, bool& has_bng_observables);
-  void generate_observables(const bool cellblender_viz);
+  void generate_observables();
 
   void generate_config(std::ostream& out);
   void generate_model(const bool print_failed_marker);
-  void generate_customization();
+  void generate_customization_template();
 private:
   BNGLGenerator* bng_gen;
   std::ofstream bng_out;

@@ -49,6 +49,7 @@ void GenElementaryMolecule::set_all_attributes_as_default_or_unset() {
   class_name = "ElementaryMolecule";
   elementary_molecule_type = nullptr;
   components = std::vector<std::shared_ptr<Component>>();
+  compartment_name = STR_UNSET;
 }
 
 bool GenElementaryMolecule::__eq__(const ElementaryMolecule& other) const {
@@ -64,7 +65,8 @@ bool GenElementaryMolecule::__eq__(const ElementaryMolecule& other) const {
           true
         )
      )  &&
-    vec_ptr_eq(components, other.components);
+    vec_ptr_eq(components, other.components) &&
+    compartment_name == other.compartment_name;
 }
 
 bool GenElementaryMolecule::eq_nonarray_attributes(const ElementaryMolecule& other, const bool ignore_name) const {
@@ -80,14 +82,16 @@ bool GenElementaryMolecule::eq_nonarray_attributes(const ElementaryMolecule& oth
           true
         )
      )  &&
-    true /*components*/;
+    true /*components*/ &&
+    compartment_name == other.compartment_name;
 }
 
 std::string GenElementaryMolecule::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "elementary_molecule_type=" << "(" << ((elementary_molecule_type != nullptr) ? elementary_molecule_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "components=" << vec_ptr_to_str(components, ind + "  ");
+      "components=" << vec_ptr_to_str(components, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "compartment_name=" << compartment_name;
   return ss.str();
 }
 
@@ -96,18 +100,21 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
       .def(
           py::init<
             std::shared_ptr<ElementaryMoleculeType>,
-            const std::vector<std::shared_ptr<Component>>
+            const std::vector<std::shared_ptr<Component>>,
+            const std::string&
           >(),
           py::arg("elementary_molecule_type"),
-          py::arg("components") = std::vector<std::shared_ptr<Component>>()
+          py::arg("components") = std::vector<std::shared_ptr<Component>>(),
+          py::arg("compartment_name") = STR_UNSET
       )
       .def("check_semantics", &ElementaryMolecule::check_semantics)
       .def("__str__", &ElementaryMolecule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMolecule::__eq__, py::arg("other"))
-      .def("to_bngl_str", &ElementaryMolecule::to_bngl_str)
+      .def("to_bngl_str", &ElementaryMolecule::to_bngl_str, py::arg("with_compartment") = true)
       .def("dump", &ElementaryMolecule::dump)
       .def_property("elementary_molecule_type", &ElementaryMolecule::get_elementary_molecule_type, &ElementaryMolecule::set_elementary_molecule_type)
       .def_property("components", &ElementaryMolecule::get_components, &ElementaryMolecule::set_components)
+      .def_property("compartment_name", &ElementaryMolecule::get_compartment_name, &ElementaryMolecule::set_compartment_name)
     ;
 }
 
@@ -133,6 +140,9 @@ std::string GenElementaryMolecule::export_to_python(std::ostream& out, PythonExp
   ss << ind << "elementary_molecule_type = " << elementary_molecule_type->export_to_python(out, ctx) << "," << nl;
   if (components != std::vector<std::shared_ptr<Component>>() && !skip_vectors_export()) {
     ss << ind << "components = " << export_vec_components(out, ctx, exported_name) << "," << nl;
+  }
+  if (compartment_name != STR_UNSET) {
+    ss << ind << "compartment_name = " << "'" << compartment_name << "'" << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

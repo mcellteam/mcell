@@ -46,7 +46,7 @@ void Instantiation::dump() const {
 }
 
 
-std::shared_ptr<GeometryObject> Instantiation::find_volume_compartment(const std::string& name) {
+std::shared_ptr<GeometryObject> Instantiation::find_volume_compartment_object(const std::string& name) {
   for (auto o: geometry_objects) {
     if (o->is_bngl_compartment) {
       if (o->name == name) {
@@ -58,7 +58,7 @@ std::shared_ptr<GeometryObject> Instantiation::find_volume_compartment(const std
 }
 
 
-std::shared_ptr<GeometryObject> Instantiation::find_surface_compartment(const std::string& name) {
+std::shared_ptr<GeometryObject> Instantiation::find_surface_compartment_object(const std::string& name) {
   for (auto o: geometry_objects) {
     if (o->is_bngl_compartment) {
       if (is_set(o->surface_compartment_name) && o->surface_compartment_name == name) {
@@ -154,23 +154,11 @@ void Instantiation::convert_single_seed_species_to_release_site(
   rel_site->complex->orientation = Orientation::DEFAULT;
 
   if (bng_ss.cplx.has_compartment()) {
-    bool surf_release = rel_site->complex->is_surf();
-    const BNG::Compartment& c = bng_data.get_compartment(bng_ss.cplx.get_compartment_id());
-    // check that dimensionality of compartment matches the released molecule
-    if (surf_release && c.is_3d) {
-      throw ValueError(S("Seed species specification for complex instance ") +
-          bng_ss.cplx.to_str() + ": cannot release surface molecules " +
-          "into a 3d compartment " + c.name + ".\n"
-      );
-    }
-    else if (!surf_release && !c.is_3d) {
-      throw ValueError(S("Seed species specification for complex instance ") +
-          bng_ss.cplx.to_str() + ": cannot release volume molecules " +
-          "onto a 2d compartment " + c.name + ".\n"
-      );
-    }
+    // we might not know the types of elementary molecules at this point so we cannot check
+    // that molecule and compartment are of the same type (vol or surf)
+    const BNG::Compartment& c = bng_data.get_compartment(bng_ss.cplx.get_primary_compartment_id(true));
 
-    rel_site->complex->compartment_name = c.name;
+    rel_site->complex->set_compartment_name(c.name);
     rel_site->shape = Shape::COMPARTMENT;
 
     rel_site->name =
@@ -183,7 +171,7 @@ void Instantiation::convert_single_seed_species_to_release_site(
     if (!is_set(default_release_region)) {
       throw ValueError(S("Seed species specification for complex instance ") +
           rel_site->complex->to_bngl_str() + " does not have a compartment and " +
-          NAME_DEFAULT_RELEASE_REGION + " was set, don't know where to release.\n"
+          NAME_DEFAULT_RELEASE_REGION + " was not set, don't know where to release.\n"
       );
     }
 
@@ -213,7 +201,7 @@ std::shared_ptr<Region> Instantiation::get_compartment_region(const std::string&
   std::shared_ptr<GeometryObject> obj;
 
   // first try if it is a volume compartment
-  obj = find_volume_compartment(name);
+  obj = find_volume_compartment_object(name);
   if (is_set(obj)) {
 
     std::shared_ptr<Region> res = std::dynamic_pointer_cast<Region>(obj);
@@ -225,7 +213,7 @@ std::shared_ptr<Region> Instantiation::get_compartment_region(const std::string&
   }
 
   // then a surface compartment
-  obj = find_surface_compartment(name);
+  obj = find_surface_compartment_object(name);
   if (is_set(obj)) {
     return std::dynamic_pointer_cast<Region>(obj);
   }

@@ -35,7 +35,12 @@ public:
 
   bool __eq__(const ElementaryMolecule& other) const override;
 
-  std::string to_bngl_str() const override;
+  std::string to_bngl_str(const bool with_compartment = true) const override;
+
+  // make a deep copy, used from Complex::clone
+  std::shared_ptr<ElementaryMolecule> clone() const;
+
+  bool is_surf() const;
 };
 
 } // namespace API

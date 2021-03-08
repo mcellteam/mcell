@@ -596,6 +596,7 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
 
       region_index_t region_index = pindex.second;
       wall.regions.insert_unique(region_index);
+      object.regions.insert(region_index);
 
       // add our wall to the region
       Region& mcell4_reg = p.get_region(region_index);
@@ -907,6 +908,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | COUNT_CONTENTS)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS)
         || flags_check == (SPECIES_FLAG_CAN_VOLWALL | COUNT_ENCLOSED | COUNT_CONTENTS)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_REGION_BORDER)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
       )) {
       mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
@@ -975,7 +977,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     new_species.elem_mols.push_back(mol_inst);
 
     // and finally let's add our new species
-    new_species.finalize(world->config);
+    new_species.finalize_species(world->config);
     species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
 
     // set all species 'superclasses' ids
@@ -990,6 +992,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     }
     else if (spec == s->all_surface_mols) {
       CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
+      world->get_all_species().get(new_species_id).set_flag(SPECIES_CPLX_MOL_FLAG_SURF);
       world->get_all_species().set_all_surface_molecules_species_id(new_species_id);
     }
 
@@ -1152,13 +1155,13 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     if (current_pathway->reactant1 != nullptr) {
       species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
       rxn.append_reactant(
-          world->bng_engine.create_cplx_from_species(reactant1_id, current_pathway->orientation1, BNG::COMPARTMENT_ID_ANY));
+          world->bng_engine.create_cplx_from_species(reactant1_id, current_pathway->orientation1, BNG::COMPARTMENT_ID_NONE));
       reactant_species_ids.push_back(reactant1_id);
 
       if (current_pathway->reactant2 != nullptr) {
         species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
         rxn.append_reactant(
-            world->bng_engine.create_cplx_from_species(reactant2_id, current_pathway->orientation2, BNG::COMPARTMENT_ID_ANY));
+            world->bng_engine.create_cplx_from_species(reactant2_id, current_pathway->orientation2, BNG::COMPARTMENT_ID_NONE));
         reactant_species_ids.push_back(reactant2_id);
 
         if (current_pathway->reactant3 != nullptr) {
@@ -1213,7 +1216,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
         species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
         rxn.append_product(
-            world->bng_engine.create_cplx_from_species(product_id, product_ptr->orientation, BNG::COMPARTMENT_ID_ANY));
+            world->bng_engine.create_cplx_from_species(product_id, product_ptr->orientation, BNG::COMPARTMENT_ID_NONE));
 
         product_ptr = product_ptr->next;
       }

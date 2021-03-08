@@ -55,6 +55,22 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 }
 
 
+// make a deep copy, used from Species::inst
+std::shared_ptr<Complex> Complex::clone() const {
+  std::shared_ptr<Complex> res = make_shared<Complex>();
+
+  res->name = name;
+  res->orientation = orientation;
+  res->compartment_name = compartment_name;
+
+  for (const auto& em: elementary_molecules) {
+    res->elementary_molecules.push_back(em->clone());
+  }
+
+  return res;
+}
+
+
 std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
     const BNG::BNGData& bng_data,
     const BNG::Cplx& bng_cplx) {
@@ -62,17 +78,17 @@ std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
   std::shared_ptr<API::Complex> res_cplx_inst = API::Complex::construct_empty();
 
   // convert each molecule instance
-  for (const BNG::ElemMol& bmg_mi: bng_cplx.elem_mols) {
+  for (const BNG::ElemMol& bmg_em: bng_cplx.elem_mols) {
 
     // find molecule type and create an instance
-    const BNG::ElemMolType& emt = bng_data.get_elem_mol_type(bmg_mi.elem_mol_type_id);
+    const BNG::ElemMolType& emt = bng_data.get_elem_mol_type(bmg_em.elem_mol_type_id);
     std::shared_ptr<ElementaryMoleculeType> api_emt =
         ElementaryMoleculeType::construct_from_bng_elem_mol_type(bng_data, emt);
     assert(is_set(api_emt));
 
     // prepare a vector of component instances with their bonds set
     std::vector<std::shared_ptr<API::Component>> api_comp_instances;
-    for (const BNG::Component& bng_ci: bmg_mi.components) {
+    for (const BNG::Component& bng_ci: bmg_em.components) {
       const std::string& ct_name = bng_data.get_component_type(bng_ci.component_type_id).name;
 
       // we need to define component type here, they are not global
@@ -88,18 +104,21 @@ std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
       api_comp_instances.push_back(api_comp_inst);
     }
 
-    // and append instantiated elementary molecule type
-    res_cplx_inst->elementary_molecules.push_back(api_emt->inst(api_comp_instances));
-  }
-
-  // set compartment
-  if (bng_cplx.has_compartment()) {
-    if (bng_cplx.has_compartment_class_in_out()) {
-      res_cplx_inst->compartment_name = BNG::compartment_id_to_str(bng_cplx.get_compartment_id());
+    // determine compartment name
+    BNG::compartment_id_t cid = bmg_em.compartment_id;
+    string compartment_name;
+    if (cid == BNG::COMPARTMENT_ID_NONE) {
+      compartment_name = STR_UNSET;
+    }
+    else if (BNG::is_in_out_compartment_id(cid)) {
+      compartment_name = BNG::compartment_id_to_str(cid);
     }
     else {
-      res_cplx_inst->compartment_name = bng_data.get_compartment(bng_cplx.get_compartment_id()).name;
+      compartment_name = bng_data.get_compartment(cid).name;
     }
+
+    // and append instantiated elementary molecule type
+    res_cplx_inst->elementary_molecules.push_back(api_emt->inst(api_comp_instances, compartment_name));
   }
 
   return res_cplx_inst;
@@ -145,27 +164,6 @@ void Complex::postprocess_in_ctor() {
     }
   }
 
-  // set compartment_name and check that there is only one
-  if (is_set(name)) {
-    std::vector<std::string> compartments;
-    // TODO: we do not want to use the BNG parser at this point or do we?
-    get_compartment_names(name, compartments);
-    if (!compartments.empty()) {
-      if (is_set(compartment_name)) {
-        throw ValueError("Complex " + name + " is defined with both compartment name in " +
-            NAME_NAME + " and in " + NAME_COMPARTMENT_NAME + ", only one is allowed.");
-      }
-
-      std::string single_compartment_name = compartments[0];
-      for (size_t i = 1; i < compartments.size(); i++) {
-        if (single_compartment_name != compartments[i]) {
-          throw ValueError("Complex cannot be in multiple compartments, error for " + name + ".");
-        }
-      }
-      compartment_name = single_compartment_name;
-    }
-  }
-
   // if name was set, parse it and initialize elementary_molecules
   if (is_set(name) && !is_set(elementary_molecules)) {
     // parse BNGL string
@@ -180,10 +178,21 @@ void Complex::postprocess_in_ctor() {
     std::shared_ptr<API::Complex> converted_complex =
         Complex::construct_from_bng_cplx(local_bng_data, bng_cplx);
 
-    // and copy resulting elementary molecules array
+    // set compartment name - must be done before elementary molecules are added
+    if (is_set(converted_complex->compartment_name)) {
+      if (is_set(compartment_name) && compartment_name != converted_complex->compartment_name) {
+        throw ValueError("Inconsistent compartment usage in complex " + name +
+            ", parsed compartment is " + converted_complex->compartment_name + " but compartment set as " +
+            NAME_COMPARTMENT_NAME + " is " + compartment_name + ".");
+      }
+      set_compartment_name(converted_complex->compartment_name);
+    }
+
+    // copy resulting elementary molecules array - their compartments are set
     elementary_molecules = converted_complex->elementary_molecules;
-    assert(!is_set(converted_complex->compartment_name) || compartment_name == converted_complex->compartment_name);
   }
+
+  set_unset_compartments_of_elementary_molecules();
 
   assert(!elementary_molecules.empty());
 }
@@ -201,7 +210,7 @@ const std::string& Complex::get_canonical_name() const {
   BNG::BNGEngine bng_engine(bng_config);
 
   // parse cplx string
-  string bngl_str = to_bngl_str_w_custom_orientation(true);
+  string bngl_str = to_bngl_str_w_custom_orientation();
   BNG::Cplx cplx_inst(&bng_engine.get_data());
   int num_errors = BNG::parse_single_cplx_string(
       bngl_str, bng_engine.get_data(),
@@ -227,13 +236,10 @@ const std::string& Complex::get_canonical_name() const {
   else if (orientation == Orientation::DOWN) {
     canonical_name += ",";
   }
-  if (is_set(compartment_name)) {
-    if (name.find('.') == string::npos) {
-      canonical_name += "@" + compartment_name;
-    }
-    else {
-      canonical_name = "@" + compartment_name + ":" + canonical_name;
-    }
+
+  // compartment_name may not be set even when elementary molecules have their compartments
+  if (elementary_molecules.size() != 1 && is_set(compartment_name) && compartment_name != get_primary_compartment_name()) {
+    canonical_name = "@" + compartment_name + ":" + canonical_name;
   }
 
   cached_data_are_uptodate = true;
@@ -244,8 +250,7 @@ const std::string& Complex::get_canonical_name() const {
 bool Complex::__eq__(const Complex& other) const {
 
   // cannot use eq_nonarray_attributes here because we don't care about name
-  if (orientation != other.orientation ||
-      compartment_name != other.compartment_name) {
+  if (orientation != other.orientation) {
     return false;
   }
 
@@ -253,58 +258,45 @@ bool Complex::__eq__(const Complex& other) const {
 }
 
 
-std::string Complex::to_bngl_str_w_custom_orientation(
-    const bool replace_orientation_w_up_down_compartments, const bool ignore_orientation_and_compartment) const {
+std::string Complex::to_bngl_str_w_custom_orientation(const bool include_mcell_orientation) const {
   string res;
-  bool add_compartment = false;
   bool orientation_replaced = false;
-  if (is_set(name)) {
-    res = name;
-    if (!ignore_orientation_and_compartment && is_set(compartment_name) && name.find('@') == string::npos) {
-      add_compartment = true;
+
+  // individual compartments are printed if all elem mols do not use the same compartment
+  set<string> used_compartments;
+  size_t num_specific_compartments = 0;
+  for (const auto& em: elementary_molecules) {
+    if (is_set(em->compartment_name)) {
+      num_specific_compartments++;
+      used_compartments.insert(em->compartment_name);
     }
   }
-  else {
-    for (size_t i = 0; i < elementary_molecules.size(); i++) {
-      res += elementary_molecules[i]->to_bngl_str();
-      if (i + 1 != elementary_molecules.size()) {
-        res += ".";
-      }
-    }
+  bool print_individual_compartments =
+      used_compartments.size() > 1 || num_specific_compartments != elementary_molecules.size();
 
-    if (!ignore_orientation_and_compartment) {
-      if (!replace_orientation_w_up_down_compartments) {
-        if (orientation == Orientation::UP) {
-          res += "'";
-        }
-        else if (orientation == Orientation::DOWN) {
-          res += ",";
-        }
-      }
-      else {
-        if (orientation == Orientation::UP) {
-          res += BNG::MCELL_COMPARTMENT_UP;
-          orientation_replaced = true;
-        }
-        else if (orientation == Orientation::DOWN) {
-          res += BNG::MCELL_COMPARTMENT_DOWN;
-          orientation_replaced = true;
-        }
-      }
-
-      if (is_set(compartment_name)) {
-        add_compartment = true;
-      }
+  for (size_t i = 0; i < elementary_molecules.size(); i++) {
+    res += elementary_molecules[i]->to_bngl_str(print_individual_compartments);
+    if (i + 1 != elementary_molecules.size()) {
+      res += ".";
     }
   }
 
-  if (add_compartment) {
+  if (include_mcell_orientation) {
+    if (orientation == Orientation::UP) {
+      res += "'";
+    }
+    else if (orientation == Orientation::DOWN) {
+      res += ",";
+    }
+  }
+
+  if (!print_individual_compartments && used_compartments.size() == 1) {
     string at_str = (orientation_replaced) ? "" : "@";
-    if (name.find('.') == string::npos) {
-      res += at_str + compartment_name;
+    if (elementary_molecules.size() != 1) {
+      res = at_str + *used_compartments.begin() + ":" + res;
     }
     else {
-      res = at_str + compartment_name + ":" + res;
+      res += at_str + *used_compartments.begin();
     }
   }
 
@@ -322,6 +314,20 @@ bool Complex::is_surf() const {
 }
 
 
+void Complex::set_unset_compartments_of_elementary_molecules() {
+  // called after all initialization including parsing of the BNGL name
+  // does not check that compartment types are correctly used (surf/vol) because we do not know them yet
+  if (is_set(compartment_name)) {
+    // set the name to all contained elementary molecules
+    for (auto& em: elementary_molecules) {
+      if (!is_set(em->compartment_name)) {
+        em->compartment_name = compartment_name;
+      }
+    }
+  }
+}
+
+
 bool Complex::is_species_object() const {
   return dynamic_cast<const Species*>(this) != nullptr;
 }
@@ -331,6 +337,29 @@ std::shared_ptr<Species> Complex::as_species() {
   return std::make_shared<Species>(*this);
 }
 
+
+const std::string& Complex::get_primary_compartment_name() const {
+  if (is_set(compartment_name)) {
+    return compartment_name;
+  }
+  if (elementary_molecules.size() == 1) {
+    return elementary_molecules[0]->compartment_name;
+  }
+  else if (is_surf()) {
+    // get the first surface elem mol
+    for (const auto& em: elementary_molecules) {
+      if (em->is_surf()) {
+        return em->compartment_name;
+      }
+    }
+    // unreachable
+    throw RuntimeError("Internal error: surface complex " + to_bngl_str() + " does not contain any surface elementary molecules.");
+  }
+  else {
+    // all are volume and must have the same compartment
+    return elementary_molecules[0]->compartment_name;
+  }
+}
 
 } // namespace API
 } // namespace MCell

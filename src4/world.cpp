@@ -150,15 +150,6 @@ void World::create_initial_surface_region_release_event() {
 }
 
 
-void World::recompute_species_flags() {
-  // collect all MolOrRxnCountEvent to initialize species_flags_analyzer that is then used to set
-  // certain species flags
-  vector<BaseEvent*> count_events;
-  scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
-  species_flags_analyzer.initialize(count_events, unscheduled_count_events);
-  get_all_species().recompute_species_flags(get_all_rxns(), &species_flags_analyzer);
-}
-
 void World::init_counted_volumes() {
   assert(partitions.size() == 1);
 
@@ -280,8 +271,6 @@ void World::init_simulation(const float_t start_time) {
     mcell_log("Error: there must be at least one species!");
     exit(1);
   }
-
-  recompute_species_flags();
 
   stats.reset(false);
 
@@ -543,6 +532,9 @@ void World::end_simulation(const bool print_final_report) {
     cout << "Simulation CPU time without iteration 0 = "
       << tosecs(run_time.ru_utime) - tosecs(it1_start_time.ru_utime) <<  "(user) and "
       << tosecs(run_time.ru_stime) - tosecs(it1_start_time.ru_stime) <<  "(system)\n";
+
+    // and warnings
+    bng_engine.get_config().print_final_warnings();
   }
 
   BNG::append_to_report(config.get_run_report_file_name(),
@@ -703,8 +695,12 @@ std::string World::export_releases_to_bngl_seed_species(
     }
     const GeometryObject& obj = get_geometry_object(region.geometry_object_id);
     const BNG::Species& species = bng_engine.get_all_species().get(re->species_id);
-    seed_species << BNG::IND <<
-        "@" <<  obj.name << ":" << species.name << " " << seed_count_name << "\n";
+
+    seed_species << BNG::IND;
+    if (obj.name != BNG::DEFAULT_COMPARTMENT_NAME) {
+      seed_species << "@" <<  obj.name << ":";
+    }
+    seed_species << species.name << " " << seed_count_name << "\n";
   }
 
   seed_species << BNG::END_SEED_SPECIES << "\n";
@@ -746,7 +742,10 @@ std::string World::export_counts_to_bngl_observables(std::ostream& observables) 
 
       string compartment_prefix = "";
       if (term.type == CountType::EnclosedInVolumeRegion) {
-        compartment_prefix = "@" + get_geometry_object(term.geometry_object_id).name + ":";
+        const string& compartment_name = get_geometry_object(term.geometry_object_id).name;
+        if (compartment_name != BNG::DEFAULT_COMPARTMENT_NAME) {
+          compartment_prefix = "@" + get_geometry_object(term.geometry_object_id).name + ":";
+        }
       }
 
       // Species or Molecules
@@ -805,6 +804,10 @@ std::string World::export_to_bngl(const std::string& file_name) const {
   parameters << BNG::IND << BNG::ITERATIONS << " " << total_iterations << "\n";
   parameters << BNG::IND << BNG::MCELL_TIME_STEP << " " << f_to_str(config.time_unit) << "\n";
 
+  if (obj.name == BNG::DEFAULT_COMPARTMENT_NAME) {
+    parameters << BNG::IND << BNG::MCELL_DEFAULT_COMPARTMENT_VOLUME << " " << f_to_str(volume) << "\n";
+  }
+
   string err_msg = bng_engine.export_to_bngl(
       parameters, molecule_types, reaction_rules, volume);
   if (err_msg != "") {
@@ -832,10 +835,12 @@ std::string World::export_to_bngl(const std::string& file_name) const {
   out << parameters.str() << "\n";
   out << molecule_types.str() << "\n";
 
-  // compartments
-  out << BNG::BEGIN_COMPARTMENTS << "\n";
-  out << BNG::IND << obj.name << " 3 " << BNG::PARAM_V << " * 1e15 # volume in fL (um^3)\n";
-  out << BNG::END_COMPARTMENTS << "\n\n";
+  // compartments, only one for now
+  if (obj.name != BNG::DEFAULT_COMPARTMENT_NAME) {
+    out << BNG::BEGIN_COMPARTMENTS << "\n";
+    out << BNG::IND << obj.name << " 3 " << BNG::PARAM_V << " * 1e15 # volume in fL (um^3)\n";
+    out << BNG::END_COMPARTMENTS << "\n\n";
+  }
 
   out << seed_species.str() << "\n";
   out << observables.str() << "\n";

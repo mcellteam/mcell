@@ -1,0 +1,38 @@
+# FAIL
+# OUTPUT: error: In the seed species section either all elementary molecules must have their compartment specified or none, error for 'sb(b!1)@PM.sy(y!1)'.
+
+begin model
+
+begin parameters
+	ITERATIONS  100
+  MCELL_DIFFUSION_CONSTANT_3D_va 1e-6
+  MCELL_DIFFUSION_CONSTANT_2D_sb 5e-5
+  MCELL_DIFFUSION_CONSTANT_2D_sc 1e-6	
+  MCELL_DIFFUSION_CONSTANT_3D_vx 1
+  MCELL_DIFFUSION_CONSTANT_2D_vy 1
+    
+end parameters
+begin molecule types
+	va(a)
+	sb(b)
+	sc(c)
+	vx(x)
+	sy(y)
+end molecule types
+
+begin compartments
+    PM 2 1e-80     
+    CP 3 0.25^3 PM  
+end compartments
+
+begin seed species
+   sb(b!1)@PM.sy(y!1)  100
+
+	 @CP:va(a!1).vx(x!1)  100
+	 @PM:sb(b!1).sy(y!1)  100
+end seed species
+
+begin reaction rules
+end reaction rules
+
+end model

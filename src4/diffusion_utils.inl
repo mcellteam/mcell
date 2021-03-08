@@ -40,9 +40,9 @@
 #include "simulation_config.h"
 #include "debug_config.h"
 
-#include "grid_utils.inc"
-#include "rxn_utils.inc"
-#include "wall_utils.inc"
+#include "grid_utils.inl"
+#include "rxn_utils.inl"
+#include "wall_utils.inl"
 
 using namespace std;
 

@@ -263,13 +263,16 @@ Attributes:
   | Ignored by derived class Species.
 
 * | **compartment_name**: str = None
-  | Specifies compartment name of this Complex. 
+  | Specifies compartment name of this Complex.
   | Only one of 'orientation' and 'compartment_name' can be set. 
+  | May be used only when elementary_molecules do not specify a compartment.
+  | Corresponds to BNGL specification '@COMP\:'.
   | If a 2D/surface compartment is specified, the complex must be a surface complex and 
   | orientation is set to Orientation.UP.
   | If a 3D/volume compartment is specified, the complex must be a volume complex and
   | orientation is set to Orientation.NONE. 
-  | Ignored by derived class Species.
+  | All compartments of surface elementary molecules must be the same.
+  | All compartments of volume elementary molecules must be from the two neighboring volume compartments.
 
 
 Methods:
@@ -279,7 +282,7 @@ Methods:
    * | return type: str
 
 
-  | Creates a string that corresponds to its BNGL representation
+  | Creates a string that corresponds to its BNGL representation including compartments.
 
 
 * | **as_species**
@@ -609,10 +612,16 @@ Attributes:
 
 * | **components**: List[Component] = None
 
+* | **compartment_name**: str = None
+  | Corresponds to BNGL specification 'EM@COMP'. If a 2D/surface compartment is specified, the elementary moelcule must be of surface type. If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.
+
 
 Methods:
 *********
 * | **to_bngl_str**
+
+   * | with_compartment: bool = True
+     | Include compartment name in returned BNGL string.
 
    * | return type: str
 
@@ -655,6 +664,7 @@ Methods:
 * | **inst**
 
    * | components: List[Component] = None
+   * | compartment_name: str = None
    * | return type: ElementaryMolecule
 
 
@@ -799,13 +809,13 @@ Methods:
    * | return type: GeometryObject
 
 
-* | **find_volume_compartment**
+* | **find_volume_compartment_object**
 
    * | name: str
    * | return type: GeometryObject
 
 
-* | **find_surface_compartment**
+* | **find_surface_compartment_object**
 
    * | name: str
    * | return type: GeometryObject
@@ -844,7 +854,8 @@ Methods:
   | Returns a list of ids of molecules.
   | If the arguments pattern is not set, the list of all molecule ids is returned.  
   | If the argument pattern is set, the list of all molecule ids whose species match 
-  | the pattern is returned.
+  | the pattern is returned. Matching of patterns with compartments works exactly in the 
+  | same was as in observables.
 
 
 * | **get_molecule**
@@ -952,9 +963,10 @@ Methods:
 *********
 * | **initialize**
 
+   * | print_copyright: bool = True
 
   | Initializes model, initialization blocks most of changes to 
-  | contained components (the attributes
+  | contained components.
 
 
 * | **run_iterations**
@@ -1272,13 +1284,13 @@ Methods:
    * | return type: GeometryObject
 
 
-* | **find_volume_compartment**
+* | **find_volume_compartment_object**
 
    * | name: str
    * | return type: GeometryObject
 
 
-* | **find_surface_compartment**
+* | **find_surface_compartment_object**
 
    * | name: str
    * | return type: GeometryObject
@@ -1336,7 +1348,8 @@ Methods:
   | Returns a list of ids of molecules.
   | If the arguments pattern is not set, the list of all molecule ids is returned.  
   | If the argument pattern is set, the list of all molecule ids whose species match 
-  | the pattern is returned.
+  | the pattern is returned. Matching of patterns with compartments works exactly in the 
+  | same was as in observables.
 
 
 * | **get_molecule**
@@ -1899,13 +1912,16 @@ Attributes:
   | Ignored by derived class Species.
 
 * | **compartment_name**: str = None
-  | Specifies compartment name of this Complex. 
+  | Specifies compartment name of this Complex.
   | Only one of 'orientation' and 'compartment_name' can be set. 
+  | May be used only when elementary_molecules do not specify a compartment.
+  | Corresponds to BNGL specification '@COMP\:'.
   | If a 2D/surface compartment is specified, the complex must be a surface complex and 
   | orientation is set to Orientation.UP.
   | If a 3D/volume compartment is specified, the complex must be a volume complex and
   | orientation is set to Orientation.NONE. 
-  | Ignored by derived class Species.
+  | All compartments of surface elementary molecules must be the same.
+  | All compartments of volume elementary molecules must be from the two neighboring volume compartments.
 
 
 Methods:
@@ -1921,8 +1937,7 @@ Methods:
    * | return type: Complex
 
 
-  | Creates a Complex of this Species. Can be currently used only for simple species, i.e. those that
-  | have a single molecule instance and no components.
+  | Creates a copy of a Complex from this Species with specified orientation and compartment name.
 
 
 * | **to_bngl_str**
@@ -1930,7 +1945,7 @@ Methods:
    * | return type: str
 
 
-  | Creates a string that corresponds to its BNGL representation
+  | Creates a string that corresponds to its BNGL representation including compartments.
 
 
 * | **as_species**

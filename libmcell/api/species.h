@@ -52,6 +52,13 @@ public:
     orientation = cplx_inst.orientation;
   }
 
+  void set_name(const std::string& name_) override {
+    BaseDataClass::set_name(name_);
+    // rerun initialization because the name is parsed as a BNGL string
+    elementary_molecules.clear();
+    postprocess_in_ctor();
+  }
+
   void check_no_extra_fields_are_set() const {
     std::string msg =
         " must not be set for complex species because it is derived from its elementary molecule types.";
@@ -121,40 +128,34 @@ public:
           std::make_shared<ElementaryMolecule>(mt)
       );
     }
-    // 2) complex species defined through elementary_molecule_instances
-    else if (!elementary_molecules.empty()) {
+    // 2) complex species defined through elementary_molecule_instances, or
+    // 3) declaration (name is parsed in Complex::postprocess_in_ctor)
+    else {
       // do semantic check
       check_no_extra_fields_are_set();
     }
-    // 3) declaration
-    else {
-      // TODO: we can check that the BNGL string is correct here
-      check_no_extra_fields_are_set();
-    }
 
-    // compartment must not be set for species
-    std::vector<std::string> compartments;
-    get_compartment_names(name, compartments);
-    if (is_set(compartment_name) || !compartments.empty()) {
-      throw ValueError(S(NAME_CLASS_SPECIES) + " with " + NAME_NAME + " " +
-          name + " must not use any compartment.");
-    }
-
-    // need to finalize the initialization
+    // need to finalize the initialization, also processes compartments
     Complex::postprocess_in_ctor();
+
+    if (get_primary_compartment_name() == BNG::COMPARTMENT_NAME_IN ||
+        get_primary_compartment_name() == BNG::COMPARTMENT_NAME_OUT) {
+      throw ValueError(S(NAME_CLASS_SPECIES) + " with " + NAME_NAME + " " + name +
+          " must not use compartments " + BNG::COMPARTMENT_NAME_IN + " or " + BNG::COMPARTMENT_NAME_OUT + ".");
+    }
   }
 
   bool __eq__(const Species& other) const override;
 
-  Complex inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = "") override {
+  std::shared_ptr<Complex> inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = "") override {
     if (orientation != Orientation::DEFAULT && is_set(compartment_name)) {
       throw ValueError(S("Maximum one of ") + NAME_ORIENTATION + " or " + NAME_COMPARTMENT_NAME + " can be set not both.");
     }
 
-    // simply downcast to Complex and set extra attributes
-    Complex res = *dynamic_cast<Complex*>(this);
-    res.orientation = orientation;
-    res.compartment_name = compartment_name;
+    // make a deep copy and set extra attributes
+    std::shared_ptr<Complex> res = clone();
+    res->orientation = orientation;
+    res->set_compartment_name(compartment_name);
     return res;
   }
 

@@ -20,8 +20,7 @@ namespace BNG {
 // flags according to reactions in the system,
 // also sets SPECIES_MOL_FLAG_CANT_INITIATE
 void Species::update_rxn_and_custom_flags(
-    const SpeciesContainer& all_species, RxnContainer& all_rxns,
-    const BaseCustomFlagsAnalyzer* flags_analyzer) {
+    const SpeciesContainer& all_species, RxnContainer& all_rxns) {
 
   assert(id != SPECIES_ID_INVALID);
 #ifndef NDEBUG
@@ -36,14 +35,6 @@ void Species::update_rxn_and_custom_flags(
   set_flag(SPECIES_FLAG_CAN_VOLWALL, false);
   set_flag(SPECIES_FLAG_CAN_SURFSURF, false);
   set_flag(SPECIES_FLAG_CAN_REGION_BORDER, false);
-
-  // set any custom flags (only SPECIES_FLAG_NEEDS_COUNTED_VOLUME is set currently)
-  if (flags_analyzer != nullptr) {
-    uint mask_to_clear = flags_analyzer->get_custom_species_flags_mask();
-    clear_flags(mask_to_clear);
-    uint mask_to_set = flags_analyzer->get_custom_species_flags_to_set(*this);
-    add_flags(mask_to_set);
-  }
 
   if (is_vol() && all_vol_mols_can_react_with_surface) {
     set_flag(SPECIES_FLAG_CAN_VOLWALL);
@@ -65,17 +56,10 @@ void Species::update_rxn_and_custom_flags(
     if (rxn->is_unimol()) {
       set_flag(SPECIES_FLAG_HAS_UNIMOL_RXN);
 
-      if (rxn->is_counted_in_volume_regions()) {
-        set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME, true);
-      }
       continue;
     }
 
     assert(rxn->is_bimol());
-
-    if (rxn->is_counted_in_volume_regions()) {
-      set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
-    }
 
     if (rxn->is_bimol_vol_rxn()) {
       set_flag(SPECIES_FLAG_HAS_BIMOL_VOL_RXN);

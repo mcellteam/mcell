@@ -1,0 +1,22 @@
+# OK
+# trivalent ligand, bivalent receptor
+begin model
+begin parameters
+    # arbitrary parameters
+    kp1   0.001
+    kp2   0.010
+    koff  0.100
+end parameters
+
+begin molecule types
+    R(l,l)
+    L(r,r,r)
+end molecule types
+
+begin reaction rules
+    # parser used to fail because of Windows newline after \, not sure if git won't remove it
+    R(l) + L(r,r,r)     -> \
+    R(l!1).L(r!1,r,r)      kp1
+end reaction rules
+end model
+

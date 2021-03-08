@@ -27,12 +27,12 @@ class BNGData;
  */
 class Component {
 public:
-  Component()
-    : component_type_id(COMPONENT_TYPE_ID_INVALID), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_BOUND) {
+  Component() :
+    component_type_id(COMPONENT_TYPE_ID_INVALID), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_BOUND) {
   }
 
-  Component(const component_type_id_t id)
-    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_BOUND) {
+  Component(const component_type_id_t id) :
+    component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_BOUND) {
   }
 
   // type id can be also found from parent's MoleculeInstance::molecule_type_id
@@ -86,12 +86,14 @@ public:
   // ID of this molecule type in BNGData::molecule_types
   elem_mol_type_id_t elem_mol_type_id;
 
+  compartment_id_t compartment_id;
+
   // has the same number of elements as MoleculeType::component_type_ids
   small_vector<Component> components;
 
 public:
-  ElemMol()
-    : elem_mol_type_id(MOL_TYPE_ID_INVALID) {
+  ElemMol() :
+    elem_mol_type_id(MOL_TYPE_ID_INVALID), compartment_id(COMPARTMENT_ID_NONE)  {
   }
 
   // returns true if all components are present and their is state set
@@ -107,23 +109,33 @@ public:
 
   void insert_missing_components_as_any_state_pattern(const BNGData& bng_data);
 
-  // returns true if this object as a pattern matches second instance
-  bool matches_simple(const ElemMol& inst) const {
+  // returns true if this object as a pattern matches second instance,
+  // order is important for compartment matching
+  bool matches_simple_pattern(const ElemMol& inst) const {
     assert(components.size() == 0 && inst.components.size() == 0 &&
         "Method can be used only for simple complexes, i.e. without components.");
 
-    return elem_mol_type_id == inst.elem_mol_type_id;
+    return elem_mol_type_id == inst.elem_mol_type_id &&
+        (compartment_id == COMPARTMENT_ID_NONE || is_in_out_compartment_id(compartment_id) || compartment_id == inst.compartment_id);
+  }
+
+  bool matches_simple_fully(const ElemMol& inst) const {
+    assert(components.size() == 0 && inst.components.size() == 0 &&
+        "Method can be used only for simple complexes, i.e. without components.");
+
+    return elem_mol_type_id == inst.elem_mol_type_id && compartment_id == inst.compartment_id;
   }
 
   bool operator == (const ElemMol& other) const  {
     return
         elem_mol_type_id == other.elem_mol_type_id &&
+        compartment_id == other.compartment_id &&
         components == other.components &&
         get_flags() == other.get_flags();
   }
 
   // appends to string res
-  void to_str(const BNGData& bng_data, std::string& res) const;
+  void to_str(const BNGData& bng_data, std::string& res, const bool include_compartment = true) const;
 
   std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data, const bool for_diff, const std::string ind = "") const;

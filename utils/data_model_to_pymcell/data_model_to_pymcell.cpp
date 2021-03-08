@@ -34,6 +34,7 @@
 #include "mcell4_generator.h"
 #include "generator_structs.h"
 
+#include "version.h"
 
 using namespace std;
 
@@ -49,20 +50,26 @@ static const option long_options[] = {
     { "debug", 0, 0, 'g' },
     { "testing", 0, 0, 't' },
     { "checkpoint_iters", 1, 0, 'k' },
-    { "cellblender_viz", 0, 0, 'c' },
     { "bng", 0, 0, 'b' },
+    { "not_overridable_python_params", 0, 0, 'p'},
     { "output_file_prefix", 1, 0, 'o'},
     { nullptr, 0, 0, 0 }
 };
 
 
 void print_usage(const char* argv0) {
-  cout << "TODO\n";
+  cout << argv0 << " options:\n";
+
+  size_t i = 0;
+  while (long_options[i].name != nullptr) {
+    cout << "  -" << (char)long_options[i].val << "| -" << long_options[i].name << "\n";
+    i++;
+  }
 }
 
 
 void print_version(const char* argv0) {
-  cout << "TODO\n";
+  cout << argv0 << " version:" << MCELL_VERSION << "\n";
 }
 
 
@@ -143,12 +150,12 @@ int process_args(
       case 't':
         opts.testing_mode = true;
         break;
+      case 'p':
+        opts.not_overridable_python_params = true;
+        break;
       case 'k':
         opts.checkpoint_iterations = parse_checkpoint_iters(optarg);
         opts.testing_mode = true;
-        break;
-      case 'c':
-        opts.cellblender_viz = true;
         break;
       case 'b':
         opts.bng_mode = true;

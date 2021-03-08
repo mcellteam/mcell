@@ -444,7 +444,7 @@ void MCell4Converter::convert_species() {
       BNG::Cplx bng_cplx(&world->bng_engine.get_data());
       new_species.elem_mols = bng_converter.convert_complex(*s, false, false).elem_mols;
 
-      new_species.finalize(world->config);
+      new_species.finalize_species(world->config);
 
       if (!new_species.is_fully_qualified()) {
         throw ValueError("Species declaration " + new_species.name + " must use a fully qualified BNGL string for initialization.");
@@ -487,7 +487,7 @@ void MCell4Converter::convert_species() {
 
     new_species.elem_mols.push_back(mol_inst);
 
-    new_species.finalize(world->config);
+    new_species.finalize_species(world->config);
     species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
 
     // remember which species we created
@@ -544,7 +544,7 @@ void MCell4Converter::convert_surface_class_rxn(
   rxn.base_rate_constant = FLT_GIGANTIC;
 
   // any compartment of the
-  affected_pattern.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
+  affected_pattern.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
 
   // NONE is ANY in rxns
   orientation_t orient = convert_api_orientation(sp.affected_complex_pattern->orientation, true);
@@ -566,9 +566,6 @@ void MCell4Converter::convert_surface_classes() {
     BNG::Species sc_species(world->bng_engine.get_data());
     sc_species.name = sc->name;
 
-    // we do not care about compartments for surface classes
-    sc_species.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
-
     sc_species.set_is_reactive_surface();
     // sets steps to 0
     sc_species.space_step = 0;
@@ -585,7 +582,11 @@ void MCell4Converter::convert_surface_classes() {
     BNG::ElemMol mol_inst;
     mol_inst.elem_mol_type_id = mol_type_id;
     sc_species.elem_mols.push_back(mol_inst);
-    sc_species.finalize(world->config, false);
+
+    // we do not care about compartments for surface classes
+    sc_species.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
+
+    sc_species.finalize_species(world->config, false);
 
     species_id_t new_species_id = world->get_all_species().find_or_add(sc_species);
 
@@ -650,21 +651,12 @@ void MCell4Converter::convert_rxns() {
     for (std::shared_ptr<API::Complex>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
       BNG::Cplx reactant = bng_converter.convert_complex(*rinst, false, true);
-      // set ANY compartment if it was not specified
-      if (reactant.get_compartment_id() == BNG::COMPARTMENT_ID_NONE) {
-        reactant.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
-      }
       rxn.append_reactant(reactant);
     }
 
     for (std::shared_ptr<API::Complex>& pinst: r->products) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
       BNG::Cplx product = bng_converter.convert_complex(*pinst, false, true);
-
-      if (product.get_compartment_id() == BNG::COMPARTMENT_ID_NONE) {
-        // set ANY compartment for products to be consistent with reactants
-        product.set_compartment_id(BNG::COMPARTMENT_ID_ANY);
-      }
       rxn.append_product(product);
     }
 
@@ -917,7 +909,10 @@ void MCell4Converter::convert_geometry_objects() {
 
     // TODO: move surf class handling code to a function and share with convert_surface_region
     if (is_set(o->surface_class)) {
-      assert(o->surface_class->species_id != SPECIES_ID_INVALID);
+      if (o->surface_class->species_id == SPECIES_ID_INVALID) {
+        throw RuntimeError("Geometry object " + o->name + " is using surface class " + o->surface_class->name +
+            " but this surface class was not added to the model. To add it, use method Model.add_surface_class or Subsystem.add_surface_class.");
+      }
       reg_all.species_id = o->surface_class->species_id;
 
       // define releases for concentration clamp
@@ -933,7 +928,7 @@ void MCell4Converter::convert_geometry_objects() {
     region_indices.push_back(ri_all);
 
     // we must remember that this region belongs to our object
-    obj.encompassing_region_id = ri_all;
+    obj.encompassing_region_index = ri_all;
 
     // regions from surface areas
     // mcell3 stores the regions in reverse, so we can too...
@@ -952,6 +947,7 @@ void MCell4Converter::convert_geometry_objects() {
         MCell::Region& reg = p.get_region(ri);
         if (reg.walls_and_edges.count(wi) == 1) {
           w.regions.insert(ri);
+          obj.regions.insert(ri);
         }
       }
     }
@@ -959,8 +955,7 @@ void MCell4Converter::convert_geometry_objects() {
     // set MCell:GeometryObject compartment ids
     if (o->is_bngl_compartment) {
       assert(o->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
-          o->vol_compartment_id != BNG::COMPARTMENT_ID_NONE &&
-          o->vol_compartment_id != BNG::COMPARTMENT_ID_ANY
+          o->vol_compartment_id != BNG::COMPARTMENT_ID_NONE
       );
 
       obj.vol_compartment_id = o->vol_compartment_id;
@@ -977,9 +972,13 @@ void MCell4Converter::convert_geometry_objects() {
 void MCell4Converter::check_surface_compartment_name_collision(const std::string& surface_compartment_name) {
   for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
     for (std::shared_ptr<API::SurfaceRegion>& s: o->surface_regions) {
-      if (s->name == surface_compartment_name) {
+      // o->wall_indices contains all the walls (with values counted from 0), so if size is the same
+      // the contents are the same
+      if (s->name == surface_compartment_name && o->wall_list.size() != s->wall_indices.size()) {
         throw RuntimeError("Geometry object's " + o->name + " surface region " + s->name + " uses the same name "
-            "as a compartment, this is not allowed yet.");
+            "as a compartment, but the surface region does not represent the whole surface of the object. "
+            "This is not allowed because it would lead to inconsistencies when comparing to BNGL variant of the model. "
+            "Please use a different name either for the surface region or for the compartment.");
       }
     }
   }
@@ -1322,61 +1321,6 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   assert(is_set(ct));
   assert(ct->node_type == API::ExprNodeType::LEAF);
 
-  // set when this is a volume compartment that has children
-  GeometryObjectSet child_compartments;
-
-  // handle compartments
-  const shared_ptr<Complex> pattern = ct->get_pattern();
-  if (is_set(pattern) && is_set(pattern->compartment_name)) {
-    const string& compartment_name = pattern->compartment_name;
-    // only one region or compartment may be set (unless they are the same)
-    if (is_set(ct->region) && is_set(compartment_name)) {
-
-      bool error = true;
-
-      // set error to fale if there is no collision
-      if (ct->region->is_geometry_object) {
-        std::shared_ptr<API::GeometryObject> geom_obj = dynamic_pointer_cast<API::GeometryObject>(ct->region);
-
-        if (geom_obj->vol_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
-            world->bng_engine.get_data().get_compartment(geom_obj->vol_compartment_id).name == compartment_name) {
-          error = false;
-        }
-        else if (geom_obj->surf_compartment_id != BNG::COMPARTMENT_ID_INVALID &&
-            world->bng_engine.get_data().get_compartment(geom_obj->surf_compartment_id).name == compartment_name) {
-          error = false;
-        }
-      }
-
-      if (error) {
-        throw ValueError(S("Only one of ") + NAME_REGION + " or compartment may be set for " +
-            NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
-      }
-    }
-
-    // if compartment is set, set/overwrite region
-    shared_ptr<GeometryObject> comp_obj;
-    comp_obj = model->find_volume_compartment(compartment_name);
-    if (is_set(comp_obj)) {
-      // 3d
-      if (!comp_obj->child_compartments.empty()) {
-        // we must create multiple MolOrRxnCountTerms where we subtract all children
-        child_compartments = comp_obj->child_compartments;
-      }
-      ct->region = comp_obj;
-    }
-    else {
-      comp_obj = model->find_surface_compartment(compartment_name);
-      if (!is_set(comp_obj)) {
-        throw ValueError("Did not find compartment '" + compartment_name + " for " +
-            NAME_CLASS_COUNT + " or " + NAME_CLASS_COUNT_TERM + " for " + pattern->to_bngl_str() + ".");
-      }
-
-      // 2d
-      ct->region = comp_obj;
-    }
-  }
-
   // check region to determine where to count
   bool is_obj_not_surf_reg = false; // to silence compiler warning
   geometry_object_id_t obj_id = GEOMETRY_OBJECT_ID_INVALID;
@@ -1408,9 +1352,13 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
       res.species_molecules_pattern = bng_converter.convert_complex(*ct->molecules_pattern, true);
     }
 
-    // we must throw away the compartment because it was already handled
-    // and export to data model would keep the compartment name there
-    res.species_molecules_pattern.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
+    // to maintain compatibility with BioNetGen counting, we must remove the primary compartment
+    // from elementary molecules and keep it separately, e.g.: pattern @PM:V(s!1).S(v!1)
+    // which is after being read from BNGL in reality V(s!1)@PM.S(v!1)@PM must match
+    // V(s!1)@CP.S(v!1)@PM, therefore if we make the pattern to be V(s!1).S(v!1) + PM, it will match
+    res.primary_compartment_id = res.species_molecules_pattern.get_primary_compartment_id();
+    res.species_molecules_pattern.remove_compartment_from_elem_mols(res.primary_compartment_id);
+
 
     bool is_vol = res.species_molecules_pattern.is_vol();
     string name = res.species_molecules_pattern.to_str();
@@ -1435,8 +1383,8 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
         if (is_obj_not_surf_reg) {
           // need to get the region of this object
           MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
-          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
-          reg_id = obj.encompassing_region_id;
+          assert(obj.encompassing_region_index != MCell::REGION_ID_INVALID);
+          reg_id = obj.encompassing_region_index;
         }
 
         res.type = MCell::CountType::PresentOnSurfaceRegion;
@@ -1480,8 +1428,8 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
         if (is_obj_not_surf_reg) {
           // need to get the region of this object
           MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
-          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
-          reg_id = obj.encompassing_region_id;
+          assert(obj.encompassing_region_index != MCell::REGION_ID_INVALID);
+          reg_id = obj.encompassing_region_index;
         }
 
         res.region_id = reg_id;
@@ -1502,11 +1450,6 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   }
 
   terms.push_back(res);
-
-  // handle child volume compartments
-  if (!child_compartments.empty()) {
-    append_subtracted_volume_compartments(res, child_compartments, terms);
-  }
 }
 
 

@@ -36,11 +36,11 @@ set(SRC4_SOURCE_FILES
     wall_overlap.cpp
     grid_position.cpp
     geometry.cpp
-    species_flags_analyzer.cpp
     memory_limit_checker.cpp
     world.cpp
     simulation_config.cpp
     counted_volumes_util.cpp
+    region_util.cpp
     bng_data_to_datamodel_converter.cpp
 )
 

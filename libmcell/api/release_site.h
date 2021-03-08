@@ -50,10 +50,12 @@ public:
       shape = Shape::REGION_EXPR;
     }
 
-    if (is_set(complex) && is_set(complex->compartment_name) && shape != Shape::COMPARTMENT) {
+    if (is_set(complex) && is_set(complex->get_primary_compartment_name()) &&
+        shape != Shape::COMPARTMENT && shape != Shape::REGION_EXPR) {
       if (shape != Shape::UNSET) {
         throw ValueError(S("When ") + NAME_COMPARTMENT_NAME + " is set, "
-            "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_COMPARTMENT + ".");
+            "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_COMPARTMENT + " or " +
+            NAME_ENUM_SHAPE + "." + NAME_EV_REGION_EXPR + ".");
       }
       shape = Shape::COMPARTMENT;
     }

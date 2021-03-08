@@ -50,8 +50,11 @@ public:
     mol_type_id = BNG::MOL_TYPE_ID_INVALID;
   }
 
-  std::shared_ptr<ElementaryMolecule> inst(const std::vector<std::shared_ptr<Component>> components) override {
-    return std::make_shared<ElementaryMolecule>( shared_from_this(), components);
+  std::shared_ptr<ElementaryMolecule> inst(
+      const std::vector<std::shared_ptr<Component>> components,
+      const std::string& compartment_name = STR_UNSET) override {
+
+    return std::make_shared<ElementaryMolecule>( shared_from_this(), components, compartment_name);
   }
 
   bool __eq__(const ElementaryMoleculeType& other) const override;

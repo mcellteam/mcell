@@ -43,9 +43,9 @@
 
 #include "geometry_utils.h"
 
-#include "geometry_utils.inc"
-#include "collision_utils.inc"
-#include "rxn_utils.inc"
+#include "geometry_utils.inl"
+#include "collision_utils.inl"
+#include "rxn_utils.inl"
 
 namespace MCell {
 
@@ -529,9 +529,10 @@ static void find_restricted_regions_by_wall(
     Partition& p,
     const Wall& this_wall,
     const Molecule& sm,
-    uint_set<region_index_t>& regions) {
+	RegionIndicesSet& regions) {
 
   assert(regions.empty() && "Function does not clean the resulting array");
+  assert(sm.is_surf());
 
   const BNG::Species& species = p.get_all_species().get(sm.species_id);
 
@@ -551,7 +552,9 @@ static void find_restricted_regions_by_wall(
     if (rxn_class->is_reflect() || rxn_class->is_absorb_region_border()) {
       assert(rxn_class->is_bimol());
 
-      species_id_t second_reactant_id = rxn_class->get_second_species_id(sm.species_id);
+      // rxn class may use ALL_MOLECULES or ALL_SURFACE_MOLECULES therefore we cannot use 
+      // rxn_class->get_second_species_id
+      species_id_t second_reactant_id = rxn_class->get_reactive_surface_reactant_species_id();
       assert(p.get_all_species().get(second_reactant_id).is_reactive_surface());
 
       restricted_surf_classes.insert(second_reactant_id);
@@ -577,7 +580,7 @@ wall_belongs_to_all_regions_in_region_list:
   Note: Wall can belong to several regions simultaneously.
 ******************************************************************/
 static bool wall_belongs_to_all_regions_in_region_list(
-    const Wall& this_wall, const uint_set<region_index_t>& regions) {
+    const Wall& this_wall, const RegionIndicesSet& regions) {
 
   if (regions.empty()) {
     return false;
@@ -591,6 +594,30 @@ static bool wall_belongs_to_all_regions_in_region_list(
 
   return true;
 }
+
+
+/*****************************************************************
+wall_belongs_to_any_region_in_region_list:
+  In: wall
+      region_list
+  Out: 1 if wall belongs to any region in the region list
+       0 otherwise.
+  Note: Wall can be belong to several regions simultaneously.
+  Note: It is assumed that both wall and region list are defined for
+        the same object.
+******************************************************************/
+static bool wall_belongs_to_any_region_in_region_list(
+		const Wall& this_wall, const RegionIndicesSet& regions) {
+	
+  for (region_index_t region_index: regions) {
+    if (this_wall.regions.count(region_index) != 0) {
+      return true;
+    }
+  }  
+
+  return false;
+}
+
 
 /*****************************************************************
 walls_belong_to_at_least_one_different_restricted_region:
@@ -607,10 +634,10 @@ static bool walls_belong_to_at_least_one_different_restricted_region(
     Partition& p,
     const Wall& w1, const Molecule& sm1,
     const Wall& w2, const Molecule& sm2) {
-
-  uint_set<region_index_t> regions1;
+  
+  RegionIndicesSet regions1;
   find_restricted_regions_by_wall(p, w1, sm1, regions1);
-  uint_set<region_index_t> regions2;
+  RegionIndicesSet regions2;
   find_restricted_regions_by_wall(p, w2, sm2, regions2);
 
   if (regions1.empty() && regions2.empty()) {
@@ -642,9 +669,10 @@ static bool walls_belong_to_at_least_one_different_restricted_region(
     }
   }
 
-  // check whether the intersection of the two sets is not empty
+  // return true if the 2nd set of regions does not contain all the regions that 
+  // the 1st set contains
   for (region_index_t region_index: regions1) {
-    if (regions2.count(region_index) != 0) {
+    if (regions2.count(region_index) == 0) {
       return true;
     }
   }

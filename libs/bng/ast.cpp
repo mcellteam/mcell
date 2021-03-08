@@ -290,6 +290,22 @@ ASTExprNode* ParserContext::new_expr_node(
 }
 
 
+ASTExprNode* ParserContext::new_expr_node(
+    const std::string& function_name,
+    ASTListNode* arguments,
+    const BNGLLTYPE& loc) {
+
+  assert(function_name != "");
+  ASTExprNode* n = new ASTExprNode;
+  n->set_type(ExprType::FunctionCall);
+  n->set_function_name(function_name);
+  n->set_function_arguments(arguments);
+  n->set_loc(current_file, loc);
+  remember_node(n);
+  return n;
+}
+
+
 ASTStrNode* ParserContext::new_empty_str_node() {
   ASTStrNode* n = new ASTStrNode;
   n->str = "";

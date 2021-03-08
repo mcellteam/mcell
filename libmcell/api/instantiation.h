@@ -64,10 +64,8 @@ public:
       const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
   ) override;
 
-  // not accessible from API yet, may be useful but compartment children are not
-  // set until in initialization
-  std::shared_ptr<GeometryObject> find_volume_compartment(const std::string& name) override;
-  std::shared_ptr<GeometryObject> find_surface_compartment(const std::string& name) override;
+  std::shared_ptr<GeometryObject> find_volume_compartment_object(const std::string& name) override;
+  std::shared_ptr<GeometryObject> find_surface_compartment_object(const std::string& name) override;
 
   // added manually
   void dump() const;

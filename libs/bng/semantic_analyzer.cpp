@@ -6,6 +6,7 @@
  */
 
 #include <sstream>
+#include <cmath>
 
 #include "bng/semantic_analyzer.h"
 
@@ -23,10 +24,82 @@ namespace BNG {
 const char* const DIR_FORWARD = "forward";
 const char* const DIR_REVERSE = "reverse";
 
+
+// function names - name and number of arguments, list used by data model to pymcell4 converter
+// is in generator_utils.h: mdl_functions_to_py_bngl_map
+struct BnglFunctionInfo {
+  uint num_arguments;
+  double (*eval_1_arg_func_call)(double);
+  double (*eval_2_args_func_call)(double, double);
+};
+
+static double bngl_max(const double a, const double b) {
+  return (a<b)?b:a;
+}
+
+static double bngl_min(const double a, const double b) {
+  return !(b<a)?a:b;
+}
+
+// TODO: check allowed argument ranges e.g. for asin
+// TODO: only the intersection of MDL and BNGL functions is supported now, some BNGL functios are missing
+static const std::map<std::string, BnglFunctionInfo> bngl_function_infos {
+  { "sqrt", {1, sqrt, nullptr} },
+  { "exp", {1, exp, nullptr} },
+  { "ln", {1, log, nullptr} },
+  { "log10", {1, log10, nullptr} },
+  { "sin", {1, sin, nullptr} },
+  { "cos", {1, cos, nullptr} },
+  { "tan", {1, tan, nullptr} },
+  { "asin", {1, asin, nullptr} },
+  { "acos", {1, acos, nullptr} },
+  { "atan", {1, atan, nullptr} },
+  { "abs", {1, fabs, nullptr} },
+  { "ceil", {1, ceil, nullptr} },
+  { "floor", {1, floor, nullptr} },
+  { "max", {2, nullptr, bngl_max} },
+  { "min", {2, nullptr, bngl_min} }
+};
+
 static bool is_thrash_or_null(const string& name) {
   // same check as in nfsim
   return (name == COMPLEX_Null || name == COMPLEX_NULL || name == COMPLEX_null ||
       name == COMPLEX_Trash || name == COMPLEX_TRASH || name == COMPLEX_trash);
+}
+
+
+double SemanticAnalyzer::evaluate_function_call(ASTExprNode* call_node, const std::vector<double>& arg_values) {
+  assert(call_node != nullptr);
+  const string& name = call_node->get_function_name();
+  const auto& func_info_it = bngl_function_infos.find(name);
+  if (func_info_it != bngl_function_infos.end()) {
+    if (arg_values.size() == func_info_it->second.num_arguments) {
+      const BnglFunctionInfo& info = func_info_it->second;
+      if (info.num_arguments == 1) {
+        return info.eval_1_arg_func_call(arg_values[0]);
+      }
+      else if (info.num_arguments == 2) {
+        return info.eval_2_args_func_call(arg_values[0], arg_values[1]);
+      }
+      else {
+        assert(false);
+        return 0;
+      }
+    }
+    else {
+      errs_loc(call_node) <<
+          "Invalid number of arguments for function '" << name << "', got " << arg_values.size() <<
+          " expected " << func_info_it->second.num_arguments << ".\n"; // test TODO
+      ctx->inc_error_count();
+      return 0;
+    }
+  }
+  else {
+    errs_loc(call_node) <<
+        "Unknown function '" << name << "' encountered.\n"; // test TODO
+    ctx->inc_error_count();
+    return 0;
+  }
 }
 
 
@@ -37,12 +110,10 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
     // already computed
     return root;
   }
-
-  if (root->is_llong()) {
+  else if (root->is_llong()) {
     return ctx->new_dbl_node(root->get_llong(), root);
   }
-
-  if (root->is_id()) {
+  else if (root->is_id()) {
     const string& id = root->get_id();
     if (used_ids.count(id) != 0) {
       errs_loc(root) <<
@@ -67,15 +138,13 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
     used_ids.insert(id);
     return evaluate_to_dbl(to_expr_node(val), used_ids);
   }
-
-  if (root->is_unary_expr()) {
+  else if (root->is_unary_expr()) {
     assert(root->get_left() != nullptr);
     assert(root->get_right() == nullptr);
     double res = evaluate_to_dbl(root->get_left(), used_ids)->get_dbl();
     return ctx->new_dbl_node( (root->get_op() == ExprType::UnaryMinus) ? -res : res, root);
   }
-
-  if (root->is_binary_expr()) {
+  else if (root->is_binary_expr()) {
     assert(root->get_left() != nullptr);
     assert(root->get_right() != nullptr);
     double res_left = evaluate_to_dbl(root->get_left(), used_ids)->get_dbl();
@@ -106,6 +175,17 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
       default:
         release_assert(false && "Invalid operator");
     }
+    return ctx->new_dbl_node(res, root);
+  }
+  else if (root->is_function_call()) {
+    assert(root->get_args() != nullptr);
+    // evaluate all arguments
+    vector<double> arg_values;
+    for (ASTBaseNode* base_arg_node: root->get_args()->items) {
+      ASTExprNode* arg_node = to_expr_node(base_arg_node);
+      arg_values.push_back(evaluate_to_dbl(arg_node, used_ids)->get_dbl());
+    }
+    double res = evaluate_function_call(root, arg_values);
     return ctx->new_dbl_node(res, root);
   }
 
@@ -315,6 +395,13 @@ void SemanticAnalyzer::convert_and_store_compartments() {
       ctx->inc_error_count();
       continue;
     }
+
+    if (n->name == DEFAULT_COMPARTMENT_NAME) {
+      errs_loc(n) <<
+          "Compartment name '" << n->name << "' is reserved, the specification will be ignored.\n"; // test TODO
+      continue;
+    }
+
     c.name = n->name;
 
     // dimensions
@@ -350,7 +437,11 @@ void SemanticAnalyzer::convert_and_store_compartments() {
     const ASTCompartmentNode* n = to_compartment_node(ctx->compartments.items[i]);
 
     Compartment* c = bng_data->find_compartment(n->name);
-    assert(c != nullptr);
+    if (c == nullptr) {
+      // ignoring default_compartment
+      assert(n->name == DEFAULT_COMPARTMENT_NAME);
+      continue;
+    }
     if (n->parent_name != "") {
 
       compartment_id_t parent_compartment_id = bng_data->find_compartment_id(n->parent_name);
@@ -388,6 +479,11 @@ void SemanticAnalyzer::convert_and_store_compartments() {
 
     // check that the lowest level children is 3d
     const Compartment* c = bng_data->find_compartment(n->name);
+    if (c == nullptr) {
+      // ignoring default_compartment
+      assert(n->name == DEFAULT_COMPARTMENT_NAME);
+      continue;
+    }
     if (!c->has_children() && !c->is_3d) {
       errs() <<
           "Compartment without sub-compartments '" + c->name + "' must be a 3D compartment.\n"; // test TODO
@@ -529,7 +625,22 @@ ElemMol SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
   const ElemMolType& mt = bng_data->get_elem_mol_type(molecule_type_id);
   mi.elem_mol_type_id = molecule_type_id;
 
-
+  // process compartment
+  compartment_id_t cid = COMPARTMENT_ID_NONE;
+  if (m->compartment != nullptr) {
+    string compartment_name = m->compartment->str;
+    if (compartment_name != "") {
+      cid = bng_data->find_compartment_id(compartment_name);
+      if (cid == COMPARTMENT_ID_INVALID) {
+        errs_loc(m) <<
+            "Compartment '" << compartment_name << "' was not defined.\n"; // test XXX
+        ctx->inc_error_count();
+        return mi;
+      }
+    }
+  }
+  mi.compartment_id = cid;
+  
   // make a multiset of components type ids so that we can check that
   // out molecule instance does not use wrong or too many components
   multiset<component_type_id_t> remaining_component_ids;
@@ -623,28 +734,38 @@ ElemMol SemanticAnalyzer::convert_molecule_pattern(const ASTMolNode* m) {
 }
 
 
+void insert_compartment_id_to_set_based_on_type(
+    const BNGData* bng_data,
+    const compartment_id_t cid,
+    bool& all_are_none_or_inout,
+    bool& has_compartment_none,
+    uint_set<compartment_id_t>& vol_compartments,
+    uint_set<compartment_id_t>& surf_compartments) {
+
+  if (cid == COMPARTMENT_ID_NONE) {
+    has_compartment_none = true;
+  }
+  else if (cid == COMPARTMENT_ID_IN ||
+      cid == COMPARTMENT_ID_OUT) {
+    // continue
+  }
+  else if (bng_data->get_compartment(cid).is_3d) {
+    vol_compartments.insert(cid);
+    all_are_none_or_inout = false;
+  }
+  else {
+    surf_compartments.insert(cid);
+    all_are_none_or_inout = false;
+  }
+}
+
+
 // for a pattern it is ok to not to list all components
 void SemanticAnalyzer::convert_cplx(
     const ASTCplxNode* cplx_node,
-    Cplx& bng_cplx
+    Cplx& bng_cplx,
+    const bool check_compartments
 ) {
-
-  // determine compartment
-  string compartment_name = get_compartment_name(cplx_node);
-  if (compartment_name != "") {
-    compartment_id_t cid =
-        bng_data->find_compartment_id(compartment_name);
-    if (cid == COMPARTMENT_ID_INVALID) {
-        errs_loc(cplx_node) <<
-            "Compartment '" << compartment_name << "' was not defined.\n"; // tests N0305, N0306
-        ctx->inc_error_count();
-    }
-    bng_cplx.set_compartment_id(cid);
-  }
-  else {
-    bng_cplx.set_compartment_id(COMPARTMENT_ID_NONE);
-  }
-
   for (const ASTMolNode* m: cplx_node->mols) {
 
     // molecule ids are based on their name
@@ -678,12 +799,76 @@ void SemanticAnalyzer::convert_cplx(
     }
   }
 
-  bng_cplx.finalize();
-  if (!bng_cplx.is_connected()) {
-    errs_loc(cplx_node->mols[0]) <<
-        "All complexes must be currently fully connected, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
-    ctx->inc_error_count();
-    return;
+
+  // global compartment
+  compartment_id_t global_compartment_id = COMPARTMENT_ID_NONE;
+  if (cplx_node->compartment != nullptr) {
+    string compartment_name = cplx_node->compartment->str;
+    if (compartment_name != "") {
+      global_compartment_id = bng_data->find_compartment_id(compartment_name);
+      if (global_compartment_id == COMPARTMENT_ID_INVALID) {
+        errs_loc(cplx_node) <<
+            "Compartment '" << compartment_name << "' was not defined.\n"; // tests N0305, N0306
+        ctx->inc_error_count();
+        return;
+      }
+    }
+  }
+
+  // apply global compartment to elem mols that were not specified
+  if (global_compartment_id != COMPARTMENT_ID_NONE) {
+    for (auto& em: bng_cplx.elem_mols) {
+      if (em.compartment_id == COMPARTMENT_ID_NONE) {
+        em.compartment_id = global_compartment_id;
+      }
+    }
+  }
+
+  if (check_compartments) {
+    // check that compartments are used consistently
+    // we do not know yet whether elementary molecules are surface or not, but
+    // compartments were already defined in case we are parsing whole BNGL file
+    uint_set<compartment_id_t> vol_compartments;
+    uint_set<compartment_id_t> surf_compartments;
+    bool all_are_none_or_inout = true;
+    bool has_compartment_none = false;
+    for (const auto& em: bng_cplx.elem_mols) {
+      insert_compartment_id_to_set_based_on_type(
+          bng_data, em.compartment_id,
+          all_are_none_or_inout, has_compartment_none, vol_compartments, surf_compartments);
+    }
+
+    uint_set<compartment_id_t> all_vol_surf_compartment_ids;
+    all_vol_surf_compartment_ids.insert(vol_compartments.begin(), vol_compartments.end());
+    all_vol_surf_compartment_ids.insert(surf_compartments.begin(), surf_compartments.end());
+
+    if (!all_are_none_or_inout && surf_compartments.empty() && vol_compartments.size() > 1) {
+      errs_loc(cplx_node->mols[0]) <<
+          "The maximum number of compartments that a volume complex may use is 1, error for '" << bng_cplx.to_str() << "'.\n"; // test N307
+      ctx->inc_error_count();
+      return;
+    }
+    if (!all_are_none_or_inout && surf_compartments.size() > 1) {
+      errs_loc(cplx_node->mols[0]) <<
+          "The maximum number of surface compartments that a surface complex may use is 1, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+      ctx->inc_error_count();
+      return;
+    }
+    if (!all_are_none_or_inout && surf_compartments.size() == 1 && vol_compartments.size() > 2) {
+      errs_loc(cplx_node->mols[0]) <<
+          "The maximum number of volume compartments that a surface complex may use is 2, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+      ctx->inc_error_count();
+      return;
+    }
+
+
+    bng_cplx.finalize_cplx();
+    if (!bng_cplx.is_connected()) {
+      errs_loc(cplx_node->mols[0]) <<
+          "All complexes must be currently fully connected, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+      ctx->inc_error_count();
+      return;
+    }
   }
 }
 
@@ -704,7 +889,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(
       if (is_thrash_or_null(m->name)) {
         if (reactants_side) {
           errs_loc(m) <<
-              "Null/Trash product cannot be used on the reactants side of a reeaction rule.\n"; // test XXX
+              "Null/Trash product cannot be used on the reactants side of a reeaction rule.\n"; // test N0620
           ctx->inc_error_count();
           return;
         }
@@ -717,13 +902,10 @@ void SemanticAnalyzer::convert_rxn_rule_side(
 
     Cplx pattern(bng_data);
     convert_cplx(cplx, pattern);
-    // for reactants, set ANY compartment if it was not specified
-    if (reactants_side && pattern.get_compartment_id() == COMPARTMENT_ID_NONE) {
-      pattern.set_compartment_id(COMPARTMENT_ID_ANY);
-    }
     if (ctx->get_error_count() > 0) {
       return;
     }
+    pattern.finalize_cplx();
     patterns.push_back(pattern);
   }
 }
@@ -808,7 +990,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
   }
 }
 
-
+/*
 string SemanticAnalyzer::get_compartment_name(const ASTCplxNode* cplx) {
   string res = "";
 
@@ -834,7 +1016,7 @@ string SemanticAnalyzer::get_compartment_name(const ASTCplxNode* cplx) {
   }
   return res;
 }
-
+*/
 
 void SemanticAnalyzer::convert_seed_species() {
   for (const ASTBaseNode* n: ctx->seed_species.items) {
@@ -849,11 +1031,22 @@ void SemanticAnalyzer::convert_seed_species() {
 
     if (ss.cplx.has_compartment_class_in_out()) {
       errs_loc(ss_node->cplx) <<
-          "It is not allowed to use compartment @" << compartment_id_to_str(ss.cplx.get_compartment_id()) <<
+          "It is not allowed to use compartment @" << compartment_id_to_str(ss.cplx.get_primary_compartment_id()) <<
           " in the seed species section.\n"; // test N0601
       ctx->inc_error_count();
       return;
     }
+
+    uint_set<compartment_id_t> used_compartments;
+    ss.cplx.get_used_compartments(used_compartments);
+    if (used_compartments.count(COMPARTMENT_ID_NONE) && used_compartments.size() > 1) {
+      errs_loc(n) <<
+          "In the seed species section either all elementary molecules must have their compartment specified or none, error for '" <<
+          ss.cplx.to_str() << "'.\n"; // test N0621
+      ctx->inc_error_count();
+      return;
+    }
+
 
     ASTExprNode* orig_expr = to_expr_node(ss_node->count);
     ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);
@@ -896,7 +1089,7 @@ void SemanticAnalyzer::convert_observables() {
 
       if (cplx.has_compartment_class_in_out()) {
         errs_loc(cplx_pat) <<
-            "It is not allowed to use compartment @" << compartment_id_to_str(cplx.get_compartment_id()) <<
+            "It is not allowed to use compartment @" << compartment_id_to_str(cplx.get_primary_compartment_id()) <<
             " in the observables section.\n"; // test N0602
         ctx->inc_error_count();
         return;
@@ -1073,7 +1266,7 @@ bool SemanticAnalyzer::check_and_convert_single_cplx(
 
   define_compartments_used_by_cplx_as_3d_compartments(ctx->single_cplx);
 
-  convert_cplx(ctx->single_cplx, res);
+  convert_cplx(ctx->single_cplx, res, false);
   if (ctx->get_error_count() != 0) {
     return false;
   }

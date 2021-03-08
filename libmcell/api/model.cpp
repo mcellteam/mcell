@@ -43,7 +43,7 @@
 #include "scheduler.h"
 #include "diffuse_react_event.h"
 #include "release_event.h"
-#include "rxn_utils.inc"
+#include "rxn_utils.inl"
 #include "molecule.h"
 #include "viz_output_event.h"
 #include "custom_function_call_event.h"
@@ -90,7 +90,7 @@ void Model::add_observables(std::shared_ptr<Observables> observables) {
 }
 
 
-void Model::initialize() {
+void Model::initialize(const bool print_copyright) {
   if (world != nullptr) {
     throw RuntimeError("Model.initialize() can be called only once");
   }
@@ -130,6 +130,20 @@ void Model::initialize() {
   set_checkpoint_signals(this);
 
   initialized = true;
+
+  if (print_copyright) {
+    cout <<
+      "Copyright (C) 2006-2021 by\n"
+      "  The National Center for Multiscale Modeling of Biological Systems,\n"
+      "  The Salk Institute for Biological Studies, and\n"
+      "  Pittsburgh Supercomputing Center, Carnegie Mellon University,\n"
+      "\n"
+      "**********************************************************************\n"
+      "MCell development is supported by the NIGMS-funded (P41GM103712)\n"
+      "National Center for Multiscale Modeling of Biological Systems (MMBioS).\n"
+      "Please acknowledge MCell in your publications.\n"
+      "**********************************************************************\n\n";
+  }
 }
 
 
@@ -263,7 +277,7 @@ std::vector<int> Model::run_reaction(
   if (rxn->is_unimol()) {
     // check if the requested rxn is applicable for our reactant
     // also determine pathway index
-    BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(m1.as_reactant());
+    BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(m1.species_id);
     rxn_class->init_rxn_pathways_and_rates(); // initialize if needed
     rxn_class_pathway_index_t index = 0;
     while (index < (rxn_class_pathway_index_t)rxn_class->get_num_pathways() &&

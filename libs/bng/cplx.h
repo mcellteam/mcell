@@ -40,15 +40,9 @@ private:
   // used in reactions, not in species
   orientation_t orientation;
 
-  compartment_id_t compartment_id;
-
-  // all possible compartments where this cplx might be used in reactions
-  CompartmentIdSet reactant_compartments;
-
 public:
   Cplx(const BNGData* bng_data_)
     : orientation(ORIENTATION_NONE),
-      compartment_id(COMPARTMENT_ID_INVALID),
       bng_data(bng_data_)
       {
   }
@@ -60,16 +54,14 @@ public:
   Cplx& operator =(const Cplx& other) {
     elem_mols = other.elem_mols;
     orientation = other.orientation;
-    compartment_id = other.compartment_id;
     bng_data = other.bng_data;
-    reactant_compartments = other.reactant_compartments;
 
     set_flags(other.get_flags());
 
     // copy ctor is needed because we must recreate graph that has pointers to
     // molecule and complex instances, finalize also sets some flags
     if (other.is_finalized()) {
-      finalize(false);
+      finalize_cplx(false);
     }
 
     return *this;
@@ -78,12 +70,24 @@ public:
 
   // must be called after initialization, sets up flags
   // also creates graphs for non-simple complexes
-  void finalize(const bool init_flags_and_compartments = true);
-
-  // called automatically from finalize but needed elsewhere as well
-  void update_flag_and_compartments_used_in_rxns();
+  void finalize_cplx(const bool init_flags_and_compartments = true);
 
   void create_graph();
+
+  // if dont_know_elem_mol_types is true, we do not know the types elementary molecules
+  // (whether they are vol or surf),
+  compartment_id_t get_primary_compartment_id(const bool dont_know_elem_mol_types = false) const {
+    assert(is_finalized());
+    if (elem_mols.size() == 1) {
+      return elem_mols[0].compartment_id;
+    }
+    else {
+      return get_complex_compartment_id(dont_know_elem_mol_types);
+    }
+  }
+
+  void get_used_compartments(uint_set<compartment_id_t>& compartments) const;
+
 
   const Graph& get_graph() const {
     assert(is_finalized());
@@ -125,34 +129,28 @@ public:
   }
 
   bool has_compartment() const {
-    assert(compartment_id != COMPARTMENT_ID_INVALID);
-    return compartment_id != COMPARTMENT_ID_NONE && compartment_id != COMPARTMENT_ID_ANY;
+    compartment_id_t id = get_primary_compartment_id();
+    assert(id != COMPARTMENT_ID_INVALID);
+    return id != COMPARTMENT_ID_NONE;
   }
 
   bool has_compartment_class_in_out() const {
-    assert(compartment_id != COMPARTMENT_ID_INVALID);
-    return compartment_id == COMPARTMENT_ID_IN || compartment_id == COMPARTMENT_ID_OUT;
+    compartment_id_t id = get_primary_compartment_id();
+    assert(id != COMPARTMENT_ID_INVALID);
+    return is_in_out_compartment_id(id);;
   }
 
-  compartment_id_t get_compartment_id(const bool in_out_as_any = false) const {
-    if (in_out_as_any && has_compartment_class_in_out()) {
-      return COMPARTMENT_ID_ANY;
-    }
-    else {
-      return compartment_id;
-    }
-  }
+  // sets compartment to all contained elementary molecules
+  void set_compartment_id(const compartment_id_t cid, const bool override_only_compartment_none = false);
 
-  void set_compartment_id(const compartment_id_t cid) {
-    // TODO: here could be some extra checks related to orientation
-    compartment_id = cid;
-  }
+  // go trough all elementary molecules and if compartment is set to cid, set it to NONE
+  void remove_compartment_from_elem_mols(const compartment_id_t cid);
 
   // returns true if this object as a pattern matches second instance
   bool matches_pattern(const Cplx& pattern, const bool ignore_orientation = false) const {
     assert(is_finalized() && pattern.is_finalized());
     if (is_simple() && pattern.is_simple()) {
-      return matches_simple(pattern, ignore_orientation);
+      return matches_simple_pattern(pattern, ignore_orientation);
     }
     else {
       if (!ignore_orientation && orientation != pattern.orientation) {
@@ -168,7 +166,7 @@ public:
    // used for counting of molecule pattern type observables
   uint get_pattern_num_matches(const Cplx& pattern) const;
 
-  // returns true if this complex is equivalent
+  // returns true if this complex is equivalent, neither of the complexes is a pattern
   bool matches_fully(const Cplx& other, const bool ignore_orientation = false) const {
 #ifdef DEBUG_CPLX_MATCHING_EXTRA_COMPARE
       std::cout << "Comparing: ";
@@ -178,7 +176,7 @@ public:
 #endif
     assert(is_finalized() && other.is_finalized());
     if (is_simple() && other.is_simple()) {
-      return matches_simple(other, ignore_orientation);
+      return matches_simple_fully(other, ignore_orientation);
     }
     else if (is_simple() != other.is_simple()) {
       // cannot be identical when one is simple and the other not
@@ -204,30 +202,6 @@ public:
   // default sorting of components is according to molecule types
   void canonicalize(const bool sort_components_by_name_do_not_finalize = false);
 
-  const CompartmentIdSet& get_reactant_compartments() const {
-    assert(!reactant_compartments.empty() && "Not initialized");
-    return reactant_compartments;
-  }
-
-  bool is_reactant_compartment(const compartment_id_t compartment_id) const {
-    assert(!reactant_compartments.empty() && "Not initialized");
-    return reactant_compartments.count(compartment_id) != 0;
-  }
-
-  // if the compartment passed as argument is in a set of applicable compartments then
-  // returns its value, otherwise returns COMPARTMENT_ID_NONE because we must not
-  // set a compartment ID that is not applicable, e.g. the RxnContaines counts on it
-  compartment_id_t get_as_reactant_compartment(const compartment_id_t compartment_id) const {
-    assert(!reactant_compartments.empty() && "Not initialized");
-    if (is_reactant_compartment(compartment_id)) {
-      return compartment_id;
-    }
-    else {
-      // outside of any compartment important for this species
-      return COMPARTMENT_ID_NONE;
-    }
-  }
-
   // appends to string res
   void to_str(std::string& res, const bool in_surf_reaction = false) const;
 
@@ -235,18 +209,30 @@ public:
   void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:
-  bool matches_simple(const Cplx& other, const bool ignore_orientation = false) const {
-    assert(is_simple() && other.is_simple());
-    assert(elem_mols.size() == 1 && other.elem_mols.size() == 1);
+  bool matches_simple_pattern(const Cplx& pattern, const bool ignore_orientation = false) const {
+    assert(is_simple() && pattern.is_simple());
+    assert(elem_mols.size() == 1 && pattern.elem_mols.size() == 1);
 
-    if (!ignore_orientation && orientation != other.orientation) {
+    if (!ignore_orientation && orientation != pattern.orientation) {
       return false;
     }
-    return elem_mols[0].matches_simple(other.elem_mols[0]);
+    return pattern.elem_mols[0].matches_simple_pattern(elem_mols[0]);
   }
 
+  bool matches_simple_fully(const Cplx& pattern, const bool ignore_orientation = false) const {
+    assert(is_simple() && pattern.is_simple());
+    assert(elem_mols.size() == 1 && pattern.elem_mols.size() == 1);
+
+    if (!ignore_orientation && orientation != pattern.orientation) {
+      return false;
+    }
+    return pattern.elem_mols[0].matches_simple_fully(elem_mols[0]);
+  }
+
+  compartment_id_t get_complex_compartment_id(const bool override_is_surface_cplx = false) const;
+
   bool matches_complex_pattern_ignore_orientation(const Cplx& pattern) const;
-  bool matches_complex_fully_ignore_orientation(const Cplx& pattern) const;
+  bool matches_complex_fully_ignore_orientation(const Cplx& other) const;
 
   void sort_components_and_mols();
   void renumber_bonds();

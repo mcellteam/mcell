@@ -21,6 +21,45 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import sys
+import argparse
+
+
+class Options:
+    def __init__(self):
+        self.mcell3_dir = None
+        self.mcell4_dir = None
+        self.bng_dir = None
+        self.single_bng_run = False
+
+        
+def create_argparse():
+    parser = argparse.ArgumentParser(description='MCell4 Runner')
+    parser.add_argument('-m4', '--mcell4', type=str, help='mcell4 react_data directory')
+    parser.add_argument('-m3', '--mcell3', type=str, help='mcell3 react_data directory')
+    parser.add_argument('-b', '--bng', type=str, help='bionetgen directory')
+    parser.add_argument('-s', '--single_bng_run', action='store_true', help='the bionetgen directory contains only a single .gdat file')
+    return parser
+
+
+def process_opts():
+    parser = create_argparse()
+    args = parser.parse_args()
+    opts = Options()
+    
+    if args.mcell4:
+        opts.mcell4_dir = args.mcell4 
+
+    if args.mcell3:
+        opts.mcell3_dir = args.mcell3 
+
+    if args.bng:
+        opts.bng_dir = args.bng 
+
+    if args.single_bng_run:
+        opts.single_bng_run = args.single_bng_run 
+
+    return opts
+
 
 def get_mcell_observables_counts(dir):
     counts = {}
@@ -66,98 +105,123 @@ def get_bng_observables_counts(file, counts):
     df = pd.read_csv(file, delim_whitespace=True, comment='#', names=header)
     return df
     
-                
-                
-def get_nfsim_observables_counts(dir):
-    counts = {}
-    nf_dirs = os.listdir(dir)
+
+def process_nsfim_gdat_file(full_dir, counts):
+    df = get_bng_observables_counts(os.path.join(full_dir, 'test.gdat'), counts)
     
-    for nf_dir in nf_dirs:
-        full_dir = os.path.join(dir, nf_dir)
-        if not nf_dir.startswith('nf_') or not os.path.isdir(full_dir):
-            continue
-        df = get_bng_observables_counts(os.path.join(full_dir, 'test.gdat'), counts)
+    # transform into separate dataframes based on observable 
+    for i in range(1, df.shape[1]):
+        observable = df.columns[i] 
+        if observable not in counts:
+            col_name = 'count0'  
+            # select time and the current observable
+            counts[observable] = pd.DataFrame()           
+            counts[observable]['time'] = df.iloc[:, 0]
+            counts[observable][col_name] = df.iloc[:, i]
+        else:
+            col_name = 'count' + str(counts[observable].shape[1] - 1)            
+            counts[observable][col_name] = df.iloc[:, i]             
+                
+                
+def get_nfsim_observables_counts(opts):
+    single_bng_run = opts.single_bng_run
+    dir = opts.bng_dir
+    counts = {}
+    
+    if not single_bng_run:
+        nf_dirs = os.listdir(dir)
         
-        # transform into separate dataframes based on observable 
-        for i in range(1, df.shape[1]):
-            observable = df.columns[i] 
-            if observable not in counts:
-                col_name = 'count0'  
-                # select time and the current observable
-                counts[observable] = pd.DataFrame()           
-                counts[observable]['time'] = df.iloc[:, 0]
-                counts[observable][col_name] = df.iloc[:, i]
-            else:
-                col_name = 'count' + str(counts[observable].shape[1] - 1)            
-                counts[observable][col_name] = df.iloc[:, i]  
+        for nf_dir in nf_dirs:
+            full_dir = os.path.join(dir, nf_dir)
+            if not nf_dir.startswith('nf_') or not os.path.isdir(full_dir):
+                continue
+            process_nsfim_gdat_file(full_dir, counts)
+    else:
+        process_nsfim_gdat_file(dir, counts)
 
     return counts 
 
 
-
-mcell3_dir = 'react_data'
-mcell4_dir = 'react_data4'
-bng_dir = '.'
-if len(sys.argv) == 4:
-    mcell3_dir = sys.argv[1]
-    mcell4_dir = sys.argv[2]
-    bng_dir = sys.argv[3]
-
-counts = []
-if os.path.exists(mcell3_dir):
-    counts.append(get_mcell_observables_counts(mcell3_dir))
-else:
-    print("Directory " + mcell3_dir + " with MCell3 data not found, ignored")
-    counts.append({})
-
-if os.path.exists(mcell4_dir):
-    counts.append(get_mcell_observables_counts(mcell4_dir))
-else:
-    print("Directory " + mcell4_dir + " with MCell4 data not found, ignored")
-    counts.append({})
-
-# get_nfsim_observables_counts may return an empty dict
-counts.append(get_nfsim_observables_counts(bng_dir))
-
-
-assert not counts[1] or counts[0].keys() == counts[1].keys()
-assert not counts[2] or counts[0].keys() == counts[2].keys()
-
-names = ['MCell3R', 'MCell4', 'BNG']
-clrs = ['b', 'g', 'r'] 
+def main():
     
-obs_i = 0
-for obs in sorted(counts[0]): 
+    opts = process_opts()
     
-    fig,ax = plt.subplots()
-    ax.set_title(obs)
+    counts = []
+    if opts.mcell4_dir:
+        if os.path.exists(opts.mcell4_dir):
+            print("Reading MCell data from " + opts.mcell4_dir)
+            counts.append(get_mcell_observables_counts(opts.mcell4_dir))
+        else:
+            print("Directory " + opts.mcell4_dir + " with MCell4 data not found, ignored")
+            sys.exit(1)
+    else:
+        counts.append({})
+
+    if opts.mcell3_dir:
+        if os.path.exists(opts.mcell3_dir):
+            print("Reading MCell data from " + opts.mcell3_dir)
+            counts.append(get_mcell_observables_counts(opts.mcell3_dir))
+        else:
+            print("Error: directory " + opts.mcell3_dir + " with MCell3 data not found, ignored")
+            sys.exit(1)
+    else:
+        counts.append({})
     
-    legend_names = []
-    for i in range(len(counts)):
-        if not counts[i]:
-            print("Data for " + names[i] + " were not loaded.")
-            continue
+    # get_nfsim_observables_counts may return an empty dict
+    if opts.bng_dir:
+        if os.path.exists(opts.bng_dir):
+            print("Reading BNG data from " + opts.bng_dir)
+            counts.append(get_nfsim_observables_counts(opts))
+        else:
+            print("Error: directory " + opts.bng_dir + " with BNG data not found, ignored")
+            sys.exit(1)
+    else:
+        counts.append({})
+            
+    names = ['MCell4', 'MCell3R', 'BNG']
+    clrs = ['b', 'g', 'r'] 
+
+    all_observables = set(counts[0].keys())
+    all_observables = all_observables.union(set(counts[1].keys()))
+    all_observables = all_observables.union(set(counts[2].keys()))
+    
+    for obs in sorted(all_observables): 
+        print("Processing observable " + obs)
         
-        data = counts[i][obs]
+        fig,ax = plt.subplots()
+        ax.set_title(obs)
         
-        df = pd.DataFrame()           
-        df['time'] = data.iloc[:, 0]
-        df['means'] = data.iloc[:, 1:].mean(axis=1)
-        df['mean_minus_std'] = df['means'] - data.iloc[:, 1:].std(axis=1)
-        df['mean_plus_std'] = df['means'] + data.iloc[:, 1:].std(axis=1)
-
-        # free collected data to decrease memory consumption        
-        del data
-                
-        ax.plot(df['time'], df['means'], label=obs + "1", c=clrs[i])
-        ax.fill_between(
-            df['time'], 
-            df['mean_minus_std'], df['mean_plus_std'],
-            alpha=0.3, facecolor=clrs[i])
-
-        legend_names.append(names[i])
-
-    plt.legend(legend_names)
+        legend_names = []
+        for i in range(len(counts)):
+            if obs not in counts[i]:
+                continue
+            
+            data = counts[i][obs]
+            
+            df = pd.DataFrame()           
+            df['time'] = data.iloc[:, 0]
+            df['means'] = data.iloc[:, 1:].mean(axis=1)
+            df['mean_minus_std'] = df['means'] - data.iloc[:, 1:].std(axis=1)
+            df['mean_plus_std'] = df['means'] + data.iloc[:, 1:].std(axis=1)
     
-    plt.savefig(obs + '.png', dpi=600)
-    plt.close(fig)
+            # free collected data to decrease memory consumption        
+            del data
+                    
+            ax.plot(df['time'], df['means'], label=obs + "1", c=clrs[i])
+            ax.fill_between(
+                df['time'], 
+                df['mean_minus_std'], df['mean_plus_std'],
+                alpha=0.2, facecolor=clrs[i])
+    
+            legend_names.append(names[i])
+    
+        plt.legend(legend_names)
+        
+        plt.savefig(obs + '.png', dpi=600)
+        plt.close(fig)
+
+
+if __name__ == '__main__':
+    main()
+    
+    

@@ -67,6 +67,7 @@ public:
       species_pattern_type(SpeciesPatternType::Invalid),
       species_id(SPECIES_ID_INVALID),
       species_molecules_pattern(nullptr),
+      primary_compartment_id(BNG::COMPARTMENT_ID_NONE),
       rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
       geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
       region_id(REGION_ID_INVALID),
@@ -116,6 +117,10 @@ public:
 
   // valid when species_pattern_type is SpeciesPattern or MoleculesPattern
   BNG::Cplx species_molecules_pattern;
+
+  // when primary_compartment_id is COMPARTMENT_ID_NONE, it is ignored
+  // used only for molecule counting
+  BNG::compartment_id_t primary_compartment_id;
 
   // set in compute_count_species_info based on species_molecules_pattern
   // presence is tested when species_pattern_type is SpeciesPattern
@@ -183,20 +188,16 @@ enum class CountSpeciesInfoType {
 struct CountSpeciesInfo {
   CountSpeciesInfo()
     : type(CountSpeciesInfoType::NotSeen),
-      needs_counted_volume(false),
       all_are_world_mol_counts(true) {
   }
 
   CountSpeciesInfoType type;
-
-  bool needs_counted_volume;
 
   // when true, all count items that count this species are listed in
   // the world_count_item_indices
   bool all_are_world_mol_counts;
 
   // indices of count items that count this species in the whole world
-  // when needs_counted_volume is false, these are the only counts we care about
   uint_set<uint> world_count_item_indices;
 };
 
@@ -236,12 +237,6 @@ public:
       count_rxns = true;
     }
   }
-
-  // returns true if this count event count these specific species
-  // and whether the species are counted in volume regions so that they
-  // need the Molecule's attribute counted_volume to be maintained
-  // is cached
-  bool species_needs_counted_volume(const species_id_t species_id);
 
   MolOrRxnCountItemVector mol_rxn_count_items;
 

@@ -24,6 +24,8 @@
 #include "debug_config.h"
 
 #include "bng/cplx.h"
+#include "bng/bngl_names.h"
+#include "bng/semantic_analyzer.h" // only for insert_compartment_id_to_set_based_on_type
 
 //#define DEBUG_CANONICALIZATION
 
@@ -61,7 +63,7 @@ bool Cplx::is_connected() const {
 }
 
 
-void Cplx::finalize(const bool init_flags_and_compartments) {
+void Cplx::finalize_cplx(const bool init_flags_and_compartments) {
   if (elem_mols.empty()) {
     return; // empty complex, ignoring finalization
   }
@@ -105,8 +107,6 @@ void Cplx::finalize(const bool init_flags_and_compartments) {
       }
     }
     set_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
-
-    update_flag_and_compartments_used_in_rxns();
   }
 
   // we need graphs even for simple complexes because they can be used in reaction patterns
@@ -114,23 +114,6 @@ void Cplx::finalize(const bool init_flags_and_compartments) {
   create_graph();
 
   set_finalized();
-}
-
-
-void Cplx::update_flag_and_compartments_used_in_rxns() {
-  for (ElemMol& mi: elem_mols) {
-
-    const ElemMolType& mt = bng_data->get_elem_mol_type(mi.elem_mol_type_id);
-
-    reactant_compartments.insert(
-        mt.reactant_compartments.begin(),
-        mt.reactant_compartments.end()
-    );
-
-    if (mt.has_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS)) {
-      set_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
-    }
-  }
 }
 
 
@@ -174,6 +157,84 @@ void Cplx::create_graph() {
 }
 
 
+void Cplx::get_used_compartments(uint_set<compartment_id_t>& compartments) const {
+  compartments.clear();
+
+  assert(elem_mols.size() > 0);
+  for (const ElemMol& em: elem_mols) {
+    compartments.insert(em.compartment_id);
+  }
+}
+
+
+compartment_id_t Cplx::get_complex_compartment_id(const bool dont_know_elem_mol_types) const {
+#ifndef NDEBUG
+  // consistency check of compartments
+  // similar as in SemanticAnalyzer::convert_cplx
+  bool ignored;
+  bool all_are_none_or_inout = true;
+  uint_set<compartment_id_t> vol_compartments;
+  uint_set<compartment_id_t> surf_compartments;
+
+  assert(elem_mols.size() > 0);
+  for (const ElemMol& em: elem_mols) {
+    insert_compartment_id_to_set_based_on_type(
+        bng_data, em.compartment_id,
+        all_are_none_or_inout, ignored, vol_compartments, surf_compartments);
+  }
+
+  // we might not know whether our compartment is surf or vol, so the check is weaker
+  assert(
+      all_are_none_or_inout ||
+      (vol_compartments.size() == 1 && surf_compartments.empty()) ||
+      (vol_compartments.size() <= 2 && surf_compartments.size() == 1));
+#endif
+
+  if (dont_know_elem_mol_types) {
+    // get the first surface compartment because we do not know the types of elementary molecules
+    // if surface compartment is not used, get the first volume compartment
+    compartment_id_t vol_cid = COMPARTMENT_ID_NONE;
+    for (const ElemMol& em: elem_mols) {
+      compartment_id_t cid = em.compartment_id;
+      if (is_specific_compartment_id(cid)) {
+        if (!bng_data->get_compartment(cid).is_3d) {
+          return cid;
+        }
+        else {
+          if (vol_cid == COMPARTMENT_ID_NONE) {
+            vol_cid = cid;
+          }
+        }
+      }
+    }
+    // no specific surface compartment was set, using the volume compartment if found
+    return vol_cid;
+  }
+  else if (is_surf()) {
+    // get the first set surface elem mol
+    for (const ElemMol& em: elem_mols) {
+      if (em.is_surf() && em.compartment_id != COMPARTMENT_ID_NONE) {
+        return em.compartment_id;
+      }
+    }
+    // no compartment is set
+    return COMPARTMENT_ID_NONE;
+  }
+  else {
+    // all are volume and must have the same compartment but in patterns,
+    // not all need to be set
+    // get the first set surface elem mol
+    for (const ElemMol& em: elem_mols) {
+      if (em.compartment_id != COMPARTMENT_ID_NONE) {
+        return em.compartment_id;
+      }
+    }
+    // no compartment is set
+    return COMPARTMENT_ID_NONE;
+  }
+}
+
+
 bool Cplx::matches_complex_pattern_ignore_orientation(const Cplx& pattern) const {
 
 #ifdef DEBUG_CPLX_MATCHING
@@ -202,6 +263,21 @@ bool Cplx::matches_complex_pattern_ignore_orientation(const Cplx& pattern) const
 }
 
 
+// sets compartment to all contained elementary molecules
+void Cplx::set_compartment_id(const compartment_id_t cid, const bool override_only_compartment_none) {
+  // TODO: here could be some extra checks related to orientation
+  // set compartment to all elementary molecules
+  assert(!elem_mols.empty());
+  for (ElemMol& em: elem_mols) {
+    // we cannot check here whether compartment type (2d/3d matches surf/vol) because
+    // we do not necessarily know the the of the elementary molecules at all times
+    if (!override_only_compartment_none || em.compartment_id == COMPARTMENT_ID_NONE) {
+      em.compartment_id = cid;
+    }
+  }
+}
+
+
 uint Cplx::get_pattern_num_matches(const Cplx& pattern) const {
   assert(is_finalized() && pattern.is_finalized());
   VertexMappingVector mappings;
@@ -210,17 +286,52 @@ uint Cplx::get_pattern_num_matches(const Cplx& pattern) const {
 }
 
 
-bool Cplx::matches_complex_fully_ignore_orientation(const Cplx& pattern) const {
-  if (graph.m_vertices.size() != pattern.graph.m_vertices.size()) {
+bool Cplx::matches_complex_fully_ignore_orientation(const Cplx& other) const {
+  if (graph.m_vertices.size() != other.graph.m_vertices.size()) {
     // we need full match
     return false;
   }
 
   VertexMappingVector mappings;
-  get_subgraph_isomorphism_mappings(pattern.graph, graph, true, mappings);
+  get_subgraph_isomorphism_mappings(other.graph, graph, true, mappings);
   assert((mappings.size() == 0 || mappings.size()) == 1 && "We are searching only for the first match");
 
-  return mappings.size() == 1 && mappings[0].size() == graph.m_vertices.size();
+  if (mappings.size() != 1 || mappings[0].size() != graph.m_vertices.size()) {
+    // no mapping found or not all nodes match
+    return false;
+  }
+
+  // we must also check that compartments are the same,
+  // this must be done separately because the Graph object Node allows only
+  // one type of comparison and the one used considers one graph a pattern,
+  // however we must compare for equality here
+  VertexNameMap graph1_index = boost::get(boost::vertex_name, graph);
+  VertexNameMap graph2_index = boost::get(boost::vertex_name, other.graph);
+
+  // for each molecule instance
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  std::pair<vertex_iter, vertex_iter> graph1_mol_it;
+  for (graph1_mol_it = boost::vertices(graph); graph1_mol_it.first != graph1_mol_it.second; ++graph1_mol_it.first) {
+    vertex_descriptor_t graph1_mol_desc = *graph1_mol_it.first;
+
+    const Node& graph1_mol = graph1_index[graph1_mol_desc];
+    if (!graph1_mol.is_mol) {
+      continue;
+    }
+
+    // get corresponding molecule from the 2nd graph
+    auto graph2_mol_it = mappings[0].find(graph1_mol_desc);
+    assert(graph2_mol_it != mappings[0].end() && "Mapping must exist");
+    vertex_descriptor_t graph2_mol_desc = graph2_mol_it->second;
+
+    const Node& graph2_mol = graph2_index[graph2_mol_desc];
+    assert(graph2_mol.is_mol);
+
+    if (graph1_mol.mol->compartment_id != graph2_mol.mol->compartment_id) {
+      return false;
+    }
+  }
+  return true;
 }
 
 
@@ -266,7 +377,7 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
     }
 
     if (!sort_components_by_name_do_not_finalize) {
-      finalize();
+      finalize_cplx();
     }
     set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
     return;
@@ -499,7 +610,7 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
 
   // 8) update the boost graph representation
   if (!sort_components_by_name_do_not_finalize) {
-    finalize();
+    finalize_cplx();
   }
 
   set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
@@ -511,6 +622,19 @@ void Cplx::canonicalize(const bool sort_components_by_name_do_not_finalize) {
 }
 
 
+void Cplx::remove_compartment_from_elem_mols(BNG::compartment_id_t cid) {
+  if (cid == BNG::COMPARTMENT_ID_NONE) {
+    return;
+  }
+  release_assert(!BNG::is_in_out_compartment_id(cid));
+  for (auto& em: elem_mols) {
+    if (em.compartment_id == cid) {
+      em.compartment_id = BNG::COMPARTMENT_ID_NONE;
+    }
+  }
+}
+
+
 std::string Cplx::to_str(bool in_surf_reaction) const {
   std::string res;
   to_str(res, in_surf_reaction);
@@ -519,20 +643,20 @@ std::string Cplx::to_str(bool in_surf_reaction) const {
 
 
 void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
+
+  uint_set<compartment_id_t> used_compartments;
+  get_used_compartments(used_compartments);
+  bool use_individual_compartments = !(used_compartments.size() == 1) || elem_mols.size() == 1;
+
   for (size_t i = 0; i < elem_mols.size(); i++) {
-    elem_mols[i].to_str(*bng_data, res);
+    elem_mols[i].to_str(*bng_data, res, use_individual_compartments);
 
     if (i != elem_mols.size() - 1) {
       res += ".";
     }
   }
 
-  bool no_specific_compartment =
-     (compartment_id == COMPARTMENT_ID_INVALID ||
-      compartment_id == COMPARTMENT_ID_ANY ||
-      compartment_id == COMPARTMENT_ID_NONE);
-
-  if (no_specific_compartment) {
+  if (used_compartments.size() == 1 && *used_compartments.begin() == COMPARTMENT_ID_NONE) {
     if (orientation == ORIENTATION_UP) {
       res += "'";
     }
@@ -543,12 +667,17 @@ void Cplx::to_str(std::string& res, const bool in_surf_reaction) const {
       res += ";";
     }
   }
-  else {
-    if (is_in_out_compartment_id(compartment_id)) {
-      res += "@" + compartment_id_to_str(compartment_id);
+  else if (!use_individual_compartments) {
+    compartment_id_t single_compartment_id = *used_compartments.begin();
+    // single compartment is used as prefix when all compartments are the same
+    if (is_in_out_compartment_id(single_compartment_id)) {
+      res = "@" + compartment_id_to_str(single_compartment_id) + ":" + res;
     }
     else {
-      res += "@" + bng_data->get_compartment(compartment_id).name;
+      const string& compartment_name = bng_data->get_compartment(single_compartment_id).name;
+      if (compartment_name != DEFAULT_COMPARTMENT_NAME) {
+        res = "@" + bng_data->get_compartment(single_compartment_id).name  + ":" + res;
+      }
     }
   }
 }
@@ -560,18 +689,6 @@ void Cplx::dump(const bool for_diff, const std::string ind) const {
   }
   else {
     cout << ind << "orientation: " << orientation << "\n";
-    cout << ind << "compartment: ";
-    if (compartment_id != COMPARTMENT_ID_NONE &&
-        compartment_id != COMPARTMENT_ID_ANY &&
-        compartment_id != COMPARTMENT_ID_INVALID &&
-        !is_in_out_compartment_id(compartment_id) ) {
-
-      cout << bng_data->get_compartment(compartment_id).name << "\n";
-    }
-    else {
-      cout << compartment_id_to_str(compartment_id) << "\n";
-    }
-
     cout << ind << "mol_instances:\n";
     for (size_t i = 0; i < elem_mols.size(); i++) {
       cout << ind << i << ":\n";

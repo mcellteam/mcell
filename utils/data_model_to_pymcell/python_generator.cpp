@@ -45,9 +45,17 @@ void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& 
   string python_expr;
   // replace operator ^ with operator **
   python_expr = regex_replace(parameter[KEY_PAR_EXPRESSION].asString(), regex("\\^"), "**");
+  python_expr = replace_function_calls_in_expr(python_expr, true);
   string name = fix_param_id(parameter[KEY_PAR_NAME].asString());
   data.check_if_already_defined_and_add(name, NAME_PARAMETER);
-  out << name << " = " << python_expr;
+
+  string ind;
+  if (!data.not_overridable_python_params) {
+    // allow params to be overridden
+    out << "if " << NOT_DEFINED << "('" << name << "'):\n";
+    ind = IND4;
+  }
+  out << ind << name << " = " << python_expr;
   string units = parameter[KEY_PAR_UNITS].asString();
   if (units != "") {
     out << " # units: " << units;
@@ -59,6 +67,7 @@ void PythonGenerator::generate_single_parameter(std::ostream& out, Json::Value& 
 static void get_used_ids(const string& expr, vector<string>& used_ids) {
   used_ids.clear();
 
+  // same automaton but with different actions is used in replace_function_calls_in_expr
   enum state_t {
     START,
     IN_ID,
@@ -82,7 +91,10 @@ static void get_used_ids(const string& expr, vector<string>& used_ids) {
           curr_id += c;
         }
         else {
-          used_ids.push_back(curr_id);
+          if (mdl_functions_to_py_bngl_map.count(curr_id) == 0) {
+            // count only IDs
+            used_ids.push_back(curr_id);
+          }
           curr_id = "";
           state = START;
         }
@@ -94,10 +106,14 @@ static void get_used_ids(const string& expr, vector<string>& used_ids) {
         else {
           state = START;
         }
+        break;
     }
   }
   if (state == IN_ID) {
-    used_ids.push_back(curr_id);
+    if (mdl_functions_to_py_bngl_map.count(curr_id) == 0) {
+      // count only IDs
+      used_ids.push_back(curr_id);
+    }
   }
 }
 
@@ -121,6 +137,7 @@ public:
 
   ExprDepNode* create_node(const size_t index) {
     ExprDepNode* res = new ExprDepNode();
+    nodes.push_back(res);
     res->index = index;
     return res;
   }
@@ -129,6 +146,7 @@ public:
 };
 
 
+// collects
 static void traverse_given_level(
     const ExprDepNode* n, const uint level, vector<size_t>& level_ordering) {
 
@@ -161,6 +179,39 @@ static void level_order_traversal(
 }
 
 
+// not very efficient but the parameter systems in data models are not so huge
+static void order_by_dependencies(const vector<ExprDepNode*>& nodes, vector<size_t>& ordering) {
+  vector<bool> already_handled(nodes.size(), false);
+
+  while (ordering.size() != nodes.size()) {
+
+    for (size_t i = 0; i < nodes.size(); i++) {
+      ExprDepNode* n = nodes[i];
+
+      if (already_handled[n->index]) {
+        continue;
+      }
+
+      bool all_parents_are_handled = true;
+      for (auto& p: n->parents) {
+        if (!already_handled[p->index]) {
+          // skip, not ready for this parameter yet
+          all_parents_are_handled = false;
+          break;
+        }
+      }
+
+      if (!all_parents_are_handled) {
+        continue;
+      }
+
+      ordering.push_back(n->index);
+      already_handled[n->index] = true;
+    }
+  }
+}
+
+
 static void define_parameter_ordering(Value& parameter_list, vector<size_t>& ordering) {
   ExprDepNodeContainer nodes;
   map<string, ExprDepNode*> defines;
@@ -185,6 +236,13 @@ static void define_parameter_ordering(Value& parameter_list, vector<size_t>& ord
     get_used_ids(expr, used_ids);
     for (const string& id: used_ids) {
       ExprDepNode* used_node = defines[id];
+      // check function name
+      if (used_node == nullptr) {
+        assert(mdl_functions_to_py_bngl_map.count(id) == 0);
+        ERROR("Did not find definition of identifier '" + id + "' when converting parameters, some MDL "
+            "constants or functions are not supported."
+        );
+      }
       // make a bidirectional link
       n->parents.push_back(used_node);
       used_node->children.push_back(n);
@@ -192,16 +250,19 @@ static void define_parameter_ordering(Value& parameter_list, vector<size_t>& ord
   }
 
   // now we might have multiple roots (nodes without uses), create just one
-  ExprDepNode* root = nodes.create_node(INDEX_INVALID);
+  /*ExprDepNode* root = nodes.create_node(INDEX_INVALID);
   for (auto node_it: defines) {
     if (node_it.second->parents.empty()) {
       root->children.push_back(node_it.second);
       node_it.second->parents.push_back(root);
     }
-  }
+  }*/
+
+  // order nodes by dependencies
+  order_by_dependencies(nodes.nodes, ordering);
 
   // finally do a level-order traversal of the created dependency graph
-  level_order_traversal(root, ordering);
+  //level_order_traversal(root, ordering);
 }
 
 
@@ -581,7 +642,7 @@ void PythonGenerator::generate_rxn_rule_side(std::ostream& out, Json::Value& sub
 
     string orient = convert_orientation(orientations[i], true);
     string compartment = get_single_compartment(substances[i]);
-    out << make_species_or_cplx(data, remove_compartments(substances[i]), orient, compartment);
+    out << make_species_or_cplx(data, substances[i], orient, compartment);
     print_comma(out, i, substances);
   }
   out << " ]";
@@ -761,80 +822,10 @@ void PythonGenerator::generate_geometry(std::ostream& out, std::vector<std::stri
   for (Value::ArrayIndex i = 0; i < object_list.size(); i++) {
     Value& object = object_list[i];
     string name = generate_single_geometry_object(out, i, object);
+    if (name == BNG::DEFAULT_COMPARTMENT_NAME) {
+      data.has_default_compartment_object = true;
+    }
     geometry_objects.push_back(name);
-  }
-}
-
-
-bool PythonGenerator::is_volume_mol_type(const std::string& mol_type_name) {
-
-  string mol_type_name_no_comp = remove_compartments(mol_type_name);
-
-  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
-  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
-
-  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
-  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
-    Value& molecule_list_item = molecule_list[i];
-    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
-
-    string name = molecule_list_item[KEY_MOL_NAME].asString();
-    if (name != mol_type_name_no_comp) {
-      continue;
-    }
-
-    string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
-    CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
-    return mol_type == VALUE_MOL_TYPE_3D;
-  }
-
-  ERROR("Could not find species or molecule type " + mol_type_name_no_comp + ".");
-}
-
-
-static void get_mol_types_in_species(const std::string& species_name, vector<string>& mol_types) {
-  mol_types.clear();
-
-  size_t i = 0;
-  string current_name;
-  bool in_name = true;
-  while (i < species_name.size()) {
-    char c = species_name[i];
-    if (c == '(') {
-      in_name = false;
-      assert(current_name != "");
-      mol_types.push_back(current_name);
-      current_name = "";
-    }
-    else if (c == '.') {
-      in_name = true;
-    }
-    else if (in_name && !isspace(c)) {
-      current_name += c;
-    }
-    i++;
-  }
-
-  if (current_name != "") {
-    mol_types.push_back(current_name);
-  }
-}
-
-
-bool PythonGenerator::is_volume_species(const std::string& species_name) {
-  if (is_simple_species(species_name)) {
-    return is_volume_mol_type(species_name);
-  }
-  else {
-    vector<string> mol_types;
-    get_mol_types_in_species(species_name, mol_types);
-    for (string& mt: mol_types) {
-      if (!is_volume_mol_type(mt)) {
-        // surface
-        return false;
-      }
-    }
-    return true;
   }
 }
 
@@ -872,7 +863,7 @@ std::string PythonGenerator::generate_single_molecule_release_info_array(
       out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(\n";
 
       string cplx = release_site_item[KEY_MOLECULE].asString();
-      bool is_vol = is_volume_species(cplx);
+      bool is_vol = is_volume_species(mcell, cplx);
       string orient = convert_orientation(release_site_item[KEY_ORIENT].asString(), !is_vol);
       out << "    ";
       gen_param_expr(out, NAME_COMPLEX,
@@ -1018,7 +1009,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     string compartment;
     if (shape != VALUE_LIST) {
       string cplx = release_site_item[KEY_MOLECULE].asString();
-      bool is_vol = is_volume_species(cplx);
+      bool is_vol = is_volume_species(data.mcell, cplx);
       string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString(), !is_vol);
       if (orientation != "" && is_vol) {
           cout <<
@@ -1080,7 +1071,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
       }
       else if (quantity_type == VALUE_DENSITY) {
         string species_name = release_site_item[KEY_MOLECULE].asString();
-        if (is_volume_species(species_name)) {
+        if (is_volume_species(data.mcell, species_name)) {
           gen_param_expr(out, NAME_CONCENTRATION, release_site_item[KEY_QUANTITY], false);
         }
         else {
@@ -1198,10 +1189,10 @@ string PythonGenerator::generate_count_terms_for_expression(
 
     process_single_count_term(
         data, mdl_string.substr(start, end - start + 1),
-        rxn_not_mol, molecules_not_species, what_to_count, compartment, where_to_count, orientation
+        rxn_not_mol, molecules_not_species, what_to_count, where_to_count, orientation
     );
 
-    string name = COUNT_TERM_PREFIX + create_count_name(what_to_count, compartment, where_to_count, molecules_not_species);
+    string name = COUNT_TERM_PREFIX + create_count_name(what_to_count, where_to_count, molecules_not_species);
 
     // generate the count term object definition if we don't already have it
     if (find(data.all_count_term_names.begin(), data.all_count_term_names.end(), name) == data.all_count_term_names.end()) {
@@ -1247,7 +1238,6 @@ void PythonGenerator::generate_single_count(
     const std::string& count_name,
     const std::string& observable_name,
     const std::string& what_to_count,
-    const std::string& compartment,
     const std::string& where_to_count, // empty for WORLD
     const std::string& orientation,
     const std::string& multiplier_str,
@@ -1268,7 +1258,7 @@ void PythonGenerator::generate_single_count(
       const char* count_type =
           (molecules_not_species) ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN;
 
-      gen_param_expr(out, count_type, make_species_or_cplx(data, what_to_count, orientation, compartment), true);
+      gen_param_expr(out, count_type, make_species_or_cplx(data, what_to_count, orientation), true);
     }
   }
   else {
@@ -1396,7 +1386,13 @@ void PythonGenerator::generate_compartment_assignments(std::ostream& out) {
   for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
     Value& model_object = model_object_list[i];
 
-    if (data.is_used_compartment(model_object)) {
+    // older data model files don't have to have this attribute
+    // therefore we are also checking for used compartments in
+    // data.is_used_compartment
+    bool is_bngl_compartment =
+        model_object.isMember(KEY_IS_BNGL_COMPARTMENT) && model_object[KEY_IS_BNGL_COMPARTMENT].asBool();
+
+    if (is_bngl_compartment || data.is_used_compartment(model_object)) {
       // name is the name of the object
       const string& name = model_object[KEY_NAME].asString();
       const string& membrane_name = model_object[KEY_MEMBRANE_NAME].asString();
@@ -1404,6 +1400,7 @@ void PythonGenerator::generate_compartment_assignments(std::ostream& out) {
       gen_assign(out, name, NAME_IS_BNGL_COMPARTMENT, true);
       if (membrane_name != "") {
         gen_assign_str(out, name, NAME_SURFACE_COMPARTMENT_NAME, membrane_name);
+        data.surface_to_volume_compartments_map[membrane_name] = name;
       }
       out << "\n";
     }

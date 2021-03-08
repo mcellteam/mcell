@@ -117,12 +117,15 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
       break;
     case SpeciesPatternType::SpeciesId:
       cout << "SpeciesId";
+      cout << ind << "species_id: " << species_id << " [species_id_t]\n";
       break;
     case SpeciesPatternType::SpeciesPattern:
       cout << "SpeciesPattern";
+      cout << ind << "species_molecules_pattern: " << species_molecules_pattern.to_str() << " [CplxInstance]\n";
       break;
     case SpeciesPatternType::MoleculesPattern:
       cout << "MoleculesPattern";
+      cout << ind << "species_molecules_pattern: " << species_molecules_pattern.to_str() << " [CplxInstance]\n";
       break;
 
     default:
@@ -130,8 +133,7 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
   }
   cout << "\n";
 
-  cout << ind << "species_id: " << species_id << " [species_id_t]\n";
-  cout << ind << "species_molecules_pattern: " << species_molecules_pattern.to_str() << " [CplxInstance]\n";
+  cout << ind << "primary_compartment_id: " << primary_compartment_id << " [compartment_id_t]\n";
   cout << ind << "rxn_rule_id: " << rxn_rule_id << " [rxn_rule_id_t]\n";
   cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t]\n";
 }
@@ -148,19 +150,24 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
 
   res << "COUNT[";
 
+  string pattern;
   switch(type) {
     case CountType::EnclosedInWorld:
     case CountType::EnclosedInVolumeRegion:
     case CountType::PresentOnSurfaceRegion:
+      if (primary_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+        pattern = "@" + world->bng_engine.get_data().get_compartment(primary_compartment_id).name + ":";
+      }
+
       switch (species_pattern_type) {
         case SpeciesPatternType::SpeciesId:
-          res << world->get_all_species().get(species_id).name;
+          pattern += world->get_all_species().get(species_id).name;
           break;
         case SpeciesPatternType::SpeciesPattern:
-          res << species_molecules_pattern.to_str() << MARKER_SPECIES_COMMENT;
+          pattern += species_molecules_pattern.to_str() + MARKER_SPECIES_COMMENT;
           break;
         case SpeciesPatternType::MoleculesPattern:
-          res << species_molecules_pattern.to_str() << MARKER_MOLECULES_COMMENT;
+          pattern += species_molecules_pattern.to_str() + MARKER_MOLECULES_COMMENT;
           break;
         default:
           assert(false);
@@ -171,39 +178,60 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
     case CountType::RxnCountOnSurfaceRegion: {
         string rxn_name = world->get_all_rxns().get(rxn_rule_id)->name;
         CONVERSION_CHECK(rxn_name != "", "Counted reaction has no name");
-        res << rxn_name;
+        pattern = rxn_name;
       }
       break;
     default:
       assert(false);
   }
 
-  res << ",";
-
+  string where;
   switch(type) {
     case CountType::EnclosedInWorld:
     case CountType::RxnCountInWorld:
-      res << VALUE_WORLD;
+      where = VALUE_WORLD;
       break;
     case CountType::EnclosedInVolumeRegion:
     case CountType::RxnCountInVolumeRegion: {
         string obj_name = world->get_geometry_object(geometry_object_id).name;
         CONVERSION_CHECK(obj_name != "", "Counted object has no name");
-        res << obj_name;
+        where = obj_name;
       }
       break;
     case CountType::PresentOnSurfaceRegion:
     case CountType::RxnCountOnSurfaceRegion:{
-      string reg_name = world->get_region(region_id).name;
-      CONVERSION_CHECK(reg_name != "", "Counted region has no name");
-      res << DMUtil::get_object_w_region_name(reg_name, false);
+      // if possible, we should use 2d compartment name because in MCell
+      // the encompassing region name is the same as the name of the object,
+      // this would lead to the same name for A@CP and A@PM
+      bool surf_compartment_used = false;
+      const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+      for (const auto& geom_obj: p.get_geometry_objects()) {
+        if (geom_obj.encompassing_region_index == region_id && \
+            geom_obj.surf_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+
+          const BNG::Compartment& comp = world->bng_engine.get_data().get_compartment(geom_obj.surf_compartment_id);
+          assert(!comp.is_3d);
+          pattern = "@" + comp.name + ":" + pattern;
+
+          where = VALUE_WORLD;
+
+          surf_compartment_used = true;
+          break;
+        }
+      }
+
+      if (!surf_compartment_used) {
+        string reg_name = world->get_region(region_id).name;
+        CONVERSION_CHECK(reg_name != "", "Counted region has no name");
+        where = DMUtil::get_object_w_region_name(reg_name, false);
+      }
     }
     break;
 
     default:
       assert(false);
   }
-  res << "]";
+  res << pattern << "," << where << "]";
   return res.str();
 }
 
@@ -630,6 +658,13 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
 
         const BNG::Species& species = world->get_all_species().get(species_id);
         uint num_matches = species.get_pattern_num_matches(term.species_molecules_pattern);
+
+        // also the primary compartment id must match
+        if (term.primary_compartment_id != BNG::COMPARTMENT_ID_NONE &&
+            term.primary_compartment_id != species.get_primary_compartment_id()) {
+          num_matches = 0;
+        }
+
         if (num_matches > 0) {
           // we must also remember that this species id matches the term's pattern
           term.species_ids_matching_pattern_w_multiplier_cache[species_id] = num_matches;
@@ -639,9 +674,6 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
 
       if (matches) {
         info.type = CountSpeciesInfoType::Counted;
-        if (term.type == CountType::EnclosedInVolumeRegion) {
-          info.needs_counted_volume = true;
-        }
         if (count_item.is_world_mol_count()) {
           // optimization for faster counting
           info.world_count_item_indices.insert(count_item.index);
@@ -653,11 +685,6 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
       }
     } // for count_item.terms
   } // for mol_count_items
-}
-
-
-bool MolOrRxnCountEvent::species_needs_counted_volume(const species_id_t species_id) {
-  return get_or_compute_count_species_info(species_id).needs_counted_volume;
 }
 
 

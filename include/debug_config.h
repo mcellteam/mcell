@@ -168,8 +168,8 @@
 */
 //#define DUMP_LOCAL_SCHEDULE_HELPER
 
-#define FROM_ITERATION 0
-#define TO_ITERATION 10
+#define FROM_ITERATION 35
+#define TO_ITERATION 38
 
 #define DUMP_NONDIFFUSING_VMS
 
@@ -182,7 +182,7 @@
 #define DEBUG_RXNS
 
 //#define DEBUG_COMPARTMENTS
-//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 //#define DEBUG_CPLX_RXNS
 //#define DEBUG_CPLX_MATCHING

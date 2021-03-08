@@ -448,14 +448,17 @@ class ElementaryMolecule():
     def __init__(
             self,
             elementary_molecule_type : ElementaryMoleculeType,
-            components : List[Component] = None
+            components : List[Component] = None,
+            compartment_name : str = None
         ):
         self.elementary_molecule_type = elementary_molecule_type
         self.components = components
+        self.compartment_name = compartment_name
 
 
     def to_bngl_str(
             self,
+            with_compartment : bool = True
         ) -> 'str':
         pass
 
@@ -481,7 +484,8 @@ class ElementaryMoleculeType():
 
     def inst(
             self,
-            components : List[Component] = None
+            components : List[Component] = None,
+            compartment_name : str = None
         ) -> 'ElementaryMolecule':
         pass
 
@@ -590,13 +594,13 @@ class Instantiation():
         ) -> 'GeometryObject':
         pass
 
-    def find_volume_compartment(
+    def find_volume_compartment_object(
             self,
             name : str
         ) -> 'GeometryObject':
         pass
 
-    def find_surface_compartment(
+    def find_surface_compartment_object(
             self,
             name : str
         ) -> 'GeometryObject':
@@ -694,6 +698,7 @@ class Model():
 
     def initialize(
             self,
+            print_copyright : bool = True
         ) -> None:
         pass
 
@@ -897,13 +902,13 @@ class Model():
         ) -> 'GeometryObject':
         pass
 
-    def find_volume_compartment(
+    def find_volume_compartment_object(
             self,
             name : str
         ) -> 'GeometryObject':
         pass
 
-    def find_surface_compartment(
+    def find_surface_compartment_object(
             self,
             name : str
         ) -> 'GeometryObject':

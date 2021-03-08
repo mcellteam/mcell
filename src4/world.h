@@ -47,7 +47,6 @@
 #include "geometry.h"
 #include "count_buffer.h"
 #include "counted_volumes_util.h"
-#include "species_flags_analyzer.h"
 #include "memory_limit_checker.h"
 
 #include "logging.h"
@@ -63,6 +62,8 @@ namespace API {
 class Model;
 class Callbacks;
 }
+
+class MolOrRxnCountEvent;
 
 class World {
 
@@ -134,7 +135,7 @@ public:
   partition_id_t add_partition(const Vec3& partition_llf) {
     assert(config.partition_edge_length != 0);
     assert(get_partition_index(partition_llf) == PARTITION_ID_INVALID && "Partition must not exist");
-    partitions.push_back(Partition(partitions.size(), partition_llf, config, bng_engine, stats, species_flags_analyzer));
+    partitions.push_back(Partition(partitions.size(), partition_llf, config, bng_engine, stats));
     return partitions.size() - 1;
   }
 
@@ -245,9 +246,6 @@ private:
 
   uint64_t time_to_iteration(const float_t time);
 
-  // called in init_simulation
-  void recompute_species_flags();
-
   void init_fpu();
   void init_counted_volumes();
 
@@ -270,8 +268,6 @@ public:
 
   // owned by API::Model or references a global instance in case of MDL mode
   API::Callbacks& callbacks;
-
-  SpeciesFlagsAnalyzer species_flags_analyzer;
 
   mutable Scheduler scheduler; // scheduler might need to do some internal reorganization
 

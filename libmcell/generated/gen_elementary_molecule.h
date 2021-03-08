@@ -37,11 +37,13 @@ class PythonExportContext;
 #define ELEMENTARY_MOLECULE_CTOR() \
     ElementaryMolecule( \
         std::shared_ptr<ElementaryMoleculeType> elementary_molecule_type_, \
-        const std::vector<std::shared_ptr<Component>> components_ = std::vector<std::shared_ptr<Component>>() \
+        const std::vector<std::shared_ptr<Component>> components_ = std::vector<std::shared_ptr<Component>>(), \
+        const std::string& compartment_name_ = STR_UNSET \
     ) { \
       class_name = "ElementaryMolecule"; \
       elementary_molecule_type = elementary_molecule_type_; \
       components = components_; \
+      compartment_name = compartment_name_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -92,8 +94,22 @@ public:
     return components;
   }
 
+  std::string compartment_name;
+  virtual void set_compartment_name(const std::string& new_compartment_name_) {
+    if (initialized) {
+      throw RuntimeError("Value 'compartment_name' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    compartment_name = new_compartment_name_;
+  }
+  virtual const std::string& get_compartment_name() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return compartment_name;
+  }
+
   // --- methods ---
-  virtual std::string to_bngl_str() const = 0;
+  virtual std::string to_bngl_str(const bool with_compartment = true) const = 0;
 }; // GenElementaryMolecule
 
 class ElementaryMolecule;

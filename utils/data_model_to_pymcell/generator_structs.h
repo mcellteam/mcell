@@ -75,8 +75,8 @@ struct SharedGenData {
     output_files_prefix = "";
     debug_mode = false;
     testing_mode = false;
-    cellblender_viz = false;
     bng_mode = false;
+    not_overridable_python_params = false;
 
     unnamed_rxn_counter = 0;
     all_species_and_mol_type_names.clear();
@@ -84,6 +84,8 @@ struct SharedGenData {
     bngl_reaction_rules_used_in_observables.clear();
     all_count_term_names.clear();
     defined_python_objects.clear();
+    surface_to_volume_compartments_map.clear();
+    has_default_compartment_object = false;
   }
 
   uint unnamed_rxn_counter;
@@ -95,18 +97,24 @@ struct SharedGenData {
   bool debug_mode;
   bool testing_mode;
   std::vector<int> checkpoint_iterations;
-  bool cellblender_viz;
+  bool not_overridable_python_params;
 
   std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
   std::vector<IdLoc> all_reaction_rules_names;
   std::vector<std::string> bngl_reaction_rules_used_in_observables;
   std::vector<std::string> all_count_term_names;
 
+  // set in PythonGenerator::generate_geometry
+  bool has_default_compartment_object;
+
   // set in MCell4Generator::analyze_and_generate_bngl_compartments
   std::set<std::string> used_compartments;
 
   // key is object name, value is class name
   std::map<std::string, std::string> defined_python_objects;
+
+  // key is surface compartment name, value is volume compartment name
+  std::map<std::string, std::string> surface_to_volume_compartments_map;
 
   const SpeciesOrMolType* find_species_or_mol_type_info(const std::string& name) const {
     auto it = std::find(
@@ -132,9 +140,10 @@ struct SharedGenData {
 
   bool is_used_compartment(Json::Value& model_object) {
     const std::string& vol_comp = model_object[KEY_NAME].asString();
+    assert(vol_comp != "");
     const std::string& surf_comp = model_object[KEY_MEMBRANE_NAME].asString();
 
-    return used_compartments.count(vol_comp) != 0 || used_compartments.count(surf_comp);
+    return used_compartments.count(vol_comp) != 0 || (surf_comp != "" && used_compartments.count(surf_comp) != 0);
   }
 
 

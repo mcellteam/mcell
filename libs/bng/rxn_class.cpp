@@ -30,25 +30,25 @@ RxnClass::~RxnClass() {
 // might need to be different for NFsim
 // not sure if this belongs here
 float_t RxnClass::get_reactant_space_step(const uint reactant_index) const {
-  assert(reactant_index < specific_reactants.size());
+  assert(reactant_index < reactant_ids.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index].species_id);
+  const Species& s = all_species.get(reactant_ids[reactant_index]);
   return s.space_step;
 }
 
 
 float_t RxnClass::get_reactant_time_step(const uint reactant_index) const {
-  assert(reactant_index < specific_reactants.size());
+  assert(reactant_index < reactant_ids.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index].species_id);
+  const Species& s = all_species.get(reactant_ids[reactant_index]);
   return s.time_step;
 }
 
 
 float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
-  assert(reactant_index < specific_reactants.size());
+  assert(reactant_index < reactant_ids.size());
 
-  const Species& s = all_species.get(specific_reactants[reactant_index].species_id);
+  const Species& s = all_species.get(reactant_ids[reactant_index]);
   return s.D;
 }
 
@@ -90,6 +90,21 @@ orientation_t RxnClass::get_reactant_orientation(uint reactant_index) const {
 }
 
 
+species_id_t RxnClass::get_reactive_surface_reactant_species_id() const {
+  assert(is_bimol() && "Reactive surface cannot be unimol");
+  if (all_species.get(reactant_ids[0]).is_reactive_surface()) {
+    return reactant_ids[0];
+  }
+  else if (all_species.get(reactant_ids[1]).is_reactive_surface()) {
+    return reactant_ids[1];
+  }
+  else {
+    assert(false);
+    return SPECIES_ID_INVALID;
+  }
+}
+
+
 void RxnClass::update_rxn_rates_if_needed(const float_t current_time) {
   // check if any of the reactions needs update
   for (rxn_rule_id_t id: rxn_rule_ids) {
@@ -122,8 +137,8 @@ void RxnClass::define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t 
   release_assert(pathways_and_rates_initialized);
 
   vector<species_id_t> reactant_species;
-  for (auto& r: specific_reactants) {
-    reactant_species.push_back(r.species_id);
+  for (auto& r: reactant_ids) {
+    reactant_species.push_back(r);
   }
 
   const RxnRule* rxn = all_rxns.get(pathways[pathway_index].rxn_rule_id);
@@ -198,8 +213,8 @@ float_t RxnClass::compute_pb_factor() const {
   float_t rx_radius_3d_mul_length_unit = bng_config.rx_radius_3d * bng_config.length_unit;
 
   small_vector<const Species*> reactant_species;
-  for (uint n_reactant = 0; n_reactant < specific_reactants.size(); n_reactant++) {
-    const Species& s = all_species.get(specific_reactants[n_reactant].species_id);
+  for (uint n_reactant = 0; n_reactant < reactant_ids.size(); n_reactant++) {
+    const Species& s = all_species.get(reactant_ids[n_reactant]);
     reactant_species.push_back(&s);
     if (s.is_surf()) {
       num_surf_reactants++;
@@ -216,8 +231,8 @@ float_t RxnClass::compute_pb_factor() const {
   float_t pb_factor = 0.0;
 
   /* determine reaction probability by proper conversion of the reaction rate constant */
-  assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
-  if (specific_reactants.size() == 1 || is_intermembrane_surf_surf_rxn_class()) {
+  assert(reactant_ids.size() == 1 || reactant_ids.size() == 2);
+  if (reactant_ids.size() == 1 || is_intermembrane_surf_surf_rxn_class()) {
     // unimolecular or
     // experimental surf-surf on different objects
     pb_factor = bng_config.time_unit;
@@ -290,8 +305,10 @@ float_t RxnClass::compute_pb_factor() const {
           volume_molecules are in the same orientation class as
           surface_molecule.
       */
-      assert(orient0 == ORIENTATION_UP || orient0 == ORIENTATION_NONE || orient0 == ORIENTATION_DOWN);
-      assert(orient1 == ORIENTATION_UP || orient1 == ORIENTATION_NONE || orient1 == ORIENTATION_DOWN);
+      assert(orient0 == ORIENTATION_UP || orient0 == ORIENTATION_NONE ||
+          orient0 == ORIENTATION_DOWN || orient0 == ORIENTATION_DEPENDS_ON_SURF_COMP);
+      assert(orient1 == ORIENTATION_UP || orient1 == ORIENTATION_NONE ||
+          orient1 == ORIENTATION_DOWN || orient1 == ORIENTATION_DEPENDS_ON_SURF_COMP);
 
       // original condition: ((orient0 + orient1) * (orient0 - orient1) == 0) && (orient0 * orient1 != 0)
       // the first condition is not required
@@ -336,36 +353,6 @@ float_t RxnClass::compute_pb_factor() const {
   return pb_factor;
 }
 
-/*
-class RxnPathwayComparator {
-public:
-  RxnPathwayComparator(const SpeciesContainer& all_species_)
-    : all_species(all_species_) {
-  }
-
-  bool operator()(const RxnClassPathway& pw1, const RxnClassPathway& pw2) {
-    // create string representation of products and sort them according to it
-    // not very efficient but its impact should be negligible
-    assert(pw1.products_are_defined && pw2.products_are_defined &&
-        "We must not sort pathways when products are not defined");
-    string prods1;
-    string prods2;
-    make_products_representation(pw1, prods1);
-    make_products_representation(pw2, prods2);
-    return prods1 < prods2;
-  }
-
-private:
-  void make_products_representation(const RxnClassPathway& pw, string& res) {
-    res = "";
-    for (const ProductSpeciesWIndices& prod: pw.product_species_w_indices) {
-      res += all_species.get(prod.product_species_id).name + "_";
-    }
-  }
-
-  const SpeciesContainer& all_species;
-};
-*/
 
 // does not do pathways update
 void RxnClass::add_rxn_rule_no_update(RxnRule* r) {
@@ -411,6 +398,7 @@ void RxnClass::add_rxn_rule_no_update(RxnRule* r) {
   assert(type != RxnType::Invalid);
 }
 
+
 // based on mcell3's implementation init_reactions
 // but added support for cases where one reaction rule can have multiple sets of products
 void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
@@ -418,7 +406,7 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
     return;
   }
 
-  assert(!specific_reactants.empty());
+  assert(!reactant_ids.empty());
 
 #ifdef ORDER_RXNS_IN_RXN_CLASS_BY_NAME
   sort(rxn_rules.begin(), rxn_rules.end(),
@@ -442,8 +430,8 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
     rxn->define_rxn_pathways_for_specific_reactants(
         all_species,
         bng_config,
-        specific_reactants[0].species_id,
-        (is_bimol() ? specific_reactants[1].species_id : SPECIES_ID_INVALID),
+        reactant_ids[0],
+        (is_bimol() ? reactant_ids[1] : SPECIES_ID_INVALID),
         pb_factor,
         pathways
     );
@@ -487,14 +475,21 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
   }
 
   // reactive surfaces have always maximum probability
-  if (max_fixed_p > 1.0 &&
-      !rxn_rule_ids.empty() &&
+  if (!rxn_rule_ids.empty() &&
       !all_rxns.get(rxn_rule_ids[0])->is_unimol() &&
       !all_rxns.get(rxn_rule_ids[0])->is_reactive_surface_rxn()) {
-    stringstream ss;
-    ss << "Warning: total probability of reaction is > 1 (" << max_fixed_p << ")";
-    cout << ss.str() << ", for reactant(s) " << reactants_to_str() << ".\n";
-    append_to_report(bng_config.get_warnings_report_file_name(), ss.str() + "\n" + to_str());
+
+    if (max_fixed_p > 1.0) {
+      stringstream ss;
+      ss << "Warning: total probability of reaction is > 1 (" << max_fixed_p << ")";
+      cout << ss.str() << ", for reactant(s) " << reactants_to_str() << ".\n";
+      append_to_report(bng_config.get_warnings_report_file_name(), ss.str() + "\n" + to_str());
+      bng_config.bimol_rxn_probability_over_1 = true;
+    }
+    else if (max_fixed_p > 0.5) {
+      // print final report after simulation ended
+      bng_config.bimol_rxn_probability_over_05_less_1 = true;
+    }
   }
 
   if (is_unimol() && max_fixed_p > MAX_UNIMOL_RXN_PROBABILITY) {
@@ -547,9 +542,9 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
 
 std::string RxnClass::reactants_to_str() const {
   stringstream ss;
-  ss << all_species.get(specific_reactants[0].species_id).name << " (" << specific_reactants[0].to_str() << ")";
-  if (specific_reactants.size() == 2) {
-    ss << " + " << all_species.get(specific_reactants[1].species_id).name << " (" << specific_reactants[1].to_str() << ")";
+  ss << all_species.get(reactant_ids[0]).name << " (" << reactant_ids[0] << ")";
+  if (reactant_ids.size() == 2) {
+    ss << " + " << all_species.get(reactant_ids[1]).name << " (" << reactant_ids[1] << ")";
   }
   return ss.str();
 }
@@ -557,7 +552,7 @@ std::string RxnClass::reactants_to_str() const {
 
 std::string RxnClass::to_str(const std::string ind) const {
   stringstream out;
-  assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
+  assert(reactant_ids.size() == 1 || reactant_ids.size() == 2);
   out << ind << "rxn class for reactants: \n    " << reactants_to_str() << "\n";
 
   if (!pathways_and_rates_initialized) {

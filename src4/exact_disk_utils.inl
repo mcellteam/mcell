@@ -43,7 +43,7 @@
 #include "geometry.h"
 #include "debug_config.h"
 
-#include "geometry_utils.inc"
+#include "geometry_utils.inl"
 
 using namespace std;
 

@@ -11,6 +11,7 @@ const int FLOAT_OUT_PRECISION = 15; // this is the precision that is used by mdl
 
 const int MAX_SPECIES_NAME_LENGTH = 32;
 
+const char* const SHARED = "shared";
 const char* const PARAMETERS = "parameters";
 const char* const SUBSYSTEM = "subsystem";
 const char* const GEOMETRY = "geometry";
@@ -23,6 +24,10 @@ const char* const MODEL = "model";
 const char* const CUSTOM_ARGPARSE_AND_PARAMETERS = "custom_argparse_and_parameters";
 const char* const CUSTOM_CONFIG = "custom_config";
 const char* const CUSTOM_INIT_AND_RUN = "custom_init_and_run";
+
+const char* const PARAMETER_OVERRIDES = "parameter_overrides";
+const char* const NOT_DEFINED = "not_defined";
+const char* const SEED = "SEED";
 
 const char* const PY_EXT = ".py";
 const char* const BNGL_EXT = ".bngl";
@@ -70,14 +75,14 @@ const char* const GENERATED_WARNING =
   "# WARNING: This is an automatically generated file and will be overwritten\n"
   "#          by CellBlender on the next model export.\n";
 
-const char* const BASE_MODEL_IMPORTS =
+const char* const IMPORT_SYS_OS =
     "import sys\n"
     "import os\n"
 ;
 
-const char* const IMPORT_OS =
-    "import os\n"
-;
+const char* const IMPORT_OS = "import os\n";
+const char* const IMPORT_MATH = "import math\n";
+const char* const IMPORT_SHARED = "import shared\n";
 
 #define MODEL_PATH "MODEL_PATH"
 
@@ -86,8 +91,7 @@ const char* const MODEL_PATH_SETUP =
 ;
 
 const char* const MCELL_PATH_SETUP =
-    "# ---- import mcell module located in directory ----\n"
-    "# ---- specified by system variable MCELL_PATH  ----\n"
+    "\n# ---- import mcell module located in directory specified by system variable MCELL_PATH  ----\n\n"
     "MCELL_PATH = os.environ.get('MCELL_PATH', '')\n"
     "if MCELL_PATH:\n"
     "    lib_path = os.path.join(MCELL_PATH, 'lib')\n"
@@ -105,7 +109,7 @@ const char* const MCELL_PATH_SETUP =
     "    sys.exit(1)\n"
 ;
 
-const char* const MCELL_IMPORT = "import mcell as m\n\n";
+const char* const IMPORT_MCELL_AS_M = "import mcell as m\n\n";
 
 static std::string get_customization_import(const std::string& customization_module) {
   return
@@ -129,7 +133,7 @@ static std::string get_argparse_w_customization_begin(
       "        pass\n"
       "    elif len(sys.argv) == 3 and sys.argv[1] == '-seed':\n"
       "        # overwrite value of seed defined in module parameters\n"
-      "        " + parameters_module + ".SEED = int(sys.argv[2])\n"
+      "        " + SHARED + "." + PARAMETER_OVERRIDES + "['" + SEED + "'] = int(sys.argv[2])\n"
   ;
 }
 
@@ -142,7 +146,7 @@ static std::string get_argparse_checkpoint_iteration(
       std::string("    elif len(sys.argv) == 3 and sys.argv[1] == '-chkpt':\n") +
       "        " + CHECKPOINT_ITERATION + " = int(sys.argv[2])\n" +
       "    elif len(sys.argv) == 5 and sys.argv[1] == '-seed' and sys.argv[3] == '-chkpt':\n" +
-      "        " + parameters_module + ".SEED = int(sys.argv[2])\n" +
+      "        " + SHARED + "." + PARAMETER_OVERRIDES + "['" + SEED + "'] = int(sys.argv[2])\n" +
       "        " + CHECKPOINT_ITERATION + " = int(sys.argv[4])\n"
   ;
 }
@@ -218,6 +222,8 @@ const char* const TEMPLATE_CUSTOM_ARGPARSE_AND_PARAMETERS =
     "    # It is executed before any of the automatically generated \n"
     "    # parameter values are set so one can override the parameter \n"
     "    # values here as well.\n"
+    "    # To override parameter values, add or overwrite an item in dictionary\n"
+    "    # shared.parameter_overrides, e.g. shared.parameter_overrides['SEED'] = 10\n"
     "    pass\n"
     "\"\"\"\n"
 ;

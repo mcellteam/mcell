@@ -32,6 +32,83 @@ using namespace MCell::API;
 
 namespace MCell {
 
+static std::string replace_id_with_function(const std::string& id, const bool use_python_functions) {
+  const auto& func_it = mdl_functions_to_py_bngl_map.find(id);
+  if (func_it != mdl_functions_to_py_bngl_map.end()) {
+    // replace
+    if (use_python_functions) {
+      return func_it->second.first;
+    }
+    else {
+      // BNGL variant
+      return func_it->second.second;
+    }
+  }
+  else {
+    // other id, keep it as it is
+    return id;
+  }
+}
+
+// when use_python_functions is true, function calls are replaced with Python function names
+// when False, they are replaced with BNGL function names
+std::string replace_function_calls_in_expr(const std::string& data_model_expr, const bool use_python_functions) {
+  std::string res;
+
+  // all function names are represented as ids, i.e. [a-zA-Z_][a-zA-Z0-9_]*
+  // practically the same automaton as in get_used_ids
+  enum state_t {
+    START,
+    IN_ID,
+    IN_NUM
+  };
+  state_t state = START;
+  string curr_id;
+  for (char c: data_model_expr) {
+    switch (state) {
+      case START:
+        if (isalpha(c) || c == '_') {
+          state = IN_ID;
+          curr_id += c;
+        }
+        else if (isdigit(c)) {
+          state = IN_NUM;
+          res += c;
+        }
+        else {
+          res += c;
+        }
+        break;
+      case IN_ID:
+        if (isalnum(c) || c == '_') {
+          curr_id += c;
+        }
+        else {
+          res += replace_id_with_function(curr_id, use_python_functions);
+          res += c;
+          curr_id = "";
+          state = START;
+        }
+        break;
+      case IN_NUM:
+        if (isdigit(c) || c == '.' || c == 'e' || c == '+' || c == '-') {
+          // ok
+        }
+        else {
+          state = START;
+        }
+        res += c;
+        break;
+    }
+  }
+  if (state == IN_ID) {
+    res += replace_id_with_function(curr_id, use_python_functions);
+  }
+
+  return res;
+}
+
+
 std::string get_module_name_w_prefix(const std::string& output_files_prefix, const std::string file_suffix) {
 
   if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
@@ -213,9 +290,15 @@ string remove_compartments(const std::string& species_name) {
 }
 
 
-string get_single_compartment(const std::string& name) {
+// returns "" if there are multiple compartments and sets *has_multiple_compartments to
+// true if it is not nullptr
+string get_single_compartment(const std::string& name, bool* has_multiple_compartments) {
   std::vector<std::string> compartments;
   API::get_compartment_names(name, compartments);
+
+  if (has_multiple_compartments != nullptr) {
+    *has_multiple_compartments = false;
+  }
 
   if (compartments.empty()) {
     return "";
@@ -224,7 +307,11 @@ string get_single_compartment(const std::string& name) {
     string res = compartments[0];
     for (size_t i = 1; i < compartments.size(); i++) {
       if (res != compartments[i]) {
-        ERROR("Complexes may use a single compartment for now, error for " + name + ".");
+        // multiple compartments
+        if (has_multiple_compartments != nullptr) {
+          *has_multiple_compartments = true;
+        }
+        return "";
       }
     }
     return res;
@@ -291,7 +378,7 @@ string make_species_or_cplx(
   }
 
   // otherwise we will generate a BNGL string
-  return make_cplx(remove_compartments(name), orient, compartment);
+  return make_cplx(name, orient, compartment);
 }
 
 
@@ -303,6 +390,7 @@ string reaction_name_to_id(const string& json_name) {
   replace(res_name.begin(), res_name.end(), '(', '_');
   replace(res_name.begin(), res_name.end(), '!', '_');
   replace(res_name.begin(), res_name.end(), '~', '_');
+  replace(res_name.begin(), res_name.end(), ':', '_');
 
   res_name = regex_replace(res_name, regex("<->"), "revto");
   res_name = regex_replace(res_name, regex("->"), "to");
@@ -331,7 +419,7 @@ string get_rxn_id(Json::Value& reaction_list_item, uint& unnamed_rxn_counter) {
 
 
 string create_count_name(
-    const string& what_to_count, const string& compartmnent, const string& where_to_count,
+    const string& what_to_count, const string& where_to_count,
     const bool molecules_not_species) {
 
   // first remove all cterm_refixes
@@ -341,10 +429,6 @@ string create_count_name(
 
   if (!molecules_not_species) {
     res += "_species";
-  }
-
-  if (compartmnent != "") {
-    res += "_at_" + compartmnent;
   }
 
   if (where_to_count != WORLD && where_to_count != "") {
@@ -377,7 +461,6 @@ void process_single_count_term(
     bool& rxn_not_mol,
     bool& molecules_not_species,
     string& what_to_count,
-    string& compartment,
     string& where_to_count,
     string& orientation) {
 
@@ -397,13 +480,6 @@ void process_single_count_term(
 
   what_to_count = mdl_string.substr(start_brace + 1, comma - start_brace - 1);
   what_to_count = trim(what_to_count);
-
-  size_t pos_at = what_to_count.find('@');
-  compartment = ""; // FIXME: use get_single_compartment & remove_compartment
-  if (pos_at != string::npos) {
-    compartment = what_to_count.substr(pos_at + 1);
-    what_to_count = what_to_count.substr(0, pos_at);
-  }
 
   // default is 'molecules_pattern', for now we are storing the
   // as a comment because the counting type belongs to the count term,
@@ -431,14 +507,9 @@ void process_single_count_term(
   if (data.find_reaction_rule_info(what_to_count) != nullptr) {
     rxn_not_mol = true;
   }
-  else if (data.bng_mode ||
-      data.find_species_or_mol_type_info(what_to_count) != nullptr ||
-      !API::is_simple_species(what_to_count)) {
-    // if we did not find the name to be a reaction, we assume it is simple species or complex pattern
-    rxn_not_mol = false;
-  }
   else {
-    ERROR("Identifier '" + what_to_count + "' is neither species nor reaction, from mdl_string '" + mdl_string + "'.");
+    // if we did not find the name to be a reaction, we assume it is a BNGL pattern
+    rxn_not_mol = false;
   }
 
   where_to_count = mdl_string.substr(comma + 1, end_brace - comma - 1);
@@ -459,10 +530,6 @@ void process_single_count_term(
     else {
       where_to_count[brace] = '_';
     }
-  }
-
-  if (compartment != "" && where_to_count != "") {
-      ERROR("Cannot both specify location and compartment for a count location '" + mdl_string + "'.");
   }
 }
 
@@ -501,5 +568,77 @@ bool get_parameter_value(Json::Value& mcell, const string& name_or_value, double
   return false;
 }
 
+
+bool is_volume_mol_type(Json::Value& mcell, const std::string& mol_type_name) {
+
+  string mol_type_name_no_comp = remove_compartments(mol_type_name);
+
+  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
+
+  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
+  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
+    Value& molecule_list_item = molecule_list[i];
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
+
+    string name = molecule_list_item[KEY_MOL_NAME].asString();
+    if (name != mol_type_name_no_comp) {
+      continue;
+    }
+
+    string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
+    CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
+    return mol_type == VALUE_MOL_TYPE_3D;
+  }
+
+  ERROR("Could not find species or molecule type " + mol_type_name_no_comp + ".");
+}
+
+
+static void get_mol_types_in_species(const std::string& species_name, vector<string>& mol_types) {
+  mol_types.clear();
+
+  size_t i = 0;
+  string current_name;
+  bool in_name = true;
+  while (i < species_name.size()) {
+    char c = species_name[i];
+    if (c == '(') {
+      in_name = false;
+      assert(current_name != "");
+      mol_types.push_back(current_name);
+      current_name = "";
+    }
+    else if (c == '.') {
+      in_name = true;
+    }
+    else if (in_name && !isspace(c)) {
+      current_name += c;
+    }
+    i++;
+  }
+
+  if (current_name != "") {
+    mol_types.push_back(current_name);
+  }
+}
+
+
+bool is_volume_species(Json::Value& mcell, const std::string& species_name) {
+  if (is_simple_species(species_name)) {
+    return is_volume_mol_type(mcell, species_name);
+  }
+  else {
+    vector<string> mol_types;
+    get_mol_types_in_species( species_name, mol_types);
+    for (string& mt: mol_types) {
+      if (!is_volume_mol_type(mcell, mt)) {
+        // surface
+        return false;
+      }
+    }
+    return true;
+  }
+}
 
 } // namespace MCell

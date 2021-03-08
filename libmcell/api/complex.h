@@ -27,6 +27,7 @@
 #include "api/api_common.h"
 #include "api/api_utils.h"
 #include "api/compartment_utils.h"
+#include "bng/bngl_names.h"
 
 namespace BNG {
 class BNGData;
@@ -38,6 +39,7 @@ namespace API {
 
 class Species;
 
+// WARNING: do not set compartment_name through attribute, use set_compartment_name
 class Complex: public GenComplex {
 public:
   COMPLEX_CTOR()
@@ -59,6 +61,13 @@ public:
       const BNG::Cplx& bng_inst,
       const Orientation orientation);
 
+  void set_name(const std::string& name_) override {
+    BaseDataClass::set_name(name_);
+    // rerun initialization because the name is parsed as a BNGL string
+    elementary_molecules.clear();
+    postprocess_in_ctor();
+  }
+
   void postprocess_in_ctor() override;
 
   void check_semantics() const override {
@@ -66,6 +75,11 @@ public:
       // all semantic checks will be done in Species
       return;
     }
+
+    if (compartment_name == BNG::DEFAULT_COMPARTMENT_NAME) {
+      throw ValueError("Compartment name '" + compartment_name + "' is reserved, please use a different name.");
+    }
+
     GenComplex::check_semantics();
 
   }
@@ -88,10 +102,13 @@ public:
     return true;
   }
 
+  // make a deep copy, used from Species::inst
+  std::shared_ptr<Complex> clone() const;
+
   std::string export_to_python(std::ostream& out, PythonExportContext& ctx) {
     // we must set name for export if it was not set
     if (!is_set(name)) {
-      name = to_bngl_str_w_custom_orientation(false /*any*/, true);
+      name = to_bngl_str_w_custom_orientation();
     }
     return GenComplex::export_to_python(out, ctx);
   }
@@ -102,14 +119,21 @@ public:
   }
   bool is_surf() const;
 
-  std::string to_bngl_str_w_custom_orientation(
-      const bool replace_orientation_w_up_down_compartments = false,
-      const bool ignore_orientation = false) const;
+  std::string to_bngl_str_w_custom_orientation(const bool include_mcell_orientation = false) const;
 
   // not really const, sets mutable members that serve as cache
   const std::string& get_canonical_name() const;
 
+  const std::string& get_primary_compartment_name() const;
+
+
+  void set_compartment_name(const std::string& new_compartment_name) {
+    compartment_name = new_compartment_name;
+    set_unset_compartments_of_elementary_molecules();
+  }
+
 private:
+  void set_unset_compartments_of_elementary_molecules();
   bool is_species_object() const;
 
   // set when __eq__ is called, valid if cached_data_are_uptodate is true

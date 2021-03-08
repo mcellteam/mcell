@@ -51,10 +51,18 @@ std::vector<int> Introspection::get_molecule_ids(std::shared_ptr<Complex> patter
   // NOTE: some caching might be useful here if this function is called often
   uint_set<species_id_t> matching_species, not_matching_species;
   BNG::Cplx bng_pattern(&world->bng_engine.get_data());
+  BNG::compartment_id_t primary_compartment_id = BNG::COMPARTMENT_ID_NONE;
   if (is_set(pattern)) {
     // convert to its BNG representation for matching
     BNGConverter converter(world->bng_engine.get_data(), world->bng_engine.get_config());
     bng_pattern = converter.convert_complex(*pattern, true);
+
+    if (bng_pattern.has_compartment()) {
+      // remove primary compartment were set, better explanation is in
+      // MCell4Converter::convert_count_term_leaf_and_init_counting_flags
+      primary_compartment_id = bng_pattern.get_primary_compartment_id();
+      bng_pattern.remove_compartment_from_elem_mols(primary_compartment_id);
+    }
   }
 
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
@@ -74,7 +82,9 @@ std::vector<int> Introspection::get_molecule_ids(std::shared_ptr<Complex> patter
       else {
         // not seen species
         const BNG::Species& species = world->get_all_species().get(m.species_id);
-        bool match = species.matches_pattern(bng_pattern, true);
+        BNG::compartment_id_t species_compartment = species.get_primary_compartment_id();
+        bool match = species.matches_pattern(bng_pattern, true) &&
+            (primary_compartment_id == BNG::COMPARTMENT_ID_NONE || primary_compartment_id == species_compartment);
         if (match) {
           matching_species.insert(m.species_id);
           res.push_back(m.id);

@@ -81,6 +81,17 @@ BNG::ElemMol BNGConverter::convert_molecule_instance(API::ElementaryMolecule& mi
     res.components.push_back(convert_component_instance(mi.elementary_molecule_type->name, *api_ci));
   }
 
+  if (is_set(mi.compartment_name)) {
+    BNG::compartment_id_t comp_id = bng_data.find_compartment_id(mi.compartment_name);
+    if (comp_id == BNG::COMPARTMENT_ID_INVALID) {
+      throw ValueError("Elementary molecule " + mi.to_bngl_str() + " uses unknown compartment " + mi.compartment_name + ".");
+    }
+    res.compartment_id = comp_id;
+  }
+  else {
+    res.compartment_id = BNG::COMPARTMENT_ID_NONE;
+  }
+
   // we must also copy flags from the mol type
   res.finalize_flags_and_sort_components(bng_data);
 
@@ -172,13 +183,14 @@ BNG::Cplx BNGConverter::convert_complex(API::Complex& api_cplx, const bool in_ob
 
   // orientation or compartment does not have to be set for finalization,
   // this sets whether this is a surf or vol cplx
-  bng_cplx.finalize();
+  bng_cplx.finalize_cplx();
 
-  // BNG compartments were already created
+  // BNG compartments were already created, they were also set for individual molecules
   if (is_set(api_cplx.compartment_name)) {
+    // override all used compartments that were not set (are NONE)
     BNG::compartment_id_t in_out_id = BNG::get_in_or_out_compartment_id(api_cplx.compartment_name);
     if (in_out_id != BNG::COMPARTMENT_ID_INVALID) {
-      bng_cplx.set_compartment_id(in_out_id);
+      bng_cplx.set_compartment_id(in_out_id, true);
     }
     else {
       const BNG::Compartment* bng_comp = bng_data.find_compartment(api_cplx.compartment_name);
@@ -192,11 +204,11 @@ BNG::Cplx BNGConverter::convert_complex(API::Complex& api_cplx, const bool in_ob
             " for a surface complex " + bng_cplx.to_str() + ".");
       }
 
-      bng_cplx.set_compartment_id(bng_comp->id);
+      bng_cplx.set_compartment_id(bng_comp->id, true);
     }
   }
   else {
-    bng_cplx.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
+    // main compartment was not set, do not change them
 
     if (!in_rxn && bng_cplx.is_vol() && api_cplx.orientation != Orientation::NONE && api_cplx.orientation != Orientation::DEFAULT) {
       throw ValueError("Orientation for a volume complex " + bng_cplx.to_str() +

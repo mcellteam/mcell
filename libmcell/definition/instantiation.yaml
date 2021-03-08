@@ -218,13 +218,13 @@ Instantiation:
     - name: name
       type: str          
         
-  - name: find_volume_compartment
+  - name: find_volume_compartment_object
     return_type: GeometryObject*
     params:
     - name: name
       type: str   
 
-  - name: find_surface_compartment
+  - name: find_surface_compartment_object
     return_type: GeometryObject*
     params:
     - name: name

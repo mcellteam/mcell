@@ -66,5 +66,15 @@ std::string Component::to_bngl_str() const {
   return res;
 }
 
+
+// make a deep copy, used from ElementaryMolecule::clone
+std::shared_ptr<Component> Component::clone() const {
+  std::shared_ptr<Component> res = make_shared<Component>(component_type);
+  res->state = state;
+  res->bond = bond;
+
+  return res;
+}
+
 } // namespace API
 } // namespace MCell

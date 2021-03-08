@@ -54,7 +54,7 @@ public:
   virtual ~Model();
 
   // from generated template
-  void initialize() override;
+  void initialize(const bool print_copyright = true) override;
   uint64_t run_iterations(const float_t iterations) override;
   void end_simulation(const bool print_final_report = true) override;
 

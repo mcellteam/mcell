@@ -15,7 +15,7 @@ class RxnRule;
 
 // - MCell-specific, replaces compartments (including @IN and @OUT) with appropriate orientations
 // - keeps the original compartment information there but it is ignored
-//   (considered to be COMPARTMENT_ID_ANY)
+//   (considered to be COMPARTMENT_ID_NONE)
 // - the conversion is equivalent as long as there are no reactions that change the MCell
 //   orientation of surface molecules, the assumption is that all surface molecules are oriented
 //   outwards (up) all the time

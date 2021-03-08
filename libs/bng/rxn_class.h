@@ -19,41 +19,6 @@ namespace BNG {
 class RxnContainer;
 class SpeciesContainer;
 
-/**
- * Structure used to represent reactants of a reaction class,
- * species_id alone is not sufficient
- */
-class Reactant {
-public:
-  explicit Reactant(
-      const species_id_t species_id_,
-      const compartment_id_t compartment_id_)
-    : species_id(species_id_),
-      compartment_id(compartment_id_) {
-  }
-
-  bool operator < (const Reactant& other) const {
-    if (species_id != other.species_id) {
-      return species_id < other.species_id;
-    }
-    else {
-      return compartment_id < other.compartment_id;
-    }
-  }
-
-  std::string to_str() const {
-    return
-        std::to_string(species_id) +
-        '@' + compartment_id_to_str(compartment_id);
-  }
-
-  // species_id alone is not sufficient to define whether
-  // a reaction can be applied on a reactant
-  species_id_t species_id;
-  // compartment is either COMPARTMENT_ID_NONE or has a specific value
-  compartment_id_t compartment_id;
-};
-
 
 /**
  * Reaction class contains all applicable reactions for a pair of
@@ -70,7 +35,7 @@ public:
   // the rxn class was created specifically for a single or a pair of reactants, therefore
   // the species id is is a specific instance of a complex that matches our pattern
   // and if there are multiple species that match, multiple rxn classes are created
-  std::vector<Reactant> specific_reactants;
+  std::vector<species_id_t> reactant_ids;
 
   // - information on products for specific reactions, based on all reactions of the class,
   // - the size of this vector is >= than the number of rxn rules in this class because
@@ -105,16 +70,15 @@ private:
 public:
   RxnClass(
       RxnContainer& all_rxns_, SpeciesContainer& all_species_, const BNGConfig& bng_config_,
-      const Reactant& reactant1, const Reactant& reactant2 = Reactant(SPECIES_ID_INVALID, COMPARTMENT_ID_ANY))
+      const species_id_t reactant1_id, const species_id_t reactant2_id = SPECIES_ID_INVALID)
     : type(RxnType::Invalid), max_fixed_p(FLT_INVALID),
       all_rxns(all_rxns_), all_species(all_species_), bng_config(bng_config_),
       bimol_vol_rxn_flag(false), intermembrane_surf_surf_rxn_flag(false),
       pathways_and_rates_initialized(false)
     {
-    assert(reactant1.species_id != SPECIES_ID_INVALID);
-    specific_reactants.push_back(reactant1);
-    if (reactant2.species_id != SPECIES_ID_INVALID) {
-      specific_reactants.push_back(reactant2);
+    reactant_ids.push_back(reactant1_id);
+    if (reactant2_id != SPECIES_ID_INVALID) {
+      reactant_ids.push_back(reactant2_id);
     }
   }
 
@@ -183,11 +147,11 @@ public:
   }
 
   bool is_unimol() const {
-    return specific_reactants.size() == 1;
+    return reactant_ids.size() == 1;
   }
 
   bool is_bimol() const {
-    return specific_reactants.size() == 2;
+    return reactant_ids.size() == 2;
   }
 
   bool is_bimol_vol_rxn_class() const {
@@ -205,18 +169,30 @@ public:
     return type == RxnType::AbsorbRegionBorder;
   }
 
-  // mostly for debug purposes
   bool is_simple() const;
+
+  bool is_reactant_species_id(species_id_t reactant_id) const {
+    if (is_unimol()) {
+      return reactant_id == reactant_ids[0];
+    }
+    else {
+      return reactant_id == reactant_ids[0] || reactant_id == reactant_ids[1];
+    }
+  }
 
   species_id_t get_second_species_id(species_id_t reactant_id) const {
     assert(is_bimol());
-    if (specific_reactants[0].species_id != reactant_id) {
-      return specific_reactants[0].species_id;
+    assert(is_reactant_species_id(reactant_id));
+    if (reactant_ids[0] != reactant_id) {
+      return reactant_ids[0];
     }
     else {
-      return specific_reactants[1].species_id;
+      return reactant_ids[1];
     }
   }
+
+  // asserts if there is no such reactant
+  species_id_t get_reactive_surface_reactant_species_id() const;
 
   // initializes pathways, called automatically once rates of
   // products of this rxn class are needed, called on-demand

@@ -39,7 +39,7 @@
 #include "datamodel_defines.h"
 
 #include "geometry_utils.h"
-#include "geometry_utils.inc"
+#include "geometry_utils.inl"
 
 #include "bng/filesystem_utils.h"
 

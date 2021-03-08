@@ -29,9 +29,9 @@
 #include "datamodel_defines.h"
 
 #include "wall_utils.h"
-#include "dyn_vertex_utils.inc"
-#include "collision_utils.inc"
-#include "wall_utils.inc"
+#include "dyn_vertex_utils.inl"
+#include "collision_utils.inl"
+#include "wall_utils.inl"
 #include "wall_overlap.h"
 
 using namespace std;
@@ -596,12 +596,15 @@ counted_volume_index_t Partition::find_or_add_counted_volume(const CountedVolume
 }
 
 
-// returns compartment ID only if it is one of the IDs allowed for species
-// otherwise returns NONE
-BNG::compartment_id_t Partition::get_reactant_compartment_id_for_counted_volume(
-    const BNG::Species& species, const counted_volume_index_t counted_volume_index) {
+// returns compartment ID, all compartments are represented by a counted volume
+// so we can use the counted volume information to determine it
+BNG::compartment_id_t Partition::get_compartment_id_for_counted_volume(const counted_volume_index_t counted_volume_index) {
 
-  // TODO: caching
+  // caching, the mapping object->compartment is static and does not change even with dynamic geometry
+  auto it = counted_volume_index_to_compartment_id_cache.find(counted_volume_index);
+  if (it != counted_volume_index_to_compartment_id_cache.end()) {
+    return it->second;
+  }
 
   const CountedVolume& cv = get_counted_volume(counted_volume_index);
 
@@ -616,17 +619,19 @@ BNG::compartment_id_t Partition::get_reactant_compartment_id_for_counted_volume(
 
   if (inside_of_compartments.empty()) {
     // we are outside of any defined compartment
+    counted_volume_index_to_compartment_id_cache[counted_volume_index] = BNG::COMPARTMENT_ID_NONE;
     return BNG::COMPARTMENT_ID_NONE;
   }
 
   if (inside_of_compartments.size() == 1) {
-    // we are inside the outermost compartment
-    return species.get_as_reactant_compartment(*inside_of_compartments.begin());
+    // there is just one compartment
+    BNG::compartment_id_t res = *inside_of_compartments.begin();
+    counted_volume_index_to_compartment_id_cache[counted_volume_index] = res;
+    return res;
   }
 
-  // which of the compartments we are in is the smallest of those?
-  // we should be able to pick one at random and descend because
-  // the compartments are hierarchical
+  // find the lowest level child because volume compartments are always hierarchical
+  // and if we are inside of objects that correspond to EC and CP, it means that we are in CP
   BNG::compartment_id_t current = *inside_of_compartments.begin();
   bool child_found;
   do {
@@ -657,10 +662,9 @@ BNG::compartment_id_t Partition::get_reactant_compartment_id_for_counted_volume(
     }
   } while (child_found);
 
-
-  return species.get_as_reactant_compartment(current);
+  counted_volume_index_to_compartment_id_cache[counted_volume_index] = current;
+  return current;
 }
-
 
 
 void Partition::remove_from_known_vol_species(const species_id_t species_id) {

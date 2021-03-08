@@ -16,7 +16,10 @@
 
 namespace BNG {
 
-class Reactant;
+typedef std::map<compartment_id_t, species_id_t> CompartmentSpeciesMap;
+typedef std::map<species_id_t, CompartmentSpeciesMap> NoCompartmentToPrimaryCompartmentSpeciesMap;
+typedef std::map<species_id_t, species_id_t> CompartmentToNoCompartmentSpeciesMap;
+
 
 // using templates instead of virtual methods? -> rather a template
 // with virtual methods, this container would not be able to create new
@@ -62,6 +65,7 @@ public:
     if (it == canonical_species_map.end()) {
       // make a copy and add if not found
       Species* new_species_copy = new Species(new_species);
+      new_species_copy->reset_num_instantiations();
       species_id_t res = add(new_species_copy, removable);
       return res;
     }
@@ -96,6 +100,9 @@ public:
   species_id_t add(Species* new_species, const bool removable = false);
 
   void remove(const species_id_t id);
+
+  species_id_t get_species_id_with_compartment(
+      const species_id_t no_compartment_species_id, const compartment_id_t compartment_id);
 
   // searches for identical species
   // returns SPECIES_ID_INVALID if not found
@@ -175,8 +182,6 @@ public:
         species_id_to_index_mapping[id] < species.size();
   }
 
-  bool is_valid_reactant(const Reactant& reac) const;
-
   const Cplx& get_as_cplx(const species_id_t id) const {
     return get(id);
   }
@@ -234,10 +239,10 @@ public:
   // flag_analyzer is a customizable class that provides interface
   // that the flags update method may query to set other flags unrelated to
   // the BNG engine itself
-  void recompute_species_flags(RxnContainer& all_rxns, BaseCustomFlagsAnalyzer* flags_analyzer = nullptr) {
+  void recompute_species_flags(RxnContainer& all_rxns) {
     for (Species* sp: species) {
       release_assert(sp != nullptr);
-      sp->update_rxn_and_custom_flags(*this, all_rxns, flags_analyzer);
+      sp->update_rxn_and_custom_flags(*this, all_rxns);
     }
   }
 
@@ -279,6 +284,12 @@ private:
 
   SpeciesVector species;
   std::map<std::string, species_id_t> canonical_species_map;
+
+  // caching of species without a compartment to species that use a single compartment for all
+  // elementary molecules
+  NoCompartmentToPrimaryCompartmentSpeciesMap compartment_species_cache;
+  // reverse mapping for fast removal
+  CompartmentToNoCompartmentSpeciesMap compartment_to_no_compartment_species_cache;
 
   // ids of species superclasses, SPECIES_ID_INVALID if not set
   // it might seem that this should belong into SpeciesInfo but this class needs this information

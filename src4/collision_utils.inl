@@ -43,11 +43,11 @@
 #include "geometry.h"
 #include "debug_config.h"
 
-#include "geometry_utils.inc"
+#include "geometry_utils.inl"
 
 using namespace std;
 
-#include "collision_utils_subparts.inc"
+#include "collision_utils_subparts.inl"
 
 namespace MCell {
 
@@ -556,7 +556,7 @@ static void collide_mol_loop_body(
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
 
     BNG::RxnClass* rxn_class =
-        p.get_all_rxns().get_bimol_rxn_class(vm.as_reactant(), colliding_vm.as_reactant());
+        p.get_all_rxns().get_bimol_rxn_class(vm.species_id, colliding_vm.species_id);
 
     if (rxn_class == nullptr) {
       // reactants are not in compartments that match
@@ -1659,7 +1659,7 @@ static void update_counted_volume_id_when_crossing_wall(
 
       if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
         // no intersect - it is clear what is outside
-        vm.set_counted_volume_and_compartment(p, obj.counted_volume_index_outside);
+        vm.v.counted_volume_index = obj.counted_volume_index_outside;
       }
       else {
 
@@ -1667,8 +1667,7 @@ static void update_counted_volume_id_when_crossing_wall(
         Vec3 displacement = Vec3(2 * bump) * w.normal;
 
         // intersect - need to check waypoints or simply recompute the counted volumes
-        vm.set_counted_volume_and_compartment(
-            p, compute_counted_volume_using_waypoints(p, vm.v.pos + displacement));
+        vm.v.counted_volume_index = compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
       }
     }
     else if (orientation == ORIENTATION_DOWN) { // for hits - WALL_FRONT
@@ -1680,14 +1679,13 @@ static void update_counted_volume_id_when_crossing_wall(
 
       if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
         // no intersect - it is clear what is inside
-        vm.set_counted_volume_and_compartment(p, obj.counted_volume_index_inside);
+        vm.v.counted_volume_index = obj.counted_volume_index_inside;
       }
       else {
         float_t bump = -EPS; // hit from front - we go against the direction of the normal
         Vec3 displacement = Vec3(2 * bump) * w.normal;
 
-        vm.set_counted_volume_and_compartment(
-            p, compute_counted_volume_using_waypoints(p, vm.v.pos + displacement));
+        vm.v.counted_volume_index = compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
       }
     }
     else {
@@ -1697,55 +1695,6 @@ static void update_counted_volume_id_when_crossing_wall(
 }
 
 // ---------------------------------- reflections and other wall interactions ----------------------------------
-
-static void cross_transparent_wall(
-    Partition& p,
-    const Collision& collision,
-    const Vec3& full_displacement, // whole displacement computed for this molecule // TODO: not used
-    Molecule& vm, // moves vm to the reflection point
-    Vec3& remaining_displacement,
-    float_t& t_steps,
-    float_t& elapsed_molecule_time,
-    wall_index_t& last_hit_wall_index
-) {
-#ifdef DEBUG_COUNTED_VOLUMES
-  vm.dump(p, "- Before crossing: ");
-#endif
-
-  const Wall& w = p.get_wall(collision.colliding_wall_index);
-
-  // Update molecule location to the point of wall crossing
-  vm.v.pos = collision.pos;
-  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
-
-  const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
-  if (sp.needs_counted_volume()) {
-    update_counted_volume_id_when_crossing_wall(
-        p, w, collision.get_orientation_against_wall(), vm);
-  }
-
-#ifdef DEBUG_TRANSPARENT_SURFACES
-  std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
-#endif
-
-  // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
-  // same time step
-  float_t t_smash = collision.time;
-
-  remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
-  elapsed_molecule_time += t_steps * t_smash;
-
-  t_steps *= (1.0 - t_smash);
-  if (t_steps < EPS) {
-    t_steps = EPS;
-  }
-
-  last_hit_wall_index = w.index;
-
-#ifdef DEBUG_COUNTED_VOLUMES
-  vm.dump(p, "- After crossing: ");
-#endif
-}
 
 /******************************************************************************
  *

@@ -92,16 +92,18 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   }
   python_gen = new PythonGenerator(data);
 
-  CHECK(check_scripting(), failed);
 
+  CHECK(generate_scripting(), failed);
+
+  CHECK(generate_shared(), failed);
   CHECK(generate_parameters(), failed);
   CHECK(generate_subsystem(), failed);
   std::vector<std::string> geometry_names;
   CHECK(geometry_names = generate_geometry(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
-  CHECK(generate_observables(opts.cellblender_viz), failed);
+  CHECK(generate_observables(), failed);
   CHECK(generate_model(failed), failed);
-  CHECK(generate_customization(), failed);
+  CHECK(generate_customization_template(), failed);
 
   // delete generators
   if (data.bng_mode) {
@@ -115,19 +117,120 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   return !failed;
 }
 
-void MCell4Generator::check_scripting() {
-  if (data.mcell.isMember(KEY_SCRIPTING)) {
-    Value& scripting = get_node(data.mcell, KEY_SCRIPTING);
-    if (scripting.isMember(KEY_SCRIPTING_LIST)) {
-      Value& scripting_list = get_node(scripting, KEY_SCRIPTING_LIST);
-      if (!scripting_list.empty()) {
-        ERROR("Data model contains scripting. To convert this model, generate first MDL, "
-            "then  convert MDL to data model and then use this converter. "
-            "Conversion will continue, but it will be wrong."
-        );
+
+static std::string get_file_base_name(const std::string& path) {
+  size_t pos = path.find_last_of("/\\");
+  if (pos != string::npos) {
+    return path.substr(pos + 1);
+  }
+  else {
+    return path;
+  }
+}
+
+
+void MCell4Generator::generate_scripting() {
+  // first check unsupported MCell3 scripting
+  Value& scripting = get_node(data.mcell, KEY_SCRIPTING);
+  if (scripting.isMember(KEY_SCRIPTING_LIST)) {
+    Value& scripting_list = get_node(scripting, KEY_SCRIPTING_LIST);
+    if (!scripting_list.empty()) {
+      ERROR("Data model contains MCell3 scripting. To convert this model: 1) disable MCell3 mode, 2) generate MDL, "
+          "3) convert MDL to data model and 4) use this converter. "
+          "Conversion will now continue, but it will be missing the scripted code."
+      );
+    }
+  }
+
+  // copy files from MCell4 scripting
+  if (scripting.isMember(KEY_MCELL4_SCRIPTING_LIST)) {
+    Value& mcell4_scripting_list = get_node(scripting, KEY_MCELL4_SCRIPTING_LIST);
+    for (Value::ArrayIndex i = 0; i < mcell4_scripting_list.size(); i++) {
+      Value& item = mcell4_scripting_list[i];
+      bool internal;
+      string internal_external = get_node(item, KEY_INTERNAL_EXTERNAL).asString();
+      if (internal_external == VALUE_INTERNAL) {
+        internal = true;
+      }
+      else if (internal_external == VALUE_EXTERNAL) {
+        internal = false;
+      }
+      else {
+        ERROR(S(KEY_INTERNAL_EXTERNAL) + " may be either " + VALUE_INTERNAL + " or " + VALUE_EXTERNAL +
+            ", not " + internal_external + ".");
+      }
+
+      if (internal) {
+        // create a file from internal script
+        string fname = get_node(item, KEY_INTERNAL_FILE_NAME).asString();
+        Value& script_texts = get_node(scripting, KEY_SCRIPT_TEXTS);
+        if (!script_texts.isMember(fname)) {
+          ERROR("Internal script " + fname + " was not found.");
+        }
+        // expecting the the file can be represented as text (it must be since it is in a JSON format)
+        string code = get_node(script_texts, fname).asString();
+        ofstream fout;
+        fout.open(fname);
+        if (!fout.is_open()) {
+          ERROR("Could not open file " + fname + " for writing for internal script export.");
+        }
+
+        cout << "Creating " + fname + " from internal script file.\n";
+        fout.write(code.c_str(), code.size());
+        fout.close();
+      }
+      else {
+        // copy external file
+        string fname = get_node(item, KEY_EXTERNAL_FILE_NAME).asString();
+
+        ifstream fin;
+        fin.open(fname);
+        if (!fin.is_open()) {
+          ERROR("Could not open file " + fname + " for reading for external script export.");
+        }
+
+        // get base path
+        string exported_fname = get_file_base_name(fname);
+        cout << "exported_fname: " << exported_fname << "\n";
+        ofstream fout;
+        fout.open(exported_fname);
+        if (!fout.is_open()) {
+          fin.close();
+          ERROR("Could not open file " + fname + " for writing for external script export.");
+        }
+
+        // copy data
+        cout << "Copying " + fname + " to " + exported_fname + ".\n";
+        fout << fin.rdbuf();
+        fin.close();
+        fout.close();
       }
     }
   }
+}
+
+
+void MCell4Generator::generate_shared() {
+  ofstream out;
+  open_and_check_file_w_prefix("", SHARED, out);
+  out << GENERATED_WARNING << "\n";
+  out <<
+      "# This is an auxiliary module containing only a dictionary for parameter overrides.\n" <<
+      "# It has to be a separate module so that it can be shared easily among all modules.\n";
+  out << PARAMETER_OVERRIDES << " = {}\n";
+  out.close();
+}
+
+
+void MCell4Generator::generate_simulation_setup_parameter(
+    std::ostream& out, const string& name, const string& value) {
+  string ind;
+  if (!data.not_overridable_python_params) {
+    // allow params to be overridden
+    out << "if " << NOT_DEFINED << "('" << name << "'):\n";
+    ind = IND4;
+  }
+  out << ind << name << " = " << value << "\n\n";
 }
 
 
@@ -135,10 +238,21 @@ void MCell4Generator::generate_parameters() {
   ofstream out;
   open_and_check_file(PARAMETERS, out);
   out << GENERATED_WARNING << "\n";
-  out << IMPORT_OS;
-  out << MCELL_IMPORT;
+  out << IMPORT_SYS_OS;
+  out << IMPORT_MATH;
+  out << IMPORT_SHARED;
+  out << IMPORT_MCELL_AS_M;
   out << MODEL_PATH_SETUP << "\n";
   out << make_section_comment("model parameters");
+
+  out <<
+    "# declare all items from parameter_overrides as variables\n" <<
+    "for parameter_name, value in " << SHARED << "." << PARAMETER_OVERRIDES << ".items():\n" <<
+    "    setattr(sys.modules[__name__], parameter_name, value)\n" <<
+    "\n" <<
+    "# auxiliary function used to determine whether a parameter was defined\n" <<
+    "def " << NOT_DEFINED << "(parameter_name):\n" <<
+    "    return parameter_name not in globals()\n\n";
 
   if (data.mcell.isMember(KEY_PARAMETER_SYSTEM)) {
     if (data.bng_mode) {
@@ -151,11 +265,11 @@ void MCell4Generator::generate_parameters() {
 
   out << make_section_comment("simulation setup");
 
-  out << PARAM_ITERATIONS << " = " << data.mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
-  out << PARAM_TIME_STEP << " = " << data.mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
-  out << PARAM_DUMP << " = " << (data.debug_mode ? "True" : "False") << "\n";
-  out << PARAM_EXPORT_DATA_MODEL << " = True\n";
-  out << PARAM_SEED << " = 1 # may be overwritten based on commandline arguments\n";
+  generate_simulation_setup_parameter(out, PARAM_ITERATIONS, data.mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString());
+  generate_simulation_setup_parameter(out, PARAM_TIME_STEP, data.mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString());
+  generate_simulation_setup_parameter(out, PARAM_DUMP, (data.debug_mode ? "True" : "False"));
+  generate_simulation_setup_parameter(out, PARAM_EXPORT_DATA_MODEL, "True");
+  generate_simulation_setup_parameter(out, PARAM_SEED, "1");
   out << "\n";
 
   out.close();
@@ -381,12 +495,12 @@ void MCell4Generator::generate_subsystem() {
   out << GENERATED_WARNING << "\n";
 
   out << IMPORT_OS;
-  out << MCELL_IMPORT;
-  out << MODEL_PATH_SETUP << "\n";
-
+  out << IMPORT_SHARED;
+  out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
+  out << MODEL_PATH_SETUP << "\n";
 
   string bngl_mol_types_initialization =
       generate_species_and_mol_types(out, data.all_species_and_mol_type_names);
@@ -426,7 +540,8 @@ void MCell4Generator::generate_subsystem() {
     gen_method_call(
         out, SUBSYSTEM,
         NAME_LOAD_BNGL_MOLECULE_TYPES_AND_REACTION_RULES,
-        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT))
+        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)),
+        S(SHARED) + "." + PARAMETER_OVERRIDES
     );
     out << "\n" << bngl_mol_types_initialization;
 
@@ -455,7 +570,7 @@ vector<string> MCell4Generator::generate_geometry() {
   open_and_check_file(GEOMETRY, out);
   out << GENERATED_WARNING << "\n";
 
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
 
   python_gen->generate_geometry(out, geometry_objects);
 
@@ -468,32 +583,81 @@ vector<string> MCell4Generator::generate_geometry() {
 }
 
 
+void MCell4Generator::generate_release_sites(std::ostream& out, std::vector<std::string>& release_site_names) {
+
+  if (!data.mcell.isMember(KEY_RELEASE_SITES)) {
+    return;
+  }
+
+  Value& release_sites = data.mcell[KEY_RELEASE_SITES];
+  check_version(KEY_RELEASE_SITES, release_sites, VER_DM_2014_10_24_1638);
+  Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
+  if (release_site_list.empty()) {
+    return;
+  }
+
+  if (data.bng_mode) {
+    bool can_express_all_releases_with_bngl = true;
+
+    for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
+      // simulation result differs based on the order of releases so we must either generate all
+      // releases into BNGL or none
+      Value& release_site_item = release_site_list[i];
+      if (!bng_gen->can_express_release_with_bngl(release_site_item)) {
+        can_express_all_releases_with_bngl = false;
+        break;
+      }
+    }
+    if (can_express_all_releases_with_bngl) {
+      bng_gen->open_seed_species_section();
+
+      for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
+        // simulation result differs based on the order of releases so we must either generate all
+        // releases into BNGL or none
+        const Value& release_site_item = release_site_list[i];
+        bng_gen->generate_single_release_site(
+            release_site_item[KEY_MOLECULE].asString(), release_site_item[KEY_QUANTITY].asString());
+      }
+
+      bng_gen->close_seed_species_section();
+
+      // all done
+      return;
+    }
+  }
+
+  // python variant - used either without bng mode or as a fallback for bng mode
+  python_gen->generate_release_sites(out, release_site_names);
+}
+
+
 void MCell4Generator::generate_instantiation(const vector<string>& geometry_objects) {
 
   ofstream out;
   open_and_check_file(INSTANTIATION, out);
   out << GENERATED_WARNING << "\n";
 
-  out << MCELL_IMPORT;
+  out << IMPORT_OS;
+  out << IMPORT_SHARED;
+  out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
   if (geometry_generated) {
     out << make_import(GEOMETRY);
   }
+  out << MODEL_PATH_SETUP << "\n";
   out << "\n";
   out << make_section_comment(INSTANTIATION);
   out << make_section_comment("release sites");
-
-  // BNGL instantiation through seed species are not supported yet, everything is defined through Python
-
-  vector<string> release_sites;
-  python_gen->generate_release_sites(out, release_sites);
 
   out << make_section_comment("surface classes assignment");
   python_gen->generate_surface_classes_assignments(out);
 
   out << make_section_comment("compartments assignment");
   python_gen->generate_compartment_assignments(out);
+
+  vector<string> release_sites;
+  generate_release_sites(out, release_sites);
 
   out << make_section_comment("create instantiation object and add components");
 
@@ -503,6 +667,19 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
   }
   for (const string& r: release_sites) {
     gen_method_call(out, INSTANTIATION, NAME_ADD_RELEASE_SITE, r);
+  }
+
+  if (data.bng_mode) {
+    out << "\n# load seed species information from bngl file\n";
+
+    gen_method_call(
+        out, INSTANTIATION,
+        NAME_LOAD_BNGL_SEED_SPECIES,
+        get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)),
+        data.has_default_compartment_object ? BNG::DEFAULT_COMPARTMENT_NAME : "None",
+        S(SHARED) + "." + PARAMETER_OVERRIDES
+    );
+    out << "\n";
   }
 
   out.close();
@@ -560,7 +737,6 @@ void MCell4Generator::generate_counts(
     bool molecules_not_species;
     bool single_term;
     string what_to_count;
-    string compartment;
     string where_to_count; // empty for WORLD
     string orientation;
 
@@ -579,7 +755,7 @@ void MCell4Generator::generate_counts(
         single_term = true;
         process_single_count_term(
             data, mdl_string, rxn_not_mol, molecules_not_species,
-            what_to_count, compartment, where_to_count, orientation);
+            what_to_count, where_to_count, orientation);
       }
       else {
         must_be_in_python = true;
@@ -649,18 +825,16 @@ void MCell4Generator::generate_counts(
       bng_gen->generate_single_count(
           observable_name,
           what_to_count,
-          compartment,
           molecules_not_species);
       has_bng_observables = true;
     }
     else {
-      string name = create_count_name(what_to_count, compartment, where_to_count, molecules_not_species);
+      string name = create_count_name(what_to_count, where_to_count, molecules_not_species);
       python_gen->generate_single_count(
           out,
           name,
           observable_name,
           what_to_count,
-          compartment,
           where_to_count, // empty for WORLD
           orientation,
           multiplier_str,
@@ -675,26 +849,34 @@ void MCell4Generator::generate_counts(
 }
 
 
-void MCell4Generator::generate_observables(const bool cellblender_viz) {
+void MCell4Generator::generate_observables() {
 
   ofstream out;
   open_and_check_file(OBSERVABLES, out);
   out << GENERATED_WARNING << "\n";
 
   out << IMPORT_OS;
-  out << MCELL_IMPORT;
-  out << MODEL_PATH_SETUP << "\n";
-
+  out << IMPORT_SHARED;
+  out << IMPORT_MCELL_AS_M;
   out << make_import(PARAMETERS);
   out << make_import(SUBSYSTEM);
   if (geometry_generated) {
     out << make_import(GEOMETRY);
   }
+  out << MODEL_PATH_SETUP << "\n";
   out << "\n";
   out << make_section_comment(OBSERVABLES);
 
+  bool use_cellblender_output;
+  if (data.mcell[KEY_INITIALIZATION].isMember(KEY_EXPORT_ALL_ASCII)) {
+    use_cellblender_output = !data.mcell[KEY_INITIALIZATION][KEY_EXPORT_ALL_ASCII].asBool();
+  }
+  else {
+    use_cellblender_output = false;
+  }
+
   vector<string> viz_outputs;
-  python_gen->generate_viz_outputs(out, cellblender_viz, viz_outputs);
+  python_gen->generate_viz_outputs(out, use_cellblender_output, viz_outputs);
 
   vector<string> counts;
   bool has_bngl_observables;
@@ -715,7 +897,8 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
         out, OBSERVABLES,
         NAME_LOAD_BNGL_OBSERVABLES,
         get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)) + ", " +
-        "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'"
+        "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'",
+        S(SHARED) + "." + PARAMETER_OVERRIDES
     );
 
     bng_gen->close_observables_section();
@@ -824,25 +1007,24 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
         "best-effort conversion and will contain errors that might need to be fixed manually.\n\n";
   }
 
-  out << BASE_MODEL_IMPORTS;
+  out << IMPORT_SYS_OS;
   out << get_import("importlib.util");
   out << "\n";
   out << MODEL_PATH_SETUP;
   out << "\n";
   out << MCELL_PATH_SETUP;
   out << "\n";
-  out << MCELL_IMPORT;
+  out << IMPORT_MCELL_AS_M;
 
   string parameters_module = get_module_name(PARAMETERS);
-  string customization_module = get_module_name(CUSTOMIZATION);
+  string customization_module = CUSTOMIZATION;
+  string shared_module = SHARED;
 
-  out <<
-      "# parameters are intentionally not imported using from ... import *\n" <<
-      "# because we may need to make changes to the module's variables\n" <<
-      IMPORT << " " << parameters_module << "\n\n";
+  out << "\n" << make_section_comment("customization and argument processing");
+  out << "# this module is used to hold any overrides of parameter values\n";
+  out << IMPORT_SHARED;
 
-  out << get_resume_from_checkpoint_code(parameters_module);
-
+  out << "# import the customization.py module if it exists\n";
   out << get_customization_import(customization_module);
   out << "\n";
 
@@ -850,8 +1032,8 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
     out << CHECKPOINT_ITERATION << " = None\n\n";
   }
 
+  out << "# process command-line arguments\n";
   out << get_argparse_w_customization_begin(parameters_module, customization_module);
-
   if (data.testing_mode) {
     out << get_argparse_checkpoint_iteration(parameters_module);
   }
@@ -859,12 +1041,14 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << get_argparse_w_customization_end();
   out << "\n";
 
-  out << get_import(get_module_name(SUBSYSTEM));
-  out << get_import(get_module_name(INSTANTIATION));
-  if (observables_generated) {
-    out << get_import(get_module_name(OBSERVABLES));
-  }
-  out << "\n";
+  out <<
+      S("\n# the module parameters uses ") + SHARED + "." + PARAMETER_OVERRIDES + " to override parameter values\n" <<
+      IMPORT << " " << parameters_module << "\n\n";
+
+  out << get_resume_from_checkpoint_code(parameters_module);
+
+
+  out << "\n" << make_section_comment("model creation and simulation");
 
   out << "# create main model object\n";
   gen_ctor_call(out, MODEL, NAME_CLASS_MODEL, false);
@@ -884,6 +1068,13 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << "\n";
 
   out << make_section_comment("add components");
+  out << get_import(get_module_name(SUBSYSTEM));
+  out << get_import(get_module_name(INSTANTIATION));
+  if (observables_generated) {
+    out << get_import(get_module_name(OBSERVABLES));
+  }
+  out << "\n";
+
   gen_method_call(out, MODEL, NAME_ADD_SUBSYSTEM, get_module_name(SUBSYSTEM) + "." + SUBSYSTEM);
   gen_method_call(out, MODEL, NAME_ADD_INSTANTIATION, get_module_name(INSTANTIATION) + "." + INSTANTIATION);
   if (observables_generated) {
@@ -930,27 +1121,28 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
 }
 
 
-void MCell4Generator::generate_customization() {
+void MCell4Generator::generate_customization_template() {
   // check if file exists, do not overwrite
-  string cust_filename = get_filename(data.output_files_prefix, CUSTOMIZATION, PY_EXT);
+  string cust_filename = S(CUSTOMIZATION) + PY_EXT;
   ifstream tmp;
   tmp.open(cust_filename);
   if (tmp.is_open()) {
-    // TODO: test
     cout << "Message: custom file " + cust_filename + " already exists, keeping it as it is.\n";
     tmp.close();
     return;
   }
 
   ofstream out;
-  open_and_check_file(CUSTOMIZATION, out);
+  open_and_check_file_w_prefix("", CUSTOMIZATION, out);
 
   out <<
-      "# This file hooks to override default MCell4 model\n"
+      "# This file contains hooks to override default MCell4 model\n"
       "# code behavior for models generated from CellBlender\n";
 
-  out << MCELL_IMPORT;
-  out << IMPORT << " " << get_module_name(PARAMETERS) << "\n\n";
+  out << IMPORT_SHARED;
+  out << IMPORT_MCELL_AS_M;
+  // TODO: figure out how to handle parameter overrides in customization
+  //out << IMPORT << " " << get_module_name(PARAMETERS) << "\n\n";
 
   out << TEMPLATE_CUSTOM_ARGPARSE_AND_PARAMETERS << "\n";
   out << TEMPLATE_CUSTOM_CONFIG << "\n";

@@ -112,7 +112,7 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def("check_semantics", &ElementaryMoleculeType::check_semantics)
       .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMoleculeType::__eq__, py::arg("other"))
-      .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<Component>>())
+      .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<Component>>(), py::arg("compartment_name") = STR_UNSET)
       .def("to_bngl_str", &ElementaryMoleculeType::to_bngl_str)
       .def("dump", &ElementaryMoleculeType::dump)
       .def_property("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name)

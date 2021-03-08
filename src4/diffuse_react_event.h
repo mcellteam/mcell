@@ -181,6 +181,17 @@ public:
       MoleculeIdsVector* optional_product_ids = nullptr
   );
 
+  // returns true if molecule survived
+  bool cross_transparent_wall(
+      Partition& p,
+      const Collision& collision,
+      Molecule& vm, // moves vm to the reflection point
+      Vec3& remaining_displacement,
+      float_t& t_steps,
+      float_t& elapsed_molecule_time,
+      wall_index_t& last_hit_wall_index
+  );
+
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
@@ -218,15 +229,14 @@ private:
       Partition& p,
       const Collision& collision,
       Vec3& displacement,
-      const float_t remaining_time_step,
+      const float_t t_steps,
       const float_t r_rate_factor,
-      const float_t molecule_time
+      const float_t elapsed_molecule_time
   );
 
   int collide_and_react_with_surf_mol(
       Partition& p,
       const Collision& collision,
-      const float_t remaining_time_step,
       const float_t r_rate_factor,
       WallTileIndexPair& where_created_this_iteration,
       wall_index_t& last_hit_wall_index,
@@ -309,6 +319,11 @@ private:
       const Molecule* reac1,
       const Molecule* reac2,
       const MoleculeIdsVector& product_ids
+  );
+
+  orientation_t determine_orientation_depending_on_surf_comp(
+      const species_id_t prod_species_id,
+      const Molecule* surf_reac
   );
 
   int outcome_products_random(

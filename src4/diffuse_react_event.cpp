@@ -20,14 +20,12 @@
  * USA.
  *
 ******************************************************************************/
-// TODO_LATER: optimization for diffusion constant 0, e.g. test 1172
 // TODO: make this file shorter
 
 #include <iostream>
 #include <sstream>
 #include <algorithm>
 #include <boost/container/flat_set.hpp>
-#include <rxn_utils.inc>
 
 #include "api/mol_wall_hit_info.h"
 #include "api/reaction_info.h"
@@ -43,17 +41,20 @@
 #include "partition.h"
 #include "geometry.h"
 #include "grid_position.h"
+#include "region_util.h"
+
 #include "debug_config.h"
 #include "debug.h"
 
 // include implementations of utility functions
 #include "geometry_utils.h"
-#include "geometry_utils.inc"
-#include "collision_utils.inc"
-#include "exact_disk_utils.inc"
-#include "diffusion_utils.inc"
-#include "grid_utils.inc"
-#include "wall_utils.inc"
+#include "geometry_utils.inl"
+#include "collision_utils.inl"
+#include "exact_disk_utils.inl"
+#include "diffusion_utils.inl"
+#include "rxn_utils.inl"
+#include "grid_utils.inl"
+#include "wall_utils.inl"
 
 using namespace std;
 using namespace BNG;
@@ -240,7 +241,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
   );
   if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)) {
     m.clear_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
-    pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m); // TODO: rename, this function does not create any action
+    pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
   }
 
   // we might need to change the reaction rate right now
@@ -251,7 +252,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
     pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
   }
 
-  float_t unimol_rx_time = m.unimol_rx_time; // copy to avoid unnecessary loads
+  float_t unimol_rx_time = m.unimol_rx_time; // copy for a minor compiler optimization
 
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
@@ -430,8 +431,6 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   bool was_defunct = false;
   wall_index_t last_hit_wall_index = WALL_INDEX_INVALID;
 
-  //float_t updated_remaining_time_step = remaining_time_step; // == t_steps
-
   float_t elapsed_molecule_time = diffusion_start_time; // == vm->t
   bool can_vol_react = species.can_vol_react();
   do {
@@ -516,8 +515,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         // check possible reaction with surface molecules
         if (p.get_species(vm_new_ref.species_id).has_flag(SPECIES_FLAG_CAN_VOLSURF) && colliding_wall.has_initialized_grid()) {
           int collide_res = collide_and_react_with_surf_mol(
-              p, collision, t_steps,
-              r_rate_factor,
+              p, collision, r_rate_factor,
               wall_tile_pair_where_created_this_iteration,
               last_hit_wall_index,
               remaining_displacement,
@@ -542,9 +540,9 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
           if (collide_res == WallRxnResult::Transparent) {
             // update molecules' counted volume, time and displacement and continue
-            CollisionUtil::cross_transparent_wall(
-                p, collision, displacement,
-                vm_new_ref, remaining_displacement, t_steps, elapsed_molecule_time, last_hit_wall_index
+            was_defunct = !cross_transparent_wall(
+                p, collision, vm_new_ref, remaining_displacement,
+                t_steps, elapsed_molecule_time, last_hit_wall_index
             );
 
             // continue with diffusion
@@ -818,11 +816,9 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
  *
  ******************************************************************************/
 // TODO: return enum
-// TODO: remove the remaining_time_step argument - same as t_steps
 int DiffuseReactEvent::collide_and_react_with_surf_mol(
     Partition& p,
     const Collision& collision,
-    const float_t remaining_time_step,
     const float_t r_rate_factor,
     WallTileIndexPair& where_created_this_iteration,
     wall_index_t& last_hit_wall_index,
@@ -885,7 +881,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     scaling_coefs.push_back(r_rate_factor / grid.binding_factor);
   }
 
-  float_t collision_time = elapsed_molecule_time + remaining_time_step * collision.time;
+  float_t collision_time = elapsed_molecule_time + t_steps * collision.time;
 
   int selected_rx_pathway;
   if (matching_rxn_classes.size() == 1) {
@@ -1214,7 +1210,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   const Wall& wall = p.get_wall(sm.s.wall_index);
 
   TileNeighborVector neighbors;
-  GridUtil::find_neighbor_tiles(p, sm, wall, sm.s.grid_tile_index, false, /* true,*/ neighbors);
+  GridUtil::find_neighbor_tiles(p, sm, wall, sm.s.grid_tile_index, false, true, neighbors);
 
   if (neighbors.empty()) {
     return true;
@@ -1359,8 +1355,8 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   subpart_index_t subpart_index = p.get_subpart_index_from_3d_indices(subpart_indices);
 
   // with what species we may react? (this should be cached)
-  const BNG::ReactantRxnClassesMap* rxns_classes_map =
-      p.get_all_rxns().get_bimol_rxns_for_reactant_any_compartment(sm.species_id);
+  const BNG::SpeciesRxnClassesMap* rxns_classes_map =
+      p.get_all_rxns().get_bimol_rxns_for_reactant(sm.species_id);
   if (rxns_classes_map == nullptr || rxns_classes_map->empty()) {
     assert(false && "No rxns");
     return true;
@@ -1368,8 +1364,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
 
   uint_set<species_id_t> reacting_species;
   for (const auto& second_reactant_info: *rxns_classes_map) {
-    const BNG::RxnClass* rxn_class =
-        BNG::get_rxn_class_for_any_compartment(second_reactant_info.second);
+    const BNG::RxnClass* rxn_class = second_reactant_info.second;
 
     if (!rxn_class->is_intermembrane_surf_surf_rxn_class()) {
       continue;
@@ -1459,13 +1454,14 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   for (const IdDist2Pair& id_dist2_pair: reactants_dist2) {
     Molecule& sm2 = p.get_m(id_dist2_pair.first);
 
-    // get what reaction should happen
+    // get what reaction should happen, the default orientation of molecules is UP and
+    // also the rxn rule's pattern expects UP
     RxnClassesVector matching_rxn_classes;
     RxnUtil::trigger_bimolecular(
-        p.bng_engine, sm, sm2, ORIENTATION_NONE, ORIENTATION_NONE, matching_rxn_classes);
+        p.bng_engine, sm, sm2, sm.s.orientation, sm2.s.orientation, matching_rxn_classes);
 
     if (matching_rxn_classes.empty()) {
-      assert(false && "We already filtered-out molcules that can react");
+      assert(false && "We already filtered-out molecules that can react");
       continue;
     }
 
@@ -1741,7 +1737,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     return true;
   }
   else {
-    RxnClass* unimol_rxn_class = world->get_all_rxns().get_unimol_rxn_class(m.as_reactant());
+    RxnClass* unimol_rxn_class = world->get_all_rxns().get_unimol_rxn_class(m.species_id);
     assert(unimol_rxn_class != nullptr && unimol_rxn_class->get_num_reactions() >= 1);
 
     unimol_rxn_class->update_rxn_rates_if_needed(scheduled_time);
@@ -1876,10 +1872,10 @@ int DiffuseReactEvent::outcome_intersect(
   bool keep_reacA = true, keep_reacB = true;
 
   // expecting that the surface is always the second reactant
-  assert(p.get_all_species().get(rxn_class->specific_reactants[1].species_id).is_reactive_surface());
+  assert(p.get_all_species().get(rxn_class->reactant_ids[1]).is_reactive_surface());
 
-  if (rxn_class->specific_reactants[0].species_id == all_molecules_id ||
-      rxn_class->specific_reactants[0].species_id == all_volume_molecules_id) {
+  if (rxn_class->reactant_ids[0] == all_molecules_id ||
+      rxn_class->reactant_ids[0] == all_volume_molecules_id) {
     assert(rxn_class->get_num_reactions() == 1);
     keep_reacA = false;
     result = RX_DESTROY;
@@ -1945,6 +1941,15 @@ int DiffuseReactEvent::find_surf_product_positions(
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
   uint initiator_recycled_index = INDEX_INVALID;
 
+  /* list of the restricted regions for the reactants by wall */
+  RegionIndicesSet rlp_wall_1, rlp_wall_2;
+  /* list of the restricted regions for the reactants by object */
+  RegionIndicesSet rlp_obj_1, rlp_obj_2;
+
+  int sm_bitmask = RegionUtil::determine_molecule_region_topology(
+      p, reacA, reacB, rxn->is_unimol(),
+      rlp_wall_1, rlp_wall_2, rlp_obj_1, rlp_obj_2);
+
   // find which tiles can be recycled
   if (reacA->is_surf()) {
     if (!keep_reacA) {
@@ -1986,7 +1991,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     Wall& wall = p.get_wall(surf_reac->s.wall_index);
     Grid& grid = wall.grid;
     TileNeighborVector neighbor_tiles;
-    GridUtil::find_neighbor_tiles(p, *surf_reac, wall, surf_reac->s.grid_tile_index, true, /* false,*/ neighbor_tiles);
+    GridUtil::find_neighbor_tiles(p, *surf_reac, wall, surf_reac->s.grid_tile_index, true, false, neighbor_tiles);
 
     // we care only about the vacant ones (NOTE: this filtering out might be done in find_neighbor_tiles)
     // mcell3 reverses the ordering here
@@ -2008,15 +2013,16 @@ int DiffuseReactEvent::find_surf_product_positions(
   // assignment of positions
   uint num_tiles_to_recycle = min(actual_products.size(), recycled_surf_prod_positions.size());
   if (rxn->is_intermembrane_surf_rxn()) {
-    // special case A + B -> C + D
+    // special case limited to A@C1 + B@C2 -> C@C1 + D@C2
     release_assert(needed_surface_positions == 2 && num_tiles_to_recycle == 2);
     release_assert(rxn->products.size() == 2);
 
-    BNG::compartment_id_t compartment_prod0 = rxn->products[0].get_compartment_id();
-    BNG::compartment_id_t compartment_prod1 = rxn->products[1].get_compartment_id();
+    BNG::compartment_id_t compartment_prod0 = rxn->products[0].get_primary_compartment_id();
 
-    // use compartment to determine location
-    if (reacA->reactant_compartment_id == compartment_prod0) {
+    BNG::compartment_id_t compartment_reacA = p.get_all_species().get(reacA->species_id).get_primary_compartment_id();
+
+    // use compartment to determine location (
+    if (compartment_reacA == compartment_prod0) {
       // in the same order
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[0];
       assigned_surf_product_positions[0].set_reac_type(GridPosType::REACA_UV);
@@ -2024,6 +2030,10 @@ int DiffuseReactEvent::find_surf_product_positions(
       assigned_surf_product_positions[1].set_reac_type(GridPosType::REACB_UV);
     }
     else {
+#ifndef NDEBUG
+      BNG::compartment_id_t compartment_prod1 = rxn->products[1].get_primary_compartment_id();
+      assert(compartment_reacA == compartment_prod1);
+#endif
       // switched order
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[1];
       assigned_surf_product_positions[0].set_reac_type(GridPosType::REACB_UV);
@@ -2101,18 +2111,28 @@ int DiffuseReactEvent::find_surf_product_positions(
         assert(num_vacant_tiles != 0);
         uint rnd_num = rng_uint(&world->rng) % num_vacant_tiles;
 
-        if (!used_vacant_tiles[rnd_num]) {
-          WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
-          assigned_surf_product_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
-          assigned_surf_product_positions[product_index].set_reac_type(GridPosType::RANDOM);
-          used_vacant_tiles[rnd_num] = true;
-          found = true;
+        // is this vacant tile already used?
+        if (used_vacant_tiles[rnd_num]) {
+          num_attempts++;
+          continue;
         }
 
-        // TODO: in MCell3
-        /* make sure we can get to the tile given the surface regions defined in the model */
+        WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
 
-        num_attempts++;
+        // make sure we can get to the tile given the surface regions defined in the model
+        if (!RegionUtil::product_tile_can_be_reached(p, grid_tile_index_pair.wall_index,
+            rxn->is_unimol(), sm_bitmask, rlp_wall_1, rlp_wall_2, rlp_obj_1, rlp_obj_2)) {
+
+          // we do not want to be checking this tile anymore
+          used_vacant_tiles[rnd_num] = true;
+          num_attempts++;
+          continue;
+        }
+
+        assigned_surf_product_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
+        assigned_surf_product_positions[product_index].set_reac_type(GridPosType::RANDOM);
+        used_vacant_tiles[rnd_num] = true;
+        found = true;
       }
       if (num_attempts >= SURFACE_DIFFUSION_RETRIES) {
         return RX_BLOCKED;
@@ -2230,6 +2250,36 @@ void DiffuseReactEvent::handle_rxn_callback(
   }
 }
 
+
+orientation_t DiffuseReactEvent::determine_orientation_depending_on_surf_comp(
+    const species_id_t prod_species_id, const Molecule* surf_reac) {
+  assert(surf_reac != nullptr);
+
+  // get compartment of the surface molecule
+  const Species& surf_species = world->get_all_species().get(surf_reac->species_id);
+  BNG::compartment_id_t surf_comp_id = surf_species.get_primary_compartment_id();
+  release_assert(surf_comp_id != BNG::COMPARTMENT_ID_NONE && "Invalid compartments used in rxn in form V(s!1).S(v!1) -> V(s) + S(v)");
+  const BNG::Compartment& surf_comp = world->bng_engine.get_data().get_compartment(surf_comp_id);
+
+  // get compartment of the product
+  const Species& prod_species = world->get_all_species().get(prod_species_id);
+  BNG::compartment_id_t prod_comp_id = prod_species.get_primary_compartment_id();
+  release_assert(prod_comp_id != BNG::COMPARTMENT_ID_NONE && "Invalid compartments used in rxn in form V(s!1).S(v!1) -> V(s) + S(v)");
+
+  // is the product's compartment a child or parent?
+  if (surf_comp.parent_compartment_id == prod_comp_id) {
+    return ORIENTATION_UP;
+  }
+  else if (surf_comp.children_compartments.count(prod_comp_id) != 0) {
+    return ORIENTATION_DOWN;
+  }
+  else {
+    release_assert(false && "Invalid compartments used in rxn in form V(s!1).S(v!1) -> V(s) + S(v)");
+    return ORIENTATION_NOT_SET;
+  }
+}
+
+
 // why is this called "random"? - check if reaction occurs is in test_bimolecular
 // ! might invalidate references
 // might return RX_BLOCKED
@@ -2345,13 +2395,13 @@ int DiffuseReactEvent::outcome_products_random(
     assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
     assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[1], reacB->species_id));
 
-    keep_reacB = rxn->is_cplx_reactant_on_both_sides_of_rxn(1);
+    keep_reacB = rxn->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(1);
   }
   else {
     surf_reac = reacA->is_surf() ? reacA : nullptr;
   }
   assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
-  keep_reacA = rxn->is_cplx_reactant_on_both_sides_of_rxn(0);
+  keep_reacA = rxn->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0);
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 
@@ -2386,7 +2436,6 @@ int DiffuseReactEvent::outcome_products_random(
   }
 
   // free up tiles that we are probably going to reuse
-  //bool one_of_reactants_is_surf = false;
   if (reacA->is_surf() && !keep_reacA) {
     p.get_wall(reacA->s.wall_index).grid.reset_molecule_tile(reacA->s.grid_tile_index);
     reacA->s.grid_tile_index = TILE_INDEX_INVALID;
@@ -2416,7 +2465,31 @@ int DiffuseReactEvent::outcome_products_random(
         product_orientations.push_back( (rng_uint(&world->rng) & 1) ? ORIENTATION_UP : ORIENTATION_DOWN);
       }
       else {
-        product_orientations.push_back(product.get_orientation());
+        orientation_t orient = product.get_orientation();
+
+        // set orientation relative to the durface comparmtment?
+        if (orient == ORIENTATION_DEPENDS_ON_SURF_COMP) {
+          orient = determine_orientation_depending_on_surf_comp(actual_products[product_index].product_species_id, surf_reac);
+        }
+        // flip orientation? e.g. such as for MCell3 rxn v' + s, -> s, + r, with reactants v + s'
+        else if (rxn->is_bimol() && rxn->is_surf_rxn()) {
+          // see if orientations of the surface reactants from rule are different from the reactants
+          int reacA_match = 1;
+          if (reacA->is_surf() && rxn->reactants[0].get_orientation() != ORIENTATION_NONE &&
+              reacA->s.orientation != rxn->reactants[0].get_orientation()) {
+            reacA_match = -1;
+          }
+          int reacB_match = 1;
+          if (reacB->is_surf() && rxn->reactants[1].get_orientation() != ORIENTATION_NONE &&
+              reacB->s.orientation != rxn->reactants[1].get_orientation()) {
+            reacB_match = -1;
+          }
+
+          // flip orientation as needed
+          orient = orient * reacA_match * reacB_match;
+        }
+
+        product_orientations.push_back(orient);
       }
     }
   }
@@ -2454,20 +2527,21 @@ int DiffuseReactEvent::outcome_products_random(
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
-    if (actual_prod_is_single_rxn_prod && rxn->is_cplx_product_on_both_sides_of_rxn(single_rxn_product_index)) {
+    if (actual_prod_is_single_rxn_prod && rxn->is_simple_cplx_product_on_both_sides_of_rxn_w_identical_compartments(single_rxn_product_index)) {
       uint reactant_index;
-      bool ok = rxn->get_assigned_simple_cplx_reactant_for_product(single_rxn_product_index, reactant_index);
+      bool ok = rxn->get_assigned_cplx_reactant_for_product(single_rxn_product_index, true, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
       Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
 
-      if (rxn->reactants[reactant_index].get_orientation() != product_orientation) {
-        // initiator volume molecule passes through wall?
+      // we are keeping the molecule, only the orientation changes?
+      if (rxn->reactants[reactant_index].get_orientation() != product_orientation ||
+          (reactant->is_surf() && reactant->s.orientation != product_orientation)) {
+        // initiator volume molecule passes through wall or was flipped?
         // any surf mol -> set new orient
 
         // if not swapped, reacA is the diffused molecule and matches the reactant with index 0
         // reacA  matches reactant with index 0, reacB matches reactant with index 1
-        Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
         assert(reactant != nullptr);
         assert(p.bng_engine.matches_ignore_orientation(rxn->products[single_rxn_product_index], reactant->species_id));
 
@@ -2532,7 +2606,7 @@ int DiffuseReactEvent::outcome_products_random(
       }
 
       // adding molecule might invalidate references of already existing molecules and also of species
-      Molecule& new_vm = p.add_volume_molecule(vm_initialization, 0);
+      Molecule& new_vm = p.add_volume_molecule(vm_initialization);
 
       // id used to schedule a diffusion action
       new_m_id = new_vm.id;
@@ -2708,7 +2782,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
 
     // and defunct this molecule if it was not kept
     assert(unimol_rx->reactants.size() == 1);
-    if (outcome_res != RX_BLOCKED && !unimol_rx->is_cplx_reactant_on_both_sides_of_rxn(0)) {
+    if (outcome_res != RX_BLOCKED && !unimol_rx->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0)) {
     #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
         m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);
@@ -2729,6 +2803,98 @@ bool DiffuseReactEvent::outcome_unimolecular(
 }
 
 
+// returns true if molecule survived
+bool DiffuseReactEvent::cross_transparent_wall(
+    Partition& p,
+    const Collision& collision,
+    Molecule& vm, // moves vm to the reflection point
+    Vec3& remaining_displacement,
+    float_t& t_steps,
+    float_t& elapsed_molecule_time,
+    wall_index_t& last_hit_wall_index
+) {
+#ifdef DEBUG_COUNTED_VOLUMES
+  vm.dump(p, "- Before crossing: ");
+#endif
+
+  const Wall& w = p.get_wall(collision.colliding_wall_index);
+
+#ifdef DEBUG_TRANSPARENT_SURFACES
+  std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
+#endif
+
+  // check if we are not crossing a compartment boundary
+  const GeometryObject& obj = p.get_geometry_object(w.object_index);
+  if (obj.represents_compartment()) {
+    molecule_id_t orig_vm_id = vm.id;
+
+    // get species, pretty inefficient, may need to be cached if this is a feature that is used often
+    BNG::Species new_species = p.get_all_species().get(vm.species_id);
+    new_species.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
+    new_species.finalize_species(world->bng_engine.get_config(), true);
+    species_id_t new_species_id = p.get_all_species().find_or_add(new_species, true);
+
+    // using the same computation of collision time as in collide_and_react_with_surf_mol
+    float_t collision_time = elapsed_molecule_time + t_steps * collision.time;
+
+    // we create a new molecule on the boundary, move it a tiny bit in the right direction
+    // TODO: not completely sure that the time calculation is correct, but assuming that we are just moving the molecule across
+    // the boundary
+    Molecule vm_initialization(
+        MOLECULE_ID_INVALID, new_species_id,
+        collision.pos + remaining_displacement * Vec3(EPS),
+        event_time + collision_time);
+    vm_initialization.v.previous_wall_index = w.index;
+    Molecule& new_vm = p.add_volume_molecule(vm_initialization);
+    new_vm.set_flag(MOLECULE_FLAG_VOL);
+    new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+
+    // schedule a diffusion action
+    new_vm.diffusion_time = new_vm.birthday;
+    if (before_this_iterations_end(new_vm.birthday)) {
+      new_diffuse_actions.push_back(DiffuseAction(new_vm.id));
+    }
+
+    // and destroy the previous one
+    Molecule& orig_vm_new_ref = p.get_m(orig_vm_id);
+    p.set_molecule_as_defunct(orig_vm_new_ref);
+
+#ifdef DEBUG_COUNTED_VOLUMES
+    vm_initialization.dump(p, "- After crossing: ");
+#endif
+    return false;
+  }
+  else {
+    // keep the current molecule and just move it
+
+    // Update molecule location to the point of wall crossing
+    vm.v.pos = collision.pos;
+    vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
+
+    const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
+    CollisionUtil::update_counted_volume_id_when_crossing_wall(
+        p, w, collision.get_orientation_against_wall(), vm);
+
+    // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
+    // same time step
+    float_t t_smash = collision.time;
+
+    remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
+    elapsed_molecule_time += t_steps * t_smash;
+
+    t_steps *= (1.0 - t_smash);
+    if (t_steps < EPS) {
+      t_steps = EPS;
+    }
+
+    last_hit_wall_index = w.index;
+#ifdef DEBUG_COUNTED_VOLUMES
+  vm.dump(p, "- After crossing: ");
+#endif
+
+    return true;
+  }
+}
 
 // ---------------------------------- dumping methods ----------------------------------
 

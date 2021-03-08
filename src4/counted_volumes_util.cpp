@@ -330,7 +330,7 @@ bool compute_containement_mapping(
             else {
               fmt = "Error while of counted object is not supported yet, error for %s and %s.";
             }
-            if (world == nullptr) {
+            if (world != nullptr) {
               mcell_warn(
                   fmt.c_str(),
                   counted_objects[obj1].get_geometry_object(world).name.c_str(),

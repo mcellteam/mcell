@@ -59,7 +59,7 @@ public:
         BNG::get_in_or_out_compartment_id(get_pattern()->compartment_name) != BNG::COMPARTMENT_ID_INVALID) {
       throw ValueError(
           S(NAME_CLASS_COUNT) + " or " + NAME_CLASS_COUNT_TERM + " must not use compartment class name " +
-          get_pattern()->compartment_name + ".");
+          get_pattern()->get_primary_compartment_name() + ".");
     }
   }
 

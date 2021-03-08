@@ -38,7 +38,14 @@ public:
       reactant_class_id(REACTANT_CLASS_ID_INVALID) {
   }
 
-  void finalize(const BNGConfig& config, const bool update_diffusion_constant = true) {
+  void finalize_species(const BNGConfig& config, const bool update_diffusion_constant = true) {
+    // species must not use IN/OUT, remove it automatically when defining species
+    for (auto& em: elem_mols) {
+      if (is_in_out_compartment_id(em.compartment_id)) {
+        em.compartment_id = COMPARTMENT_ID_NONE;
+      }
+    }
+
     canonicalize(); // sets name as well, calls also Cplx::finalize
     set_flag(SPECIES_FLAG_CAN_DIFFUSE, D != 0);
     if (is_reactive_surface()) {
@@ -62,7 +69,7 @@ public:
       rxn_flags_were_updated(false), num_instantiations(0), reactant_class_id(REACTANT_CLASS_ID_INVALID) {
 
     elem_mols = cplx_inst.elem_mols;
-    finalize(config, update_diffusion_constant);
+    finalize_species(config, update_diffusion_constant);
   }
 
   // we need explicit copy ctor to call CplxInstance's copy ctor
@@ -72,6 +79,11 @@ public:
       space_step(other.space_step), time_step(other.time_step),
       rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(other.num_instantiations),
       reactant_class_id(other.reactant_class_id) {
+  }
+
+  // used when these species are added as new to the species container
+  void reset_num_instantiations() {
+    num_instantiations = 0;
   }
 
   // TODO: maybe an assignment operator is needed, e.g. in the CplxInstance case, the copy ctor was not
@@ -92,8 +104,7 @@ public:
   }
 
   void update_rxn_and_custom_flags(
-      const SpeciesContainer& all_species, RxnContainer& all_rxns,
-      const BaseCustomFlagsAnalyzer* flags_analyzer = nullptr
+      const SpeciesContainer& all_species, RxnContainer& all_rxns
   );
 
   uint get_num_instantiations() const {
@@ -180,15 +191,6 @@ public:
 
   float_t get_space_step() const {
     return space_step;
-  }
-
-  bool needs_counted_volume() const {
-    return has_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME) ||
-        has_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
-  }
-
-  bool needs_compartment() const {
-      return has_flag(SPECIES_CPLX_MOL_FLAG_COMPARTMENT_USED_IN_RXNS);
   }
 
   bool has_unimol_rxn() const {

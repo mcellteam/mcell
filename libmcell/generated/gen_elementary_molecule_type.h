@@ -160,7 +160,7 @@ public:
   }
 
   // --- methods ---
-  virtual std::shared_ptr<ElementaryMolecule> inst(const std::vector<std::shared_ptr<Component>> components = std::vector<std::shared_ptr<Component>>()) = 0;
+  virtual std::shared_ptr<ElementaryMolecule> inst(const std::vector<std::shared_ptr<Component>> components = std::vector<std::shared_ptr<Component>>(), const std::string& compartment_name = STR_UNSET) = 0;
   virtual std::string to_bngl_str() const = 0;
 }; // GenElementaryMoleculeType
 

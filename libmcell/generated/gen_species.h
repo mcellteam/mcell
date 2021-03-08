@@ -26,7 +26,6 @@
 #include "api/api_common.h"
 #include "api/complex.h"
 
-#include "api/complex.h"
 
 namespace MCell {
 namespace API {
@@ -158,7 +157,7 @@ public:
   }
 
   // --- methods ---
-  virtual Complex inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = STR_UNSET) = 0;
+  virtual std::shared_ptr<Complex> inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = STR_UNSET) = 0;
 }; // GenSpecies
 
 class Species;

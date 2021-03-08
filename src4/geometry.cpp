@@ -37,8 +37,8 @@
 #include "datamodel_defines.h"
 
 #include "geometry_utils.h"
-#include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
-#include "collision_utils.inc"
+#include "geometry_utils.inl" // uses get_wall_bounding_box, maybe not include this file
+#include "collision_utils.inl"
 #include "dump_state.h"
 
 using namespace std;
@@ -500,6 +500,8 @@ void GeometryObject::to_data_model_as_model_object(
   const BNG::BNGData& bng_data = p.get_all_species().get_bng_data();
 
   if (represents_compartment()) {
+    model_object[KEY_IS_BNGL_COMPARTMENT] = true;
+
     const BNG::Compartment& comp3d = bng_data.get_compartment(vol_compartment_id);
     assert(comp3d.is_3d);
     if (comp3d.name != obj_name) {
@@ -527,6 +529,9 @@ void GeometryObject::to_data_model_as_model_object(
         model_object[KEY_PARENT_OBJECT] = comp_parent.name;
       }
     }
+  }
+  else {
+    model_object[KEY_IS_BNGL_COMPARTMENT] = false;
   }
 
   model_object[KEY_DYNAMIC] = false;
