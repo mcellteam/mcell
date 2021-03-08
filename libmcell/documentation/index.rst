@@ -3,20 +3,23 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-MCell 4 Python API documentation
-================================
+MCell4 Reference Manual
+=======================
 
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: Contents
    
-   generated/classes
+   generated/api
+
+This documentation contains complete MCell4 API definition and ... TODO 
+
+:ref:`generated/api:MCell 4 Python API documentation`
+
+..
+   Indices and tables
+   ==================
    
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-.. * :ref:`modindex`
-* :ref:`search`
+   * :ref:`genindex`
+   * :ref:`search`

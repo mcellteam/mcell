@@ -34,199 +34,8 @@ from pyexpat import model
 
 VERBOSE = False # may be overridden by argument -v 
 
-# order is not important
-ALL_INPUT_FILES = [
-    'constants.yaml',
-    'subsystem.yaml', 
-    'geometry.yaml',
-    'instantiation.yaml',
-    'observables.yaml',
-    'simulation_setup.yaml',
-    'callbacks.yaml',
-    'model.yaml',
-    'introspection.yaml',
-    'checkpointing.yaml',
-    'submodules.yaml',
-]
-
-
-COPYRIGHT = \
-"""/******************************************************************************
- *
- * Copyright (C) 2020 by
- * The Salk Institute for Biological Studies
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
- *
-******************************************************************************/\n
-"""
-
-TARGET_DIRECTORY = '..' + '/' + 'generated'
-DOC_DIRECTORY = '..'  + '/' + 'documentation'  + '/' + 'generated'
-API_DIRECTORY = 'api'
-WORK_DIRECTORY = '..'  + '/' + 'work'
-
-KEY_ITEMS = 'items'
-KEY_NAME = 'name'
-ATTR_NAME_NAME = 'name' # attrribute with name 'name' is already defined in BaseDataClass
-KEY_TYPE = 'type'
-KEY_VALUE = 'value'
-KEY_VALUES = 'values'
-KEY_DEFAULT = 'default'
-KEY_DOC = 'doc'
-
-KEY_SUPERCLASS = 'superclass'
-KEY_SUPERCLASSES = 'superclasses'
-
-KEY_CONSTANTS = 'constants'
-KEY_ENUMS = 'enums'
-
-KEY_METHODS = 'methods'
-KEY_PARAMS = 'params'
-KEY_RETURN_TYPE = 'return_type'
-KEY_IS_CONST = 'is_const'
-
-KEY_INHERITED = 'inherited' # used only internally, not in input YAML
-KEY_NOT_AS_CTOR_ARG = 'not_as_ctor_arg'
-
-VALUE_CLASS = 'class'
-VALUE_SUBMODULE = 'submodule'
-
-YAML_TYPE_PY_OBJECT = 'py::object'
-YAML_TYPE_FLOAT = 'float'
-YAML_TYPE_STR = 'str'
-YAML_TYPE_INT = 'int'
-YAML_TYPE_UINT64 = 'uint64'
-YAML_TYPE_BOOL = 'bool'
-YAML_TYPE_VEC2 = 'Vec2'
-YAML_TYPE_VEC3 = 'Vec3'
-YAML_TYPE_IVEC3 = 'IVec3'
-YAML_TYPE_LIST = 'List'
-YAML_TYPE_DICT = 'Dict'
-YAML_TYPE_SPECIES = 'Species'
-YAML_TYPE_ORIENTATION = 'Orientation'
-YAML_TYPE_FUNCTION = 'std::function'
-
-PYBIND_TYPE_OBJECT = 'object'
-PY_CAST = 'py::cast'
-
-CPP_TYPE_FLOAT = 'float_t'
-CPP_TYPE_STR = 'std::string'
-CPP_TYPE_INT = 'int'
-CPP_TYPE_UINT64 = 'uint64_t'
-CPP_TYPE_BOOL = 'bool'
-CPP_TYPE_VEC2 = 'Vec2'
-CPP_TYPE_VEC3 = 'Vec3'
-CPP_TYPE_IVEC3 = 'IVec3'
-CPP_VECTOR_TYPE = 'std::vector'
-CPP_MAP_TYPE = 'std::map'
-
-CPP_NONREFERENCE_TYPES = [CPP_TYPE_FLOAT, CPP_TYPE_INT, CPP_TYPE_UINT64, CPP_TYPE_BOOL] # + CPP_VECTOR_TYPE but it must be checked with .startswith
-CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3, CPP_TYPE_IVEC3, CPP_VECTOR_TYPE]
-
-UNSET_VALUE = 'unset'
-EMPTY_ARRAY = 'empty'
-
-UNSET_VALUE_FLOAT = 'FLT_UNSET'
-UNSET_VALUE_STR = 'STR_UNSET'
-UNSET_VALUE_INT = 'INT_UNSET'
-UNSET_VALUE_UINT64 = '0' # default value, not unset
-UNSET_VALUE_VEC2 = 'VEC2_UNSET'
-UNSET_VALUE_VEC3 = 'VEC3_UNSET'
-UNSET_VALUE_ORIENTATION = 'Orientation::NOT_SET'
-UNSET_VALUE_PTR = 'nullptr'
-
-PY_NONE = 'None'
-
-GEN_PREFIX = 'gen_'
-GEN_GUARD_PREFIX = 'API_GEN_'
-API_GUARD_PREFIX = 'API_'
-GUARD_SUFFIX = '_H'
-CTOR_SUFFIX = '_CTOR'
-CTOR_NOARGS_SUFFIX = '_CTOR_NOARGS'
-EXT_CPP = 'cpp'
-EXT_H = 'h'
-
-GEN_CLASS_PREFIX = 'Gen'
-BASE_DATA_CLASS = 'BaseDataClass'
-BASE_INTROSPECTION_CLASS = 'BaseIntrospectionClass'
-BASE_EXPORT_CLASS = 'BaseExportClass'
-CLASS_NAME_MODEL = 'Model'
-CLASS_NAME_SUBSYSTEM = 'Subsystem'
-CLASS_NAME_INSTANTIATION = 'Instantiation'
-CLASS_NAME_OBSERVABLES = 'Observables'
-
-CTOR_POSTPROCESS = 'postprocess_in_ctor'
-RET_CTOR_POSTPROCESS = 'void' 
-
-RET_TYPE_CHECK_SEMANTICS = 'void'
-CHECK_SEMANTICS = 'check_semantics'
-DECL_CHECK_SEMANTICS = CHECK_SEMANTICS + '() const'
-DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
-DECL_DEFINE_PYBINDIND_ENUMS = 'void define_pybinding_enums(py::module& m)'
-DECL_SET_INITIALIZED = 'set_initialized()'
-
-RET_TYPE_SET_ALL_DEFAULT_OR_UNSET = 'void'
-SET_ALL_DEFAULT_OR_UNSET_DECL = 'set_all_attributes_as_default_or_unset()'
-
-RET_TYPE_TO_STR = 'std::string'
-SHARED_PTR = 'std::shared_ptr'
-DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
-DECL_TO_STR = 'to_str(const std::string ind) const'
-
-RET_TYPE_EXPORT_TO_PYTHON = 'std::string' 
-
-CTX = 'ctx'
-EXPORTED_NAME = 'exported_name'
-EXPORT_TO_PYTHON_ARGS = 'std::ostream& out, PythonExportContext& ' + CTX
-DECL_EXPORT_TO_PYTHON = 'export_to_python(' + EXPORT_TO_PYTHON_ARGS + ')'
-EXPORT_VEC_PREFIX = 'export_vec_'
-M_DOT = 'm.'
-
-KEYWORD_OVERRIDE = 'override'
-KEYWORD_VIRTUAL = 'virtual'
-  
-CLASS_NAME_ATTR = 'class_name'
-CACHED_DATA_ARE_UPTODATE_ATTR = 'cached_data_are_uptodate'
-
-GEN_CONSTANTS_H = 'gen_constants.h'
-GEN_CONSTANTS_CPP = 'gen_constants.cpp'
-
-MCELL_PYI = 'mcell.pyi'
-CLASSES_RST = 'classes.rst'
-
-GEN_NAMES_H = 'gen_names.h'
-NAME_PREFIX = 'NAME_'
-CLASS_PREFIX = 'CLASS_'
-ENUM_PREFIX = 'ENUM_'
-ENUM_VALUE_PREFIX = 'EV_'
-CONSTANT_VALUE_PREFIX = 'CV_'
-
-INCLUDE_API_MCELL_H = '#include "api/mcell.h"'
-INCLUDE_API_COMMON_H = '#include "api/api_common.h"'
-INCLUDE_API_PYTHON_EXPORT_UTILS_H = '#include "api/python_export_utils.h"'
-INCLUDE_API_BASE_DATA_CLASS_H = '#include "api/base_data_class.h"'
-INCLUDE_API_BASE_EXPORT_CLASS_H = '#include "api/base_export_class.h"'
-INCLUDE_API_BASE_INTROSPECTION_CLASS_H = '#include "api/base_introspection_class.h"'
-NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
-NAMESPACES_END = '} // namespace API\n} // namespace MCell'
-
-VEC_NONPTR_TO_STR = 'vec_nonptr_to_str'
-VEC_PTR_TO_STR = 'vec_ptr_to_str'
-F_TO_STR = 'f_to_str'
+from constants import *
+import doc
 
 # --- some global data ---
 g_enums = set()
@@ -2091,107 +1900,6 @@ def indent_and_fix_rst_chars(text, indent_and_fix_rst_chars):
     return text.replace('\n', '\n' + indent_and_fix_rst_chars).replace('*', '\\*')
             
 
-def generate_class_documentation(f, class_name, class_def):
-    f.write(class_name + '\n' + '='*len(class_name) + '\n\n')
-    
-    if KEY_DOC in class_def:
-        f.write(class_def[KEY_DOC].strip() + '\n\n')
-        
-    if KEY_ITEMS in class_def and class_def[KEY_ITEMS]:
-        f.write('Attributes:\n' + '*'*len('Attributes:') + '\n')
-        num_items = len(class_def[KEY_ITEMS])
-        for item in class_def[KEY_ITEMS]:
-            t = yaml_type_to_py_type(item[KEY_TYPE])
-            f.write('* | **' + item[KEY_NAME] + '**: ' + t)
-            
-            if KEY_DEFAULT in item:
-                f.write(' = ' + get_default_or_unset_value_py(item))
-            f.write('\n')
-            
-            if KEY_DOC in item:
-                f.write('  | ' + indent_and_fix_rst_chars(item[KEY_DOC].strip(), '  | ') + '\n')
-            f.write('\n')
-        
-    if KEY_METHODS in class_def and class_def[KEY_METHODS]:
-        f.write('\nMethods:\n' + '*'*len('nMethods:') + '\n')
-        for method in class_def[KEY_METHODS]:
-            method_name = method[KEY_NAME]
-            
-            f.write('* | **' + method[KEY_NAME] + '**\n\n')
-
-            if KEY_PARAMS in method:
-                num_params = len(method[KEY_PARAMS])
-                for param in method[KEY_PARAMS]:
-                    t = yaml_type_to_py_type(param[KEY_TYPE])
-                    f.write('   * | ' + param[KEY_NAME] + ': ' + t)
-                    if KEY_DEFAULT in param:
-                        f.write(' = ' + get_default_or_unset_value_py(param))
-                    if KEY_DOC in param:
-                        f.write('\n     | ' + indent_and_fix_rst_chars(param[KEY_DOC].strip(), '     | ') + '\n\n')
-                    else:
-                        f.write('\n')
-
-            if KEY_RETURN_TYPE in method:
-                f.write('   * | return type: ' + yaml_type_to_py_type(method[KEY_RETURN_TYPE]) + '\n\n')
-            
-            if KEY_DOC in method:
-                f.write('\n  | ' + indent_and_fix_rst_chars(method[KEY_DOC].strip(), '  | ') + '\n\n')
-                
-
-
-            f.write('\n')
-        f.write('\n')
-    
-        
-def generate_documentation(data_classes):
-    with open(os.path.join(DOC_DIRECTORY, CLASSES_RST), 'w') as f:
-
-        f.write(
-            '**************************************\n'
-            'MCell 4 Python API Enums and Constants\n'
-            '**************************************\n\n'
-        )
-
-        # generate enums first, then constants
-        enums = data_classes[KEY_ENUMS]
-        for enum in enums:
-            enum_name = enum[KEY_NAME]
-            f.write(enum_name + '\n' + '='*len(enum_name) + '\n\n')
-            
-            if KEY_DOC in enum:
-                f.write('\n  | ' + indent_and_fix_rst_chars(enum[KEY_DOC].strip(), '  | ') + '\n\n')            
-                
-            for value in enum[KEY_VALUES]:
-                f.write('* | **' + value[KEY_NAME] + '** = ' + str(value[KEY_VALUE]) + '\n')
-                if KEY_DOC in value:
-                    f.write('  | ' + indent_and_fix_rst_chars(value[KEY_DOC].strip(), '  | ') + '\n\n')                
-            f.write('\n')
-        f.write('\n\n')
-        
-        c = 'Constants'
-        f.write(c + '\n' + '='*len(c) + '\n\n')
-        constants = data_classes[KEY_CONSTANTS]
-        for const in constants:
-            const_name = const[KEY_NAME]
-            
-            f.write('* | **' + const_name + '**: ' + yaml_type_to_py_type(const[KEY_TYPE]) + \
-                    ' = ' + str(const[KEY_VALUE]) +'\n')
-            if KEY_DOC in const:
-                f.write('  | ' + indent_and_fix_rst_chars(const[KEY_DOC].strip(), '  | ') + '\n\n')              
-        f.write('\n\n')
-        
-        f.write(
-            '**************************\n'
-            'MCell 4 Python API Classes\n'
-            '**************************\n\n'
-        )
-                    
-        for key, value in sorted(data_classes.items()):
-            if key != KEY_CONSTANTS and key != KEY_ENUMS:
-                generate_class_documentation(f, key, value)
-
-
-        
 def load_and_generate_data_classes():
     # create work directory
     work_dir = os.path.join('..', 'work')
@@ -2200,12 +1908,18 @@ def load_and_generate_data_classes():
     
     data_classes = {}
     
-    for input_file in ALL_INPUT_FILES:
+    for cat in CATEGORIES:
+        input_file = cat + '.yaml'
         with open(input_file) as file:
             # The FullLoader parameter handles the conversion from YAML
             # scalar values to Python the dictionary format
             loaded_data = yaml.load(file, Loader=yaml.FullLoader)
             if loaded_data:
+                # set information about the original file name
+                for key,value in loaded_data.items():
+                    if key != KEY_CONSTANTS and key != KEY_ENUMS:
+                        value[KEY_CATEGORY] = cat
+                 
                 data_classes.update(loaded_data)
             else:
                 print("File " + input_file + " is empty (or could not be loaded as yaml), ignoring it")
@@ -2218,7 +1932,7 @@ def load_and_generate_data_classes():
     generate_data_classes(data_classes)
     generate_names_header(data_classes)
     generate_pyi_file(data_classes)
-    generate_documentation(data_classes)
+    doc.generate_documentation(data_classes)
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == '-v':
