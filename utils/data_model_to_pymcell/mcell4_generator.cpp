@@ -914,10 +914,9 @@ void MCell4Generator::generate_config(ostream& out) {
   out << make_section_comment("configuration");
 
   // using values from generated parameters.py
-  string params_module = get_module_name(PARAMETERS);
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, params_module + "." + PARAM_TIME_STEP);
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, params_module + "." + PARAM_SEED);
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS, params_module + "." + PARAM_ITERATIONS);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, PARAM_TIME_STEP);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, PARAM_SEED);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS, PARAM_ITERATIONS);
   out << "\n";
   gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT, true);
   out << "\n";
@@ -979,17 +978,17 @@ void MCell4Generator::generate_config(ostream& out) {
 
   string radius = initialization[KEY_INTERACTION_RADIUS].asString();
   if (radius != "") {
-    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, stod(radius));
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, radius);
   }
 
   string surf_grid_density = initialization[KEY_SURFACE_GRID_DENSITY].asString();
   if (surf_grid_density != "" && surf_grid_density != "10000") {
-    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, stod(surf_grid_density));
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, surf_grid_density);
   }
 
   string vacancy_search_distance = initialization[KEY_VACANCY_SEARCH_DISTANCE].asString();
   if (vacancy_search_distance != "" && vacancy_search_distance != "10") {
-    gen_assign(out, MODEL, NAME_CONFIG, NAME_VACANCY_SEARCH_DISTANCE, stod(vacancy_search_distance));
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_VACANCY_SEARCH_DISTANCE, vacancy_search_distance);
   }
 }
 
@@ -1016,7 +1015,6 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   out << "\n";
   out << IMPORT_MCELL_AS_M;
 
-  string parameters_module = get_module_name(PARAMETERS);
   string customization_module = CUSTOMIZATION;
   string shared_module = SHARED;
 
@@ -1033,19 +1031,19 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   }
 
   out << "# process command-line arguments\n";
-  out << get_argparse_w_customization_begin(parameters_module, customization_module);
+  out << get_argparse_w_customization_begin(customization_module);
   if (data.testing_mode) {
-    out << get_argparse_checkpoint_iteration(parameters_module);
+    out << get_argparse_checkpoint_iteration();
   }
 
   out << get_argparse_w_customization_end();
   out << "\n";
 
-  out <<
-      S("\n# the module parameters uses ") + SHARED + "." + PARAMETER_OVERRIDES + " to override parameter values\n" <<
-      IMPORT << " " << parameters_module << "\n\n";
+  out << S("\n# the module parameters uses ") + SHARED + "." + PARAMETER_OVERRIDES + " to override parameter values\n";
+  out << make_import(PARAMETERS);
+  out << "\n\n";
 
-  out << get_resume_from_checkpoint_code(parameters_module);
+  out << get_resume_from_checkpoint_code();
 
 
   out << "\n" << make_section_comment("model creation and simulation");
@@ -1103,19 +1101,19 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
     out << "\n";
   }
 
-  out << IND4 << "if " << parameters_module << "." << PARAM_DUMP << ":\n";
+  out << IND4 << "if " << PARAM_DUMP << ":\n";
   out << IND8;
   gen_method_call(out, MODEL, NAME_DUMP_INTERNAL_STATE);
   out << "\n";
 
   // method export_data_model uses target directory from viz_outputs
-  out << IND4 << "if " << parameters_module << "." << PARAM_EXPORT_DATA_MODEL << " and " << MODEL << "." << NAME_VIZ_OUTPUTS << ":\n";
+  out << IND4 << "if " << PARAM_EXPORT_DATA_MODEL << " and " << MODEL << "." << NAME_VIZ_OUTPUTS << ":\n";
   out << IND8;
   gen_method_call(out, MODEL, NAME_EXPORT_DATA_MODEL);
   out << "\n";
 
   out << IND4;
-  gen_method_call(out, MODEL, NAME_RUN_ITERATIONS, parameters_module + "." + PARAM_ITERATIONS);
+  gen_method_call(out, MODEL, NAME_RUN_ITERATIONS, PARAM_ITERATIONS);
   out << IND4;
   gen_method_call(out, MODEL, NAME_END_SIMULATION);
 }
