@@ -1155,7 +1155,12 @@ void PythonGenerator::generate_viz_outputs(
         << "This is probably caused by conversion from MDL where the number of simulated iterations "
         << "lower than the actual periodicity. It is not possible to determine the periodicity in this case.\n";
   }
-  gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
+  if (!viz_output[KEY_ALL_ITERATIONS].asBool()) {
+    gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
+  }
+  else {
+    gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, "1", false);
+  }
 
   // ignoring KEY_END
   out << CTOR_END;
