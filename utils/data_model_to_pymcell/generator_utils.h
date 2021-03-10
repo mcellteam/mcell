@@ -162,7 +162,10 @@ static void check_versions(
 
 
 static void check_version(const string node_name, Json::Value& node, const char* const version) {
-  if (node[KEY_DATA_MODEL_VERSION].asString() != version) {
+  if (!node.isMember(KEY_DATA_MODEL_VERSION) || node[KEY_DATA_MODEL_VERSION].asString() == "") {
+    cout << "Warning: data model node " + node_name + " does not have its version specified, not checking the version.\n";
+  }
+  else if (node[KEY_DATA_MODEL_VERSION].asString() != version) {
     throw ConversionError(
         "Error: version for " + node_name + " is " + node[KEY_DATA_MODEL_VERSION].asString() +
         ", expected " + version + ".");
