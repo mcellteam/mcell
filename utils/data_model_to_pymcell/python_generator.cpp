@@ -298,7 +298,7 @@ std::string PythonGenerator::generate_component_type(
       bngl_component_item.isMember(KEY_CSTATES) &&
       !bngl_component_item[KEY_CSTATES].empty();
 
-  string name = mol_type_name + '_' + make_id(cname);
+  string name = COMPONENT_PREFIX + mol_type_name + '_' + make_id(cname);
 
   // generate only once
   // TODO: do we need to check here that all the declarations are the same?
@@ -334,8 +334,11 @@ std::string PythonGenerator::generate_single_species_or_mol_type(
   string name = make_id(orig_name);
 
   const char* type = (generate_species) ? NAME_CLASS_SPECIES : NAME_CLASS_ELEMENTARY_MOLECULE_TYPE;
+
   data.check_if_already_defined_and_add(name, type);
-  gen_ctor_call(out, name, type);
+
+  string python_name = (generate_species) ? name : ELEMENTARY_MOLECULE_TYPE_PREFIX + name;
+  gen_ctor_call(out, python_name, type);
 
   string name_to_generate = orig_name;
   if (API::is_simple_species(orig_name)) {
@@ -377,7 +380,7 @@ std::string PythonGenerator::generate_single_species_or_mol_type(
 
   out << CTOR_END;
 
-  return name;
+  return python_name;
 }
 
 

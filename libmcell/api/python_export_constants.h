@@ -57,6 +57,8 @@ const char* const VAR_BNGL_PARAMS = "bngl_params";
 
 const char* const VEC3 = "Vec3";
 
+const char* const COMPONENT_PREFIX = "comp_";
+const char* const ELEMENTARY_MOLECULE_TYPE_PREFIX = "emt_";
 const char* const COUNT_PREFIX = "count_";
 const char* const COUNT_TERM_PREFIX = "cterm_";
 const char* const UNNAMED_REACTION_RULE_PREFIX = "unnamed_reaction_rule_";
