@@ -1004,12 +1004,31 @@ static bool convert_graph_component_to_product_cplx_inst(
 
 
 // product compartment may be set only partially in the rxn rule, this sets them accordingly
-static void set_product_compartments(Species* product_species) {
+void RxnRule::set_product_compartments(Species* product_species, std::set<uint>& product_indices) const {
   // first we need to sef surf/vol flags
   product_species->finalize_cplx();
 
-  compartment_id_t primary_compartment_id = product_species->get_primary_compartment_id();
   bool is_surf = product_species->is_surf();
+
+  if (!is_surf) {
+    // we might need to fix volume compartment, e.g. from s(c!1)@PM.c(s!1,c!2)@EC.c(s,c!2)@EC -> s(c)@PM + c(s)@CP
+    // we get product c(s!1,c!2)@CP.c(s,c!2)@EC, we use the specific compartment in CP to set the compartment of all
+    // elem mols
+
+    // get compartment of the product if set
+    compartment_id_t vol_prod_comp_id = COMPARTMENT_ID_NONE;
+    for (uint i: product_indices) {
+      compartment_id_t curr_prod_comp_id = products[i].get_primary_compartment_id();
+      release_assert(vol_prod_comp_id == COMPARTMENT_ID_NONE || vol_prod_comp_id == curr_prod_comp_id);
+      vol_prod_comp_id = curr_prod_comp_id;
+    }
+
+    if (is_specific_compartment_id(vol_prod_comp_id)) {
+      product_species->set_compartment_id(vol_prod_comp_id);
+    }
+  }
+
+  compartment_id_t primary_compartment_id = product_species->get_primary_compartment_id();
 
   // we will be setting compartments only when the primary compartment is set, otherwise the
   // compartment is set when a molecule is added to a partition
@@ -1045,11 +1064,11 @@ static void set_product_compartments(Species* product_species) {
 }
 
 
-static void create_products_from_reactants_graph(
+void RxnRule::create_products_from_reactants_graph(
     const BNGData* bng_data,
     Graph& reactants_graph,
     ProductCplxWIndicesVector& created_products
-) {
+) const {
   created_products.clear();
   created_products.reserve(2);
 
@@ -1068,7 +1087,7 @@ static void create_products_from_reactants_graph(
     Species* product_species = new Species(*bng_data);
 
     // some reactants may have been removed,
-    // also, products still may be connected even though thet are disconnected on the right-hand side of the
+    // also, products still may be connected even though that are disconnected on the right-hand side of the
     // rule - e.g. when rule
     // A(b!1).B(a!1) -> A(b) + B(a)
     // is applied on
@@ -1081,7 +1100,8 @@ static void create_products_from_reactants_graph(
     if (is_rxn_product) {
       release_assert(!product_indices.empty());
 
-      set_product_compartments(product_species);
+      // to which rxn product this product corresponds?
+      set_product_compartments(product_species, product_indices);
 
       // remember product with its indices
       created_products.push_back(ProductSpeciesPtrWIndices(product_species, product_indices));

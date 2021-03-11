@@ -186,7 +186,7 @@ public:
       {
   }
 
-  // after finalize one should call
+  // after finalize one should must
   // check_compartments_and_set_orientations (from rxn_compartment_utils)
   // to check that compartments are valid with respect to volume and surface molecules
   // and to set orientations from compartments
@@ -484,6 +484,14 @@ public:
   void dump(const bool for_diff = false, const std::string ind = "", std::ostream& out = std::cout) const;
 
 private:
+
+  void set_product_compartments(Species* product_species, std::set<uint>& product_indices) const;
+  void create_products_from_reactants_graph(
+      const BNGData* bng_data,
+      Graph& reactants_graph,
+      ProductCplxWIndicesVector& created_products
+  ) const;
+
   // BNGL style reaction handling is implemented in this method
   void create_products_for_complex_rxn(
       SpeciesContainer& all_species,

@@ -20,7 +20,7 @@ class RxnRule;
 //   orientation of surface molecules, the assumption is that all surface molecules are oriented
 //   outwards (up) all the time
 // - returns nonempty string if there was and error
-std::string check_compartments_and_set_orientations(const BNGData& bng_data, RxnRule& r);
+std::string process_compartments_and_set_orientations(const BNGData& bng_data, RxnRule& r);
 
 }
 

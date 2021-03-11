@@ -337,10 +337,38 @@ static std::string set_products_orientations_that_may_depend_on_reactant_compart
 }
 
 
+static void remove_primary_surf_compartment_from_vol_reactant_elem_mols(const BNGData& bng_data, RxnRule& r) {
+  // example input: s(c!1)@PM.c(s!1)@PM -> s(c)@PM + c(s)@CP
+  // output: s(c!1)@PM.c(s!1) -> s(c)@PM + c(s)@CP
+
+  if (!r.is_surf_rxn()) {
+    return;
+  }
+
+  for (Cplx& c: r.reactants) {
+    if (c.is_surf()) {
+      compartment_id_t primary_surf_comp_id = c.get_primary_compartment_id();
+      if (is_specific_compartment_id(primary_surf_comp_id)) {
+        for (ElemMol& em: c.elem_mols) {
+          if (em.is_vol() && em.compartment_id == primary_surf_comp_id) {
+            em.compartment_id = COMPARTMENT_ID_NONE;
+          }
+        }
+      }
+    }
+  }
+}
+
+
 // returns empty string if there was no error, otherwise the returned string specifies
 // error message
-std::string check_compartments_and_set_orientations(const BNGData& bng_data, RxnRule& r) {
+std::string process_compartments_and_set_orientations(const BNGData& bng_data, RxnRule& r) {
   assert(r.is_finalized() && "Types of substances (vol,surf,...) are not set without finalization.");
+
+  // as a first step for surface reactions, we must remove surface compartment from
+  // elementary molecules of volume reactant, e.g. in this case @PM:s(c!1).c(s!1) -> s(c)@PM + c(s)@mem 50000,
+  // the pattern should be s(c!1)@PM.c(s!1)
+  remove_primary_surf_compartment_from_vol_reactant_elem_mols(bng_data, r);
 
   compartment_id_t surf_comp_id;
   bool reactants_use_in_out_compartments;
