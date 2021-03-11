@@ -242,6 +242,16 @@ void ElemMol::insert_missing_components_as_any_state_pattern(const BNGData& bng_
 }
 
 
+bool ElemMol::has_bond() const {
+  for (const auto& comp: components) {
+    if (comp.bond_has_numeric_value()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 std::string ElemMol::to_str(const BNGData& bng_data) const {
   std::string res;
   to_str(bng_data, res);

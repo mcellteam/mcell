@@ -366,14 +366,56 @@ static int get_component_instance_matching_score(
 }
 
 
-static int get_mol_instance_matching_score(const ElemMol& pat, const ElemMol& prod) {
+bool are_replaceable_elem_mols(const BNGData& bng_data, const ElemMol& em1, const ElemMol& em2) {
+  // special case where we can replace e.g. A_vol(x, y) with A_surf(x, y) in rxn
+  // B.A_vol -> B.A_surf
+  // both molecules must be connected
+  // TODO: must be connected to the same molecules
 
-  // elementary molecule type must be the same
-  if (pat.elem_mol_type_id != prod.elem_mol_type_id) {
+  if (!em1.has_bond() || !em2.has_bond()) {
+    return false;
+  }
+
+  // components must have the same names and states
+  const ElemMolType& emt1 = bng_data.get_elem_mol_type(em1.elem_mol_type_id);
+  const ElemMolType& emt2 = bng_data.get_elem_mol_type(em2.elem_mol_type_id);
+
+  if (emt1.component_type_ids.size() != emt2.component_type_ids.size()) {
+    return false;
+  }
+
+  // same names, in the same order, and the components have the same states
+  for (size_t i = 0; i < emt1.component_type_ids.size(); i++) {
+    const ComponentType& ct1 = bng_data.get_component_type(emt1.component_type_ids[i]);
+    const ComponentType& ct2 = bng_data.get_component_type(emt2.component_type_ids[i]);
+
+    if (ct1.name != ct2.name) {
+      return false;
+    }
+
+    if (ct1.allowed_state_ids != ct2.allowed_state_ids) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+static int get_mol_instance_matching_score(const BNGData& bng_data, const ElemMol& pat, const ElemMol& prod) {
+
+  // elementary molecule type must be the same or must be replaceable
+  if (pat.elem_mol_type_id != prod.elem_mol_type_id &&
+      !are_replaceable_elem_mols(bng_data, pat, prod)) {
     return -1;
   }
 
   int res = 0;
+
+  // lot of points if the elem mol type is the same
+  if (pat.elem_mol_type_id == prod.elem_mol_type_id) {
+    res += 10;
+  }
 
   // add a lot of points if we have the same number of components
   if (pat.components.size() == prod.components.size()) {
@@ -454,7 +496,8 @@ static void select_best_mapping(
 }
 
 
-static void find_best_product_to_pattern_mapping(
+void find_best_product_to_pattern_mapping(
+    const BNGData& bng_data,
     Graph& products_graph,
     Graph& patterns_graph,
     VertexMapping& prod_reac_mapping
@@ -476,7 +519,7 @@ static void find_best_product_to_pattern_mapping(
       MolCompInfo& prod = product_mols[i];
       // TODO: deal also with bonds, when a molecule instance is connected to
       // certain molecules and the product as well, this should give it higher score
-      pat.matching_score[i] = get_mol_instance_matching_score(*pat.get_mi(), *prod.get_mi());
+      pat.matching_score[i] = get_mol_instance_matching_score(bng_data, *pat.get_mi(), *prod.get_mi());
     }
   }
 
@@ -1555,6 +1598,7 @@ void RxnRule::compute_reactants_products_mapping() {
   // so the complexity can be handled in reasonable time because there won't be usually may identical
   // molecules
   find_best_product_to_pattern_mapping(
+      *bng_data,
       products_graph,
       patterns_graph,
       products_to_patterns_mapping
@@ -1696,7 +1740,7 @@ bool RxnRule::check_components_states(
   return ok;
 }
 
-// called from semantic analyzer
+// called from semantic analyzer when rule is analyzed
 bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
   assert(is_finalized());
 
@@ -1716,12 +1760,21 @@ bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
     assert(prod_node.is_mol);
     const ElemMol& pat_mi = *pat_node.mol;
 
-    // check that this molecule uses the same components in both directions
-    // the components are ordered according to the definition in MolType
-    ok = ok && check_components_mapping(pat_mi, prod_mi, "created in reaction rule", out);
-    ok = ok && check_components_mapping(prod_mi, pat_mi, "used as pattern in reaction rule", out);
+    // allow special case for A_vol -> A_surf
+    // TODO: maybe will need to be more strict
+    if (pat_mi.elem_mol_type_id != prod_mi.elem_mol_type_id &&
+        are_replaceable_elem_mols(*bng_data, pat_mi, prod_mi)) {
+      // ok
+      continue;
+    }
+    else {
+      // check that this molecule uses the same components in both directions
+      // the components are ordered according to the definition in MolType
+      ok = ok && check_components_mapping(pat_mi, prod_mi, "created in reaction rule", out);
+      ok = ok && check_components_mapping(prod_mi, pat_mi, "used as pattern in reaction rule", out);
 
-    ok = ok && check_components_states(prod_mi, pat_mi, out);
+      ok = ok && check_components_states(prod_mi, pat_mi, out);
+    }
   }
 
   return ok;

@@ -109,6 +109,8 @@ public:
 
   void insert_missing_components_as_any_state_pattern(const BNGData& bng_data);
 
+  bool has_bond() const;
+
   // returns true if this object as a pattern matches second instance,
   // order is important for compartment matching
   bool matches_simple_pattern(const ElemMol& inst) const {

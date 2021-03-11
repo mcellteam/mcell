@@ -990,33 +990,6 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
   }
 }
 
-/*
-string SemanticAnalyzer::get_compartment_name(const ASTCplxNode* cplx) {
-  string res = "";
-
-  if (cplx->compartment != nullptr) {
-    res = cplx->compartment->str;
-  }
-
-  // check also each molecule
-  for (size_t i = 0; i < cplx->size(); i++) {
-    const ASTMolNode* mol_node = cplx->mols[i];
-
-    if (mol_node->compartment != nullptr) {
-      string new_name = mol_node->compartment->str;
-      if (res != "" && new_name != res) {
-        errs_loc(mol_node) <<
-            "Compartment mismatch, complex cannot be in two different compartments '" <<
-            res << "' and '" << new_name << "'.\n"; // test N0307
-        ctx->inc_error_count();
-        return "";
-      }
-      res = new_name;
-    }
-  }
-  return res;
-}
-*/
 
 void SemanticAnalyzer::convert_seed_species() {
   for (const ASTBaseNode* n: ctx->seed_species.items) {
