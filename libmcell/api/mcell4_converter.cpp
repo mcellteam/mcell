@@ -672,7 +672,7 @@ void MCell4Converter::convert_rxns() {
       rxn.reactants[1].set_orientation(ORIENTATION_NONE);
     }
 
-    string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn);
+    string error_msg = BNG::process_compartments_and_set_orientations(bng_data, rxn);
     if (error_msg != "") {
       throw ValueError(error_msg);
     }
@@ -699,7 +699,7 @@ void MCell4Converter::convert_rxns() {
       }
 
       rxn_rev.finalize();
-      string error_msg = BNG::check_compartments_and_set_orientations(bng_data, rxn_rev);
+      string error_msg = BNG::process_compartments_and_set_orientations(bng_data, rxn_rev);
       if (error_msg != "") {
         throw ValueError(error_msg);
       }
@@ -1288,23 +1288,6 @@ void MCell4Converter::convert_release_events() {
     // schedule it
     rel_event->update_event_time_for_next_scheduled_time();
     world->scheduler.schedule_event(rel_event);
-  }
-}
-
-
-static void append_subtracted_volume_compartments(
-    MCell::MolOrRxnCountTerm top_count_term,
-    const GeometryObjectSet& child_compartments,
-    MolOrRxnCountTermVector& terms
-) {
-  assert(top_count_term.type == MCell::CountType::EnclosedInVolumeRegion);
-
-  for (auto& child: child_compartments) {
-    MCell::MolOrRxnCountTerm term = top_count_term;
-    term.sign_in_expression = -top_count_term.sign_in_expression;
-    assert(child->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
-    term.geometry_object_id = child->geometry_object_id;
-    terms.push_back(term);
   }
 }
 
