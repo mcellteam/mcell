@@ -552,16 +552,9 @@ private:
 
     // change only if it was not set
     if (species_compartment_id != target_compartment_id) {
-      if (species_compartment_id == BNG::COMPARTMENT_ID_NONE) {
-        // desired compartment was not set
-        release_assert(target_compartment_id != BNG::COMPARTMENT_ID_NONE && "Not 100% sure whether this can occur");
-        new_m.species_id = get_all_species().get_species_id_with_compartment(new_m.species_id, target_compartment_id);
-      }
-      else  {
-        errs() << "Invalid compartment specified, trying to create " << species.name << " in " <<
-            bng_engine.get_data().get_compartment(target_compartment_id).name << ".\n";
-        exit(1);
-      }
+      // desired compartment was not set or is set incorrectly, override
+      release_assert(target_compartment_id != BNG::COMPARTMENT_ID_NONE && "Not 100% sure whether this can occur");
+      new_m.species_id = get_all_species().get_species_id_with_compartment(new_m.species_id, target_compartment_id);
     }
   }
 

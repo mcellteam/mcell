@@ -82,41 +82,71 @@ void SpeciesContainer::remove(const species_id_t id) {
   canonical_species_map.erase(it_canonical);
 
   if (primary_compartment == COMPARTMENT_ID_NONE) {
-    // species have no compartment
-    compartment_species_cache.erase(id);
+    // species have no compartment, might need to remove it from
+    // specific_to_none_compartment_species_cache
+    auto it_compartment_species = none_to_specific_compartment_species_cache.find(id);
+    if (it_compartment_species != none_to_specific_compartment_species_cache.end()) {
+      for (auto& specific_compartment_id: it_compartment_species->second) {
+        specific_to_none_compartment_species_cache.erase(specific_compartment_id.second);
+      }
+    }
+    none_to_specific_compartment_species_cache.erase(id);
   }
   else {
     // species have compartment therefore have to be removed as a single item from
     // compartment_species_cache
-    auto it_no_compartment_species = compartment_to_no_compartment_species_cache.find(id);
-    if (it_no_compartment_species != compartment_to_no_compartment_species_cache.end()) {
+    auto it_no_compartment_species = specific_to_none_compartment_species_cache.find(id);
+    if (it_no_compartment_species != specific_to_none_compartment_species_cache.end()) {
 
       // present in cache, remove it
-      assert(id == compartment_species_cache[it_no_compartment_species->second][primary_compartment]);
-      compartment_species_cache[it_no_compartment_species->second].erase(primary_compartment);
-      compartment_to_no_compartment_species_cache.erase(id);
+      assert(id == none_to_specific_compartment_species_cache[it_no_compartment_species->second][primary_compartment]);
+      none_to_specific_compartment_species_cache[it_no_compartment_species->second].erase(primary_compartment);
+      specific_to_none_compartment_species_cache.erase(id);
     }
   }
 }
 
 
 species_id_t SpeciesContainer::get_species_id_with_compartment(
-    const species_id_t no_compartment_species_id, const compartment_id_t compartment_id) {
+    const species_id_t orig_species_id, const compartment_id_t compartment_id) {
 
-  assert(get(no_compartment_species_id).get_primary_compartment_id() == COMPARTMENT_ID_NONE);
+  species_id_t no_compartment_species_id;
+
+  compartment_id_t primary_compartment_id = get(orig_species_id).get_primary_compartment_id();
+  if (primary_compartment_id != COMPARTMENT_ID_NONE) {
+    // must find species that has no compartment
+    auto it_map = specific_to_none_compartment_species_cache.find(orig_species_id);
+    if (it_map != specific_to_none_compartment_species_cache.end()) {
+      no_compartment_species_id = it_map->second;
+    }
+    else {
+      // not cached
+      // create new species with compartment_id
+      Species s = get(orig_species_id);
+      s.set_compartment_id(COMPARTMENT_ID_NONE);
+      s.finalize_species(bng_config, false);
+
+      // and add it
+      no_compartment_species_id = find_or_add(s, true);
+
+      // remember in cache
+      none_to_specific_compartment_species_cache[no_compartment_species_id][primary_compartment_id] = orig_species_id;
+      specific_to_none_compartment_species_cache[orig_species_id] = no_compartment_species_id;
+    }
+  }
+  else {
+    no_compartment_species_id = orig_species_id;
+  }
+
   assert(is_specific_compartment_id(compartment_id));
 
-  auto it_map = compartment_species_cache.find(no_compartment_species_id);
-  if (it_map == compartment_species_cache.end()) {
-    auto it_species = it_map->second.find(compartment_id);
+  auto it_map = none_to_specific_compartment_species_cache.find(no_compartment_species_id);
+  if (it_map == none_to_specific_compartment_species_cache.end()) {
+    auto it_species = it_map->second.find(no_compartment_species_id);
     if (it_species != it_map->second.end()) {
       // found
       return it_species->second;
     }
-  }
-  else {
-    // add empty mapping for the new no_compartment_species_id
-    compartment_species_cache[no_compartment_species_id] = CompartmentSpeciesMap();
   }
 
   // create new species with compartment_id
@@ -128,8 +158,8 @@ species_id_t SpeciesContainer::get_species_id_with_compartment(
   species_id_t res = find_or_add(s, true);
 
   // remember in cache
-  compartment_species_cache[no_compartment_species_id][compartment_id] = res;
-  compartment_to_no_compartment_species_cache[res] = no_compartment_species_id;
+  none_to_specific_compartment_species_cache[no_compartment_species_id][compartment_id] = res;
+  specific_to_none_compartment_species_cache[res] = no_compartment_species_id;
 
   return res;
 }

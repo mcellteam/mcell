@@ -287,9 +287,9 @@ private:
 
   // caching of species without a compartment to species that use a single compartment for all
   // elementary molecules
-  NoCompartmentToPrimaryCompartmentSpeciesMap compartment_species_cache;
-  // reverse mapping for fast removal
-  CompartmentToNoCompartmentSpeciesMap compartment_to_no_compartment_species_cache;
+  NoCompartmentToPrimaryCompartmentSpeciesMap none_to_specific_compartment_species_cache;
+  // mapping in the opposite direction
+  CompartmentToNoCompartmentSpeciesMap specific_to_none_compartment_species_cache;
 
   // ids of species superclasses, SPECIES_ID_INVALID if not set
   // it might seem that this should belong into SpeciesInfo but this class needs this information

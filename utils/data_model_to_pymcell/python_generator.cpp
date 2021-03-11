@@ -411,7 +411,6 @@ SpeciesOrMolType PythonGenerator::generate_single_species_or_mol_type_w_componen
 
     // Molecule Type
     string name = generate_single_species_or_mol_type(out, molecule_list_item, false, component_names);
-    assert(name == component_prefix);
 
     return SpeciesOrMolType(name, false);
   }
