@@ -323,7 +323,7 @@ void Species::compute_diffusion_constant_and_space_time_step(const BNGConfig& co
 }
 
 
-void Species::dump(const BNGData& bng_data, const string ind) const {
+void Species::dump(const string ind) const {
   cout << ind << "species_id: \t\t" << id << " [uint16_t] \t\t/* Unique ID for this species */\n";
   cout << ind << "name: *\t\t" << name << " [string] \t\t/* Symbol table entry (name) */\n";
   cout << ind << "D: \t\t" << f_to_str(D) << " [float_t] \t\t/* Diffusion constant */\n";
@@ -355,7 +355,7 @@ vector<size_t> sort_indexes(const T &v) {
 }
 
 
-void Species::dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted) {
+void Species::dump_array(const SpeciesVector& vec, const bool sorted) {
   cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
   if (sorted) {
@@ -363,13 +363,13 @@ void Species::dump_array(const BNGData& bng_data, const SpeciesVector& vec, cons
     vector<size_t> sorted_indices = sort_indexes(vec);
     for (auto i: sorted_indices) {
       cout << i << ":\n";
-      vec[i]->dump(bng_data, "  ");
+      vec[i]->dump("  ");
     }
   }
   else {
     for (size_t i = 0; i < vec.size(); i++) {
       cout << i << ":\n";
-      vec[i]->dump(bng_data, "  ");
+      vec[i]->dump("  ");
     }
   }
 }

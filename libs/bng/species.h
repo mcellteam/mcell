@@ -236,8 +236,8 @@ public:
     reactant_class_id = id;
   }
 
-  void dump(const BNGData& bng_data, const std::string ind = "") const;
-  static void dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted = false);
+  void dump(const std::string ind = "") const;
+  static void dump_array(const SpeciesVector& vec, const bool sorted = false);
 
   // not virtual
   bool matches_fully_ignore_name_id_and_flags(const Species& s2) const {

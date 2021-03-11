@@ -228,7 +228,7 @@ void SpeciesContainer::defragment() {
 
 
 void SpeciesContainer::dump() const {
-  Species::dump_array(bng_data, species);
+  Species::dump_array(species);
 }
 
 }
