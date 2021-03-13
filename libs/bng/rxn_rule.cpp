@@ -283,31 +283,137 @@ bool RxnRule::may_modify_more_than_one_identical_component() const {
 
 
 struct MolCompInfo {
-  MolCompInfo(const vertex_descriptor_t desc_, const ElemMol* mi_)
-    : desc(desc_), already_matched(false), mi(mi_), ci(nullptr) {
+  MolCompInfo(const vertex_descriptor_t desc_, const ElemMol* em_)
+    : desc(desc_), already_matched(false), em(em_), comp(nullptr) {
   }
-  MolCompInfo(const vertex_descriptor_t desc_, const Component* ci_)
-    : desc(desc_), already_matched(false), mi(nullptr), ci(ci_) {
-  }
-
-  const ElemMol* get_mi() const {
-    assert(mi != nullptr);
-    return mi;
+  MolCompInfo(const vertex_descriptor_t desc_, const Component* comp_)
+    : desc(desc_), already_matched(false), em(nullptr), comp(comp_) {
   }
 
-  const Component* get_ci() const {
-    assert(ci != nullptr);
-    return ci;
+  const ElemMol* get_em() const {
+    assert(em != nullptr);
+    return em;
   }
 
+  const Component* get_comp() const {
+    assert(comp != nullptr);
+    return comp;
+  }
+
+  // graph node corresponding to this molecule or component
   vertex_descriptor_t desc;
 
+  // if this is a node from a pattern this array contains matching score
+  // from this pattern node onto ith product node (i is index to this array)
   vector<int> matching_score;
+
+  // set to true if this pattern node has its product node assigned
   bool already_matched;
+
+  // if this is an elementary molecule, this array contains information
+  // to which elementary molecule types are we bound
+  set<elem_mol_type_id_t> connected_em_types;
+
 private:
-  const ElemMol* mi;
-  const Component* ci;
+  const ElemMol* em;
+  const Component* comp;
 };
+
+
+// - vertex pointed to by desc must be a component and must have a single bond
+//   to another component and also a bond to its molecule instance
+// - returns -1 when the component is not connected to another component
+// - asserts in debug mode when must_exist is set to true and target was not found
+//
+// - the release_assert calls are here because boost's library produced
+//   weird errors with release build, they are cheap anyway so they are kept there
+const vertex_descriptor_t TARGET_NOT_FOUND = -1;
+static vertex_descriptor_t get_bond_target(
+    Graph& graph,
+    const vertex_descriptor_t desc,
+    const bool must_exist = true,
+    const bool looking_for_component = true
+) {
+  #ifdef DEBUG_CPLX_RXNS
+    cout << "get_bond_target:\n";
+    dump_graph(graph);
+    cout << "desc:" << (int)desc << "\n";
+  #endif
+
+  bool comp_found = false;
+
+  vertex_descriptor_t res_em = TARGET_NOT_FOUND;
+  vertex_descriptor_t res_comp = TARGET_NOT_FOUND;
+  VertexNameMap index = boost::get(boost::vertex_name, graph);
+
+  boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
+  for (boost::tie(ei,edge_end) = boost::out_edges(desc, graph); ei != edge_end; ++ei) {
+    Graph::edge_descriptor e_desc = *ei;
+    Graph::vertex_descriptor n_desc = boost::target(e_desc, graph);
+    const Node& n = index[n_desc];
+
+    #ifdef DEBUG_CPLX_RXNS
+      cout << "  checking " << n << "\n";
+    #endif
+
+    if (n.is_mol) {
+      release_assert(res_em == TARGET_NOT_FOUND);
+      res_em = n_desc;
+    }
+    else {
+      // TODO, see test tests/bngl/0967_vol_in_a_plus_surf_b_to_surf_c_cplx_reusing_mol_in_prod
+      release_assert(res_comp == TARGET_NOT_FOUND &&
+          "Used rule is not supported yet, probably due to finding only a partial match from reactant to product such as sb(b!1).sy(y!1) -> sc(c!1).sy(y!1)");
+      res_comp = n_desc;
+    }
+  }
+
+  release_assert(res_em != TARGET_NOT_FOUND && "Component must be connected to its molecule");
+  release_assert(!must_exist || res_comp != TARGET_NOT_FOUND);
+
+  return (looking_for_component) ? res_comp : res_em;
+}
+
+
+// inserts all elementary moelcules connected to our em_desc through bonds
+static void get_all_connected_elem_mol_types(
+    Graph& graph, const vertex_descriptor_t em_desc, set<elem_mol_type_id_t>& connected_em_types) {
+
+  VertexNameMap index = boost::get(boost::vertex_name, graph);
+  assert(index[em_desc].is_mol);
+
+  #ifdef DEBUG_CPLX_RXNS
+    cout << "get_all_connected_elem_mol_types:\n";
+    dump_graph(graph);
+  #endif
+
+  // for each connected component
+  boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
+  for (boost::tie(ei,edge_end) = boost::out_edges(em_desc, graph); ei != edge_end; ++ei) {
+    edge_descriptor_t e_desc = *ei;
+
+    // component of our elem mol
+    vertex_descriptor_t comp_desc = boost::target(e_desc, graph);
+    assert(!index[comp_desc].is_mol);
+
+    // component to which 'comp' is bound
+    vertex_descriptor_t connected_comp_desc = get_bond_target(graph, comp_desc, false, true);
+
+    if (connected_comp_desc == TARGET_NOT_FOUND) {
+      // component has no bond
+      continue;
+    }
+
+    // finally get the elem mol
+    assert(!index[connected_comp_desc].is_mol);
+    vertex_descriptor_t connected_em_desc = get_bond_target(graph, connected_comp_desc, true, false);
+    assert(connected_em_desc != TARGET_NOT_FOUND);
+    const Node& em = index[connected_em_desc];
+    assert(em.is_mol);
+
+    connected_em_types.insert(em.mol->elem_mol_type_id);
+  }
+}
 
 
 static void get_all_mol_instances_from_graph(
@@ -321,7 +427,12 @@ static void get_all_mol_instances_from_graph(
     vertex_descriptor_t desc = *it.first;
     const Node& mi_node = index[desc];
     if (mi_node.is_mol) {
-      res.push_back(MolCompInfo(desc, mi_node.mol));
+      MolCompInfo info(desc, mi_node.mol);
+
+      // collect connected elementary molecules
+      get_all_connected_elem_mol_types(graph, desc, info.connected_em_types);
+
+      res.push_back(info);
     }
   }
 }
@@ -366,15 +477,8 @@ static int get_component_instance_matching_score(
 }
 
 
-bool are_replaceable_elem_mols(const BNGData& bng_data, const ElemMol& em1, const ElemMol& em2) {
-  // special case where we can replace e.g. A_vol(x, y) with A_surf(x, y) in rxn
-  // B.A_vol -> B.A_surf
-  // both molecules must be connected
-  // TODO: must be connected to the same molecules
-
-  if (!em1.has_bond() || !em2.has_bond()) {
-    return false;
-  }
+bool are_replaceable_elem_mols_do_not_check_connections(
+    const BNGData& bng_data, const ElemMol& em1, const ElemMol& em2) {
 
   // components must have the same names and states
   const ElemMolType& emt1 = bng_data.get_elem_mol_type(em1.elem_mol_type_id);
@@ -402,11 +506,42 @@ bool are_replaceable_elem_mols(const BNGData& bng_data, const ElemMol& em1, cons
 }
 
 
-static int get_mol_instance_matching_score(const BNGData& bng_data, const ElemMol& pat, const ElemMol& prod) {
+bool are_replaceable_elem_mols(const BNGData& bng_data, const MolCompInfo& em1_info, const MolCompInfo& em2_info) {
+  // special case where we can replace e.g. A_vol(x, y) with A_surf(x, y) in rxn
+  // B.A_vol -> B.A_surf
+
+  const ElemMol& em1 = *em1_info.get_em();
+  const ElemMol& em2 = *em2_info.get_em();
+
+  // both molecules must be connected and must be connected to the same molecules
+  if (!em1.has_bond() || !em2.has_bond()) {
+    return false;
+  }
+
+  // TODO: maybe allow just change from surf to vol and vice versa?
+
+  // we much check connections so that for instance elem mols in this rule are not matched:
+  // sb(b!1).sy(y!1) -> sc(c!1).sz(y!1), we allow only
+  // sb(b!1).sy(y!1) -> sb(c!1).sz(y!1)
+  // might need to be relaxed if we would need to change type of multiple
+  // elem mols in one rule that are connected to each other but for now let's require that the
+  // surroundings are exactly the same
+  if (em1_info.connected_em_types != em2_info.connected_em_types) {
+    return false;
+  }
+
+  return are_replaceable_elem_mols_do_not_check_connections(bng_data, em1, em2);
+}
+
+
+static int get_elem_mol_matching_score(const BNGData& bng_data, const MolCompInfo& pat_info, const MolCompInfo& prod_info) {
+
+  const ElemMol& pat = *pat_info.get_em();
+  const ElemMol& prod = *prod_info.get_em();
 
   // elementary molecule type must be the same or must be replaceable
   if (pat.elem_mol_type_id != prod.elem_mol_type_id &&
-      !are_replaceable_elem_mols(bng_data, pat, prod)) {
+      !are_replaceable_elem_mols(bng_data, pat_info, prod_info)) {
     return -1;
   }
 
@@ -519,7 +654,7 @@ void find_best_product_to_pattern_mapping(
       MolCompInfo& prod = product_mols[i];
       // TODO: deal also with bonds, when a molecule instance is connected to
       // certain molecules and the product as well, this should give it higher score
-      pat.matching_score[i] = get_mol_instance_matching_score(bng_data, *pat.get_mi(), *prod.get_mi());
+      pat.matching_score[i] = get_elem_mol_matching_score(bng_data, pat, prod);
     }
   }
 
@@ -546,7 +681,7 @@ void find_best_product_to_pattern_mapping(
       pat.matching_score.resize(product_comps.size());
       for (size_t i = 0; i < product_comps.size(); i++) {
         MolCompInfo& prod = product_comps[i];
-        pat.matching_score[i] = get_component_instance_matching_score(*pat.get_ci(), *prod.get_ci());
+        pat.matching_score[i] = get_component_instance_matching_score(*pat.get_comp(), *prod.get_comp());
       }
     }
 
@@ -559,63 +694,6 @@ void find_best_product_to_pattern_mapping(
   }
 }
 
-
-// vertex pointed to by reac_desc
-// must be a component and must have a single bond
-// to another component and also a bond to its molecule instance
-// returns -1 when the component is not connected to another component,
-// asserts in debug mode when must_exist is set to true and target was not found
-//
-// the release_assert calls are here because boost's library produced
-// weird errors with release build, they are cheap anyway so they are kept there
-const vertex_descriptor_t TARGET_NOT_FOUND = -1;
-static vertex_descriptor_t get_bond_target(
-    Graph& graph,
-    const vertex_descriptor_t desc,
-    const bool must_exist = true
-) {
-  #ifdef DEBUG_CPLX_RXNS
-    cout << "get_bond_target:\n";
-    dump_graph(graph);
-    cout << "desc:" << (int)desc << "\n";
-  #endif
-
-  bool comp_found = false;
-  bool mol_found = false;
-
-  vertex_descriptor_t res = TARGET_NOT_FOUND;
-  VertexNameMap index = boost::get(boost::vertex_name, graph);
-
-  boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
-  for (boost::tie(ei,edge_end) = boost::out_edges(desc, graph); ei != edge_end; ++ei) {
-    Graph::edge_descriptor e_desc = *ei;
-    Graph::vertex_descriptor n_desc = boost::target(e_desc, graph);
-    const Node& n = index[n_desc];
-
-    #ifdef DEBUG_CPLX_RXNS
-      cout << "  checking " << n << "\n";
-    #endif
-
-    if (n.is_mol) {
-      release_assert(!mol_found);
-      mol_found = true; // just for debug
-    }
-    else {
-      // TODO, see test tests/bngl/0967_vol_in_a_plus_surf_b_to_surf_c_cplx_reusing_mol_in_prod
-      release_assert(!comp_found &&
-          "Used rule is not supported yet, probably due to finding only a partial match from reactant to product such as sb(b!1).sy(y!1) -> sc(c!1).sy(y!1)");
-      comp_found = true;
-      res = n_desc;
-    }
-  }
-
-  release_assert(mol_found && "Component must be connected to its molecule");
-  if (must_exist) {
-    release_assert(comp_found);
-  }
-
-  return res;
-}
 
 // returns TARGET_NOT_FOUND when there is no mapping from products to pattern
 vertex_descriptor_t get_new_bond_target(
@@ -1783,7 +1861,7 @@ bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
     // allow special case for A_vol -> A_surf
     // TODO: maybe will need to be more strict
     if (pat_mi.elem_mol_type_id != prod_mi.elem_mol_type_id &&
-        are_replaceable_elem_mols(*bng_data, pat_mi, prod_mi)) {
+        are_replaceable_elem_mols_do_not_check_connections(*bng_data, pat_mi, prod_mi)) {
       // ok
       continue;
     }
