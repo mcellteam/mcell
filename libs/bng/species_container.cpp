@@ -141,8 +141,8 @@ species_id_t SpeciesContainer::get_species_id_with_compartment(
   assert(is_specific_compartment_id(compartment_id));
 
   auto it_map = none_to_specific_compartment_species_cache.find(no_compartment_species_id);
-  if (it_map == none_to_specific_compartment_species_cache.end()) {
-    auto it_species = it_map->second.find(no_compartment_species_id);
+  if (it_map != none_to_specific_compartment_species_cache.end()) {
+    auto it_species = it_map->second.find(compartment_id);
     if (it_species != it_map->second.end()) {
       // found
       return it_species->second;
