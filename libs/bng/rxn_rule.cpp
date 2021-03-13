@@ -844,9 +844,35 @@ static void add_new_products(
   }
 }
 
+
+static void change_elem_mol_type_and_component_types(
+    const BNGData& bng_data, ElemMol& reac_em, elem_mol_type_id_t target_elem_mol_type_id) {
+
+  elem_mol_type_id_t orig_elem_mol_type_id = reac_em.elem_mol_type_id;
+  // no need to check graph components because graph contains pointers to components owned by reac_em
+  // and we are not changing any bonds
+  reac_em.elem_mol_type_id = target_elem_mol_type_id;
+
+  const ElemMolType& orig_emt = bng_data.get_elem_mol_type(orig_elem_mol_type_id);
+  const ElemMolType& target_emt = bng_data.get_elem_mol_type(target_elem_mol_type_id);
+  release_assert(reac_em.components.size() == orig_emt.component_type_ids.size());
+  release_assert(reac_em.components.size() == target_emt.component_type_ids.size());
+  for (size_t i = 0; i < reac_em.components.size(); i++) {
+    Component& comp = reac_em.components[i];
+    component_type_id_t target_comp_id = target_emt.component_type_ids[i];
+    // debug check that component name matches (they must be ordered in the same way)
+    assert(bng_data.get_component_type(comp.component_type_id).name ==
+        bng_data.get_component_type(target_comp_id).name);
+
+    comp.component_type_id = target_comp_id;
+  }
+}
+
+
 // manipulate the reactants_graph according to how
 // products should look like
 static void apply_rxn_on_reactants_graph(
+    const BNGData& bng_data,
     Graph& reactants_graph,
     const VertexMapping& pattern_reactant_mapping,
     const Graph& pattern_graph,
@@ -1011,6 +1037,14 @@ static void apply_rxn_on_reactants_graph(
 
       assert(reac_node.mol != nullptr);
       ElemMol& reac_em = *reac_node.mol;
+
+      // in rules such as A(x!1).B(a!1) -> A(x!1).C(a!1),
+      // the elem mol id might differ, inserted into pattern->product mapping by using
+      // are_replaceable_elem_mols
+      if (prod_em.elem_mol_type_id != reac_em.elem_mol_type_id) {
+        // we need to change the elem mol type and also types of all components
+        change_elem_mol_type_and_component_types(bng_data, reac_em, prod_em.elem_mol_type_id);
+      }
 
       // update compartment if needed
       if (is_specific_compartment_id(prod_em.compartment_id)) {
@@ -1468,6 +1502,7 @@ void RxnRule::create_products_for_complex_rxn(
 
     // manipulate nodes using information about products
     apply_rxn_on_reactants_graph(
+        *bng_data,
         reactants_graph_copy,
         mapping,
         patterns_graph,
@@ -1592,6 +1627,7 @@ void RxnRule::define_rxn_pathway_using_mapping(
 
   // manipulate nodes using information about products and the precomputed mapping
   apply_rxn_on_reactants_graph(
+      *bng_data,
       reactants_graph,
       pathway.rule_mapping_onto_reactants,
       patterns_graph,
