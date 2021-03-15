@@ -82,7 +82,7 @@ struct Node {
     else if (n1.modified_ordering_index != n2.modified_ordering_index) {
       // extra ordering needed to get unique products,
       // modified_ordering_index is set to INDEX_INVALID by default and
-      // set toa different value only when needed
+      // set to a different value only when needed
       return false;
     }
     else if (n1.is_mol != n2.is_mol) {

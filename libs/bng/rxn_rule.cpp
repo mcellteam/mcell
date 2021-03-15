@@ -869,6 +869,22 @@ static void change_elem_mol_type_and_component_types(
 }
 
 
+// goes through all reactant elem mols and components in pattern_reactant_mapping
+// and sets their modified_ordering_index
+static void set_modified_ordering_index_for_all_reactants_matching_pattern(
+  Graph& reactants_graph,
+  const VertexMapping& pattern_reactant_mapping
+) {
+  VertexNameMap reactants_index = boost::get(boost::vertex_name, reactants_graph);
+
+  for (auto pat_reac_pair: pattern_reactant_mapping) {
+    vertex_descriptor_t reac_desc = pat_reac_pair.second;
+    Node& reac_node = reactants_index[reac_desc];
+    reac_node.modified_ordering_index = reac_node.ordering_index;
+  }
+}
+
+
 // manipulate the reactants_graph according to how
 // products should look like
 static void apply_rxn_on_reactants_graph(
@@ -896,11 +912,11 @@ static void apply_rxn_on_reactants_graph(
   //   find corresponding component in reactant pattern
   //     if there is no such mapping, ignore it because it might be a component of a
   //     new molecule instance
-  for (auto prod_pat_it: product_pattern_mapping) {
-    vertex_descriptor_t prod_desc = prod_pat_it.first;
-    const Node& prod_node = products_index[prod_pat_it.first];
+  for (const auto& prod_pat_pair: product_pattern_mapping) {
+    vertex_descriptor_t prod_desc = prod_pat_pair.first;
+    const Node& prod_node = products_index[prod_pat_pair.first];
     // product->pattern
-    vertex_descriptor_t pat_desc = prod_pat_it.second;
+    vertex_descriptor_t pat_desc = prod_pat_pair.second;
 
     // find component corresponding to reactant pattern in reactants_graph
     //   this mapping must exist because we matched the pattern graph to reactants graph
@@ -1044,6 +1060,18 @@ static void apply_rxn_on_reactants_graph(
       if (prod_em.elem_mol_type_id != reac_em.elem_mol_type_id) {
         // we need to change the elem mol type and also types of all components
         change_elem_mol_type_and_component_types(bng_data, reac_em, prod_em.elem_mol_type_id);
+
+        // - also remember that we made a change here so that different products are not matched,
+        //   see test bngl/0055 - rule A(bc!1).B(a!1) -> A(bc!1).C(a!1) is applied onto
+        //   A(x,bc!2).B(a!2,a!3).A(bc!3,x) -> there must be two distinct products because reactant
+        //   bonds 2 and 3 can be matched
+        // - setting the reac_node.modified_ordering_index does not help because we won't get different
+        //   results, we must mark e.g. the component whose bond changed, it is the one that is mapped
+        //   by the pattern
+        // - a solution here is to mark all reactant elementary molecules and components matched by the
+        //   rule
+        set_modified_ordering_index_for_all_reactants_matching_pattern(
+            reactants_graph, pattern_reactant_mapping);
       }
 
       // update compartment if needed
