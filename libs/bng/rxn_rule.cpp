@@ -1078,10 +1078,6 @@ static void apply_rxn_on_reactants_graph(
       if (is_specific_compartment_id(prod_em.compartment_id)) {
         reac_em.compartment_id = prod_em.compartment_id;
       }
-      else if (is_in_out_compartment_id(prod_em.compartment_id)) {
-        // clear the target compartment if @IN or @OUT is used
-        reac_em.compartment_id = COMPARTMENT_ID_NONE;
-      }
     }
   } // for (auto prod_pat_it: prod_pattern_mapping)
 
@@ -1240,6 +1236,11 @@ void RxnRule::set_product_compartments(Species* product_species, std::set<uint>&
         // volume - if set, all elem mols must have the same compartment
         assert(em.is_vol());
         if (em.compartment_id == COMPARTMENT_ID_NONE) {
+          em.compartment_id = primary_compartment_id;
+        }
+        else if (is_specific_compartment_id(em.compartment_id) &&
+            !bng_data->get_compartment(em.compartment_id).is_3d) {
+          // override 2D compartment by a volume compartment
           em.compartment_id = primary_compartment_id;
         }
         else {
