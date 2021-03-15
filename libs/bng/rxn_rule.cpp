@@ -1078,6 +1078,10 @@ static void apply_rxn_on_reactants_graph(
       if (is_specific_compartment_id(prod_em.compartment_id)) {
         reac_em.compartment_id = prod_em.compartment_id;
       }
+      else if (is_in_out_compartment_id(prod_em.compartment_id)) {
+        // clear the target compartment if @IN or @OUT is used
+        reac_em.compartment_id = COMPARTMENT_ID_NONE;
+      }
     }
   } // for (auto prod_pat_it: prod_pattern_mapping)
 
