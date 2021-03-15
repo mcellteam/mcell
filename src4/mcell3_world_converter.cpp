@@ -1685,6 +1685,7 @@ static bool find_output_requests_terms_recursively(
       }
       break;
 
+    case '/':
     case '*': {
         CHECK_PROPERTY(top_level && "In a count term, only the whole count expression can be multiplied");
 
@@ -1696,13 +1697,23 @@ static bool find_output_requests_terms_recursively(
 
         if (left->oper == '#' || left->oper == '+' || left->oper == '-' || left->oper == '(') {
           count_term = left;
-          CHECK_PROPERTY(right->oper == '=');
-          multiplier = right->value;
+          CHECK_PROPERTY(right->oper == '=' || right->oper == '(');
+          if (expr->oper == '*') {
+            multiplier = right->value;
+          }
+          else {
+            multiplier = 1.0 / right->value;
+          }
         }
         else if (right->oper == '#' || right->oper == '+' || right->oper == '-' || right->oper == '(') {
           count_term = right;
-          CHECK_PROPERTY(left->oper == '=');
-          multiplier = left->value;
+          CHECK_PROPERTY(left->oper == '=' || left->oper == '(');
+          if (expr->oper == '*') {
+            multiplier = left->value;
+          }
+          else {
+            multiplier = 1.0 / left->value;
+          }
         }
         else {
           CHECK_PROPERTY(false && "Could not process count expression");

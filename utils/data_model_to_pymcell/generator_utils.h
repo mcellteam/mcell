@@ -222,6 +222,7 @@ string create_count_name(
 uint get_num_counts_in_mdl_string(const string& mdl_string);
 
 string remove_c_comment(const string& str);
+string remove_whitespace(const string& str);
 
 void process_single_count_term(
     const SharedGenData& data,

@@ -357,7 +357,7 @@ void MolOrRxnCountItem::to_data_model(const World* world, Json::Value& reaction_
   }
 
   if (multiplier != 1) {
-    mdl_string = f_to_str(multiplier) + "*(" + mdl_string + ")";
+    mdl_string = "(" + mdl_string + ")*" + f_to_str(multiplier);
   }
 
   reaction_output[KEY_MDL_STRING] = mdl_string;

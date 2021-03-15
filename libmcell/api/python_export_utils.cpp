@@ -73,6 +73,12 @@ std::string fix_id(const std::string& str) {
     else if (c == '-') {
       res += "_minus_";
     }
+    else if (c == '*') {
+      res += "_mul_";
+    }
+    else if (c == '/') {
+      res += "_div_";
+    }
     else if (c == '?') {
       res += "_anybond_";
     }

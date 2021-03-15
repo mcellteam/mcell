@@ -384,7 +384,7 @@ bool BNGLGenerator::can_express_count_with_bngl(
   const bool rxn_not_mol,
   const std::string& where_to_count,
   const std::string& orientation,
-  const std::string& multiplier_str,
+  const std::string& mul_div_str,
   const std::string& rxn_step
 ) const {
 
@@ -400,7 +400,7 @@ bool BNGLGenerator::can_express_count_with_bngl(
   if (orientation != "") {
     return false;
   }
-  if (multiplier_str != "") {
+  if (mul_div_str != "") {
     return false;
   }
 

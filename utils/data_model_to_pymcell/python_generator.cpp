@@ -1247,7 +1247,7 @@ void PythonGenerator::generate_single_count(
     const std::string& what_to_count,
     const std::string& where_to_count, // empty for WORLD
     const std::string& orientation,
-    const std::string& multiplier_str,
+    const std::string& mul_div_str,
     const std::string& rxn_step,
     const bool rxn_not_mol,
     const bool molecules_not_species,
@@ -1277,10 +1277,18 @@ void PythonGenerator::generate_single_count(
   }
 
   gen_param(out, NAME_FILE_NAME,
-      DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + observable_name + ".dat", multiplier_str != "" || rxn_step != "");
+      DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + observable_name + ".dat", mul_div_str != "" || rxn_step != "");
 
-  if (multiplier_str != "") {
-    gen_param_expr(out, NAME_MULTIPLIER, multiplier_str, rxn_step != "");
+  if (mul_div_str != "") {
+    if (mul_div_str[0] == '*') {
+      gen_param_expr(out, NAME_MULTIPLIER, mul_div_str.substr(1), rxn_step != "");
+    }
+    else if (mul_div_str[0] == '/') {
+      gen_param_expr(out, NAME_MULTIPLIER, "(1.0/" + mul_div_str.substr(1) + ")", rxn_step != "");
+    }
+    else {
+      release_assert(false && "Invalid count multiplier or divider.");
+    }
   }
 
   if (rxn_step != "") {

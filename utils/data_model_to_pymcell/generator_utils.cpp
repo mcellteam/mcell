@@ -455,6 +455,13 @@ string remove_c_comment(const string& str) {
   return std::regex_replace(str, e, "");
 }
 
+
+string remove_whitespace(const string& str) {
+  std::regex e ("[ \t]");
+  return std::regex_replace(str, e, "");
+}
+
+
 void process_single_count_term(
     const SharedGenData& data,
     const string& mdl_string,

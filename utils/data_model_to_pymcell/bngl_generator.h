@@ -54,7 +54,7 @@ public:
       const bool rxn_not_mol,
       const std::string& where_to_count,
       const std::string& orientation,
-      const std::string& multiplier_str,
+      const std::string& mul_div_str,
       const std::string& rxn_step) const;
 
   void open_observables_section() { bng_out << BNG::BEGIN_OBSERVABLES << "\n"; }
