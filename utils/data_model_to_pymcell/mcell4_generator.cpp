@@ -1053,7 +1053,7 @@ void MCell4Generator::generate_config(ostream& out) {
 
   float_t partition_step;
   if (!cmp_eq(x_step, y_step) || !cmp_eq(y_step, z_step)) {
-    cout << "Message: Partition's step sizes are different, changing the step to be the smallest of them.";
+    cout << "Message: Individual partition step sizes are different, changing the step to be the smallest of them.\n";
 
     partition_step = min3d(x_step, y_step, z_step);
   }

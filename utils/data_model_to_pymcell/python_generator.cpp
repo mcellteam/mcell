@@ -440,6 +440,7 @@ void PythonGenerator::generate_species_and_mol_types(
 
 
 void PythonGenerator::get_surface_class_property_info(
+    const string& sc_name,
     Value& property,
     string& name, string& type_name,
     string& affected_mols, string& orientation, string& clamp_concentration
@@ -481,8 +482,13 @@ void PythonGenerator::get_surface_class_property_info(
     type_name = NAME_EV_FLUX_CLAMP;
     clamp_concentration = property[KEY_CLAMP_VALUE].asString();
   }
+  else if (surf_class_type == "") {
+    ERROR("Type/property of surface class '" + sc_name + "' is not set, this is not allowed in MCell4, "
+        "each surface class must have at least one property.");
+  }
   else {
-    ERROR(S("Invalid ") + KEY_SURF_CLASS_TYPE + " " + surf_class_type + ".");
+    ERROR(S("Invalid type/property ") + KEY_SURF_CLASS_TYPE + " " + surf_class_type +
+        " of surface class '" + sc_name + "0'.");
   }
 
   name = make_id(property[KEY_NAME].asString());
@@ -512,6 +518,9 @@ void PythonGenerator::generate_surface_classes(
 
     Value& surface_class_prop_list = get_node(surface_class_list_item, KEY_SURFACE_CLASS_PROP_LIST);
 
+    string sc_name = make_id(surface_class_list_item[KEY_NAME].asString());
+    sc_names.push_back(sc_name);
+
     vector<string> sc_prop_names;
     if (surface_class_prop_list.size() > 1) {
       for (Value::ArrayIndex i = 0; i < surface_class_prop_list.size(); i++) {
@@ -519,8 +528,8 @@ void PythonGenerator::generate_surface_classes(
 
         string name, type_name, affected_mols, orientation_name, clamp_concentration;
         get_surface_class_property_info(
-            surface_class_prop_item, name, type_name,
-            affected_mols, orientation_name, clamp_concentration);
+            sc_name, surface_class_prop_item,
+            name, type_name, affected_mols, orientation_name, clamp_concentration);
 
         sc_prop_names.push_back(name);
         data.check_if_already_defined_and_add(name, NAME_CLASS_SURFACE_PROPERTY);
@@ -540,11 +549,9 @@ void PythonGenerator::generate_surface_classes(
       }
     }
 
-    string name = make_id(surface_class_list_item[KEY_NAME].asString());
-    sc_names.push_back(name);
-    data.check_if_already_defined_and_add(name, NAME_CLASS_SURFACE_CLASS);
-    gen_ctor_call(out, name, NAME_CLASS_SURFACE_CLASS, true);
-    gen_param(out, NAME_NAME, name, true);
+    data.check_if_already_defined_and_add(sc_name, NAME_CLASS_SURFACE_CLASS);
+    gen_ctor_call(out, sc_name, NAME_CLASS_SURFACE_CLASS, true);
+    gen_param(out, NAME_NAME, sc_name, true);
 
     if (!sc_prop_names.empty()) {
       // use a list of properties
@@ -554,8 +561,8 @@ void PythonGenerator::generate_surface_classes(
       // simplified setup, directly set members
       string name, type_name, affected_mols, orientation_name, clamp_concentration;
       get_surface_class_property_info(
-          surface_class_prop_list[0], name, type_name,
-          affected_mols, orientation_name, clamp_concentration);
+          sc_name, surface_class_prop_list[0],
+          name, type_name, affected_mols, orientation_name, clamp_concentration);
 
       gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
 
