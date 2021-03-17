@@ -315,6 +315,7 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
   surface_class[KEY_NAME] = name;
 
   Value& surface_class_prop_list = surface_class[KEY_SURFACE_CLASS_PROP_LIST];
+  surface_class_prop_list = Value(Json::arrayValue);
 
   // find all rxn rules with the same name
   vector<const RxnRule*> rxns_belonging_to_surf_class;
@@ -326,45 +327,47 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
 
   // and convert them all as properties of this surface class
   for (const RxnRule* rxn_rule: rxns_belonging_to_surf_class) {
-    Value sc_item;
-    add_version(sc_item, VER_DM_2015_11_08_1756);
+    Value sc_property;
+    add_version(sc_property, VER_DM_2015_11_08_1756);
     CONVERSION_CHECK(rxn_rule->reactants[0].is_simple(), "Surface class reactant must be simple for now.");
 
-    const string& reactant_name = bng_engine->get_data().get_elem_mol_type(rxn_rule->reactants[0].get_simple_species_mol_type_id()).name;
-    if (is_species_superclass(reactant_name)) {
-      sc_item[KEY_AFFECTED_MOLS] = reactant_name;
-      sc_item[KEY_MOLECULE] = "";
-    }
-    else {
-      sc_item[KEY_AFFECTED_MOLS] = VALUE_SINGLE;
-      sc_item[KEY_MOLECULE] = reactant_name;
-    }
-
-    sc_item[KEY_SURF_CLASS_ORIENT] = DMUtil::orientation_to_str(rxn_rule->reactants[0].get_orientation());
-
+    bool has_type = true;
     switch (rxn_rule->type) {
       case RxnType::Transparent:
-        sc_item[KEY_SURF_CLASS_TYPE] = VALUE_TRANSPARENT;
+        sc_property[KEY_SURF_CLASS_TYPE] = VALUE_TRANSPARENT;
         break;
       case RxnType::Reflect:
-        sc_item[KEY_SURF_CLASS_TYPE] = VALUE_REFLECTIVE;
+        sc_property[KEY_SURF_CLASS_TYPE] = VALUE_REFLECTIVE;
         break;
       case RxnType::Standard:
         if (rxn_rule->is_absorptive_region_rxn()) {
-          sc_item[KEY_SURF_CLASS_TYPE] = VALUE_ABSORPTIVE;
+          sc_property[KEY_SURF_CLASS_TYPE] = VALUE_ABSORPTIVE;
         }
         else {
-          sc_item[KEY_SURF_CLASS_TYPE] = "";
+          // do not generate any property if type is nto set
+          continue;
         }
         break;
       default:
         CONVERSION_UNSUPPORTED("Unexpected reaction type");
     }
 
-    sc_item[KEY_CLAMP_VALUE] = "0";
-    sc_item[KEY_NAME] = ""; // name is ignored by the datamodel to mdl converter anyway
+    const string& reactant_name = bng_engine->get_data().get_elem_mol_type(rxn_rule->reactants[0].get_simple_species_mol_type_id()).name;
+    if (is_species_superclass(reactant_name)) {
+      sc_property[KEY_AFFECTED_MOLS] = reactant_name;
+      sc_property[KEY_MOLECULE] = "";
+    }
+    else {
+      sc_property[KEY_AFFECTED_MOLS] = VALUE_SINGLE;
+      sc_property[KEY_MOLECULE] = reactant_name;
+    }
 
-    surface_class_prop_list.append(sc_item);
+    sc_property[KEY_SURF_CLASS_ORIENT] = DMUtil::orientation_to_str(rxn_rule->reactants[0].get_orientation());
+
+    sc_property[KEY_CLAMP_VALUE] = "0";
+    sc_property[KEY_NAME] = ""; // name is ignored by the datamodel to mdl converter anyway
+
+    surface_class_prop_list.append(sc_property);
   }
 }
 

@@ -1,6 +1,6 @@
-**************************************
+*******************
 Enums and Constants
-**************************************
+*******************
 
 Orientation
 ===========
@@ -56,15 +56,19 @@ SurfacePropertyType
 ===================
 
 * | **UNSET** = 0
-* | **REFLECTIVE** = 1
-* | **TRANSPARENT** = 2
-* | **ABSORPTIVE** = 3
-* | **CONCENTRATION_CLAMP** = 4
+* | **REACTIVE** = 1
+  | This surface class does not do anything by itself but it can be used as a reactant in 
+  | reaction rules.
+
+* | **REFLECTIVE** = 2
+* | **TRANSPARENT** = 3
+* | **ABSORPTIVE** = 4
+* | **CONCENTRATION_CLAMP** = 5
   | Clamps concentration at a surface by periodically releasing molecules that correspond
   | to the wall being a transparent boundary to area with given concentration, 
   | and by absorbing all molecules that hit this surface.
 
-* | **FLUX_CLAMP** = 5
+* | **FLUX_CLAMP** = 6
   | Clamps flux at a surface by periodically releasing molecules that correspond
   | to the wall being a transparent boundary to area with given concentration. 
   | The clamped surface reflects these molecules.

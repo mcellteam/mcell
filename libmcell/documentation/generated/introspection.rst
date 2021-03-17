@@ -1,89 +1,6 @@
 *************
 Introspection
 *************
-WallWallHitInfo
-===============
-
-Attributes:
-***********
-* | **wall1**: Wall
-
-* | **wall2**: Wall
-
-Molecule
-========
-
-This is a Python representation of a molecule obtained from Model 
-during simulation.
-
-Attributes:
-***********
-* | **id**: int = ID_INVALID
-  | Unique id of this molecule
-
-* | **type**: MoleculeType = MoleculeType.UNSET
-
-* | **species_id**: int = ID_INVALID
-  | Species id of this molecule.
-  | The id value is only temporary and can be invalidated by simulating an iteration.
-
-* | **pos3d**: Vec3 = None
-  | Contains position of a molecule in 3D space.
-
-* | **orientation**: Orientation = Orientation.NOT_SET
-  | Contains orientation for surface molecule. Volume molecules 
-  | have always orientation set to Orientation.NONE.
-
-* | **pos2d**: Vec2 = None
-  | Set only for surface molecules.
-
-* | **geometry_object**: GeometryObject = None
-  | Set only for surface molecules.
-  | Object on whose surface is the molecule located.
-
-* | **wall_index**: int = -1
-  | Set only for surface molecules.
-  | Index of wall belonging to the geometry_object where is the 
-  | molecule located.
-
-
-Methods:
-*********
-* | **remove**
-
-
-  | Removes this molecule from simulation. Any subsequent modifications
-  | of this object won't have any effect.
-
-
-
-Wall
-====
-
-This is a Python representation of a molecule obtained from Model 
-during simulation.
-
-Attributes:
-***********
-* | **geometry_object**: GeometryObject
-  | Object to which this wall belongs.
-
-* | **wall_index**: int
-  | Index of this wall in the object to which this wall belongs.
-
-* | **vertices**: List[Vec3]
-  | Vertices of the triangle that represents this wall.
-
-* | **area**: float
-
-* | **unit_normal**: Vec3
-  | Normal of this wall with unit length of 1 um.
-  | To get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal.
-
-* | **is_movable**: bool = True
-  | If True, whis wall can be moved through Model.apply_vertex_moves,
-  | if False, wall moves are ignored.
-
 Introspection
 =============
 
@@ -170,6 +87,89 @@ Methods:
 
 
   | Returns wall normal converted to a unit vector of length 1um.
+
+
+
+WallWallHitInfo
+===============
+
+Attributes:
+***********
+* | **wall1**: Wall
+
+* | **wall2**: Wall
+
+Wall
+====
+
+This is a Python representation of a molecule obtained from Model 
+during simulation.
+
+Attributes:
+***********
+* | **geometry_object**: GeometryObject
+  | Object to which this wall belongs.
+
+* | **wall_index**: int
+  | Index of this wall in the object to which this wall belongs.
+
+* | **vertices**: List[Vec3]
+  | Vertices of the triangle that represents this wall.
+
+* | **area**: float
+
+* | **unit_normal**: Vec3
+  | Normal of this wall with unit length of 1 um.
+  | To get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal.
+
+* | **is_movable**: bool = True
+  | If True, whis wall can be moved through Model.apply_vertex_moves,
+  | if False, wall moves are ignored.
+
+Molecule
+========
+
+This is a Python representation of a molecule obtained from Model 
+during simulation.
+
+Attributes:
+***********
+* | **id**: int = ID_INVALID
+  | Unique id of this molecule
+
+* | **type**: MoleculeType = MoleculeType.UNSET
+
+* | **species_id**: int = ID_INVALID
+  | Species id of this molecule.
+  | The id value is only temporary and can be invalidated by simulating an iteration.
+
+* | **pos3d**: Vec3 = None
+  | Contains position of a molecule in 3D space.
+
+* | **orientation**: Orientation = Orientation.NOT_SET
+  | Contains orientation for surface molecule. Volume molecules 
+  | have always orientation set to Orientation.NONE.
+
+* | **pos2d**: Vec2 = None
+  | Set only for surface molecules.
+
+* | **geometry_object**: GeometryObject = None
+  | Set only for surface molecules.
+  | Object on whose surface is the molecule located.
+
+* | **wall_index**: int = -1
+  | Set only for surface molecules.
+  | Index of wall belonging to the geometry_object where is the 
+  | molecule located.
+
+
+Methods:
+*********
+* | **remove**
+
+
+  | Removes this molecule from simulation. Any subsequent modifications
+  | of this object won't have any effect.
 
 
 

@@ -1,6 +1,27 @@
 ****************
 Simulation setup
 ****************
+Warnings
+========
+
+This is a placeholder for future warnings settings. Empty for now.
+
+Notifications
+=============
+
+Attributes:
+***********
+* | **bng_verbosity_level**: int = 0
+  | Sets verbosity level that enables printouts of extra information on BioNetGen 
+  | species and rules created and used during simulation.
+
+* | **rxn_and_species_report**: bool = True
+  | Simulation generates files rxn_report_SEED.txt species_report_SEED.txt that contain
+  | details on reaction classes and species that were created based on reaction rules.
+
+* | **simulation_stats_every_n_iterations**: int = 0
+  | When set to a value other than 0, internal simulation stats will be printed.
+
 Config
 ======
 
@@ -99,25 +120,4 @@ Attributes:
   | MCell registers a SIGALRM signal handler. When SIGALRM signal is received and 
   | continue_after_sigalrm is False, checkpoint is stored and simulation is terminated. 
   | When continue_after_sigalrm is True, checkpoint is stored and simulation continues.
-
-Warnings
-========
-
-This is a placeholder for future warnings settings. Empty for now.
-
-Notifications
-=============
-
-Attributes:
-***********
-* | **bng_verbosity_level**: int = 0
-  | Sets verbosity level that enables printouts of extra information on BioNetGen 
-  | species and rules created and used during simulation.
-
-* | **rxn_and_species_report**: bool = True
-  | Simulation generates files rxn_report_SEED.txt species_report_SEED.txt that contain
-  | details on reaction classes and species that were created based on reaction rules.
-
-* | **simulation_stats_every_n_iterations**: int = 0
-  | When set to a value other than 0, internal simulation stats will be printed.
 

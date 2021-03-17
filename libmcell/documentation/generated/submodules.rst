@@ -1,24 +1,17 @@
 **********
 Submodules
 **********
-geometry_utils
-==============
+bngl_utils
+==========
 
 
 Methods:
 *********
-* | **create_box**
+* | **load_bngl_parameters**
 
-   * | name: str
-     | Name of the created geometry object
-
-   * | edge_length: float
-     | Specifies length of each edge of the box.
-
-   * | return type: GeometryObject
-
-
-  | Creates a GeometryObject whose center is at (0, 0, 0).
+   * | file_name: str
+   * | parameter_overrides: Dict[str, float] = None
+   * | return type: Dict[str, float]
 
 
 
@@ -51,17 +44,24 @@ Methods:
 
 
 
-bngl_utils
-==========
+geometry_utils
+==============
 
 
 Methods:
 *********
-* | **load_bngl_parameters**
+* | **create_box**
 
-   * | file_name: str
-   * | parameter_overrides: Dict[str, float] = None
-   * | return type: Dict[str, float]
+   * | name: str
+     | Name of the created geometry object
+
+   * | edge_length: float
+     | Specifies length of each edge of the box.
+
+   * | return type: GeometryObject
+
+
+  | Creates a GeometryObject whose center is at (0, 0, 0).
 
 
 

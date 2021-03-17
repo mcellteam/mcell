@@ -127,11 +127,12 @@ class Shape(Enum):
 
 class SurfacePropertyType(Enum):
     UNSET = 0
-    REFLECTIVE = 1
-    TRANSPARENT = 2
-    ABSORPTIVE = 3
-    CONCENTRATION_CLAMP = 4
-    FLUX_CLAMP = 5
+    REACTIVE = 1
+    REFLECTIVE = 2
+    TRANSPARENT = 3
+    ABSORPTIVE = 4
+    CONCENTRATION_CLAMP = 5
+    FLUX_CLAMP = 6
 
 class ExprNodeType(Enum):
     UNSET = 0

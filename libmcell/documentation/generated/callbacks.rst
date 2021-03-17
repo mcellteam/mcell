@@ -1,6 +1,33 @@
 *********
 Callbacks
 *********
+MolWallHitInfo
+==============
+
+Attributes:
+***********
+* | **molecule_id**: int
+
+* | **geometry_object**: GeometryObject
+  | Object that was hit.
+
+* | **wall_index**: int
+  | Index of wall belonging to the geometry_object.
+
+* | **time**: float
+  | Time of the hit
+
+* | **pos3d**: Vec3
+  | Position of the hit
+
+* | **time_before_hit**: float
+  | Time when the molecule started to diffuse towards the hit wall. 
+  | It is either the start of the molecule's diffusion or 
+  | if a wall was hit later then the time of last wall hit.
+
+* | **pos3d_before_hit**: Vec3
+  | Position of the molecule at time_before_hit
+
 ReactionInfo
 ============
 
@@ -52,31 +79,4 @@ Attributes:
   | specific meaning depends on the reaction type\:
   | - unimolecular reaction - position of the reacting molecule,
   | - volume-surface and surface-surface reaction - position of the second reactant.
-
-MolWallHitInfo
-==============
-
-Attributes:
-***********
-* | **molecule_id**: int
-
-* | **geometry_object**: GeometryObject
-  | Object that was hit.
-
-* | **wall_index**: int
-  | Index of wall belonging to the geometry_object.
-
-* | **time**: float
-  | Time of the hit
-
-* | **pos3d**: Vec3
-  | Position of the hit
-
-* | **time_before_hit**: float
-  | Time when the molecule started to diffuse towards the hit wall. 
-  | It is either the start of the molecule's diffusion or 
-  | if a wall was hit later then the time of last wall hit.
-
-* | **pos3d_before_hit**: Vec3
-  | Position of the molecule at time_before_hit
 

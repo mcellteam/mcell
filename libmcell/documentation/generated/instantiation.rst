@@ -1,75 +1,6 @@
 *************
 Instantiation
 *************
-Instantiation
-=============
-
-Attributes:
-***********
-* | **release_sites**: List[ReleaseSite] = None
-
-* | **geometry_objects**: List[GeometryObject] = None
-
-* | **checkpointed_molecules**: List[BaseChkptMol] = None
-  | Used when resuming simulation from a checkpoint.
-
-
-Methods:
-*********
-* | **add_release_site**
-
-   * | s: ReleaseSite
-
-  | Makes a copy of the release site
-
-
-* | **find_release_site**
-
-   * | name: str
-   * | return type: ReleaseSite
-
-
-* | **add_geometry_object**
-
-   * | o: GeometryObject
-
-  | Makes a copy of the geometry object, in the future we will probably add some transformations
-
-
-* | **find_geometry_object**
-
-   * | name: str
-   * | return type: GeometryObject
-
-
-* | **find_volume_compartment_object**
-
-   * | name: str
-   * | return type: GeometryObject
-
-
-* | **find_surface_compartment_object**
-
-   * | name: str
-   * | return type: GeometryObject
-
-
-* | **load_bngl_seed_species**
-
-   * | file_name: str
-   * | default_release_region: Region = None
-     | Used for seed species that have no compartments specified
-
-   * | parameter_overrides: Dict[str, float] = None
-
-  | Loads section seed species from a BNGL file and creates release sites according to it.
-  | All elementary molecule types used in the seed species section must be already defined in subsystem.
-  | If an item in the BNGL seed species section does not have its compartment set,
-  | the argument default_region must be set and the molecules are released into or onto the 
-  | default_region.
-
-
-
 ReleasePattern
 ==============
 
@@ -156,22 +87,74 @@ Attributes:
 
 * | **release_probability**: float = None
 
-InitialSurfaceRelease
-=====================
-
-Defines molecules to be released onto a SurfaceRegion right when simulation starts
+Instantiation
+=============
 
 Attributes:
 ***********
-* | **complex**: Complex
+* | **release_sites**: List[ReleaseSite] = None
 
-* | **number_to_release**: int = None
-  | Number of molecules to be released onto a region,
-  | only one of number_to_release and density can be set.
+* | **geometry_objects**: List[GeometryObject] = None
 
-* | **density**: float = None
-  | Density of molecules to be released onto a region,
-  | only one of number_to_release and density can be set.
+* | **checkpointed_molecules**: List[BaseChkptMol] = None
+  | Used when resuming simulation from a checkpoint.
+
+
+Methods:
+*********
+* | **add_release_site**
+
+   * | s: ReleaseSite
+
+  | Makes a copy of the release site
+
+
+* | **find_release_site**
+
+   * | name: str
+   * | return type: ReleaseSite
+
+
+* | **add_geometry_object**
+
+   * | o: GeometryObject
+
+  | Makes a copy of the geometry object, in the future we will probably add some transformations
+
+
+* | **find_geometry_object**
+
+   * | name: str
+   * | return type: GeometryObject
+
+
+* | **find_volume_compartment_object**
+
+   * | name: str
+   * | return type: GeometryObject
+
+
+* | **find_surface_compartment_object**
+
+   * | name: str
+   * | return type: GeometryObject
+
+
+* | **load_bngl_seed_species**
+
+   * | file_name: str
+   * | default_release_region: Region = None
+     | Used for seed species that have no compartments specified
+
+   * | parameter_overrides: Dict[str, float] = None
+
+  | Loads section seed species from a BNGL file and creates release sites according to it.
+  | All elementary molecule types used in the seed species section must be already defined in subsystem.
+  | If an item in the BNGL seed species section does not have its compartment set,
+  | the argument default_region must be set and the molecules are released into or onto the 
+  | default_region.
+
+
 
 MoleculeReleaseInfo
 ===================
@@ -190,4 +173,21 @@ Attributes:
   | If a molecule has a 2D diffusion constant, it will be
   | placed on the surface closest to the coordinate given. 
   | Argument must have exactly three floating point values.
+
+InitialSurfaceRelease
+=====================
+
+Defines molecules to be released onto a SurfaceRegion right when simulation starts
+
+Attributes:
+***********
+* | **complex**: Complex
+
+* | **number_to_release**: int = None
+  | Number of molecules to be released onto a region,
+  | only one of number_to_release and density can be set.
+
+* | **density**: float = None
+  | Density of molecules to be released onto a region,
+  | only one of number_to_release and density can be set.
 

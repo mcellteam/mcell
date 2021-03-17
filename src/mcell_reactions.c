@@ -1721,14 +1721,6 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
       ++(*num_vol_mols);
     }
 
-    /* Sanity check this reactant */
-    if (reactant_species->flags & IS_SURFACE) {
-      mcell_error("surface class can be listed only as the last reactant on "
-                  "the left-hand side of the reaction with the preceding '@' "
-                  "sign.");
-      return MCELL_FAIL;
-    }
-
     /* Copy in reactant info */
     switch (reactant_idx) {
     case 0:

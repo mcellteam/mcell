@@ -84,6 +84,7 @@ void define_pybinding_enums(py::module& m) {
     .export_values();
   py::enum_<SurfacePropertyType>(m, "SurfacePropertyType", py::arithmetic())
     .value("UNSET", SurfacePropertyType::UNSET)
+    .value("REACTIVE", SurfacePropertyType::REACTIVE)
     .value("REFLECTIVE", SurfacePropertyType::REFLECTIVE)
     .value("TRANSPARENT", SurfacePropertyType::TRANSPARENT)
     .value("ABSORPTIVE", SurfacePropertyType::ABSORPTIVE)

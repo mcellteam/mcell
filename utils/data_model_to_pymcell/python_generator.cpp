@@ -483,8 +483,7 @@ void PythonGenerator::get_surface_class_property_info(
     clamp_concentration = property[KEY_CLAMP_VALUE].asString();
   }
   else if (surf_class_type == "") {
-    ERROR("Type/property of surface class '" + sc_name + "' is not set, this is not allowed in MCell4, "
-        "each surface class must have at least one property.");
+    type_name = NAME_EV_REACTIVE;
   }
   else {
     ERROR(S("Invalid type/property ") + KEY_SURF_CLASS_TYPE + " " + surf_class_type +

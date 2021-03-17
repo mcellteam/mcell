@@ -1,30 +1,50 @@
 *********
 Subsystem
 *********
-ElementaryMolecule
-==================
+ElementaryMoleculeType
+======================
 
 Attributes:
 ***********
-* | **elementary_molecule_type**: ElementaryMoleculeType
+* | **name**: str
 
-* | **components**: List[Component] = None
+* | **components**: List[ComponentType] = None
 
-* | **compartment_name**: str = None
-  | Corresponds to BNGL specification 'EM@COMP'. If a 2D/surface compartment is specified, the elementary moelcule must be of surface type. If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.
+* | **diffusion_constant_2d**: float = None
+  | This molecule is constrained to a surface and diffuses with diffusion constant D.
+
+* | **diffusion_constant_3d**: float = None
+  | This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+
+* | **custom_time_step**: float = None
+  | This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.
+
+* | **custom_space_step**: float = None
+  | This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
+
+* | **target_only**: bool = False
+  | This molecule will not initiate reactions when it runs into other molecules. This
+  | setting can speed up simulations when applied to a molecule at high concentrations 
+  | that reacts with a molecule at low concentrations (it is more efficient for
+  | the low-concentration molecule to trigger the reactions). This directive does
+  | not affect unimolecular reactions.
 
 
 Methods:
 *********
-* | **to_bngl_str**
+* | **inst**
 
-   * | with_compartment: bool = True
-     | Include compartment name in returned BNGL string.
+   * | components: List[Component] = None
+   * | compartment_name: str = None
+   * | return type: ElementaryMolecule
+
+
+* | **to_bngl_str**
 
    * | return type: str
 
 
-  | Creates a string that corresponds to its BNGL representation
+  | Creates a string that corresponds to its BNGL representation.
 
 
 
@@ -90,6 +110,146 @@ Methods:
 
 
 
+Subsystem
+=========
+
+Attributes:
+***********
+* | **species**: List[Species] = None
+
+* | **reaction_rules**: List[ReactionRule] = None
+
+* | **surface_classes**: List[SurfaceClass] = None
+
+* | **elementary_molecule_types**: List[ElementaryMoleculeType] = None
+  | Used mainly when a BNGL file is loaded, if BNGL species is defined through 
+  | Python API, this array is populated automatically
+
+
+Methods:
+*********
+* | **add_species**
+
+   * | s: Species
+
+* | **find_species**
+
+   * | name: str
+   * | return type: Species
+
+
+* | **add_reaction_rule**
+
+   * | r: ReactionRule
+
+* | **find_reaction_rule**
+
+   * | name: str
+   * | return type: ReactionRule
+
+
+* | **add_surface_class**
+
+   * | sc: SurfaceClass
+
+* | **find_surface_class**
+
+   * | name: str
+   * | return type: SurfaceClass
+
+
+* | **add_elementary_molecule_type**
+
+   * | mt: ElementaryMoleculeType
+
+* | **find_elementary_molecule_type**
+
+   * | name: str
+   * | return type: ElementaryMoleculeType
+
+
+* | **load_bngl_molecule_types_and_reaction_rules**
+
+   * | file_name: str
+   * | parameter_overrides: Dict[str, float] = None
+
+  | Parses a BNGL file and only reads molecule types and
+  | reaction rules sections, e.g. ignores observables. 
+  | Parameter values are evaluated and the result value 
+  | is directly used.  
+  | Compartments names are stored in rxn rules as strings because
+  | compartments belong to geometry objects and the subsystem is independent
+  | on specific geometry.
+  | However they must be defined on initialization.
+
+
+
+ComponentType
+=============
+
+Attributes:
+***********
+* | **name**: str
+
+* | **states**: List[str] = None
+
+
+Methods:
+*********
+* | **inst**
+
+   * | state: str = STATE_UNSET
+   * | bond: int = BOND_UNBOUND
+   * | return type: Component
+
+
+* | **inst**
+
+   * | state: int = STATE_UNSET_INT
+   * | bond: int = BOND_UNBOUND
+   * | return type: Component
+
+
+* | **to_bngl_str**
+
+   * | return type: str
+
+
+  | Creates a string that corresponds to its BNGL representation.
+
+
+
+SurfaceClass
+============
+
+Defining a surface class allows surfaces to behave like species (in a limited way).
+
+Attributes:
+***********
+* | **name**: str
+  | Name of the surface class
+
+* | **properties**: List[SurfaceProperty] = None
+  | A surface class can either have a list of properties or just one property.
+  | In the usual case of having one property, one can set the attributes 
+  | type, affected_species, etc. inherited from SurfaceProperty directly.
+
+* | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
+  | Must be set.
+
+* | **affected_complex_pattern**: Complex = None
+  | A complex pattern with optional orientation must be set.
+  | Default orientation means that the pattern matches any orientation.
+  | For concentration or flux clamp the orientation specifies on which side  
+  | will be the concentration held 
+  | (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
+  | The complex pattern must not have any compartment.
+
+* | **concentration**: float = None
+  | Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 
+  | SurfacePropertyType.CLAMP_FLUX. Represents concentration of the imagined opposide side 
+  | of the wall that has this concentration or flux clamped.
+
 ReactionRule
 ============
 
@@ -151,6 +311,81 @@ Methods:
 
 
   | Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.
+
+
+
+ElementaryMolecule
+==================
+
+Attributes:
+***********
+* | **elementary_molecule_type**: ElementaryMoleculeType
+
+* | **components**: List[Component] = None
+
+* | **compartment_name**: str = None
+  | Corresponds to BNGL specification 'EM@COMP'. If a 2D/surface compartment is specified, the elementary moelcule must be of surface type. If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.
+
+
+Methods:
+*********
+* | **to_bngl_str**
+
+   * | with_compartment: bool = True
+     | Include compartment name in returned BNGL string.
+
+   * | return type: str
+
+
+  | Creates a string that corresponds to its BNGL representation
+
+
+
+SurfaceProperty
+===============
+
+Attributes:
+***********
+* | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
+  | Must be set.
+
+* | **affected_complex_pattern**: Complex = None
+  | A complex pattern with optional orientation must be set.
+  | Default orientation means that the pattern matches any orientation.
+  | For concentration or flux clamp the orientation specifies on which side  
+  | will be the concentration held 
+  | (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
+  | The complex pattern must not have any compartment.
+
+* | **concentration**: float = None
+  | Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 
+  | SurfacePropertyType.CLAMP_FLUX. Represents concentration of the imagined opposide side 
+  | of the wall that has this concentration or flux clamped.
+
+Component
+=========
+
+Instance of a component belonging to a molecule instance.
+A component instance may have its state set.
+It is also used to connect molecule instance in a complex instance.
+
+Attributes:
+***********
+* | **component_type**: ComponentType
+
+* | **state**: str = STATE_UNSET
+
+* | **bond**: int = BOND_UNBOUND
+
+
+Methods:
+*********
+* | **to_bngl_str**
+
+   * | return type: str
+
+
+  | Creates a string that corresponds to its BNGL representation.
 
 
 
@@ -271,241 +506,6 @@ Methods:
   | Returns a Species object based on this Complex. All species-specific 
   | attributes are set to their default values and 'name' is set to value returned by 
   | 'to_bngl_str()'.
-
-
-
-Subsystem
-=========
-
-Attributes:
-***********
-* | **species**: List[Species] = None
-
-* | **reaction_rules**: List[ReactionRule] = None
-
-* | **surface_classes**: List[SurfaceClass] = None
-
-* | **elementary_molecule_types**: List[ElementaryMoleculeType] = None
-  | Used mainly when a BNGL file is loaded, if BNGL species is defined through 
-  | Python API, this array is populated automatically
-
-
-Methods:
-*********
-* | **add_species**
-
-   * | s: Species
-
-* | **find_species**
-
-   * | name: str
-   * | return type: Species
-
-
-* | **add_reaction_rule**
-
-   * | r: ReactionRule
-
-* | **find_reaction_rule**
-
-   * | name: str
-   * | return type: ReactionRule
-
-
-* | **add_surface_class**
-
-   * | sc: SurfaceClass
-
-* | **find_surface_class**
-
-   * | name: str
-   * | return type: SurfaceClass
-
-
-* | **add_elementary_molecule_type**
-
-   * | mt: ElementaryMoleculeType
-
-* | **find_elementary_molecule_type**
-
-   * | name: str
-   * | return type: ElementaryMoleculeType
-
-
-* | **load_bngl_molecule_types_and_reaction_rules**
-
-   * | file_name: str
-   * | parameter_overrides: Dict[str, float] = None
-
-  | Parses a BNGL file and only reads molecule types and
-  | reaction rules sections, e.g. ignores observables. 
-  | Parameter values are evaluated and the result value 
-  | is directly used.  
-  | Compartments names are stored in rxn rules as strings because
-  | compartments belong to geometry objects and the subsystem is independent
-  | on specific geometry.
-  | However they must be defined on initialization.
-
-
-
-SurfaceProperty
-===============
-
-Attributes:
-***********
-* | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
-  | Must be set.
-
-* | **affected_complex_pattern**: Complex = None
-  | A complex pattern with optional orientation must be set.
-  | Default orientation means that the pattern matches any orientation.
-  | For concentration or flux clamp the orientation specifies on which side  
-  | will be the concentration held 
-  | (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
-  | The complex pattern must not have any compartment.
-
-* | **concentration**: float = None
-  | Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 
-  | SurfacePropertyType.CLAMP_FLUX. Represents concentration of the imagined opposide side 
-  | of the wall that has this concentration or flux clamped.
-
-SurfaceClass
-============
-
-Defining a surface class allows surfaces to behave like species (in a limited way).
-
-Attributes:
-***********
-* | **name**: str
-  | Name of the surface class
-
-* | **properties**: List[SurfaceProperty] = None
-  | A surface class can either have a list of properties or just one property.
-  | In the usual case of having one property, one can set the attributes 
-  | type, affected_species, etc. inherited from SurfaceProperty directly.
-
-* | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
-  | Must be set.
-
-* | **affected_complex_pattern**: Complex = None
-  | A complex pattern with optional orientation must be set.
-  | Default orientation means that the pattern matches any orientation.
-  | For concentration or flux clamp the orientation specifies on which side  
-  | will be the concentration held 
-  | (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
-  | The complex pattern must not have any compartment.
-
-* | **concentration**: float = None
-  | Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 
-  | SurfacePropertyType.CLAMP_FLUX. Represents concentration of the imagined opposide side 
-  | of the wall that has this concentration or flux clamped.
-
-Component
-=========
-
-Instance of a component belonging to a molecule instance.
-A component instance may have its state set.
-It is also used to connect molecule instance in a complex instance.
-
-Attributes:
-***********
-* | **component_type**: ComponentType
-
-* | **state**: str = STATE_UNSET
-
-* | **bond**: int = BOND_UNBOUND
-
-
-Methods:
-*********
-* | **to_bngl_str**
-
-   * | return type: str
-
-
-  | Creates a string that corresponds to its BNGL representation.
-
-
-
-ComponentType
-=============
-
-Attributes:
-***********
-* | **name**: str
-
-* | **states**: List[str] = None
-
-
-Methods:
-*********
-* | **inst**
-
-   * | state: str = STATE_UNSET
-   * | bond: int = BOND_UNBOUND
-   * | return type: Component
-
-
-* | **inst**
-
-   * | state: int = STATE_UNSET_INT
-   * | bond: int = BOND_UNBOUND
-   * | return type: Component
-
-
-* | **to_bngl_str**
-
-   * | return type: str
-
-
-  | Creates a string that corresponds to its BNGL representation.
-
-
-
-ElementaryMoleculeType
-======================
-
-Attributes:
-***********
-* | **name**: str
-
-* | **components**: List[ComponentType] = None
-
-* | **diffusion_constant_2d**: float = None
-  | This molecule is constrained to a surface and diffuses with diffusion constant D.
-
-* | **diffusion_constant_3d**: float = None
-  | This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
-
-* | **custom_time_step**: float = None
-  | This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.
-
-* | **custom_space_step**: float = None
-  | This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
-
-* | **target_only**: bool = False
-  | This molecule will not initiate reactions when it runs into other molecules. This
-  | setting can speed up simulations when applied to a molecule at high concentrations 
-  | that reacts with a molecule at low concentrations (it is more efficient for
-  | the low-concentration molecule to trigger the reactions). This directive does
-  | not affect unimolecular reactions.
-
-
-Methods:
-*********
-* | **inst**
-
-   * | components: List[Component] = None
-   * | compartment_name: str = None
-   * | return type: ElementaryMolecule
-
-
-* | **to_bngl_str**
-
-   * | return type: str
-
-
-  | Creates a string that corresponds to its BNGL representation.
 
 
 

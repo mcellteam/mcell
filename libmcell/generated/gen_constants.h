@@ -147,17 +147,19 @@ static inline std::ostream& operator << (std::ostream& out, const Shape v) {
 
 enum class SurfacePropertyType {
   UNSET = 0,
-  REFLECTIVE = 1,
-  TRANSPARENT = 2,
-  ABSORPTIVE = 3,
-  CONCENTRATION_CLAMP = 4,
-  FLUX_CLAMP = 5
+  REACTIVE = 1,
+  REFLECTIVE = 2,
+  TRANSPARENT = 3,
+  ABSORPTIVE = 4,
+  CONCENTRATION_CLAMP = 5,
+  FLUX_CLAMP = 6
 };
 
 
 static inline std::ostream& operator << (std::ostream& out, const SurfacePropertyType v) {
   switch (v) {
     case SurfacePropertyType::UNSET: out << "m.SurfacePropertyType.UNSET"; break;
+    case SurfacePropertyType::REACTIVE: out << "m.SurfacePropertyType.REACTIVE"; break;
     case SurfacePropertyType::REFLECTIVE: out << "m.SurfacePropertyType.REFLECTIVE"; break;
     case SurfacePropertyType::TRANSPARENT: out << "m.SurfacePropertyType.TRANSPARENT"; break;
     case SurfacePropertyType::ABSORPTIVE: out << "m.SurfacePropertyType.ABSORPTIVE"; break;

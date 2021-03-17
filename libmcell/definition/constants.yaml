@@ -167,20 +167,25 @@ enums:
     values:
     - name: UNSET
       value: 0
-    - name: REFLECTIVE
+    - name: REACTIVE
       value: 1
-    - name: TRANSPARENT
+      doc: |
+         This surface class does not do anything by itself but it can be used as a reactant in 
+         reaction rules. 
+    - name: REFLECTIVE
       value: 2
-    - name: ABSORPTIVE
+    - name: TRANSPARENT
       value: 3
+    - name: ABSORPTIVE
+      value: 4
     - name: CONCENTRATION_CLAMP
-      value: 4 
+      value: 5 
       doc: | 
          Clamps concentration at a surface by periodically releasing molecules that correspond
          to the wall being a transparent boundary to area with given concentration, 
          and by absorbing all molecules that hit this surface.  
     - name: FLUX_CLAMP
-      value: 5 
+      value: 6 
       doc: | 
          Clamps flux at a surface by periodically releasing molecules that correspond
          to the wall being a transparent boundary to area with given concentration. 

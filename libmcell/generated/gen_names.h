@@ -325,6 +325,7 @@ const char* const NAME_EV_LEAF_SURFACE_REGION = "LEAF_SURFACE_REGION";
 const char* const NAME_EV_LIST = "LIST";
 const char* const NAME_EV_NONE = "NONE";
 const char* const NAME_EV_NOT_SET = "NOT_SET";
+const char* const NAME_EV_REACTIVE = "REACTIVE";
 const char* const NAME_EV_REFLECTIVE = "REFLECTIVE";
 const char* const NAME_EV_REGION_EXPR = "REGION_EXPR";
 const char* const NAME_EV_SPHERICAL = "SPHERICAL";
