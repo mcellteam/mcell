@@ -251,7 +251,8 @@ public:
       const std::string ind = "  ",
       const uint64_t iteration = 0,
       const float_t time = 0,
-      const bool print_position = true
+      const bool print_position = true,
+      const bool print_flags = false
   ) const;
   std::string to_string() const;
   static void dump_array(const std::vector<Molecule>& vec);

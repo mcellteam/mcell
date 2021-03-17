@@ -78,7 +78,8 @@ void Molecule::dump(
     const string ind,
     const uint64_t iteration,
     const float_t time,
-    const bool print_position
+    const bool print_position,
+    const bool print_flags
 ) const {
   cout
     << ind << extra_comment << "it: " << iteration << ", id: " << id
@@ -98,8 +99,10 @@ void Molecule::dump(
       cout << ", grid index: " << s.grid_tile_index;
     }
   }
-  cout
-    << ", flags: " << get_molecule_flags_string(flags, false);
+  if (print_flags) {
+    cout  << ", flags: " << get_molecule_flags_string(flags, false);
+  }
+
 #ifdef DEBUG_SUBPARTITIONS
   IVec3 indices;
   p.get_subpart_3d_indices_from_index(v.subpart_index, indices);

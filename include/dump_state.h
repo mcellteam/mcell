@@ -63,7 +63,8 @@ void dump_surface_molecule(
     const char* extra_comment,
     unsigned long long iteration,
     double time,
-    bool print_position
+    bool print_position,
+    bool print_flags = false
 );
 
 void dump_volume_molecule(
@@ -73,7 +74,8 @@ void dump_volume_molecule(
     const char* extra_comment,
     unsigned long long iteration,
     double time,
-    bool print_position
+    bool print_position,
+    bool print_flags = false
 );
 
 void dump_object_list(geom_object* obj, const char* name, const char* comment, const char* ind);

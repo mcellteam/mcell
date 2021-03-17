@@ -2214,7 +2214,8 @@ void dump_volume_molecule(
     const char* extra_comment,
     unsigned long long iteration,
     double time,
-    bool print_position
+    bool print_position,
+    bool print_flags
 ) {
   if (!for_diff) {
     cout << ind << "id: \t\t" << vm->id << " [u_long] \t\t\n";
@@ -2234,7 +2235,10 @@ void dump_volume_molecule(
     if (print_position) {
       cout << ", pos: " << vm->pos;
     }
-    cout << ", flags: " << get_molecule_flags_string(vm->flags, false) << ", time: " << time << "\n";
+    if (print_flags) {
+      cout << ", flags: " << get_molecule_flags_string(vm->flags, false);
+    }
+    cout << ", time: " << time << "\n";
   }
 }
 
@@ -2245,7 +2249,8 @@ void dump_surface_molecule(
     const char* extra_comment,
     unsigned long long iteration,
     double time,
-    bool print_position
+    bool print_position,
+    bool print_flags
 ) {
   if (!for_diff) {
     cout << ind << "id: \t\t" << sm->id << " [u_long] \t\t\n";
@@ -2267,7 +2272,10 @@ void dump_surface_molecule(
             << ", wall side: " << ((sm->grid == nullptr || sm->grid->surface == nullptr) ? -1 : sm->grid->surface->side)
             << ", grid index: " << sm->grid_index;
     }
-    cout << ", flags: " << get_molecule_flags_string(sm->flags, false) << ", time: " << time << "\n";
+    if (print_flags) {
+      cout << ", flags: " << get_molecule_flags_string(sm->flags, false);
+    }
+    cout << ", time: " << time << "\n";
   }
 }
 
