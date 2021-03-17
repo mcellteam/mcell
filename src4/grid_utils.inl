@@ -753,7 +753,7 @@ grid_all_neighbors_across_walls_through_vertices:
 ****************************************************************************/
 static void grid_all_neighbors_across_walls_through_vertices(
     Partition& p,
-    const Molecule& sm,
+    const Molecule* sm, // may be nullptr, not used currently but should be
     const wall_indices_t& neighboring_walls,
     const Wall& wall,
     bool create_grid_flag,
@@ -1272,7 +1272,7 @@ grid_all_neighbors_across_walls_through_edges:
 ****************************************************************************/
 static void grid_all_neighbors_across_walls_through_edges(
     Partition& p,
-    const Molecule& sm,
+    const Molecule* sm, // may be nullptr
     const Wall& wall,
     const tile_index_t tile_index,
     bool create_grid_flag,
@@ -1307,18 +1307,20 @@ static void grid_all_neighbors_across_walls_through_edges(
   /* check for possible reflection (absorption) from the wall edges
      that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
      checks against molecule's own wall and neighbor wall */
-  const BNG::Species& species = p.get_all_species().get(sm.species_id);
-  if (search_for_reactant && species.can_interact_with_border()) {
-    assert(sm.s.wall_index == wall.index);
-
-    uint_set<region_index_t> regions;
-    WallUtil::find_restricted_regions_by_wall(p, wall, sm, regions);
-
-    move_thru_border_0 = check_if_can_move_through_border(p, sm, wall, regions, nb_walls[0]);
-    move_thru_border_1 = check_if_can_move_through_border(p, sm, wall, regions, nb_walls[1]);
-    move_thru_border_2 = check_if_can_move_through_border(p, sm, wall, regions, nb_walls[2]);
+  if (sm != nullptr) {
+    const BNG::Species& species = p.get_all_species().get(sm->species_id);
+    if (search_for_reactant && species.can_interact_with_border()) {
+      assert(sm->s.wall_index == wall.index);
+  
+      uint_set<region_index_t> regions;
+      WallUtil::find_restricted_regions_by_wall(p, wall, *sm, regions);
+  
+      move_thru_border_0 = check_if_can_move_through_border(p, *sm, wall, regions, nb_walls[0]);
+      move_thru_border_1 = check_if_can_move_through_border(p, *sm, wall, regions, nb_walls[1]);
+      move_thru_border_2 = check_if_can_move_through_border(p, *sm, wall, regions, nb_walls[2]);
+    }
   }
-
+  
   /* find (strip, stripe, flip) coordinates of the tile */
   root = (int)(sqrt_f((float_t)tile_index));
   rootrem = tile_index - root * root;
@@ -1648,7 +1650,6 @@ grid_all_neighbors_for_inner_tile:
 *****************************************************************************/
 static void grid_all_neighbors_for_inner_tile(
     Partition& p,
-    const Molecule& sm,
     const Wall& wall,
     tile_index_t tile_index,
     const Vec2& pos,
@@ -1731,7 +1732,7 @@ static void grid_all_neighbors_for_inner_tile(
 
 static wall_index_t find_neighbor_tiles(
     Partition& p,
-    const Molecule& sm,
+    const Molecule* sm, // may be nullptr
     const Wall& wall,
     tile_index_t tile_index,
     bool create_grid_flag,
@@ -1744,7 +1745,7 @@ static wall_index_t find_neighbor_tiles(
   if (is_inner_tile(grid, tile_index)) {
 
     Vec2 pos = grid2uv(wall, tile_index);
-    grid_all_neighbors_for_inner_tile(p, sm, wall, tile_index, pos, neighbors);
+    grid_all_neighbors_for_inner_tile(p, wall, tile_index, pos, neighbors);
   }
   else {
     if (is_corner_tile(grid, tile_index)) {

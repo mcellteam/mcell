@@ -941,7 +941,7 @@ static float_t __attribute__((noinline)) exact_disk(
     /* Reject those that the moving particle can travel through */
     if (moving.has_flag(BNG::SPECIES_FLAG_CAN_VOLWALL)) {
       BNG::RxnClassesVector matching_rxn_classes;
-      RxnUtil::trigger_intersect(p, moving, w, matching_rxn_classes);
+      RxnUtil::trigger_intersect(p, moving, ORIENTATION_NONE, w, matching_rxn_classes);
 
       if (matching_rxn_classes.empty()) {
         continue;

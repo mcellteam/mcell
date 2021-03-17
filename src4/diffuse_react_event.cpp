@@ -971,13 +971,16 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
     const float_t elapsed_molecule_time,
     const float_t t_steps
 ) {
+  assert(collision.type == CollisionType::WALL_FRONT || collision.type == CollisionType::WALL_BACK);
+
   Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
   assert(diffused_molecule.is_vol());
 
   Wall& wall = p.get_wall(collision.colliding_wall_index);
 
   RxnClassesVector matching_rxn_classes;
-  RxnUtil::trigger_intersect(p, diffused_molecule, wall, matching_rxn_classes);
+  orientation_t orient = (collision.type == CollisionType::WALL_FRONT) ? ORIENTATION_UP : ORIENTATION_DOWN;
+  RxnUtil::trigger_intersect(p, diffused_molecule, orient, wall, matching_rxn_classes);
   if (matching_rxn_classes.empty() ||
       (matching_rxn_classes.size() == 1 && matching_rxn_classes[0]->type == BNG::RxnType::Reflect)) {
     return WallRxnResult::Reflect;
@@ -1210,7 +1213,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   const Wall& wall = p.get_wall(sm.s.wall_index);
 
   TileNeighborVector neighbors;
-  GridUtil::find_neighbor_tiles(p, sm, wall, sm.s.grid_tile_index, false, true, neighbors);
+  GridUtil::find_neighbor_tiles(p, &sm, wall, sm.s.grid_tile_index, false, true, neighbors);
 
   if (neighbors.empty()) {
     return true;
@@ -1913,6 +1916,7 @@ int DiffuseReactEvent::outcome_intersect(
 // returns 0 if positions were found
 int DiffuseReactEvent::find_surf_product_positions(
     Partition& p,
+    const Collision& collision,
     const BNG::RxnRule* rxn,
     const Molecule* reacA, const bool keep_reacA,
     const Molecule* reacB, const bool keep_reacB,
@@ -1987,11 +1991,25 @@ int DiffuseReactEvent::find_surf_product_positions(
   if (needed_surface_positions > recycled_surf_prod_positions.size()) {
     assert(surf_reac != nullptr);
 
-    // find neighbors for the first surface reactant
-    Wall& wall = p.get_wall(surf_reac->s.wall_index);
-    Grid& grid = wall.grid;
+    // find neighbors for the first surface reactant or the point where we hit the wall
     TileNeighborVector neighbor_tiles;
-    GridUtil::find_neighbor_tiles(p, *surf_reac, wall, surf_reac->s.grid_tile_index, true, false, neighbor_tiles);
+
+    if (surf_reac != nullptr) {
+      // rxn with surface molecule
+      Wall& wall = p.get_wall(surf_reac->s.wall_index);
+
+      GridUtil::find_neighbor_tiles(p, surf_reac, wall, surf_reac->s.grid_tile_index, true, false, neighbor_tiles);
+    }
+    else {
+      // rxn with surface class
+      assert(collision.is_wall_collision());
+      Wall& wall = p.get_wall(collision.colliding_wall_index);
+
+      tile_index_t tile_index = GridUtil::xyz2grid_tile_index(p, collision.pos, wall);
+
+      // TODO
+      GridUtil::find_neighbor_tiles(p, surf_reac, wall, tile_index, true, false, neighbor_tiles);
+    }
 
     // we care only about the vacant ones (NOTE: this filtering out might be done in find_neighbor_tiles)
     // mcell3 reverses the ordering here
@@ -2403,7 +2421,7 @@ int DiffuseReactEvent::outcome_products_random(
   assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
   keep_reacA = rxn->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0);
 
-  bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
+  bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf()) || collision.is_wall_collision();
 
   WallTileIndexPair surf_reac_wall_tile;
   assert(
@@ -2428,7 +2446,7 @@ int DiffuseReactEvent::outcome_products_random(
   bool surf_pos_reacA_is_used;
   if (is_orientable) {
     int res = find_surf_product_positions(
-        p, rxn, reacA, keep_reacA, reacB, keep_reacB, surf_reac, actual_products,
+        p, collision, rxn, reacA, keep_reacA, reacB, keep_reacB, surf_reac, actual_products,
         assigned_surf_product_positions, num_surface_products, surf_pos_reacA_is_used);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;

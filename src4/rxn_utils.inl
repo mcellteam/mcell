@@ -132,6 +132,7 @@ static void trigger_bimolecular_orientation_from_mols(
 static void find_reactions_with_surf_classes_for_rxn_class_map(
     const Partition& p,
     const Molecule& reacA,
+	const orientation_t reacA_orient,
     const Region& reg,
     const BNG::SpeciesRxnClassesMap& potential_reactions,
     BNG::RxnClassesVector& matching_rxn_classes
@@ -157,7 +158,7 @@ static void find_reactions_with_surf_classes_for_rxn_class_map(
   // TODO: can we move this condition to some shared function?
   if ( (orient0 == 0) ||
        (orient1 == 0 || (orient0 + orient1) * (orient0 - orient1) != 0) ||
-       (reacA.s.orientation * orient0 * orient1 > 0) ) {
+       (reacA_orient * orient0 * orient1 > 0) ) {
 
     matching_rxn_classes.push_back(rxn_class);
   }
@@ -186,6 +187,7 @@ static void find_reactions_with_surf_classes_for_rxn_class_map(
 static void find_volume_mol_reactions_with_surf_classes(
     Partition& p,
     const Molecule& reacA,
+	const orientation_t reacA_orient,
     const Wall& w,
     BNG::RxnClassesVector& matching_rxns
 ) {
@@ -214,7 +216,7 @@ static void find_volume_mol_reactions_with_surf_classes(
 
     if (species_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, reg,
+          p, reacA, reacA_orient, reg,
           *species_rxns,
           matching_rxns
       );
@@ -222,7 +224,7 @@ static void find_volume_mol_reactions_with_surf_classes(
 
     if (all_molecules_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, reg,
+          p, reacA, reacA_orient, reg,
           *all_molecules_rxns,
           matching_rxns
       );
@@ -230,7 +232,7 @@ static void find_volume_mol_reactions_with_surf_classes(
 
     if (all_vol_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, reg,
+          p, reacA, reacA_orient, reg,
           *all_vol_rxns,
           matching_rxns
       );
@@ -288,7 +290,7 @@ void find_surface_mol_reactions_with_surf_classes(
 
     if (species_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, reg,
+          p, reacA, reacA.s.orientation, reg,
           *species_rxns,
           matching_rxns
       );
@@ -296,7 +298,7 @@ void find_surface_mol_reactions_with_surf_classes(
 
     if (all_molecules_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, reg,
+          p, reacA, reacA.s.orientation, reg,
           *all_molecules_rxns,
           matching_rxns
       );
@@ -304,7 +306,7 @@ void find_surface_mol_reactions_with_surf_classes(
 
     if (all_surf_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, reg,
+          p, reacA, reacA.s.orientation, reg,
           *all_surf_rxns,
           matching_rxns
       );
@@ -332,11 +334,12 @@ trigger_intersect:
 static void trigger_intersect(
     Partition& p,
     const Molecule& reacA,
+	const orientation_t reacA_orient,
     const Wall& w,
     BNG::RxnClassesVector& matching_rxns
 ) {
   /*
-   * ??? how are unimol reactions related to molecule - surface reactions?
+   * TODO unimol reactions related to molecule - surface reactions
   if (w.in_reactive_region()) {
     num_matching_rxns = find_unimol_reactions_with_surf_classes(
         reaction_hash, rx_hashsize, reacA, w, hashA, orientA, num_matching_rxns,
@@ -347,10 +350,11 @@ static void trigger_intersect(
 
   if (reacA.is_vol()) {
     find_volume_mol_reactions_with_surf_classes(
-        p, reacA, w, matching_rxns
+        p, reacA, reacA_orient, w, matching_rxns
     );
   }
   else if (reacA.is_surf()) {
+	assert(reacA.s.orientation == reacA_orient);
     find_surface_mol_reactions_with_surf_classes(
         p, reacA, w, matching_rxns
     );

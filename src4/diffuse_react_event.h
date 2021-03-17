@@ -285,6 +285,7 @@ private:
   // ---------------------------------- reactions ----------------------------------
   int find_surf_product_positions(
       Partition& p,
+      const Collision& collision,
       const BNG::RxnRule* rxn,
       const Molecule* reacA, const bool keep_reacA,
       const Molecule* reacB, const bool keep_reacB,

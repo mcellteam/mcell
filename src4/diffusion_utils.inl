@@ -610,7 +610,7 @@ static void reflect_absorb_check_wall(
 ) {
   BNG::RxnClassesVector matching_rxns;
   RxnUtil::trigger_intersect(
-      p, sm, wall,
+      p, sm, sm.s.orientation, wall,
       matching_rxns
   );
 
