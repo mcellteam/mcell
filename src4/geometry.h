@@ -688,8 +688,8 @@ enum class GridPosType {
   NOT_ASSIGNED, // already holds information on position but not used by product
   REACA_UV,
   REACB_UV,
+  POS_UV,
   //USE_REACB_UV,
-  //USE_UV_LOC, ??
   RANDOM
 };
 
@@ -706,7 +706,17 @@ public:
       pos_is_set(false), pos(POS_INVALID) {
   }
 
-  static GridPos make_with_pos(const Partition& p, const Molecule& sm) {
+  static GridPos make_with_pos(const Vec2& pos, const WallTileIndexPair& wall_tile_index_pair) {
+    GridPos res;
+    res.type = GridPosType::NOT_ASSIGNED;
+    res.wall_index = wall_tile_index_pair.wall_index;
+    res.tile_index = wall_tile_index_pair.tile_index;
+    res.pos = pos;
+    res.pos_is_set = true;
+    return res;
+  }
+
+  static GridPos make_with_mol_pos(const Molecule& sm) {
     assert(sm.is_surf());
     assert(sm.s.pos.is_valid());
     GridPos res;
@@ -719,7 +729,7 @@ public:
     return res;
   }
 
-  static GridPos make_without_pos(const Partition& p, const WallTileIndexPair& wall_tile_index_pair) {
+  static GridPos make_without_pos(const WallTileIndexPair& wall_tile_index_pair) {
     assert(wall_tile_index_pair.tile_index != TILE_INDEX_INVALID);
     GridPos res;
 

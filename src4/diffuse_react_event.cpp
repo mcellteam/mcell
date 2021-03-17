@@ -1957,7 +1957,7 @@ int DiffuseReactEvent::find_surf_product_positions(
   // find which tiles can be recycled
   if (reacA->is_surf()) {
     if (!keep_reacA) {
-      recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacA) );
+      recycled_surf_prod_positions.push_back( GridPos::make_with_mol_pos(*reacA) );
       if (reacA->id == surf_reac->id) {
         initiator_recycled_index = 0;
       }
@@ -1970,7 +1970,7 @@ int DiffuseReactEvent::find_surf_product_positions(
 
   if (reacB != nullptr && reacB->is_surf()) {
     if (!keep_reacB) {
-      recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacB) );
+      recycled_surf_prod_positions.push_back( GridPos::make_with_mol_pos(*reacB) );
       if (reacB->id == surf_reac->id) {
         initiator_recycled_index = recycled_surf_prod_positions.size() - 1;
       }
@@ -1988,8 +1988,12 @@ int DiffuseReactEvent::find_surf_product_positions(
 
   // do we need more tiles?
   TileNeighborVector vacant_neighbor_tiles;
+
+  // these locations are set only for rxns with surface classes
+  Vec2 hit_wall_pos2d;
+  tile_index_t hit_wall_tile_index = UINT_INVALID;
+
   if (needed_surface_positions > recycled_surf_prod_positions.size()) {
-    assert(surf_reac != nullptr);
 
     // find neighbors for the first surface reactant or the point where we hit the wall
     TileNeighborVector neighbor_tiles;
@@ -2004,11 +2008,14 @@ int DiffuseReactEvent::find_surf_product_positions(
       // rxn with surface class
       assert(collision.is_wall_collision());
       Wall& wall = p.get_wall(collision.colliding_wall_index);
+      if (!wall.grid.is_initialized()) {
+        wall.grid.initialize(p, wall);
+      }
 
-      tile_index_t tile_index = GridUtil::xyz2grid_tile_index(p, collision.pos, wall);
+      hit_wall_pos2d = GeometryUtil::xyz2uv(p, collision.pos, wall);
+      hit_wall_tile_index = GridUtil::uv2grid_tile_index(hit_wall_pos2d, wall);
 
-      // TODO
-      GridUtil::find_neighbor_tiles(p, surf_reac, wall, tile_index, true, false, neighbor_tiles);
+      GridUtil::find_neighbor_tiles(p, nullptr, wall, hit_wall_tile_index, true, false, neighbor_tiles);
     }
 
     // we care only about the vacant ones (NOTE: this filtering out might be done in find_neighbor_tiles)
@@ -2112,10 +2119,53 @@ int DiffuseReactEvent::find_surf_product_positions(
       next_available_index++;
     }
 
-    // all other products are placed on one of the randomly chosen vacant tiles
     small_vector<bool> used_vacant_tiles;
     used_vacant_tiles.resize(vacant_neighbor_tiles.size(), false);
 
+    // assign the first surface product of vol+wall rxn to the position where we hit the wall
+    // MCell3 calls RNG and also allows to have multiple molecules to be placed on the same location,
+    // MCell4 allows only a single location
+    if (rxn->is_reactive_surface_rxn()) {
+      // get the first unassigned surface product
+      uint unassigned_product_index;
+      bool found_product_index = false;
+      for (unassigned_product_index = 0; unassigned_product_index < actual_products.size(); unassigned_product_index++) {
+        if (rxn->products[unassigned_product_index].is_surf() &&
+            !assigned_surf_product_positions[unassigned_product_index].is_assigned()) {
+          found_product_index = true;
+          break;
+        }
+      }
+      assert(found_product_index);
+
+      WallTileIndexPair wall_tile_indices = WallTileIndexPair(collision.colliding_wall_index, hit_wall_tile_index);
+#ifndef NDEBUG
+      // hit location must not be in vacant_neighbor_tiles
+      uint vacant_tile_index;
+      bool found_vacant_tile = false;
+      for (vacant_tile_index = 0; vacant_tile_index < vacant_neighbor_tiles.size(); vacant_tile_index++) {
+        if (vacant_neighbor_tiles[vacant_tile_index] == wall_tile_indices) {
+          found_vacant_tile = true;
+          break;
+        }
+      }
+      assert(!found_vacant_tile);
+#endif
+
+      // call rng to have the same output as MCell3
+      rng_uint(&world->rng);
+
+      // assign position if the location is available
+      const Wall& w = p.get_wall(wall_tile_indices.wall_index);
+      if (w.grid.get_molecule_on_tile(hit_wall_tile_index) == MOLECULE_ID_INVALID) {
+        // position was previously computed from wall and tile index
+        assigned_surf_product_positions[unassigned_product_index] =
+            GridPos::make_with_pos(hit_wall_pos2d, wall_tile_indices);
+        assigned_surf_product_positions[unassigned_product_index].set_reac_type(GridPosType::POS_UV);
+      }
+    }
+
+    // all other products are placed on one of the randomly chosen vacant tiles
     uint num_vacant_tiles = vacant_neighbor_tiles.size();
     for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
 
@@ -2147,7 +2197,7 @@ int DiffuseReactEvent::find_surf_product_positions(
           continue;
         }
 
-        assigned_surf_product_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
+        assigned_surf_product_positions[product_index] = GridPos::make_without_pos(grid_tile_index_pair);
         assigned_surf_product_positions[product_index].set_reac_type(GridPosType::RANDOM);
         used_vacant_tiles[rnd_num] = true;
         found = true;
@@ -2674,6 +2724,7 @@ int DiffuseReactEvent::outcome_products_random(
           }
           break;
         case GridPosType::REACB_UV:
+        case GridPosType::POS_UV:
           assert(new_grid_pos.pos_is_set);
           pos = new_grid_pos.pos;
           break;
