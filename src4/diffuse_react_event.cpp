@@ -2136,7 +2136,7 @@ int DiffuseReactEvent::find_surf_product_positions(
           break;
         }
       }
-      assert(found_product_index);
+      release_assert(found_product_index);
 
       WallTileIndexPair wall_tile_indices = WallTileIndexPair(collision.colliding_wall_index, hit_wall_tile_index);
 #ifndef NDEBUG

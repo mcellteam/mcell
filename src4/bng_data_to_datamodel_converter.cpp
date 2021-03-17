@@ -295,8 +295,13 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
 
 
 string BngDataToDatamodelConverter::get_surface_class_name(const BNG::RxnRule& r) {
-  const string& reactant_name = bng_engine->get_data().get_elem_mol_type(r.reactants[0].get_simple_species_mol_type_id()).name;
-  return DMUtil::remove_surf_class_prefix(reactant_name, r.name);
+  assert(r.is_bimol() && r.is_reactive_surface_rxn());
+  
+  uint idx = (r.reactants[0].is_reactive_surface()) ? 0 : 1;
+  assert(r.reactants[idx].is_simple());
+  // the name of the surface class is the name of the species/elem mol type
+  return
+      bng_engine->get_data().get_elem_mol_type(r.reactants[idx].get_simple_species_mol_type_id()).name;
 }
 
 
@@ -314,7 +319,7 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
   // find all rxn rules with the same name
   vector<const RxnRule*> rxns_belonging_to_surf_class;
   for (const RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
-    if (get_surface_class_name(*rxn_rule) == name) {
+    if (rxn_rule->is_reactive_surface_rxn() && get_surface_class_name(*rxn_rule) == name) {
       rxns_belonging_to_surf_class.push_back(rxn_rule);
     }
   }
@@ -349,7 +354,7 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
           sc_item[KEY_SURF_CLASS_TYPE] = VALUE_ABSORPTIVE;
         }
         else {
-          assert(false);
+          sc_item[KEY_SURF_CLASS_TYPE] = "";
         }
         break;
       default:
@@ -395,12 +400,13 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
         CHECK(convert_single_rxn_rule(*rxn_rule, rxn_node));
         reaction_list.append(rxn_node);
       }
-      else {
-        if (processed_surface_classes.count(get_surface_class_name(*rxn_rule)) == 0) {
-          Value surface_class;
-          CHECK(convert_single_surface_class(*rxn_rule, surface_class));
-          surface_class_list.append(surface_class);
-        }
+
+      // also register the surface class
+      if (rxn_rule->is_reactive_surface_rxn() &&
+          processed_surface_classes.count(get_surface_class_name(*rxn_rule)) == 0) {
+        Value surface_class;
+        CHECK(convert_single_surface_class(*rxn_rule, surface_class));
+        surface_class_list.append(surface_class);
       }
     }
     else if (rxn_rule->type == RxnType::Transparent || rxn_rule->type == RxnType::Reflect) {
