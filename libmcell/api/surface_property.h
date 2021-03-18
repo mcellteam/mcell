@@ -52,11 +52,17 @@ public:
       throw ValueError(S("Attribute '") + NAME_TYPE + "' of " +
           NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set.");
     }
-    if (!is_set(affected_complex_pattern)) {
+    if (!is_set(affected_complex_pattern) && type != SurfacePropertyType::REACTIVE) {
       throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
-      NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set.");
+      NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must be set when " +
+      NAME_TYPE + " is different from " + NAME_ENUM_SURFACE_PROPERTY_TYPE + "." + NAME_EV_REACTIVE + ".");
     }
-    if (is_set(affected_complex_pattern->compartment_name)) {
+    if (is_set(affected_complex_pattern) && type == SurfacePropertyType::REACTIVE) {
+      throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
+      NAME_CLASS_SURFACE_PROPERTY + " objects contained in " + NAME_CLASS_SURFACE_CLASS + " must not be set when " +
+      NAME_TYPE + " is " + NAME_ENUM_SURFACE_PROPERTY_TYPE + "." + NAME_EV_REACTIVE + ".");
+    }
+    if (is_set(affected_complex_pattern) && is_set(affected_complex_pattern->compartment_name)) {
       throw ValueError(S("Attribute '") + NAME_AFFECTED_COMPLEX_PATTERN + "' of " +
           NAME_CLASS_SURFACE_PROPERTY + " must not have a compartment specified.");
     }

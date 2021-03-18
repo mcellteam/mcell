@@ -2284,7 +2284,7 @@ std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name,
 std::string RxnRule::cplx_vector_to_str(const CplxVector& complexes) const {
   stringstream ss;
   for (size_t i = 0; i < complexes.size(); i++) {
-    ss << complexes[i].to_str(is_surf_rxn());
+    ss << complexes[i].to_str(!is_vol_rxn());
 
     if (i != complexes.size() - 1) {
       ss << " + ";

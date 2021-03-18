@@ -106,7 +106,7 @@ static string check_surface_compartments(
   has_surf_mols_and_vol_compartments = false;
 
   // this is applicable only when there is a surface reactant
-  if (!r.is_surf_rxn()) {
+  if (r.is_vol_rxn()) {
     // 4. A volume reaction must not have surface products
     for (const Cplx& prod: r.products) {
       if (prod.is_surf()) {
@@ -306,7 +306,7 @@ static std::string set_reactants_orientations_from_compartment(
 
 
 static std::string set_products_orientations_that_may_depend_on_reactant_compartment(const BNGData& bng_data, RxnRule& r) {
-  assert(r.is_surf_rxn());
+  assert(!r.is_vol_rxn());
 
   // this is a reaction in the form S(s!1).V(v!1) -> V(s) + S(s)
 
@@ -341,7 +341,7 @@ static void remove_primary_surf_compartment_from_vol_reactant_elem_mols(const BN
   // example input: s(c!1)@PM.c(s!1)@PM -> s(c)@PM + c(s)@CP
   // output: s(c!1)@PM.c(s!1) -> s(c)@PM + c(s)@CP
 
-  if (!r.is_surf_rxn()) {
+  if (r.is_vol_rxn()) {
     return;
   }
 
@@ -378,7 +378,7 @@ std::string process_compartments_and_set_orientations(const BNGData& bng_data, R
           bng_data, r, surf_comp_id, reactants_use_in_out_compartments, has_surf_mols_and_vol_compartments)
   );
 
-  if (!r.is_surf_rxn()) {
+  if (r.is_vol_rxn()) {
     // nothing to do anymore for volume reactions, they orientations are NONE/ANY
     return "";
   }

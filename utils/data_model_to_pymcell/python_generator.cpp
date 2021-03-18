@@ -530,15 +530,19 @@ void PythonGenerator::generate_surface_classes(
             sc_name, surface_class_prop_item,
             name, type_name, affected_mols, orientation_name, clamp_concentration);
 
+        bool is_clamp = type_name == NAME_EV_CONCENTRATION_CLAMP || type_name == NAME_EV_FLUX_CLAMP;
+        bool has_affected_mols = affected_mols != "";
+
         sc_prop_names.push_back(name);
         data.check_if_already_defined_and_add(name, NAME_CLASS_SURFACE_PROPERTY);
         gen_ctor_call(out, name, NAME_CLASS_SURFACE_PROPERTY, true);
-        gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
+        gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, has_affected_mols || is_clamp);
 
-        bool is_clamp = type_name == NAME_EV_CONCENTRATION_CLAMP || type_name == NAME_EV_FLUX_CLAMP;
-        gen_param_expr(
-            out, NAME_AFFECTED_COMPLEX_PATTERN,
-            make_species_or_cplx(data, affected_mols, orientation_name), is_clamp);
+        if (has_affected_mols) {
+          gen_param_expr(
+              out, NAME_AFFECTED_COMPLEX_PATTERN,
+              make_species_or_cplx(data, affected_mols, orientation_name), is_clamp);
+        }
 
         if (is_clamp) {
           gen_param_expr(out, NAME_CONCENTRATION, clamp_concentration, false);
@@ -563,12 +567,16 @@ void PythonGenerator::generate_surface_classes(
           sc_name, surface_class_prop_list[0],
           name, type_name, affected_mols, orientation_name, clamp_concentration);
 
-      gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
-
       bool is_clamp = type_name == NAME_EV_CONCENTRATION_CLAMP || type_name == NAME_EV_FLUX_CLAMP;
-      gen_param_expr(
-          out, NAME_AFFECTED_COMPLEX_PATTERN,
-          make_species_or_cplx(data, affected_mols, orientation_name), is_clamp);
+      bool has_affected_mols = affected_mols != "";
+
+      gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, has_affected_mols || is_clamp);
+
+      if (has_affected_mols) {
+        gen_param_expr(
+            out, NAME_AFFECTED_COMPLEX_PATTERN,
+            make_species_or_cplx(data, affected_mols, orientation_name), is_clamp);
+      }
 
       if (is_clamp) {
         gen_param_expr(out, NAME_CONCENTRATION, clamp_concentration, false);

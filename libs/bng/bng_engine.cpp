@@ -115,7 +115,7 @@ std::string BNGEngine::export_reaction_rules_as_bngl(
     if (rr->is_bimol_vol_rxn()) {
       out_parameters  << " / NA_V * " << PARAM_VOL_RXN;
     }
-    else if (rr->is_surf_rxn()) {
+    else if (rr->is_surf_rxn() || rr->is_reactive_surface_rxn()) {
       return "Export of surface reactions to BNGL is not supported yet, error for " + rxn_as_bngl + ".";
     }
     out_parameters << "\n";

@@ -511,6 +511,11 @@ void MCell4Converter::convert_species() {
 void MCell4Converter::convert_surface_class_rxn(
     API::SurfaceProperty& sp, const BNG::Species& surface_reactant) {
 
+  if (sp.type == SurfacePropertyType::REACTIVE) {
+    // no need to add any reaction because reactions are defined manually
+    return;
+  }
+
   BNG::Cplx affected_pattern =
       bng_converter.convert_complex(*sp.affected_complex_pattern, false, true);
 
