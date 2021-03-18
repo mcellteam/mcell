@@ -1029,7 +1029,14 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   initialization[KEY_TIME_STEP] = f_to_str(config.time_unit, 8);
   initialization[KEY_ITERATIONS] = to_string(total_iterations);
 
-  initialization[KEY_INTERACTION_RADIUS] = "";
+  if (!cmp_eq(config.rx_radius_3d, config.get_default_rx_radius_3d())) {
+    initialization[KEY_INTERACTION_RADIUS] = f_to_str(config.rx_radius_3d * config.length_unit);
+  }
+  else {
+    // keep default value
+    initialization[KEY_INTERACTION_RADIUS] = "";
+  }
+
   initialization[KEY_ACCURATE_3D_REACTIONS] = true;
   initialization[KEY_RADIAL_SUBDIVISIONS] = "";
   initialization[KEY_RADIAL_DIRECTIONS] = "";

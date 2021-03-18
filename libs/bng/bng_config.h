@@ -108,6 +108,8 @@ public:
 
   void dump() const;
 
+  BNGCommon::float_t get_default_rx_radius_3d() const;
+
 protected:
   std::string seed_as_str() const;
   void initialize_bng_report_files();

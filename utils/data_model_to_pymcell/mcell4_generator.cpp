@@ -1075,12 +1075,12 @@ void MCell4Generator::generate_config(ostream& out) {
 
   string radius = initialization[KEY_INTERACTION_RADIUS].asString();
   if (radius != "") {
-    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, radius);
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_INTERACTION_RADIUS, radius);
   }
 
   string surf_grid_density = initialization[KEY_SURFACE_GRID_DENSITY].asString();
   if (surf_grid_density != "" && surf_grid_density != "10000") {
-    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, surf_grid_density);
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_SURFACE_GRID_DENSITY, surf_grid_density);
   }
 
   string vacancy_search_distance = initialization[KEY_VACANCY_SEARCH_DISTANCE].asString();

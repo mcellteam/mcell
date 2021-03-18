@@ -249,7 +249,7 @@ void MCell4Converter::convert_simulation_setup() {
     world->config.rx_radius_3d = config.interaction_radius / length_unit;
   }
   else {
-    world->config.rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
+    world->config.rx_radius_3d = world->config.get_default_rx_radius_3d();
   }
 
   if (is_set(config.intermembrane_interaction_radius)) {
