@@ -1,6 +1,25 @@
 *************
 Checkpointing
 *************
+BaseChkptMol
+============
+
+All times are in us (microseconds).
+
+Attributes:
+***********
+* | **id**: int
+
+* | **species**: Species
+
+* | **diffusion_time**: float
+
+* | **birthday**: float
+
+* | **flags**: int
+
+* | **unimol_rx_time**: float = None
+
 ChkptSurfMol
 ============
 
@@ -35,25 +54,6 @@ Attributes:
 ***********
 * | **pos**: Vec3
 
-* | **id**: int
-
-* | **species**: Species
-
-* | **diffusion_time**: float
-
-* | **birthday**: float
-
-* | **flags**: int
-
-* | **unimol_rx_time**: float = None
-
-BaseChkptMol
-============
-
-All times are in us (microseconds).
-
-Attributes:
-***********
 * | **id**: int
 
 * | **species**: Species

@@ -15,6 +15,27 @@ Methods:
 
 
 
+geometry_utils
+==============
+
+
+Methods:
+*********
+* | **create_box**
+
+   * | name: str
+     | Name of the created geometry object
+
+   * | edge_length: float
+     | Specifies length of each edge of the box.
+
+   * | return type: GeometryObject
+
+
+  | Creates a GeometryObject whose center is at (0, 0, 0).
+
+
+
 run_utils
 =========
 
@@ -41,27 +62,6 @@ Methods:
 
   | Removes all directory names items pointing to the current working directory from a list and 
   | returns a new list.
-
-
-
-geometry_utils
-==============
-
-
-Methods:
-*********
-* | **create_box**
-
-   * | name: str
-     | Name of the created geometry object
-
-   * | edge_length: float
-     | Specifies length of each edge of the box.
-
-   * | return type: GeometryObject
-
-
-  | Creates a GeometryObject whose center is at (0, 0, 0).
 
 
 

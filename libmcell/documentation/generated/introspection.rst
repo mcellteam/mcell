@@ -90,42 +90,6 @@ Methods:
 
 
 
-WallWallHitInfo
-===============
-
-Attributes:
-***********
-* | **wall1**: Wall
-
-* | **wall2**: Wall
-
-Wall
-====
-
-This is a Python representation of a molecule obtained from Model 
-during simulation.
-
-Attributes:
-***********
-* | **geometry_object**: GeometryObject
-  | Object to which this wall belongs.
-
-* | **wall_index**: int
-  | Index of this wall in the object to which this wall belongs.
-
-* | **vertices**: List[Vec3]
-  | Vertices of the triangle that represents this wall.
-
-* | **area**: float
-
-* | **unit_normal**: Vec3
-  | Normal of this wall with unit length of 1 um.
-  | To get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal.
-
-* | **is_movable**: bool = True
-  | If True, whis wall can be moved through Model.apply_vertex_moves,
-  | if False, wall moves are ignored.
-
 Molecule
 ========
 
@@ -172,4 +136,40 @@ Methods:
   | of this object won't have any effect.
 
 
+
+Wall
+====
+
+This is a Python representation of a molecule obtained from Model 
+during simulation.
+
+Attributes:
+***********
+* | **geometry_object**: GeometryObject
+  | Object to which this wall belongs.
+
+* | **wall_index**: int
+  | Index of this wall in the object to which this wall belongs.
+
+* | **vertices**: List[Vec3]
+  | Vertices of the triangle that represents this wall.
+
+* | **area**: float
+
+* | **unit_normal**: Vec3
+  | Normal of this wall with unit length of 1 um.
+  | To get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal.
+
+* | **is_movable**: bool = True
+  | If True, whis wall can be moved through Model.apply_vertex_moves,
+  | if False, wall moves are ignored.
+
+WallWallHitInfo
+===============
+
+Attributes:
+***********
+* | **wall1**: Wall
+
+* | **wall2**: Wall
 

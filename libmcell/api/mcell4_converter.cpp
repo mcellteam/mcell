@@ -1098,14 +1098,18 @@ RegionExprNode* MCell4Converter::convert_region_expr_recursively(
     shared_ptr<API::GeometryObject> geometry_object = dynamic_pointer_cast<API::GeometryObject>(region);
     assert(is_set(geometry_object));
     const MCell::Region* reg = world->find_region_by_name(geometry_object->name + MCell::REGION_ALL_SUFFIX_W_COMMA);
-    release_assert(reg != nullptr);
+    if (reg == nullptr) {
+      throw RuntimeError("Could not find region representing object with name " + geometry_object->name + ", it might not have been added to the model.");
+    }
     return rel_event->create_new_region_expr_node_leaf(reg->id);
   }
   else if (region->node_type == RegionNodeType::LEAF_SURFACE_REGION) {
     shared_ptr<API::SurfaceRegion> surface_region = dynamic_pointer_cast<API::SurfaceRegion>(region);
     assert(is_set(surface_region));
     const MCell::Region* reg = world->find_region_by_name(surface_region->parent->name + "," + surface_region->name);
-    release_assert(reg != nullptr);
+    if (reg == nullptr) {
+      throw RuntimeError("Could not find region with name " + surface_region->parent->name + ", it might not have been added to the model.");
+    }
     return rel_event->create_new_region_expr_node_leaf(reg->id);
   }
   else {

@@ -1,107 +1,6 @@
 ***********
 Observables
 ***********
-Observables
-===========
-
-Neither VizOutput, nor Count have name, therefore there are no find_* methods.
-
-Attributes:
-***********
-* | **viz_outputs**: List[VizOutput] = None
-
-* | **counts**: List[Count] = None
-
-
-Methods:
-*********
-* | **add_viz_output**
-
-   * | viz_output: VizOutput
-
-* | **add_count**
-
-   * | count: Count
-
-* | **find_count**
-
-   * | name: str
-   * | return type: Count
-
-
-* | **load_bngl_observables**
-
-   * | file_name: str
-     | BNGL file name.
-
-   * | output_files_prefix: str = ''
-     | Prefix to be used when creating files with observable values.
-
-   * | parameter_overrides: Dict[str, float] = None
-
-  | Loads section observables from a BNGL file and creates Count objects according to it.
-  | All elementary molecule types used in the seed species section must be defined in subsystem.
-
-
-
-CountTerm
-=========
-
-Attributes:
-***********
-* | **species_pattern**: Complex = None
-  | Count the number of molecules that match the given complex instance pattern.
-  | Counts each molecule exactly once. 
-  | If the pattern has a compartment set, this specifies the counted region.
-
-* | **molecules_pattern**: Complex = None
-  | Count the number of matches of the given pattern on molecules.
-  | The observable will count a molecule every time it matches the pattern.
-  | When the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a 
-  | molecule A(a!1).A(a!1,b!2).B(a!2) will be counted twice because the 
-  | pattern may match in two different ways. 
-  | If the pattern has a compartment set, this specifies the counted region.
-
-* | **reaction_rule**: ReactionRule = None
-  | Count the number of reactions that occurred since the start of the simulation.
-
-* | **region**: Region = None
-  | Only a GeometryObject or SurfaceRegion can be passed as the region argument, 
-  | compound regions (created with +, -, \*) are not supproted yet.   
-  | Cannot be set when 'species_pattern' or 'molecules_pattern' has a  
-  | compartment specified.
-  | If pattern compartment is not specified and 'region' is left 'unset', 
-  | counting is done in the whole world.
-
-* | **node_type**: ExprNodeType = ExprNodeType.LEAF
-  | Internal, used to represent an expression
-
-* | **left_node**: CountTerm = None
-  | Internal, when node_type is not Leaf, this is the left operand
-
-* | **right_node**: CountTerm = None
-  | Internal, when node_type is not Leaf, this is the right operand
-
-* | **initial_reactions_count**: int = 0
-  | Used for checkpointing, allows to set initial count of reactions that occurred.
-  | Ignored when molecules are counted.
-
-
-Methods:
-*********
-* | **__add__**
-
-   * | op2: CountTerm
-   * | return type: CountTerm
-
-
-* | **__sub__**
-
-   * | op2: CountTerm
-   * | return type: CountTerm
-
-
-
 Count
 =====
 
@@ -187,6 +86,107 @@ Methods:
 
    * | op2: CountTerm
    * | return type: CountTerm
+
+
+
+CountTerm
+=========
+
+Attributes:
+***********
+* | **species_pattern**: Complex = None
+  | Count the number of molecules that match the given complex instance pattern.
+  | Counts each molecule exactly once. 
+  | If the pattern has a compartment set, this specifies the counted region.
+
+* | **molecules_pattern**: Complex = None
+  | Count the number of matches of the given pattern on molecules.
+  | The observable will count a molecule every time it matches the pattern.
+  | When the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a 
+  | molecule A(a!1).A(a!1,b!2).B(a!2) will be counted twice because the 
+  | pattern may match in two different ways. 
+  | If the pattern has a compartment set, this specifies the counted region.
+
+* | **reaction_rule**: ReactionRule = None
+  | Count the number of reactions that occurred since the start of the simulation.
+
+* | **region**: Region = None
+  | Only a GeometryObject or SurfaceRegion can be passed as the region argument, 
+  | compound regions (created with +, -, \*) are not supproted yet.   
+  | Cannot be set when 'species_pattern' or 'molecules_pattern' has a  
+  | compartment specified.
+  | If pattern compartment is not specified and 'region' is left 'unset', 
+  | counting is done in the whole world.
+
+* | **node_type**: ExprNodeType = ExprNodeType.LEAF
+  | Internal, used to represent an expression
+
+* | **left_node**: CountTerm = None
+  | Internal, when node_type is not Leaf, this is the left operand
+
+* | **right_node**: CountTerm = None
+  | Internal, when node_type is not Leaf, this is the right operand
+
+* | **initial_reactions_count**: int = 0
+  | Used for checkpointing, allows to set initial count of reactions that occurred.
+  | Ignored when molecules are counted.
+
+
+Methods:
+*********
+* | **__add__**
+
+   * | op2: CountTerm
+   * | return type: CountTerm
+
+
+* | **__sub__**
+
+   * | op2: CountTerm
+   * | return type: CountTerm
+
+
+
+Observables
+===========
+
+Neither VizOutput, nor Count have name, therefore there are no find_* methods.
+
+Attributes:
+***********
+* | **viz_outputs**: List[VizOutput] = None
+
+* | **counts**: List[Count] = None
+
+
+Methods:
+*********
+* | **add_viz_output**
+
+   * | viz_output: VizOutput
+
+* | **add_count**
+
+   * | count: Count
+
+* | **find_count**
+
+   * | name: str
+   * | return type: Count
+
+
+* | **load_bngl_observables**
+
+   * | file_name: str
+     | BNGL file name.
+
+   * | output_files_prefix: str = ''
+     | Prefix to be used when creating files with observable values.
+
+   * | parameter_overrides: Dict[str, float] = None
+
+  | Loads section observables from a BNGL file and creates Count objects according to it.
+  | All elementary molecule types used in the seed species section must be defined in subsystem.
 
 
 

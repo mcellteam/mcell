@@ -1,48 +1,6 @@
 ********
 Geometry
 ********
-Region
-======
-
-Represents region construted from 1 or more multiple, usually unnamed?
-
-Attributes:
-***********
-* | **node_type**: RegionNodeType = RegionNodeType.UNSET
-  | When this values is LeafGeometryObject, then this object is of class GeometryObject,
-  | when LeafSurfaceRegion, then it is of class SurfaceRegion.
-
-* | **left_node**: Region = None
-  | Internal, when node_type is not Leaf, this is the left operand
-
-* | **right_node**: Region = None
-  | Internal, when node_type is not Leaf, this is the right operand
-
-
-Methods:
-*********
-* | **__add__**
-
-   * | other: Region
-   * | return type: Region
-
-
-  | Computes union of thwo regions
-
-
-* | **__sub__**
-
-   * | other: Region
-   * | return type: Region
-
-
-* | **__mul__**
-
-   * | other: Region
-   * | return type: Region
-
-
-
 GeometryObject
 ==============
 
@@ -95,6 +53,48 @@ Methods:
   | Move object by a specified vector, must be done before model initialization.
 
 
+* | **__add__**
+
+   * | other: Region
+   * | return type: Region
+
+
+  | Computes union of thwo regions
+
+
+* | **__sub__**
+
+   * | other: Region
+   * | return type: Region
+
+
+* | **__mul__**
+
+   * | other: Region
+   * | return type: Region
+
+
+
+Region
+======
+
+Represents region construted from 1 or more multiple, usually unnamed?
+
+Attributes:
+***********
+* | **node_type**: RegionNodeType = RegionNodeType.UNSET
+  | When this values is LeafGeometryObject, then this object is of class GeometryObject,
+  | when LeafSurfaceRegion, then it is of class SurfaceRegion.
+
+* | **left_node**: Region = None
+  | Internal, when node_type is not Leaf, this is the left operand
+
+* | **right_node**: Region = None
+  | Internal, when node_type is not Leaf, this is the right operand
+
+
+Methods:
+*********
 * | **__add__**
 
    * | other: Region

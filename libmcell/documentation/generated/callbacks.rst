@@ -40,7 +40,8 @@ Attributes:
   | also provides information in reactant types.
 
 * | **reactant_ids**: List[int]
-  | IDs of the reacting molecules, contains 1 ID for a unimolecular reaction, 2 IDs for a bimolecular reaction.
+  | IDs of the reacting molecules, contains 1 ID for a unimolecular or a molecule+surface class reaction , 
+  | 2 IDs for a bimolecular reaction.
   | For a bimolecular reaction, the first ID is always the molecule that was diffused and the second one 
   | is the molecule that was hit.
   | IDs can be used to obtain location of the molecules. The position of the first molecule obtained through 
@@ -64,17 +65,17 @@ Attributes:
   | - volume-surface reaction - position where the volume molecule hit the wall with the surface molecule.
 
 * | **geometry_object**: GeometryObject = None
-  | Set only for surface reactions.
+  | Set only for surface reactions or reactions with surface classes.
   | Object on whose surface where the reaction occured.
 
 * | **wall_index**: int = -1
-  | Set only for surface reactions.
+  | Set only for surface reactions or reactions with surface classes.
   | Index of wall belonging to the geometry_object where the reaction occured, 
   | i.e. where the volume molecule hit the wall with a surface molecule or
   | wall where the diffusing surface reactant reacted.
 
 * | **pos2d**: Vec2 = None
-  | Set only for surface reactions.
+  | Set only for surface reactions or reactions with surface classes.
   | Specifies where reaction occured in the 2d UV coordinates defined by the wall where the reaction occured, 
   | specific meaning depends on the reaction type\:
   | - unimolecular reaction - position of the reacting molecule,

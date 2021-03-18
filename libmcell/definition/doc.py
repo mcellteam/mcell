@@ -123,7 +123,7 @@ def generate_documentation(data_classes):
             
             f.write('*'*len(cat_name) + '\n' + cat_name + '\n' + '*'*len(cat_name) + '\n')
                  
-            for key, value in data_classes.items():
+            for key, value in sorted(data_classes.items()):
                 if key != KEY_CONSTANTS and key != KEY_ENUMS and value[KEY_CATEGORY] == cat:
                     generate_class_documentation(f, key, value)
 
