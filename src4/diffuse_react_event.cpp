@@ -2247,8 +2247,8 @@ void DiffuseReactEvent::handle_rxn_callback(
     const MoleculeIdsVector& product_ids
 ) {
 
-  // check callback (reactive surface are ignored)
-  if (world->get_callbacks().needs_rxn_callback(rxn->id) && !rxn->is_reactive_surface_rxn()) {
+  // check callback
+  if (world->get_callbacks().needs_rxn_callback(rxn->id)) {
     shared_ptr<API::ReactionInfo> info = make_shared<API::ReactionInfo>();
 
     const Molecule* reac1;
@@ -2312,6 +2312,12 @@ void DiffuseReactEvent::handle_rxn_callback(
       info->pos2d = first_surf_reac->s.pos;
       info->geometry_object_id = p.get_wall(first_surf_reac->s.wall_index).object_id;
       info->partition_wall_index = first_surf_reac->s.wall_index;
+    }
+    else if (rxn->is_reactive_surface_rxn()) {
+      const Wall& w = p.get_wall(collision.colliding_wall_index);
+      info->pos2d = GeometryUtil::xyz2uv(p, collision.pos, w);
+      info->geometry_object_id = w.object_id;
+      info->partition_wall_index = collision.colliding_wall_index;
     }
 
     world->get_callbacks().do_rxn_callback(info);
