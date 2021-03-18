@@ -245,7 +245,7 @@ void VizOutputEvent::output_cellblender_molecules() {
           where, norm
       );
 
-      // the values are always stored as double
+      // the values are always stored as float
       glm::fvec3 fwhere = where;
       assert(sizeof(fwhere.x) == sizeof(float));
 
