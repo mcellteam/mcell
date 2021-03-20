@@ -48,7 +48,7 @@ enum class CollisionType {
   VOLMOL_VOLMOL,
   SURFMOL_SURFMOL,
   VOLMOL_SURFMOL,
-  UNIMOLECULAR_VOLMOL, // TODO rename to UNIMOLECULAR
+  UNIMOLECULAR,
   INTERMEMBRANE_SURFMOL_SURFMOL
 };
 
@@ -89,7 +89,7 @@ public:
     {
      }
 
-  // maybe create some static constructors with better names
+  // vol-surf or vol-mol collision
   Collision(
       const CollisionType type_,
       Partition* partition_ptr,
@@ -112,6 +112,7 @@ public:
         && "This constructor must be used only for volmol or volsurf collisions");
   }
 
+  // surf-surf collision
   Collision(
       const CollisionType type_,
       Partition* partition_ptr,
@@ -134,6 +135,7 @@ public:
         "This constructor must be used only for surfsurf collisions");
   }
 
+  // wall collision
   Collision(
       const CollisionType type_,
       Partition* partition_ptr,
@@ -154,6 +156,7 @@ public:
     assert((type == CollisionType::WALL_BACK || type == CollisionType::WALL_FRONT) && "This constructor must be used only for wall collisions");
   }
 
+  // unimolecular rxn
   Collision(
       const CollisionType type_,
       Partition* partition_ptr,
@@ -171,7 +174,7 @@ public:
       colliding_molecule_id(MOLECULE_ID_INVALID),
       rxn_class(rxn_class_ptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
-    assert(type == CollisionType::UNIMOLECULAR_VOLMOL && "This constructor must be used only for unimol volmol collisions");
+    assert(type == CollisionType::UNIMOLECULAR && "This constructor must be used only for unimol volmol collisions");
   }
 
 
@@ -204,7 +207,7 @@ public:
   }
 
   bool is_unimol_reaction() const {
-    return type == CollisionType::UNIMOLECULAR_VOLMOL;
+    return type == CollisionType::UNIMOLECULAR;
   }
 
   bool is_mol_mol_reaction() const {

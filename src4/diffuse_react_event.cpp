@@ -1743,18 +1743,29 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     return true;
   }
   else {
-    RxnClass* unimol_rxn_class = world->get_all_rxns().get_unimol_rxn_class(m.species_id);
-    assert(unimol_rxn_class != nullptr && unimol_rxn_class->get_num_reactions() >= 1);
+    BNG::RxnClassesVector rxn_classes;
+    RxnUtil::pick_unimol_rxn_classes(p, m, scheduled_time, rxn_classes);
+    for (RxnClass* rxn_class: rxn_classes) {
+      rxn_class->update_rxn_rates_if_needed(scheduled_time);
+    }
 
-    unimol_rxn_class->update_rxn_rates_if_needed(scheduled_time);
+    release_assert(rxn_classes.size() == 1 && "TODO");
+    rxn_class_pathway_index_t pi = RxnUtil::which_unimolecular(m, rxn_classes[0], world->rng);
 
-    // FIXME: unimol rxn time is not recomputed when a volume molecule changes compartments
-    // in theory, we could do this the same way as for surface molecules but
-    // event that solution does not look correct because it simply assigns new time and ignores the history
-    // out assumption is that most unimol rxns for volume reactants won't be dependent on compartment
-    rxn_class_pathway_index_t pi = RxnUtil::which_unimolecular(m, unimol_rxn_class, world->rng);
-
-    return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class, pi);
+    if (rxn_classes[0]->is_unimol()) {
+      // standard unimolecular rxn
+      return outcome_unimolecular(p, m, scheduled_time, rxn_classes[0], pi);
+    }
+    else {
+      // surf mol + surf class rxn
+      release_assert(m.is_surf() && "Only for surf mol + surf class rxns");
+      const Wall& w = p.get_wall(m.s.wall_index);
+      const Vec3& v0 = p.get_wall_vertex(w, 0);
+      // orientation front or back is not important
+      Vec3 pos = GeometryUtil::uv2xyz(m.s.pos, w, v0);
+      Collision collision(CollisionType::WALL_FRONT, &p, m.id, scheduled_time, pos, w.index);
+      return outcome_intersect(p, rxn_classes[0], pi, collision, scheduled_time);
+    }
   }
 }
 
@@ -1860,9 +1871,6 @@ int DiffuseReactEvent::outcome_intersect(
     }
   }
 
-  Molecule& m = p.get_m(collision.diffused_molecule_id);
-  assert(m.is_vol() && "We should never call outcome_intersect() on a surface molecule");
-
   /* If reaction object has ALL_MOLECULES or ALL_VOLUME_MOLECULES as the
    * first reactant it means that reaction is of the type ABSORPTIVE =
    * ALL_MOLECULES or ABSORPTIVE = ALL_VOLUME_MOLECULES since other cases
@@ -1906,6 +1914,8 @@ int DiffuseReactEvent::outcome_intersect(
       }
     );
 #endif
+
+    Molecule& m = p.get_m(collision.diffused_molecule_id);
     p.set_molecule_as_defunct(m);
     return RX_DESTROY;
   }
@@ -2549,7 +2559,7 @@ int DiffuseReactEvent::outcome_products_random(
           orient = determine_orientation_depending_on_surf_comp(actual_products[product_index].product_species_id, surf_reac);
         }
         // flip orientation? e.g. such as for MCell3 rxn v' + s, -> s, + r, with reactants v + s'
-        else if (rxn->is_bimol() && rxn->is_surf_rxn()) {
+        else if (rxn->is_bimol() && rxn->is_surf_rxn() && !rxn->is_reactive_surface_rxn()) {
           // see if orientations of the surface reactants from rule are different from the reactants
           int reacA_match = 1;
           if (reacA->is_surf() && rxn->reactants[0].get_orientation() != ORIENTATION_NONE &&
@@ -2557,6 +2567,7 @@ int DiffuseReactEvent::outcome_products_random(
             reacA_match = -1;
           }
           int reacB_match = 1;
+          assert(reacB != nullptr);
           if (reacB->is_surf() && rxn->reactants[1].get_orientation() != ORIENTATION_NONE &&
               reacB->s.orientation != rxn->reactants[1].get_orientation()) {
             reacB_match = -1;
@@ -2845,7 +2856,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     }
 
     Collision collision(
-        CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, pos, rxn_class);
+        CollisionType::UNIMOLECULAR, &p, m.id, scheduled_time, pos, rxn_class);
 
     bool ignoredA, ignoredB;
     // creates new molecule(s) as output of the unimolecular reaction
