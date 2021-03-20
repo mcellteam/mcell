@@ -338,7 +338,7 @@ private:
   );
 
   void pick_unimol_rxn_class_and_set_rxn_time(
-      const Partition& p,
+      Partition& p,
       const float_t remaining_time_step,
       Molecule& vm
   );

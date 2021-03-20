@@ -543,7 +543,7 @@ static void find_restricted_regions_by_wall(
 
   // get all possible molecule-surface reactions
   BNG::RxnClassesVector matching_rxn_classes;
-  RxnUtil::trigger_intersect(p, sm, sm.s.orientation, this_wall, matching_rxn_classes);
+  RxnUtil::trigger_intersect(p, sm, sm.s.orientation, this_wall, true, matching_rxn_classes);
 
   // collect species that can react
   uint_set<species_id_t> restricted_surf_classes;

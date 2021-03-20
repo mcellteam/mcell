@@ -877,6 +877,8 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     // remove some flags for check that are known to work in all cases
     uint flags_check = spec->flags & ~REGION_PRESENT;
     flags_check = flags_check & ~CANT_INITIATE;
+    flags_check = flags_check & ~COUNT_ENCLOSED;
+    flags_check = flags_check & ~COUNT_CONTENTS;
 
     if (!(
         is_species_superclass(s, spec)
@@ -884,8 +886,6 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
         || flags_check == SPECIES_CPLX_MOL_FLAG_SURF
         || flags_check == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
-
-        || flags_check == (COUNT_ENCLOSED | COUNT_CONTENTS)
 
         || flags_check == SPECIES_FLAG_CAN_VOLVOL
         || flags_check == SPECIES_FLAG_CAN_VOLWALL
@@ -898,21 +898,26 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_REGION_BORDER)
 
-        || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS | COUNT_ENCLOSED)
-        || flags_check == (SPECIES_FLAG_CAN_VOLSURF | COUNT_CONTENTS | COUNT_ENCLOSED)
-        || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLSURF | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS | COUNT_ENCLOSED)
-        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | COUNT_CONTENTS)
-        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | COUNT_CONTENTS | COUNT_ENCLOSED)
-        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | COUNT_CONTENTS | COUNT_ENCLOSED | SPECIES_FLAG_CAN_REGION_BORDER)
-        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_VOLVOL | COUNT_CONTENTS)
-        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | COUNT_CONTENTS)
-        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS)
-        || flags_check == (SPECIES_FLAG_CAN_VOLWALL | COUNT_ENCLOSED | COUNT_CONTENTS)
+        || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL)
+        || flags_check == (SPECIES_FLAG_CAN_VOLSURF)
+        || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLSURF | SPECIES_FLAG_CAN_VOLWALL)
+
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_REGION_BORDER)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_VOLVOL)
+
+        || flags_check == (SPECIES_FLAG_CAN_VOLWALL)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_VOLWALL)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_REGION_BORDER)
-        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFWALL)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFWALL | SPECIES_FLAG_CAN_SURFSURF)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFWALL | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_REGION_BORDER)
       )) {
-      mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
-      CHECK_PROPERTY(false && "Flags listed in the message above are not supported yet");
+      mcell_log("Warning: possibly unsupported combination of species flag for species %s: %s, it is recommended to check that MCell4 produces result similar to MCell3.\n",
+          new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
     }
 
     // simply copy all the flags from mcell3 except for a few one that we really don't need

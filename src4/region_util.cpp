@@ -31,6 +31,8 @@
 #include "rxn_utils.inl"
 #include "wall_utils.inl"
 
+#include "mcell_structs_shared.h"
+
 namespace MCell {
 namespace RegionUtil {
 
@@ -69,7 +71,7 @@ static bool are_restricted_regions_for_species_on_object(
   // we must check all regions belonging to this object, not just the wall,
   // and get all applicable reactions
   BNG::RxnClassesVector matching_rxns;
-  RxnUtil::find_surface_mol_reactions_with_surf_classes(p, sm, obj, matching_rxns);
+  RxnUtil::find_surface_mol_reactions_with_surf_classes(p, sm, obj, true, matching_rxns);
 
   return is_any_rxn_reflect_or_absorb_region_border(matching_rxns);
 }
@@ -122,7 +124,7 @@ static void find_restricted_regions_by_object(
     // NOTE: MCell 3 calls also find_unimol_reactions_with_surf_classes
     // however all reactions should be covered by surface_mol_reactions_with_surf_classes,
     // reactions with surf classes should be always bimolecular - molecule + surf class
-    RxnUtil::find_surface_mol_reactions_with_surf_classes(p, sm, obj, matching_rxns);
+    RxnUtil::find_surface_mol_reactions_with_surf_classes(p, sm, obj, true, matching_rxns);
 
     if (is_any_rxn_reflect_or_absorb_region_border(matching_rxns)) {
       res.insert(ri);

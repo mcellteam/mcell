@@ -980,7 +980,7 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
   RxnClassesVector matching_rxn_classes;
   orientation_t orient = (collision.type == CollisionType::WALL_FRONT) ? ORIENTATION_UP : ORIENTATION_DOWN;
-  RxnUtil::trigger_intersect(p, diffused_molecule, orient, wall, matching_rxn_classes);
+  RxnUtil::trigger_intersect(p, diffused_molecule, orient, wall, true, matching_rxn_classes);
   if (matching_rxn_classes.empty() ||
       (matching_rxn_classes.size() == 1 && matching_rxn_classes[0]->type == BNG::RxnType::Reflect)) {
     return WallRxnResult::Reflect;
@@ -1689,19 +1689,22 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
 
 void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
-    const Partition& p,
+    Partition& p,
     const float_t current_time,
     Molecule& m
 ) {
   assert(current_time >= 0);
 
-  RxnClass* rxn_class = RxnUtil::pick_unimol_rxn_class(world, m, current_time);
-  if (rxn_class == nullptr) {
+  BNG::RxnClassesVector rxn_classes;
+  RxnUtil::pick_unimol_rxn_classes(p, m, current_time, rxn_classes);
+  if (rxn_classes.empty()) {
     return;
   }
 
+  release_assert(rxn_classes.size() == 1);
+
   // there is a check when computing the reaction rate to make sure that the time is reasonably higher than 0
-  float_t time_from_now = RxnUtil::compute_unimol_lifetime(p, world->rng, rxn_class, current_time, m);
+  float_t time_from_now = RxnUtil::compute_unimol_lifetime(p, world->rng, rxn_classes[0], current_time, m);
 
   float_t scheduled_time = current_time + time_from_now;
 

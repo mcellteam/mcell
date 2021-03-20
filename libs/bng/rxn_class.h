@@ -169,6 +169,13 @@ public:
     return type == RxnType::AbsorbRegionBorder;
   }
 
+  bool is_reflect_transparent_or_absorb_region_border() const {
+    return
+        is_reflect() ||
+        is_transparent() ||
+        is_absorb_region_border();
+  }
+
   bool is_simple() const;
 
   bool is_reactant_species_id(species_id_t reactant_id) const {

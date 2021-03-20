@@ -87,6 +87,7 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
 
       if ((sp.is_surf() || sp.id == all_mols_id)) {
         if (sp2.is_reactive_surface()) {
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_SURFWALL);
           if (sp.id == all_surf_mols_id || sp.id == all_mols_id) {
             all_surf_mols_can_react_with_surface = true;
           }

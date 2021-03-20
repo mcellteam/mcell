@@ -25,7 +25,7 @@ enum species_cplx_mol_rxn_flag_t {
   SPECIES_FLAG_CAN_VOLSURF = 0x20, // can vol-surf react
   SPECIES_FLAG_CAN_VOLWALL = 0x40, // can vol-surface react
   SPECIES_FLAG_CAN_SURFSURF = 0x80, // can surf-surf react
-  //SPECIES_FLAG_CAN_SURFWALL = 0x100, // can surf-surface react
+  SPECIES_FLAG_CAN_SURFWALL = 0x100, // can surf-surface react
   SPECIES_FLAG_CAN_INTERMEMBRANE_SURFSURF = 0x200, // can surf-surf react across intermembrane space
   SPECIES_MOL_FLAG_TARGET_ONLY = 0x400, // this molecule may not trigger a reaction with another molecule
   SPECIES_FLAG_CAN_DIFFUSE = 0x800, // value used as COUNT_TRIGGER in MCell3
