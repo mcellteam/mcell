@@ -1037,6 +1037,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     if (product_species->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
       count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t, this_product->periodic_box);
 
+#ifndef MCELL3_DO_NOT_REUSE_MOL_ID_UNIMOL_RXN
     /* preserve molecule id if rxn is unimolecular with one product */
     if (is_unimol && (n_players == 1)) {
       this_product->id = reacA->id;
@@ -1049,6 +1050,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       world->current_mol_id--; /* give back id we used */
       continue;
     }
+#endif
   }
 
   /* If necessary, update the dissociation index. */

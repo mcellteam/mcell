@@ -129,7 +129,7 @@ public:
   // for DiffuseAndReactEvent
   float_t diffusion_time;
 
-  // time assigned for unimol rxn, TIME_INVALID if time has not been set or mo.ecule has not unimol rxn,
+  // time assigned for unimol rxn, TIME_INVALID if time has not been set or molecule has no unimol rxn,
   // TIME_FOREVER if the probability of an existing unimol rxn is 0
   float_t unimol_rx_time;
 

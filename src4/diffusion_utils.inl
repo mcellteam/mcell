@@ -457,10 +457,11 @@ move_sm_on_same_triangle:
       previous_box: this is the periodic box we were in previously.
       new_wall: this is the new wall we ended up on
       hd_info:
-  Out: The grid is created on a new triangle and we place the molecule if
-       possible. Counts are updated.
+  Out: Returns true if the new location is ok and the molecule was placed
+       there, otherwise returns false and the molecule must be placed
+       elsewhere.
 *************************************************************************/
-static int move_sm_on_same_triangle(
+static bool move_sm_on_same_triangle(
     Partition& p,
     Molecule& sm,
     Vec2& new_loc
@@ -482,7 +483,7 @@ static int move_sm_on_same_triangle(
   molecule_id_t molecule_id_on_tile = grid.get_molecule_on_tile(new_tile_index);
   if (new_tile_index != sm.s.grid_tile_index) {
     if (molecule_id_on_tile != MOLECULE_ID_INVALID) {
-      return 1; /* Pick again--full here */
+      return false; /* Pick again--full here */
     }
 
     grid.reset_molecule_tile(sm.s.grid_tile_index);
@@ -491,7 +492,7 @@ static int move_sm_on_same_triangle(
   }
 
   sm.s.pos = new_loc;
-  return 0;
+  return true;
 }
 
 
@@ -506,10 +507,11 @@ move_sm_to_new_triangle:
       previous_box: this is the periodic box we were in previously.
       new_wall: this is the new wall we ended up on
       hd_info:
-  Out: The grid is created on a new triangle and we place the molecule if
-       possible. Counts are updated.
+  Out: Returns true if the new location is ok and the molecule was placed
+       there, otherwise returns false and the molecule must be placed
+       elsewhere.
 *************************************************************************/
-static int move_sm_to_new_triangle(
+static bool move_sm_to_new_triangle(
     Partition& p,
     Molecule& sm,
     Vec2& new_loc,
@@ -543,7 +545,7 @@ static int move_sm_to_new_triangle(
 
   molecule_id_t molecule_id_on_tile = new_grid.get_molecule_on_tile(new_tile_index);
   if (molecule_id_on_tile != MOLECULE_ID_INVALID) {
-    return 1; /* Pick again--full here */
+    return false; /* Pick again--full here */
   }
 
   grid.reset_molecule_tile(sm.s.grid_tile_index);
@@ -553,7 +555,7 @@ static int move_sm_to_new_triangle(
 
   sm.s.pos = new_loc;
 
-  return 0;
+  return true;
 }
 
 

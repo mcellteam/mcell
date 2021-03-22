@@ -1133,14 +1133,33 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 
       // After diffusing, are we still on the SAME triangle?
       if (new_wall_index == sm.s.wall_index) {
-        if (DiffusionUtil::move_sm_on_same_triangle(p, sm, new_loc)) {
+        if (!DiffusionUtil::move_sm_on_same_triangle(p, sm, new_loc)) {
+          // we must try a different position
           continue;
         }
       }
       // After diffusing, we ended up on a NEW triangle.
       else {
-        if (DiffusionUtil::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
+        if (!DiffusionUtil::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
+          // we must try a different position
           continue;
+        }
+
+        // Check if we shouldn't reschedule the unimol rxn defined by
+        // a surf mol + surf class rxn
+        // Do this only if the current unimol rxn is not scheduled
+        // for this timestep (t_steps is set to end at the unimol rx time)
+        float_t time_until_unimol = sm.unimol_rx_time - t_steps - sm.diffusion_time;
+        time_until_unimol = (time_until_unimol < 0) ? 0 : time_until_unimol;
+
+        if (species.has_flag(SPECIES_FLAG_CAN_SURFWALL) &&
+            (sm.unimol_rx_time == TIME_INVALID ||
+             // using this overly complex condition because of MCell3 compatibility
+             (time_until_unimol > EPS || time_until_unimol > EPS * (sm.diffusion_time + t_steps))
+            )
+        ) {
+          sm.unimol_rx_time = TIME_INVALID;
+          sm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
         }
       }
       find_new_position = 0;
@@ -1698,6 +1717,7 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
   BNG::RxnClassesVector rxn_classes;
   RxnUtil::pick_unimol_rxn_classes(p, m, current_time, rxn_classes);
   if (rxn_classes.empty()) {
+    m.unimol_rx_time = TIME_INVALID;
     return;
   }
 
@@ -1716,7 +1736,7 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
 
 // based on mcell3's check_for_unimolecular_reaction
 // might invalidate vm references
-// returns true if molecule should be diffused right away (needed for mcell3 compatibility)
+// returns true if molecule survived and should be diffused right away
 bool DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
     const molecule_id_t m_id
@@ -1747,6 +1767,14 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     RxnUtil::pick_unimol_rxn_classes(p, m, scheduled_time, rxn_classes);
     for (RxnClass* rxn_class: rxn_classes) {
       rxn_class->update_rxn_rates_if_needed(scheduled_time);
+    }
+
+    if (rxn_classes.empty()) {
+      // there is no unimol rxn, this can happen for instance when
+      // a surface molecule moved out of a regions with a surface class,
+      // we must recompute the unimol lifetime
+      pick_unimol_rxn_class_and_set_rxn_time(p, scheduled_time, m);
+      return true;
     }
 
     release_assert(rxn_classes.size() == 1 && "TODO");
