@@ -306,13 +306,13 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Count::__eq__, py::arg("other"))
-      .def("get_current_value", &Count::get_current_value)
+      .def("get_current_value", &Count::get_current_value, "Returns the current value for this count. Cannot be used to count reactions.\nThe model must be initialized with this Count present as one of the observables.\n")
       .def("dump", &Count::dump)
-      .def_property("name", &Count::get_name, &Count::set_name)
-      .def_property("file_name", &Count::get_file_name, &Count::set_file_name)
-      .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression)
-      .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier)
-      .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps)
+      .def_property("name", &Count::get_name, &Count::set_name, "Name of a count may be specified when one needs to search for them later. \nAlso when the count is created while loading a BNGL file, its name is set.\n")
+      .def_property("file_name", &Count::get_file_name, &Count::set_file_name, "File name with an optional path must be set. It is not deduced automatically.\n")
+      .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression, "The count expression must be composed only from CountTerm objects that are added or \nsubtracted.  \n")
+      .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier, "In some cases it might be useful to multiply the whole count by a constant to get \nfor instance concentration. The count_expression is not an arbitrary expression\nand such multiplication can be done through this attribute.  \n")
+      .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps, "Value is truncated (floored) to an integer.\nIf value is set to 0, this Count is used only on-demand through calls to its\nget_current_value method.  \n")
     ;
 }
 

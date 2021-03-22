@@ -104,7 +104,7 @@ std::string GenSurfaceClass::to_str(const std::string ind) const {
 }
 
 py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
-  return py::class_<SurfaceClass, SurfaceProperty, std::shared_ptr<SurfaceClass>>(m, "SurfaceClass")
+  return py::class_<SurfaceClass, SurfaceProperty, std::shared_ptr<SurfaceClass>>(m, "SurfaceClass", "Defining a surface class allows surfaces to behave like species (in a limited way).")
       .def(
           py::init<
             const std::string&,
@@ -123,8 +123,8 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceClass::__eq__, py::arg("other"))
       .def("dump", &SurfaceClass::dump)
-      .def_property("name", &SurfaceClass::get_name, &SurfaceClass::set_name)
-      .def_property("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties)
+      .def_property("name", &SurfaceClass::get_name, &SurfaceClass::set_name, "Name of the surface class")
+      .def_property("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties, "A surface class can either have a list of properties or just one property.\nIn the usual case of having one property, one can set the attributes \ntype, affected_species, etc. inherited from SurfaceProperty directly.\n")
     ;
 }
 

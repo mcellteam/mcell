@@ -113,15 +113,15 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMoleculeType::__eq__, py::arg("other"))
       .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<Component>>(), py::arg("compartment_name") = STR_UNSET)
-      .def("to_bngl_str", &ElementaryMoleculeType::to_bngl_str)
+      .def("to_bngl_str", &ElementaryMoleculeType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")
       .def("dump", &ElementaryMoleculeType::dump)
       .def_property("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name)
       .def_property("components", &ElementaryMoleculeType::get_components, &ElementaryMoleculeType::set_components)
-      .def_property("diffusion_constant_2d", &ElementaryMoleculeType::get_diffusion_constant_2d, &ElementaryMoleculeType::set_diffusion_constant_2d)
-      .def_property("diffusion_constant_3d", &ElementaryMoleculeType::get_diffusion_constant_3d, &ElementaryMoleculeType::set_diffusion_constant_3d)
-      .def_property("custom_time_step", &ElementaryMoleculeType::get_custom_time_step, &ElementaryMoleculeType::set_custom_time_step)
-      .def_property("custom_space_step", &ElementaryMoleculeType::get_custom_space_step, &ElementaryMoleculeType::set_custom_space_step)
-      .def_property("target_only", &ElementaryMoleculeType::get_target_only, &ElementaryMoleculeType::set_target_only)
+      .def_property("diffusion_constant_2d", &ElementaryMoleculeType::get_diffusion_constant_2d, &ElementaryMoleculeType::set_diffusion_constant_2d, "This molecule is constrained to a surface and diffuses with diffusion constant D.")
+      .def_property("diffusion_constant_3d", &ElementaryMoleculeType::get_diffusion_constant_3d, &ElementaryMoleculeType::set_diffusion_constant_3d, "This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.")
+      .def_property("custom_time_step", &ElementaryMoleculeType::get_custom_time_step, &ElementaryMoleculeType::set_custom_time_step, "This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.")
+      .def_property("custom_space_step", &ElementaryMoleculeType::get_custom_space_step, &ElementaryMoleculeType::set_custom_space_step, "This molecule should take steps of average length L (in microns). Use either this or custom_time_step.")
+      .def_property("target_only", &ElementaryMoleculeType::get_target_only, &ElementaryMoleculeType::set_target_only, "This molecule will not initiate reactions when it runs into other molecules. This\nsetting can speed up simulations when applied to a molecule at high concentrations \nthat reacts with a molecule at low concentrations (it is more efficient for\nthe low-concentration molecule to trigger the reactions). This directive does\nnot affect unimolecular reactions.      \n")
     ;
 }
 

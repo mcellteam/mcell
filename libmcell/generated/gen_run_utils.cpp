@@ -30,8 +30,8 @@ namespace API {
 
 void define_pybinding_run_utils(py::module& m) {
   m.def_submodule("run_utils")
-      .def("get_last_checkpoint_dir", &run_utils::get_last_checkpoint_dir, py::arg("seed"))
-      .def("remove_cwd", &run_utils::remove_cwd, py::arg("paths"))
+      .def("get_last_checkpoint_dir", &run_utils::get_last_checkpoint_dir, py::arg("seed"), "Searches the directory checkpoints for the last checkpoint for the given \nparameters and returns the directory name if such a directory exists. \nReturns empty string if no checkpoint directory was found.\nCurrently supports only the seed argument.\n")
+      .def("remove_cwd", &run_utils::remove_cwd, py::arg("paths"), "Removes all directory names items pointing to the current working directory from a list and \nreturns a new list.\n")
     ;
 }
 

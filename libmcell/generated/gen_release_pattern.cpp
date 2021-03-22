@@ -94,11 +94,11 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
       .def("__str__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleasePattern::__eq__, py::arg("other"))
       .def("dump", &ReleasePattern::dump)
-      .def_property("name", &ReleasePattern::get_name, &ReleasePattern::set_name)
-      .def_property("release_interval", &ReleasePattern::get_release_interval, &ReleasePattern::set_release_interval)
-      .def_property("train_duration", &ReleasePattern::get_train_duration, &ReleasePattern::set_train_duration)
-      .def_property("train_interval", &ReleasePattern::get_train_interval, &ReleasePattern::set_train_interval)
-      .def_property("number_of_trains", &ReleasePattern::get_number_of_trains, &ReleasePattern::set_number_of_trains)
+      .def_property("name", &ReleasePattern::get_name, &ReleasePattern::set_name, "Name of the release pattern")
+      .def_property("release_interval", &ReleasePattern::get_release_interval, &ReleasePattern::set_release_interval, "During a train of releases, release molecules after every t seconds. \nDefault is to release only once.\n")
+      .def_property("train_duration", &ReleasePattern::get_train_duration, &ReleasePattern::set_train_duration, "The train of releases lasts for t seconds before turning off. \nDefault is to never turn off.\n")
+      .def_property("train_interval", &ReleasePattern::get_train_interval, &ReleasePattern::set_train_interval, "A new train of releases happens every t seconds. \nDefault is to never have a new train. \nThe train interval must not be shorter than the train duration.\n")
+      .def_property("number_of_trains", &ReleasePattern::get_number_of_trains, &ReleasePattern::set_number_of_trains, "Repeat the release process for n trains of releases. Default is one train.\nFor unlimited number of trains use constant NUMBER_OF_TRAINS_UNLIMITED.\n")
     ;
 }
 

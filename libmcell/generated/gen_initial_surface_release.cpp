@@ -94,7 +94,7 @@ std::string GenInitialSurfaceRelease::to_str(const std::string ind) const {
 }
 
 py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::module& m) {
-  return py::class_<InitialSurfaceRelease, std::shared_ptr<InitialSurfaceRelease>>(m, "InitialSurfaceRelease")
+  return py::class_<InitialSurfaceRelease, std::shared_ptr<InitialSurfaceRelease>>(m, "InitialSurfaceRelease", "Defines molecules to be released onto a SurfaceRegion right when simulation starts")
       .def(
           py::init<
             std::shared_ptr<Complex>,
@@ -110,8 +110,8 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def("__eq__", &InitialSurfaceRelease::__eq__, py::arg("other"))
       .def("dump", &InitialSurfaceRelease::dump)
       .def_property("complex", &InitialSurfaceRelease::get_complex, &InitialSurfaceRelease::set_complex)
-      .def_property("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release)
-      .def_property("density", &InitialSurfaceRelease::get_density, &InitialSurfaceRelease::set_density)
+      .def_property("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release, "Number of molecules to be released onto a region,\nonly one of number_to_release and density can be set.\n")
+      .def_property("density", &InitialSurfaceRelease::get_density, &InitialSurfaceRelease::set_density, "Density of molecules to be released onto a region,\nonly one of number_to_release and density can be set.\n")
     ;
 }
 

@@ -118,7 +118,7 @@ std::string GenWall::to_str(const std::string ind) const {
 }
 
 py::class_<Wall> define_pybinding_Wall(py::module& m) {
-  return py::class_<Wall, std::shared_ptr<Wall>>(m, "Wall")
+  return py::class_<Wall, std::shared_ptr<Wall>>(m, "Wall", "This is a Python representation of a molecule obtained from Model \nduring simulation.\n")
       .def(
           py::init<
           >()
@@ -127,12 +127,12 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       .def("__str__", &Wall::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Wall::__eq__, py::arg("other"))
       .def("dump", &Wall::dump)
-      .def_property("geometry_object", &Wall::get_geometry_object, &Wall::set_geometry_object)
-      .def_property("wall_index", &Wall::get_wall_index, &Wall::set_wall_index)
-      .def_property("vertices", &Wall::get_vertices, &Wall::set_vertices)
+      .def_property("geometry_object", &Wall::get_geometry_object, &Wall::set_geometry_object, "Object to which this wall belongs.")
+      .def_property("wall_index", &Wall::get_wall_index, &Wall::set_wall_index, "Index of this wall in the object to which this wall belongs.")
+      .def_property("vertices", &Wall::get_vertices, &Wall::set_vertices, "Vertices of the triangle that represents this wall.")
       .def_property("area", &Wall::get_area, &Wall::set_area)
-      .def_property("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal)
-      .def_property("is_movable", &Wall::get_is_movable, &Wall::set_is_movable)
+      .def_property("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal, "Normal of this wall with unit length of 1 um.\nTo get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal. \n")
+      .def_property("is_movable", &Wall::get_is_movable, &Wall::set_is_movable, "If True, whis wall can be moved through Model.apply_vertex_moves,\nif False, wall moves are ignored. \n")
     ;
 }
 

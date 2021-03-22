@@ -94,9 +94,9 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def("__eq__", &VizOutput::__eq__, py::arg("other"))
       .def("dump", &VizOutput::dump)
       .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix)
-      .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list)
+      .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list, "Specifies a list of species to be visualized, when empty, all_species will be generated.")
       .def_property("mode", &VizOutput::get_mode, &VizOutput::set_mode)
-      .def_property("every_n_timesteps", &VizOutput::get_every_n_timesteps, &VizOutput::set_every_n_timesteps)
+      .def_property("every_n_timesteps", &VizOutput::get_every_n_timesteps, &VizOutput::set_every_n_timesteps, "Value is truncated (floored) to an integer.\nValue 0 means that the viz output is ran only once at iteration 0. \n")
     ;
 }
 

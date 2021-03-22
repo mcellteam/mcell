@@ -1226,6 +1226,17 @@ def get_method_overload_cast(method):
     res += '>'
     return res
 
+
+def create_doc_str(yaml_doc, w_quotes=True):
+    res = yaml_doc.replace('"', '\\"')
+    res = res.replace('\n', '\\n')
+    res = res.replace('\\:', ':')
+    if w_quotes:
+        return '"' + res + '"'
+    else:
+        return res
+
+
 def write_pybind11_method_bindings(f, class_name, method, class_def):
     assert KEY_NAME in method
     name = rename_cpp_reserved_id(method[KEY_NAME])
@@ -1248,6 +1259,9 @@ def write_pybind11_method_bindings(f, class_name, method, class_def):
             if KEY_DEFAULT in p:
                 f.write(' = ' + get_default_or_unset_value(p))
                 
+    if KEY_DOC in method:
+        f.write(', ' + create_doc_str(method[KEY_DOC]))
+                
     f.write(')\n')
     
     
@@ -1269,7 +1283,11 @@ def write_pybind11_bindings(f, class_name, class_def):
 
     if def_type == VALUE_CLASS:
         f.write('  return py::class_<' + class_name + ', ' + superclass + \
-                SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '")\n')
+                SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '"')
+        if KEY_DOC in class_def:
+            f.write(', ' + create_doc_str(class_def[KEY_DOC]))                
+                 
+        f.write(')\n')
         f.write('      .def(\n')
         f.write('          py::init<\n')
     
@@ -1334,7 +1352,13 @@ def write_pybind11_bindings(f, class_name, class_def):
         for i in range(num_items):
             if not has_single_superclass(class_def) or not is_inherited(items[i]):
                 name = items[i][KEY_NAME]
-                f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name + ')\n')
+                f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name)
+                
+                if KEY_DOC in items[i]:
+                    f.write(', ' + create_doc_str(items[i][KEY_DOC]))
+        
+                f.write(')\n')
+                
     f.write('    ;\n')
     f.write('}\n\n')
     
@@ -1570,9 +1594,32 @@ def write_enum_binding(f, enum_def):
     assert KEY_VALUES in enum_def, "Enum must have at least one value"
     name = enum_def[KEY_NAME]
     values = enum_def[KEY_VALUES]
-    
-    f.write('  py::enum_<' + name + '>(m, "' + name + '", py::arithmetic())\n')
     num = len(values)
+    
+    f.write('  py::enum_<' + name + '>(m, "' + name + '", py::arithmetic()')
+
+    # Pybind11 does nto allow help for enum members so we put all that information into
+    # the header 
+    members_doc = ''
+    for i in range(num):
+        v = values[i]
+        assert KEY_NAME in v
+        members_doc += v[KEY_NAME]
+        if KEY_DOC in v:
+            members_doc += ': ' + create_doc_str(v[KEY_DOC], False)
+        else:
+            members_doc += '\\n'
+        members_doc += '\\n'
+
+    if KEY_DOC in enum_def or members_doc:
+        f.write(', "')
+        if KEY_DOC in enum_def: 
+            f.write(create_doc_str(enum_def[KEY_DOC], False) + '\\n')
+        f.write(members_doc + '"')
+
+    f.write(')\n')
+    
+    
     for i in range(num):
         v = values[i]
         assert KEY_NAME in v

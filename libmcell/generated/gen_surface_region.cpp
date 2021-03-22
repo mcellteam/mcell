@@ -162,7 +162,7 @@ std::string GenSurfaceRegion::to_str(const std::string ind) const {
 }
 
 py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
-  return py::class_<SurfaceRegion, Region, std::shared_ptr<SurfaceRegion>>(m, "SurfaceRegion")
+  return py::class_<SurfaceRegion, Region, std::shared_ptr<SurfaceRegion>>(m, "SurfaceRegion", "Surface region  in MDL, however a new class Region was instroduced in MCell4 so it was renamed \nto avoid confusion.\n")
       .def(
           py::init<
             const std::string&,
@@ -186,9 +186,9 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
       .def("dump", &SurfaceRegion::dump)
       .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name)
-      .def_property("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices)
-      .def_property("surface_class", &SurfaceRegion::get_surface_class, &SurfaceRegion::set_surface_class)
-      .def_property("initial_surface_releases", &SurfaceRegion::get_initial_surface_releases, &SurfaceRegion::set_initial_surface_releases)
+      .def_property("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices, "Surface region must be a part of a GeometryObject, items in this list are indices to \nits wall_list array\n")
+      .def_property("surface_class", &SurfaceRegion::get_surface_class, &SurfaceRegion::set_surface_class, "Has higher priority than the parent geometry object's surface class.")
+      .def_property("initial_surface_releases", &SurfaceRegion::get_initial_surface_releases, &SurfaceRegion::set_initial_surface_releases, "Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER,\neach item defines either density or number of molecules to be released on this surface \nregions when simulation starts. \n")
     ;
 }
 

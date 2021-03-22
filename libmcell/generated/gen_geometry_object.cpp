@@ -213,16 +213,16 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def("check_semantics", &GeometryObject::check_semantics)
       .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &GeometryObject::__eq__, py::arg("other"))
-      .def("translate", &GeometryObject::translate, py::arg("move"))
+      .def("translate", &GeometryObject::translate, py::arg("move"), "Move object by a specified vector, must be done before model initialization.")
       .def("dump", &GeometryObject::dump)
-      .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
-      .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list)
-      .def_property("wall_list", &GeometryObject::get_wall_list, &GeometryObject::set_wall_list)
+      .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name, "Name of the object. Also represents BNGL compartment name if 'is_bngl_compartment' is True.\n")
+      .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list, "List of [x,y,z] triplets specifying positions of individual vertices.\nEquivalent to List[Vec3] however, defining a constructor Vec3(List[float]) then \ntries to convert all lists of floats to Vec3 \n  \n")
+      .def_property("wall_list", &GeometryObject::get_wall_list, &GeometryObject::set_wall_list, "List of [a,b,c] triplets specifying each wall, individual values are indices into the vertex list.\nEquivalent to List[IVec3]. \n")
       .def_property("is_bngl_compartment", &GeometryObject::get_is_bngl_compartment, &GeometryObject::set_is_bngl_compartment)
       .def_property("surface_compartment_name", &GeometryObject::get_surface_compartment_name, &GeometryObject::set_surface_compartment_name)
       .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions)
-      .def_property("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class)
-      .def_property("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases)
+      .def_property("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class, "Surface class for the whole object's surface. It is applied to the whole surface of this object \nexcept for those surface regions that have their specific surface class set explicitly.\n")
+      .def_property("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases, "Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER,\neach item defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
     ;
 }
 

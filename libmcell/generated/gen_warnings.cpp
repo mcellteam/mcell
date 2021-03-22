@@ -57,7 +57,7 @@ std::string GenWarnings::to_str(const std::string ind) const {
 }
 
 py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
-  return py::class_<Warnings, std::shared_ptr<Warnings>>(m, "Warnings")
+  return py::class_<Warnings, std::shared_ptr<Warnings>>(m, "Warnings", "This is a placeholder for future warnings settings. Empty for now.")
       .def(
           py::init<
           >()

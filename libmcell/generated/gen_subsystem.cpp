@@ -83,12 +83,12 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       .def("find_surface_class", &Subsystem::find_surface_class, py::arg("name"))
       .def("add_elementary_molecule_type", &Subsystem::add_elementary_molecule_type, py::arg("mt"))
       .def("find_elementary_molecule_type", &Subsystem::find_elementary_molecule_type, py::arg("name"))
-      .def("load_bngl_molecule_types_and_reaction_rules", &Subsystem::load_bngl_molecule_types_and_reaction_rules, py::arg("file_name"), py::arg("parameter_overrides") = std::map<std::string, float_t>())
+      .def("load_bngl_molecule_types_and_reaction_rules", &Subsystem::load_bngl_molecule_types_and_reaction_rules, py::arg("file_name"), py::arg("parameter_overrides") = std::map<std::string, float_t>(), "Parses a BNGL file and only reads molecule types and\nreaction rules sections, e.g. ignores observables. \nParameter values are evaluated and the result value \nis directly used.  \nCompartments names are stored in rxn rules as strings because\ncompartments belong to geometry objects and the subsystem is independent\non specific geometry.\nHowever they must be defined on initialization.\n \n")
       .def("dump", &Subsystem::dump)
       .def_property("species", &Subsystem::get_species, &Subsystem::set_species)
       .def_property("reaction_rules", &Subsystem::get_reaction_rules, &Subsystem::set_reaction_rules)
       .def_property("surface_classes", &Subsystem::get_surface_classes, &Subsystem::set_surface_classes)
-      .def_property("elementary_molecule_types", &Subsystem::get_elementary_molecule_types, &Subsystem::set_elementary_molecule_types)
+      .def_property("elementary_molecule_types", &Subsystem::get_elementary_molecule_types, &Subsystem::set_elementary_molecule_types, "Used mainly when a BNGL file is loaded, if BNGL species is defined through \nPython API, this array is populated automatically \n")
     ;
 }
 

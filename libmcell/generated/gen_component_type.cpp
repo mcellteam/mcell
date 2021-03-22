@@ -81,7 +81,7 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
       .def("__eq__", &ComponentType::__eq__, py::arg("other"))
       .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET", py::arg("bond") = BOND_UNBOUND)
       .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET_INT, py::arg("bond") = BOND_UNBOUND)
-      .def("to_bngl_str", &ComponentType::to_bngl_str)
+      .def("to_bngl_str", &ComponentType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")
       .def("dump", &ComponentType::dump)
       .def_property("name", &ComponentType::get_name, &ComponentType::set_name)
       .def_property("states", &ComponentType::get_states, &ComponentType::set_states)

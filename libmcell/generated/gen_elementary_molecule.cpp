@@ -110,11 +110,11 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
       .def("check_semantics", &ElementaryMolecule::check_semantics)
       .def("__str__", &ElementaryMolecule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMolecule::__eq__, py::arg("other"))
-      .def("to_bngl_str", &ElementaryMolecule::to_bngl_str, py::arg("with_compartment") = true)
+      .def("to_bngl_str", &ElementaryMolecule::to_bngl_str, py::arg("with_compartment") = true, "Creates a string that corresponds to its BNGL representation")
       .def("dump", &ElementaryMolecule::dump)
       .def_property("elementary_molecule_type", &ElementaryMolecule::get_elementary_molecule_type, &ElementaryMolecule::set_elementary_molecule_type)
       .def_property("components", &ElementaryMolecule::get_components, &ElementaryMolecule::set_components)
-      .def_property("compartment_name", &ElementaryMolecule::get_compartment_name, &ElementaryMolecule::set_compartment_name)
+      .def_property("compartment_name", &ElementaryMolecule::get_compartment_name, &ElementaryMolecule::set_compartment_name, "Corresponds to BNGL specification 'EM@COMP'. If a 2D/surface compartment is specified, the elementary moelcule must be of surface type. If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.")
     ;
 }
 

@@ -70,17 +70,17 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
       )
       .def("__str__", &Instantiation::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Instantiation::__eq__, py::arg("other"))
-      .def("add_release_site", &Instantiation::add_release_site, py::arg("s"))
+      .def("add_release_site", &Instantiation::add_release_site, py::arg("s"), "Makes a copy of the release site")
       .def("find_release_site", &Instantiation::find_release_site, py::arg("name"))
-      .def("add_geometry_object", &Instantiation::add_geometry_object, py::arg("o"))
+      .def("add_geometry_object", &Instantiation::add_geometry_object, py::arg("o"), "Makes a copy of the geometry object, in the future we will probably add some transformations")
       .def("find_geometry_object", &Instantiation::find_geometry_object, py::arg("name"))
       .def("find_volume_compartment_object", &Instantiation::find_volume_compartment_object, py::arg("name"))
       .def("find_surface_compartment_object", &Instantiation::find_surface_compartment_object, py::arg("name"))
-      .def("load_bngl_seed_species", &Instantiation::load_bngl_seed_species, py::arg("file_name"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>())
+      .def("load_bngl_seed_species", &Instantiation::load_bngl_seed_species, py::arg("file_name"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, float_t>(), "Loads section seed species from a BNGL file and creates release sites according to it.\nAll elementary molecule types used in the seed species section must be already defined in subsystem.\nIf an item in the BNGL seed species section does not have its compartment set,\nthe argument default_region must be set and the molecules are released into or onto the \ndefault_region. \n")
       .def("dump", &Instantiation::dump)
       .def_property("release_sites", &Instantiation::get_release_sites, &Instantiation::set_release_sites)
       .def_property("geometry_objects", &Instantiation::get_geometry_objects, &Instantiation::set_geometry_objects)
-      .def_property("checkpointed_molecules", &Instantiation::get_checkpointed_molecules, &Instantiation::set_checkpointed_molecules)
+      .def_property("checkpointed_molecules", &Instantiation::get_checkpointed_molecules, &Instantiation::set_checkpointed_molecules, "Used when resuming simulation from a checkpoint.")
     ;
 }
 

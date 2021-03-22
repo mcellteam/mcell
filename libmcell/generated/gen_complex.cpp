@@ -74,7 +74,7 @@ std::string GenComplex::to_str(const std::string ind) const {
 }
 
 py::class_<Complex> define_pybinding_Complex(py::module& m) {
-  return py::class_<Complex, std::shared_ptr<Complex>>(m, "Complex")
+  return py::class_<Complex, std::shared_ptr<Complex>>(m, "Complex", "This class represents a complex molecule composed of molecule instances.\nIt is either defined using a BNGL string or using a list of elementary molecule instances.\nOn top of that, orientation may be defined.\nThis class is used as argument in cases where either a fully qualified instance or a pattern \ncan be provided such as in observable Count.  \nComparison operator __eq__ first converts complexes to their canonical representation and \nthen does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').\n")
       .def(
           py::init<
             const std::string&,
@@ -90,13 +90,13 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       .def("check_semantics", &Complex::check_semantics)
       .def("__str__", &Complex::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Complex::__eq__, py::arg("other"))
-      .def("to_bngl_str", &Complex::to_bngl_str)
-      .def("as_species", &Complex::as_species)
+      .def("to_bngl_str", &Complex::to_bngl_str, "Creates a string that corresponds to its BNGL representation including compartments.")
+      .def("as_species", &Complex::as_species, "Returns a Species object based on this Complex. All species-specific \nattributes are set to their default values and 'name' is set to value returned by \n'to_bngl_str()'.\n")
       .def("dump", &Complex::dump)
-      .def_property("name", &Complex::get_name, &Complex::set_name)
-      .def_property("elementary_molecules", &Complex::get_elementary_molecules, &Complex::set_elementary_molecules)
-      .def_property("orientation", &Complex::get_orientation, &Complex::set_orientation)
-      .def_property("compartment_name", &Complex::get_compartment_name, &Complex::set_compartment_name)
+      .def_property("name", &Complex::get_name, &Complex::set_name, "When set, this complex instance is initialized from a BNGL string passed as this argument, \nthe string is parsed and elementary_molecules and compartment are initialized.\n")
+      .def_property("elementary_molecules", &Complex::get_elementary_molecules, &Complex::set_elementary_molecules, "Individual molecule instances contained in the complex.\nThis information is used during model initialization.\n")
+      .def_property("orientation", &Complex::get_orientation, &Complex::set_orientation, "Specifies orientation of a molecule. \nWhen Orientation.DEFAULT if kept then during model initialization is\n'orientation' set to Orientation.NONE for volume complexes and to \nOrientation.UP for surface complexes.\nIgnored by derived class Species.\n")
+      .def_property("compartment_name", &Complex::get_compartment_name, &Complex::set_compartment_name, "Specifies compartment name of this Complex.\nOnly one of 'orientation' and 'compartment_name' can be set. \nMay be used only when elementary_molecules do not specify a compartment.\nCorresponds to BNGL specification '@COMP:'.\nIf a 2D/surface compartment is specified, the complex must be a surface complex and \norientation is set to Orientation.UP.\nIf a 3D/volume compartment is specified, the complex must be a volume complex and\norientation is set to Orientation.NONE. \nAll compartments of surface elementary molecules must be the same.\nAll compartments of volume elementary molecules must be from the two neighboring volume compartments.\n")
     ;
 }
 

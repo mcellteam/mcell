@@ -53,7 +53,7 @@ void define_pybinding_constants(py::module& m) {
 }
 
 void define_pybinding_enums(py::module& m) {
-  py::enum_<Orientation>(m, "Orientation", py::arithmetic())
+  py::enum_<Orientation>(m, "Orientation", py::arithmetic(), "Orientation of a Complex.\nDOWN\n\nNONE\n\nUP\n\nNOT_SET\n\nANY\n\nDEFAULT: DEFAULT means NONE for volume complexes and UP for surface complexes.\n")
     .value("DOWN", Orientation::DOWN)
     .value("NONE", Orientation::NONE)
     .value("UP", Orientation::UP)
@@ -61,28 +61,28 @@ void define_pybinding_enums(py::module& m) {
     .value("ANY", Orientation::ANY)
     .value("DEFAULT", Orientation::DEFAULT)
     .export_values();
-  py::enum_<Notification>(m, "Notification", py::arithmetic())
+  py::enum_<Notification>(m, "Notification", py::arithmetic(), "NONE\n\nBRIEF\n\nFULL\n\n")
     .value("NONE", Notification::NONE)
     .value("BRIEF", Notification::BRIEF)
     .value("FULL", Notification::FULL)
     .export_values();
-  py::enum_<WarningLevel>(m, "WarningLevel", py::arithmetic())
+  py::enum_<WarningLevel>(m, "WarningLevel", py::arithmetic(), "IGNORE: Do something sensible and continue silently\nWARNING: Do something sensible but emit a warning message\nERROR: Treat the warning as an error and stop\n")
     .value("IGNORE", WarningLevel::IGNORE)
     .value("WARNING", WarningLevel::WARNING)
     .value("ERROR", WarningLevel::ERROR)
     .export_values();
-  py::enum_<VizMode>(m, "VizMode", py::arithmetic())
+  py::enum_<VizMode>(m, "VizMode", py::arithmetic(), "ASCII\n\nCELLBLENDER\n\n")
     .value("ASCII", VizMode::ASCII)
     .value("CELLBLENDER", VizMode::CELLBLENDER)
     .export_values();
-  py::enum_<Shape>(m, "Shape", py::arithmetic())
+  py::enum_<Shape>(m, "Shape", py::arithmetic(), "UNSET\n\nSPHERICAL\n\nREGION_EXPR\n\nLIST\n\nCOMPARTMENT\n\n")
     .value("UNSET", Shape::UNSET)
     .value("SPHERICAL", Shape::SPHERICAL)
     .value("REGION_EXPR", Shape::REGION_EXPR)
     .value("LIST", Shape::LIST)
     .value("COMPARTMENT", Shape::COMPARTMENT)
     .export_values();
-  py::enum_<SurfacePropertyType>(m, "SurfacePropertyType", py::arithmetic())
+  py::enum_<SurfacePropertyType>(m, "SurfacePropertyType", py::arithmetic(), "UNSET\n\nREACTIVE: This surface class does not do anything by itself but it can be used as a reactant in \nreaction rules. \n\nREFLECTIVE\n\nTRANSPARENT\n\nABSORPTIVE\n\nCONCENTRATION_CLAMP: Clamps concentration at a surface by periodically releasing molecules that correspond\nto the wall being a transparent boundary to area with given concentration, \nand by absorbing all molecules that hit this surface.  \n\nFLUX_CLAMP: Clamps flux at a surface by periodically releasing molecules that correspond\nto the wall being a transparent boundary to area with given concentration. \nThe clamped surface reflects these molecules. \n\n")
     .value("UNSET", SurfacePropertyType::UNSET)
     .value("REACTIVE", SurfacePropertyType::REACTIVE)
     .value("REFLECTIVE", SurfacePropertyType::REFLECTIVE)
@@ -91,13 +91,13 @@ void define_pybinding_enums(py::module& m) {
     .value("CONCENTRATION_CLAMP", SurfacePropertyType::CONCENTRATION_CLAMP)
     .value("FLUX_CLAMP", SurfacePropertyType::FLUX_CLAMP)
     .export_values();
-  py::enum_<ExprNodeType>(m, "ExprNodeType", py::arithmetic())
+  py::enum_<ExprNodeType>(m, "ExprNodeType", py::arithmetic(), "Used internally to represent expression trees.\nUNSET\n\nLEAF\n\nADD\n\nSUB\n\n")
     .value("UNSET", ExprNodeType::UNSET)
     .value("LEAF", ExprNodeType::LEAF)
     .value("ADD", ExprNodeType::ADD)
     .value("SUB", ExprNodeType::SUB)
     .export_values();
-  py::enum_<RegionNodeType>(m, "RegionNodeType", py::arithmetic())
+  py::enum_<RegionNodeType>(m, "RegionNodeType", py::arithmetic(), "Used internally to represent region trees.\nUNSET\n\nLEAF_GEOMETRY_OBJECT\n\nLEAF_SURFACE_REGION\n\nUNION\n\nDIFFERENCE\n\nINTERSECT\n\n")
     .value("UNSET", RegionNodeType::UNSET)
     .value("LEAF_GEOMETRY_OBJECT", RegionNodeType::LEAF_GEOMETRY_OBJECT)
     .value("LEAF_SURFACE_REGION", RegionNodeType::LEAF_SURFACE_REGION)
@@ -105,7 +105,7 @@ void define_pybinding_enums(py::module& m) {
     .value("DIFFERENCE", RegionNodeType::DIFFERENCE)
     .value("INTERSECT", RegionNodeType::INTERSECT)
     .export_values();
-  py::enum_<ReactionType>(m, "ReactionType", py::arithmetic())
+  py::enum_<ReactionType>(m, "ReactionType", py::arithmetic(), "Used in reaction callbacks.\nUNSET\n\nUNIMOL_VOLUME\n\nUNIMOL_SURFACE\n\nVOLUME_VOLUME\n\nVOLUME_SURFACE\n\nSURFACE_SURFACE\n\n")
     .value("UNSET", ReactionType::UNSET)
     .value("UNIMOL_VOLUME", ReactionType::UNIMOL_VOLUME)
     .value("UNIMOL_SURFACE", ReactionType::UNIMOL_SURFACE)
@@ -113,7 +113,7 @@ void define_pybinding_enums(py::module& m) {
     .value("VOLUME_SURFACE", ReactionType::VOLUME_SURFACE)
     .value("SURFACE_SURFACE", ReactionType::SURFACE_SURFACE)
     .export_values();
-  py::enum_<MoleculeType>(m, "MoleculeType", py::arithmetic())
+  py::enum_<MoleculeType>(m, "MoleculeType", py::arithmetic(), "Used in molecule introspection and internally in checkpointing.\nUNSET\n\nVOLUME\n\nSURFACE\n\n")
     .value("UNSET", MoleculeType::UNSET)
     .value("VOLUME", MoleculeType::VOLUME)
     .value("SURFACE", MoleculeType::SURFACE)

@@ -114,16 +114,16 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       .def("check_semantics", &ReactionRule::check_semantics)
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionRule::__eq__, py::arg("other"))
-      .def("to_bngl_str", &ReactionRule::to_bngl_str)
+      .def("to_bngl_str", &ReactionRule::to_bngl_str, "Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.")
       .def("dump", &ReactionRule::dump)
-      .def_property("name", &ReactionRule::get_name, &ReactionRule::set_name)
+      .def_property("name", &ReactionRule::get_name, &ReactionRule::set_name, "Name of the reaction. If this is a reversible reaction, then it is the name of the \nreaction in forward direction.\n")
       .def_property("reactants", &ReactionRule::get_reactants, &ReactionRule::set_reactants)
       .def_property("products", &ReactionRule::get_products, &ReactionRule::set_products)
-      .def_property("fwd_rate", &ReactionRule::get_fwd_rate, &ReactionRule::set_fwd_rate)
-      .def_property("rev_name", &ReactionRule::get_rev_name, &ReactionRule::set_rev_name)
-      .def_property("rev_rate", &ReactionRule::get_rev_rate, &ReactionRule::set_rev_rate)
-      .def_property("variable_rate", &ReactionRule::get_variable_rate, &ReactionRule::set_variable_rate)
-      .def_property("is_intermembrane_surface_reaction", &ReactionRule::get_is_intermembrane_surface_reaction, &ReactionRule::set_is_intermembrane_surface_reaction)
+      .def_property("fwd_rate", &ReactionRule::get_fwd_rate, &ReactionRule::set_fwd_rate, "Rates have following units: unimolecular [s^-1], volume bimolecular [M^-1*s^-1], \nThe units of the reaction rate for uni- and bimolecular reactions are\n  * [s^-1] for unimolecular reactions,\n  * [M^-1*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule \n                and a surface (molecule), \n  * [um^2*N^-1*s^-1] bimolecular reactions between two surface molecules on the same surface, and\n  * [N^-1*s^-1] bimolecular reactions between two surface molecules on different objects \n    (this is a highly experimental feature and the unit will likely change in the future, \n     not sure if probability is computed correctly, it works the way that the surface molecule \n     is first diffused and then a potential collisions within the distance of Config.intermembrane_interaction_radius\n     are evaluated). \nHere, M is the molarity of the solution and N the number of reactants.\nMay be changed after model initialization. \nSetting of value is ignored if the rate does not change. \nIf the new value differs from previous, updates all information related \nto the new rate including recomputation of reaction times for molecules if this is a\nunimolecular reaction.\n")
+      .def_property("rev_name", &ReactionRule::get_rev_name, &ReactionRule::set_rev_name, "Name of the reaction in reverse direction.")
+      .def_property("rev_rate", &ReactionRule::get_rev_rate, &ReactionRule::set_rev_rate, "Reverse reactions rate, reaction is unidirectional when not specified.\nMay be changed after model initialization, in the case behaves the same was as for \nchanging the 'fwd_rate'. \n")
+      .def_property("variable_rate", &ReactionRule::get_variable_rate, &ReactionRule::set_variable_rate, "Variable rate is applicable only for irreversible reactions. Members fwd_rate and rev_rate \nmust not be set. The array passed as this argument must have as its items a pair of floats (time, rate).     \n")
+      .def_property("is_intermembrane_surface_reaction", &ReactionRule::get_is_intermembrane_surface_reaction, &ReactionRule::set_is_intermembrane_surface_reaction, "Experimental, see addintinal explanation in 'fwd' rate.\nThen set to true, this is a special type of surface-surface reaction that \nallows for two surface molecules to react when they are on different geometrical objects. \nThis support is limited for now, the reaction rule must be in the form of A + B -> C + D \nwhere all reactants and products must be surface molecules and \ntheir orientation must be 'any' (default). \n")
     ;
 }
 

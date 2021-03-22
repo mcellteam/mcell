@@ -52,7 +52,7 @@ std::string GenObservables::to_str(const std::string ind) const {
 }
 
 py::class_<Observables> define_pybinding_Observables(py::module& m) {
-  return py::class_<Observables, std::shared_ptr<Observables>>(m, "Observables")
+  return py::class_<Observables, std::shared_ptr<Observables>>(m, "Observables", "Neither VizOutput, nor Count have name, therefore there are no find_* methods.\n")
       .def(
           py::init<
             const std::vector<std::shared_ptr<VizOutput>>,
@@ -66,7 +66,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"))
       .def("add_count", &Observables::add_count, py::arg("count"))
       .def("find_count", &Observables::find_count, py::arg("name"))
-      .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("file_name"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>())
+      .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("file_name"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>(), "Loads section observables from a BNGL file and creates Count objects according to it.\nAll elementary molecule types used in the seed species section must be defined in subsystem.\n")
       .def("dump", &Observables::dump)
       .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs)
       .def_property("counts", &Observables::get_counts, &Observables::set_counts)
