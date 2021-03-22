@@ -96,9 +96,9 @@ void Species::update_rxn_and_custom_flags(
       if (second_reactant.is_surf()) {
         set_flag(SPECIES_FLAG_CAN_SURFSURF);
       }
-
       if (second_reactant.is_reactive_surface()) {
         set_flag(SPECIES_FLAG_CAN_REGION_BORDER);
+        set_flag(SPECIES_FLAG_CAN_SURFWALL);
       }
     }
   }

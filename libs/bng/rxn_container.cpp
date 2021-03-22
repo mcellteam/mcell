@@ -45,6 +45,7 @@ void RxnContainer::reset_caches() {
 }
 
 
+// this method is called only during conversion, used only for superspecies
 void RxnContainer::update_all_mols_and_mol_type_compartments() {
 
   species_id_t all_mols_id = all_species.get_all_molecules_species_id();
@@ -78,7 +79,7 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
       // but not for all_volume molecules because there is no single flag that we can query
       if (sp.is_vol() || sp.id == all_mols_id) {
         if (sp2.is_reactive_surface()) {
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+          sp.set_flag(SPECIES_FLAG_CAN_VOLWALL);
           if (sp.id == all_mols_id || sp.id == all_vol_mols_id) {
             all_vol_mols_can_react_with_surface = true;
           }
@@ -87,7 +88,7 @@ void RxnContainer::update_all_mols_and_mol_type_compartments() {
 
       if ((sp.is_surf() || sp.id == all_mols_id)) {
         if (sp2.is_reactive_surface()) {
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_SURFWALL);
+          sp.set_flag(SPECIES_FLAG_CAN_SURFWALL);
           if (sp.id == all_surf_mols_id || sp.id == all_mols_id) {
             all_surf_mols_can_react_with_surface = true;
           }
