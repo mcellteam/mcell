@@ -504,6 +504,39 @@ static int test_bimolecular(
 }
 
 
+/*************************************************************************
+test_many_unimol:
+  In: an array of reactions we're testing
+      rng state
+  Out: index of the selected rxn class
+*************************************************************************/
+static uint test_many_unimol(
+    const BNG::RxnClassesVector& rxn_classes,
+    rng_state& rng) {
+
+  assert(!rxn_classes.empty());
+
+  size_t n = rxn_classes.size();
+
+  if (n == 1) {
+    return 0;
+  }
+
+  std::vector<double> cum_rxn_class_probs(n); /* array of cumulative rxn probabilities */
+  cum_rxn_class_probs[0] = rxn_classes[0]->get_max_fixed_p();
+
+  for (size_t i = 1; i < n; i++) {
+    cum_rxn_class_probs[i] = cum_rxn_class_probs[i - 1] + rxn_classes[i]->get_max_fixed_p();
+  }
+
+  double p = rng_dbl(&rng) * cum_rxn_class_probs[n - 1];
+
+  /* Pick the reaction that happens */
+  uint res = binary_search_double(cum_rxn_class_probs, p, cum_rxn_class_probs.size() - 1, 1);
+
+  return res;
+}
+
 
 /*************************************************************************
 test_many_bimolecular:
@@ -768,17 +801,20 @@ static void pick_unimol_rxn_classes(
     const float_t current_time,
     BNG::RxnClassesVector& matching_rxn_classes
 ) {
-  BNG::RxnClass* rxn_class = p.get_all_rxns().get_unimol_rxn_class(m.species_id);
-  if (rxn_class != nullptr) {
-    rxn_class->update_rxn_rates_if_needed(current_time);
-    matching_rxn_classes.push_back(rxn_class);
-  }
-
+  // MCell3 returns mol+surf class rxn(s) as the first one(s), then the true unimol rxns
+  // maintaining order only for compatibility
   const BNG::Species& species = p.get_all_species().get(m.species_id);
   if (species.has_flag(BNG::SPECIES_FLAG_CAN_SURFWALL)) {
     assert(m.is_surf());
     const Wall& w = p.get_wall(m.s.wall_index);
     trigger_intersect(p, m, m.s.orientation, w, false, matching_rxn_classes);
+  }
+
+  // get unimol rxn class if exists
+  BNG::RxnClass* rxn_class = p.get_all_rxns().get_unimol_rxn_class(m.species_id);
+  if (rxn_class != nullptr) {
+    rxn_class->update_rxn_rates_if_needed(current_time);
+    matching_rxn_classes.push_back(rxn_class);
   }
 }
 

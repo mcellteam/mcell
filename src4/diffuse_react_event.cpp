@@ -1721,10 +1721,13 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
     return;
   }
 
-  release_assert(rxn_classes.size() == 1);
+  uint idx = 0;
+  if (rxn_classes.size() > 1) {
+    idx = RxnUtil::test_many_unimol(rxn_classes, world->rng);
+  }
 
   // there is a check when computing the reaction rate to make sure that the time is reasonably higher than 0
-  float_t time_from_now = RxnUtil::compute_unimol_lifetime(p, world->rng, rxn_classes[0], current_time, m);
+  float_t time_from_now = RxnUtil::compute_unimol_lifetime(p, world->rng, rxn_classes[idx], current_time, m);
 
   float_t scheduled_time = current_time + time_from_now;
 
@@ -1777,12 +1780,16 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
       return true;
     }
 
-    release_assert(rxn_classes.size() == 1 && "TODO");
-    rxn_class_pathway_index_t pi = RxnUtil::which_unimolecular(m, rxn_classes[0], world->rng);
+    uint idx = 0;
+    if (rxn_classes.size() > 1) {
+      idx = RxnUtil::test_many_unimol(rxn_classes, world->rng);
+    }
 
-    if (rxn_classes[0]->is_unimol()) {
+    rxn_class_pathway_index_t pi = RxnUtil::which_unimolecular(m, rxn_classes[idx], world->rng);
+
+    if (rxn_classes[idx]->is_unimol()) {
       // standard unimolecular rxn
-      return outcome_unimolecular(p, m, scheduled_time, rxn_classes[0], pi);
+      return outcome_unimolecular(p, m, scheduled_time, rxn_classes[idx], pi);
     }
     else {
       // surf mol + surf class rxn
@@ -1792,7 +1799,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
       // orientation front or back is not important
       Vec3 pos = GeometryUtil::uv2xyz(m.s.pos, w, v0);
       Collision collision(CollisionType::WALL_FRONT, &p, m.id, scheduled_time, pos, w.index);
-      return outcome_intersect(p, rxn_classes[0], pi, collision, scheduled_time);
+      return outcome_intersect(p, rxn_classes[idx], pi, collision, scheduled_time);
     }
   }
 }
