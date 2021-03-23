@@ -460,7 +460,10 @@ Methods:
 SurfaceClass
 ============
 
-Defining a surface class allows surfaces to behave like species (in a limited way).
+Defining a surface class allows surfaces to behave like species. For instance, one may wish 
+to specify that a surface does not block the diffusion of molecules. Each type of surface is defined
+by name, and each surface name must be unique in the simulation and should not match any molecule names.
+To define a reaction with a surface class, use constructor call m.Complex(name) as one of the reactants.
 
 Attributes:
 ***********
@@ -473,7 +476,7 @@ Attributes:
   | type, affected_species, etc. inherited from SurfaceProperty directly.
 
 * | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
-  | Must be set.
+  | Must be set. See SurfacePropertyType for options.
 
 * | **affected_complex_pattern**: Complex = None
   | A complex pattern with optional orientation must be set.
@@ -491,10 +494,12 @@ Attributes:
 SurfaceProperty
 ===============
 
+Single property for a SurfaceClass.
+
 Attributes:
 ***********
 * | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
-  | Must be set.
+  | Must be set. See SurfacePropertyType for options.
 
 * | **affected_complex_pattern**: Complex = None
   | A complex pattern with optional orientation must be set.

@@ -177,7 +177,7 @@ std::string GenChkptSurfMol::to_str(const std::string ind) const {
 }
 
 py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
-  return py::class_<ChkptSurfMol, BaseChkptMol, std::shared_ptr<ChkptSurfMol>>(m, "ChkptSurfMol")
+  return py::class_<ChkptSurfMol, BaseChkptMol, std::shared_ptr<ChkptSurfMol>>(m, "ChkptSurfMol", "Class representing a checkpointed surface molecule.")
       .def(
           py::init<
             const Vec2&,

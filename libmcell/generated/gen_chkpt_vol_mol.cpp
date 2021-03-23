@@ -125,7 +125,7 @@ std::string GenChkptVolMol::to_str(const std::string ind) const {
 }
 
 py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
-  return py::class_<ChkptVolMol, BaseChkptMol, std::shared_ptr<ChkptVolMol>>(m, "ChkptVolMol")
+  return py::class_<ChkptVolMol, BaseChkptMol, std::shared_ptr<ChkptVolMol>>(m, "ChkptVolMol", "Class representing a checkpointed volume molecule.")
       .def(
           py::init<
             const Vec3&,

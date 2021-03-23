@@ -125,7 +125,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       .def("check_semantics", &Species::check_semantics)
       .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Species::__eq__, py::arg("other"))
-      .def("inst", &Species::inst, py::arg("orientation") = Orientation::DEFAULT, py::arg("compartment_name") = STR_UNSET, "Creates a copy of a Complex from this Species with specified orientation and compartment name. \n")
+      .def("inst", &Species::inst, py::arg("orientation") = Orientation::DEFAULT, py::arg("compartment_name") = STR_UNSET, "Creates a copy of a Complex from this Species with specified orientation and compartment name. \n\n- orientation: Maximum one of orientation or compartment_name can be set, not both.\n\n- compartment_name: Maximum one of orientation or compartment_name can be set, not both.\n\n")
       .def("dump", &Species::dump)
       .def_property("name", &Species::get_name, &Species::set_name, "Name of the species in the BNGL format. \nOne must either specify 'name' or 'elementary_molecules' \n(inherited from Complex). This argument 'name' is parsed during model \ninitialization.    \n")
       .def_property("diffusion_constant_2d", &Species::get_diffusion_constant_2d, &Species::set_diffusion_constant_2d, "This molecule is constrained to a surface and diffuses with diffusion constant D.")

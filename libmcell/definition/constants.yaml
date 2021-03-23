@@ -231,8 +231,7 @@ enums:
          Clamps concentration at a surface by periodically releasing molecules that correspond
          to the wall being a transparent boundary to the area with given concentration, 
          and by absorbing all molecules that hit this surface.  
-         
-         The molecules matching affected_complex_pattern are destroyed if they touche the surface (as if they
+         The molecules matching affected_complex_pattern are destroyed if they touch the surface (as if they
          had passed through), and new molecules are created at the surface, as if molecules had passed through 
          from the other side at a concentration value (units = M). 
          Orientation marks may be used; in this case, the other side of the surface is reflective. 

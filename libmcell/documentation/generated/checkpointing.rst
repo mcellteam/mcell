@@ -4,7 +4,7 @@ Checkpointing
 BaseChkptMol
 ============
 
-All times are in us (microseconds).
+Base class for checkpointed molecules, not to be used directly. All times are in us (microseconds).
 
 Attributes:
 ***********
@@ -22,6 +22,8 @@ Attributes:
 
 ChkptSurfMol
 ============
+
+Class representing a checkpointed surface molecule.
 
 Attributes:
 ***********
@@ -49,6 +51,8 @@ Attributes:
 
 ChkptVolMol
 ===========
+
+Class representing a checkpointed volume molecule.
 
 Attributes:
 ***********

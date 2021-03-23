@@ -143,5 +143,5 @@ GeometryObject:
     params:
     - name: move
       type: List[float]
-      doc: 3D vector [x, y, x] that will be added to each vertex of this object.
+      doc: 3D vector [x, y, z] that will be added to each vertex of this object.
     

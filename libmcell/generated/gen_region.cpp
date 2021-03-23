@@ -128,13 +128,13 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
       .def("check_semantics", &Region::check_semantics)
       .def("__str__", &Region::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Region::__eq__, py::arg("other"))
-      .def("__add__", &Region::__add__, py::arg("other"), "Computes union of thwo regions")
-      .def("__sub__", &Region::__sub__, py::arg("other"))
-      .def("__mul__", &Region::__mul__, py::arg("other"))
+      .def("__add__", &Region::__add__, py::arg("other"), "Computes union of two regions, use with Python operator '+'.\n- other\n")
+      .def("__sub__", &Region::__sub__, py::arg("other"), "Computes difference of two regions, use with Python operator '-'.\n- other\n")
+      .def("__mul__", &Region::__mul__, py::arg("other"), "Computes intersection of two regions, use with Python operator '*'.\n- other\n")
       .def("dump", &Region::dump)
       .def_property("node_type", &Region::get_node_type, &Region::set_node_type, "When this values is LeafGeometryObject, then this object is of class GeometryObject,\nwhen LeafSurfaceRegion, then it is of class SurfaceRegion.\n")
-      .def_property("left_node", &Region::get_left_node, &Region::set_left_node, "Internal, when node_type is not Leaf, this is the left operand")
-      .def_property("right_node", &Region::get_right_node, &Region::set_right_node, "Internal, when node_type is not Leaf, this is the right operand")
+      .def_property("left_node", &Region::get_left_node, &Region::set_left_node, "Internal, do not use. When node_type is not Leaf, this is the left operand")
+      .def_property("right_node", &Region::get_right_node, &Region::set_right_node, "Internal, do not use. When node_type is not Leaf, this is the right operand")
     ;
 }
 

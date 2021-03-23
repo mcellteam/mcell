@@ -104,7 +104,7 @@ std::string GenSurfaceClass::to_str(const std::string ind) const {
 }
 
 py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
-  return py::class_<SurfaceClass, SurfaceProperty, std::shared_ptr<SurfaceClass>>(m, "SurfaceClass", "Defining a surface class allows surfaces to behave like species (in a limited way).")
+  return py::class_<SurfaceClass, SurfaceProperty, std::shared_ptr<SurfaceClass>>(m, "SurfaceClass", "Defining a surface class allows surfaces to behave like species. For instance, one may wish \nto specify that a surface does not block the diffusion of molecules. Each type of surface is defined\nby name, and each surface name must be unique in the simulation and should not match any molecule names.\nTo define a reaction with a surface class, use constructor call m.Complex(name) as one of the reactants.\n")
       .def(
           py::init<
             const std::string&,

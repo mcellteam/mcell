@@ -14,7 +14,7 @@ Orientation
 * | **NOT_SET** = 2
 * | **ANY** = 3
 * | **DEFAULT** = 4
-  | DEFAULT means NONE for volume complexes and UP for surface complexes.
+  | Value DEFAULT means NONE for volume complexes and UP for surface complexes.
 
 
 Notification
@@ -28,13 +28,13 @@ WarningLevel
 ============
 
 * | **IGNORE** = 0
-  | Do something sensible and continue silently
+  | Do something sensible and continue silently.
 
 * | **WARNING** = 1
-  | Do something sensible but emit a warning message
+  | Do something sensible but emit a warning message.
 
 * | **ERROR** = 2
-  | Treat the warning as an error and stop
+  | Treat the warning as an error and stop.
 
 
 VizMode
@@ -57,20 +57,70 @@ SurfacePropertyType
 
 * | **UNSET** = 0
 * | **REACTIVE** = 1
-  | This surface class does not do anything by itself but it can be used as a reactant in 
+  | This surface class does not do anything by itself, but it can be used as a reactant in 
   | reaction rules.
 
 * | **REFLECTIVE** = 2
+  | If used as a surface property for a volume molecule it is reflected by any surface with
+  | this surface class. This is the default behavior for volume molecules.
+  | If used for a surface molecule it is reflected by the border of the
+  | surface with this surface class. 
+  | Setting orientation in affected_complex_pattern allows selective reflection of volume 
+  | molecules from only the front or back of a surface or selective reflection of surface 
+  | molecules with only a certain orientation from the surface’s border. 
+  | Using m.ALL_MOLECULES as affected_complex_pattern has the effect that all 
+  | volume molecules are reflected by surfaces with this surface class and all surface molecules 
+  | are reflected by the border of the surfaces with this surface class. 
+  | Using m.ALL_VOLUME_MOLECULES as affected_complex_pattern has the effect that all
+  | volume molecules are reflected by surfaces with this surface class. 
+  | Using m.ALL_SURFACE_MOLECULES as affected_complex_pattern has the effect that all
+  | surface molecules are reflected by the border of the surface with this surface class.
+
 * | **TRANSPARENT** = 3
+  | If used as a surface property for a volume molecule it passes through all surfaces with
+  | this surface class.  
+  | If used for a surface molecule it passes through the border of the surface with this surface 
+  | class. This is the default behavior for surface molecules.
+  | Setting orientation in affected_complex_pattern allows selective transparency of volume 
+  | molecules from only the front or back of a surface or selective transparency for surface 
+  | molecules with only a certain orientation from the surface’s border. 
+  | To make a surface with this surface class transparent to all volume molecules,
+  | use m.ALL_VOLUME_MOLECULES for affected_complex_pattern. 
+  | To make a border of the surface with this surface class transparent to all surface molecules,
+  | use m.ALL_SURFACE_MOLECULES for the affected_complex_pattern. 
+  | Using m.ALL_MOLECULES for affected_complex_pattern has the effect that surfaces with this surface class 
+  | are transparent to all volume molecules and borders of the surfaces with this surface class are 
+  | transparent to all surface molecules.
+
 * | **ABSORPTIVE** = 4
+  | If affected_complex_pattern refers to a volume molecule it is destroyed if it touches surfaces with this surface class. 
+  | If affected_complex_pattern refers to a surface molecule it is destroyed if it touches the border of the surface with 
+  | this surface class. 
+  | Tick marks on name allow destruction from only one side of the surface for volume molecules or selective destruction 
+  | for surface molecules on the surfaces’s border based on their orientation. 
+  | To make a surface with this surface class absorptive to all volume molecules, m.ALL_VOLUME_MOLECULES 
+  | can be used for affected_complex_pattern. 
+  | To make a border of the surface with this surface class absorptive to all surface molecules,
+  | m.ALL_SURFACE_MOLECULES can be used for name. 
+  | Using m.ALL_MOLECULES as affected_complex_pattern has the effect that surfaces with this surface
+  | class are absorptive for all volume molecules and borders of the surfaces with this surface class 
+  | are absorptive for all surface molecules.
+
 * | **CONCENTRATION_CLAMP** = 5
   | Clamps concentration at a surface by periodically releasing molecules that correspond
-  | to the wall being a transparent boundary to area with given concentration, 
-  | and by absorbing all molecules that hit this surface.
+  | to the wall being a transparent boundary to the area with given concentration, 
+  | and by absorbing all molecules that hit this surface.  
+  | 
+  | The molecules matching affected_complex_pattern are destroyed if they touche the surface (as if they
+  | had passed through), and new molecules are created at the surface, as if molecules had passed through 
+  | from the other side at a concentration value (units = M). 
+  | Orientation marks may be used; in this case, the other side of the surface is reflective. 
+  | Note that this command is only used to set the effective concentration of a volume molecule at a surface; 
+  | it is not valid to specify a surface molecule.
 
 * | **FLUX_CLAMP** = 6
   | Clamps flux at a surface by periodically releasing molecules that correspond
-  | to the wall being a transparent boundary to area with given concentration. 
+  | to the wall being a transparent boundary to the area with given concentration. 
   | The clamped surface reflects these molecules.
 
 
@@ -129,7 +179,7 @@ Constants
 * | **STATE_UNSET**: str = STATE_UNSET
 * | **STATE_UNSET_INT**: int = -1
 * | **BOND_UNBOUND**: int = -1
-  | Represents cases when a component must not be bound in a pattern
+  | Represents cases when a component must not be bound in a pattern.
 
 * | **BOND_BOUND**: int = -2
   | Represents bond type !+ in a pattern
@@ -161,7 +211,7 @@ Constants
   | its value is 2147483647.
 
 * | **FLT_UNSET**: float = FLT_MAX
-  | This is a special floating point value that means that an argument was not set, 
+  | This is a special floating-point value that means that an argument was not set, 
   | its value is 3.40282346638528859812e+38F.
 
 * | **RNG_SIZE**: int = 256

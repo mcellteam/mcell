@@ -1248,6 +1248,7 @@ def write_pybind11_method_bindings(f, class_name, method, class_def):
     
     f.write('      .def("' + name + '", ' + full_method_name)  
     
+    params_doc = ''
     if KEY_PARAMS in method:
         params = method[KEY_PARAMS]
         params_cnt = len(params)
@@ -1255,12 +1256,25 @@ def write_pybind11_method_bindings(f, class_name, method, class_def):
             f.write(', ')
             p = params[i]
             assert KEY_NAME in p
-            f.write('py::arg("' + p[KEY_NAME] + '")')
+            param_name = p[KEY_NAME]
+            f.write('py::arg("' + param_name + '")')
             if KEY_DEFAULT in p:
                 f.write(' = ' + get_default_or_unset_value(p))
-                
-    if KEY_DOC in method:
-        f.write(', ' + create_doc_str(method[KEY_DOC]))
+            
+            params_doc += '- ' + param_name
+            if KEY_DOC in p:
+                params_doc += ': ' + create_doc_str(p[KEY_DOC], False) + '\\n'
+            params_doc += '\\n'
+            
+            
+    if KEY_DOC in method or params_doc:
+        
+        f.write(', "') 
+        if KEY_DOC in method:
+            f.write(create_doc_str(method[KEY_DOC], False))
+            if params_doc:
+                params_doc = '\\n' + params_doc
+        f.write(params_doc + '"')
                 
     f.write(')\n')
     
@@ -1604,7 +1618,7 @@ def write_enum_binding(f, enum_def):
     for i in range(num):
         v = values[i]
         assert KEY_NAME in v
-        members_doc += v[KEY_NAME]
+        members_doc += '- ' + v[KEY_NAME]
         if KEY_DOC in v:
             members_doc += ': ' + create_doc_str(v[KEY_DOC], False)
         else:

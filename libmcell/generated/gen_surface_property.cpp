@@ -91,7 +91,7 @@ std::string GenSurfaceProperty::to_str(const std::string ind) const {
 }
 
 py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
-  return py::class_<SurfaceProperty, std::shared_ptr<SurfaceProperty>>(m, "SurfaceProperty")
+  return py::class_<SurfaceProperty, std::shared_ptr<SurfaceProperty>>(m, "SurfaceProperty", "Single property for a SurfaceClass.")
       .def(
           py::init<
             const SurfacePropertyType,
@@ -106,7 +106,7 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceProperty::__eq__, py::arg("other"))
       .def("dump", &SurfaceProperty::dump)
-      .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type, "Must be set.")
+      .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type, "Must be set. See SurfacePropertyType for options.\n")
       .def_property("affected_complex_pattern", &SurfaceProperty::get_affected_complex_pattern, &SurfaceProperty::set_affected_complex_pattern, "A complex pattern with optional orientation must be set.\nDefault orientation means that the pattern matches any orientation.\nFor concentration or flux clamp the orientation specifies on which side  \nwill be the concentration held \n(UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).\nThe complex pattern must not have any compartment.\n")
       .def_property("concentration", &SurfaceProperty::get_concentration, &SurfaceProperty::set_concentration, "Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or \nSurfacePropertyType.CLAMP_FLUX. Represents concentration of the imagined opposide side \nof the wall that has this concentration or flux clamped.\n")
     ;
