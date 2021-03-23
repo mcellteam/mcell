@@ -1228,6 +1228,9 @@ def get_method_overload_cast(method):
 
 
 def create_doc_str(yaml_doc, w_quotes=True):
+    if not yaml_doc:
+        return ""
+    
     res = yaml_doc.replace('"', '\\"')
     res = res.replace('\n', '\\n')
     res = res.replace('\\:', ':')

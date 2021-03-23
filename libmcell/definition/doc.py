@@ -40,7 +40,7 @@ def generate_class_documentation(f, class_name, class_def):
                 f.write(' = ' + get_default_or_unset_value_py(item))
             f.write('\n')
             
-            if KEY_DOC in item:
+            if KEY_DOC in item and item[KEY_DOC]:
                 f.write('  | ' + indent_and_fix_rst_chars(item[KEY_DOC].strip(), '  | ') + '\n')
             f.write('\n')
         
