@@ -1,28 +1,34 @@
-# TODO: how should we call this part of API that allows to see what's 
-# going on during simulation and allowws to read and change state?
 
 Molecule:
   superclass: BaseIntrospectionClass 
   doc: |
-    This is a Python representation of a molecule obtained from Model 
-    during simulation.
+    Representation of a molecule obtained from Model 
+    during simulation obtained through Model.get_molecule.
+    Changes through changing attributes of this object are not allowed except 
+    for complete removal of this molecule.   
     
   items:
   - name: id
     type: int
     default: ID_INVALID
-    doc: Unique id of this molecule
+    doc: | 
+       Unique id of this molecule. MCell assigns this unique id to each created 
+       molecule. All reactions change ID of molecules even in reactions such as 
+       A@CP -> A@EC.
      
   - name: type
     type: MoleculeType
     default: MoleculeType.UNSET
+    doc: |
+       Type of this molecule, either volume or surface. 
     
   - name: species_id
     type: int
     default: ID_INVALID
     doc: | 
        Species id of this molecule.
-       The id value is only temporary and can be invalidated by simulating an iteration.
+       The species id value is only temporary and can be invalidated by simulating an 
+       iteration.
      
   - name: pos3d
     type: Vec3
@@ -41,7 +47,8 @@ Molecule:
     type: Vec2 
     default: unset
     doc: |
-      Set only for surface molecules.
+      Set only for surface molecules. Position on a wall in UV coordinates 
+      relative to the triangle of the wall.
               
   - name: geometry_object
     type: GeometryObject*
@@ -60,7 +67,6 @@ Molecule:
           
   methods:
   - name: remove
-    # TODO: better name?
     doc: | 
       Removes this molecule from simulation. Any subsequent modifications
       of this object won't have any effect.  
@@ -68,8 +74,10 @@ Molecule:
 Wall:
   superclass: BaseIntrospectionClass 
   doc: |
-    This is a Python representation of a molecule obtained from Model 
-    during simulation.
+    Constant representation of wall of a geometry object.
+    Changes through changing attributes of this object are not allowed
+    except for the attribute is_movable.
+    
   items:
   - name: geometry_object
     type: GeometryObject*
@@ -85,12 +93,15 @@ Wall:
     
   - name: area
     type: float
+    doc: Area of the wall in um^2.
     
   - name: unit_normal
     type: Vec3
     doc: | 
        Normal of this wall with unit length of 1 um.
-       To get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal. 
+       There is also a method Model.get_wall_unit_normal that allows to 
+       retrieve just the normal value without the need to prepare this 
+       whole Wall object.  
 
   - name: is_movable
     type: bool
@@ -98,47 +109,54 @@ Wall:
     doc: | 
        If True, whis wall can be moved through Model.apply_vertex_moves,
        if False, wall moves are ignored. 
+       Can be set during simulation.
     
     
 WallWallHitInfo:
   superclass: BaseIntrospectionClass 
+  doc: | 
+     This class is used in the return type of Model.apply_vertex_moves.
+     Contains pair of walls that collided.
+  
   items:
   - name: wall1
     type: Wall*
+    doc: First colliding wall. 
            
   - name: wall2
     type: Wall*
+    doc: Second colliding wall.
     
     
 Introspection:
-  todo: do not include in documentation
   doc: 
+     Only internal. 
      This class is used only as a base class to Model, it is not provided through API.
-     Provides methods to introspect simulation state.
+     Defines interface to introspect simulation state.
 
-  # TODO: can we make some faster interface? however, we do not want to be bound to 
-  # the internal implementation and we must abstract away the partitions
   methods:      
   - name: get_molecule_ids
     doc: | 
       Returns a list of ids of molecules.
       If the arguments pattern is not set, the list of all molecule ids is returned.  
       If the argument pattern is set, the list of all molecule ids whose species match 
-      the pattern is returned. Matching of patterns with compartments works exactly in the 
-      same was as in observables.
-    todo: add some caching for patterns 
+      the pattern is returned. 
     return_type: List[int]
     params:
     - name: pattern
       type: Complex*
       default: unset
+      doc: BNGL pattern to select molecules based on their species, might use compartments.
   
   - name: get_molecule
-    doc: Returns a molecule from the simulated environment, None if the molecule does not exist 
+    doc: |
+       Returns a information on a molecule from the simulated environment, 
+       None if the molecule does not exist. 
     return_type: Molecule*
     params: 
     - name: id
       type: int
+      doc: Unique id of the molecule to be retrieved.
 
   - name: get_species_name
     doc: | 
@@ -147,6 +165,7 @@ Introspection:
     params: 
     - name: species_id
       type: int
+      doc: Id of the species. 
   
   # --- geometry ---
   - name: get_vertex
@@ -157,7 +176,7 @@ Introspection:
       type: GeometryObject*
     - name: vertex_index
       type: int 
-      doc: This is the index of the vertex in object's walls (wall_list).
+      doc: This is the index of the vertex in the geometry object's walls (wall_list).
       
   - name: get_wall
     doc: Returns information about a wall belonging to a given object.
@@ -165,9 +184,10 @@ Introspection:
     params:
     - name: object
       type: GeometryObject*
+      doc: Geometry object whose wall to retrieve.
     - name: wall_index
       type: int 
-      doc: This is the index of the wall in object's walls (wall_list).
+      doc: This is the index of the wall in the geometry object's walls (wall_list).
       
   - name: get_vertex_unit_normal
     doc: | 
@@ -177,9 +197,10 @@ Introspection:
     params:
     - name: object
       type: GeometryObject*
+      doc: Geometry object whose vertex to retrieve.
     - name: vertex_index
       type: int 
-      doc: This is the index of the vertex in object's vertex_list.
+      doc: This is the index of the vertex in the geometry object's vertex_list.
 
   - name: get_wall_unit_normal
     doc: Returns wall normal converted to a unit vector of length 1um.
@@ -187,7 +208,8 @@ Introspection:
     params:
     - name: object
       type: GeometryObject*
+      doc: Geometry object whose wall's normal to retrieve.
     - name: wall_index
       type: int 
-      doc: This is the index of the vertex in object's walls (wall_list).
+      doc: This is the index of the vertex in the geometry object's walls (wall_list).
                      

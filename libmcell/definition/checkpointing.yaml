@@ -19,14 +19,18 @@ BaseChkptMol:
 
 ChkptVolMol:
   superclass: BaseChkptMol
-  doc: Class representing a checkpointed volume molecule.
+  doc: | 
+     Class representing a checkpointed volume molecule.
+     Not to be used directly.
   items:
   - name: pos
     type: Vec3
 
 ChkptSurfMol:
   superclass: BaseChkptMol
-  doc: Class representing a checkpointed surface molecule.
+  doc: | 
+     Class representing a checkpointed surface molecule.
+     Not to be used directly.
   items:
   - name: pos
     type: Vec2
