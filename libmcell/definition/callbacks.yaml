@@ -4,6 +4,7 @@ MolWallHitInfo:
    items:
    - name: molecule_id
      type: int
+     doc: Id of molecule that hit the wall.
      
    - name: geometry_object
      type: GeometryObject*
@@ -11,26 +12,26 @@ MolWallHitInfo:
      
    - name: wall_index
      type: int
-     doc: Index of wall belonging to the geometry_object.
+     doc: Index of the wall belonging to the geometry_object.
    
    - name: time
      type: float
-     doc: Time of the hit
+     doc: Time of the hit.
       
    - name: pos3d
      type: Vec3
-     doc: Position of the hit
+     doc: Position of the hit.
      
    - name: time_before_hit
      type: float
      doc: |
-        Time when the molecule started to diffuse towards the hit wall. 
+        The time when the molecule started to diffuse towards the hit wall. 
         It is either the start of the molecule's diffusion or 
-        if a wall was hit later then the time of last wall hit.
+        when the molecule reflected from another wall.
           
    - name: pos3d_before_hit
      type: Vec3
-     doc: Position of the molecule at time_before_hit
+     doc: Position of the molecule at time_before_hit.
       
       
 ReactionInfo:
@@ -40,38 +41,37 @@ ReactionInfo:
      type: ReactionType
      doc: |
         Specifies whether the reaction is unimolecular or bimolecular and
-        also provides information in reactant types. 
+        also provides information on reactant types. 
    
    - name: reactant_ids
      type: List[int]
      doc: | 
-        IDs of the reacting molecules, contains 1 ID for a unimolecular or a molecule+surface class reaction , 
+        IDs of the reacting molecules, contains 1 ID for a unimolecular or a molecule+surface class reaction, 
         2 IDs for a bimolecular reaction.
-        For a bimolecular reaction, the first ID is always the molecule that was diffused and the second one 
+        For a bimolecular reaction, the first ID is always the molecule that diffused and the second one 
         is the molecule that was hit.
-        IDs can be used to obtain location of the molecules. The position of the first molecule obtained through 
+        IDs can be used to obtain the location of the molecules. The position of the first molecule obtained through 
         model.get_molecule() is the position of the diffusing molecule before the collision.
-        All the reactants are removed after return from this callback, unless they are kept by the reaction such as in A + B -> A + C.  
+        All the reactants are removed after return from this callback, unless they are kept by the reaction such as A in A + B -> A + C.  
 
    - name: product_ids
      type: List[int]
      doc: | 
-       IDs of reaction product molecules. They already exist in the simulated system together with reactants, however reactants 
+       IDs of reaction product molecules. They already exist in the simulated system together with reactants; however reactants 
        will be removed after return from this callback. 
    
    - name: reaction_rule
      type: ReactionRule*
-     doc: Reaction rule of the reaction.
-     todo: info on rxn type
+     doc: Reaction rule of the reaction that occured.
      
    - name: time
      type: float
-     doc: Time of the reaction
+     doc: Time of the reaction.
      
    - name: pos3d
      type: Vec3 
      doc: |
-        Specifies where reaction occured in the 3d space, specific meaning depends on the reaction type\:
+        Specifies where reaction occurred in the 3d space, the specific meaning depends on the reaction type\:
         - unimolecular reaction - position of the reacting molecule,
         - volume-volume or surface-surface reaction - position of the first reactant,
         - volume-surface reaction - position where the volume molecule hit the wall with the surface molecule.
@@ -80,8 +80,8 @@ ReactionInfo:
      type: GeometryObject*
      default: unset
      doc: |
+        The object on whose surface where the reaction occurred.
         Set only for surface reactions or reactions with surface classes.
-        Object on whose surface where the reaction occured.
       
    - name: wall_index
      type: int
@@ -89,7 +89,7 @@ ReactionInfo:
      doc: |
         Set only for surface reactions or reactions with surface classes.
         Index of wall belonging to the geometry_object where the reaction occured, 
-        i.e. where the volume molecule hit the wall with a surface molecule or
+        i.e. wall where a volume molecule hit the surface molecule or
         wall where the diffusing surface reactant reacted.
     
    - name: pos2d
@@ -97,8 +97,8 @@ ReactionInfo:
      default: unset
      doc: |
         Set only for surface reactions or reactions with surface classes.
-        Specifies where reaction occured in the 2d UV coordinates defined by the wall where the reaction occured, 
-        specific meaning depends on the reaction type\:
+        Specifies where reaction occurred in the 2d UV coordinates defined by the wall where the reaction occured, 
+        the rspecific meaning depends on the reaction type\:
         - unimolecular reaction - position of the reacting molecule,
         - volume-surface and surface-surface reaction - position of the second reactant.
           

@@ -12,29 +12,30 @@ Region:
   - name: left_node
     type: Region*
     default: unset
-    doc: Internal, when node_type is not Leaf, this is the left operand 
+    doc: Internal, do not use. When node_type is not Leaf, this is the left operand 
 
   - name: right_node
     type: Region*
     default: unset
-    doc: Internal, when node_type is not Leaf, this is the right operand 
+    doc: Internal, do not use. When node_type is not Leaf, this is the right operand 
     
   methods:
   - name: __add__
-    doc: Computes union of thwo regions 
-    internal: Maybe add these explicitly named  
+    doc: Computes union of two regions, use with Python operator '+'. 
     return_type: Region*
     params:
     - name: other
       type: Region* 
           
   - name: __sub__
+    doc: Computes difference of two regions, use with Python operator '-'.
     return_type: Region*
     params:
     - name: other
       type: Region* 
 
   - name: __mul__
+    doc: Computes intersection of two regions, use with Python operator '*'.
     return_type: Region*
     params:
     - name: other
@@ -44,44 +45,44 @@ Region:
 SurfaceRegion:
   superclass: Region
   doc: |
-    Surface region  in MDL, however a new class Region was instroduced in MCell4 so it was renamed 
-    to avoid confusion.
+     Defines a region on the object. The extent of a region is given by the wall_indices list. 
+     Molecules can be added and surface properties can be set with the optional regional surface commands. 
+     You can have an arbitrary number of regions on an object, and they may overlap if
+     you wish. Molecules added to overlapping regions accumulate. Triangles belonging to 
+     multiple regions inherit all parent regions’ surface properties. Users
+     have to make sure that in case of overlapped regions their surface properties
+     are compatible. 
+
   items:
   - name: name
     type: str
+    doc: Name of this region.
     
   - name: wall_indices
     type: List[int]
     doc: |
       Surface region must be a part of a GeometryObject, items in this list are indices to 
-      its wall_list array
+      its wall_list array.
 
   - name: surface_class
     type: SurfaceClass*
     default: unset
-    doc: Has higher priority than the parent geometry object's surface class.
+    doc: | 
+       Optional surface class assigned to this surface region.
+       If not set, it is inherited from the parent heometry object's surface_class.
 
   - name: initial_surface_releases
     type: List[InitialSurfaceRelease*]
     default: empty
     doc: |
-      Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER,
-      each item defines either density or number of molecules to be released on this surface 
-      regions when simulation starts. 
+      Each item of this list defines either density or number of molecules to be released on this surface 
+      regions when simulation starts.
+    internal: Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER. 
     
-
-# TODO: should be accessible from SurfaceRegion, add it 
-# due to issues with shared pointer casts, it was not possible to make a shared pointer out of this     
-# any cast resulted into bad_weak_ptr exception
-# 
-#  - name: parent
-#    type: GeometryObject*
-#    default: unset
-#    doc: Do not set this directly, set when a GeometryObject is constructed 
     
-
 GeometryObject:
   superclass: Region
+  doc: Class represents eometry objects defined by triangular surface elements. 
   items:
   - name: name
     type: str
@@ -91,50 +92,56 @@ GeometryObject:
   - name: vertex_list
     type: List[List[float]]
     doc: | 
-      List of [x,y,z] triplets specifying positions of individual vertices.
-      Equivalent to List[Vec3] however, defining a constructor Vec3(List[float]) then 
-      tries to convert all lists of floats to Vec3 
+       List of [x,y,z] triplets specifying positions of individual vertices of each triangle.
         
-  # what about name, use a different one?
   - name: wall_list
     type: List[List[int]]
     doc: | 
-      List of [a,b,c] triplets specifying each wall, individual values are indices into the vertex list.
-      Equivalent to List[IVec3]. 
-
+       List of [a,b,c] triplets specifying each wall, individual values are indices into the 
+       vertex_list attribute.
+       
   - name: is_bngl_compartment
     type: bool
     default: false
+    doc: |
+       Set to True if this object represents a 3D BNGL compartment. 
+       Its name will be then the BNGL compartment name.       
 
   - name: surface_compartment_name
     type: str
     default: unset
+    doc: |
+       When is_bngl_compartment is True, this attribute can be set to specify its 
+       membrane (2D) compartment name.
 
   - name: surface_regions
     type: List[SurfaceRegion*]
     default: empty
-    
+    doc: |
+       All surface regions associated with this geometry object.
+       
   - name: surface_class
     type: SurfaceClass*
     default: unset
     doc: |
       Surface class for the whole object's surface. It is applied to the whole surface of this object 
       except for those surface regions that have their specific surface class set explicitly.
-    internal: Shouldn't we be inheriting this from Region? 
 
   - name: initial_surface_releases
     type: List[InitialSurfaceRelease*]
     default: empty
     doc: |
-      Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER,
-      each item defines either density or number of molecules to be released on this surface 
+      Each item in this list defines either density or number of molecules to be released on this surface 
       regions when simulation starts.
     internal: Shouldn't we be inheriting this from Region?
     
   methods:
   - name: translate
-    doc: Move object by a specified vector, must be done before model initialization.
+    doc: | 
+       Move object by a specified vector. 
+       Cannot be called after model was initialized.
     params:
     - name: move
       type: List[float]
+      doc: 3D vector [x, y, x] that will be added to each vertex of this object.
     

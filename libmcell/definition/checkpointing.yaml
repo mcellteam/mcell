@@ -1,7 +1,7 @@
 
 BaseChkptMol:
   superclass: BaseDataClass
-  doc: All times are in us (microseconds).
+  doc: Base class for checkpointed molecules, not to be used directly. All times are in us (microseconds).
   items:
   - name: id
     type: int
@@ -19,12 +19,14 @@ BaseChkptMol:
 
 ChkptVolMol:
   superclass: BaseChkptMol
+  doc: Class representing a checkpointed volume molecule.
   items:
   - name: pos
     type: Vec3
 
 ChkptSurfMol:
   superclass: BaseChkptMol
+  doc: Class representing a checkpointed surface molecule.
   items:
   - name: pos
     type: Vec2
