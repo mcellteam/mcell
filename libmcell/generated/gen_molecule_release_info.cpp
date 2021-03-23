@@ -93,7 +93,7 @@ std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {
 }
 
 py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module& m) {
-  return py::class_<MoleculeReleaseInfo, std::shared_ptr<MoleculeReleaseInfo>>(m, "MoleculeReleaseInfo")
+  return py::class_<MoleculeReleaseInfo, std::shared_ptr<MoleculeReleaseInfo>>(m, "MoleculeReleaseInfo", "Defines a pair (molecule, location). Used in ReleaseSite when its shape is Shape.LIST.\n")
       .def(
           py::init<
             std::shared_ptr<Complex>,
@@ -107,7 +107,7 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def("__eq__", &MoleculeReleaseInfo::__eq__, py::arg("other"))
       .def("dump", &MoleculeReleaseInfo::dump)
       .def_property("complex", &MoleculeReleaseInfo::get_complex, &MoleculeReleaseInfo::set_complex, "Complex instance defining the molecule that will be released.\nOrientation of the complex instance is used to define orientation of the released molecule,\nwhen Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and\nsurface molecules are released with Orientation.UP.\nCompartment must not be set because this specific release definition states the location.  \n")
-      .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location, "3D position where the molecule will be released. \nIf a molecule has a 2D diffusion constant, it will be\nplaced on the surface closest to the coordinate given. \nArgument must have exactly three floating point values.\n  \n")
+      .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location, "3D position where the molecule will be released. \nIf a molecule has a 2D diffusion constant, it will be\nplaced on the surface closest to the coordinate given. \nArgument must have exactly three floating point values [x, y, z].\n  \n")
     ;
 }
 

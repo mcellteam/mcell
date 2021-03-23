@@ -228,7 +228,6 @@ const char* const NAME_REGISTER_REACTION_CALLBACK = "register_reaction_callback"
 const char* const NAME_RELEASE_INTERVAL = "release_interval";
 const char* const NAME_RELEASE_MOLECULES = "release_molecules";
 const char* const NAME_RELEASE_PATTERN = "release_pattern";
-const char* const NAME_RELEASE_PROBABILITY = "release_probability";
 const char* const NAME_RELEASE_SITE = "release_site";
 const char* const NAME_RELEASE_SITES = "release_sites";
 const char* const NAME_RELEASE_TIME = "release_time";

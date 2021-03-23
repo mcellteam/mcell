@@ -23,8 +23,10 @@ Attributes:
   | Python API, this array is populated automatically
 
 * | **release_sites**: List[ReleaseSite] = None
+  | List of release sites to be included in the model.
 
 * | **geometry_objects**: List[GeometryObject] = None
+  | List of geometry objects to be included in the model.
 
 * | **checkpointed_molecules**: List[BaseChkptMol] = None
   | Used when resuming simulation from a checkpoint.
@@ -337,7 +339,7 @@ Methods:
 
    * | s: ReleaseSite
 
-  | Makes a copy of the release site
+  | Adds a reference to the release site s to the list of release sites.
 
 
 * | **find_release_site**
@@ -346,11 +348,14 @@ Methods:
    * | return type: ReleaseSite
 
 
+  | Finds a release site by its name, returns None if no such release site is present.
+
+
 * | **add_geometry_object**
 
    * | o: GeometryObject
 
-  | Makes a copy of the geometry object, in the future we will probably add some transformations
+  | Adds a reference to the geometry object o to the list of geometry objects.
 
 
 * | **find_geometry_object**
@@ -359,10 +364,17 @@ Methods:
    * | return type: GeometryObject
 
 
+  | Finds a geometry object by its name, returns None if no such geometry object is present.
+
+
 * | **find_volume_compartment_object**
 
    * | name: str
    * | return type: GeometryObject
+
+
+  | Finds a geometry object by its name, the geometry object must be a BNGL compartment.
+  | Returns None if no such geometry object is present.
 
 
 * | **find_surface_compartment_object**
@@ -371,19 +383,31 @@ Methods:
    * | return type: GeometryObject
 
 
+  | Finds a geometry object that is a BNGL compartment and its surface name is name.
+  | Returns None if no such geometry object is present.
+
+
 * | **load_bngl_seed_species**
 
    * | file_name: str
+     | Path to the BNGL file.
+
    * | default_release_region: Region = None
-     | Used for seed species that have no compartments specified
+     | Used for seed species that have no compartments specified.
 
    * | parameter_overrides: Dict[str, float] = None
+     | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+     | its value is ignored and instead value parameter_overrides[k] is used.
+
 
   | Loads section seed species from a BNGL file and creates release sites according to it.
   | All elementary molecule types used in the seed species section must be already defined in subsystem.
   | If an item in the BNGL seed species section does not have its compartment set,
-  | the argument default_region must be set and the molecules are released into or onto the 
-  | default_region.
+  | the argument default_region must be set and the molecules are then released into or onto the 
+  | default_region. 
+  | Does not create geometry objects. 
+  | All compartments used in the loaded BNGL seed species section must exist in the model before 
+  | model intialization.
 
 
 * | **add_viz_output**

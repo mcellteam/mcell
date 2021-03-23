@@ -1,11 +1,15 @@
 
 ReleasePattern:
   superclass: BaseDataClass
+  doc: |
+     Defines a release pattern that specifies repeating molecule releases. 
+     Can be used by a ReleaseSite.
+  
   items:
   - name: name
     type: str
     default: unset
-    doc: Name of the release pattern
+    doc: Name of the release pattern.
     
   - name: release_interval
     type: float
@@ -34,11 +38,14 @@ ReleasePattern:
     default: 1 
     doc: | 
       Repeat the release process for n trains of releases. Default is one train.
-      For unlimited number of trains use constant NUMBER_OF_TRAINS_UNLIMITED.
+      For unlimited number of trains use a constant NUMBER_OF_TRAINS_UNLIMITED.
     
     
 MoleculeReleaseInfo:
   superclass: BaseDataClass
+  doc: |
+     Defines a pair (molecule, location). Used in ReleaseSite when its shape is Shape.LIST.
+     
   items:
   - name: complex
     type: Complex*
@@ -55,11 +62,14 @@ MoleculeReleaseInfo:
       3D position where the molecule will be released. 
       If a molecule has a 2D diffusion constant, it will be
       placed on the surface closest to the coordinate given. 
-      Argument must have exactly three floating point values.
+      Argument must have exactly three floating point values [x, y, z].
         
     
 ReleaseSite:
   superclass: BaseDataClass
+  doc: |
+     Defines a release site that specifies where, when and how should molecules be released. 
+     
   items:
   - name: name
     type: str
@@ -69,80 +79,95 @@ ReleaseSite:
     type: Complex*
     default: unset 
     doc: | 
-      Defines the species of the molecule that will be released. Not used for the LIST shape. 
-      Must be set when molecule_list is empty and unset when molecule_list is not empty.
-      Orientation of the complex instance is used to define orientation of the released molecule,
-      when Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and
-      surface molecules are released with Orientation.UP.
-      When compartment is specified, this sets shape to Shape.COMPARTMENT and the molecules are released 
-      into the compartment.
+       Defines the species of the molecule that will be released. Not used for the LIST shape. 
+       Must be set when molecule_list is empty and unset when molecule_list is not empty.
+       Orientation of the complex instance is used to define orientation of the released molecule,
+       when Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and
+       surface molecules are released with Orientation.UP.
+       When compartment is specified, this sets shape to Shape.COMPARTMENT and the molecules are released 
+       into the compartment.
 
   - name: molecule_list
     type: List[MoleculeReleaseInfo*]
     default: empty
     doc: |
-      Used for LIST shape release mode. 
-      Only one of number_to_release, density, concentration or molecule_list can be set.
+       Used for LIST shape release mode. 
+       Only one of number_to_release, density, concentration or molecule_list can be set.
 
   - name: release_time
     type: float
     default: 0
     doc: | 
-      Specifies time in seconds when the release event is executed.
-      In case when a release pattern is used, this is the time of the first release.      
-      Equivalent to MDL's RELEASE_PATTERN command DELAY.
+       Specifies time in seconds when the release event is executed.
+       In case when a release pattern is used, this is the time of the first release.      
+       Equivalent to MDL's RELEASE_PATTERN command DELAY.
 
   - name: release_pattern
     type: ReleasePattern*
     default: unset 
     doc: | 
-      Use the release pattern to define schedule of releases. 
-      The default is to release the specified number of molecules at the set release_time. 
+       Use the release pattern to define schedule of releases. 
+       The default is to release the specified number of molecules at the set release_time. 
 
   - name: shape
     type: Shape
     default: Shape.UNSET
     doc: |
-      Set automatically when 
+       Defines how the molecules shoudl be released. 
+       Set automatically for these cases to the following values\: 
+       region is set - Shape.REGION_EXPR,
+       region is not set and complex uses a compartment - Shape.COMPARTMENT,
+       molecule_list is set - Shape.LIST,
+       location is set - Shape.SPHERICAL.
     
   - name: region
     type: Region*
     default: unset
-    doc: Sets shape to Shape.REGION_EXPR. 
+    doc: |
+       Defines a volume or surface region where to release molecules. 
+       Setting it sets shape to Shape.REGION_EXPR. 
 
   - name: location
-    type: List[float] # Vec3 and Vec2 are built-in data types
-    default: unset # null is equivalent to None in YAML
+    type: List[float] 
+    default: unset 
+    doc: |
+       Defines center of a sphere where to release molecules. 
+       Setting it sets shape to Shape.SPHERICAL.
+       
     
   - name: site_diameter
     type: float
     default: 0
     doc: |
-      For a geometrical release site, this releases molecules uniformly within
-      a radius r. Not used for releases on regions.
-      Usually required for Shape.List type of releases.
+       For a geometrical release site, this releases molecules uniformly within
+       a radius r computed as site_diameter/2. 
+       Used only when shape is Shape.SPHERICAL.
+       Maximum one of site_diameter or site_radius may be set.
     
-  # do we need radius when we have diameter?
   - name: site_radius
     type: float
     default: unset
     doc: |
-      For a geometrical release site, this releases molecules uniformly within
-      a radius r. Not used for releases on regions.
+       For a geometrical release site, this releases molecules uniformly within
+       a radius site_radius.
+       Used only when shape is Shape.SPHERICAL.
+       Maximum one of site_diameter or site_radius may be set.
 
   - name: number_to_release
     type: float
     default: unset
     doc: | 
-      Only one of number_to_release, density, concentration or molecule_list can be set.
-      Value is truncated (floored) to an integer.
+       Sets number of molecules to release. Cannot be set when shape is Shape.LIST. 
+       Only one of number_to_release, density, concentration or molecule_list can be set.
+       Value is truncated (floored) to an integer.
 
   - name: density
     type: float
     default: unset
     doc: |
-       Unit is molecules per square micron (for surfaces).
+       Unit is molecules per square micron (for surfaces). 
        Only one of number_to_release, density, concentration or molecule_list can be set.
+       Cannot be set when shape is Shape.LIST.
     
   - name: concentration
     type: float
@@ -150,10 +175,7 @@ ReleaseSite:
     doc: |
        Unit is molar (moles per liter) for volumes.
        Only one of number_to_release, density, concentration or molecule_list can be set.
-
-  - name: release_probability
-    type: float
-    default: unset
+       Cannot be set when shape is Shape.LIST.
 
 
 InitialSurfaceRelease:
@@ -162,69 +184,89 @@ InitialSurfaceRelease:
   items:
   - name: complex
     type: Complex*
+    doc: |
+       Defines the species of the molecule that will be released.
   
   - name: number_to_release
     type: int
     default: unset
     doc: |
-      Number of molecules to be released onto a region,
-      only one of number_to_release and density can be set.
+       Number of molecules to be released onto a region,
+       only one of number_to_release and density can be set.
     
   - name: density
     type: float
     default: unset
     doc: |
-      Density of molecules to be released onto a region,
-      only one of number_to_release and density can be set.
+       Density of molecules to be released onto a region,
+       only one of number_to_release and density can be set.
       
       
 Instantiation:
+  doc: |
+     Container used to hold instantiation-related model data. 
+     Instantiation is usually specific for each model, defines 
+     the geometry and initial setup of molecule releases.
+  
   items:
   - name: release_sites
     type: List[ReleaseSite*]
     default: empty
+    doc: |
+       List of release sites to be included in the model.  
     
   - name: geometry_objects
     type: List[GeometryObject*]
     default: empty
+    doc: |
+       List of geometry objects to be included in the model.  
 
   - name: checkpointed_molecules
     type: List[BaseChkptMol*]
     default: empty
-    doc: Used when resuming simulation from a checkpoint.
+    doc: |
+       Used when resuming simulation from a checkpoint.
 
   methods:
   - name: add_release_site
-    doc: Makes a copy of the release site
+    doc: Adds a reference to the release site s to the list of release sites.
     params:
     - name: s
       type: ReleaseSite*
       
   - name: find_release_site
+    doc: Finds a release site by its name, returns None if no such release site is present.
     return_type: ReleaseSite*
     params:
     - name: name
       type: str
       
   - name: add_geometry_object
-    doc: Makes a copy of the geometry object, in the future we will probably add some transformations
+    doc: Adds a reference to the geometry object o to the list of geometry objects.
     params:
     - name: o
       type: GeometryObject*
       
   - name: find_geometry_object
+    doc: Finds a geometry object by its name, returns None if no such geometry object is present.
     return_type: GeometryObject*
     params:
     - name: name
       type: str          
         
   - name: find_volume_compartment_object
+    doc: | 
+       Finds a geometry object by its name, the geometry object must be a BNGL compartment.
+       Returns None if no such geometry object is present.
     return_type: GeometryObject*
     params:
     - name: name
       type: str   
 
   - name: find_surface_compartment_object
+    doc: | 
+       Finds a geometry object that is a BNGL compartment and its surface name is name.
+       Returns None if no such geometry object is present.
     return_type: GeometryObject*
     params:
     - name: name
@@ -235,30 +277,25 @@ Instantiation:
       Loads section seed species from a BNGL file and creates release sites according to it.
       All elementary molecule types used in the seed species section must be already defined in subsystem.
       If an item in the BNGL seed species section does not have its compartment set,
-      the argument default_region must be set and the molecules are released into or onto the 
+      the argument default_region must be set and the molecules are then released into or onto the 
       default_region. 
+      Does not create geometry objects. 
+      All compartments used in the loaded BNGL seed species section must exist in the model before 
+      model intialization.
+        
     params:
     - name: file_name
-      type: str  
+      type: str
+      doc: Path to the BNGL file.  
 
     - name: default_release_region
       type: Region*
       default: unset
-      doc: Used for seed species that have no compartments specified
-
-#     - name: release_compartments
-#       type: Dict[str, Region]
-#       default: empty
-#       doc: | 
-#          When an empty dictionary is passed as this argument, compartments are created
-#          automatically from the compartments definition.
-#          When specified, compartments are not created automatically and when the seed species 
-#          section is converted, this mapping sets the correspondence between the BNGL compartment
-#          name and a GeometryObject name. All compartments used in the seed species section must be 
-#          mapped to an existing geometry object. 
-#          A 3D compartments must map onto a GeometryObject and represents the contents of this object.
-#          A 2D compartments must map onto a SurfaceRegion or GeometryObject.  
+      doc: Used for seed species that have no compartments specified.
       
     - name: parameter_overrides
       type: Dict[str, float]
       default: empty
+      doc: |
+         For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+         its value is ignored and instead value parameter_overrides[k] is used.

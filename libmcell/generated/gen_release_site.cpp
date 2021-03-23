@@ -68,7 +68,6 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   number_to_release = FLT_UNSET;
   density = FLT_UNSET;
   concentration = FLT_UNSET;
-  release_probability = FLT_UNSET;
 }
 
 bool GenReleaseSite::__eq__(const ReleaseSite& other) const {
@@ -115,8 +114,7 @@ bool GenReleaseSite::__eq__(const ReleaseSite& other) const {
     site_radius == other.site_radius &&
     number_to_release == other.number_to_release &&
     density == other.density &&
-    concentration == other.concentration &&
-    release_probability == other.release_probability;
+    concentration == other.concentration;
 }
 
 bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other, const bool ignore_name) const {
@@ -163,8 +161,7 @@ bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other, const bool
     site_radius == other.site_radius &&
     number_to_release == other.number_to_release &&
     density == other.density &&
-    concentration == other.concentration &&
-    release_probability == other.release_probability;
+    concentration == other.concentration;
 }
 
 std::string GenReleaseSite::to_str(const std::string ind) const {
@@ -182,13 +179,12 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
       "site_radius=" << site_radius << ", " <<
       "number_to_release=" << number_to_release << ", " <<
       "density=" << density << ", " <<
-      "concentration=" << concentration << ", " <<
-      "release_probability=" << release_probability;
+      "concentration=" << concentration;
   return ss.str();
 }
 
 py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
-  return py::class_<ReleaseSite, std::shared_ptr<ReleaseSite>>(m, "ReleaseSite")
+  return py::class_<ReleaseSite, std::shared_ptr<ReleaseSite>>(m, "ReleaseSite", "Defines a release site that specifies where, when and how should molecules be released. \n")
       .def(
           py::init<
             const std::string&,
@@ -199,7 +195,6 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const Shape,
             std::shared_ptr<Region>,
             const std::vector<float_t>,
-            const float_t,
             const float_t,
             const float_t,
             const float_t,
@@ -218,8 +213,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("site_radius") = FLT_UNSET,
           py::arg("number_to_release") = FLT_UNSET,
           py::arg("density") = FLT_UNSET,
-          py::arg("concentration") = FLT_UNSET,
-          py::arg("release_probability") = FLT_UNSET
+          py::arg("concentration") = FLT_UNSET
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
@@ -230,15 +224,14 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def_property("molecule_list", &ReleaseSite::get_molecule_list, &ReleaseSite::set_molecule_list, "Used for LIST shape release mode. \nOnly one of number_to_release, density, concentration or molecule_list can be set.\n")
       .def_property("release_time", &ReleaseSite::get_release_time, &ReleaseSite::set_release_time, "Specifies time in seconds when the release event is executed.\nIn case when a release pattern is used, this is the time of the first release.      \nEquivalent to MDL's RELEASE_PATTERN command DELAY.\n")
       .def_property("release_pattern", &ReleaseSite::get_release_pattern, &ReleaseSite::set_release_pattern, "Use the release pattern to define schedule of releases. \nThe default is to release the specified number of molecules at the set release_time. \n")
-      .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape, "Set automatically when \n")
-      .def_property("region", &ReleaseSite::get_region, &ReleaseSite::set_region, "Sets shape to Shape.REGION_EXPR.")
-      .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location)
-      .def_property("site_diameter", &ReleaseSite::get_site_diameter, &ReleaseSite::set_site_diameter, "For a geometrical release site, this releases molecules uniformly within\na radius r. Not used for releases on regions.\nUsually required for Shape.List type of releases.\n")
-      .def_property("site_radius", &ReleaseSite::get_site_radius, &ReleaseSite::set_site_radius, "For a geometrical release site, this releases molecules uniformly within\na radius r. Not used for releases on regions.\n")
-      .def_property("number_to_release", &ReleaseSite::get_number_to_release, &ReleaseSite::set_number_to_release, "Only one of number_to_release, density, concentration or molecule_list can be set.\nValue is truncated (floored) to an integer.\n")
-      .def_property("density", &ReleaseSite::get_density, &ReleaseSite::set_density, "Unit is molecules per square micron (for surfaces).\nOnly one of number_to_release, density, concentration or molecule_list can be set.\n")
-      .def_property("concentration", &ReleaseSite::get_concentration, &ReleaseSite::set_concentration, "Unit is molar (moles per liter) for volumes.\nOnly one of number_to_release, density, concentration or molecule_list can be set.\n")
-      .def_property("release_probability", &ReleaseSite::get_release_probability, &ReleaseSite::set_release_probability)
+      .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape, "Defines how the molecules shoudl be released. \nSet automatically for these cases to the following values: \nregion is set - Shape.REGION_EXPR,\nregion is not set and complex uses a compartment - Shape.COMPARTMENT,\nmolecule_list is set - Shape.LIST,\nlocation is set - Shape.SPHERICAL.\n")
+      .def_property("region", &ReleaseSite::get_region, &ReleaseSite::set_region, "Defines a volume or surface region where to release molecules. \nSetting it sets shape to Shape.REGION_EXPR. \n")
+      .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location, "Defines center of a sphere where to release molecules. \nSetting it sets shape to Shape.SPHERICAL.\n")
+      .def_property("site_diameter", &ReleaseSite::get_site_diameter, &ReleaseSite::set_site_diameter, "For a geometrical release site, this releases molecules uniformly within\na radius r computed as site_diameter/2. \nUsed only when shape is Shape.SPHERICAL.\nMaximum one of site_diameter or site_radius may be set.\n")
+      .def_property("site_radius", &ReleaseSite::get_site_radius, &ReleaseSite::set_site_radius, "For a geometrical release site, this releases molecules uniformly within\na radius site_radius.\nUsed only when shape is Shape.SPHERICAL.\nMaximum one of site_diameter or site_radius may be set.\n")
+      .def_property("number_to_release", &ReleaseSite::get_number_to_release, &ReleaseSite::set_number_to_release, "Sets number of molecules to release. Cannot be set when shape is Shape.LIST. \nOnly one of number_to_release, density, concentration or molecule_list can be set.\nValue is truncated (floored) to an integer.\n")
+      .def_property("density", &ReleaseSite::get_density, &ReleaseSite::set_density, "Unit is molecules per square micron (for surfaces). \nOnly one of number_to_release, density, concentration or molecule_list can be set.\nCannot be set when shape is Shape.LIST.\n")
+      .def_property("concentration", &ReleaseSite::get_concentration, &ReleaseSite::set_concentration, "Unit is molar (moles per liter) for volumes.\nOnly one of number_to_release, density, concentration or molecule_list can be set.\nCannot be set when shape is Shape.LIST.\n")
     ;
 }
 
@@ -297,9 +290,6 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   }
   if (concentration != FLT_UNSET) {
     ss << ind << "concentration = " << f_to_str(concentration) << "," << nl;
-  }
-  if (release_probability != FLT_UNSET) {
-    ss << ind << "release_probability = " << f_to_str(release_probability) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {
