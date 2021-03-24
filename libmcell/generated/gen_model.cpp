@@ -106,7 +106,7 @@ std::string GenModel::to_str(const std::string ind) const {
 }
 
 py::class_<Model> define_pybinding_Model(py::module& m) {
-  return py::class_<Model, std::shared_ptr<Model>>(m, "Model")
+  return py::class_<Model, std::shared_ptr<Model>>(m, "Model", "This is the main class that is used to assemble all simulation input \nand configuration. It also provides methods to do initialization,\nrun simulation, and introspect the running simulation.\n")
       .def(
           py::init<
           >()
@@ -152,16 +152,16 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("add_count", &Model::add_count, py::arg("count"), "- count\n")
       .def("find_count", &Model::find_count, py::arg("name"), "- name\n")
       .def("load_bngl_observables", &Model::load_bngl_observables, py::arg("file_name"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>(), "Loads section observables from a BNGL file and creates Count objects according to it.\nAll elementary molecule types used in the seed species section must be defined in subsystem.\n\n- file_name: BNGL file name.\n\n- output_files_prefix: Prefix to be used when creating files with observable values.\n\n- parameter_overrides\n")
-      .def("get_molecule_ids", &Model::get_molecule_ids, py::arg("pattern") = nullptr, "Returns a list of ids of molecules.\nIf the arguments pattern is not set, the list of all molecule ids is returned.  \nIf the argument pattern is set, the list of all molecule ids whose species match \nthe pattern is returned. Matching of patterns with compartments works exactly in the \nsame was as in observables.\n\n- pattern\n")
-      .def("get_molecule", &Model::get_molecule, py::arg("id"), "Returns a molecule from the simulated environment, None if the molecule does not exist\n- id\n")
-      .def("get_species_name", &Model::get_species_name, py::arg("species_id"), "Returns a string representing canonical species name in the BNGL format. \n\n- species_id\n")
-      .def("get_vertex", &Model::get_vertex, py::arg("object"), py::arg("vertex_index"), "Returns coordinates of a vertex.\n- object\n- vertex_index: This is the index of the vertex in object's walls (wall_list).\n\n")
-      .def("get_wall", &Model::get_wall, py::arg("object"), py::arg("wall_index"), "Returns information about a wall belonging to a given object.\n- object\n- wall_index: This is the index of the wall in object's walls (wall_list).\n\n")
-      .def("get_vertex_unit_normal", &Model::get_vertex_unit_normal, py::arg("object"), py::arg("vertex_index"), "Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.\nThis represents the unit vector pointing outwards from the vertex.\n\n- object\n- vertex_index: This is the index of the vertex in object's vertex_list.\n\n")
-      .def("get_wall_unit_normal", &Model::get_wall_unit_normal, py::arg("object"), py::arg("wall_index"), "Returns wall normal converted to a unit vector of length 1um.\n- object\n- wall_index: This is the index of the vertex in object's walls (wall_list).\n\n")
+      .def("get_molecule_ids", &Model::get_molecule_ids, py::arg("pattern") = nullptr, "Returns a list of ids of molecules.\nIf the arguments pattern is not set, the list of all molecule ids is returned.  \nIf the argument pattern is set, the list of all molecule ids whose species match \nthe pattern is returned. \n\n- pattern: BNGL pattern to select molecules based on their species, might use compartments.\n\n")
+      .def("get_molecule", &Model::get_molecule, py::arg("id"), "Returns a information on a molecule from the simulated environment, \nNone if the molecule does not exist. \n\n- id: Unique id of the molecule to be retrieved.\n\n")
+      .def("get_species_name", &Model::get_species_name, py::arg("species_id"), "Returns a string representing canonical species name in the BNGL format. \n\n- species_id: Id of the species.\n\n")
+      .def("get_vertex", &Model::get_vertex, py::arg("object"), py::arg("vertex_index"), "Returns coordinates of a vertex.\n- object\n- vertex_index: This is the index of the vertex in the geometry object's walls (wall_list).\n\n")
+      .def("get_wall", &Model::get_wall, py::arg("object"), py::arg("wall_index"), "Returns information about a wall belonging to a given object.\n- object: Geometry object whose wall to retrieve.\n\n- wall_index: This is the index of the wall in the geometry object's walls (wall_list).\n\n")
+      .def("get_vertex_unit_normal", &Model::get_vertex_unit_normal, py::arg("object"), py::arg("vertex_index"), "Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.\nThis represents the unit vector pointing outwards from the vertex.\n\n- object: Geometry object whose vertex to retrieve.\n\n- vertex_index: This is the index of the vertex in the geometry object's vertex_list.\n\n")
+      .def("get_wall_unit_normal", &Model::get_wall_unit_normal, py::arg("object"), py::arg("wall_index"), "Returns wall normal converted to a unit vector of length 1um.\n- object: Geometry object whose wall's normal to retrieve.\n\n- wall_index: This is the index of the vertex in the geometry object's walls (wall_list).\n\n")
       .def("dump", &Model::dump)
-      .def_property("config", &Model::get_config, &Model::set_config)
-      .def_property("warnings", &Model::get_warnings, &Model::set_warnings)
+      .def_property("config", &Model::get_config, &Model::set_config, "Simulation configuration.")
+      .def_property("warnings", &Model::get_warnings, &Model::set_warnings, "Configuration on how to report warnings.")
       .def_property("notifications", &Model::get_notifications, &Model::set_notifications)
       .def_property("species", &Model::get_species, &Model::set_species)
       .def_property("reaction_rules", &Model::get_reaction_rules, &Model::set_reaction_rules)

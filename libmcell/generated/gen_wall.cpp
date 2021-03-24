@@ -118,7 +118,7 @@ std::string GenWall::to_str(const std::string ind) const {
 }
 
 py::class_<Wall> define_pybinding_Wall(py::module& m) {
-  return py::class_<Wall, std::shared_ptr<Wall>>(m, "Wall", "This is a Python representation of a molecule obtained from Model \nduring simulation.\n")
+  return py::class_<Wall, std::shared_ptr<Wall>>(m, "Wall", "Constant representation of wall of a geometry object.\nChanges through changing attributes of this object are not allowed\nexcept for the attribute is_movable.\n")
       .def(
           py::init<
           >()
@@ -130,9 +130,9 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       .def_property("geometry_object", &Wall::get_geometry_object, &Wall::set_geometry_object, "Object to which this wall belongs.")
       .def_property("wall_index", &Wall::get_wall_index, &Wall::set_wall_index, "Index of this wall in the object to which this wall belongs.")
       .def_property("vertices", &Wall::get_vertices, &Wall::set_vertices, "Vertices of the triangle that represents this wall.")
-      .def_property("area", &Wall::get_area, &Wall::set_area)
-      .def_property("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal, "Normal of this wall with unit length of 1 um.\nTo get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal. \n")
-      .def_property("is_movable", &Wall::get_is_movable, &Wall::set_is_movable, "If True, whis wall can be moved through Model.apply_vertex_moves,\nif False, wall moves are ignored. \n")
+      .def_property("area", &Wall::get_area, &Wall::set_area, "Area of the wall in um^2.")
+      .def_property("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal, "Normal of this wall with unit length of 1 um.\nThere is also a method Model.get_wall_unit_normal that allows to \nretrieve just the normal value without the need to prepare this \nwhole Wall object.  \n")
+      .def_property("is_movable", &Wall::get_is_movable, &Wall::set_is_movable, "If True, whis wall can be moved through Model.apply_vertex_moves,\nif False, wall moves are ignored. \nCan be set during simulation.\n")
     ;
 }
 

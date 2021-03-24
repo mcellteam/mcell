@@ -1057,11 +1057,13 @@ class Notifications():
             self,
             bng_verbosity_level : int = 0,
             rxn_and_species_report : bool = True,
-            simulation_stats_every_n_iterations : int = 0
+            simulation_stats_every_n_iterations : int = 0,
+            rxn_probability_changed : bool = True
         ):
         self.bng_verbosity_level = bng_verbosity_level
         self.rxn_and_species_report = rxn_and_species_report
         self.simulation_stats_every_n_iterations = simulation_stats_every_n_iterations
+        self.rxn_probability_changed = rxn_probability_changed
 
 
 class Observables():
@@ -1471,8 +1473,10 @@ class WallWallHitInfo():
 class Warnings():
     def __init__(
             self,
+            high_reaction_probability : WarningLevel = WarningLevel.WARNING
         ):
-        pass
+        self.high_reaction_probability = high_reaction_probability
+
 
 class bngl_utils():
     def __init__(

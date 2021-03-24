@@ -1392,7 +1392,7 @@ void RxnRule::create_products_for_complex_rxn(
     input_reactants.push_back(dynamic_cast<const Cplx*>(&all_species.get(reactant_species[1])));
   }
 
-  if (bng_config.bng_verbosity_level >= 1) {
+  if (bng_config.notifications.bng_verbosity_level >= 1) {
     cout << "Creating products for complex rxn " << name <<
         " for reactant(s) " << input_reactants[0]->to_str();
     if (input_reactants.size() == 2) {
@@ -1475,7 +1475,7 @@ void RxnRule::create_products_for_complex_rxn(
   release_assert(pattern_reactant_mappings.size() < MAX_PRODUCT_SETS_PER_RXN
       && "Encountered a huge number of potential product sets for a single reaction");
 
-  if (bng_config.bng_verbosity_level >= 1) {
+  if (bng_config.notifications.bng_verbosity_level >= 1) {
     cout << "  - found " << pattern_reactant_mappings.size() << " potential products";
     cout.flush();
   }
@@ -1576,7 +1576,7 @@ void RxnRule::create_products_for_complex_rxn(
   }
 #endif
 
-  if (bng_config.bng_verbosity_level >= 1) {
+  if (bng_config.notifications.bng_verbosity_level >= 1) {
     cout << ", of it " << distinct_product_graphs.size() << " unique products\n";
   }
 

@@ -38,35 +38,39 @@ void GenWarnings::set_initialized() {
 
 void GenWarnings::set_all_attributes_as_default_or_unset() {
   class_name = "Warnings";
+  high_reaction_probability = WarningLevel::WARNING;
 }
 
 bool GenWarnings::__eq__(const Warnings& other) const {
   return
-true ;
+    high_reaction_probability == other.high_reaction_probability;
 }
 
 bool GenWarnings::eq_nonarray_attributes(const Warnings& other, const bool ignore_name) const {
   return
-true ;
+    high_reaction_probability == other.high_reaction_probability;
 }
 
 std::string GenWarnings::to_str(const std::string ind) const {
   std::stringstream ss;
-  ss << get_object_name();
+  ss << get_object_name() << ": " <<
+      "high_reaction_probability=" << high_reaction_probability;
   return ss.str();
 }
 
 py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
-  return py::class_<Warnings, std::shared_ptr<Warnings>>(m, "Warnings", "This is a placeholder for future warnings settings. Empty for now.")
+  return py::class_<Warnings, std::shared_ptr<Warnings>>(m, "Warnings", "This class contains warnings settings. For now it contains only one configurable \nwarning.\n")
       .def(
           py::init<
-          >()
-
+            const WarningLevel
+          >(),
+          py::arg("high_reaction_probability") = WarningLevel::WARNING
       )
       .def("check_semantics", &Warnings::check_semantics)
       .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Warnings::__eq__, py::arg("other"))
       .def("dump", &Warnings::dump)
+      .def_property("high_reaction_probability", &Warnings::get_high_reaction_probability, &Warnings::set_high_reaction_probability, "Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.\nWarning when probability is greater than 1 is always printed.\nCannot be set to WarningLevel.ERROR. \n")
     ;
 }
 
@@ -89,6 +93,9 @@ std::string GenWarnings::export_to_python(std::ostream& out, PythonExportContext
     ss << exported_name << " = ";
   }
   ss << "m.Warnings(" << nl;
+  if (high_reaction_probability != WarningLevel::WARNING) {
+    ss << ind << "high_reaction_probability = " << high_reaction_probability << "," << nl;
+  }
   ss << ")" << nl << nl;
   if (!str_export) {
     out << ss.str();

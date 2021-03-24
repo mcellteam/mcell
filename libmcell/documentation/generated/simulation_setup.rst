@@ -116,8 +116,19 @@ Attributes:
 * | **simulation_stats_every_n_iterations**: int = 0
   | When set to a value other than 0, internal simulation stats will be printed.
 
+* | **rxn_probability_changed**: bool = True
+  | When True, information that a reaction's probability has changed is printed during simulation.
+
 Warnings
 ========
 
-This is a placeholder for future warnings settings. Empty for now.
+This class contains warnings settings. For now it contains only one configurable 
+warning.
+
+Attributes:
+***********
+* | **high_reaction_probability**: WarningLevel = WarningLevel.WARNING
+  | Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.
+  | Warning when probability is greater than 1 is always printed.
+  | Cannot be set to WarningLevel.ERROR.
 

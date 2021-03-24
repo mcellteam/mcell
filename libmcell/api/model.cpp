@@ -95,6 +95,12 @@ void Model::initialize(const bool print_copyright) {
     throw RuntimeError("Model.initialize() can be called only once");
   }
 
+  // semantic checks of the following classes must be called manually because
+  // their contents may have changed and check_semantics is automatically called only from their ctor
+  config.check_semantics();
+  warnings.check_semantics();
+  notifications.check_semantics();
+
   // first add species superclasses
   std::vector<std::shared_ptr<Species>> superspecies = { AllMolecules, AllVolumeMolecules, AllSurfaceMolecules };
   species.insert(species.begin(), superspecies.begin(), superspecies.end());

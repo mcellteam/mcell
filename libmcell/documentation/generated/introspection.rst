@@ -4,7 +4,7 @@ Introspection
 Introspection
 =============
 
-This class is used only as a base class to Model, it is not provided through API. Provides methods to introspect simulation state.
+Only internal. This class is used only as a base class to Model, it is not provided through API. Defines interface to introspect simulation state.
 
 
 Methods:
@@ -12,28 +12,34 @@ Methods:
 * | **get_molecule_ids**
 
    * | pattern: Complex = None
+     | BNGL pattern to select molecules based on their species, might use compartments.
+
    * | return type: List[int]
 
 
   | Returns a list of ids of molecules.
   | If the arguments pattern is not set, the list of all molecule ids is returned.  
   | If the argument pattern is set, the list of all molecule ids whose species match 
-  | the pattern is returned. Matching of patterns with compartments works exactly in the 
-  | same was as in observables.
+  | the pattern is returned.
 
 
 * | **get_molecule**
 
    * | id: int
+     | Unique id of the molecule to be retrieved.
+
    * | return type: Molecule
 
 
-  | Returns a molecule from the simulated environment, None if the molecule does not exist
+  | Returns a information on a molecule from the simulated environment, 
+  | None if the molecule does not exist.
 
 
 * | **get_species_name**
 
    * | species_id: int
+     | Id of the species.
+
    * | return type: str
 
 
@@ -44,7 +50,7 @@ Methods:
 
    * | object: GeometryObject
    * | vertex_index: int
-     | This is the index of the vertex in object's walls (wall_list).
+     | This is the index of the vertex in the geometry object's walls (wall_list).
 
    * | return type: Vec3
 
@@ -55,8 +61,10 @@ Methods:
 * | **get_wall**
 
    * | object: GeometryObject
+     | Geometry object whose wall to retrieve.
+
    * | wall_index: int
-     | This is the index of the wall in object's walls (wall_list).
+     | This is the index of the wall in the geometry object's walls (wall_list).
 
    * | return type: Wall
 
@@ -67,8 +75,10 @@ Methods:
 * | **get_vertex_unit_normal**
 
    * | object: GeometryObject
+     | Geometry object whose vertex to retrieve.
+
    * | vertex_index: int
-     | This is the index of the vertex in object's vertex_list.
+     | This is the index of the vertex in the geometry object's vertex_list.
 
    * | return type: Vec3
 
@@ -80,8 +90,10 @@ Methods:
 * | **get_wall_unit_normal**
 
    * | object: GeometryObject
+     | Geometry object whose wall's normal to retrieve.
+
    * | wall_index: int
-     | This is the index of the vertex in object's walls (wall_list).
+     | This is the index of the vertex in the geometry object's walls (wall_list).
 
    * | return type: Vec3
 
@@ -93,19 +105,25 @@ Methods:
 Molecule
 ========
 
-This is a Python representation of a molecule obtained from Model 
-during simulation.
+Representation of a molecule obtained from Model 
+during simulation obtained through Model.get_molecule.
+Changes through changing attributes of this object are not allowed except 
+for complete removal of this molecule.
 
 Attributes:
 ***********
 * | **id**: int = ID_INVALID
-  | Unique id of this molecule
+  | Unique id of this molecule. MCell assigns this unique id to each created 
+  | molecule. All reactions change ID of molecules even in reactions such as 
+  | A@CP -> A@EC.
 
 * | **type**: MoleculeType = MoleculeType.UNSET
+  | Type of this molecule, either volume or surface.
 
 * | **species_id**: int = ID_INVALID
   | Species id of this molecule.
-  | The id value is only temporary and can be invalidated by simulating an iteration.
+  | The species id value is only temporary and can be invalidated by simulating an 
+  | iteration.
 
 * | **pos3d**: Vec3 = None
   | Contains position of a molecule in 3D space.
@@ -115,7 +133,8 @@ Attributes:
   | have always orientation set to Orientation.NONE.
 
 * | **pos2d**: Vec2 = None
-  | Set only for surface molecules.
+  | Set only for surface molecules. Position on a wall in UV coordinates 
+  | relative to the triangle of the wall.
 
 * | **geometry_object**: GeometryObject = None
   | Set only for surface molecules.
@@ -140,8 +159,9 @@ Methods:
 Wall
 ====
 
-This is a Python representation of a molecule obtained from Model 
-during simulation.
+Constant representation of wall of a geometry object.
+Changes through changing attributes of this object are not allowed
+except for the attribute is_movable.
 
 Attributes:
 ***********
@@ -155,21 +175,30 @@ Attributes:
   | Vertices of the triangle that represents this wall.
 
 * | **area**: float
+  | Area of the wall in um^2.
 
 * | **unit_normal**: Vec3
   | Normal of this wall with unit length of 1 um.
-  | To get just the unit vector, not the whole wall, there is also method Model.get_wall_unit_normal.
+  | There is also a method Model.get_wall_unit_normal that allows to 
+  | retrieve just the normal value without the need to prepare this 
+  | whole Wall object.
 
 * | **is_movable**: bool = True
   | If True, whis wall can be moved through Model.apply_vertex_moves,
-  | if False, wall moves are ignored.
+  | if False, wall moves are ignored. 
+  | Can be set during simulation.
 
 WallWallHitInfo
 ===============
 
+This class is used in the return type of Model.apply_vertex_moves.
+Contains pair of walls that collided.
+
 Attributes:
 ***********
 * | **wall1**: Wall
+  | First colliding wall.
 
 * | **wall2**: Wall
+  | Second colliding wall.
 

@@ -34,7 +34,7 @@ void BNGConfig::dump() const {
   cout << "  grid_density: \t\t" << grid_density << "\n";
   cout << "  rx_radius_3d: \t\t" << rx_radius_3d << "\n";
   cout << "  rxn_and_species_report: \t\t" << rxn_and_species_report << "\n";
-  cout << "  bng_verbosity_level: \t\t" << bng_verbosity_level << "\n";
+  // TODO: add dumps for BNGNotificatiosn and BNGWarnings
 
   notifications.dump();
 }
@@ -71,7 +71,7 @@ void BNGConfig::initialize_bng_report_files() {
 
 
 void BNGConfig::print_final_warnings() const {
-  if (bimol_rxn_probability_over_1) {
+  if (warnings.bimol_rxn_probability_over_1) {
     cerr <<
         "Warning: There was a bimolecular reaction with probability p > 1.0. This means that some reactions were missed. " <<
         "See report file " << get_warnings_report_file_name() << " for more details. A shorter time step may be needed.\n" <<
@@ -79,7 +79,8 @@ void BNGConfig::print_final_warnings() const {
         ", if it does not exist, it can be enabled by setting 'rxn_and_species_report' to true.\n";
 
   }
-  if (bimol_rxn_probability_over_05_less_1) {
+  if (warnings.warn_on_bimol_rxn_probability_over_05_less_1 &&
+      warnings.bimol_rxn_probability_over_05_less_1) {
     cerr <<
         "Warning: There was a bimolecular reaction with probability p > 0.5 and p < 1.0. " <<
         "For best results, the probability of bimolecular reactions should be <= 0.5. " <<

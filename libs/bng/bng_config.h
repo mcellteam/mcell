@@ -37,36 +37,58 @@
 
 namespace BNG {
 
-// TODO: merge BNG notifications with BNGConfig?
-// reports are already there
+// separate class because the number of notifications may grow in the future
 class BNGNotifications {
 public:
-  BNGNotifications()
-    : rxn_probability_changed(true)
+  BNGNotifications() :
+    bng_verbosity_level(0),
+    rxn_probability_changed(true)
     {
   }
 
-  bool rxn_probability_changed; // related to MCell's varying_probability_report?
+  // print additional information during simulation
+  int bng_verbosity_level;
+
+  // related to MCell's varying_probability_report,
+  // TODO: probably not converted from data model
+  bool rxn_probability_changed;
 
   void dump() const;
 };
 
+
+class BNGWarnings {
+public:
+  BNGWarnings() :
+    warn_on_bimol_rxn_probability_over_05_less_1(true),
+    bimol_rxn_probability_over_05_less_1(false),
+    bimol_rxn_probability_over_1(false)
+    {
+  }
+
+  // warning settings
+  bool warn_on_bimol_rxn_probability_over_05_less_1;
+
+  // status
+  mutable bool bimol_rxn_probability_over_05_less_1; // set to true if probability of a bimol rxn was > 0.5 but < 1
+  mutable bool bimol_rxn_probability_over_1; // set to true if probability of a bimol rxn was > 1
+
+};
+
+
 class BNGConfig {
 public:
-  BNGConfig()
-    : mcell(BNG_MCELL),
-      initial_seed(1),
-      time_unit(0),
-      length_unit(0),
-      rcp_length_unit(0),
-      grid_density(0),
-      rx_radius_3d(0),
-      intermembrane_rx_radius_3d(0),
-      rxn_and_species_report(true),
-      bng_verbosity_level(0),
-      bimol_rxn_probability_over_05_less_1(false),
-      bimol_rxn_probability_over_1(false)
-      {
+  BNGConfig() :
+    mcell(BNG_MCELL),
+    initial_seed(1),
+    time_unit(0),
+    length_unit(0),
+    rcp_length_unit(0),
+    grid_density(0),
+    rx_radius_3d(0),
+    intermembrane_rx_radius_3d(0),
+    rxn_and_species_report(true)
+    {
   }
 
   // configuration
@@ -85,14 +107,9 @@ public:
   // generate report files during simulation
   bool rxn_and_species_report;
 
-  // print additional information during simulation
-  int bng_verbosity_level;
-
+  BNGWarnings warnings;
   BNGNotifications notifications;
 
-  // status
-  mutable bool bimol_rxn_probability_over_05_less_1; // set to true if probability of a bimol rxn was > 0.5 but < 1
-  mutable bool bimol_rxn_probability_over_1; // set to true if probability of a bimol rxn was > 1
 
   void init() {
     rcp_length_unit = 1/length_unit;

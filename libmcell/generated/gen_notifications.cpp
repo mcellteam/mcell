@@ -41,20 +41,23 @@ void GenNotifications::set_all_attributes_as_default_or_unset() {
   bng_verbosity_level = 0;
   rxn_and_species_report = true;
   simulation_stats_every_n_iterations = 0;
+  rxn_probability_changed = true;
 }
 
 bool GenNotifications::__eq__(const Notifications& other) const {
   return
     bng_verbosity_level == other.bng_verbosity_level &&
     rxn_and_species_report == other.rxn_and_species_report &&
-    simulation_stats_every_n_iterations == other.simulation_stats_every_n_iterations;
+    simulation_stats_every_n_iterations == other.simulation_stats_every_n_iterations &&
+    rxn_probability_changed == other.rxn_probability_changed;
 }
 
 bool GenNotifications::eq_nonarray_attributes(const Notifications& other, const bool ignore_name) const {
   return
     bng_verbosity_level == other.bng_verbosity_level &&
     rxn_and_species_report == other.rxn_and_species_report &&
-    simulation_stats_every_n_iterations == other.simulation_stats_every_n_iterations;
+    simulation_stats_every_n_iterations == other.simulation_stats_every_n_iterations &&
+    rxn_probability_changed == other.rxn_probability_changed;
 }
 
 std::string GenNotifications::to_str(const std::string ind) const {
@@ -62,7 +65,8 @@ std::string GenNotifications::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "bng_verbosity_level=" << bng_verbosity_level << ", " <<
       "rxn_and_species_report=" << rxn_and_species_report << ", " <<
-      "simulation_stats_every_n_iterations=" << simulation_stats_every_n_iterations;
+      "simulation_stats_every_n_iterations=" << simulation_stats_every_n_iterations << ", " <<
+      "rxn_probability_changed=" << rxn_probability_changed;
   return ss.str();
 }
 
@@ -72,11 +76,13 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
           py::init<
             const int,
             const bool,
-            const int
+            const int,
+            const bool
           >(),
           py::arg("bng_verbosity_level") = 0,
           py::arg("rxn_and_species_report") = true,
-          py::arg("simulation_stats_every_n_iterations") = 0
+          py::arg("simulation_stats_every_n_iterations") = 0,
+          py::arg("rxn_probability_changed") = true
       )
       .def("check_semantics", &Notifications::check_semantics)
       .def("__str__", &Notifications::to_str, py::arg("ind") = std::string(""))
@@ -85,6 +91,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level, "Sets verbosity level that enables printouts of extra information on BioNetGen \nspecies and rules created and used during simulation.\n")
       .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "Simulation generates files rxn_report_SEED.txt species_report_SEED.txt that contain\ndetails on reaction classes and species that were created based on reaction rules.   \n")
       .def_property("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations, "When set to a value other than 0, internal simulation stats will be printed. \n")
+      .def_property("rxn_probability_changed", &Notifications::get_rxn_probability_changed, &Notifications::set_rxn_probability_changed, "When True, information that a reaction's probability has changed is printed during simulation.    \n")
     ;
 }
 
@@ -115,6 +122,9 @@ std::string GenNotifications::export_to_python(std::ostream& out, PythonExportCo
   }
   if (simulation_stats_every_n_iterations != 0) {
     ss << ind << "simulation_stats_every_n_iterations = " << simulation_stats_every_n_iterations << "," << nl;
+  }
+  if (rxn_probability_changed != true) {
+    ss << ind << "rxn_probability_changed = " << rxn_probability_changed << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

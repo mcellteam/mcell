@@ -484,11 +484,11 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
       ss << "Warning: total probability of reaction is > 1 (" << max_fixed_p << ")";
       cout << ss.str() << ", for reactant(s) " << reactants_to_str() << ".\n";
       append_to_report(bng_config.get_warnings_report_file_name(), ss.str() + "\n" + to_str());
-      bng_config.bimol_rxn_probability_over_1 = true;
+      bng_config.warnings.bimol_rxn_probability_over_1 = true;
     }
     else if (max_fixed_p > 0.5) {
       // print final report after simulation ended
-      bng_config.bimol_rxn_probability_over_05_less_1 = true;
+      bng_config.warnings.bimol_rxn_probability_over_05_less_1 = true;
     }
   }
 

@@ -1,14 +1,20 @@
 Model:
   superclasses: [Subsystem, Instantiation, Observables, Introspection]
+  doc: |
+     This is the main class that is used to assemble all simulation input 
+     and configuration. It also provides methods to do initialization,
+     run simulation, and introspect the running simulation.
   
   items:
   - name: config
     type: Config
     default: Config()
+    doc: Simulation configuration.
 
   - name: warnings
     type: Warnings
     default: Warnings()
+    doc: Configuration on how to report warnings. 
 
   - name: notifications
     type: Notifications

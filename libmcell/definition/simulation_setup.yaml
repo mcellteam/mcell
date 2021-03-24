@@ -202,6 +202,13 @@ Notifications:
     default: 0
     doc: |
       When set to a value other than 0, internal simulation stats will be printed. 
+
+  - name: rxn_probability_changed
+    type: bool
+    default: True
+    doc: | 
+      When True, information that a reaction's probability has changed is printed during simulation.    
+
       
   # none of these notifications below are currrently interpreted by mcell
 #   - name: probability_report
@@ -243,8 +250,19 @@ Notifications:
    
 Warnings:
   superclass: BaseDataClass
-  doc: This is a placeholder for future warnings settings. Empty for now.
-#   items:
+  doc: |
+     This class contains warnings settings. For now it contains only one configurable 
+     warning.
+     
+  items:
+  - name: high_reaction_probability
+    type: WarningLevel
+    default: WarningLevel.WARNING
+    doc: | 
+       Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.
+       Warning when probability is greater than 1 is always printed.
+       Cannot be set to WarningLevel.ERROR. 
+    
 #   - name: molecule_collision_report
 #     type: WarningLevel
 #     default: WarningLevel.WARNING

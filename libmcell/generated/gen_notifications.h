@@ -36,12 +36,14 @@ class PythonExportContext;
     Notifications( \
         const int bng_verbosity_level_ = 0, \
         const bool rxn_and_species_report_ = true, \
-        const int simulation_stats_every_n_iterations_ = 0 \
+        const int simulation_stats_every_n_iterations_ = 0, \
+        const bool rxn_probability_changed_ = true \
     ) { \
       class_name = "Notifications"; \
       bng_verbosity_level = bng_verbosity_level_; \
       rxn_and_species_report = rxn_and_species_report_; \
       simulation_stats_every_n_iterations = simulation_stats_every_n_iterations_; \
+      rxn_probability_changed = rxn_probability_changed_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -103,6 +105,20 @@ public:
   virtual int get_simulation_stats_every_n_iterations() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return simulation_stats_every_n_iterations;
+  }
+
+  bool rxn_probability_changed;
+  virtual void set_rxn_probability_changed(const bool new_rxn_probability_changed_) {
+    if (initialized) {
+      throw RuntimeError("Value 'rxn_probability_changed' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    rxn_probability_changed = new_rxn_probability_changed_;
+  }
+  virtual bool get_rxn_probability_changed() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return rxn_probability_changed;
   }
 
   // --- methods ---

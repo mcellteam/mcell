@@ -4,11 +4,17 @@ Model
 Model
 =====
 
+This is the main class that is used to assemble all simulation input 
+and configuration. It also provides methods to do initialization,
+run simulation, and introspect the running simulation.
+
 Attributes:
 ***********
 * | **config**: Config = Config()
+  | Simulation configuration.
 
 * | **warnings**: Warnings = Warnings()
+  | Configuration on how to report warnings.
 
 * | **notifications**: Notifications = Notifications()
 
@@ -441,28 +447,34 @@ Methods:
 * | **get_molecule_ids**
 
    * | pattern: Complex = None
+     | BNGL pattern to select molecules based on their species, might use compartments.
+
    * | return type: List[int]
 
 
   | Returns a list of ids of molecules.
   | If the arguments pattern is not set, the list of all molecule ids is returned.  
   | If the argument pattern is set, the list of all molecule ids whose species match 
-  | the pattern is returned. Matching of patterns with compartments works exactly in the 
-  | same was as in observables.
+  | the pattern is returned.
 
 
 * | **get_molecule**
 
    * | id: int
+     | Unique id of the molecule to be retrieved.
+
    * | return type: Molecule
 
 
-  | Returns a molecule from the simulated environment, None if the molecule does not exist
+  | Returns a information on a molecule from the simulated environment, 
+  | None if the molecule does not exist.
 
 
 * | **get_species_name**
 
    * | species_id: int
+     | Id of the species.
+
    * | return type: str
 
 
@@ -473,7 +485,7 @@ Methods:
 
    * | object: GeometryObject
    * | vertex_index: int
-     | This is the index of the vertex in object's walls (wall_list).
+     | This is the index of the vertex in the geometry object's walls (wall_list).
 
    * | return type: Vec3
 
@@ -484,8 +496,10 @@ Methods:
 * | **get_wall**
 
    * | object: GeometryObject
+     | Geometry object whose wall to retrieve.
+
    * | wall_index: int
-     | This is the index of the wall in object's walls (wall_list).
+     | This is the index of the wall in the geometry object's walls (wall_list).
 
    * | return type: Wall
 
@@ -496,8 +510,10 @@ Methods:
 * | **get_vertex_unit_normal**
 
    * | object: GeometryObject
+     | Geometry object whose vertex to retrieve.
+
    * | vertex_index: int
-     | This is the index of the vertex in object's vertex_list.
+     | This is the index of the vertex in the geometry object's vertex_list.
 
    * | return type: Vec3
 
@@ -509,8 +525,10 @@ Methods:
 * | **get_wall_unit_normal**
 
    * | object: GeometryObject
+     | Geometry object whose wall's normal to retrieve.
+
    * | wall_index: int
-     | This is the index of the vertex in object's walls (wall_list).
+     | This is the index of the vertex in the geometry object's walls (wall_list).
 
    * | return type: Vec3
 

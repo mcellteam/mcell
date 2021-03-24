@@ -225,9 +225,17 @@ void MCell4Converter::convert_simulation_setup() {
 
   // notifications and reports
   const API::Notifications& notifications = model->notifications;
-  world->config.bng_verbosity_level = notifications.bng_verbosity_level;
   world->config.rxn_and_species_report = notifications.rxn_and_species_report;
   world->config.simulation_stats_every_n_iterations = notifications.simulation_stats_every_n_iterations;
+
+  world->config.notifications.bng_verbosity_level = notifications.bng_verbosity_level;
+  world->config.notifications.rxn_probability_changed = notifications.rxn_probability_changed;
+
+  // warnings
+  assert(model->warnings.high_reaction_probability != WarningLevel::ERROR);
+  world->config.warnings.warn_on_bimol_rxn_probability_over_05_less_1 =
+      model->warnings.high_reaction_probability == WarningLevel::WARNING;
+
 
   // config
   const API::Config& config = model->config;

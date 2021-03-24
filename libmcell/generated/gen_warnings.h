@@ -34,8 +34,10 @@ class PythonExportContext;
 
 #define WARNINGS_CTOR() \
     Warnings( \
+        const WarningLevel high_reaction_probability_ = WarningLevel::WARNING \
     ) { \
       class_name = "Warnings"; \
+      high_reaction_probability = high_reaction_probability_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -57,6 +59,20 @@ public:
 
 
   // --- attributes ---
+  WarningLevel high_reaction_probability;
+  virtual void set_high_reaction_probability(const WarningLevel new_high_reaction_probability_) {
+    if (initialized) {
+      throw RuntimeError("Value 'high_reaction_probability' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    high_reaction_probability = new_high_reaction_probability_;
+  }
+  virtual WarningLevel get_high_reaction_probability() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return high_reaction_probability;
+  }
+
   // --- methods ---
 }; // GenWarnings
 

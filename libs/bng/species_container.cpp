@@ -42,7 +42,7 @@ species_id_t SpeciesContainer::add(Species* new_species, const bool removable) {
     max_time_step = new_species->time_step;
   }
 
-  if (bng_config.bng_verbosity_level >= 2) {
+  if (bng_config.notifications.bng_verbosity_level >= 2) {
     std::cout << "BNG: Defined new species " << new_species->name << " with id " << res << "\n";
   }
 

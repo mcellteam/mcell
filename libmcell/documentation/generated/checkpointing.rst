@@ -24,6 +24,7 @@ ChkptSurfMol
 ============
 
 Class representing a checkpointed surface molecule.
+Not to be used directly.
 
 Attributes:
 ***********
@@ -53,6 +54,7 @@ ChkptVolMol
 ===========
 
 Class representing a checkpointed volume molecule.
+Not to be used directly.
 
 Attributes:
 ***********

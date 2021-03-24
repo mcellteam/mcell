@@ -111,7 +111,7 @@ std::string GenMolecule::to_str(const std::string ind) const {
 }
 
 py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
-  return py::class_<Molecule, std::shared_ptr<Molecule>>(m, "Molecule", "This is a Python representation of a molecule obtained from Model \nduring simulation.\n")
+  return py::class_<Molecule, std::shared_ptr<Molecule>>(m, "Molecule", "Representation of a molecule obtained from Model \nduring simulation obtained through Model.get_molecule.\nChanges through changing attributes of this object are not allowed except \nfor complete removal of this molecule.   \n")
       .def(
           py::init<
           >()
@@ -121,12 +121,12 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       .def("__eq__", &Molecule::__eq__, py::arg("other"))
       .def("remove", &Molecule::remove, "Removes this molecule from simulation. Any subsequent modifications\nof this object won't have any effect.  \n")
       .def("dump", &Molecule::dump)
-      .def_property("id", &Molecule::get_id, &Molecule::set_id, "Unique id of this molecule")
-      .def_property("type", &Molecule::get_type, &Molecule::set_type)
-      .def_property("species_id", &Molecule::get_species_id, &Molecule::set_species_id, "Species id of this molecule.\nThe id value is only temporary and can be invalidated by simulating an iteration.\n")
+      .def_property("id", &Molecule::get_id, &Molecule::set_id, "Unique id of this molecule. MCell assigns this unique id to each created \nmolecule. All reactions change ID of molecules even in reactions such as \nA@CP -> A@EC.\n")
+      .def_property("type", &Molecule::get_type, &Molecule::set_type, "Type of this molecule, either volume or surface. \n")
+      .def_property("species_id", &Molecule::get_species_id, &Molecule::set_species_id, "Species id of this molecule.\nThe species id value is only temporary and can be invalidated by simulating an \niteration.\n")
       .def_property("pos3d", &Molecule::get_pos3d, &Molecule::set_pos3d, "Contains position of a molecule in 3D space.        \n")
       .def_property("orientation", &Molecule::get_orientation, &Molecule::set_orientation, "Contains orientation for surface molecule. Volume molecules \nhave always orientation set to Orientation.NONE.\n")
-      .def_property("pos2d", &Molecule::get_pos2d, &Molecule::set_pos2d, "Set only for surface molecules.\n        \n")
+      .def_property("pos2d", &Molecule::get_pos2d, &Molecule::set_pos2d, "Set only for surface molecules. Position on a wall in UV coordinates \nrelative to the triangle of the wall.\n        \n")
       .def_property("geometry_object", &Molecule::get_geometry_object, &Molecule::set_geometry_object, "Set only for surface molecules.\nObject on whose surface is the molecule located.\n")
       .def_property("wall_index", &Molecule::get_wall_index, &Molecule::set_wall_index, "Set only for surface molecules.\nIndex of wall belonging to the geometry_object where is the \nmolecule located. \n   \n")
     ;

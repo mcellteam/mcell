@@ -39,7 +39,7 @@ public:
 
   void check_semantics() const override {
     GenConfig::check_semantics();
-    if (subpartition_dimension >= partition_dimension) {
+    if (cmp_gt(subpartition_dimension, partition_dimension, EPS)) {
       throw ValueError(S("Value ") + NAME_SUBPARTITION_DIMENSION + " must be smaller or equal than " + NAME_PARTITION_DIMENSION + ".");
     }
 
