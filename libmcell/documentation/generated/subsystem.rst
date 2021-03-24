@@ -240,8 +240,11 @@ Attributes:
   | changing the 'fwd_rate'.
 
 * | **variable_rate**: List[List[float]] = None
-  | Variable rate is applicable only for irreversible reactions. Members fwd_rate and rev_rate 
-  | must not be set. The array passed as this argument must have as its items a pair of floats (time, rate).
+  | The array passed as this argument must have as its items a pair of floats (time, rate).      
+  | Variable rate is applicable only for irreversible reactions. 
+  | Members fwd_rate and rev_rate must not be set when setting this attribute through a constructor. 
+  | When this attribute is set outside of the class constructor, fwd_rate is automatically reset to an 'unset' value.
+  | Cannot be set after model initialization.
 
 * | **is_intermembrane_surface_reaction**: bool = False
   | Experimental, see addintinal explanation in 'fwd' rate.

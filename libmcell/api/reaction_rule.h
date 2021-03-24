@@ -63,17 +63,22 @@ public:
 
     if (is_set(variable_rate)) {
       if (is_set(fwd_rate) || is_set(rev_rate)) {
-        throw ValueError("Variable rates cannot be set along with fwd_rate or rev_rate.");
+        throw ValueError(S("Variable rates cannot be set along with fwd_rate or rev_rate in the constructor of ") +
+            NAME_CLASS_REACTION_RULE + ".");
       }
 
-      for (auto& time_and_rate: variable_rate) {
-        if (time_and_rate.size() != 2) {
-          std::string msg = "[]";
-          if (time_and_rate.size() >= 1) {
-            msg = " item with time " + std::to_string(time_and_rate[0]);
-          }
-          throw ValueError("Variable rate array must contain pairs [time, rate], error for " + msg + ".");
+      check_variable_rate();
+    }
+  }
+
+  void check_variable_rate() const {
+    for (auto& time_and_rate: variable_rate) {
+      if (time_and_rate.size() != 2) {
+        std::string msg = "[]";
+        if (time_and_rate.size() >= 1) {
+          msg = " item with time " + std::to_string(time_and_rate[0]);
         }
+        throw ValueError("Variable rate array must contain pairs [time, rate], error for " + msg + ".");
       }
     }
   }
@@ -86,6 +91,7 @@ public:
 
   void set_fwd_rate(const float_t new_fwd_rate_) override;
   void set_rev_rate(const float_t new_rev_rate_) override;
+  void set_variable_rate(const std::vector<std::vector<float_t>> new_variable_rate_) override;
 
   // added methods
   bool is_reversible() const {

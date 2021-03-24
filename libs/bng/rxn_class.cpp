@@ -533,9 +533,11 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
     release_assert(first_pw_changed != PATHWAY_INDEX_INVALID);
 
     float_t prob = pathways[first_pw_changed].pathway_prob;
-    notifys() <<
-        "Probability " << prob << " set for " << all_rxns.get(changed_id)->to_str() <<
-        " at time " << current_time << ".\n";
+    if (bng_config.notifications.rxn_probability_changed) {
+      notifys() <<
+          "Probability " << prob << " set for " << all_rxns.get(changed_id)->to_str() <<
+          " at time " << current_time << ".\n";
+    }
   }
 }
 

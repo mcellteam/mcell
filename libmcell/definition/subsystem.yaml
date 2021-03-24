@@ -380,7 +380,7 @@ ReactionRule:
     
   - name: fwd_rate
     type: float
-    default: unset # must be set, but C++ ordering of arguments requires that all defaults are at the end
+    default: unset 
     doc: |
       Rates have following units\: unimolecular [s^-1], volume bimolecular [M^-1*s^-1], 
       The units of the reaction rate for uni- and bimolecular reactions are
@@ -416,9 +416,12 @@ ReactionRule:
   - name: variable_rate
     type: List[List[float]]
     default: empty
-    doc: | 
-      Variable rate is applicable only for irreversible reactions. Members fwd_rate and rev_rate 
-      must not be set. The array passed as this argument must have as its items a pair of floats (time, rate).     
+    doc: |
+      The array passed as this argument must have as its items a pair of floats (time, rate).      
+      Variable rate is applicable only for irreversible reactions. 
+      Members fwd_rate and rev_rate must not be set when setting this attribute through a constructor. 
+      When this attribute is set outside of the class constructor, fwd_rate is automatically reset to an 'unset' value.
+      Cannot be set after model initialization. 
 
   - name: is_intermembrane_surface_reaction
     type: bool

@@ -49,7 +49,7 @@ public:
   // print additional information during simulation
   int bng_verbosity_level;
 
-  // related to MCell's varying_probability_report,
+  // same as MCell3's varying_probability_report,
   // TODO: probably not converted from data model
   bool rxn_probability_changed;
 

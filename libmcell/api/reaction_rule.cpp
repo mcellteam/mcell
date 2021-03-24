@@ -176,5 +176,22 @@ void ReactionRule::set_rev_rate(const float_t new_rev_rate_) {
   }
 }
 
+
+void ReactionRule::set_variable_rate(const std::vector<std::vector<float_t>> new_variable_rate_) {
+  if (initialized) {
+    throw RuntimeError("Value 'variable_rate' of object with name " + name + " (class " + class_name + ") "
+                       "cannot be set after model was initialized.");
+  }
+  if (is_reversible()) {
+    throw RuntimeError(S("Cannot set ") + NAME_VARIABLE_RATE + " for a reversible reaction.");
+  }
+  cached_data_are_uptodate = false;
+  variable_rate = new_variable_rate_;
+  check_variable_rate();
+  // reset fwd rate so that the variable rate is used
+  fwd_rate = FLT_UNSET;
+}
+
+
 } // namespace API
 } // namespace MCell
