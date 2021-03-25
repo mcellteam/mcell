@@ -4,12 +4,17 @@ Simulation setup
 Config
 ======
 
+Class holds simulation configuration.
+
 Attributes:
 ***********
 * | **seed**: int = 1
+  | Random generator seed value.
 
 * | **time_step**: float = 1e-6
-  | Default value is 1us, in seconds
+  | Set the simulation time step to time_step seconds. 1e-6 (1us) is a common value. 
+  | One can set the time steps taken by individual molecules, but this 
+  | time step is still used as a default.
 
 * | **surface_grid_density**: float = 10000
 

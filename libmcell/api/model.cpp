@@ -396,9 +396,12 @@ void Model::register_mol_wall_hit_callback(
     std::shared_ptr<GeometryObject> object,
     std::shared_ptr<Species> species
 ) {
-  // TODO: check, only one wall hit callback is allowed now
   if (!initialized) {
     throw RuntimeError("Model must be initialized before registering callbacks.");
+  }
+
+  if (callbacks.mol_wall_hit_callback_function != nullptr) {
+    throw RuntimeError("A wall hit callback was already registered, only one is allowed currently.");
   }
 
   geometry_object_id_t geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;

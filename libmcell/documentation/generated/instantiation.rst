@@ -98,7 +98,7 @@ Methods:
      | Path to the BNGL file.
 
    * | default_release_region: Region = None
-     | Used for seed species that have no compartments specified.
+     | Used as region for releases for seed species that have no compartments specified.
 
    * | parameter_overrides: Dict[str, float] = None
      | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,

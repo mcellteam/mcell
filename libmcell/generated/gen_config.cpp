@@ -163,7 +163,7 @@ std::string GenConfig::to_str(const std::string ind) const {
 }
 
 py::class_<Config> define_pybinding_Config(py::module& m) {
-  return py::class_<Config, std::shared_ptr<Config>>(m, "Config")
+  return py::class_<Config, std::shared_ptr<Config>>(m, "Config", "Class holds simulation configuration.")
       .def(
           py::init<
             const int,
@@ -214,8 +214,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Config::__eq__, py::arg("other"))
       .def("dump", &Config::dump)
-      .def_property("seed", &Config::get_seed, &Config::set_seed)
-      .def_property("time_step", &Config::get_time_step, &Config::set_time_step, "Default value is 1us, in seconds")
+      .def_property("seed", &Config::get_seed, &Config::set_seed, "Random generator seed value.")
+      .def_property("time_step", &Config::get_time_step, &Config::set_time_step, "Set the simulation time step to time_step seconds. 1e-6 (1us) is a common value. \nOne can set the time steps taken by individual molecules, but this \ntime step is still used as a default.\n")
       .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density)
       .def_property("interaction_radius", &Config::get_interaction_radius, &Config::set_interaction_radius, "Diffusing volume molecules will interact with each other when\nthey get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified).\n")
       .def_property("intermembrane_interaction_radius", &Config::get_intermembrane_interaction_radius, &Config::set_intermembrane_interaction_radius, "Diffusing surface molecules will interact with surface molecules on other\nwalls when they get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified). \n")

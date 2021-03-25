@@ -1,5 +1,6 @@
 Config:
   superclass: BaseDataClass
+  doc: Class holds simulation configuration.
   items:
 
   - name: seed
@@ -7,12 +8,16 @@ Config:
     default: 1
     min: 0  # TODO: min/max value check is not generated yet
     max: 65535
-  
+    doc: Random generator seed value.
+      
   - name: time_step
     type: float
     default: 1e-6
     min: 1e12
-    doc: Default value is 1us, in seconds
+    doc: |
+       Set the simulation time step to time_step seconds. 1e-6 (1us) is a common value. 
+       One can set the time steps taken by individual molecules, but this 
+       time step is still used as a default.
       
   - name: surface_grid_density
     type: float

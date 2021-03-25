@@ -272,7 +272,7 @@ std::string GenCount::to_str(const std::string ind) const {
 }
 
 py::class_<Count> define_pybinding_Count(py::module& m) {
-  return py::class_<Count, CountTerm, std::shared_ptr<Count>>(m, "Count")
+  return py::class_<Count, CountTerm, std::shared_ptr<Count>>(m, "Count", "Represents a molecule or reaction count observable. \nInherits all members from class CountTerm. \nUsually just one observable is counted and a member of this class count_expression \nis not set. If an expression is needed, it is stored in the count_expression\nattribute.\n")
       .def(
           py::init<
             const std::string&,
@@ -308,11 +308,11 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def("__eq__", &Count::__eq__, py::arg("other"))
       .def("get_current_value", &Count::get_current_value, "Returns the current value for this count. Cannot be used to count reactions.\nThe model must be initialized with this Count present as one of the observables.\n")
       .def("dump", &Count::dump)
-      .def_property("name", &Count::get_name, &Count::set_name, "Name of a count may be specified when one needs to search for them later. \nAlso when the count is created while loading a BNGL file, its name is set.\n")
-      .def_property("file_name", &Count::get_file_name, &Count::set_file_name, "File name with an optional path must be set. It is not deduced automatically.\n")
-      .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression, "The count expression must be composed only from CountTerm objects that are added or \nsubtracted.  \n")
-      .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier, "In some cases it might be useful to multiply the whole count by a constant to get \nfor instance concentration. The count_expression is not an arbitrary expression\nand such multiplication can be done through this attribute.  \n")
-      .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps, "Value is truncated (floored) to an integer.\nIf value is set to 0, this Count is used only on-demand through calls to its\nget_current_value method.  \n")
+      .def_property("name", &Count::get_name, &Count::set_name, "Name of a count may be specified when one needs to search for them later. \nWhen the count is created when a BNGL file is loaded, its name is set, for instance\nwhen the following BNGL code is loaded:\n\nbegin observables\n   Molecules Acount A\nend observables\n\nthe name is set to Acount.\n")
+      .def_property("file_name", &Count::get_file_name, &Count::set_file_name, "File name where this observable values will be stored.\nThe usual file_name, while using this count's name is:\nfile_name = './react_data/seed_' + str(SEED).zfill(5) + '/' + name + '.dat'.\n")
+      .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression, "If this count uses more than one count term one must define a count term expression \nand set a reference to it to this attribute.  \nThe count expression must be composed only from CountTerm objects that are added or \nsubtracted.\n")
+      .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier, "In some cases it might be useful to multiply the whole count by a constant to get \nfor instance concentration. The count_expression allows only addition and subtraction \nof count terms so such multiplication can be done through this attribute.\nIt can be also used to divide the resulting count by passing an inverse of the divisor (1/d).   \n")
+      .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps, "Specifies periodicity of this count's output.\nValue is truncated (floored) to an integer.\nIf value is set to 0, this Count is used only on-demand through calls to its\nget_current_value method.  \n")
     ;
 }
 

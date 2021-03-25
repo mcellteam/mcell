@@ -291,7 +291,8 @@ Instantiation:
     - name: default_release_region
       type: Region*
       default: unset
-      doc: Used for seed species that have no compartments specified.
+      doc: | 
+         Used as region for releases for seed species that have no compartments specified.
       
     - name: parameter_overrides
       type: Dict[str, float]

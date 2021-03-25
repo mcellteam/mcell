@@ -52,7 +52,7 @@ std::string GenObservables::to_str(const std::string ind) const {
 }
 
 py::class_<Observables> define_pybinding_Observables(py::module& m) {
-  return py::class_<Observables, std::shared_ptr<Observables>>(m, "Observables", "Neither VizOutput, nor Count have name, therefore there are no find_* methods.\n")
+  return py::class_<Observables, std::shared_ptr<Observables>>(m, "Observables", "Container used to hold observables-related model data. \nObservables are the measured values of the system. \nThis class also includes information on visualization of simulation.\n")
       .def(
           py::init<
             const std::vector<std::shared_ptr<VizOutput>>,
@@ -63,13 +63,13 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       )
       .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Observables::__eq__, py::arg("other"))
-      .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"), "- viz_output\n")
-      .def("add_count", &Observables::add_count, py::arg("count"), "- count\n")
-      .def("find_count", &Observables::find_count, py::arg("name"), "- name\n")
-      .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("file_name"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>(), "Loads section observables from a BNGL file and creates Count objects according to it.\nAll elementary molecule types used in the seed species section must be defined in subsystem.\n\n- file_name: BNGL file name.\n\n- output_files_prefix: Prefix to be used when creating files with observable values.\n\n- parameter_overrides\n")
+      .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"), "Adds a reference to the viz_output object to the list of visualization output specifications.\n- viz_output\n")
+      .def("add_count", &Observables::add_count, py::arg("count"), "Adds a reference to the count object to the list of count specifications.\n- count\n")
+      .def("find_count", &Observables::find_count, py::arg("name"), "Finds a count object by its name, returns None if no such count is present.\n- name\n")
+      .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("file_name"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>(), "Loads section observables from a BNGL file and creates Count objects according to it.\nAll elementary molecule types used in the seed species section must be defined in subsystem.\n\n- file_name: Path to the BNGL file.\n\n- output_files_prefix: Prefix to be used when creating files with observable values.\nThe usual value is './react_data/seed_' + str(SEED).zfill(5) + '/'. \n\n\n- parameter_overrides: For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,\nits value is ignored and instead value parameter_overrides[k] is used.\n\n")
       .def("dump", &Observables::dump)
-      .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs)
-      .def_property("counts", &Observables::get_counts, &Observables::set_counts)
+      .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs, "List of visualization outputs to be included in the model.\nThere is usually just one VizOutput object.   \n")
+      .def_property("counts", &Observables::get_counts, &Observables::set_counts, "List of counts to be included in the model.\n")
     ;
 }
 

@@ -17,6 +17,7 @@ Attributes:
   | Configuration on how to report warnings.
 
 * | **notifications**: Notifications = Notifications()
+  | Configuration on how to report certain notifications.
 
 * | **species**: List[Species] = None
 
@@ -38,8 +39,11 @@ Attributes:
   | Used when resuming simulation from a checkpoint.
 
 * | **viz_outputs**: List[VizOutput] = None
+  | List of visualization outputs to be included in the model.
+  | There is usually just one VizOutput object.
 
 * | **counts**: List[Count] = None
+  | List of counts to be included in the model.
 
 
 Methods:
@@ -47,6 +51,8 @@ Methods:
 * | **initialize**
 
    * | print_copyright: bool = True
+     | Prints information about MCell.
+
 
   | Initializes model, initialization blocks most of changes to 
   | contained components.
@@ -68,23 +74,35 @@ Methods:
 * | **end_simulation**
 
    * | print_final_report: bool = True
+     | Print information on simulation time and counts of selected events.
 
-  | Generates the last visualization and reaction output (if they were defined), then
-  | flushes all buffers and optionally prints simulation report. 
-  | Buffers are also flushed when the Model object is destroyed.
+
+  | Generates the last visualization and reaction output (if they are included 
+  | in the model), then flushes all buffers and optionally prints simulation report. 
+  | Buffers are also flushed when the Model object is destroyed such as when Ctrl-C
+  | is pressed during simulation.
 
 
 * | **add_subsystem**
 
    * | subsystem: Subsystem
 
+  | Adds all components of a Subsystem object to the model.
+
+
 * | **add_instantiation**
 
    * | instantiation: Instantiation
 
+  | Adds all components of an Instantiation object to the model.
+
+
 * | **add_observables**
 
    * | observables: Observables
+
+  | Adds all counts and viz outputs of an Observables object to the model.
+
 
 * | **dump_internal_state**
 
@@ -96,16 +114,20 @@ Methods:
 
    * | file: str = None
 
+  | Exports the current state of the model into a data model JSON format.
+  | Does not export state of molecules.
+  | Must be called after model initialization.
   | If file is not set, then uses the first VizOutput to determine the target directory 
   | and creates name using the current iteration. Fails if argument file is not set and there is no VizOutput.
-  | Must be called after initialization.
-  | Always exports the current state, i.e. with the current . 
-  | Events (ReleaseSites and VizOutputs) with scheduled time other than zero cannot be imported correectly yet.
+  | Always exports the current state, i.e. with the current geometry and reaction rates. 
+  | Events (ReleaseSites and VizOutputs) with scheduled time other than zero are not exported correctly yet.
 
 
 * | **export_viz_data_model**
 
    * | file: str = None
+     | Optional path to the output data model file.
+
 
   | Same as export_data_model, only the created data model will contain only information required for visualization in CellBlender. This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential compatibility issues.
 
@@ -114,8 +136,9 @@ Methods:
 
    * | release_site: ReleaseSite
 
-  | Performs immediate release based on the definition of the release site argument.
-  | The ReleaseSite.release_time must not be in the past and should be withing the current iteration.
+  | Performs immediate release of molecules based on the definition of the release site argument.
+  | The ReleaseSite.release_time must not be in the past and must be within the current iteration 
+  | meaning that the time must be greater or equal iteration \* time_step and less than (iteration + 1) \* time_step.
   | The ReleaseEvent must not use a release_pattern because this is an immediate release and it is not 
   | scheduled into the global scheduler.
 
@@ -144,17 +167,20 @@ Methods:
 * | **add_vertex_move**
 
    * | object: GeometryObject
-     | Object whose vertex will be changed
+     | Object whose vertex will be changed.
 
    * | vertex_index: int
-     | Index of vertex in object's vertex list that will be changed
+     | Index of vertex in object's vertex list that will be changed.
 
    * | displacement: List[float]
-     | Change of vertex coordinates (in um), will be added to the current coordinates of the vertex,
-     | must contain exactly three floating point values.
+     | Change of vertex coordinates [x, y, z] (in um) that will be added to the current 
+     | coordinates of the vertex.
 
 
-  | Adds a displacement for given object's vertex, only stored until apply_vertex_moves is called
+  | Appends information about a displacement for given object's vertex into an internal list of vertex moves. 
+  | To do the actual geometry change, call Model.apply_vertex_moves.
+  | The reason why we first need to collect all changes and then apply them all at the same time is for performance
+  | reasons.
 
 
 * | **apply_vertex_moves**
@@ -166,9 +192,10 @@ Methods:
    * | return type: List[WallWallHitInfo]
 
 
-  | Applies all the vertex moves specified with add_vertex_move call.
+  | Applies all the vertex moves specified with Model.add_vertex_move call.
   | Walls of different objects are checked against collisions and move the maximal way so that they do not 
-  | overlap. (the current pllementation is a bit basic and may not work 100% correctly) 
+  | overlap.
+  | Note\: It is not supported yet to move two objects that woudl collide at the same time.  
   | When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
   | when collect_wall_wall_hits is False, and empty list is returned.
 
@@ -177,7 +204,7 @@ Methods:
 
    * | function: Callable, # std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>
      | Callback function to be called. 
-     | It must have two arguments MolWallHitInfo and context.
+     | The function must have two arguments MolWallHitInfo and context.
 
    * | context: Any, # py::object
      | Context passed to the callback function, the callback function can store
@@ -191,16 +218,18 @@ Methods:
      | Only hits of molecules of this species will be reported, any species hit is reported when not set.
 
 
-  | There can be currently only a single wall hit callback registered.
+  | Register a callback for event when a molecule hits a wall. 
+  | Note\: There can be currently only a single wall hit callback registered.
 
 
 * | **register_reaction_callback**
 
    * | function: Callable, # std::function<void(std::shared_ptr<ReactionInfo>, py::object)>
      | Callback function to be called. 
-     | It must have two arguments ReactionInfo and context.
-     | Called when it is decided that the reaction will happen.
-     | After return the reaction proceeds as it would without a callback.
+     | The function must have two arguments ReactionInfo and context.
+     | Called right after a reaction occured but before the reactants were removed.
+     | After return the reaction proceeds and reactants are removed (unless they were kept
+     | by the reaction such as with reaction A + B -> A + C).
 
    * | context: Any, # py::object
      | Context passed to the callback function, the callback function can store
@@ -208,22 +237,28 @@ Methods:
      | it is a useless python object.
 
    * | reaction_rule: ReactionRule
-     | The callback function will be called whenever is this reaction rule applied.
+     | The callback function will be called whenever this reaction rule is applied.
 
 
   | Defines a function to be called when a reaction was processed.
   | It is allowed to do state modifications except for removing reacting molecules, 
-  | they will be removed automatically after return from this callback.
+  | they will be removed automatically after return from this callback. 
+  | Unlimited number of reaction callbacks is allowed.
 
 
 * | **load_bngl**
 
    * | file_name: str
    * | observables_files_prefix: str = ''
-     | Prefix to be used when creating files with observable values.
+     | Prefix to be used when creating files where observable values are stored during simulation.
 
    * | default_release_region: Region = None
+     | Used as region for releases for seed species that have no compartments specified.
+
    * | parameter_overrides: Dict[str, float] = None
+     | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+     | its value is ignored and instead value parameter_overrides[k] is used.
+
 
   | Loads sections\: molecule types, reaction rules, seed species, and observables from a BNGL file
   | and creates objects in the current model according to it.
@@ -240,8 +275,8 @@ Methods:
 
 
   | Exports all defined species, reaction rules and applicable observables
-  | as a BNGL file. 
-  | Limited currrently to exactly one volume compartment and volume reactions.
+  | as a BNGL file that can be then loaded by MCell4 or BioNetGen. 
+  | Note\: Limited currrently to exactly one volume compartment and volume reactions.
 
 
 * | **save_checkpoint**
@@ -254,8 +289,8 @@ Methods:
   | Saves current model state as checkpoint. 
   | The default directory structure is checkpoints/seed_<SEED>/it_<ITERATION>,
   | it can be changed by setting 'custom_dir'.
-  | If used during an iteration, schedules an event for the end of the current iteration
-  | that saves the checkpoint (effectively calls 'checkpoint_after_iteration(0, False, custom_dir)'.
+  | If used during an iteration such as in a callback, an event is scheduled for the  
+  | beginning of the next iteration. This scheduled event saves the checkpoint.
 
 
 * | **schedule_checkpoint**
@@ -271,18 +306,19 @@ Methods:
 
    * | continue_simulation: bool = False
      | When false, saving the checkpoint means that we want to terminate the simulation 
-     | right after the save, the currently running function Model.run_iterations
-     | does not simulate any following iterations and execution returns from this function
+     | right after the save. The currently running function Model.run_iterations
+     | will not simulate any following iterations and execution will return from this function
      | to execute the next statement which is usually 'model.end_simulation()'.
-     | When true, the checkpoint is just saved and simulation continues uninterrupted.
+     | When true, the checkpoint is saved and simulation continues uninterrupted.
 
    * | custom_dir: str = None
      | Sets custom directory where the checkpoint will be stored. 
      | The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'.
 
 
-  | Schedules checkpoint save that will occur when an iteration is started  
-  | right before any other events scheduled for the given iteration are executed.
+  | Schedules checkpoint save event that will occur when an iteration is started.  
+  | This means that it will be executed right before any other events scheduled for 
+  | the given iteration are executed.
   | Can be called asynchronously at any time after initialization.
 
 
@@ -399,7 +435,7 @@ Methods:
      | Path to the BNGL file.
 
    * | default_release_region: Region = None
-     | Used for seed species that have no compartments specified.
+     | Used as region for releases for seed species that have no compartments specified.
 
    * | parameter_overrides: Dict[str, float] = None
      | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
@@ -420,9 +456,15 @@ Methods:
 
    * | viz_output: VizOutput
 
+  | Adds a reference to the viz_output object to the list of visualization output specifications.
+
+
 * | **add_count**
 
    * | count: Count
+
+  | Adds a reference to the count object to the list of count specifications.
+
 
 * | **find_count**
 
@@ -430,15 +472,22 @@ Methods:
    * | return type: Count
 
 
+  | Finds a count object by its name, returns None if no such count is present.
+
+
 * | **load_bngl_observables**
 
    * | file_name: str
-     | BNGL file name.
+     | Path to the BNGL file.
 
    * | output_files_prefix: str = ''
      | Prefix to be used when creating files with observable values.
+     | The usual value is './react_data/seed_' + str(SEED).zfill(5) + '/'.
 
    * | parameter_overrides: Dict[str, float] = None
+     | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+     | its value is ignored and instead value parameter_overrides[k] is used.
+
 
   | Loads section observables from a BNGL file and creates Count objects according to it.
   | All elementary molecule types used in the seed species section must be defined in subsystem.
