@@ -280,7 +280,8 @@ public:
     float_t time_it_end = stats.get_current_iteration() + 1;
     for (const Molecule& m: molecules) {
       // new products may have been scheduled for the previous iteration
-      if (!m.is_defunct() && cmp_lt(m.diffusion_time, time_it_end, EPS)) {
+      if (((m.flags & (MOLECULE_FLAG_NO_NEED_TO_SCHEDULE | MOLECULE_FLAG_DEFUNCT)) == 0) &&
+          cmp_lt(m.diffusion_time, time_it_end, EPS)) {
         ready_vector.push_back(m.id);
       }
     }
@@ -524,11 +525,12 @@ private:
       // and append it to the molecules array
       molecules.push_back(vm_copy);
       Molecule& new_m = molecules.back();
+
       return new_m;
     }
   }
 
-  void update_species_for_new_molecule(const Molecule& m) {
+  void update_species_for_new_molecule(Molecule& m) {
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(m.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
@@ -541,6 +543,9 @@ private:
     }
     // we must get a new reference
     get_all_species().get(m.species_id).inc_num_instantiations();
+
+    // also set a flag used for optimization
+    m.set_no_need_to_schedule_flag(bng_engine.get_all_species());
   }
 
   void update_compartment(Molecule& new_m, const BNG::compartment_id_t target_compartment_id) {

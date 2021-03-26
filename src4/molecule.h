@@ -28,6 +28,9 @@
 
 #include "defines.h"
 
+namespace BNG {
+class SpeciesContainer;
+}
 
 namespace MCell {
 
@@ -48,6 +51,8 @@ enum molecule_flag_t {
   // only one of them may be set
   MOLECULE_FLAG_CLAMP_ORIENTATION_UP = 1 << 6,
   MOLECULE_FLAG_CLAMP_ORIENTATION_DOWN = 1 << 7,
+
+  MOLECULE_FLAG_NO_NEED_TO_SCHEDULE = 1 << 14,
 
   MOLECULE_FLAG_DEFUNCT = 1 << 15,
 };
@@ -119,6 +124,10 @@ public:
     s.wall_index = WALL_INDEX_INVALID;
     s.grid_tile_index = TILE_INDEX_INVALID;
   }
+
+  // may set flag for optimizations
+  // called when a molecule is added to partition
+  void set_no_need_to_schedule_flag(const BNG::SpeciesContainer& all_species);
 
   // data is ordered to avoid alignment holes (for 64-bit floats)
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)

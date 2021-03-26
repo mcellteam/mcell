@@ -25,6 +25,8 @@
 #include <string>
 #include <sstream>
 
+#include "bng/species.h"
+
 #include "mcell_structs_shared.h"
 
 #include "molecule.h"
@@ -37,6 +39,24 @@ using namespace std;
 
 
 namespace MCell {
+
+void Molecule::set_no_need_to_schedule_flag(
+    const BNG::SpeciesContainer& all_species) {
+  clear_flag(MOLECULE_FLAG_NO_NEED_TO_SCHEDULE);
+
+  const BNG::Species& s = all_species.get(species_id);
+  if (s.D != 0 ||
+      s.has_flag(BNG::SPECIES_FLAG_HAS_UNIMOL_RXN) ||
+      s.has_flag(BNG::SPECIES_FLAG_CAN_SURFSURF) ||
+      s.has_flag(BNG::SPECIES_FLAG_CAN_SURFWALL) ||
+      s.has_flag(BNG::SPECIES_FLAG_CAN_INTERMEMBRANE_SURFSURF)
+  ) {
+    return;
+  }
+
+  set_flag(MOLECULE_FLAG_NO_NEED_TO_SCHEDULE);
+}
+
 
 // TODO_LATER: same as in dump_state.cpp, remove one of the copies
 // for now, dump_state might be useful also without mcell4
