@@ -48,6 +48,13 @@ void DefragmentationEvent::step() {
       continue;
     }
 
+    // first cleanup schedulable_molecule_ids by removing all mols that are defunct
+    // must be done before the following cleanup
+    auto& schedulable_mol_ids = p.get_schedulable_molecule_ids();
+    auto it_new_end = remove_if(schedulable_mol_ids.begin(), schedulable_mol_ids.end(),
+        [&p](const molecule_id_t id) -> bool { return p.get_m(id).is_defunct(); });
+    schedulable_mol_ids.erase(it_new_end, schedulable_mol_ids.end());
+
     // remove defunct molecules in the molecules array
     vector<molecule_index_t>& molecule_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
 

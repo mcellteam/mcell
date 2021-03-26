@@ -278,11 +278,27 @@ public:
     // select all molecules that are scheduled for this iteration and are not defunct
     ready_vector.clear();
     float_t time_it_end = stats.get_current_iteration() + 1;
-    for (const Molecule& m: molecules) {
-      // new products may have been scheduled for the previous iteration
-      if (((m.flags & (MOLECULE_FLAG_NO_NEED_TO_SCHEDULE | MOLECULE_FLAG_DEFUNCT)) == 0) &&
-          cmp_lt(m.diffusion_time, time_it_end, EPS)) {
-        ready_vector.push_back(m.id);
+
+    if (schedulable_molecule_ids.size() != molecules.size()) {
+      // more efficient variant when there is less molecules in schedulable_molecule_ids
+      for (molecule_id_t id: schedulable_molecule_ids) {
+        const Molecule& m = get_m(id);
+        assert(!m.has_flag(MOLECULE_FLAG_NO_NEED_TO_SCHEDULE));
+        // new products may have been scheduled for the previous iteration
+        if (!m.is_defunct() &&
+            cmp_lt(m.diffusion_time, time_it_end, EPS)) {
+          ready_vector.push_back(m.id);
+        }
+      }
+    }
+    else {
+      // more cache-efficient variant
+      for (const Molecule& m: molecules) {
+        // new products may have been scheduled for the previous iteration
+        if (((m.flags & (MOLECULE_FLAG_NO_NEED_TO_SCHEDULE | MOLECULE_FLAG_DEFUNCT)) == 0) &&
+            cmp_lt(m.diffusion_time, time_it_end, EPS)) {
+          ready_vector.push_back(m.id);
+        }
       }
     }
   }
@@ -530,7 +546,7 @@ private:
     }
   }
 
-  void update_species_for_new_molecule(Molecule& m) {
+  void update_species_for_new_molecule_and_add_to_schedulable_list(Molecule& m) {
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(m.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
@@ -546,6 +562,10 @@ private:
 
     // also set a flag used for optimization
     m.set_no_need_to_schedule_flag(bng_engine.get_all_species());
+
+    if (!m.has_flag(MOLECULE_FLAG_NO_NEED_TO_SCHEDULE)) {
+      schedulable_molecule_ids.push_back(m.id);
+    }
   }
 
   void update_compartment(Molecule& new_m, const BNG::compartment_id_t target_compartment_id) {
@@ -608,7 +628,7 @@ public:
 
     // make sure that the rxn for this species flags are up-to-date and
     // increment number of instantiations of this species
-    update_species_for_new_molecule(new_vm);
+    update_species_for_new_molecule_and_add_to_schedulable_list(new_vm);
 
     // TODO: use Species::is_instantiated instead of the known_vol_species
     if (known_vol_species.count(new_vm.species_id) == 0) {
@@ -634,7 +654,7 @@ public:
     // set compartment if needed
     update_surface_compartment(new_sm);
 
-    update_species_for_new_molecule(new_sm);
+    update_species_for_new_molecule_and_add_to_schedulable_list(new_sm);
 
     return new_sm;
   }
@@ -690,7 +710,11 @@ public:
   std::vector<molecule_index_t>& get_molecule_id_to_index_mapping() {
     return molecule_id_to_index_mapping;
   }
-  
+
+  std::vector<molecule_index_t>& get_schedulable_molecule_ids() {
+    return schedulable_molecule_ids;
+  }
+
   // ---------------------------------- geometry ----------------------------------
   vertex_index_t add_geometry_vertex(const Vec3 pos) {
     vertex_index_t index = geometry_vertices.size();
@@ -1110,6 +1134,10 @@ private:
 
   // contains mapping of molecule ids to indices to the molecules array
   std::vector<molecule_index_t> molecule_id_to_index_mapping;
+
+  // contains ids of molecules that need to be scheduled for diffusion or unimol rxn
+  // execution
+  std::vector<molecule_id_t> schedulable_molecule_ids;
 
   // id of the next molecule to be created
   // TODO_LATER: move to World
