@@ -95,11 +95,10 @@ void MemoryLimitChecker::start_timed_check(
                  world->scheduler.get_event_being_executed()->type_index != EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT
                 ) ) {
 
-              errs() <<
-                  "Memory limit of " << this->limit_gb << " GB reached, currently using " <<
-                  usage / KB_IN_GB << " GB. Flushing count observable buffers and terminating simulation.\n";
-              this->world->flush_buffers();
-              exit(1);
+              this->world->fatal_error(
+                  "Memory limit of " + to_string(this->limit_gb) + " GB reached, currently using " +
+                  to_string(usage / KB_IN_GB) + " GB. Flushing count observable buffers and terminating simulation.\n"
+              );
             }
             else {
               over_limit = true;

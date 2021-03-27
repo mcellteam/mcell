@@ -241,6 +241,9 @@ public:
 
   void flush_buffers();
 
+  // prints message, flushes buffers, and terminates
+  void fatal_error(const std::string& msg);
+
 private:
   void check_checkpointing_signal();
 

@@ -215,16 +215,19 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
   float_t sp_len;
 
-  // there seems to be just one partition in MCell but we interpret it as mcell4 partition size
+  // use partition settings supplied by user?
   if (s->partitions_initialized) {
-    // assuming that the mcell's bounding box if it is bigger than the partition
+    // using that the mcell's bounding box if it is bigger than the partition
     if (
         s->partition_llf.x >= s->bb_llf.x || s->bb_urb.x >= s->partition_urb.x ||
         s->partition_llf.y >= s->bb_llf.y || s->bb_urb.y >= s->partition_urb.y ||
         s->partition_llf.z >= s->bb_llf.z || s->bb_urb.z >= s->partition_urb.z
     ) {
       // just to inform the user
-      mcell_log("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
+      mcell_log(
+          "Warning: Partitioning was specified, but it is smaller than the automatically determined bounding box. "
+          "You may need to increase the partition size if get an error later that a vertex does not fit any partition."
+      );
 
       float_t lu = s->length_unit;
       mcell_log("Bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
@@ -471,7 +474,7 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
     if (partition_id == PARTITION_ID_INVALID) {
       Vec3 v(*w->vert[0]);
       v = v * Vec3(world->config.length_unit);
-      mcell_error("Error: vertex %s does not fit any partition.", v.to_string().c_str());
+      mcell_error("Vertex %s does not fit any partition.", v.to_string().c_str());
     }
 
     // check that the remaining vertices are in the same partition
@@ -481,7 +484,7 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
       if (partition_id != curr_partition_index) {
         Vec3 pos(*w->vert[k]);
         pos = pos * Vec3(world->config.length_unit);
-        mcell_error("Error: whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
+        mcell_error("Whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
       }
     }
 

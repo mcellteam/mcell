@@ -495,6 +495,14 @@ void World::flush_buffers() {
 }
 
 
+// prints message (appends newline), flushes buffers, and terminates
+void World::fatal_error(const std::string& msg) {
+  errs() << msg << "\n";
+  flush_buffers();
+  exit(1);
+}
+
+
 void World::end_simulation(const bool print_final_report) {
   // we do not want to check memory anymore
   memory_limit_checker.stop_timed_check();

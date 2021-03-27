@@ -599,9 +599,16 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       bool move_to_another_partition = !p.in_this_partition(m_new_ref.v.pos);
       if (move_to_another_partition) {
         Vec3 pos_um = m_new_ref.v.pos * p.config.length_unit;
-        mcell_error(
-            "Crossing partitions when molecules diffuse is not supported yet. Please enlarge the partition size. "
-            "Diffused molecule reached position (%f, %f, %f).", pos_um.x, pos_um.y, pos_um.z
+        const BNG::Species& s = p.get_all_species().get(m_new_ref.species_id);
+        world->fatal_error(
+            "Molecule with species " + s.name + " escaped the simulation area defined by partition size.\n"
+            "Diffused molecule reached position (" +
+            to_string(pos_um.x) + ", " + to_string(pos_um.y) + ", " + to_string(pos_um.z) + ")."
+            "MCell4 requires a fixed-size simulation 3D space compared to MCell3 that allows unlimited space.\n"
+            "One can create a geometry object box that keeps all molecules within a given area.\n"
+            "This box can either reflect molecules (by default) or destroy the molecules with an absorptive surface class.\n"
+            "Another option is to increase the partition size through CellBlender settings Partitions or\n"
+            "through Model.config.partition_dimension."
         );
       }
 

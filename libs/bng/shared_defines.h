@@ -270,10 +270,9 @@ template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::al
 #endif
 
 
-// output streams, all are std::cout for now
 static inline std::ostream& errs() {
-  std::cout << "error: ";
-  return std::cout;
+  std::cerr << "error: ";
+  return std::cerr;
 }
 
 static inline std::ostream& warns() {
