@@ -1058,14 +1058,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
       gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], true);
     }
     else if (shape == VALUE_OBJECT) {
-      if (compartment != "") {
-        cout <<
-            "Ignoring region/object set for release site " << name << " because the complex to be released "
-            "has its compartment " << compartment << " specified, using compartment as the region for release.\n";
-      }
-      else {
-        gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());
-      }
+      gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());
     }
     else if (shape == VALUE_LIST) {
       // FIXME: check that no compartments are used here
