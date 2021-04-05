@@ -1,25 +1,32 @@
 
 geometry_utils:
+  doc: | 
+     Submodule geometry_utils provides several functions to define 
+     model geometry. Rather limited for now.  
   type: submodule  # default type is class
   methods:
   - name: create_box
     doc: Creates a GeometryObject whose center is at (0, 0, 0).
     return_type: GeometryObject*
+    example: tests/pymcell4/1400_rel_site_for_each_it
     params:
     - name: name
       type: str
-      doc: Name of the created geometry object
+      doc: Name of the created geometry object.
 
     - name: edge_length
       type: float
-      doc: Specifies length of each edge of the box.
+      doc: Specifies length of each edge of the box in um.
       
       
 bngl_utils:
+  doc: | 
+     Submodule bngl_utils provides a function to load parameters from a BNGL file. 
   type: submodule 
   methods:
   - name: load_bngl_parameters
     return_type: Dict[str, float]
+    example: tests/pymcell4_positive/2010_bng_parameter_override
     
     params:
     - name: file_name
@@ -31,6 +38,8 @@ bngl_utils:
       
       
 run_utils:
+  doc: | 
+     Submodule run_utils provides functions used by checkpointing. 
   type: submodule
   methods:
   - name: get_last_checkpoint_dir
@@ -44,10 +53,7 @@ run_utils:
     params:
     - name: seed
       type: int
-#    - name: params
-#      type: Dict[str, float]
-#      default: empty
-#      
+
   - name: remove_cwd
     doc: |
        Removes all directory names items pointing to the current working directory from a list and 
@@ -57,11 +63,3 @@ run_utils:
     - name: paths
       type: List[str]
     
-#  - name: load_checkpoint_iterations
-#    doc: |
-#       Loads file that contains iteration numbers on each line and returns the 
-#       value as a list. Used mostly for testing.
-#    return_type: List[int]
-#    params:
-#    - name: file_name
-#      type: str

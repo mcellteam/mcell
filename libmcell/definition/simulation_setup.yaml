@@ -23,125 +23,140 @@ Config:
     type: float
     default: 10000
     min: 1
+    doc: 
+       Tile all surfaces so that they can hold molecules at N different
+       positions per square micron. 
   
   - name: interaction_radius
     type: float
     default: unset
     min: 0
     doc: |
-      Diffusing volume molecules will interact with each other when
-      they get within N microns of each other. The default is
-      1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density 
-      (default or user-specified).
+       Diffusing volume molecules will interact with each other when
+       they get within N microns of each other. The default is
+       1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density 
+       (default or user-specified).
 
   - name: intermembrane_interaction_radius
     type: float
     default: unset
     min: 0
     doc: |
-      Diffusing surface molecules will interact with surface molecules on other
-      walls when they get within N microns of each other. The default is
-      1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density 
-      (default or user-specified). 
+       Diffusing surface molecules will interact with surface molecules on other
+       walls when they get within N microns of each other. The default is
+       1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density 
+       (default or user-specified). 
+    example: tests/pymcell4/3000_intramembrane_rxns
 
   - name: vacancy_search_distance
     type: float
     default: 10
     min: 0 
     doc: |
-      Normally, a reaction will not proceed on a surface unless there
-      is room to place all products on the single grid element where
-      the reaction is initiated. By increasing r from its default value
-      of 0, one can specify how far from the reaction’s location, in microns, the
-      reaction can place its products. To be useful, r must
-      be larger than the longest axis of the grid element on the triangle
-      in question. The reaction will then proceed if there is room to
-      place its products within a radius r, and will place those products as 
-      close as possible to the place where the reaction occurs
-      (deterministically, so small-scale directional bias is possible).
+       Normally, a reaction will not proceed on a surface unless there
+       is room to place all products on the single grid element where
+       the reaction is initiated. By increasing r from its default value
+       of 0, one can specify how far from the reaction’s location, in microns, the
+       reaction can place its products. To be useful, r must
+       be larger than the longest axis of the grid element on the triangle
+       in question. The reaction will then proceed if there is room to
+       place its products within a radius r, and will place those products as 
+       close as possible to the place where the reaction occurs
+       (deterministically, so small-scale directional bias is possible).
 
-  # remove and keep default? - yes
-  #- name: accurate_3d_reactions
-  #  # sets use_expanded_list, probably always True    
-  #  type: bool
-  #  default: True
-    
   - name: center_molecules_on_grid
     type: bool
     default: False
+    doc: | 
+       If set to True, then all molecules on a surface will be
+       located exactly at the center of their grid element. If False, the
+       molecules will be randomly located when placed, and reactions
+       will take place at the location of the target (or the site of impact
+       in the case of 3D molecule/surface reactions). 
 
-  # remove and keep default?
-  #- name: microscopic_reversibility
-  #  type: bool
-  #  default: False
+  - name: partition_dimension
+    type: float 
+    default: 10 #um
+    min: 1e-5
+    doc: |
+       All the simulated 3d space is placed in a partition. The partition is a cube and 
+       this partition_dimension specifies the length of its edge in um.
 
   - name: initial_partition_origin
     type: List[float] 
     default: unset
     doc: | 
-      Optional placement of the partition 0 placement, specifies the left, lower and front 
-      point. If not set, value -partition_dimension/2 is used for each of the dimensions 
-      placing the center of the partition to (0, 0, 0).   
+       Optional placement of the initial partition in um, specifies the left, lower front 
+       point. If not set, value -partition_dimension/2 is used for each of the dimensions 
+       placing the center of the partition to (0, 0, 0).   
     
-  # already using mcell4 simplification that the partition must be a cube    
-  - name: partition_dimension
-    type: float 
-    default: 10 #um
-    min: 1e-5
-   
   - name: subpartition_dimension
     type: float 
     default: 0.5 #um
     min: 1e-6
+    doc: |
+       Subpartition are spatial division of 3D space used to accelerate collision checking.
+       In general, partitions should be chosen to avoid having too many surfaces and molecules
+       in one subpartition. 
+       If there are few surfaces and/or molecules in a subvolume, it is advantageous to have the 
+       subvolume as large as possible. Crossing partition boundaries takes a small amount of time, 
+       so it is rarely useful to have partitions more finely spaced than the average diffusion distance 
+       of the faster-moving molecules in the simulation.
+    example: pymcell4/2000_bngl_a_plus_b_to_c_partitioning
     
   - name: total_iterations
     type: float
     default: 1000000
     min: 9
     doc: |
-      Required for checkpointing so that the checkpointed model has information on
-      the intended total number of iterations. 
-      Also used when generating visualization data files and also for other reporting uses. 
-      Value is truncated to an integer.
+       Required for checkpointing so that the checkpointed model has information on
+       the intended total number of iterations. 
+       Also used when generating visualization data files and also for other reporting uses. 
+       Value is truncated to an integer.
     
   - name: check_overlapped_walls
     type: bool
     default: True
     doc: |
-      Enables check for overlapped walls. Overlapping walls can cause issues during 
-      simulation such as a molecule escaping closed geometry when it hits two walls 
-      that overlap. 
+       Enables check for overlapped walls. Overlapping walls can cause issues during 
+       simulation such as a molecule escaping closed geometry when it hits two walls 
+       that overlap. 
  
   - name: reaction_class_cleanup_periodicity
     type: int
     default: 500
     doc: |
-      Reaction class cleanup removes computed reaction classes for inactive species from memory.
-      This provides faster reaction lookup faster but when the same reaction class is 
-      needed again, it must be recomputed.
+       Reaction class cleanup removes computed reaction classes for inactive species from memory.
+       This provides faster reaction lookup faster but when the same reaction class is 
+       needed again, it must be recomputed.
+    example: tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check
 
   - name: species_cleanup_periodicity
     type: int
     default: 10000
     doc: |
-      Species cleanup removes inactive species from memory. It removes also all reaction classes 
-      that reference it.
-      This provides faster addition of new species lookup faster but when the species is 
-      needed again, it must be recomputed.
+       Species cleanup removes inactive species from memory. It removes also all reaction classes 
+       that reference it.
+       This provides faster addition of new species lookup faster but when the species is 
+       needed again, it must be recomputed.
+    example: tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check
 
   - name: sort_molecules
     type: bool
     default: False
     doc: |
-      Enables sorting of molecules for diffusion, this may improve cache locality.
-      Produces different results when enabled. 
+      Enables sorting of molecules for diffusion, this may improve cache locality and provide 
+      slightly better performance. 
+      Produces different results for the same seed when enabled because molecules are simulated 
+      in a different order. 
     
   - name: memory_limit_gb
     type: int
     default: -1
     doc: |
       Sets memory limit in GB for simulation run. 
-      When this limit is hit, all buffers are flushed and simulation is terminated with an error. 
+      When this limit is hit, all buffers are flushed and simulation is terminated with an error.
+    example: tests/nutmeg4_pymcell4/0200_memory_limit 
       
   - name: initial_iteration
     type: uint64
@@ -161,28 +176,29 @@ Config:
     type: RngState*
     default: unset
     doc: |
-      Used for checkpointing, may contain state of the random number generator to be set 
-      after initialization right before the first event is started. 
-      When not set, the set 'seed' value is used to initialize the random number generator.  
+       Used for checkpointing, may contain state of the random number generator to be set 
+       after initialization right before the first event is started. 
+       When not set, the set 'seed' value is used to initialize the random number generator.  
 
   - name: append_to_count_output_data
     type: bool
     default: false
     doc: |
-      Used for checkpointing, instead of creating new files for Count observables data, 
-      new values are appended to the existing files. If such files do not exist, new files are
-      created.
+       Used for checkpointing, instead of creating new files for Count observables data, 
+       new values are appended to the existing files. If such files do not exist, new files are
+       created.
 
   - name: continue_after_sigalrm
     type: bool
     default: false
     doc: |
-      MCell registers a SIGALRM signal handler. When SIGALRM signal is received and 
-      continue_after_sigalrm is False, checkpoint is stored and simulation is terminated. 
-      When continue_after_sigalrm is True, checkpoint is stored and simulation continues.
+       MCell registers a SIGALRM signal handler. When SIGALRM signal is received and 
+       continue_after_sigalrm is False, checkpoint is stored and simulation is terminated. 
+       When continue_after_sigalrm is True, checkpoint is stored and simulation continues.
+       SIGALRM is not supported on Windows.
+    example: tests/nutmeg4_pymcell4/2785_schedule_checkpoint_async_w_sigalrm_continue
 
 Notifications:
-  # for now listing only the notifiction settings generated by cellblender into MDL
   superclass: BaseDataClass
   
   items:
@@ -192,27 +208,28 @@ Notifications:
     min: 0
     max: 3
     doc: |
-      Sets verbosity level that enables printouts of extra information on BioNetGen 
-      species and rules created and used during simulation.
+       Sets verbosity level that enables printouts of extra information on BioNetGen 
+       species and rules created and used during simulation.
   
   - name: rxn_and_species_report
     type: bool
     default: True
     doc: | 
-      Simulation generates files rxn_report_SEED.txt species_report_SEED.txt that contain
-      details on reaction classes and species that were created based on reaction rules.   
+       When set to True (default) simulation generates files rxn_report_SEED.txt, and 
+       species_report_SEED.txt that contain details on reaction classes and species 
+       that were created based on reaction rules.   
   
   - name: simulation_stats_every_n_iterations
     type: int
     default: 0
     doc: |
-      When set to a value other than 0, internal simulation stats will be printed. 
-
+       When set to a value other than 0, internal simulation stats will be printed. 
+ 
   - name: rxn_probability_changed
     type: bool
     default: True
     doc: | 
-      When True, information that a reaction's probability has changed is printed during simulation.    
+       When True, information that a reaction's probability has changed is printed during simulation.    
 
       
   # none of these notifications below are currrently interpreted by mcell
@@ -291,10 +308,6 @@ Warnings:
 #   - name: useless_volume_orientation
 #     type: WarningLevel
 #     default: WarningLevel.WARNING
-# 
-#   - name: high_reaction_probability
-#     type: WarningLevel
-#     default: WarningLevel.IGNORE
 # 
 #   - name: lifetime_too_short
 #     type: WarningLevel
