@@ -42,8 +42,8 @@ class PythonExportContext;
         const float_t intermembrane_interaction_radius_ = FLT_UNSET, \
         const float_t vacancy_search_distance_ = 10, \
         const bool center_molecules_on_grid_ = false, \
-        const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
         const float_t partition_dimension_ = 10, \
+        const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
         const float_t subpartition_dimension_ = 0.5, \
         const float_t total_iterations_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
@@ -65,8 +65,8 @@ class PythonExportContext;
       intermembrane_interaction_radius = intermembrane_interaction_radius_; \
       vacancy_search_distance = vacancy_search_distance_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
-      initial_partition_origin = initial_partition_origin_; \
       partition_dimension = partition_dimension_; \
+      initial_partition_origin = initial_partition_origin_; \
       subpartition_dimension = subpartition_dimension_; \
       total_iterations = total_iterations_; \
       check_overlapped_walls = check_overlapped_walls_; \
@@ -199,20 +199,6 @@ public:
     return center_molecules_on_grid;
   }
 
-  std::vector<float_t> initial_partition_origin;
-  virtual void set_initial_partition_origin(const std::vector<float_t> new_initial_partition_origin_) {
-    if (initialized) {
-      throw RuntimeError("Value 'initial_partition_origin' of object with name " + name + " (class " + class_name + ") "
-                         "cannot be set after model was initialized.");
-    }
-    cached_data_are_uptodate = false;
-    initial_partition_origin = new_initial_partition_origin_;
-  }
-  virtual std::vector<float_t> get_initial_partition_origin() const {
-    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return initial_partition_origin;
-  }
-
   float_t partition_dimension;
   virtual void set_partition_dimension(const float_t new_partition_dimension_) {
     if (initialized) {
@@ -225,6 +211,20 @@ public:
   virtual float_t get_partition_dimension() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return partition_dimension;
+  }
+
+  std::vector<float_t> initial_partition_origin;
+  virtual void set_initial_partition_origin(const std::vector<float_t> new_initial_partition_origin_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_partition_origin' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    initial_partition_origin = new_initial_partition_origin_;
+  }
+  virtual std::vector<float_t> get_initial_partition_origin() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return initial_partition_origin;
   }
 
   float_t subpartition_dimension;

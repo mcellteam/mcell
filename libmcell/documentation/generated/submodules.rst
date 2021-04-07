@@ -4,6 +4,8 @@ Submodules
 bngl_utils
 ==========
 
+Submodule bngl_utils provides a function to load parameters from a BNGL file.
+
 
 Methods:
 *********
@@ -18,16 +20,19 @@ Methods:
 geometry_utils
 ==============
 
+Submodule geometry_utils provides several functions to define 
+model geometry. Rather limited for now.
+
 
 Methods:
 *********
 * | **create_box**
 
    * | name: str
-     | Name of the created geometry object
+     | Name of the created geometry object.
 
    * | edge_length: float
-     | Specifies length of each edge of the box.
+     | Specifies length of each edge of the box in um.
 
    * | return type: GeometryObject
 
@@ -38,6 +43,8 @@ Methods:
 
 run_utils
 =========
+
+Submodule run_utils provides functions used by checkpointing.
 
 
 Methods:

@@ -324,8 +324,8 @@ class Config():
             intermembrane_interaction_radius : float = None,
             vacancy_search_distance : float = 10,
             center_molecules_on_grid : bool = False,
-            initial_partition_origin : List[float] = None,
             partition_dimension : float = 10,
+            initial_partition_origin : List[float] = None,
             subpartition_dimension : float = 0.5,
             total_iterations : float = 1000000,
             check_overlapped_walls : bool = True,
@@ -346,8 +346,8 @@ class Config():
         self.intermembrane_interaction_radius = intermembrane_interaction_radius
         self.vacancy_search_distance = vacancy_search_distance
         self.center_molecules_on_grid = center_molecules_on_grid
-        self.initial_partition_origin = initial_partition_origin
         self.partition_dimension = partition_dimension
+        self.initial_partition_origin = initial_partition_origin
         self.subpartition_dimension = subpartition_dimension
         self.total_iterations = total_iterations
         self.check_overlapped_walls = check_overlapped_walls

@@ -89,7 +89,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def("__eq__", &Notifications::__eq__, py::arg("other"))
       .def("dump", &Notifications::dump)
       .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level, "Sets verbosity level that enables printouts of extra information on BioNetGen \nspecies and rules created and used during simulation.\n")
-      .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "Simulation generates files rxn_report_SEED.txt species_report_SEED.txt that contain\ndetails on reaction classes and species that were created based on reaction rules.   \n")
+      .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "When set to True (default) simulation generates files rxn_report_SEED.txt, and \nspecies_report_SEED.txt that contain details on reaction classes and species \nthat were created based on reaction rules.   \n")
       .def_property("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations, "When set to a value other than 0, internal simulation stats will be printed. \n")
       .def_property("rxn_probability_changed", &Notifications::get_rxn_probability_changed, &Notifications::set_rxn_probability_changed, "When True, information that a reaction's probability has changed is printed during simulation.    \n")
     ;

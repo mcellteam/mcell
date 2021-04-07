@@ -94,7 +94,7 @@ std::string GenComponent::to_str(const std::string ind) const {
 }
 
 py::class_<Component> define_pybinding_Component(py::module& m) {
-  return py::class_<Component, std::shared_ptr<Component>>(m, "Component", "Instance of a component belonging to a molecule instance.\nA component instance may have its state set.\nIt is also used to connect molecule instance in a complex instance.\n")
+  return py::class_<Component, std::shared_ptr<Component>>(m, "Component", "Instance of a component type belonging to a molecule instance.\nA component instance must have its state set if there is at least one allowed state.\nIt is also used to connect molecule instance in a complex instance through bonds.\n")
       .def(
           py::init<
             std::shared_ptr<ComponentType>,
@@ -108,11 +108,11 @@ py::class_<Component> define_pybinding_Component(py::module& m) {
       .def("check_semantics", &Component::check_semantics)
       .def("__str__", &Component::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Component::__eq__, py::arg("other"))
-      .def("to_bngl_str", &Component::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")
+      .def("to_bngl_str", &Component::to_bngl_str, "Creates a string that corresponds to this component's BNGL representation.")
       .def("dump", &Component::dump)
-      .def_property("component_type", &Component::get_component_type, &Component::set_component_type)
-      .def_property("state", &Component::get_state, &Component::set_state)
-      .def_property("bond", &Component::get_bond, &Component::set_bond)
+      .def_property("component_type", &Component::get_component_type, &Component::set_component_type, "Reference to a component type.")
+      .def_property("state", &Component::get_state, &Component::set_state, "Specific state value of this component instance.")
+      .def_property("bond", &Component::get_bond, &Component::set_bond, "Specific bond for this component instance.\nIt is either a numberical value such as in A(c!1),\nor one of special values BOND_UNBOUND in A(c), \nBOND_BOUND in A(c!+) or BOND_ANY in A(c!?).\n   \n")
     ;
 }
 

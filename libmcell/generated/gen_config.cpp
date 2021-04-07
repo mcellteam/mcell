@@ -49,8 +49,8 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   intermembrane_interaction_radius = FLT_UNSET;
   vacancy_search_distance = 10;
   center_molecules_on_grid = false;
-  initial_partition_origin = std::vector<float_t>();
   partition_dimension = 10;
+  initial_partition_origin = std::vector<float_t>();
   subpartition_dimension = 0.5;
   total_iterations = 1000000;
   check_overlapped_walls = true;
@@ -74,8 +74,8 @@ bool GenConfig::__eq__(const Config& other) const {
     intermembrane_interaction_radius == other.intermembrane_interaction_radius &&
     vacancy_search_distance == other.vacancy_search_distance &&
     center_molecules_on_grid == other.center_molecules_on_grid &&
-    initial_partition_origin == other.initial_partition_origin &&
     partition_dimension == other.partition_dimension &&
+    initial_partition_origin == other.initial_partition_origin &&
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations == other.total_iterations &&
     check_overlapped_walls == other.check_overlapped_walls &&
@@ -109,8 +109,8 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     intermembrane_interaction_radius == other.intermembrane_interaction_radius &&
     vacancy_search_distance == other.vacancy_search_distance &&
     center_molecules_on_grid == other.center_molecules_on_grid &&
-    true /*initial_partition_origin*/ &&
     partition_dimension == other.partition_dimension &&
+    true /*initial_partition_origin*/ &&
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations == other.total_iterations &&
     check_overlapped_walls == other.check_overlapped_walls &&
@@ -145,8 +145,8 @@ std::string GenConfig::to_str(const std::string ind) const {
       "intermembrane_interaction_radius=" << intermembrane_interaction_radius << ", " <<
       "vacancy_search_distance=" << vacancy_search_distance << ", " <<
       "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
-      "initial_partition_origin=" << vec_nonptr_to_str(initial_partition_origin, ind + "  ") << ", " <<
       "partition_dimension=" << partition_dimension << ", " <<
+      "initial_partition_origin=" << vec_nonptr_to_str(initial_partition_origin, ind + "  ") << ", " <<
       "subpartition_dimension=" << subpartition_dimension << ", " <<
       "total_iterations=" << total_iterations << ", " <<
       "check_overlapped_walls=" << check_overlapped_walls << ", " <<
@@ -173,8 +173,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const float_t,
             const float_t,
             const bool,
-            const std::vector<float_t>,
             const float_t,
+            const std::vector<float_t>,
             const float_t,
             const float_t,
             const bool,
@@ -195,8 +195,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("intermembrane_interaction_radius") = FLT_UNSET,
           py::arg("vacancy_search_distance") = 10,
           py::arg("center_molecules_on_grid") = false,
-          py::arg("initial_partition_origin") = std::vector<float_t>(),
           py::arg("partition_dimension") = 10,
+          py::arg("initial_partition_origin") = std::vector<float_t>(),
           py::arg("subpartition_dimension") = 0.5,
           py::arg("total_iterations") = 1000000,
           py::arg("check_overlapped_walls") = true,
@@ -216,25 +216,25 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def("dump", &Config::dump)
       .def_property("seed", &Config::get_seed, &Config::set_seed, "Random generator seed value.")
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step, "Set the simulation time step to time_step seconds. 1e-6 (1us) is a common value. \nOne can set the time steps taken by individual molecules, but this \ntime step is still used as a default.\n")
-      .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density)
+      .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density, "Tile all surfaces so that they can hold molecules at N different positions per square micron.")
       .def_property("interaction_radius", &Config::get_interaction_radius, &Config::set_interaction_radius, "Diffusing volume molecules will interact with each other when\nthey get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified).\n")
       .def_property("intermembrane_interaction_radius", &Config::get_intermembrane_interaction_radius, &Config::set_intermembrane_interaction_radius, "Diffusing surface molecules will interact with surface molecules on other\nwalls when they get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified). \n")
       .def_property("vacancy_search_distance", &Config::get_vacancy_search_distance, &Config::set_vacancy_search_distance, "Normally, a reaction will not proceed on a surface unless there\nis room to place all products on the single grid element where\nthe reaction is initiated. By increasing r from its default value\nof 0, one can specify how far from the reaction’s location, in microns, the\nreaction can place its products. To be useful, r must\nbe larger than the longest axis of the grid element on the triangle\nin question. The reaction will then proceed if there is room to\nplace its products within a radius r, and will place those products as \nclose as possible to the place where the reaction occurs\n(deterministically, so small-scale directional bias is possible).\n")
-      .def_property("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid)
-      .def_property("initial_partition_origin", &Config::get_initial_partition_origin, &Config::set_initial_partition_origin, "Optional placement of the partition 0 placement, specifies the left, lower and front \npoint. If not set, value -partition_dimension/2 is used for each of the dimensions \nplacing the center of the partition to (0, 0, 0).   \n")
-      .def_property("partition_dimension", &Config::get_partition_dimension, &Config::set_partition_dimension)
-      .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension)
+      .def_property("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid, "If set to True, then all molecules on a surface will be\nlocated exactly at the center of their grid element. If False, the\nmolecules will be randomly located when placed, and reactions\nwill take place at the location of the target (or the site of impact\nin the case of 3D molecule/surface reactions). \n")
+      .def_property("partition_dimension", &Config::get_partition_dimension, &Config::set_partition_dimension, "All the simulated 3d space is placed in a partition. The partition is a cube and \nthis partition_dimension specifies the length of its edge in um.\n")
+      .def_property("initial_partition_origin", &Config::get_initial_partition_origin, &Config::set_initial_partition_origin, "Optional placement of the initial partition in um, specifies the left, lower front \npoint. If not set, value -partition_dimension/2 is used for each of the dimensions \nplacing the center of the partition to (0, 0, 0).   \n")
+      .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension, "Subpartition are spatial division of 3D space used to accelerate collision checking.\nIn general, partitions should be chosen to avoid having too many surfaces and molecules\nin one subpartition. \nIf there are few surfaces and/or molecules in a subvolume, it is advantageous to have the \nsubvolume as large as possible. Crossing partition boundaries takes a small amount of time, \nso it is rarely useful to have partitions more finely spaced than the average diffusion distance \nof the faster-moving molecules in the simulation.\n")
       .def_property("total_iterations", &Config::get_total_iterations, &Config::set_total_iterations, "Required for checkpointing so that the checkpointed model has information on\nthe intended total number of iterations. \nAlso used when generating visualization data files and also for other reporting uses. \nValue is truncated to an integer.\n")
       .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls, "Enables check for overlapped walls. Overlapping walls can cause issues during \nsimulation such as a molecule escaping closed geometry when it hits two walls \nthat overlap. \n")
       .def_property("reaction_class_cleanup_periodicity", &Config::get_reaction_class_cleanup_periodicity, &Config::set_reaction_class_cleanup_periodicity, "Reaction class cleanup removes computed reaction classes for inactive species from memory.\nThis provides faster reaction lookup faster but when the same reaction class is \nneeded again, it must be recomputed.\n")
       .def_property("species_cleanup_periodicity", &Config::get_species_cleanup_periodicity, &Config::set_species_cleanup_periodicity, "Species cleanup removes inactive species from memory. It removes also all reaction classes \nthat reference it.\nThis provides faster addition of new species lookup faster but when the species is \nneeded again, it must be recomputed.\n")
-      .def_property("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules, "Enables sorting of molecules for diffusion, this may improve cache locality.\nProduces different results when enabled. \n")
-      .def_property("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb, "Sets memory limit in GB for simulation run. \nWhen this limit is hit, all buffers are flushed and simulation is terminated with an error. \n")
+      .def_property("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules, "Enables sorting of molecules for diffusion, this may improve cache locality and provide \nslightly better performance. \nProduces different results for the same seed when enabled because molecules are simulated \nin a different order. \n")
+      .def_property("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb, "Sets memory limit in GB for simulation run. \nWhen this limit is hit, all buffers are flushed and simulation is terminated with an error.\n")
       .def_property("initial_iteration", &Config::get_initial_iteration, &Config::set_initial_iteration, "Initial iteration, used when resuming a checkpoint.")
       .def_property("initial_time", &Config::get_initial_time, &Config::set_initial_time, "Initial time in us, used when resuming a checkpoint.\nWill be truncated to be a multiple of time step.\n")
       .def_property("initial_rng_state", &Config::get_initial_rng_state, &Config::set_initial_rng_state, "Used for checkpointing, may contain state of the random number generator to be set \nafter initialization right before the first event is started. \nWhen not set, the set 'seed' value is used to initialize the random number generator.  \n")
       .def_property("append_to_count_output_data", &Config::get_append_to_count_output_data, &Config::set_append_to_count_output_data, "Used for checkpointing, instead of creating new files for Count observables data, \nnew values are appended to the existing files. If such files do not exist, new files are\ncreated.\n")
-      .def_property("continue_after_sigalrm", &Config::get_continue_after_sigalrm, &Config::set_continue_after_sigalrm, "MCell registers a SIGALRM signal handler. When SIGALRM signal is received and \ncontinue_after_sigalrm is False, checkpoint is stored and simulation is terminated. \nWhen continue_after_sigalrm is True, checkpoint is stored and simulation continues.\n")
+      .def_property("continue_after_sigalrm", &Config::get_continue_after_sigalrm, &Config::set_continue_after_sigalrm, "MCell registers a SIGALRM signal handler. When SIGALRM signal is received and \ncontinue_after_sigalrm is False, checkpoint is stored and simulation is terminated. \nWhen continue_after_sigalrm is True, checkpoint is stored and simulation continues.\nSIGALRM is not supported on Windows.\n")
     ;
 }
 
@@ -278,11 +278,11 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   if (center_molecules_on_grid != false) {
     ss << ind << "center_molecules_on_grid = " << center_molecules_on_grid << "," << nl;
   }
-  if (initial_partition_origin != std::vector<float_t>() && !skip_vectors_export()) {
-    ss << ind << "initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx, exported_name) << "," << nl;
-  }
   if (partition_dimension != 10) {
     ss << ind << "partition_dimension = " << f_to_str(partition_dimension) << "," << nl;
+  }
+  if (initial_partition_origin != std::vector<float_t>() && !skip_vectors_export()) {
+    ss << ind << "initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx, exported_name) << "," << nl;
   }
   if (subpartition_dimension != 0.5) {
     ss << ind << "subpartition_dimension = " << f_to_str(subpartition_dimension) << "," << nl;

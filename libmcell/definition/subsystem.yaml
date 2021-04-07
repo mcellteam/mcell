@@ -1,33 +1,53 @@
 
 ComponentType:
   superclass: BaseDataClass
+  doc:
+     Multiple functional attributes for each molecule type are described using
+     components. And this class defines a type of a component. 
+     For example, proteins have multiple functional substructures such as
+     domains, motifs, and binding sites. These components can be unchanging 
+     (called stateless) or exist in one of many different internal states
+     For example, certain binding motifs may have different behaviors depending 
+     on whether they are unphosphorylated or phosphorylated.
+  
+  example: tests/pymcell4_positive/0040_to_bngl_str
+  
   items:
   - name: name
     type: str
+    doc: Name of this component type.
     
   - name: states
     type: List[str]
     default: empty
+    doc: List of states allowed by this component.
+    
   methods:
   - name: inst
+    doc: Instantiate a component from this component type. 
     return_type: Component*
     params:
     - name: state
       type: str
       default: STATE_UNSET
+      doc: Selected state, must be from the list of the allowed states.
     - name: bond
       type: int
       default: BOND_UNBOUND
+      doc: Bond information for the created component instance.
 
   - name: inst
+    doc: Instantiate a component from this component type. 
     return_type: Component*
     params:
     - name: state
       type: int
       default: STATE_UNSET_INT
+      doc: Selected state, must be from the list of the allowed, converted to string.
     - name: bond
       type: int
       default: BOND_UNBOUND
+      doc: Bond information for the created component instance.
 
   - name: to_bngl_str
     return_type: str
@@ -38,25 +58,35 @@ ComponentType:
 Component:
   superclass: BaseDataClass
   doc: | 
-     Instance of a component belonging to a molecule instance.
-     A component instance may have its state set.
-     It is also used to connect molecule instance in a complex instance.
+     Instance of a component type belonging to a molecule instance.
+     A component instance must have its state set if there is at least one allowed state.
+     It is also used to connect molecule instance in a complex instance through bonds.
+     
+  example: tests/pymcell4_positive/0040_to_bngl_str
+     
   items:
   - name: component_type
     type: ComponentType*
+    doc: Reference to a component type.
 
   - name: state
     type: str
     default: STATE_UNSET
+    doc: Specific state value of this component instance. 
     
   - name: bond
     type: int
     default: BOND_UNBOUND
+    doc: | 
+       Specific bond for this component instance.
+       It is either a numberical value such as in A(c!1),
+       or one of special values BOND_UNBOUND in A(c), 
+       BOND_BOUND in A(c!+) or BOND_ANY in A(c!?).
           
   methods:    
   - name: to_bngl_str
     return_type: str
-    doc: Creates a string that corresponds to its BNGL representation.
+    doc: Creates a string that corresponds to this component's BNGL representation.
     is_const: true 
       
       
@@ -66,33 +96,55 @@ ElementaryMoleculeType:
         custom_time_step, custom_space_step and target_only are currently supported 
         only when used in Species
   superclass: BaseDataClass
+  doc: |
+     An elementary molecule type is a base indivisible entity. It is the same as  
+     a molecule type in BNGL entered in section molecule types. 
+     The 'elementary' prefix was added to distinguish it clearly from molecules in 
+     simulation.
+
+  example: tests/pymcell4_positive/0040_to_bngl_str
+      
   items:
   - name: name
     type: str
+    doc: Name of this elementary molecule type.
     
   - name: components
     type: List[ComponentType*]
     default: empty
+    doc: List of components used by this elementary molecule type.
 
   - name: diffusion_constant_2d
     type: float
     default: unset
-    doc: This molecule is constrained to a surface and diffuses with diffusion constant D.
-      
+    doc: | 
+       Elementary molecule based on this type is constrained to a surface
+       and diffuses with the specified diffusion constant.
+       D can be zero, in which case the molecule doesn’t move. 
+       The units of D are cm^2 /s.
+       
   - name: diffusion_constant_3d
     type: float
     default: unset 
-    doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+    doc: | 
+       Elementary molecule based on this type diffuses in space with the 
+       specified diffusion constant D. 
+       D can be zero, in which case the molecule doesn’t move. 
+       The units of D are cm^2 /s.
 
   - name: custom_time_step
     type: float
     default: unset 
-    doc: This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.
+    doc: |
+       This molecule should take timesteps of length custom_time_step (in seconds). 
+       Use either this or custom_time_step, not both.
 
   - name: custom_space_step
     type: float
     default: unset 
-    doc: This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
+    doc: | 
+       This molecule should take steps of average length given by the custom_space_step value (in microns). 
+       Use either this or custom_time_step, not both.
       
   - name: target_only
     type: bool
@@ -107,13 +159,21 @@ ElementaryMoleculeType:
   methods:
   - name: inst
     return_type: ElementaryMolecule*
+    doc: Create an elementary molecule based on this elementary molecule type. 
     params:
     - name: components
       type: List[Component*]
       default: empty
+      doc: | 
+         Instances of components for the the created elementary molecule.
+         Not all components need to be specified in case when the elementary 
+         molecule is used in a pattern.
+          
     - name: compartment_name
       type: str
       default: unset
+      doc: |
+         Optional specification of compartment name for the created elementary molecule. 
 
   - name: to_bngl_str
     return_type: str
@@ -123,19 +183,29 @@ ElementaryMoleculeType:
       
 ElementaryMolecule:
   superclass: BaseDataClass
+  doc:
+     Instance of an elementary molecule type. A BNGL complex is composed of 
+     elementary molecules.  
+     
+  example: tests/pymcell4_positive/0040_to_bngl_str
+  
   items:
   - name: elementary_molecule_type
     type: ElementaryMoleculeType*
+    doc: Reference to the type of this elementary molecule.  
     
   - name: components
     type: List[Component*]
     default: empty
+    doc: | 
+       List of component instances. Not all components need to be specified 
+       in case when this elementary molecule is used in a pattern.
 
   - name: compartment_name
     type: str
     default: unset
     doc:
-       Corresponds to BNGL specification 'EM@COMP'.
+       Optional BNGL compartment name for this elemenrary molecule.
        If a 2D/surface compartment is specified, the elementary moelcule must be of surface type.
        If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.
 
@@ -148,7 +218,7 @@ ElementaryMolecule:
     - name: with_compartment
       type: bool
       default: true
-      doc: Include compartment name in returned BNGL string.
+      doc: Include compartment name in the returned BNGL string.
     
     
 Complex:    
@@ -157,11 +227,13 @@ Complex:
      This class represents a complex molecule composed of molecule instances.
      It is either defined using a BNGL string or using a list of elementary molecule instances.
      On top of that, orientation may be defined.
-     This class is used as argument in cases where either a fully qualified instance or a pattern 
-     can be provided such as in observable Count.  
+     This class is most often by calling its constructor as m.Complex(bngl_string) in cases where a 
+     fully qualified instance (such as for molecule releases) or a pattern (in observable counts) is needed.  
      Comparison operator __eq__ first converts complexes to their canonical representation and 
      then does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').
      
+  example: tests/pymcell4_positive/0040_to_bngl_str
+  
   internal: | 
      Ctor Species(Complex& cplx_inst) must be updated if if attributes change     
   items:
@@ -171,13 +243,14 @@ Complex:
     doc: | 
        When set, this complex instance is initialized from a BNGL string passed as this argument, 
        the string is parsed and elementary_molecules and compartment are initialized.
+       Only one of name or elementary_molecules can be set. 
   
   - name: elementary_molecules
     type: List[ElementaryMolecule*]
     default: empty
     doc: |
        Individual molecule instances contained in the complex.
-       This information is used during model initialization.
+       Only one of name or elementary_molecules can be set.
 
   - name: orientation
     type: Orientation 
@@ -195,14 +268,19 @@ Complex:
     doc: | 
        Specifies compartment name of this Complex.
        Only one of 'orientation' and 'compartment_name' can be set. 
-       May be used only when elementary_molecules do not specify a compartment.
-       Corresponds to BNGL specification '@COMP\:'.
+       Corresponds to BNGL specification of a compartment for the whole complex '@COMP\:'.
        If a 2D/surface compartment is specified, the complex must be a surface complex and 
        orientation is set to Orientation.UP.
        If a 3D/volume compartment is specified, the complex must be a volume complex and
-       orientation is set to Orientation.NONE. 
-       All compartments of surface elementary molecules must be the same.
-       All compartments of volume elementary molecules must be from the two neighboring volume compartments.
+       orientation is set to Orientation.NONE.
+       Sets compartment to all elementary molecules whose compartment is unset. Does not override 
+       specific compartments of elementary molecules that were already set.
+       If this is a volume complex (all elementary molecules have their diffusion_constant_3d set), 
+       all compartments of elementary molecules must be the same volume compartment.
+       If this is a surface complex (at least one elementary molecule has its their diffusion_constant_2d 
+       set), all compartments of surface elementary molecules must be the same, and
+       all compartments of volume elementary molecules must be from the two neighboring 
+       volume compartments.
       
   methods:
   - name: to_bngl_str
@@ -247,8 +325,11 @@ Species:
     This is a common form of usage when reaction rules are provided in a BNGL file.
     Such declaration does no need to be added to subsystem or model.
     This form is used as argument in cases where a fully qualified instance  
-    must be provided such as in molecule releases. 
+    must be provided such as in molecule releases.
     
+     
+  example: tests/pymcell4_positive/0040_to_bngl_str
+      
   items:
   - name: name
     type: str
@@ -433,6 +514,7 @@ ReactionRule:
       This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
       where all reactants and products must be surface molecules and 
       their orientation must be 'any' (default). 
+    example: tests/pymcell4/3000_intramembrane_rxns
     todo: not sure whether we should allow this rxn also for standard surf-surf rxns  
 
   methods:

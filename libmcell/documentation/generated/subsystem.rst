@@ -7,8 +7,8 @@ Complex
 This class represents a complex molecule composed of molecule instances.
 It is either defined using a BNGL string or using a list of elementary molecule instances.
 On top of that, orientation may be defined.
-This class is used as argument in cases where either a fully qualified instance or a pattern 
-can be provided such as in observable Count.  
+This class is most often by calling its constructor as m.Complex(bngl_string) in cases where a 
+fully qualified instance (such as for molecule releases) or a pattern (in observable counts) is needed.  
 Comparison operator __eq__ first converts complexes to their canonical representation and 
 then does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').
 
@@ -17,10 +17,11 @@ Attributes:
 * | **name**: str = None
   | When set, this complex instance is initialized from a BNGL string passed as this argument, 
   | the string is parsed and elementary_molecules and compartment are initialized.
+  | Only one of name or elementary_molecules can be set.
 
 * | **elementary_molecules**: List[ElementaryMolecule] = None
   | Individual molecule instances contained in the complex.
-  | This information is used during model initialization.
+  | Only one of name or elementary_molecules can be set.
 
 * | **orientation**: Orientation = Orientation.DEFAULT
   | Specifies orientation of a molecule. 
@@ -32,14 +33,19 @@ Attributes:
 * | **compartment_name**: str = None
   | Specifies compartment name of this Complex.
   | Only one of 'orientation' and 'compartment_name' can be set. 
-  | May be used only when elementary_molecules do not specify a compartment.
-  | Corresponds to BNGL specification '@COMP\:'.
+  | Corresponds to BNGL specification of a compartment for the whole complex '@COMP\:'.
   | If a 2D/surface compartment is specified, the complex must be a surface complex and 
   | orientation is set to Orientation.UP.
   | If a 3D/volume compartment is specified, the complex must be a volume complex and
-  | orientation is set to Orientation.NONE. 
-  | All compartments of surface elementary molecules must be the same.
-  | All compartments of volume elementary molecules must be from the two neighboring volume compartments.
+  | orientation is set to Orientation.NONE.
+  | Sets compartment to all elementary molecules whose compartment is unset. Does not override 
+  | specific compartments of elementary molecules that were already set.
+  | If this is a volume complex (all elementary molecules have their diffusion_constant_3d set), 
+  | all compartments of elementary molecules must be the same volume compartment.
+  | If this is a surface complex (at least one elementary molecule has its their diffusion_constant_2d 
+  | set), all compartments of surface elementary molecules must be the same, and
+  | all compartments of volume elementary molecules must be from the two neighboring 
+  | volume compartments.
 
 
 Methods:
@@ -66,17 +72,23 @@ Methods:
 Component
 =========
 
-Instance of a component belonging to a molecule instance.
-A component instance may have its state set.
-It is also used to connect molecule instance in a complex instance.
+Instance of a component type belonging to a molecule instance.
+A component instance must have its state set if there is at least one allowed state.
+It is also used to connect molecule instance in a complex instance through bonds.
 
 Attributes:
 ***********
 * | **component_type**: ComponentType
+  | Reference to a component type.
 
 * | **state**: str = STATE_UNSET
+  | Specific state value of this component instance.
 
 * | **bond**: int = BOND_UNBOUND
+  | Specific bond for this component instance.
+  | It is either a numberical value such as in A(c!1),
+  | or one of special values BOND_UNBOUND in A(c), 
+  | BOND_BOUND in A(c!+) or BOND_ANY in A(c!?).
 
 
 Methods:
@@ -86,18 +98,22 @@ Methods:
    * | return type: str
 
 
-  | Creates a string that corresponds to its BNGL representation.
+  | Creates a string that corresponds to this component's BNGL representation.
 
 
 
 ComponentType
 =============
 
+Multiple functional attributes for each molecule type are described using components. And this class defines a type of a component. For example, proteins have multiple functional substructures such as domains, motifs, and binding sites. These components can be unchanging (called stateless) or exist in one of many different internal states For example, certain binding motifs may have different behaviors depending on whether they are unphosphorylated or phosphorylated.
+
 Attributes:
 ***********
 * | **name**: str
+  | Name of this component type.
 
 * | **states**: List[str] = None
+  | List of states allowed by this component.
 
 
 Methods:
@@ -105,15 +121,29 @@ Methods:
 * | **inst**
 
    * | state: str = STATE_UNSET
+     | Selected state, must be from the list of the allowed states.
+
    * | bond: int = BOND_UNBOUND
+     | Bond information for the created component instance.
+
    * | return type: Component
+
+
+  | Instantiate a component from this component type.
 
 
 * | **inst**
 
    * | state: int = STATE_UNSET_INT
+     | Selected state, must be from the list of the allowed, converted to string.
+
    * | bond: int = BOND_UNBOUND
+     | Bond information for the created component instance.
+
    * | return type: Component
+
+
+  | Instantiate a component from this component type.
 
 
 * | **to_bngl_str**
@@ -128,14 +158,19 @@ Methods:
 ElementaryMolecule
 ==================
 
+Instance of an elementary molecule type. A BNGL complex is composed of elementary molecules.
+
 Attributes:
 ***********
 * | **elementary_molecule_type**: ElementaryMoleculeType
+  | Reference to the type of this elementary molecule.
 
 * | **components**: List[Component] = None
+  | List of component instances. Not all components need to be specified 
+  | in case when this elementary molecule is used in a pattern.
 
 * | **compartment_name**: str = None
-  | Corresponds to BNGL specification 'EM@COMP'. If a 2D/surface compartment is specified, the elementary moelcule must be of surface type. If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.
+  | Optional BNGL compartment name for this elemenrary molecule. If a 2D/surface compartment is specified, the elementary moelcule must be of surface type. If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.
 
 
 Methods:
@@ -143,7 +178,7 @@ Methods:
 * | **to_bngl_str**
 
    * | with_compartment: bool = True
-     | Include compartment name in returned BNGL string.
+     | Include compartment name in the returned BNGL string.
 
    * | return type: str
 
@@ -155,23 +190,38 @@ Methods:
 ElementaryMoleculeType
 ======================
 
+An elementary molecule type is a base indivisible entity. It is the same as  
+a molecule type in BNGL entered in section molecule types. 
+The 'elementary' prefix was added to distinguish it clearly from molecules in 
+simulation.
+
 Attributes:
 ***********
 * | **name**: str
+  | Name of this elementary molecule type.
 
 * | **components**: List[ComponentType] = None
+  | List of components used by this elementary molecule type.
 
 * | **diffusion_constant_2d**: float = None
-  | This molecule is constrained to a surface and diffuses with diffusion constant D.
+  | Elementary molecule based on this type is constrained to a surface
+  | and diffuses with the specified diffusion constant.
+  | D can be zero, in which case the molecule doesn’t move. 
+  | The units of D are cm^2 /s.
 
 * | **diffusion_constant_3d**: float = None
-  | This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+  | Elementary molecule based on this type diffuses in space with the 
+  | specified diffusion constant D. 
+  | D can be zero, in which case the molecule doesn’t move. 
+  | The units of D are cm^2 /s.
 
 * | **custom_time_step**: float = None
-  | This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.
+  | This molecule should take timesteps of length custom_time_step (in seconds). 
+  | Use either this or custom_time_step, not both.
 
 * | **custom_space_step**: float = None
-  | This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
+  | This molecule should take steps of average length given by the custom_space_step value (in microns). 
+  | Use either this or custom_time_step, not both.
 
 * | **target_only**: bool = False
   | This molecule will not initiate reactions when it runs into other molecules. This
@@ -186,8 +236,17 @@ Methods:
 * | **inst**
 
    * | components: List[Component] = None
+     | Instances of components for the the created elementary molecule.
+     | Not all components need to be specified in case when the elementary 
+     | molecule is used in a pattern.
+
    * | compartment_name: str = None
+     | Optional specification of compartment name for the created elementary molecule.
+
    * | return type: ElementaryMolecule
+
+
+  | Create an elementary molecule based on this elementary molecule type.
 
 
 * | **to_bngl_str**
@@ -326,10 +385,11 @@ Attributes:
 * | **name**: str = None
   | When set, this complex instance is initialized from a BNGL string passed as this argument, 
   | the string is parsed and elementary_molecules and compartment are initialized.
+  | Only one of name or elementary_molecules can be set.
 
 * | **elementary_molecules**: List[ElementaryMolecule] = None
   | Individual molecule instances contained in the complex.
-  | This information is used during model initialization.
+  | Only one of name or elementary_molecules can be set.
 
 * | **orientation**: Orientation = Orientation.DEFAULT
   | Specifies orientation of a molecule. 
@@ -341,14 +401,19 @@ Attributes:
 * | **compartment_name**: str = None
   | Specifies compartment name of this Complex.
   | Only one of 'orientation' and 'compartment_name' can be set. 
-  | May be used only when elementary_molecules do not specify a compartment.
-  | Corresponds to BNGL specification '@COMP\:'.
+  | Corresponds to BNGL specification of a compartment for the whole complex '@COMP\:'.
   | If a 2D/surface compartment is specified, the complex must be a surface complex and 
   | orientation is set to Orientation.UP.
   | If a 3D/volume compartment is specified, the complex must be a volume complex and
-  | orientation is set to Orientation.NONE. 
-  | All compartments of surface elementary molecules must be the same.
-  | All compartments of volume elementary molecules must be from the two neighboring volume compartments.
+  | orientation is set to Orientation.NONE.
+  | Sets compartment to all elementary molecules whose compartment is unset. Does not override 
+  | specific compartments of elementary molecules that were already set.
+  | If this is a volume complex (all elementary molecules have their diffusion_constant_3d set), 
+  | all compartments of elementary molecules must be the same volume compartment.
+  | If this is a surface complex (at least one elementary molecule has its their diffusion_constant_2d 
+  | set), all compartments of surface elementary molecules must be the same, and
+  | all compartments of volume elementary molecules must be from the two neighboring 
+  | volume compartments.
 
 
 Methods:

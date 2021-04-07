@@ -17,6 +17,7 @@ Attributes:
   | time step is still used as a default.
 
 * | **surface_grid_density**: float = 10000
+  | Tile all surfaces so that they can hold molecules at N different positions per square micron.
 
 * | **interaction_radius**: float = None
   | Diffusing volume molecules will interact with each other when
@@ -43,15 +44,29 @@ Attributes:
   | (deterministically, so small-scale directional bias is possible).
 
 * | **center_molecules_on_grid**: bool = False
+  | If set to True, then all molecules on a surface will be
+  | located exactly at the center of their grid element. If False, the
+  | molecules will be randomly located when placed, and reactions
+  | will take place at the location of the target (or the site of impact
+  | in the case of 3D molecule/surface reactions).
+
+* | **partition_dimension**: float = 10
+  | All the simulated 3d space is placed in a partition. The partition is a cube and 
+  | this partition_dimension specifies the length of its edge in um.
 
 * | **initial_partition_origin**: List[float] = None
-  | Optional placement of the partition 0 placement, specifies the left, lower and front 
+  | Optional placement of the initial partition in um, specifies the left, lower front 
   | point. If not set, value -partition_dimension/2 is used for each of the dimensions 
   | placing the center of the partition to (0, 0, 0).
 
-* | **partition_dimension**: float = 10
-
 * | **subpartition_dimension**: float = 0.5
+  | Subpartition are spatial division of 3D space used to accelerate collision checking.
+  | In general, partitions should be chosen to avoid having too many surfaces and molecules
+  | in one subpartition. 
+  | If there are few surfaces and/or molecules in a subvolume, it is advantageous to have the 
+  | subvolume as large as possible. Crossing partition boundaries takes a small amount of time, 
+  | so it is rarely useful to have partitions more finely spaced than the average diffusion distance 
+  | of the faster-moving molecules in the simulation.
 
 * | **total_iterations**: float = 1000000
   | Required for checkpointing so that the checkpointed model has information on
@@ -76,8 +91,10 @@ Attributes:
   | needed again, it must be recomputed.
 
 * | **sort_molecules**: bool = False
-  | Enables sorting of molecules for diffusion, this may improve cache locality.
-  | Produces different results when enabled.
+  | Enables sorting of molecules for diffusion, this may improve cache locality and provide 
+  | slightly better performance. 
+  | Produces different results for the same seed when enabled because molecules are simulated 
+  | in a different order.
 
 * | **memory_limit_gb**: int = -1
   | Sets memory limit in GB for simulation run. 
@@ -104,6 +121,7 @@ Attributes:
   | MCell registers a SIGALRM signal handler. When SIGALRM signal is received and 
   | continue_after_sigalrm is False, checkpoint is stored and simulation is terminated. 
   | When continue_after_sigalrm is True, checkpoint is stored and simulation continues.
+  | SIGALRM is not supported on Windows.
 
 Notifications
 =============
@@ -115,8 +133,9 @@ Attributes:
   | species and rules created and used during simulation.
 
 * | **rxn_and_species_report**: bool = True
-  | Simulation generates files rxn_report_SEED.txt species_report_SEED.txt that contain
-  | details on reaction classes and species that were created based on reaction rules.
+  | When set to True (default) simulation generates files rxn_report_SEED.txt, and 
+  | species_report_SEED.txt that contain details on reaction classes and species 
+  | that were created based on reaction rules.
 
 * | **simulation_stats_every_n_iterations**: int = 0
   | When set to a value other than 0, internal simulation stats will be printed.

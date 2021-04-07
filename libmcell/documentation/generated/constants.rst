@@ -181,10 +181,10 @@ Constants
   | Represents cases when a component must not be bound in a pattern.
 
 * | **BOND_BOUND**: int = -2
-  | Represents bond type !+ in a pattern
+  | Represents bond type !+ in a pattern.
 
 * | **BOND_ANY**: int = -3
-  | Represents bond type !? in a pattern
+  | Represents bond type !? in a pattern.
 
 * | **PARTITION_EDGE_EXTRA_MARGIN_UM**: float = 0.01
   | Internal constant used to match partition setup when comparing models against their MDL variant.
