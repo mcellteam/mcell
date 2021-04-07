@@ -180,8 +180,11 @@ Attributes:
   | Orientation of the complex instance is used to define orientation of the released molecule,
   | when Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and
   | surface molecules are released with Orientation.UP.
-  | When compartment is specified, this sets shape to Shape.COMPARTMENT and the molecules are released 
-  | into the compartment.
+  | When compartment is specified and region is not set, this sets shape to Shape.COMPARTMENT and 
+  | the molecules are released into the compartment.
+  | When this is a release of volume molecules, and both compartment and region are set, 
+  | this sets shape to Shape.REGION_EXPR and the target region is the intersection 
+  | of the region and the compartment.
 
 * | **molecule_list**: List[MoleculeReleaseInfo] = None
   | Used for LIST shape release mode. 
@@ -206,7 +209,10 @@ Attributes:
 
 * | **region**: Region = None
   | Defines a volume or surface region where to release molecules. 
-  | Setting it sets shape to Shape.REGION_EXPR.
+  | Setting it sets shape to Shape.REGION_EXPR. 
+  | When this is a release of volume molecules, and both compartment and region are set, 
+  | this sets shape to Shape.REGION_EXPR and the target region is the intersection 
+  | of the region and the compartment.
 
 * | **location**: List[float] = None
   | Defines center of a sphere where to release molecules. 

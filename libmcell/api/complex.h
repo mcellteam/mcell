@@ -114,9 +114,12 @@ public:
   }
 
   // complexes can be only either surf or vol, there is no other option
+  // WARNING: information on whether this is a surface or volume complex
+  // may not be available all the time, e.g. when complex is constructed with m.Complex('A')
   bool is_vol() const {
     return !is_surf();
   }
+  // WARNING: same as above
   bool is_surf() const;
 
   std::string to_bngl_str_w_custom_orientation(const bool include_mcell_orientation = false) const;
@@ -124,6 +127,8 @@ public:
   // not really const, sets mutable members that serve as cache
   const std::string& get_canonical_name() const;
 
+  // WARNING: information on whether this is a surface or volume complex - used when determining the
+  // compartment may not be available all the time, e.g. when complex is constructed with m.Complex('A')
   const std::string& get_primary_compartment_name() const;
 
 

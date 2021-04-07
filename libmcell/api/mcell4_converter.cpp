@@ -1142,6 +1142,24 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
       throw RuntimeError("Region for release site " + rel_site.name + " was not set.");
     }
     rel_event->region_expr_root = convert_region_expr_recursively(rel_site.region, rel_event);
+
+    // add intersection with compartment if this is a volume compartment
+    if (is_set(rel_site.complex->compartment_name)) {
+      // TODO: how to handle surface compartment intersection?
+      // obj is nullptr when this is not a volume compartment
+      const auto& obj = model->find_volume_compartment_object(rel_site.complex->compartment_name);
+      if (is_set(obj)) {
+        auto region = model->get_compartment_region(rel_site.complex->compartment_name);
+        RegionExprNode* compartment_region = convert_region_expr_recursively(region, rel_event);
+
+        // overwrite region expr with intersection with compartment
+        rel_event->region_expr_root = rel_event->create_new_region_expr_node_op(
+            RegionExprOperator::Intersect,
+            rel_event->region_expr_root,
+            compartment_region
+        );
+      }
+    }
   }
   else if (rel_site.shape == Shape::COMPARTMENT) {
     if (!is_set(rel_site.complex->compartment_name)) {
