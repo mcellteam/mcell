@@ -72,7 +72,7 @@ namespace BNG {
 // end reaction rules
 //
 %glr-parser
-%expect 4
+%expect 6
 
 %union {
   const char* str;
@@ -545,6 +545,9 @@ observables_item:
 cplx_list:
       cplx_list ',' cplx {
         $1->append($3);
+      }
+    | cplx_list cplx {
+        $1->append($2);
       }
     | cplx {
     	$$ = g_ctx->new_list_node()->append($1);

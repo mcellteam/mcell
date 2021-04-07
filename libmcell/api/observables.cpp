@@ -90,36 +90,60 @@ void Observables::convert_bng_data_to_observables_data(
 }
 
 
+static void set_count_molecules_or_species_pattern(
+    const BNG::ObservableType type,
+    const BNG::Cplx& bng_pattern,
+    const BNG::BNGData& bng_data,
+    API::CountTerm& count
+) {
+
+  std::shared_ptr<API::Complex> pattern =
+      Complex::construct_from_bng_cplx(bng_data, bng_pattern);
+
+  if (type == ObservableType::Molecules) {
+    count.molecules_pattern = pattern;
+  }
+  else if (type == ObservableType::Species) {
+    count.species_pattern = pattern;
+  }
+  else {
+    release_assert(false);
+  }
+}
+
+
 void Observables::convert_observable(
     const BNG::Observable& o,
     const BNG::BNGData& bng_data,
     const std::string& output_files_prefix) {
-
-  if (o.patterns.size() != 1) {
-    throw RuntimeError("BNGL observables with multiple patterns are not supported yet, error for " + o.name + ".");
-  }
 
   shared_ptr<API::Count> count = make_shared<Count>(true);
 
   count->name = o.name;
   count->file_name = output_files_prefix + o.name + ".dat";
 
-  std::shared_ptr<API::Complex> pattern =
-      Complex::construct_from_bng_cplx(bng_data, o.patterns[0]);
-
-  if (o.type == ObservableType::Molecules) {
-    count->molecules_pattern = pattern;
-  }
-  else if (o.type == ObservableType::Species) {
-    count->species_pattern = pattern;
+  release_assert(!o.patterns.empty() && "Observable has no pattern");
+  if (o.patterns.size() == 1) {
+    set_count_molecules_or_species_pattern(o.type, o.patterns[0], bng_data, *count);
   }
   else {
-    release_assert(false);
+    shared_ptr<API::CountTerm> top_level_term = nullptr;
+    for (const auto& pat: o.patterns) {
+      shared_ptr<API::CountTerm> term = make_shared<CountTerm>();
+
+      set_count_molecules_or_species_pattern(o.type, pat, bng_data, *term);
+
+      if (is_set(top_level_term)) {
+        top_level_term = top_level_term->__add__(term);
+      }
+      else {
+        top_level_term = term;
+      }
+    }
+    count->count_expression = top_level_term;
   }
 
-  // region that represents this compartment handled in initialization
-  // because compartments are referenced by their name and
-  // we might not know them yet
+  // remember for conversion in mcell4 coverter
   counts.push_back(count);
 }
 

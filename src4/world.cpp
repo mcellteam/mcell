@@ -737,41 +737,54 @@ std::string World::export_counts_to_bngl_observables(std::ostream& observables) 
 
       const string& err_suffix = ", error for " + name + ".";
 
-      if (item.terms.size() != 1 || item.multiplier != 1.0) {
-        return "Observable expressions other than a single pattern are not yet supported by BNGL export" + err_suffix;
-      }
-      const MolOrRxnCountTerm& term = item.terms[0];
-      if (term.is_rxn_count()) {
-        return "Reaction counts are not supported by BNGL export" + err_suffix;
-      }
-      if (term.type == CountType::PresentOnSurfaceRegion) {
-        return "Surface molecule counts are yet not supported by BNGL export" + err_suffix;
+      if (item.multiplier != 1.0) {
+        return "Observable expressions with a multiplier are not yet supported by BNGL export" + err_suffix;
       }
 
-      string compartment_prefix = "";
-      if (term.type == CountType::EnclosedInVolumeRegion) {
-        const string& compartment_name = get_geometry_object(term.geometry_object_id).name;
-        if (compartment_name != BNG::DEFAULT_COMPARTMENT_NAME) {
-          compartment_prefix = "@" + get_geometry_object(term.geometry_object_id).name + ":";
-        }
-      }
-
-      // Species or Molecules
+      string pattern;
       string type;
-      if (term.species_pattern_type == SpeciesPatternType::SpeciesPattern) {
-        type = BNG::OBSERVABLE_SPECIES;
-      }
-      else if (term.species_pattern_type == SpeciesPatternType::MoleculesPattern) {
-        type = BNG::OBSERVABLE_MOLECULES;
-      }
-      else {
-        release_assert("SpeciesId type should not be used here.");
-      }
+      for (const MolOrRxnCountTerm& term: item.terms) {
+        if (term.sign_in_expression != 1) {
+          return "Observable counts with negative value (subtracted) not supported by BNGL export" + err_suffix;
+        }
+        if (term.is_rxn_count()) {
+          return "Reaction counts are not supported by BNGL export" + err_suffix;
+        }
+        if (term.type == CountType::PresentOnSurfaceRegion) {
+          return "Surface molecule counts are yet not supported by BNGL export" + err_suffix;
+        }
 
-      string pattern = term.species_molecules_pattern.to_str(false);
+        string compartment_prefix = "";
+        if (term.type == CountType::EnclosedInVolumeRegion) {
+          const string& compartment_name = get_geometry_object(term.geometry_object_id).name;
+          if (compartment_name != BNG::DEFAULT_COMPARTMENT_NAME) {
+            compartment_prefix = "@" + get_geometry_object(term.geometry_object_id).name + ":";
+          }
+        }
+
+        // Species or Molecules
+        string term_type;
+        if (term.species_pattern_type == SpeciesPatternType::SpeciesPattern) {
+          term_type = BNG::OBSERVABLE_SPECIES;
+        }
+        else if (term.species_pattern_type == SpeciesPatternType::MoleculesPattern) {
+          term_type = BNG::OBSERVABLE_MOLECULES;
+        }
+        else {
+          release_assert("SpeciesId type should not be used here.");
+        }
+        if (type != "" && type != term_type) {
+          return "Combined Molecules and Species observables in one count are not supported by BNGL export" + err_suffix;
+        }
+        else {
+          type = term_type;
+        }
+
+        pattern += compartment_prefix + term.species_molecules_pattern.to_str(false) + " ";
+      }
 
       observables << BNG::IND <<
-          type << " " << name << " " << compartment_prefix << pattern << " " << "\n";
+          type << " " << name << " " << pattern << " " << "\n";
     }
   }
 
