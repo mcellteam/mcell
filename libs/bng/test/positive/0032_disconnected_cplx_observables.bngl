@@ -1,5 +1,4 @@
-# FAIL
-# OUTPUT: error: All complexes must be currently fully connected, error for 'A.D'.
+# OK
 
 begin molecule types
   A

@@ -1,0 +1,5 @@
+# OK
+
+begin reaction rules
+  A.C + B <-> D 0.1, 1
+end reaction rules

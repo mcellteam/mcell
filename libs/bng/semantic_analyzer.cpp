@@ -764,6 +764,7 @@ void insert_compartment_id_to_set_based_on_type(
 void SemanticAnalyzer::convert_cplx(
     const ASTCplxNode* cplx_node,
     Cplx& bng_cplx,
+    const bool in_rule_or_observable,
     const bool check_compartments
 ) {
   for (const ASTMolNode* m: cplx_node->mols) {
@@ -863,9 +864,9 @@ void SemanticAnalyzer::convert_cplx(
 
 
     bng_cplx.finalize_cplx();
-    if (!bng_cplx.is_connected()) {
+    if (!bng_cplx.is_connected() && !in_rule_or_observable) {
       errs_loc(cplx_node->mols[0]) <<
-          "All complexes must be currently fully connected, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
+          "All complexes that are not patterns must be currently fully connected, error for '" << bng_cplx.to_str() << "'.\n"; // test XXX
       ctx->inc_error_count();
       return;
     }
@@ -901,7 +902,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(
     }
 
     Cplx pattern(bng_data);
-    convert_cplx(cplx, pattern);
+    convert_cplx(cplx, pattern, true);
     if (ctx->get_error_count() > 0) {
       return;
     }
@@ -997,7 +998,7 @@ void SemanticAnalyzer::convert_seed_species() {
 
     SeedSpecies ss(bng_data);
 
-    convert_cplx(ss_node->cplx, ss.cplx);
+    convert_cplx(ss_node->cplx, ss.cplx, false);
     if (ctx->get_error_count() != 0) {
       return;
     }
@@ -1055,7 +1056,7 @@ void SemanticAnalyzer::convert_observables() {
     for (const ASTBaseNode* base_pat: o_node->cplx_patterns->items) {
       const ASTCplxNode* cplx_pat = to_cplx_node(base_pat);
       Cplx cplx(bng_data);
-      convert_cplx(cplx_pat, cplx);
+      convert_cplx(cplx_pat, cplx, true);
       if (ctx->get_error_count() != 0) {
         return;
       }
@@ -1239,7 +1240,7 @@ bool SemanticAnalyzer::check_and_convert_single_cplx(
 
   define_compartments_used_by_cplx_as_3d_compartments(ctx->single_cplx);
 
-  convert_cplx(ctx->single_cplx, res, false);
+  convert_cplx(ctx->single_cplx, res, true, false);
   if (ctx->get_error_count() != 0) {
     return false;
   }

@@ -1,6 +1,0 @@
-# FAIL
-# OUTPUT: error: All complexes must be currently fully connected, error for 'A.C'.
-
-begin reaction rules
-  A.C + B <-> D 0.1, 1
-end reaction rules

@@ -62,6 +62,7 @@ private:
   void convert_cplx(
       const ASTCplxNode* cplx_node,
       Cplx& pattern,
+      const bool in_rule_or_observable,
       const bool check_compartments = true
   );
   void convert_rxn_rule_side(
