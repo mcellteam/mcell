@@ -52,7 +52,7 @@ using namespace std;
 
 namespace MCell {
 
-namespace DiffusionUtil {
+namespace DiffusionUtils {
 
 const float_t MULTISTEP_WORTHWHILE = 2.0; // TODO: make this tweakable through API, 2.0 is the value used in MCell3
 const float_t MULTISTEP_PERCENTILE = 0.99;
@@ -470,7 +470,7 @@ static bool move_sm_on_same_triangle(
   Grid& grid = wall.grid;
   assert(grid.get_molecule_on_tile(sm.s.grid_tile_index) == sm.id);
 
-  unsigned int new_tile_index = GridUtil::uv2grid_tile_index(new_loc, wall);
+  unsigned int new_tile_index = GridUtils::uv2grid_tile_index(new_loc, wall);
 
   if (new_tile_index >= grid.num_tiles) {
     mcell_internal_error("After ray_trace_2D, selected u, v coordinates "
@@ -534,7 +534,7 @@ static bool move_sm_to_new_triangle(
   Grid& new_grid = new_wall.grid;
 
   /* Move to new tile */
-  unsigned int new_tile_index = GridUtil::uv2grid_tile_index(new_loc, new_wall);
+  unsigned int new_tile_index = GridUtils::uv2grid_tile_index(new_loc, new_wall);
 
   if (new_tile_index >= new_grid.num_tiles) {
     mcell_internal_error(
@@ -611,7 +611,7 @@ static void reflect_absorb_check_wall(
     bool& absorb_now
 ) {
   BNG::RxnClassesVector matching_rxns;
-  RxnUtil::trigger_intersect(
+  RxnUtils::trigger_intersect(
       p, sm, sm.s.orientation, wall, true,
       matching_rxns
   );
@@ -658,7 +658,7 @@ static void reflect_absorb_inside_out(
     bool& absorb_now
 ) {
   // missing hit from the second side
-  if (WallUtil::is_wall_edge_region_border(p, this_wall, edge_index_that_was_hit, true)) {
+  if (WallUtils::is_wall_edge_region_border(p, this_wall, edge_index_that_was_hit, true)) {
     reflect_absorb_check_wall(p, sm, this_wall, reflect_now, absorb_now);
   }
 }
@@ -690,9 +690,9 @@ static void reflect_absorb_outside_in(
     bool& absorb_now) {
 
   /* index of the shared edge in the coordinate system of target wall */
-  edge_index_t target_edge_index = WallUtil::find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
+  edge_index_t target_edge_index = WallUtils::find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
 
-  if (WallUtil::is_wall_edge_region_border(p, target_wall, target_edge_index, true)) {
+  if (WallUtils::is_wall_edge_region_border(p, target_wall, target_edge_index, true)) {
     reflect_absorb_check_wall(p, sm, target_wall, reflect_now, absorb_now);
   }
 }

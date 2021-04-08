@@ -40,13 +40,13 @@
 #include "partition.h"
 #include "geometry.h"
 
-#include "counted_volumes_util.h"
+#include "counted_volume_utils.h"
 
 using namespace std;
 
 namespace MCell {
 
-namespace CountedVolumesUtil {
+namespace CountedVolumeUtils {
 
 enum class ContainmentResult {
   Error,

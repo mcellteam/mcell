@@ -41,7 +41,7 @@
 #include "partition.h"
 #include "geometry.h"
 #include "grid_position.h"
-#include "region_util.h"
+#include "region_utils.h"
 
 #include "debug_config.h"
 #include "debug.h"
@@ -395,7 +395,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   float_t t_steps = 1.0;
   float_t rate_factor = 1.0;
   float_t r_rate_factor = 1.0;
-  DiffusionUtil::compute_vol_displacement(
+  DiffusionUtils::compute_vol_displacement(
       p, species, vm, max_time, world->rng,
       displacement, rate_factor, r_rate_factor, steps, t_steps
   );
@@ -463,7 +463,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         p.stats.inc_vol_mol_vol_mol_collisions();
 
         // ignoring immediate collisions
-        if (CollisionUtil::is_immediate_collision(collision.time)) {
+        if (CollisionUtils::is_immediate_collision(collision.time)) {
           continue;
         }
 
@@ -563,7 +563,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         if (!was_defunct) {
           elapsed_molecule_time += t_steps * collision.time;
           // if a molecule was reflected, changes its position to the reflection point
-          int res = CollisionUtil::reflect_or_periodic_bc(
+          int res = CollisionUtils::reflect_or_periodic_bc(
               p, collision,
               vm_new_ref, remaining_displacement, t_steps, last_hit_wall_index
           );
@@ -646,7 +646,7 @@ RayTraceState ray_trace_vol(
   // so we check collisions just here
   Vec3 partition_displacement;
   if (!p.in_this_partition(vm.v.pos + remaining_displacement)) {
-    partition_displacement = CollisionUtil::get_displacement_up_to_partition_boundary(p, vm.v.pos, remaining_displacement);
+    partition_displacement = CollisionUtils::get_displacement_up_to_partition_boundary(p, vm.v.pos, remaining_displacement);
   }
   else {
     partition_displacement = remaining_displacement;
@@ -656,7 +656,7 @@ RayTraceState ray_trace_vol(
   SubpartIndicesVector crossed_subparts_for_walls;
   SubpartIndicesSet crossed_subparts_for_molecules;
 
-  CollisionUtil::collect_crossed_subparts(
+  CollisionUtils::collect_crossed_subparts(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
       can_vol_react, true,
@@ -696,7 +696,7 @@ RayTraceState ray_trace_vol(
     for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
 
       bool collision_found =
-          CollisionUtil::get_closest_wall_collision( // mcell3 does this only for the current subvol
+          CollisionUtils::get_closest_wall_collision( // mcell3 does this only for the current subvol
               p,
               vm,
               subpart_w_walls_index,
@@ -724,7 +724,7 @@ RayTraceState ray_trace_vol(
       // NOTE: this can be in theory done more efficiently if we knew the order of subpartitions that we hit in the previous call
       crossed_subparts_for_molecules.clear();
       crossed_subparts_for_walls.clear();
-      CollisionUtil::collect_crossed_subparts(
+      CollisionUtils::collect_crossed_subparts(
           p, vm, displacement_up_to_wall_collision,
           radius, p.config.subpartition_edge_length,
           true, false,
@@ -740,7 +740,7 @@ RayTraceState ray_trace_vol(
 
       // for each molecule in this SP
       for (molecule_id_t colliding_vm_id: sp_reactants) {
-        CollisionUtil::collide_mol_loop_body(
+        CollisionUtils::collide_mol_loop_body(
             p,
             vm,
             colliding_vm_id,
@@ -777,7 +777,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
 
   // returns 1 when there are no walls at all
-  float_t factor = ExactDiskUtil::exact_disk(
+  float_t factor = ExactDiskUtils::exact_disk(
       p, collision.pos, displacement, p.config.rx_radius_3d,
       diffused_molecule, colliding_molecule,
       p.config.use_expanded_list
@@ -795,7 +795,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   float_t scaling = factor * r_rate_factor;
-  int i = RxnUtil::test_bimolecular(
+  int i = RxnUtils::test_bimolecular(
       rxn_class, world->rng, colliding_molecule, diffused_molecule, scaling, 0, absolute_collision_time);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
@@ -836,7 +836,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   Wall& wall = p.get_wall(collision.colliding_wall_index);
   Grid& grid = wall.grid;
 
-  tile_index_t j = GridUtil::xyz2grid_tile_index(p, collision.pos, wall);
+  tile_index_t j = GridUtils::xyz2grid_tile_index(p, collision.pos, wall);
   assert(j != TILE_INDEX_INVALID);
 
   molecule_id_t colliging_mol_id = grid.get_molecule_on_tile(j);
@@ -866,7 +866,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   }
 
   RxnClassesVector matching_rxn_classes;
-  RxnUtil::trigger_bimolecular(
+  RxnUtils::trigger_bimolecular(
     p.bng_engine,
     diffused_molecule, colliding_molecule,
     collision_orientation, colliding_molecule.s.orientation,
@@ -892,7 +892,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 
   int selected_rx_pathway;
   if (matching_rxn_classes.size() == 1) {
-    selected_rx_pathway = RxnUtil::test_bimolecular(
+    selected_rx_pathway = RxnUtils::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         diffused_molecule, colliding_molecule,
         scaling_coefs[0], 0, collision_time);
@@ -934,7 +934,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     vm.v.pos = collision.pos;
     vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
 
-    CollisionUtil::update_counted_volume_id_when_crossing_wall(
+    CollisionUtils::update_counted_volume_id_when_crossing_wall(
         p, wall, collision.get_orientation_against_wall(), vm);
 
     // TODO: same code is on multiple places, e.g. in cross_transparent_wall,
@@ -987,7 +987,7 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
   RxnClassesVector matching_rxn_classes;
   orientation_t orient = (collision.type == CollisionType::WALL_FRONT) ? ORIENTATION_UP : ORIENTATION_DOWN;
-  RxnUtil::trigger_intersect(p, diffused_molecule, orient, wall, true, matching_rxn_classes);
+  RxnUtils::trigger_intersect(p, diffused_molecule, orient, wall, true, matching_rxn_classes);
   if (matching_rxn_classes.empty() ||
       (matching_rxn_classes.size() == 1 && matching_rxn_classes[0]->type == BNG::RxnType::Reflect)) {
     return WallRxnResult::Reflect;
@@ -1020,9 +1020,9 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
   if (matching_rxn_classes.size() == 1) {
     rxn_class_index = 0;
-    pathway_index = RxnUtil::test_intersect(matching_rxn_classes[0], r_rate_factor, current_time, world->rng);
+    pathway_index = RxnUtils::test_intersect(matching_rxn_classes[0], r_rate_factor, current_time, world->rng);
   } else {
-    pathway_index = RxnUtil::test_many_intersect(
+    pathway_index = RxnUtils::test_many_intersect(
         matching_rxn_classes, r_rate_factor, current_time, rxn_class_index, world->rng);
   }
 
@@ -1115,7 +1115,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
          find_new_position > 0; find_new_position--) {
 
       Vec2 displacement;
-      DiffusionUtil::compute_surf_displacement(species, space_factor, world->rng, displacement);
+      DiffusionUtils::compute_surf_displacement(species, space_factor, world->rng, displacement);
 
 
   #ifdef DEBUG_DIFFUSION
@@ -1140,14 +1140,14 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 
       // After diffusing, are we still on the SAME triangle?
       if (new_wall_index == sm.s.wall_index) {
-        if (!DiffusionUtil::move_sm_on_same_triangle(p, sm, new_loc)) {
+        if (!DiffusionUtils::move_sm_on_same_triangle(p, sm, new_loc)) {
           // we must try a different position
           continue;
         }
       }
       // After diffusing, we ended up on a NEW triangle.
       else {
-        if (!DiffusionUtil::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
+        if (!DiffusionUtils::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
           // we must try a different position
           continue;
         }
@@ -1239,7 +1239,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   const Wall& wall = p.get_wall(sm.s.wall_index);
 
   TileNeighborVector neighbors;
-  GridUtil::find_neighbor_tiles(p, &sm, wall, sm.s.grid_tile_index, false, true, neighbors);
+  GridUtils::find_neighbor_tiles(p, &sm, wall, sm.s.grid_tile_index, false, true, neighbors);
 
   if (neighbors.empty()) {
     return true;
@@ -1283,20 +1283,20 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
         sm.s.wall_index != nsm.s.wall_index
     ) {
       /* INSIDE-OUT check */
-      if (WallUtil::walls_belong_to_at_least_one_different_restricted_region(p, wall, sm, nwall, nsm)) {
+      if (WallUtils::walls_belong_to_at_least_one_different_restricted_region(p, wall, sm, nwall, nsm)) {
         continue;
       }
 
       /* OUTSIDE-IN check */
       // note: the pairing wall is same as in mcell3, TODO: explain why is it so
-      if (WallUtil::walls_belong_to_at_least_one_different_restricted_region(p, wall, nsm, nwall, sm)) {
+      if (WallUtils::walls_belong_to_at_least_one_different_restricted_region(p, wall, nsm, nwall, sm)) {
         continue;
       }
     }
 
     // returns value >=1 if there can be a reaction
     size_t orig_num_rxsn = matching_rxn_classes.size();
-    RxnUtil::trigger_bimolecular_orientation_from_mols(
+    RxnUtils::trigger_bimolecular_orientation_from_mols(
         p.bng_engine,
         sm, nsm,
         matching_rxn_classes
@@ -1330,7 +1330,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   int rxn_class_index;
   if (num_matching_rxn_classes == 1) {
     // figure out what should happen
-    selected_pathway_index = RxnUtil::test_bimolecular(
+    selected_pathway_index = RxnUtils::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor, collision_time);
@@ -1341,7 +1341,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   else {
     bool all_neighbors_flag = true;
     rxn_class_index =
-        RxnUtil::test_many_bimolecular(
+        RxnUtils::test_many_bimolecular(
             matching_rxn_classes, correction_factors, local_prob_factor,
             world->rng, all_neighbors_flag, collision_time, selected_pathway_index);
     selected_pathway_index = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
@@ -1375,7 +1375,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   const Vec3& w1_vert0 = p.get_wall_vertex(w1, 0);
 
   // get 3d position
-  Vec3 reac1_pos3d = GeometryUtil::uv2xyz(sm.s.pos, w1, w1_vert0);
+  Vec3 reac1_pos3d = GeometryUtils::uv2xyz(sm.s.pos, w1, w1_vert0);
 
   // which subpart are we in?
   // we check walls whose part is in the current subpartition, not the neighbors
@@ -1411,7 +1411,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   // get neighboring subparts - this is necessary because
   // subpartitioning can put a boundary right between membranes
   SubpartIndicesSet subpart_indices_set;
-  CollisionUtil::collect_neighboring_subparts(
+  CollisionUtils::collect_neighboring_subparts(
       p, reac1_pos3d, subpart_indices, p.config.intermembrane_rx_radius_3d, p.config.subpartition_edge_length,
       subpart_indices_set
   );
@@ -1451,7 +1451,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
       }
 
       // compute distance
-      Vec3 reac2_pos3d = GeometryUtil::uv2xyz(reac2.s.pos, w2, w2_vert0);
+      Vec3 reac2_pos3d = GeometryUtils::uv2xyz(reac2.s.pos, w2, w2_vert0);
       float_t dist2 = len3_squared(reac1_pos3d - reac2_pos3d);
       if (dist2 > rxn_radius2) {
         continue;
@@ -1486,7 +1486,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
     // get what reaction should happen, the default orientation of molecules is UP and
     // also the rxn rule's pattern expects UP
     RxnClassesVector matching_rxn_classes;
-    RxnUtil::trigger_bimolecular(
+    RxnUtils::trigger_bimolecular(
         p.bng_engine, sm, sm2, sm.s.orientation, sm2.s.orientation, matching_rxn_classes);
 
     if (matching_rxn_classes.empty()) {
@@ -1497,7 +1497,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
     int selected_pathway_index = RX_NO_RX;
     int rxn_class_index;
     if (matching_rxn_classes.size() == 1) {
-      selected_pathway_index = RxnUtil::test_bimolecular(
+      selected_pathway_index = RxnUtils::test_bimolecular(
           matching_rxn_classes[0], world->rng,
           sm, sm2,
           // TODO: not sure what to put as scaling coeff
@@ -1573,7 +1573,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     /* Index of the wall edge that the SM hits */
     Vec2 boundary_pos;
     edge_index_t edge_index_that_was_hit =
-        GeometryUtil::find_edge_point(*this_wall, this_pos, this_disp, boundary_pos);
+        GeometryUtils::find_edge_point(*this_wall, this_pos, this_disp, boundary_pos);
 
     // Ambiguous edge collision. Give up and try again from diffuse_2D.
     if (edge_index_that_was_hit == EDGE_INDEX_CANNOT_TELL) {
@@ -1604,7 +1604,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     bool absorb_now = false;
     bool reflect_now = false;
     if (species.can_interact_with_border()) {
-      DiffusionUtil::reflect_absorb_inside_out(
+      DiffusionUtils::reflect_absorb_inside_out(
           p, sm, *this_wall, edge_index_that_was_hit,
           reflect_now, absorb_now
       );
@@ -1626,7 +1626,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
     if (!reflect_now) {
       wall_index_t target_wall_index =
-          GeometryUtil::traverse_surface(*this_wall, old_pos, edge_index_that_was_hit, this_pos);
+          GeometryUtils::traverse_surface(*this_wall, old_pos, edge_index_that_was_hit, this_pos);
 
       if (target_wall_index != WALL_INDEX_INVALID) {
         /* We hit the edge - check for the reflection/absorption from the
@@ -1636,7 +1636,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
         if (species.can_interact_with_border()) {
 
           const Wall& target_wall = p.get_wall(target_wall_index);
-          DiffusionUtil::reflect_absorb_outside_in(
+          DiffusionUtils::reflect_absorb_outside_in(
               p, sm, target_wall, *this_wall,
               reflect_now, absorb_now
           );
@@ -1655,7 +1655,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
           #endif
 
           Vec2 tmp_disp;
-          GeometryUtil::traverse_surface(*this_wall, this_disp, edge_index_that_was_hit, tmp_disp);
+          GeometryUtils::traverse_surface(*this_wall, this_disp, edge_index_that_was_hit, tmp_disp);
           this_disp = tmp_disp - this_pos;
           this_wall = &p.get_wall(target_wall_index);
           continue;
@@ -1722,7 +1722,7 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
   assert(current_time >= 0);
 
   BNG::RxnClassesVector rxn_classes;
-  RxnUtil::pick_unimol_rxn_classes(p, m, current_time, rxn_classes);
+  RxnUtils::pick_unimol_rxn_classes(p, m, current_time, rxn_classes);
   if (rxn_classes.empty()) {
     m.unimol_rx_time = TIME_INVALID;
     return;
@@ -1730,11 +1730,11 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
 
   uint idx = 0;
   if (rxn_classes.size() > 1) {
-    idx = RxnUtil::test_many_unimol(rxn_classes, world->rng);
+    idx = RxnUtils::test_many_unimol(rxn_classes, world->rng);
   }
 
   // there is a check when computing the reaction rate to make sure that the time is reasonably higher than 0
-  float_t time_from_now = RxnUtil::compute_unimol_lifetime(p, world->rng, rxn_classes[idx], current_time, m);
+  float_t time_from_now = RxnUtils::compute_unimol_lifetime(p, world->rng, rxn_classes[idx], current_time, m);
 
   float_t scheduled_time = current_time + time_from_now;
 
@@ -1774,7 +1774,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   }
   else {
     BNG::RxnClassesVector rxn_classes;
-    RxnUtil::pick_unimol_rxn_classes(p, m, scheduled_time, rxn_classes);
+    RxnUtils::pick_unimol_rxn_classes(p, m, scheduled_time, rxn_classes);
     for (RxnClass* rxn_class: rxn_classes) {
       rxn_class->update_rxn_rates_if_needed(scheduled_time);
     }
@@ -1789,10 +1789,10 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
 
     uint idx = 0;
     if (rxn_classes.size() > 1) {
-      idx = RxnUtil::test_many_unimol(rxn_classes, world->rng);
+      idx = RxnUtils::test_many_unimol(rxn_classes, world->rng);
     }
 
-    rxn_class_pathway_index_t pi = RxnUtil::which_unimolecular(m, rxn_classes[idx], world->rng);
+    rxn_class_pathway_index_t pi = RxnUtils::which_unimolecular(m, rxn_classes[idx], world->rng);
 
     if (rxn_classes[idx]->is_unimol()) {
       // standard unimolecular rxn
@@ -1804,7 +1804,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
       const Wall& w = p.get_wall(m.s.wall_index);
       const Vec3& v0 = p.get_wall_vertex(w, 0);
       // orientation front or back is not important
-      Vec3 pos = GeometryUtil::uv2xyz(m.s.pos, w, v0);
+      Vec3 pos = GeometryUtils::uv2xyz(m.s.pos, w, v0);
       Collision collision(CollisionType::WALL_FRONT, &p, m.id, scheduled_time, pos, w.index);
       return outcome_intersect(p, rxn_classes[idx], pi, collision, scheduled_time);
     }
@@ -2005,7 +2005,7 @@ int DiffuseReactEvent::find_surf_product_positions(
   /* list of the restricted regions for the reactants by object */
   RegionIndicesSet rlp_obj_1, rlp_obj_2;
 
-  int sm_bitmask = RegionUtil::determine_molecule_region_topology(
+  int sm_bitmask = RegionUtils::determine_molecule_region_topology(
       p, reacA, reacB, rxn->is_unimol(),
       rlp_wall_1, rlp_wall_2, rlp_obj_1, rlp_obj_2);
 
@@ -2057,7 +2057,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       // rxn with surface molecule
       Wall& wall = p.get_wall(surf_reac->s.wall_index);
 
-      GridUtil::find_neighbor_tiles(p, surf_reac, wall, surf_reac->s.grid_tile_index, true, false, neighbor_tiles);
+      GridUtils::find_neighbor_tiles(p, surf_reac, wall, surf_reac->s.grid_tile_index, true, false, neighbor_tiles);
     }
     else {
       // rxn with surface class
@@ -2067,10 +2067,10 @@ int DiffuseReactEvent::find_surf_product_positions(
         wall.grid.initialize(p, wall);
       }
 
-      hit_wall_pos2d = GeometryUtil::xyz2uv(p, collision.pos, wall);
-      hit_wall_tile_index = GridUtil::uv2grid_tile_index(hit_wall_pos2d, wall);
+      hit_wall_pos2d = GeometryUtils::xyz2uv(p, collision.pos, wall);
+      hit_wall_tile_index = GridUtils::uv2grid_tile_index(hit_wall_pos2d, wall);
 
-      GridUtil::find_neighbor_tiles(p, nullptr, wall, hit_wall_tile_index, true, false, neighbor_tiles);
+      GridUtils::find_neighbor_tiles(p, nullptr, wall, hit_wall_tile_index, true, false, neighbor_tiles);
     }
 
     // we care only about the vacant ones (NOTE: this filtering out might be done in find_neighbor_tiles)
@@ -2243,7 +2243,7 @@ int DiffuseReactEvent::find_surf_product_positions(
         WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
 
         // make sure we can get to the tile given the surface regions defined in the model
-        if (!RegionUtil::product_tile_can_be_reached(p, grid_tile_index_pair.wall_index,
+        if (!RegionUtils::product_tile_can_be_reached(p, grid_tile_index_pair.wall_index,
             rxn->is_unimol(), sm_bitmask, rlp_wall_1, rlp_wall_2, rlp_obj_1, rlp_obj_2)) {
 
           // we do not want to be checking this tile anymore
@@ -2282,7 +2282,7 @@ static void update_vol_mol_after_rxn_with_surf_mol(
   Vec3 displacement = Vec3(2 * bump) * w.normal;
   Vec3 new_pos_after_diffuse;
 
-  DiffusionUtil::tiny_diffuse_3D(p, vm, displacement, w.index, new_pos_after_diffuse);
+  DiffusionUtils::tiny_diffuse_3D(p, vm, displacement, w.index, new_pos_after_diffuse);
 
   // update position and subpart if needed
   vm.v.pos = new_pos_after_diffuse;
@@ -2358,7 +2358,7 @@ void DiffuseReactEvent::handle_rxn_callback(
       // collision.pos is not valid for unimol surf or surf-surf reactions
       const Wall& w = p.get_wall(reac1->s.wall_index);
       const Vec3& v0 = p.get_wall_vertex(w, 0);
-      info->pos3d = GeometryUtil::uv2xyz(reac1->s.pos, w, v0);
+      info->pos3d = GeometryUtils::uv2xyz(reac1->s.pos, w, v0);
     }
 
     if (rxn->is_surf_rxn()) {
@@ -2370,7 +2370,7 @@ void DiffuseReactEvent::handle_rxn_callback(
     }
     else if (rxn->is_reactive_surface_rxn()) {
       const Wall& w = p.get_wall(collision.colliding_wall_index);
-      info->pos2d = GeometryUtil::xyz2uv(p, collision.pos, w);
+      info->pos2d = GeometryUtils::xyz2uv(p, collision.pos, w);
       info->geometry_object_id = w.object_id;
       info->partition_wall_index = collision.colliding_wall_index;
     }
@@ -2711,7 +2711,7 @@ int DiffuseReactEvent::outcome_products_random(
         // only surf-surf rxns don't have position
         assert(reacA->is_surf());
         const Wall& w_pos = p.get_wall(reacA->s.wall_index);
-        pos = GeometryUtil::uv2xyz(reacA->s.pos, w_pos, p.get_wall_vertex(w_pos, 0));
+        pos = GeometryUtils::uv2xyz(reacA->s.pos, w_pos, p.get_wall_vertex(w_pos, 0));
       }
       else {
         pos = collision.pos;
@@ -2726,7 +2726,7 @@ int DiffuseReactEvent::outcome_products_random(
         const Wall& w = p.get_wall(surf_reac->s.wall_index);
         // tiny diffuse done in update_vol_mol_after_rxn_with_surf_mol
         // cannot cross walls
-        CollisionUtil::update_counted_volume_id_when_crossing_wall(
+        CollisionUtils::update_counted_volume_id_when_crossing_wall(
             p, w, product_orientation, vm_initialization);
       }
 
@@ -2800,7 +2800,7 @@ int DiffuseReactEvent::outcome_products_random(
           }
           else {
             const Wall& wall = p.get_wall(new_grid_pos.wall_index);
-            pos = GridUtil::grid2uv_random(wall, new_grid_pos.tile_index, world->rng);
+            pos = GridUtils::grid2uv_random(wall, new_grid_pos.tile_index, world->rng);
           }
           break;
         default:
@@ -2890,7 +2890,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     else if (m.is_surf()) {
       Wall& w = p.get_wall(m.s.wall_index);
       const Vec3& wall_vert0 = p.get_geometry_vertex(w.vertex_indices[0]);
-      pos = GeometryUtil::uv2xyz(m.s.pos, w, wall_vert0);
+      pos = GeometryUtils::uv2xyz(m.s.pos, w, wall_vert0);
     }
     else {
       pos = Vec3(POS_INVALID);
@@ -3003,7 +3003,7 @@ bool DiffuseReactEvent::cross_transparent_wall(
     vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
 
     const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
-    CollisionUtil::update_counted_volume_id_when_crossing_wall(
+    CollisionUtils::update_counted_volume_id_when_crossing_wall(
         p, w, collision.get_orientation_against_wall(), vm);
 
     // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the

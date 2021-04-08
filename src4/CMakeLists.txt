@@ -39,8 +39,8 @@ set(SRC4_SOURCE_FILES
     memory_limit_checker.cpp
     world.cpp
     simulation_config.cpp
-    counted_volumes_util.cpp
-    region_util.cpp
+    counted_volume_utils.cpp
+    region_utils.cpp
     bng_data_to_datamodel_converter.cpp
 )
 

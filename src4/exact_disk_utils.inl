@@ -49,7 +49,7 @@ using namespace std;
 
 namespace MCell {
 
-namespace ExactDiskUtil {
+namespace ExactDiskUtils {
 
 
 // ---------------------------------- exact disk ----------------------------------
@@ -910,7 +910,7 @@ static float_t __attribute__((noinline)) exact_disk(
 
     /* Find wall bounding box */
     Vec3 llf, urb;
-    GeometryUtil::get_wall_bounding_box(w_vert, llf, urb);
+    GeometryUtils::get_wall_bounding_box(w_vert, llf, urb);
 
     /* Reject those without overlapping bounding boxes */
     float_t a, b;
@@ -941,7 +941,7 @@ static float_t __attribute__((noinline)) exact_disk(
     /* Reject those that the moving particle can travel through */
     if (moving.has_flag(BNG::SPECIES_FLAG_CAN_VOLWALL)) {
       BNG::RxnClassesVector matching_rxn_classes;
-      RxnUtil::trigger_intersect(p, moving, ORIENTATION_NONE, w, true, matching_rxn_classes);
+      RxnUtils::trigger_intersect(p, moving, ORIENTATION_NONE, w, true, matching_rxn_classes);
 
       if (matching_rxn_classes.empty()) {
         continue;

@@ -44,7 +44,7 @@
 
 namespace MCell {
 
-namespace GeometryUtil {
+namespace GeometryUtils {
 
 static Vec2 xyz2uv(const Partition& p, const Vec3& a, const Wall& w) {
   Vec2 res;
@@ -209,7 +209,7 @@ static void wall_subparts_collision_test(
         subpart_llf = subpart_llf - leeway3;
         subpart_urb = subpart_urb + leeway3;
 
-        if (WallUtil::wall_in_box(p, w, subpart_llf, subpart_urb) != 0) {
+        if (WallUtils::wall_in_box(p, w, subpart_llf, subpart_urb) != 0) {
           colliding_subparts.push_back(subpart_index);
         }
       }

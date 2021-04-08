@@ -391,7 +391,7 @@ void GeometryObject::to_data_model_as_geometrical_object(
 
   vector<uint> vertex_order;
 
-  object[KEY_NAME] = DMUtil::remove_obj_name_prefix(parent_name, name);
+  object[KEY_NAME] = DMUtils::remove_obj_name_prefix(parent_name, name);
   object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
 
   bool first = true; // to indicate when to use a comma
@@ -419,7 +419,7 @@ void GeometryObject::to_data_model_as_geometrical_object(
 
       // append triple x, y, z
       Vec3 pos = p.get_geometry_vertex(i) * Vec3(p.config.length_unit);
-      DMUtil::append_triplet(vertex_list, pos.x, pos.y, pos.z);
+      DMUtils::append_triplet(vertex_list, pos.x, pos.y, pos.z);
     }
   }
 
@@ -460,7 +460,7 @@ void GeometryObject::to_data_model_as_geometrical_object(
 
     Json::Value surface_region;
 
-    string name = DMUtil::get_surface_region_name(reg.name);
+    string name = DMUtils::get_surface_region_name(reg.name);
     surface_region[KEY_NAME] = name;
 
     Json::Value include_elements;
@@ -490,7 +490,7 @@ void GeometryObject::to_data_model_as_model_object(
   model_object[KEY_DYNAMIC_DISPLAY_SOURCE] = "script";
   model_object[KEY_SCRIPT_NAME] = "";
 
-  string obj_name = DMUtil::remove_obj_name_prefix(parent_name, name);
+  string obj_name = DMUtils::remove_obj_name_prefix(parent_name, name);
   model_object[KEY_NAME] = obj_name;
 
   // set defaults that may be overwritten
@@ -543,7 +543,7 @@ void InitialRegionMolecules::to_data_model(
     Json::Value& initial_region_molecules
 ) const {
   initial_region_molecules[KEY_MOLECULE] = all_species.get(species_id).name;
-  initial_region_molecules[KEY_ORIENT] = DMUtil::orientation_to_str(orientation);
+  initial_region_molecules[KEY_ORIENT] = DMUtils::orientation_to_str(orientation);
   if (const_num_not_density) {
     initial_region_molecules[KEY_MOLECULE_NUMBER] = to_string(release_num);
   }
@@ -718,7 +718,7 @@ bool Region::initialize_region_waypoint(
 
       bool must_redo_test = false;
 
-      uint num_crossed = CollisionUtil::get_num_crossed_region_walls(
+      uint num_crossed = CollisionUtils::get_num_crossed_region_walls(
           p, waypoint.pos, previous_waypoint.pos,
           *this, must_redo_test
       );
@@ -742,7 +742,7 @@ bool Region::initialize_region_waypoint(
     bool must_redo_test = false;
     bool inside = false;
     do {
-      inside = CollisionUtil::is_point_inside_region_no_waypoints(p, waypoint.pos, *this, must_redo_test);
+      inside = CollisionUtils::is_point_inside_region_no_waypoints(p, waypoint.pos, *this, must_redo_test);
       if (must_redo_test) {
         // updates values referenced by waypoint
         p.move_waypoint_because_positioned_on_wall(current_waypoint_index);
@@ -831,7 +831,7 @@ bool Region::is_point_inside(Partition& p, const Vec3& pos) {
 
   map<geometry_object_index_t, uint> num_crossed_walls_per_object;
   bool must_redo_test = false;
-  uint num_crossed = CollisionUtil::get_num_crossed_region_walls(
+  uint num_crossed = CollisionUtils::get_num_crossed_region_walls(
       p, pos, waypoint.pos,
       *this, must_redo_test
   );
@@ -847,7 +847,7 @@ bool Region::is_point_inside(Partition& p, const Vec3& pos) {
   }
   else {
     // let's try to compute the containment without waypoints as a fallback
-    bool inside = CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this, must_redo_test);
+    bool inside = CollisionUtils::is_point_inside_region_no_waypoints(p, pos, *this, must_redo_test);
     release_assert(!must_redo_test);
     return inside;
   }
@@ -890,17 +890,17 @@ void Region::dump_array(const std::vector<Region>& vec) {
 void Region::to_data_model(const Partition& p, Json::Value& modify_surface_region) const {
 
   if (initial_region_molecules.empty()) {
-    DMUtil::add_version(modify_surface_region, VER_DM_2018_01_11_1330);
+    DMUtils::add_version(modify_surface_region, VER_DM_2018_01_11_1330);
   }
   else {
-    DMUtil::add_version(modify_surface_region, VER_DM_2020_07_12_1600);
+    DMUtils::add_version(modify_surface_region, VER_DM_2020_07_12_1600);
   }
 
   modify_surface_region[KEY_DESCRIPTION] = "";
   modify_surface_region[KEY_OBJECT_NAME] =
-      DMUtil::remove_obj_name_prefix(p.get_geometry_object(geometry_object_id).name);
+      DMUtils::remove_obj_name_prefix(p.get_geometry_object(geometry_object_id).name);
 
-  string region_name = DMUtil::get_region_name(name);
+  string region_name = DMUtils::get_region_name(name);
   if (region_name == "ALL") {
     modify_surface_region[KEY_REGION_SELECTION] = VALUE_ALL;
     modify_surface_region[KEY_REGION_NAME] = "";

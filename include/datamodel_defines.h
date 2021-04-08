@@ -362,7 +362,7 @@ const char* const RELEASE_PATTERN_PREFIX = "release_pattern_";
 // ---------------------------------- datamodel utilities----------------------------------
 // TODO: move the utility functions into a c++ file
 
-namespace DMUtil {
+namespace DMUtils {
 
 using BNGCommon::float_t;
 

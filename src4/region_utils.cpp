@@ -22,7 +22,7 @@
 ******************************************************************************/
 
 
-#include "region_util.h"
+#include "region_utils.h"
 
 #include "partition.h"
 
@@ -34,7 +34,7 @@
 #include "mcell_structs_shared.h"
 
 namespace MCell {
-namespace RegionUtil {
+namespace RegionUtils {
 
 
 static bool is_any_rxn_reflect_or_absorb_region_border(const BNG::RxnClassesVector& rxns) {
@@ -71,7 +71,7 @@ static bool are_restricted_regions_for_species_on_object(
   // we must check all regions belonging to this object, not just the wall,
   // and get all applicable reactions
   BNG::RxnClassesVector matching_rxns;
-  RxnUtil::find_surface_mol_reactions_with_surf_classes(p, sm, obj, true, matching_rxns);
+  RxnUtils::find_surface_mol_reactions_with_surf_classes(p, sm, obj, true, matching_rxns);
 
   return is_any_rxn_reflect_or_absorb_region_border(matching_rxns);
 }
@@ -124,7 +124,7 @@ static void find_restricted_regions_by_object(
     // NOTE: MCell 3 calls also find_unimol_reactions_with_surf_classes
     // however all reactions should be covered by surface_mol_reactions_with_surf_classes,
     // reactions with surf classes should be always bimolecular - molecule + surf class
-    RxnUtil::find_surface_mol_reactions_with_surf_classes(p, sm, obj, true, matching_rxns);
+    RxnUtils::find_surface_mol_reactions_with_surf_classes(p, sm, obj, true, matching_rxns);
 
     if (is_any_rxn_reflect_or_absorb_region_border(matching_rxns)) {
       res.insert(ri);
@@ -189,8 +189,8 @@ uint determine_molecule_region_topology(
         are_restricted_regions_for_species_on_object(p, go_2, *sm_2)
      ) {
 
-      WallUtil::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
-      WallUtil::find_restricted_regions_by_wall(p, w_2, *sm_2, rlp_wall_2);
+      WallUtils::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
+      WallUtils::find_restricted_regions_by_wall(p, w_2, *sm_2, rlp_wall_2);
 
       /* both reactants are inside their respective restricted regions */
       if (!rlp_wall_1.empty() && !rlp_wall_2.empty()) {
@@ -226,7 +226,7 @@ uint determine_molecule_region_topology(
         !(species2.can_interact_with_border() &&
           are_restricted_regions_for_species_on_object(p, go_2, *sm_2))
     ){
-      WallUtil::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
+      WallUtils::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
       if (!rlp_wall_1.empty()) {
         sm_bitmask |= SURF1_IN;
       }
@@ -243,7 +243,7 @@ uint determine_molecule_region_topology(
          (species2.can_interact_with_border() &&
           are_restricted_regions_for_species_on_object(p, go_2, *sm_2))
     ){
-      WallUtil::find_restricted_regions_by_wall(p, w_2, *sm_2, rlp_wall_2);
+      WallUtils::find_restricted_regions_by_wall(p, w_2, *sm_2, rlp_wall_2);
       if (!rlp_wall_2.empty()) {
         sm_bitmask |= SURF2_IN;
       }
@@ -264,7 +264,7 @@ uint determine_molecule_region_topology(
         (species1.can_interact_with_border() &&
          are_restricted_regions_for_species_on_object(p, go_1, *sm_1))
     ){
-      WallUtil::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
+      WallUtils::find_restricted_regions_by_wall(p, w_1, *sm_1, rlp_wall_1);
       if (!rlp_wall_1.empty()) {
         sm_bitmask |= ALL_INSIDE;
       }
@@ -312,51 +312,51 @@ bool product_tile_can_be_reached(
 
   if (sm_bitmask & ALL_INSIDE) {
     if (is_unimol) {
-      if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1)) {
+      if (!WallUtils::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1)) {
         status = false;
       }
     } else {
       /* bimol reaction */
-      if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1) ||
-          !WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
+      if (!WallUtils::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1) ||
+          !WallUtils::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
         status = false;
       }
     }
   } else if (sm_bitmask & ALL_OUTSIDE) {
     if (is_unimol) {
-      if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1)) {
+      if (WallUtils::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1)) {
         status = false;
       }
     } else {
-      if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1) ||
-          WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
+      if (WallUtils::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1) ||
+          WallUtils::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
         status = false;
       }
     }
   } else if (sm_bitmask & SURF1_IN_SURF2_OUT) {
-    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1) ||
-        WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
+    if (!WallUtils::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1) ||
+        WallUtils::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
       status = false;
     }
   } else if (sm_bitmask & SURF1_OUT_SURF2_IN) {
-    if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1) ||
-        !WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
+    if (WallUtils::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1) ||
+        !WallUtils::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
       status = false;
     }
   } else if (sm_bitmask & SURF1_IN) {
-    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1)) {
+    if (!WallUtils::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_1)) {
       status = false;
     }
   } else if (sm_bitmask & SURF1_OUT) {
-    if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1)) {
+    if (WallUtils::wall_belongs_to_any_region_in_region_list(target, rlp_obj_1)) {
       status = false;
     }
   } else if (sm_bitmask & SURF2_IN) {
-    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
+    if (!WallUtils::wall_belongs_to_all_regions_in_region_list(target, rlp_wall_2)) {
       status = false;
     }
   } else if (sm_bitmask & SURF2_OUT) {
-    if (WallUtil::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
+    if (WallUtils::wall_belongs_to_any_region_in_region_list(target, rlp_obj_2)) {
       status = false;
     }
   }

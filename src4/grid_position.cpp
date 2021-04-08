@@ -31,8 +31,8 @@
 namespace MCell {
 namespace GridPosition {
 
-using GeometryUtil::xyz2uv;
-using GeometryUtil::uv2xyz;
+using GeometryUtils::xyz2uv;
+using GeometryUtils::uv2xyz;
 
 /*************************************************************************
 get_tile_vertices:
@@ -152,7 +152,7 @@ int find_wall_vertex_for_corner_tile(const Grid& grid, const tile_index_t idx) {
   /* index of the wall vertex that is shared with the tile vertex */
   int vertex_id = 0;
 
-  if (!GridUtil::is_corner_tile(grid, idx))
+  if (!GridUtils::is_corner_tile(grid, idx))
     mcell_internal_error("Function 'find_wall_vertex_for_corner_tile()' is "
                          "called for the tile that is not the corner tile.");
 
@@ -375,7 +375,7 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
   get_tile_vertices(p, grid1, idx1, flip1, R, S, T);
 
   /* the code below tries to increase accuracy for the corner tiles */
-  if (GridUtil::is_corner_tile(grid1, idx1)) {
+  if (GridUtils::is_corner_tile(grid1, idx1)) {
     /* find out the shared vertex */
     int shared_wall_vertex_id_1 = find_wall_vertex_for_corner_tile(grid1, idx1);
     /* note that vertices R, S, T followed clockwise rule */
@@ -411,7 +411,7 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
 
   /* the code below tries to increase accuracy for the corner tiles */
   // CODO: make a function out of this, same code as above
-  if (GridUtil::is_corner_tile(grid2, idx2)) {
+  if (GridUtils::is_corner_tile(grid2, idx2)) {
     /* find out the shared vertex */
     int shared_wall_vertex_id_1 = find_wall_vertex_for_corner_tile(grid2, idx2);
     /* note that vertices A, B, C followed clockwise rule */
@@ -774,9 +774,9 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
   Vec3 prod_pos_3d;
   Vec2 prod_pos;
 
-  GeometryUtil::closest_pt_point_triangle(A_3d, R_3d, S_3d, T_3d, A_close_3d);
-  GeometryUtil::closest_pt_point_triangle(B_3d, R_3d, S_3d, T_3d, B_close_3d);
-  GeometryUtil::closest_pt_point_triangle(C_3d, R_3d, S_3d, T_3d, C_close_3d);
+  GeometryUtils::closest_pt_point_triangle(A_3d, R_3d, S_3d, T_3d, A_close_3d);
+  GeometryUtils::closest_pt_point_triangle(B_3d, R_3d, S_3d, T_3d, B_close_3d);
+  GeometryUtils::closest_pt_point_triangle(C_3d, R_3d, S_3d, T_3d, C_close_3d);
 
   dist_A_A_close_3d = distance3(A_3d, A_close_3d);
   dist_B_B_close_3d = distance3(B_3d, B_close_3d);

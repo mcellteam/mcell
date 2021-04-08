@@ -33,7 +33,7 @@ class Wall;
 struct Vec3;
 struct Vec2;
 
-namespace GeometryUtil {
+namespace GeometryUtils {
 
 // some commonly used utilities for which one does not need to
 // include the whole geometry_utils.inc

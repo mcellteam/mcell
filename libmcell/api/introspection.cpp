@@ -121,7 +121,7 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
 
     res->type = MoleculeType::SURFACE;
     res->pos2d = m.s.pos * Vec2(world->config.length_unit);
-    res->pos3d = GeometryUtil::uv2xyz(m.s.pos, w, w_vert0) * Vec3(world->config.length_unit);
+    res->pos3d = GeometryUtils::uv2xyz(m.s.pos, w, w_vert0) * Vec3(world->config.length_unit);
     res->orientation = convert_mcell_orientation(m.s.orientation);
 
     res->geometry_object = model_inst->get_geometry_object_with_id(w.object_id);

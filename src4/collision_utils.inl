@@ -51,7 +51,7 @@ using namespace std;
 
 namespace MCell {
 
-namespace CollisionUtil {
+namespace CollisionUtils {
 
 // ---------------------------------- subpartitions ----------------------------------
 
@@ -931,7 +931,7 @@ static bool collide_wall_test(
     assert(w_with_vertices != nullptr);
   }
 
-  res = CollisionUtil::collide_wall(
+  res = CollisionUtils::collide_wall(
       p, pos, face.index, unused_rng_state, false, tmp_move,
       ignored_collision_time, ignored_collision_pos,
       face.exists_in_partition(), w_with_vertices
@@ -1556,7 +1556,7 @@ static counted_volume_index_t compute_counted_volume_for_pos(
   cv.contained_in_objects.clear();
   for (GeometryObject& obj: p.get_geometry_objects()) {
     if (obj.is_counted_volume_or_compartment()) {
-      if (CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
+      if (CountedVolumeUtils::is_point_inside_counted_volume(obj, pos)) {
         cv.contained_in_objects.insert(obj.index);
       }
     }
@@ -1630,7 +1630,7 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
     // either we have no waypoints or we need to recompute the position
     // because a wall is obstructing
     p.stats.inc_recomputations_of_counted_volume();
-    return CollisionUtil::compute_counted_volume_for_pos(p, pos);
+    return CollisionUtils::compute_counted_volume_for_pos(p, pos);
   }
 }
 

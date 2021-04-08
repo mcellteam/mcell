@@ -52,7 +52,7 @@ void Partition::finalize_wall_creation(const wall_index_t wall_index) {
 
   // also insert this triangle into walls per subpartition
   SubpartIndicesVector colliding_subparts;
-  GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
+  GeometryUtils::wall_subparts_collision_test(*this, w, colliding_subparts);
   for (subpart_index_t subpart_index: colliding_subparts) {
     assert(subpart_index < walls_per_subpart.size());
 
@@ -74,7 +74,7 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
     wall_index_t wall_index = it.first;
     SubpartIndicesVector colliding_subparts;
     Wall& w = get_wall(wall_index);
-    GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
+    GeometryUtils::wall_subparts_collision_test(*this, w, colliding_subparts);
     assert(insert || SubpartIndicesSet(colliding_subparts.begin(), colliding_subparts.end()) == w.present_in_subparts);
 
     for (subpart_index_t subpart_index: colliding_subparts) {
@@ -204,12 +204,12 @@ void Partition::apply_vertex_moves_per_object(
 #endif
 
   for (const auto& it: walls_with_their_moves) {
-    DynVertexUtil::collect_volume_molecules_moved_due_to_moving_wall(
+    DynVertexUtils::collect_volume_molecules_moved_due_to_moving_wall(
         *this, it.first, it.second, already_moved_volume_molecules, volume_molecule_moves);
 
     // does the area of the wall change?
     if (it.second.wall_changes_area) {
-      DynVertexUtil::collect_surface_molecules_moved_due_to_moving_wall(
+      DynVertexUtils::collect_surface_molecules_moved_due_to_moving_wall(
           *this, it.first, surface_molecule_moves);
     }
   }
@@ -225,7 +225,7 @@ void Partition::apply_vertex_moves_per_object(
 
   // 6) move volume molecules
   for (const VolumeMoleculeMoveInfo& move_info: volume_molecule_moves) {
-    DynVertexUtil::move_volume_molecule_to_closest_wall_point(*this, move_info);
+    DynVertexUtils::move_volume_molecule_to_closest_wall_point(*this, move_info);
   }
 
   // 7) move surface molecules
@@ -250,7 +250,7 @@ void Partition::apply_vertex_moves_per_object(
   );
   for (const SurfaceMoleculeMoveInfo& move_info: surface_molecule_moves) {
     // finally fix positions of the surface molecules (only those that are on walls that change area)
-    DynVertexUtil::move_surface_molecule_to_closest_wall_point(*this, move_info);
+    DynVertexUtils::move_surface_molecule_to_closest_wall_point(*this, move_info);
   }
 }
 
@@ -289,7 +289,7 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
 
     // TODO: preferably use some function that does not collect what we hit,
     // but we do not have such
-    float_t collision_time = CollisionUtil::get_num_crossed_walls_per_object(
+    float_t collision_time = CollisionUtils::get_num_crossed_walls_per_object(
         *this, pos, pos + displacement + wall_gap_displacement, false,
         num_crossed_walls_per_object_ignored, must_redo_test,
         vertex_move_info.geometry_object_id,
@@ -413,7 +413,7 @@ void Partition::initialize_waypoint(
   do {
     wall_index_t wall_index_ignored;
     Vec2 wall_pos2d_ignored;
-    dist2 = WallUtil::find_closest_wall_any_object(
+    dist2 = WallUtils::find_closest_wall_any_object(
         *this, waypoint.pos, SQRT_EPS, false, wall_index_ignored, wall_pos2d_ignored);
     if (dist2 < EPS) {
        move_waypoint_because_positioned_on_wall(waypoint_index, false);
@@ -429,7 +429,7 @@ void Partition::initialize_waypoint(
     do {
       map<geometry_object_index_t, uint> num_crossed_walls_per_object;
 
-      CollisionUtil::get_num_crossed_walls_per_object(
+      CollisionUtils::get_num_crossed_walls_per_object(
           *this, waypoint.pos, previous_waypoint_pos, false, // all walls
           num_crossed_walls_per_object, redo
       );
@@ -449,7 +449,7 @@ void Partition::initialize_waypoint(
       map<geometry_object_index_t, uint> num_crossed_walls_per_object;
 
       bool must_redo_test = false;
-      CollisionUtil::get_num_crossed_walls_per_object(
+      CollisionUtils::get_num_crossed_walls_per_object(
           *this, waypoint.pos, previous_waypoint.pos, true, // only counted objects
           num_crossed_walls_per_object, must_redo_test
       );
@@ -569,12 +569,12 @@ bool Partition::check_for_overlapped_walls(const Vec3& rand_vec) const {
 
 // method is in .cpp file because it uses inlined implementation
 counted_volume_index_t Partition::compute_counted_volume_from_scratch(const Vec3& pos) {
-  return CollisionUtil::compute_counted_volume_for_pos(*this, pos);
+  return CollisionUtils::compute_counted_volume_for_pos(*this, pos);
 }
 
 
 counted_volume_index_t Partition::compute_counted_volume_using_waypoints(const Vec3& pos) {
-  return CollisionUtil::compute_counted_volume_using_waypoints(*this, pos);
+  return CollisionUtils::compute_counted_volume_using_waypoints(*this, pos);
 }
 
 
@@ -708,7 +708,7 @@ void Partition::to_data_model(Json::Value& mcell) const {
   }
 
   Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
-  DMUtil::add_version(model_objects, VER_DM_2018_01_11_1330);
+  DMUtils::add_version(model_objects, VER_DM_2018_01_11_1330);
   Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
   model_object_list = Json::Value(Json::arrayValue);
 
@@ -720,7 +720,7 @@ void Partition::to_data_model(Json::Value& mcell) const {
 
   // mod_surf_regions
   Json::Value& modify_surface_regions = mcell[KEY_MODIFY_SURFACE_REGIONS];
-  DMUtil::add_version(modify_surface_regions, VER_DM_2014_10_24_1638);
+  DMUtils::add_version(modify_surface_regions, VER_DM_2014_10_24_1638);
   Json::Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
   modify_surface_regions_list = Json::Value(Json::arrayValue);
   for (const Region& reg: regions) {

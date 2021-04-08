@@ -33,7 +33,7 @@
 #include "world.h"
 
 using namespace std;
-using namespace DMUtil;
+using namespace DMUtils;
 using namespace BNG;
 using Json::Value;
 
@@ -280,7 +280,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
     rxn_node[KEY_VARIABLE_RATE_VALID] = true;
     rxn_node[KEY_VARIABLE_RATE_SWITCH] = true;
 
-    rxn_node[KEY_VARIABLE_RATE] = "var_rate_" + DMUtil::to_id(r.name) + "_" + to_string(rxn_counter);
+    rxn_node[KEY_VARIABLE_RATE] = "var_rate_" + DMUtils::to_id(r.name) + "_" + to_string(rxn_counter);
     rxn_counter++;
 
     stringstream text;
@@ -362,7 +362,7 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
       sc_property[KEY_MOLECULE] = reactant_name;
     }
 
-    sc_property[KEY_SURF_CLASS_ORIENT] = DMUtil::orientation_to_str(rxn_rule->reactants[0].get_orientation());
+    sc_property[KEY_SURF_CLASS_ORIENT] = DMUtils::orientation_to_str(rxn_rule->reactants[0].get_orientation());
 
     sc_property[KEY_CLAMP_VALUE] = "0";
     sc_property[KEY_NAME] = ""; // name is ignored by the datamodel to mdl converter anyway

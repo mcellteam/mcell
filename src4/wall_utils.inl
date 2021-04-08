@@ -49,7 +49,7 @@
 
 namespace MCell {
 
-namespace WallUtil {
+namespace WallUtils {
 
 /***********************************************************************
 walls_share_full_edge:
@@ -543,7 +543,7 @@ static void find_restricted_regions_by_wall(
 
   // get all possible molecule-surface reactions
   BNG::RxnClassesVector matching_rxn_classes;
-  RxnUtil::trigger_intersect(p, sm, sm.s.orientation, this_wall, true, matching_rxn_classes);
+  RxnUtils::trigger_intersect(p, sm, sm.s.orientation, this_wall, true, matching_rxn_classes);
 
   // collect species that can react
   uint_set<species_id_t> restricted_surf_classes;
@@ -719,7 +719,7 @@ static float_t find_closest_wall(
     }
 
     Vec2 wall_pos2d;
-    float_t d2 = GeometryUtil::closest_interior_point(p, pos, w, wall_pos2d);
+    float_t d2 = GeometryUtils::closest_interior_point(p, pos, w, wall_pos2d);
 
     if (d2 <= best_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
       best_d2 = d2;
@@ -752,7 +752,7 @@ static float_t find_closest_wall_any_object(
   p.get_subpart_3d_indices(pos, subpart_indices);
   SubpartIndicesSet crossed_subpart_indices;
   crossed_subpart_indices.insert(p.get_subpart_index_from_3d_indices(subpart_indices));
-  CollisionUtil::collect_neighboring_subparts(
+  CollisionUtils::collect_neighboring_subparts(
       p, pos, subpart_indices, search_d, p.config.subpartition_edge_length,
       crossed_subpart_indices
   );
@@ -771,7 +771,7 @@ static float_t find_closest_wall_any_object(
       }
 
       Vec2 wall_pos2d;
-      float_t d2 = GeometryUtil::closest_interior_point(p, pos, w, wall_pos2d);
+      float_t d2 = GeometryUtils::closest_interior_point(p, pos, w, wall_pos2d);
 
       if (d2 <= best_d2 && d2 <= search_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
         best_d2 = d2;

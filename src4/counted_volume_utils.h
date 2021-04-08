@@ -38,7 +38,7 @@ class World;
 class Partition;
 class GeometryObject;
 
-namespace CountedVolumesUtil {
+namespace CountedVolumeUtils {
 
 
 class GeomObjectInfo {

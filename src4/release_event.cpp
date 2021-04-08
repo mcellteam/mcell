@@ -98,7 +98,7 @@ string RegionExprNode::to_string(const World* world, const bool for_datamodel) c
   if (op == RegionExprOperator::Leaf) {
     const string& region_name = world->get_region(region_id).name;
     if (for_datamodel) {
-      return DMUtil::get_object_w_region_name(region_name);
+      return DMUtils::get_object_w_region_name(region_name);
     }
     else {
       return region_name;
@@ -268,7 +268,7 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
   Json::Value& define_release_patterns = mcell_node[KEY_DEFINE_RELEASE_PATTERNS];
   // version might be already there
   if (define_release_patterns.isMember(KEY_DATA_MODEL_VERSION)) {
-    DMUtil::add_version(define_release_patterns, VER_DM_2014_10_24_1638);
+    DMUtils::add_version(define_release_patterns, VER_DM_2014_10_24_1638);
   }
   Json::Value& release_pattern_list = define_release_patterns[KEY_RELEASE_PATTERN_LIST];
 
@@ -292,7 +292,7 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
 
   Json::Value release_pattern_item;
 
-  DMUtil::add_version(release_pattern_item, VER_DM_2018_01_11_1330);
+  DMUtils::add_version(release_pattern_item, VER_DM_2018_01_11_1330);
 
   release_pattern_item[KEY_DELAY] = f_to_str(delay * world->config.time_unit);
   release_pattern_item[KEY_NUMBER_OF_TRAINS] = to_string(number_of_trains);
@@ -323,15 +323,15 @@ void ReleaseEvent::to_data_model_as_one_release_site(
 
   // these items might already exist
   Json::Value& release_sites = mcell_node[KEY_RELEASE_SITES];
-  DMUtil::add_version(release_sites, VER_DM_2014_10_24_1638);
+  DMUtils::add_version(release_sites, VER_DM_2014_10_24_1638);
   Json::Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
 
   Json::Value release_site;
-  DMUtil::add_version(release_site, VER_DM_2018_01_11_1330);
+  DMUtils::add_version(release_site, VER_DM_2018_01_11_1330);
   release_site[KEY_DESCRIPTION] = "";
-  release_site[KEY_NAME] = DMUtil::remove_obj_name_prefix(name_override);
+  release_site[KEY_NAME] = DMUtils::remove_obj_name_prefix(name_override);
   release_site[KEY_MOLECULE] = world->get_all_species().get(species_id_override).name;
-  release_site[KEY_ORIENT] = DMUtil::orientation_to_str(orientation_override);
+  release_site[KEY_ORIENT] = DMUtils::orientation_to_str(orientation_override);
 
   // how many to release
   switch (release_number_method) {
@@ -400,7 +400,7 @@ void ReleaseEvent::to_data_model_as_one_release_site(
       for (uint i = points_list_begin_index; i < points_list_end_index; i++) {
         assert(i < molecule_list.size());
         Vec3 pos_scaled = molecule_list[i].pos * Vec3(world->config.length_unit);
-        DMUtil::append_triplet(points_list, pos_scaled.x, pos_scaled.y, pos_scaled.z);
+        DMUtils::append_triplet(points_list, pos_scaled.x, pos_scaled.y, pos_scaled.z);
       }
     }
 
@@ -710,7 +710,7 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
       }
 
       molecule_id_t sm_id =
-          GridUtil::place_single_molecule_onto_grid(
+          GridUtils::place_single_molecule_onto_grid(
               p, world->rng, wall, tile_index, false, Vec2(),
               species_id, orientation, event_time, get_release_delay_time()
           );
@@ -983,7 +983,7 @@ void ReleaseEvent::release_list() {
 
       float_t diam = diameter.x;
       assert(diam != FLT_INVALID);
-      molecule_id_t sm_id = GridUtil::place_surface_molecule_to_closest_pos(
+      molecule_id_t sm_id = GridUtils::place_surface_molecule_to_closest_pos(
           p, world->rng, info.pos, info.species_id, orient, diameter.x,
           event_time, get_release_delay_time()
       );
@@ -1052,7 +1052,7 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, con
       Wall& w = p.get_wall(wip.wall_index);
 
       if (w.grid.get_molecule_on_tile(wip.tile_index) == MOLECULE_ID_INVALID) {
-        GridUtil::place_single_molecule_onto_grid(
+        GridUtils::place_single_molecule_onto_grid(
             p, world->rng, w, wip.tile_index, false, Vec2(),
             info.species_id, info.orientation, event_time, get_release_delay_time()
         );
@@ -1127,7 +1127,7 @@ void ReleaseEvent::init_surf_mols_by_density(
     }
 
     species_id_t species_id = prob_info_pairs[index].second.species_id;
-    GridUtil::place_single_molecule_onto_grid(
+    GridUtils::place_single_molecule_onto_grid(
         p, world->rng, w, ti, false, Vec2(),
         prob_info_pairs[index].second.species_id, prob_info_pairs[index].second.orientation,
         event_time, get_release_delay_time()

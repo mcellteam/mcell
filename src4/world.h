@@ -46,7 +46,7 @@
 #include "scheduler.h"
 #include "geometry.h"
 #include "count_buffer.h"
-#include "counted_volumes_util.h"
+#include "counted_volume_utils.h"
 #include "memory_limit_checker.h"
 
 #include "logging.h"

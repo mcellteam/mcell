@@ -41,7 +41,7 @@ using namespace std;
 
 namespace MCell {
 
-namespace DynVertexUtil {
+namespace DynVertexUtils {
 
 
 // based on place_mol_relative_to_mesh
@@ -54,14 +54,14 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
   //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
   wall_index_t best_wall_index;
   Vec2 best_wall_pos2d;
-  WallUtil::find_closest_wall(p, vm.v.pos, molecule_move_info.wall_index, false, best_wall_index, best_wall_pos2d);
+  WallUtils::find_closest_wall(p, vm.v.pos, molecule_move_info.wall_index, false, best_wall_index, best_wall_pos2d);
 
   if (best_wall_index == WALL_INDEX_INVALID) {
     mcell_error("Could not find a wall close to volume molecule with id %d.\n", vm.id);
   }
   Wall& wall = p.get_wall(best_wall_index);
 
-  Vec3 new_pos3d = GeometryUtil::uv2xyz(best_wall_pos2d, wall, p.get_wall_vertex(wall, 0));
+  Vec3 new_pos3d = GeometryUtils::uv2xyz(best_wall_pos2d, wall, p.get_wall_vertex(wall, 0));
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
   vm.dump(p, "", "Moving vm towards new wall: ", p.stats.get_current_iteration(), 0);
@@ -76,7 +76,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
   vm.v.pos = new_pos3d;
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
   Vec3 new_pos_after_diffuse;
-  DiffusionUtil::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
+  DiffusionUtils::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
 
 
   // TODO:
@@ -98,7 +98,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
 
 
 // insert_surface_molecule & place_surface_molecule in mcell3
-// TODO: quite similar code as in WallUtil::place_surface_molecule,
+// TODO: quite similar code as in WallUtils::place_surface_molecule,
 // can be it be somehow merged?
 static void move_surface_molecule_to_closest_wall_point(
     Partition& p,
@@ -115,7 +115,7 @@ static void move_surface_molecule_to_closest_wall_point(
   //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
   wall_index_t best_wall_index;
   Vec2 best_wall_pos2d;
-  float_t best_d2 = WallUtil::find_closest_wall(
+  float_t best_d2 = WallUtils::find_closest_wall(
       p, molecule_move_info.pos3d, molecule_move_info.wall_index, true, best_wall_index, best_wall_pos2d);
 
   if (best_wall_index == WALL_INDEX_INVALID) {
@@ -127,7 +127,7 @@ static void move_surface_molecule_to_closest_wall_point(
   tile_index_t found_tile_index;
   Vec2 found_pos2d(FLT_INVALID);
 
-  GridUtil::find_closest_tile_on_wall(
+  GridUtils::find_closest_tile_on_wall(
       p, best_wall_index, best_wall_pos2d, best_d2, p.config.vacancy_search_dist2,
       found_wall_index, found_tile_index, found_pos2d
   );
@@ -319,11 +319,11 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
     Vec3 move(0, 0, p.config.partition_edge_length);
 
     // check collision with the original wall
-    bool collides = CollisionUtil::collide_wall_test(p, orig_wall, m.v.pos, move);
+    bool collides = CollisionUtils::collide_wall_test(p, orig_wall, m.v.pos, move);
     if (collides) { num_hits++; }
 
     // and with the new wall as well, the wall does not exist in the partition
-    collides = CollisionUtil::collide_wall_test(p, new_wall, m.v.pos, move);
+    collides = CollisionUtils::collide_wall_test(p, new_wall, m.v.pos, move);
     if (collides) { num_hits++; }
 
     // now, let's deal with the areas that are 'drawn' by the moving edges
@@ -331,7 +331,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
     for (uint i1 = 0; i1 < EDGES_IN_TRIANGLE; i1++) {
       uint i2 = (i1 + 1) % EDGES_IN_TRIANGLE;
 
-      collides = CollisionUtil::collide_moving_line_and_static_line_test(
+      collides = CollisionUtils::collide_moving_line_and_static_line_test(
           p,
           m.v.pos, move,
           *o[i1], n[i1], *o[i2], n[i2],
@@ -351,7 +351,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
 
       // first we need to figure out on which side of the new wall we should place the molecule
       // with regards to its normal
-      bool place_above = GeometryUtil::is_point_above_plane_defined_by_wall(p, orig_wall, m.v.pos);
+      bool place_above = GeometryUtils::is_point_above_plane_defined_by_wall(p, orig_wall, m.v.pos);
 
       molecule_moves.push_back(VolumeMoleculeMoveInfo(m.id, orig_wall.index, place_above));
 
@@ -394,7 +394,7 @@ void collect_surface_molecules_moved_due_to_moving_wall(
   for (molecule_id_t id: molecule_ids) {
     const Molecule& sm = p.get_m(id);
     assert(sm.is_surf());
-    Vec3 pos3d = GeometryUtil::uv2xyz(sm.s.pos, w, vert0);
+    Vec3 pos3d = GeometryUtils::uv2xyz(sm.s.pos, w, vert0);
 
     molecule_moves.push_back(
         SurfaceMoleculeMoveInfo(id, moved_wall_index, pos3d)

@@ -126,7 +126,7 @@ void VizOutputEvent::compute_where_and_norm(
   else if (species.is_surf()) {
     const Wall& wall = p.get_wall(m.s.wall_index);
     const Vec3& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
-    where = GeometryUtil::uv2xyz(m.s.pos, wall, wall_vert0);
+    where = GeometryUtils::uv2xyz(m.s.pos, wall, wall_vert0);
 
     norm = Vec3(m.s.orientation) * wall.normal;
   }
@@ -295,7 +295,7 @@ void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
   CONVERSION_CHECK(!mcell_node.isMember(KEY_VIZ_OUTPUT), "Only one viz_output section is allowed");
 
   Json::Value& viz_output = mcell_node[KEY_VIZ_OUTPUT];
-  DMUtil::add_version(viz_output, VER_DM_2014_10_24_1638);
+  DMUtils::add_version(viz_output, VER_DM_2014_10_24_1638);
 
   viz_output[KEY_EXPORT_ALL] = should_visualize_all_species();
   viz_output[KEY_START] = f_to_str(event_time);

@@ -45,7 +45,7 @@
 using namespace std;
 
 namespace MCell {
-namespace RxnUtil {
+namespace RxnUtils {
 
 // ---------------------------------- bimolecular reactions ----------------------------------
 

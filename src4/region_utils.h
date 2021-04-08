@@ -31,7 +31,7 @@ namespace MCell {
 class Partition;
 class Molecule;
 
-namespace RegionUtil {
+namespace RegionUtils {
 
 /* ALL_INSIDE: flag that indicates that all reactants lie inside their
  *             respective restrictive regions

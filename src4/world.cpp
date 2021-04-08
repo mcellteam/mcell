@@ -153,7 +153,7 @@ void World::create_initial_surface_region_release_event() {
 void World::init_counted_volumes() {
   assert(partitions.size() == 1);
 
-  bool ok = CountedVolumesUtil::initialize_counted_volumes(this, config.has_intersecting_counted_objects);
+  bool ok = CountedVolumeUtils::initialize_counted_volumes(this, config.has_intersecting_counted_objects);
   if (!ok) {
     mcell_error("Processing of counted volumes failed, terminating.");
   }
@@ -698,7 +698,7 @@ std::string World::export_releases_to_bngl_seed_species(
 
     // and line in seed species, for now whole objects are representing compartments
     const Region& region = get_region(re->region_expr_root->region_id);
-    if (DMUtil::get_region_name(region.name) != "ALL") {
+    if (DMUtils::get_region_name(region.name) != "ALL") {
       return "Compartments that do not span the whole object are not supported yet" + err_suffix;
     }
     const GeometryObject& obj = get_geometry_object(region.geometry_object_id);
@@ -809,7 +809,7 @@ std::string World::export_to_bngl(const std::string& file_name) const {
   }
   const GeometryObject& obj = p.get_geometry_objects()[0];
 
-  float_t volume_internal_units = CountedVolumesUtil::get_geometry_object_volume(this, obj);
+  float_t volume_internal_units = CountedVolumeUtils::get_geometry_object_volume(this, obj);
   if (volume_internal_units == FLT_INVALID) {
     return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
   }
@@ -928,7 +928,7 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   Json::Value& mcell = root[KEY_MCELL];
 
   mcell[KEY_CELLBLENDER_VERSION] = VALUE_CELLBLENDER_VERSION;
-  DMUtil::add_version(mcell, VER_DM_2017_06_23_1300);
+  DMUtils::add_version(mcell, VER_DM_2017_06_23_1300);
 
   initialization_to_data_model(mcell);
 
@@ -937,7 +937,7 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   // first create empty model_objects section (may be filled-in by
   // GeometryObject::to_data_model_as_model_object
   Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
-  DMUtil::add_version(model_objects, VER_DM_2018_01_11_1330);
+  DMUtils::add_version(model_objects, VER_DM_2018_01_11_1330);
   Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
   model_object_list = Json::Value(Json::arrayValue);
 
@@ -950,7 +950,7 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   if (!only_for_viz) {
     // base information for reaction_data_output must be set even when there are no such events
     Json::Value& reaction_data_output = mcell[KEY_REACTION_DATA_OUTPUT];
-    DMUtil::add_version(reaction_data_output, VER_DM_2016_03_15_1800);
+    DMUtils::add_version(reaction_data_output, VER_DM_2016_03_15_1800);
     reaction_data_output[KEY_PLOT_LAYOUT] = " ";
     reaction_data_output[KEY_PLOT_LEGEND] = "0";
     reaction_data_output[KEY_MOL_COLORS] = false;
@@ -984,20 +984,20 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
 
   // --- mol_viz ---
   Json::Value& mol_viz = mcell[KEY_MOL_VIZ];
-  DMUtil::add_version(mol_viz, VER_DM_2015_04_13_1700);
+  DMUtils::add_version(mol_viz, VER_DM_2015_04_13_1700);
   mol_viz[KEY_MANUAL_SELECT_VIZ_DIR] = false;
   mol_viz[KEY_FILE_START_INDEX] = 0;
   mol_viz[KEY_SEED_LIST] = Json::Value(Json::arrayValue); // empty array
 
   Json::Value& color_list = mol_viz[KEY_COLOR_LIST];
-  DMUtil::append_triplet(color_list, 0.8, 0.0, 0.0);
-  DMUtil::append_triplet(color_list, 0.0, 0.8, 0.0);
-  DMUtil::append_triplet(color_list, 0.0, 0.0, 0.8);
-  DMUtil::append_triplet(color_list, 0.0, 0.8, 0.8);
-  DMUtil::append_triplet(color_list, 0.8, 0.0, 0.8);
-  DMUtil::append_triplet(color_list, 0.8, 0.8, 0.0);
-  DMUtil::append_triplet(color_list, 1.0, 1.0, 1.0);
-  DMUtil::append_triplet(color_list, 0.0, 0.0, 0.0);
+  DMUtils::append_triplet(color_list, 0.8, 0.0, 0.0);
+  DMUtils::append_triplet(color_list, 0.0, 0.8, 0.0);
+  DMUtils::append_triplet(color_list, 0.0, 0.0, 0.8);
+  DMUtils::append_triplet(color_list, 0.0, 0.8, 0.8);
+  DMUtils::append_triplet(color_list, 0.8, 0.0, 0.8);
+  DMUtils::append_triplet(color_list, 0.8, 0.8, 0.0);
+  DMUtils::append_triplet(color_list, 1.0, 1.0, 1.0);
+  DMUtils::append_triplet(color_list, 0.0, 0.0, 0.0);
 
   mol_viz[KEY_ACTIVE_SEED_INDEX] = 0;
   mol_viz[KEY_FILE_INDEX] = 959; // don't know what this means
@@ -1018,7 +1018,7 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
 
   // --- scripting ---
   Json::Value& scripting = mcell[KEY_SCRIPTING];
-  DMUtil::add_version(scripting, VER_DM_2017_11_30_1830);
+  DMUtils::add_version(scripting, VER_DM_2017_11_30_1830);
   scripting[KEY_SCRIPTING_LIST] = Json::Value(Json::arrayValue);
   scripting[KEY_SCRIPT_TEXTS] = Json::Value(Json::objectValue);
   scripting[KEY_DM_INTERNAL_FILE_NAME] = "";
@@ -1044,7 +1044,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
 
   // --- initialization ---
   Json::Value& initialization = mcell_node[KEY_INITIALIZATION];
-  DMUtil::add_version(initialization, VER_DM_2017_11_18_0130);
+  DMUtils::add_version(initialization, VER_DM_2017_11_18_0130);
 
   // time step will most probably use rounded values, therefore we don't have to use full precision here
   initialization[KEY_TIME_STEP] = f_to_str(config.time_unit, 8);

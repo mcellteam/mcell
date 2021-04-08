@@ -223,7 +223,7 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
       if (!surf_compartment_used) {
         string reg_name = world->get_region(region_id).name;
         CONVERSION_CHECK(reg_name != "", "Counted region has no name");
-        where = DMUtil::get_object_w_region_name(reg_name, false);
+        where = DMUtils::get_object_w_region_name(reg_name, false);
       }
     }
     break;
@@ -298,7 +298,7 @@ static string noext(const string& s) {
 }
 
 void MolOrRxnCountItem::to_data_model(const World* world, Json::Value& reaction_output) const {
-  DMUtil::add_version(reaction_output, VER_DM_2018_01_11_1330);
+  DMUtils::add_version(reaction_output, VER_DM_2018_01_11_1330);
 
   // MDLString is a general way how to capture the output
   reaction_output[KEY_RXN_OR_MOL] = VALUE_MDLSTRING;

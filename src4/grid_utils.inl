@@ -45,7 +45,7 @@
 
 namespace MCell {
 
-namespace GridUtil {
+namespace GridUtils {
 
 
 
@@ -92,7 +92,7 @@ static tile_index_t xyz2grid_tile_index(
   }
 
   // check
-  if (!(GeometryUtil::point_in_triangle(v, vert_0, vert_1, vert_2))) {
+  if (!(GeometryUtils::point_in_triangle(v, vert_0, vert_1, vert_2))) {
     mcell_internal_error("Error in function 'uv2grid()': point is outside wall.");
   }
 
@@ -167,7 +167,7 @@ static tile_index_t uv2grid_tile_index(
   }
 
   // check
-  if (!(GeometryUtil::point_in_triangle_2D(v, vert_0, vert_1, w.uv_vert2))) {
+  if (!(GeometryUtils::point_in_triangle_2D(v, vert_0, vert_1, w.uv_vert2))) {
     mcell_internal_error("Error in function 'uv2grid()': point is outside wall.");
   }
 
@@ -379,7 +379,7 @@ static void get_grid_neighbors_single_grid_and_index(
     if (mid != MOLECULE_ID_INVALID) {
       const Molecule& sm = p.get_m(mid);
       const Vec3& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
-      loc3d = GeometryUtil::uv2xyz(sm.s.pos, wall, wall_vert0);
+      loc3d = GeometryUtils::uv2xyz(sm.s.pos, wall, wall_vert0);
     }
     else {
       loc3d = grid2xyz(p, wall, tile_index);
@@ -387,7 +387,7 @@ static void get_grid_neighbors_single_grid_and_index(
 
     const Wall& nb_wall = p.get_wall(wall.nb_walls[nb_wall_index]);
     Vec2 near2d;
-    float_t d = GeometryUtil::closest_interior_point(p, loc3d, nb_wall, near2d);
+    float_t d = GeometryUtils::closest_interior_point(p, loc3d, nb_wall, near2d);
 
     if (!distinguishable_f(d, FLT_GIGANTIC, EPS)) {
       res_nb_wall_index = WALL_INDEX_INVALID;
@@ -1241,13 +1241,13 @@ static bool check_if_can_move_through_border(
     const Wall* neighbor_wall) {
 
   if (neighbor_wall != NULL) {
-    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(*neighbor_wall, this_wall_restricted_regions)) {
+    if (!WallUtils::wall_belongs_to_all_regions_in_region_list(*neighbor_wall, this_wall_restricted_regions)) {
       return false;
     }
 
     uint_set<region_index_t> nb_regions;
-    WallUtil::find_restricted_regions_by_wall(p, *neighbor_wall, sm, nb_regions);
-    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(*neighbor_wall, nb_regions)) {
+    WallUtils::find_restricted_regions_by_wall(p, *neighbor_wall, sm, nb_regions);
+    if (!WallUtils::wall_belongs_to_all_regions_in_region_list(*neighbor_wall, nb_regions)) {
       return false;
     }
   }
@@ -1313,7 +1313,7 @@ static void grid_all_neighbors_across_walls_through_edges(
       assert(sm->s.wall_index == wall.index);
   
       uint_set<region_index_t> regions;
-      WallUtil::find_restricted_regions_by_wall(p, wall, *sm, regions);
+      WallUtils::find_restricted_regions_by_wall(p, wall, *sm, regions);
   
       move_thru_border_0 = check_if_can_move_through_border(p, *sm, wall, regions, nb_walls[0]);
       move_thru_border_1 = check_if_can_move_through_border(p, *sm, wall, regions, nb_walls[1]);
@@ -1757,7 +1757,7 @@ static wall_index_t find_neighbor_tiles(
       /* create list of neighbor walls that share one vertex
          with the start tile  (not edge-to-edge neighbor walls) */
       wall_indices_t neighboring_walls;
-      WallUtil::find_nbr_walls_shared_one_vertex(p, wall, shared_verts, neighboring_walls);
+      WallUtils::find_nbr_walls_shared_one_vertex(p, wall, shared_verts, neighboring_walls);
 
       if (!neighboring_walls.empty()) {
         grid_all_neighbors_across_walls_through_vertices(
@@ -1898,7 +1898,7 @@ static void search_nbhd_for_free(
   // Find index and distance of nearest free grid element on origin wall,
   // returns TILE_INDEX_INVALID when there is not space left
   float_t d2_unused;
-  best_tile_index = GridUtil::nearest_free(origin_wall, best_pos, max_search_d2, d2_unused);
+  best_tile_index = GridUtils::nearest_free(origin_wall, best_pos, max_search_d2, d2_unused);
 
   if (best_tile_index != TILE_INDEX_INVALID) {
     res_wall_index = best_wall_index;
@@ -1980,8 +1980,8 @@ static void search_nbhd_for_free(
         there_wall.grid.initialize(p, there_wall);
       }
 
-      GeometryUtil::traverse_surface(origin_wall, point, j, pt);
-      tile_index_t i = GridUtil::nearest_free(there_wall, pt, max_search_d2, d2);
+      GeometryUtils::traverse_surface(origin_wall, point, j, pt);
+      tile_index_t i = GridUtils::nearest_free(there_wall, pt, max_search_d2, d2);
 
       if (i != TILE_INDEX_INVALID && d2 < best_d2) {
         best_tile_index = i;
@@ -2025,7 +2025,7 @@ static void find_closest_tile_on_wall(
   tile_index_t closest_tile_index;
 
   const Wall& w = p.get_wall(closest_wall_index);
-  closest_tile_index = GridUtil::uv2grid_tile_index(closest_pos2d, w);
+  closest_tile_index = GridUtils::uv2grid_tile_index(closest_pos2d, w);
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
   std::cout << "find_closest_tile_on_wall: closest_wall_index: " << closest_wall_index <<
@@ -2068,14 +2068,14 @@ static void find_closest_tile_on_wall(
     if (p.config.randomize_smol_pos) {
       // molecules are processed in different order than in mcell3, this might break
       // compatibility, but the behavior is the same here
-      new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, p.aux_rng);
+      new_pos2d = GridUtils::grid2uv_random(w, new_tile_index, p.aux_rng);
     }
     else {
-      new_pos2d = GridUtil::grid2uv(w, new_tile_index);
+      new_pos2d = GridUtils::grid2uv(w, new_tile_index);
     }
 
     found_wall_index = new_wall_index;
-    found_tile_index = new_tile_index; //GridUtil::uv2grid_tile_index(closest_pos2d, w);
+    found_tile_index = new_tile_index;
     found_pos2d = new_pos2d;
   }
 }
@@ -2103,10 +2103,10 @@ static molecule_id_t place_single_molecule_onto_grid(
   }
   else {
     if (p.config.randomize_smol_pos) {
-      pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, rng);
+      pos_on_wall = GridUtils::grid2uv_random(wall, tile_index, rng);
     }
     else {
-      pos_on_wall = GridUtil::grid2uv(wall, tile_index);
+      pos_on_wall = GridUtils::grid2uv(wall, tile_index);
     }
   }
 
@@ -2172,7 +2172,7 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
 
   wall_index_t best_wall_index;
   Vec2 best_wall_pos2d;
-  float_t best_d2 = WallUtil::find_closest_wall_any_object(
+  float_t best_d2 = WallUtils::find_closest_wall_any_object(
       p, pos, search_d2, true, best_wall_index, best_wall_pos2d);
 
   if (best_wall_index == WALL_INDEX_INVALID) {
@@ -2189,7 +2189,7 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
     best_w.initialize_grid(p);
   }
 
-  found_tile_index = GridUtil::uv2grid_tile_index(best_wall_pos2d, best_w);
+  found_tile_index = GridUtils::uv2grid_tile_index(best_wall_pos2d, best_w);
 
   if (best_w.grid.get_molecule_on_tile(found_tile_index) != MOLECULE_ID_INVALID) {
     float_t d2 = search_d2 - best_d2;

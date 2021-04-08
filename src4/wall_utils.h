@@ -30,7 +30,7 @@ class Partition;
 class Wall;
 struct Vec3;
 
-namespace WallUtil {
+namespace WallUtils {
 
 // only the needed functions for now
 
