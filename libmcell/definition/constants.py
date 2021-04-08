@@ -22,11 +22,11 @@ CATEGORY_CONSTANTS = 'constants'
 CATEGORIES = [
     CATEGORY_CONSTANTS,
     'model',
+    'simulation_setup',
     'subsystem', 
     'geometry',
     'instantiation',
     'observables',
-    'simulation_setup',
     'callbacks',
     'introspection',
     'checkpointing',

@@ -12,7 +12,12 @@ Methods:
 * | **load_bngl_parameters**
 
    * | file_name: str
+     | Path to the BNGL file to be loaded.
+
    * | parameter_overrides: Dict[str, float] = None
+     | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+     | its value is ignored and instead value parameter_overrides[k] is used.
+
    * | return type: Dict[str, float]
 
 

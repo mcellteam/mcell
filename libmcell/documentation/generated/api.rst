@@ -8,11 +8,11 @@ MCell 4 Python API documentation
 
     constants
     model
+    simulation_setup
     subsystem
     geometry
     instantiation
     observables
-    simulation_setup
     callbacks
     introspection
     checkpointing

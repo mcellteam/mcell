@@ -31,10 +31,14 @@ bngl_utils:
     params:
     - name: file_name
       type: str
+      doc: Path to the BNGL file to be loaded.
 
     - name: parameter_overrides
       type: Dict[str, float]
       default: empty
+      doc: |
+         For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+         its value is ignored and instead value parameter_overrides[k] is used.
       
       
 run_utils:

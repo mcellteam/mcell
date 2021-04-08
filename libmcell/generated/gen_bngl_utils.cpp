@@ -30,7 +30,7 @@ namespace API {
 
 void define_pybinding_bngl_utils(py::module& m) {
   m.def_submodule("bngl_utils")
-      .def("load_bngl_parameters", &bngl_utils::load_bngl_parameters, py::arg("file_name"), py::arg("parameter_overrides") = std::map<std::string, float_t>(), "- file_name\n- parameter_overrides\n")
+      .def("load_bngl_parameters", &bngl_utils::load_bngl_parameters, py::arg("file_name"), py::arg("parameter_overrides") = std::map<std::string, float_t>(), "- file_name: Path to the BNGL file to be loaded.\n\n- parameter_overrides: For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,\nits value is ignored and instead value parameter_overrides[k] is used.\n\n\n")
     ;
 }
 

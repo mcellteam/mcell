@@ -261,6 +261,26 @@ Methods:
 ReactionRule
 ============
 
+Represents a BioNetGen Language (BNGL) reaction rule. 
+In BNGL, a reaction is simply one or more transformations
+applied simultaneously to one or more species. The following
+transformations (and their combinations) are allowed\:
+- Forming a bond, e.g. A(b) + B(a) -> A(b!0).B(a!0)
+- Breaking a bond, e.g. A(b!0).B(a!0)-> A(b)+ B(a)
+- Changing of component state, e.g. X(y~0) -> X(y~p)
+- Creating a molecule, e.g. A(b) -> A(b) + C(d)
+- Destroying a molecule, e.g. A(b) + B(a) -> A(b) or A -> Null 
+  (Null here means that there is no product)
+- Changing species of a bound molecule when the molecule type has the 
+  same components, e.g. A(b!0).B(a!0)-> A(b!0).C(a!0)
+  
+Also compartments may be specified in reactants (patterns) and for products.
+Special compartment classes supported by MCell4 are @IN and @OUT.
+They can be used in surface reactions to constrain a reaction with a volume molecule 
+hitting a surface molecule from the inside or outside of the compartment, 
+e.g. A(s)@IN + S(a) -> S(a!1).A(s!1) and/or to define the location of the 
+product, e.g. S(a!1).A(s!1) -> S(a) + A(s)@OUT.
+
 Attributes:
 ***********
 * | **name**: str = None
@@ -268,8 +288,10 @@ Attributes:
   | reaction in forward direction.
 
 * | **reactants**: List[Complex] = None
+  | List of reactant patterns. Must contain one or two patterns.
 
 * | **products**: List[Complex] = None
+  | List of reactant patterns. May be empty.
 
 * | **fwd_rate**: float = None
   | Rates have following units\: unimolecular [s^-1], volume bimolecular [M^-1\*s^-1], 
@@ -299,8 +321,11 @@ Attributes:
   | changing the 'fwd_rate'.
 
 * | **variable_rate**: List[List[float]] = None
-  | The array passed as this argument must have as its items a pair of floats (time, rate).      
-  | Variable rate is applicable only for irreversible reactions. 
+  | The array passed as this argument must have as its items a pair of floats (time in s, rate).
+  | Must be sorted by time (this is not checked).      
+  | Variable rate is applicable only for irreversible reactions.
+  | When simulation starts and the table does not contain value for time 0, the initial fwd_rate is set to 0.
+  | When time advances after the last time in this table, the last rate is used for all subsequent iterations.   
   | Members fwd_rate and rev_rate must not be set when setting this attribute through a constructor. 
   | When this attribute is set outside of the class constructor, fwd_rate is automatically reset to an 'unset' value.
   | Cannot be set after model initialization.
@@ -309,9 +334,8 @@ Attributes:
   | Experimental, see addintinal explanation in 'fwd' rate.
   | Then set to true, this is a special type of surface-surface reaction that 
   | allows for two surface molecules to react when they are on different geometrical objects. 
-  | This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
-  | where all reactants and products must be surface molecules and 
-  | their orientation must be 'any' (default).
+  | Note\: This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
+  | where all reactants and products must be surface molecules and their orientation must be 'any' (default).
 
 
 Methods:
@@ -359,24 +383,31 @@ Attributes:
 ***********
 * | **name**: str = None
   | Name of the species in the BNGL format. 
-  | One must either specify 'name' or 'elementary_molecules' 
-  | (inherited from Complex). This argument 'name' is parsed during model 
-  | initialization.
+  | One must either specify name or elementary_molecules (inherited from Complex). 
+  | This argument name is parsed during model initialization.
 
 * | **diffusion_constant_2d**: float = None
-  | This molecule is constrained to a surface and diffuses with diffusion constant D.
+  | This molecule is constrained to surface  with diffusion constant D. 
+  | D can be zero, in which case the molecule doesn’t move. 
+  | The units of D are cm^2/s.
 
 * | **diffusion_constant_3d**: float = None
-  | This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+  | This molecule diffuses in space with diffusion constant D. 
+  | D can be zero, in which case the molecule doesn’t move. 
+  | The units of D are cm^2/s.
 
 * | **custom_time_step**: float = None
-  | This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.
+  | Optional setting of a custom time step for this specific species. 
+  | A molecule of this species should take timesteps of length custom_time_step (in seconds). 
+  | Use either this or custom_time_step.
 
 * | **custom_space_step**: float = None
-  | This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
+  | Optional setting of a custom space step for this specific species. 
+  | A molecule of this species should take steps of average length custom_space_step (in microns). 
+  | Use either this or custom_time_step.
 
 * | **target_only**: bool = False
-  | This molecule will not initiate reactions when it runs into other molecules. This
+  | A molecule of this species will not initiate reactions when it runs into other molecules. This
   | setting can speed up simulations when applied to a molecule at high concentrations 
   | that reacts with a molecule at low concentrations (it is more efficient for
   | the low-concentration molecule to trigger the reactions). This directive does
@@ -457,14 +488,19 @@ Subsystem
 Attributes:
 ***********
 * | **species**: List[Species] = None
+  | List of species to be included in the model for initialization.
+  | Used usually only for simple species (species that are defined using a
+  | single molecule type without components such as 'A').
+  | Other species may be created inside simulation
 
 * | **reaction_rules**: List[ReactionRule] = None
 
 * | **surface_classes**: List[SurfaceClass] = None
 
 * | **elementary_molecule_types**: List[ElementaryMoleculeType] = None
-  | Used mainly when a BNGL file is loaded, if BNGL species is defined through 
-  | Python API, this array is populated automatically
+  | Contains list of elementary molecule types with their diffusion constants and other information. 
+  | Populated when a BNGL file is loaded and also on initialization from Species objects present in 
+  | the species list.
 
 
 Methods:
@@ -473,15 +509,25 @@ Methods:
 
    * | s: Species
 
+  | Add a reference to a Species object to the species list.
+
+
 * | **find_species**
 
    * | name: str
    * | return type: Species
 
 
+  | Find a Species object using name in the species list. 
+  | Returns None if no such species is found.
+
+
 * | **add_reaction_rule**
 
    * | r: ReactionRule
+
+  | Add a reference to a ReactionRule object to the reaction_rules list.
+
 
 * | **find_reaction_rule**
 
@@ -489,9 +535,16 @@ Methods:
    * | return type: ReactionRule
 
 
+  | Find a ReactionRule object using name in the reaction_rules list. 
+  | Returns None if no such reaction rule is found.
+
+
 * | **add_surface_class**
 
    * | sc: SurfaceClass
+
+  | Add a reference to a SurfaceClass object to the surface_classes list.
+
 
 * | **find_surface_class**
 
@@ -499,9 +552,16 @@ Methods:
    * | return type: SurfaceClass
 
 
+  | Find a SurfaceClass object using name in the surface_classes list. 
+  | Returns None if no such surface class is found.
+
+
 * | **add_elementary_molecule_type**
 
    * | mt: ElementaryMoleculeType
+
+  | Add a reference to an ElementaryMoleculeType object to the elementary_molecule_types list.
+
 
 * | **find_elementary_molecule_type**
 
@@ -509,19 +569,26 @@ Methods:
    * | return type: ElementaryMoleculeType
 
 
+  | Find an ElementaryMoleculeType object using name in the elementary_molecule_types list. 
+  | Returns None if no such elementary molecule type is found.
+
+
 * | **load_bngl_molecule_types_and_reaction_rules**
 
    * | file_name: str
-   * | parameter_overrides: Dict[str, float] = None
+     | Path to the BNGL file to be loaded.
 
-  | Parses a BNGL file and only reads molecule types and
-  | reaction rules sections, e.g. ignores observables. 
-  | Parameter values are evaluated and the result value 
-  | is directly used.  
-  | Compartments names are stored in rxn rules as strings because
-  | compartments belong to geometry objects and the subsystem is independent
-  | on specific geometry.
-  | However they must be defined on initialization.
+   * | parameter_overrides: Dict[str, float] = None
+     | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+     | its value is ignored and instead value parameter_overrides[k] is used.
+
+
+  | Parses a BNGL file, only reads molecule types and reaction rules sections, 
+  | i.e. ignores observables and seed species. 
+  | Parameter values are evaluated and the result value is directly used.  
+  | Compartments names are stored in rxn rules as strings because compartments belong 
+  | to geometry objects and the subsystem is independent on specific geometry.
+  | However, the compartments and their objects must be defined before initialization.
 
 
 
@@ -536,7 +603,7 @@ To define a reaction with a surface class, use constructor call m.Complex(name) 
 Attributes:
 ***********
 * | **name**: str
-  | Name of the surface class
+  | Name of the surface class.
 
 * | **properties**: List[SurfaceProperty] = None
   | A surface class can either have a list of properties or just one property.
@@ -550,9 +617,9 @@ Attributes:
   | A complex pattern with optional orientation must be set.
   | Default orientation means that the pattern matches any orientation.
   | For concentration or flux clamp the orientation specifies on which side  
-  | will be the concentration held 
-  | (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
-  | The complex pattern must not have any compartment.
+  | will be the concentration held (UP is front or outside, DOWN is back or 
+  | inside, and DEFAULT, ANY or NONE is on both sides).
+  | The complex pattern must not use compartments.
 
 * | **concentration**: float = None
   | Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 
@@ -573,9 +640,9 @@ Attributes:
   | A complex pattern with optional orientation must be set.
   | Default orientation means that the pattern matches any orientation.
   | For concentration or flux clamp the orientation specifies on which side  
-  | will be the concentration held 
-  | (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
-  | The complex pattern must not have any compartment.
+  | will be the concentration held (UP is front or outside, DOWN is back or 
+  | inside, and DEFAULT, ANY or NONE is on both sides).
+  | The complex pattern must not use compartments.
 
 * | **concentration**: float = None
   | Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 

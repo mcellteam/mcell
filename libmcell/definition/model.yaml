@@ -250,6 +250,7 @@ Model:
     params:
     - name: file_name
       type: str  
+      doc: Path to the BNGL file to be loaded.
       
     - name: observables_files_prefix
       type: str

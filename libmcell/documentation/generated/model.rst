@@ -20,14 +20,19 @@ Attributes:
   | Configuration on how to report certain notifications.
 
 * | **species**: List[Species] = None
+  | List of species to be included in the model for initialization.
+  | Used usually only for simple species (species that are defined using a
+  | single molecule type without components such as 'A').
+  | Other species may be created inside simulation
 
 * | **reaction_rules**: List[ReactionRule] = None
 
 * | **surface_classes**: List[SurfaceClass] = None
 
 * | **elementary_molecule_types**: List[ElementaryMoleculeType] = None
-  | Used mainly when a BNGL file is loaded, if BNGL species is defined through 
-  | Python API, this array is populated automatically
+  | Contains list of elementary molecule types with their diffusion constants and other information. 
+  | Populated when a BNGL file is loaded and also on initialization from Species objects present in 
+  | the species list.
 
 * | **release_sites**: List[ReleaseSite] = None
   | List of release sites to be included in the model.
@@ -249,6 +254,8 @@ Methods:
 * | **load_bngl**
 
    * | file_name: str
+     | Path to the BNGL file to be loaded.
+
    * | observables_files_prefix: str = ''
      | Prefix to be used when creating files where observable values are stored during simulation.
 
@@ -326,15 +333,25 @@ Methods:
 
    * | s: Species
 
+  | Add a reference to a Species object to the species list.
+
+
 * | **find_species**
 
    * | name: str
    * | return type: Species
 
 
+  | Find a Species object using name in the species list. 
+  | Returns None if no such species is found.
+
+
 * | **add_reaction_rule**
 
    * | r: ReactionRule
+
+  | Add a reference to a ReactionRule object to the reaction_rules list.
+
 
 * | **find_reaction_rule**
 
@@ -342,9 +359,16 @@ Methods:
    * | return type: ReactionRule
 
 
+  | Find a ReactionRule object using name in the reaction_rules list. 
+  | Returns None if no such reaction rule is found.
+
+
 * | **add_surface_class**
 
    * | sc: SurfaceClass
+
+  | Add a reference to a SurfaceClass object to the surface_classes list.
+
 
 * | **find_surface_class**
 
@@ -352,9 +376,16 @@ Methods:
    * | return type: SurfaceClass
 
 
+  | Find a SurfaceClass object using name in the surface_classes list. 
+  | Returns None if no such surface class is found.
+
+
 * | **add_elementary_molecule_type**
 
    * | mt: ElementaryMoleculeType
+
+  | Add a reference to an ElementaryMoleculeType object to the elementary_molecule_types list.
+
 
 * | **find_elementary_molecule_type**
 
@@ -362,19 +393,26 @@ Methods:
    * | return type: ElementaryMoleculeType
 
 
+  | Find an ElementaryMoleculeType object using name in the elementary_molecule_types list. 
+  | Returns None if no such elementary molecule type is found.
+
+
 * | **load_bngl_molecule_types_and_reaction_rules**
 
    * | file_name: str
-   * | parameter_overrides: Dict[str, float] = None
+     | Path to the BNGL file to be loaded.
 
-  | Parses a BNGL file and only reads molecule types and
-  | reaction rules sections, e.g. ignores observables. 
-  | Parameter values are evaluated and the result value 
-  | is directly used.  
-  | Compartments names are stored in rxn rules as strings because
-  | compartments belong to geometry objects and the subsystem is independent
-  | on specific geometry.
-  | However they must be defined on initialization.
+   * | parameter_overrides: Dict[str, float] = None
+     | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+     | its value is ignored and instead value parameter_overrides[k] is used.
+
+
+  | Parses a BNGL file, only reads molecule types and reaction rules sections, 
+  | i.e. ignores observables and seed species. 
+  | Parameter values are evaluated and the result value is directly used.  
+  | Compartments names are stored in rxn rules as strings because compartments belong 
+  | to geometry objects and the subsystem is independent on specific geometry.
+  | However, the compartments and their objects must be defined before initialization.
 
 
 * | **add_release_site**

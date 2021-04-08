@@ -326,7 +326,6 @@ Species:
     Such declaration does no need to be added to subsystem or model.
     This form is used as argument in cases where a fully qualified instance  
     must be provided such as in molecule releases.
-    
      
   example: tests/pymcell4_positive/0040_to_bngl_str
       
@@ -336,35 +335,46 @@ Species:
     default: unset
     doc: | 
        Name of the species in the BNGL format. 
-       One must either specify 'name' or 'elementary_molecules' 
-       (inherited from Complex). This argument 'name' is parsed during model 
-       initialization.    
+       One must either specify name or elementary_molecules (inherited from Complex). 
+       This argument name is parsed during model initialization.    
 
   - name: diffusion_constant_2d
     type: float
     default: unset
-    doc: This molecule is constrained to a surface and diffuses with diffusion constant D.
+    doc: | 
+       This molecule is constrained to surface  with diffusion constant D. 
+       D can be zero, in which case the molecule doesn’t move. 
+       The units of D are cm^2/s.
       
   - name: diffusion_constant_3d
     type: float
     default: unset # the value is optional and might need to be checked with a more complex check
-    doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+    doc: | 
+       This molecule diffuses in space with diffusion constant D. 
+       D can be zero, in which case the molecule doesn’t move. 
+       The units of D are cm^2/s.
         
   - name: custom_time_step
     type: float
     default: unset 
-    doc: This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.
+    doc: |
+       Optional setting of a custom time step for this specific species. 
+       A molecule of this species should take timesteps of length custom_time_step (in seconds). 
+       Use either this or custom_time_step.
 
   - name: custom_space_step
     type: float
     default: unset 
-    doc: This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
+    doc: | 
+       Optional setting of a custom space step for this specific species. 
+       A molecule of this species should take steps of average length custom_space_step (in microns). 
+       Use either this or custom_time_step.
             
   - name: target_only
     type: bool
     default: False
     doc: |
-      This molecule will not initiate reactions when it runs into other molecules. This
+      A molecule of this species will not initiate reactions when it runs into other molecules. This
       setting can speed up simulations when applied to a molecule at high concentrations 
       that reacts with a molecule at low concentrations (it is more efficient for
       the low-concentration molecule to trigger the reactions). This directive does
@@ -375,6 +385,7 @@ Species:
     return_type: Complex*
     doc: | 
        Creates a copy of a Complex from this Species with specified orientation and compartment name. 
+       
     params:
     - name: orientation
       type: Orientation 
@@ -406,9 +417,9 @@ SurfaceProperty:
        A complex pattern with optional orientation must be set.
        Default orientation means that the pattern matches any orientation.
        For concentration or flux clamp the orientation specifies on which side  
-       will be the concentration held 
-       (UP is front or outside, DOWN is back or inside, and DEFAULT, ANY or NONE is on both sides).
-       The complex pattern must not have any compartment.
+       will be the concentration held (UP is front or outside, DOWN is back or 
+       inside, and DEFAULT, ANY or NONE is on both sides).
+       The complex pattern must not use compartments.
        
   - name: concentration
     type: float
@@ -426,11 +437,12 @@ SurfaceClass:
      to specify that a surface does not block the diffusion of molecules. Each type of surface is defined
      by name, and each surface name must be unique in the simulation and should not match any molecule names.
      To define a reaction with a surface class, use constructor call m.Complex(name) as one of the reactants.
-     
+  example: tests/pymcell4/1600_crossing_transparent_compartment_wall tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback
+  
   items:
   - name: name
     type: str
-    doc: Name of the surface class
+    doc: Name of the surface class.
     
   - name: properties
     type: List[SurfaceProperty*]
@@ -443,6 +455,28 @@ SurfaceClass:
 
 ReactionRule:    
   superclass: BaseDataClass
+  doc: |
+     Represents a BioNetGen Language (BNGL) reaction rule. 
+     In BNGL, a reaction is simply one or more transformations
+     applied simultaneously to one or more species. The following
+     transformations (and their combinations) are allowed\:
+     - Forming a bond, e.g. A(b) + B(a) -> A(b!0).B(a!0)
+     - Breaking a bond, e.g. A(b!0).B(a!0)-> A(b)+ B(a)
+     - Changing of component state, e.g. X(y~0) -> X(y~p)
+     - Creating a molecule, e.g. A(b) -> A(b) + C(d)
+     - Destroying a molecule, e.g. A(b) + B(a) -> A(b) or A -> Null 
+       (Null here means that there is no product)
+     - Changing species of a bound molecule when the molecule type has the 
+       same components, e.g. A(b!0).B(a!0)-> A(b!0).C(a!0)
+       
+     Also compartments may be specified in reactants (patterns) and for products.
+     Special compartment classes supported by MCell4 are @IN and @OUT.
+     They can be used in surface reactions to constrain a reaction with a volume molecule 
+     hitting a surface molecule from the inside or outside of the compartment, 
+     e.g. A(s)@IN + S(a) -> S(a!1).A(s!1) and/or to define the location of the 
+     product, e.g. S(a!1).A(s!1) -> S(a) + A(s)@OUT.   
+  
+  example: tests/pymcell4_positive/0040_to_bngl_str
   items:
   - name: name
     type: str
@@ -454,10 +488,12 @@ ReactionRule:
   - name: reactants
     type: List[Complex*]
     default: empty # must be set, but C++ ordering of arguments requires that all defaults are at the end
+    doc: List of reactant patterns. Must contain one or two patterns.
     
   - name: products
     type: List[Complex*]
     default: empty
+    doc: List of reactant patterns. May be empty.
     
   - name: fwd_rate
     type: float
@@ -484,25 +520,29 @@ ReactionRule:
   - name: rev_name
     type: str
     default: unset
-    doc: Name of the reaction in reverse direction.   
+    doc: | 
+       Name of the reaction in reverse direction.   
     
   - name: rev_rate
     type: float
     default: unset
     doc: |
-      Reverse reactions rate, reaction is unidirectional when not specified.
-      May be changed after model initialization, in the case behaves the same was as for 
-      changing the 'fwd_rate'. 
+       Reverse reactions rate, reaction is unidirectional when not specified.
+       May be changed after model initialization, in the case behaves the same was as for 
+       changing the 'fwd_rate'. 
     
   - name: variable_rate
     type: List[List[float]]
     default: empty
     doc: |
-      The array passed as this argument must have as its items a pair of floats (time, rate).      
-      Variable rate is applicable only for irreversible reactions. 
-      Members fwd_rate and rev_rate must not be set when setting this attribute through a constructor. 
-      When this attribute is set outside of the class constructor, fwd_rate is automatically reset to an 'unset' value.
-      Cannot be set after model initialization. 
+       The array passed as this argument must have as its items a pair of floats (time in s, rate).
+       Must be sorted by time (this is not checked).      
+       Variable rate is applicable only for irreversible reactions.
+       When simulation starts and the table does not contain value for time 0, the initial fwd_rate is set to 0.
+       When time advances after the last time in this table, the last rate is used for all subsequent iterations.   
+       Members fwd_rate and rev_rate must not be set when setting this attribute through a constructor. 
+       When this attribute is set outside of the class constructor, fwd_rate is automatically reset to an 'unset' value.
+       Cannot be set after model initialization. 
 
   - name: is_intermembrane_surface_reaction
     type: bool
@@ -511,9 +551,8 @@ ReactionRule:
       Experimental, see addintinal explanation in 'fwd' rate.
       Then set to true, this is a special type of surface-surface reaction that 
       allows for two surface molecules to react when they are on different geometrical objects. 
-      This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
-      where all reactants and products must be surface molecules and 
-      their orientation must be 'any' (default). 
+      Note\: This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
+      where all reactants and products must be surface molecules and their orientation must be 'any' (default). 
     example: tests/pymcell4/3000_intramembrane_rxns
     todo: not sure whether we should allow this rxn also for standard surf-surf rxns  
 
@@ -528,6 +567,11 @@ Subsystem:
   - name: species
     type: List[Species*]
     default: empty
+    doc: |
+       List of species to be included in the model for initialization.
+       Used usually only for simple species (species that are defined using a
+       single molecule type without components such as 'A').
+       Other species may be created inside simulation  
     
   - name: reaction_rules
     type: List[ReactionRule*]
@@ -540,50 +584,67 @@ Subsystem:
   - name: elementary_molecule_types
     type: List[ElementaryMoleculeType*]
     default: empty
-    doc: | 
-      Used mainly when a BNGL file is loaded, if BNGL species is defined through 
-      Python API, this array is populated automatically 
+    doc: |
+       Contains list of elementary molecule types with their diffusion constants and other information. 
+       Populated when a BNGL file is loaded and also on initialization from Species objects present in 
+       the species list.
     
   methods:
   - name: add_species
+    doc: Add a reference to a Species object to the species list.
     params:
     - name: s
       type: Species*
       
   - name: find_species
+    doc: | 
+       Find a Species object using name in the species list. 
+       Returns None if no such species is found.
     return_type: Species*
     params:
     - name: name
       type: str
       
   - name: add_reaction_rule
+    doc: Add a reference to a ReactionRule object to the reaction_rules list.
     params:
     - name: r
       type: ReactionRule*
       
   - name: find_reaction_rule  
+    doc: | 
+       Find a ReactionRule object using name in the reaction_rules list. 
+       Returns None if no such reaction rule is found.
     return_type: ReactionRule*
     params:
     - name: name
       type: str
 
   - name: add_surface_class
+    doc: Add a reference to a SurfaceClass object to the surface_classes list.
     params:
     - name: sc
       type: SurfaceClass*
       
   - name: find_surface_class  
+    doc: | 
+       Find a SurfaceClass object using name in the surface_classes list. 
+       Returns None if no such surface class is found.
     return_type: SurfaceClass*
     params:
     - name: name
       type: str      
       
   - name: add_elementary_molecule_type
+    doc: Add a reference to an ElementaryMoleculeType object to the elementary_molecule_types list.
     params:
     - name: mt
       type: ElementaryMoleculeType*
       
-  - name: find_elementary_molecule_type  
+  - name: find_elementary_molecule_type 
+    doc: | 
+       Find an ElementaryMoleculeType object using name in the elementary_molecule_types list. 
+       Returns None if no such elementary molecule type is found.
     return_type: ElementaryMoleculeType*
     params:
     - name: name
@@ -591,20 +652,23 @@ Subsystem:
       
   - name: load_bngl_molecule_types_and_reaction_rules
     doc: | 
-      Parses a BNGL file and only reads molecule types and
-      reaction rules sections, e.g. ignores observables. 
-      Parameter values are evaluated and the result value 
-      is directly used.  
-      Compartments names are stored in rxn rules as strings because
-      compartments belong to geometry objects and the subsystem is independent
-      on specific geometry.
-      However they must be defined on initialization.
-       
+      Parses a BNGL file, only reads molecule types and reaction rules sections, 
+      i.e. ignores observables and seed species. 
+      Parameter values are evaluated and the result value is directly used.  
+      Compartments names are stored in rxn rules as strings because compartments belong 
+      to geometry objects and the subsystem is independent on specific geometry.
+      However, the compartments and their objects must be defined before initialization.
+    example: tests/pymcell4/2100_gradual_bngl_load
     params:
     - name: file_name
       type: str      
+      doc: Path to the BNGL file to be loaded.
       
     - name: parameter_overrides
       type: Dict[str, float]
       default: empty
+      doc: |
+         For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+         its value is ignored and instead value parameter_overrides[k] is used.
+      
       
