@@ -1,6 +1,10 @@
 
 VizOutput:
   superclass: BaseDataClass
+  doc: | 
+     Defines a visualization output with locations of molecules 
+     that can be then loaded by CellBlender.
+  examples: tests/pymcell4/1100_point_release/model.py
   items:
   - name: output_files_prefix
     type: str
@@ -133,7 +137,7 @@ Count:
      Usually just one observable is counted and a member of this class count_expression 
      is not set. If an expression is needed, it is stored in the count_expression
      attribute.
-     
+  examples: tests/pymcell4/1500_region_release_must_set_compartment/model.py
   items:
   - name: name
     type: str
@@ -190,6 +194,7 @@ Count:
     doc: | 
        Returns the current value for this count. Cannot be used to count reactions.
        The model must be initialized with this Count present as one of the observables.
+    examples: tests/pymcell4_positive/2600_get_current_mol_count/model.py
  
  
 Observables:
@@ -197,7 +202,7 @@ Observables:
      Container used to hold observables-related model data. 
      Observables are the measured values of the system. 
      This class also includes information on visualization of simulation.
-    
+  examples: tests/pymcell4_positive/2600_get_current_mol_count/observables.py
   items:
   - name: viz_outputs
     type: List[VizOutput*]
@@ -236,6 +241,7 @@ Observables:
     doc: | 
       Loads section observables from a BNGL file and creates Count objects according to it.
       All elementary molecule types used in the seed species section must be defined in subsystem.
+    examples: tests/pymcell4/2100_gradual_bngl_load/model.py
     params:
     - name: file_name
       type: str   

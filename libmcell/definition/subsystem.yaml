@@ -10,7 +10,7 @@ ComponentType:
      For example, certain binding motifs may have different behaviors depending 
      on whether they are unphosphorylated or phosphorylated.
   
-  example: tests/pymcell4_positive/0040_to_bngl_str
+  examples: tests/pymcell4_positive/0040_to_bngl_str/model.py
   
   items:
   - name: name
@@ -62,7 +62,7 @@ Component:
      A component instance must have its state set if there is at least one allowed state.
      It is also used to connect molecule instance in a complex instance through bonds.
      
-  example: tests/pymcell4_positive/0040_to_bngl_str
+  examples: tests/pymcell4_positive/0040_to_bngl_str/model.py
      
   items:
   - name: component_type
@@ -102,7 +102,7 @@ ElementaryMoleculeType:
      The 'elementary' prefix was added to distinguish it clearly from molecules in 
      simulation.
 
-  example: tests/pymcell4_positive/0040_to_bngl_str
+  examples: tests/pymcell4_positive/0040_to_bngl_str/model.py
       
   items:
   - name: name
@@ -187,7 +187,7 @@ ElementaryMolecule:
      Instance of an elementary molecule type. A BNGL complex is composed of 
      elementary molecules.  
      
-  example: tests/pymcell4_positive/0040_to_bngl_str
+  examples: tests/pymcell4_positive/0040_to_bngl_str/model.py
   
   items:
   - name: elementary_molecule_type
@@ -232,7 +232,7 @@ Complex:
      Comparison operator __eq__ first converts complexes to their canonical representation and 
      then does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').
      
-  example: tests/pymcell4_positive/0040_to_bngl_str
+  examples: tests/pymcell4_positive/0040_to_bngl_str/model.py
   
   internal: | 
      Ctor Species(Complex& cplx_inst) must be updated if if attributes change     
@@ -327,7 +327,7 @@ Species:
     This form is used as argument in cases where a fully qualified instance  
     must be provided such as in molecule releases.
      
-  example: tests/pymcell4_positive/0040_to_bngl_str
+  examples: tests/pymcell4_positive/0040_to_bngl_str/model.py
       
   items:
   - name: name
@@ -437,7 +437,7 @@ SurfaceClass:
      to specify that a surface does not block the diffusion of molecules. Each type of surface is defined
      by name, and each surface name must be unique in the simulation and should not match any molecule names.
      To define a reaction with a surface class, use constructor call m.Complex(name) as one of the reactants.
-  example: tests/pymcell4/1600_crossing_transparent_compartment_wall tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback
+  examples: tests/pymcell4/1600_crossing_transparent_compartment_wall/model.py tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback/model.py
   
   items:
   - name: name
@@ -460,14 +460,14 @@ ReactionRule:
      In BNGL, a reaction is simply one or more transformations
      applied simultaneously to one or more species. The following
      transformations (and their combinations) are allowed\:
-     - Forming a bond, e.g. A(b) + B(a) -> A(b!0).B(a!0)
-     - Breaking a bond, e.g. A(b!0).B(a!0)-> A(b)+ B(a)
-     - Changing of component state, e.g. X(y~0) -> X(y~p)
-     - Creating a molecule, e.g. A(b) -> A(b) + C(d)
-     - Destroying a molecule, e.g. A(b) + B(a) -> A(b) or A -> Null 
-       (Null here means that there is no product)
-     - Changing species of a bound molecule when the molecule type has the 
-       same components, e.g. A(b!0).B(a!0)-> A(b!0).C(a!0)
+       * Forming a bond, e.g. A(b) + B(a) -> A(b!0).B(a!0)
+       * Breaking a bond, e.g. A(b!0).B(a!0)-> A(b)+ B(a)
+       * Changing of component state, e.g. X(y~0) -> X(y~p)
+       * Creating a molecule, e.g. A(b) -> A(b) + C(d)
+       * Destroying a molecule, e.g. A(b) + B(a) -> A(b) or A -> Null 
+         (Null here means that there is no product)
+       * Changing species of a bound molecule when the molecule type has the 
+         same components, e.g. A(b!0).B(a!0)-> A(b!0).C(a!0)
        
      Also compartments may be specified in reactants (patterns) and for products.
      Special compartment classes supported by MCell4 are @IN and @OUT.
@@ -476,7 +476,7 @@ ReactionRule:
      e.g. A(s)@IN + S(a) -> S(a!1).A(s!1) and/or to define the location of the 
      product, e.g. S(a!1).A(s!1) -> S(a) + A(s)@OUT.   
   
-  example: tests/pymcell4_positive/0040_to_bngl_str
+  examples: tests/pymcell4_positive/0040_to_bngl_str/model.py tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback/model.py
   items:
   - name: name
     type: str
@@ -553,7 +553,7 @@ ReactionRule:
       allows for two surface molecules to react when they are on different geometrical objects. 
       Note\: This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
       where all reactants and products must be surface molecules and their orientation must be 'any' (default). 
-    example: tests/pymcell4/3000_intramembrane_rxns
+    examples: tests/pymcell4/3000_intermembrane_rxns/customization.py
     todo: not sure whether we should allow this rxn also for standard surf-surf rxns  
 
   methods:
@@ -563,6 +563,17 @@ ReactionRule:
     is_const: true 
   
 Subsystem:
+  doc: |
+     Subsystem usually defines a reaction network. It is a collection of 
+     species and reaction rules that use these species. 
+     The main motivation for introducing such an object to MCell4 is to have 
+     a class independent on that particular initial model state and observables that 
+     only contains reactions. This way, one can define independent reusable subsystems
+     and possibly merge them together when creating a model that includes multiple reaction 
+     networks. 
+  
+  examples: tests/pymcell4/2550_variable_rate_unimol_w_rxn_class_cleanup/sybsystem.py
+
   items:
   - name: species
     type: List[Species*]
@@ -658,7 +669,7 @@ Subsystem:
       Compartments names are stored in rxn rules as strings because compartments belong 
       to geometry objects and the subsystem is independent on specific geometry.
       However, the compartments and their objects must be defined before initialization.
-    example: tests/pymcell4/2100_gradual_bngl_load
+    examples: tests/pymcell4/2100_gradual_bngl_load/model.py
     params:
     - name: file_name
       type: str      

@@ -1,7 +1,9 @@
 
 BaseChkptMol:
   superclass: BaseDataClass
-  doc: Base class for checkpointed molecules, not to be used directly. All times are in us (microseconds).
+  doc: | 
+     Base class for checkpointed molecules.
+     Not to be used directly. All times are in seconds.
   items:
   - name: id
     type: int

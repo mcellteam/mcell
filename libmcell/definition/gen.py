@@ -1960,8 +1960,8 @@ def generate_pyi_file(data_classes):
         f.write(species_def)
         
         
-def indent_and_fix_rst_chars(text, indent_and_fix_rst_chars):
-    return text.replace('\n', '\n' + indent_and_fix_rst_chars).replace('*', '\\*')
+def indent_and_fix_rst_chars(text, indent):
+    return text.replace('\n', '\n' + indent).replace('*', '\\*').replace('@', '\\@')
             
 
 def load_and_generate_data_classes():

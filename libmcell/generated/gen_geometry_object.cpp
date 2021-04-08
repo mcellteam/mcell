@@ -183,7 +183,7 @@ std::string GenGeometryObject::to_str(const std::string ind) const {
 }
 
 py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
-  return py::class_<GeometryObject, Region, std::shared_ptr<GeometryObject>>(m, "GeometryObject", "Class represents eometry objects defined by triangular surface elements.")
+  return py::class_<GeometryObject, Region, std::shared_ptr<GeometryObject>>(m, "GeometryObject", "Class represents geometry objects defined by triangular surface elements.")
       .def(
           py::init<
             const std::string&,

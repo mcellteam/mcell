@@ -26,6 +26,8 @@ Container used to hold instantiation-related model data.
 Instantiation is usually specific for each model, defines 
 the geometry and initial setup of molecule releases.
 
+Example: `1600_organelle_move/instantiation.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1600_organelle_move/instantiation.py>`_ 
+
 Attributes:
 ***********
 * | **release_sites**: List[ReleaseSite] = None
@@ -114,6 +116,8 @@ Methods:
   | All compartments used in the loaded BNGL seed species section must exist in the model before 
   | model intialization.
 
+  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/pymcell4/2100_gradual_bngl_load/model.py>`_ 
+
 
 
 MoleculeReleaseInfo
@@ -168,6 +172,8 @@ ReleaseSite
 ===========
 
 Defines a release site that specifies where, when and how should molecules be released.
+
+Example: `1100_point_release/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1100_point_release/model.py>`_ 
 
 Attributes:
 ***********

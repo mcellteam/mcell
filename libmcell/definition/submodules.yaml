@@ -8,7 +8,7 @@ geometry_utils:
   - name: create_box
     doc: Creates a GeometryObject whose center is at (0, 0, 0).
     return_type: GeometryObject*
-    example: tests/pymcell4/1400_rel_site_for_each_it
+    examples: tests/pymcell4/1400_rel_site_for_each_it/model.py
     params:
     - name: name
       type: str
@@ -26,7 +26,8 @@ bngl_utils:
   methods:
   - name: load_bngl_parameters
     return_type: Dict[str, float]
-    example: tests/pymcell4_positive/2010_bng_parameter_override
+    doc: Load parameters section from a BNGL file and return it as a dictionary name->value.
+    examples: tests/pymcell4_positive/2010_bng_parameter_override/model.py
     
     params:
     - name: file_name

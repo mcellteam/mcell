@@ -4,6 +4,11 @@ Callbacks
 MolWallHitInfo
 ==============
 
+Data structure passed to a callback function registered through
+Model.register_mol_wall_hit_callback.
+
+Example: `1300_wall_hit_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1300_wall_hit_callback/model.py>`_ 
+
 Attributes:
 ***********
 * | **molecule_id**: int
@@ -32,7 +37,10 @@ Attributes:
 ReactionInfo
 ============
 
-Data structure passed to a reaction callback.
+Data structure passed to a reaction callback registered with 
+Model.register_reaction_callback.
+
+Example: `1800_vol_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1800_vol_rxn_callback/model.py>`_ 
 
 Attributes:
 ***********

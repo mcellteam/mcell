@@ -113,7 +113,7 @@ std::string GenReactionInfo::to_str(const std::string ind) const {
 }
 
 py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
-  return py::class_<ReactionInfo, std::shared_ptr<ReactionInfo>>(m, "ReactionInfo", "Data structure passed to a reaction callback.")
+  return py::class_<ReactionInfo, std::shared_ptr<ReactionInfo>>(m, "ReactionInfo", "Data structure passed to a reaction callback registered with \nModel.register_reaction_callback.\n")
       .def(
           py::init<
           >()

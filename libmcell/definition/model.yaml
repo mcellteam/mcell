@@ -4,7 +4,7 @@ Model:
      This is the main class that is used to assemble all simulation input 
      and configuration. It also provides methods to do initialization,
      run simulation, and introspect the running simulation.
-  
+  examples: tests/pymcell4/1400_rel_site_for_each_it/model.py
   items:
   - name: config
     type: Config
@@ -92,9 +92,11 @@ Model:
       default: unset
         
   - name: export_viz_data_model
-    doc: Same as export_data_model, only the created data model will contain only information required for visualization
-     in CellBlender. This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential
-     compatibility issues. 
+    doc: |
+       Same as export_data_model, only the created data model will contain only information required for visualization
+       in CellBlender. This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential
+       compatibility issues. 
+    examples: tests/pymcell4_positive/1520_sphere_collision/model.py
     params: 
     - name: file
       type: str
@@ -108,7 +110,8 @@ Model:
        The ReleaseSite.release_time must not be in the past and must be within the current iteration 
        meaning that the time must be greater or equal iteration * time_step and less than (iteration + 1) * time_step.
        The ReleaseEvent must not use a release_pattern because this is an immediate release and it is not 
-       scheduled into the global scheduler. 
+       scheduled into the global scheduler.
+    examples: tests/pymcell4/2300_immediate_release/model.py
     params:
     - name: release_site
       type: ReleaseSite*
@@ -118,6 +121,7 @@ Model:
       Run a single reaction on reactants. Callbacks will be called if they are registered for the given reaction.
       Returns a list of product IDs.
       Note\: only unimolecular reactions are currently supported.
+    examples: pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py
     return_type: List[int]
     params:
     - name: reaction_rule
@@ -144,6 +148,7 @@ Model:
        To do the actual geometry change, call Model.apply_vertex_moves.
        The reason why we first need to collect all changes and then apply them all at the same time is for performance
        reasons. 
+    examples: tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py
     params: 
     - name: object
       type: GeometryObject*
@@ -165,6 +170,7 @@ Model:
        Note\: It is not supported yet to move two objects that woudl collide at the same time.  
        When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
        when collect_wall_wall_hits is False, and empty list is returned.
+    examples: tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py
     return_type: List[WallWallHitInfo*]
     params:
     - name: collect_wall_wall_hits
@@ -180,6 +186,8 @@ Model:
     doc: |
        Register a callback for event when a molecule hits a wall. 
        Note\: There can be currently only a single wall hit callback registered.
+    examples: tests/pymcell4_positive/1300_wall_hit_callback/model.py
+           
     params:
     - name: function
       type: std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>
@@ -212,6 +220,7 @@ Model:
        It is allowed to do state modifications except for removing reacting molecules, 
        they will be removed automatically after return from this callback. 
        Unlimited number of reaction callbacks is allowed. 
+    examples: tests/pymcell4_positive/1800_vol_rxn_callback/model.py    
     params: 
     - name: function
       type: std::function<void(std::shared_ptr<ReactionInfo>, py::object)>
@@ -247,6 +256,7 @@ Model:
       If an item in the seed species section does not have its compartment set,
       the argument default_region must be set and the molecules are released into or onto the 
       default_region. 
+    examnles: pymcell4/1400_rel_site_for_each_it/model.py
     params:
     - name: file_name
       type: str  
@@ -288,6 +298,7 @@ Model:
        it can be changed by setting 'custom_dir'.
        If used during an iteration such as in a callback, an event is scheduled for the  
        beginning of the next iteration. This scheduled event saves the checkpoint.  
+    examples: tests/pymcell4_positive/2700_save_checkpoint_rxn_in_box/model.py
     params:
     - name: custom_dir
       type: str
@@ -303,7 +314,7 @@ Model:
        This means that it will be executed right before any other events scheduled for 
        the given iteration are executed.
        Can be called asynchronously at any time after initialization.
-       
+    examples: tests/nutmeg4_pymcell4/2760_schedule_checkpoint_async_w_timer/model.py
     params:
     - name: iteration
       type: uint64

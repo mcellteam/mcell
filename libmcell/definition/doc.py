@@ -23,11 +23,28 @@ from constants import *
 from gen import indent_and_fix_rst_chars, yaml_type_to_py_type, get_default_or_unset_value_py
         
         
+def gen_example_links(base_links):
+    split_links = base_links.strip().split()
+    n = len(split_links)
+    if n == 0:
+        return ''        
+    res = 'Example' + ('' if n == 1 else 's') + ': '
+    
+    for l in split_links:
+        name = os.path.basename(os.path.dirname(l)) + '/' + os.path.basename(l)
+        res += '`' + name + ' <' + EXAMPLES_BASE_URL + l + '>`_ '
+    
+    return res 
+
 def generate_class_documentation(f, class_name, class_def):
     f.write(class_name + '\n' + '='*len(class_name) + '\n\n')
     
     if KEY_DOC in class_def:
         f.write(class_def[KEY_DOC].strip() + '\n\n')
+        
+    if KEY_EXAMPLES in class_def:
+        f.write(gen_example_links(class_def[KEY_EXAMPLES]) + '\n\n')
+        
         
     if KEY_ITEMS in class_def and class_def[KEY_ITEMS]:
         f.write('Attributes:\n' + '*'*len('Attributes:') + '\n')
@@ -42,6 +59,10 @@ def generate_class_documentation(f, class_name, class_def):
             
             if KEY_DOC in item and item[KEY_DOC]:
                 f.write('  | ' + indent_and_fix_rst_chars(item[KEY_DOC].strip(), '  | ') + '\n')
+                
+            if KEY_EXAMPLES in item:
+                f.write('\n  | ' + gen_example_links(item[KEY_EXAMPLES]) + '\n\n')
+                
             f.write('\n')
         
     if KEY_METHODS in class_def and class_def[KEY_METHODS]:
@@ -68,6 +89,9 @@ def generate_class_documentation(f, class_name, class_def):
             
             if KEY_DOC in method:
                 f.write('\n  | ' + indent_and_fix_rst_chars(method[KEY_DOC].strip(), '  | ') + '\n\n')
+                
+            if KEY_EXAMPLES in method:
+                f.write('  | ' + gen_example_links(method[KEY_EXAMPLES]) + '\n\n')
                 
             f.write('\n')
         f.write('\n')

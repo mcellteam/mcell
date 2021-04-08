@@ -58,6 +58,8 @@ COPYRIGHT = \
 ******************************************************************************/\n
 """
 
+EXAMPLES_BASE_URL = 'https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/'
+
 TARGET_DIRECTORY = '..' + '/' + 'generated'
 DOC_DIRECTORY = '..'  + '/' + 'documentation'  + '/' + 'generated'
 API_DIRECTORY = 'api'
@@ -71,6 +73,7 @@ KEY_VALUE = 'value'
 KEY_VALUES = 'values'
 KEY_DEFAULT = 'default'
 KEY_DOC = 'doc'
+KEY_EXAMPLES = 'examples'
 KEY_CATEGORY = 'category'  # set from input file name
 
 KEY_SUPERCLASS = 'superclass'

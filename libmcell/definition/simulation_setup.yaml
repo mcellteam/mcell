@@ -46,7 +46,9 @@ Config:
        walls when they get within N microns of each other. The default is
        1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density 
        (default or user-specified). 
-    example: tests/pymcell4/3000_intramembrane_rxns
+       When unset, the default value is computed as: 
+       1.0 / sqrt_f(MY_PI * surface_grid_density).
+    examples: tests/pymcell4/3000_intermembrane_rxns/customization.py
 
   - name: vacancy_search_distance
     type: float
@@ -63,6 +65,7 @@ Config:
        place its products within a radius r, and will place those products as 
        close as possible to the place where the reaction occurs
        (deterministically, so small-scale directional bias is possible).
+    examples: tests/pymcell4/1200_dyn_vert_tetrahedron_vol_mol_multiple_changes/model.py
 
   - name: center_molecules_on_grid
     type: bool
@@ -73,6 +76,7 @@ Config:
        molecules will be randomly located when placed, and reactions
        will take place at the location of the target (or the site of impact
        in the case of 3D molecule/surface reactions). 
+    examples: tests/pymcell4/1210_dyn_vert_tetrahedron_surf_mol_multiple_changes/model.py
 
   - name: partition_dimension
     type: float 
@@ -81,6 +85,7 @@ Config:
     doc: |
        All the simulated 3d space is placed in a partition. The partition is a cube and 
        this partition_dimension specifies the length of its edge in um.
+    examples: tests/pymcell4/1100_point_release/model.py
 
   - name: initial_partition_origin
     type: List[float] 
@@ -102,7 +107,7 @@ Config:
        subvolume as large as possible. Crossing partition boundaries takes a small amount of time, 
        so it is rarely useful to have partitions more finely spaced than the average diffusion distance 
        of the faster-moving molecules in the simulation.
-    example: pymcell4/2000_bngl_a_plus_b_to_c_partitioning
+    examples: tests/pymcell4/2000_bngl_a_plus_b_to_c_partitioning/model.py
     
   - name: total_iterations
     type: float
@@ -129,7 +134,7 @@ Config:
        Reaction class cleanup removes computed reaction classes for inactive species from memory.
        This provides faster reaction lookup faster but when the same reaction class is 
        needed again, it must be recomputed.
-    example: tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check
+    examples: tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check/model.py
 
   - name: species_cleanup_periodicity
     type: int
@@ -139,7 +144,7 @@ Config:
        that reference it.
        This provides faster addition of new species lookup faster but when the species is 
        needed again, it must be recomputed.
-    example: tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check
+    examples: tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check/model.py
 
   - name: sort_molecules
     type: bool
@@ -156,7 +161,7 @@ Config:
     doc: |
       Sets memory limit in GB for simulation run. 
       When this limit is hit, all buffers are flushed and simulation is terminated with an error.
-    example: tests/nutmeg4_pymcell4/0200_memory_limit 
+    examples: tests/nutmeg4_pymcell4/0200_memory_limit/model.py
       
   - name: initial_iteration
     type: uint64
@@ -196,7 +201,7 @@ Config:
        continue_after_sigalrm is False, checkpoint is stored and simulation is terminated. 
        When continue_after_sigalrm is True, checkpoint is stored and simulation continues.
        SIGALRM is not supported on Windows.
-    example: tests/nutmeg4_pymcell4/2785_schedule_checkpoint_async_w_sigalrm_continue
+    examples: tests/nutmeg4_pymcell4/2785_schedule_checkpoint_async_w_sigalrm_continue/model.py
 
 Notifications:
   superclass: BaseDataClass
@@ -283,7 +288,8 @@ Warnings:
     doc: | 
        Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.
        Warning when probability is greater than 1 is always printed.
-       Cannot be set to WarningLevel.ERROR. 
+       Cannot be set to WarningLevel.ERROR.
+    examples: tests/nutmeg4_pymcell4/0615_bimol_rxn_prob_over_05_less_1_warning_disabled/model.py 
     
 #   - name: molecule_collision_report
 #     type: WarningLevel

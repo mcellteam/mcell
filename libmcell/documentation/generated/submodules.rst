@@ -21,6 +21,11 @@ Methods:
    * | return type: Dict[str, float]
 
 
+  | Load parameters section from a BNGL file and return it as a dictionary name->value.
+
+  | Example: `2010_bng_parameter_override/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/2010_bng_parameter_override/model.py>`_ 
+
+
 
 geometry_utils
 ==============
@@ -43,6 +48,8 @@ Methods:
 
 
   | Creates a GeometryObject whose center is at (0, 0, 0).
+
+  | Example: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1400_rel_site_for_each_it/model.py>`_ 
 
 
 

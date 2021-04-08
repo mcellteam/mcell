@@ -119,7 +119,7 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       .def("check_semantics", &Molecule::check_semantics)
       .def("__str__", &Molecule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Molecule::__eq__, py::arg("other"))
-      .def("remove", &Molecule::remove, "Removes this molecule from simulation. Any subsequent modifications\nof this object won't have any effect.  \n")
+      .def("remove", &Molecule::remove, "Removes this molecule from simulation. Any subsequent modifications\nof this molecules won't have any effect.\n")
       .def("dump", &Molecule::dump)
       .def_property("id", &Molecule::get_id, &Molecule::set_id, "Unique id of this molecule. MCell assigns this unique id to each created \nmolecule. All reactions change ID of molecules even in reactions such as \nA@CP -> A@EC.\n")
       .def_property("type", &Molecule::get_type, &Molecule::set_type, "Type of this molecule, either volume or surface. \n")

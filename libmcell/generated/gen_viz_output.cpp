@@ -76,7 +76,7 @@ std::string GenVizOutput::to_str(const std::string ind) const {
 }
 
 py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
-  return py::class_<VizOutput, std::shared_ptr<VizOutput>>(m, "VizOutput")
+  return py::class_<VizOutput, std::shared_ptr<VizOutput>>(m, "VizOutput", "Defines a visualization output with locations of molecules \nthat can be then loaded by CellBlender.\n")
       .def(
           py::init<
             const std::string&,

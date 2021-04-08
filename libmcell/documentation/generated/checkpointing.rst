@@ -4,7 +4,8 @@ Checkpointing
 BaseChkptMol
 ============
 
-Base class for checkpointed molecules, not to be used directly. All times are in us (microseconds).
+Base class for checkpointed molecules.
+Not to be used directly. All times are in seconds.
 
 Attributes:
 ***********

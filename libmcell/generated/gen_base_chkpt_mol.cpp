@@ -118,7 +118,7 @@ std::string GenBaseChkptMol::to_str(const std::string ind) const {
 }
 
 py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
-  return py::class_<BaseChkptMol, std::shared_ptr<BaseChkptMol>>(m, "BaseChkptMol", "Base class for checkpointed molecules, not to be used directly. All times are in us (microseconds).")
+  return py::class_<BaseChkptMol, std::shared_ptr<BaseChkptMol>>(m, "BaseChkptMol", "Base class for checkpointed molecules.\nNot to be used directly. All times are in seconds.\n")
       .def(
           py::init<
             const int,

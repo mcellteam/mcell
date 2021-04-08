@@ -86,7 +86,7 @@ std::string GenMolWallHitInfo::to_str(const std::string ind) const {
 }
 
 py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
-  return py::class_<MolWallHitInfo, std::shared_ptr<MolWallHitInfo>>(m, "MolWallHitInfo")
+  return py::class_<MolWallHitInfo, std::shared_ptr<MolWallHitInfo>>(m, "MolWallHitInfo", "Data structure passed to a callback function registered through\nModel.register_mol_wall_hit_callback.\n \n")
       .def(
           py::init<
           >()

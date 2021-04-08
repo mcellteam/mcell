@@ -12,6 +12,8 @@ fully qualified instance (such as for molecule releases) or a pattern (in observ
 Comparison operator __eq__ first converts complexes to their canonical representation and 
 then does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').
 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+
 Attributes:
 ***********
 * | **name**: str = None
@@ -33,7 +35,7 @@ Attributes:
 * | **compartment_name**: str = None
   | Specifies compartment name of this Complex.
   | Only one of 'orientation' and 'compartment_name' can be set. 
-  | Corresponds to BNGL specification of a compartment for the whole complex '@COMP\:'.
+  | Corresponds to BNGL specification of a compartment for the whole complex '\@COMP\:'.
   | If a 2D/surface compartment is specified, the complex must be a surface complex and 
   | orientation is set to Orientation.UP.
   | If a 3D/volume compartment is specified, the complex must be a volume complex and
@@ -76,6 +78,8 @@ Instance of a component type belonging to a molecule instance.
 A component instance must have its state set if there is at least one allowed state.
 It is also used to connect molecule instance in a complex instance through bonds.
 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+
 Attributes:
 ***********
 * | **component_type**: ComponentType
@@ -106,6 +110,8 @@ ComponentType
 =============
 
 Multiple functional attributes for each molecule type are described using components. And this class defines a type of a component. For example, proteins have multiple functional substructures such as domains, motifs, and binding sites. These components can be unchanging (called stateless) or exist in one of many different internal states For example, certain binding motifs may have different behaviors depending on whether they are unphosphorylated or phosphorylated.
+
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -160,6 +166,8 @@ ElementaryMolecule
 
 Instance of an elementary molecule type. A BNGL complex is composed of elementary molecules.
 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+
 Attributes:
 ***********
 * | **elementary_molecule_type**: ElementaryMoleculeType
@@ -194,6 +202,8 @@ An elementary molecule type is a base indivisible entity. It is the same as
 a molecule type in BNGL entered in section molecule types. 
 The 'elementary' prefix was added to distinguish it clearly from molecules in 
 simulation.
+
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -265,14 +275,14 @@ Represents a BioNetGen Language (BNGL) reaction rule.
 In BNGL, a reaction is simply one or more transformations
 applied simultaneously to one or more species. The following
 transformations (and their combinations) are allowed\:
-- Forming a bond, e.g. A(b) + B(a) -> A(b!0).B(a!0)
-- Breaking a bond, e.g. A(b!0).B(a!0)-> A(b)+ B(a)
-- Changing of component state, e.g. X(y~0) -> X(y~p)
-- Creating a molecule, e.g. A(b) -> A(b) + C(d)
-- Destroying a molecule, e.g. A(b) + B(a) -> A(b) or A -> Null 
-  (Null here means that there is no product)
-- Changing species of a bound molecule when the molecule type has the 
-  same components, e.g. A(b!0).B(a!0)-> A(b!0).C(a!0)
+  * Forming a bond, e.g. A(b) + B(a) -> A(b!0).B(a!0)
+  * Breaking a bond, e.g. A(b!0).B(a!0)-> A(b)+ B(a)
+  * Changing of component state, e.g. X(y~0) -> X(y~p)
+  * Creating a molecule, e.g. A(b) -> A(b) + C(d)
+  * Destroying a molecule, e.g. A(b) + B(a) -> A(b) or A -> Null 
+    (Null here means that there is no product)
+  * Changing species of a bound molecule when the molecule type has the 
+    same components, e.g. A(b!0).B(a!0)-> A(b!0).C(a!0)
   
 Also compartments may be specified in reactants (patterns) and for products.
 Special compartment classes supported by MCell4 are @IN and @OUT.
@@ -280,6 +290,8 @@ They can be used in surface reactions to constrain a reaction with a volume mole
 hitting a surface molecule from the inside or outside of the compartment, 
 e.g. A(s)@IN + S(a) -> S(a!1).A(s!1) and/or to define the location of the 
 product, e.g. S(a!1).A(s!1) -> S(a) + A(s)@OUT.
+
+Examples: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ `1840_vol_plus_surf_class_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback/model.py>`_ 
 
 Attributes:
 ***********
@@ -337,6 +349,9 @@ Attributes:
   | Note\: This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
   | where all reactants and products must be surface molecules and their orientation must be 'any' (default).
 
+  | Example: `3000_intermembrane_rxns/customization.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/3000_intermembrane_rxns/customization.py>`_ 
+
+
 
 Methods:
 *********
@@ -378,6 +393,8 @@ This is a common form of usage when reaction rules are provided in a BNGL file.
 Such declaration does no need to be added to subsystem or model.
 This form is used as argument in cases where a fully qualified instance  
 must be provided such as in molecule releases.
+
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -432,7 +449,7 @@ Attributes:
 * | **compartment_name**: str = None
   | Specifies compartment name of this Complex.
   | Only one of 'orientation' and 'compartment_name' can be set. 
-  | Corresponds to BNGL specification of a compartment for the whole complex '@COMP\:'.
+  | Corresponds to BNGL specification of a compartment for the whole complex '\@COMP\:'.
   | If a 2D/surface compartment is specified, the complex must be a surface complex and 
   | orientation is set to Orientation.UP.
   | If a 3D/volume compartment is specified, the complex must be a volume complex and
@@ -484,6 +501,16 @@ Methods:
 
 Subsystem
 =========
+
+Subsystem usually defines a reaction network. It is a collection of 
+species and reaction rules that use these species. 
+The main motivation for introducing such an object to MCell4 is to have 
+a class independent on that particular initial model state and observables that 
+only contains reactions. This way, one can define independent reusable subsystems
+and possibly merge them together when creating a model that includes multiple reaction 
+networks.
+
+Example: `2550_variable_rate_unimol_w_rxn_class_cleanup/sybsystem.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2550_variable_rate_unimol_w_rxn_class_cleanup/sybsystem.py>`_ 
 
 Attributes:
 ***********
@@ -590,6 +617,8 @@ Methods:
   | to geometry objects and the subsystem is independent on specific geometry.
   | However, the compartments and their objects must be defined before initialization.
 
+  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
+
 
 
 SurfaceClass
@@ -599,6 +628,8 @@ Defining a surface class allows surfaces to behave like species. For instance, o
 to specify that a surface does not block the diffusion of molecules. Each type of surface is defined
 by name, and each surface name must be unique in the simulation and should not match any molecule names.
 To define a reaction with a surface class, use constructor call m.Complex(name) as one of the reactants.
+
+Examples: `1600_crossing_transparent_compartment_wall/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1600_crossing_transparent_compartment_wall/model.py>`_ `1840_vol_plus_surf_class_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback/model.py>`_ 
 
 Attributes:
 ***********

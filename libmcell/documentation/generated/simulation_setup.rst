@@ -29,7 +29,12 @@ Attributes:
   | Diffusing surface molecules will interact with surface molecules on other
   | walls when they get within N microns of each other. The default is
   | 1/sqrt(PI \* Sigma_s) where Sigma_s is the surface grid density 
-  | (default or user-specified).
+  | (default or user-specified). 
+  | When unset, the default value is computed as: 
+  | 1.0 / sqrt_f(MY_PI \* surface_grid_density).
+
+  | Example: `3000_intermembrane_rxns/customization.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/3000_intermembrane_rxns/customization.py>`_ 
+
 
 * | **vacancy_search_distance**: float = 10
   | Normally, a reaction will not proceed on a surface unless there
@@ -43,6 +48,9 @@ Attributes:
   | close as possible to the place where the reaction occurs
   | (deterministically, so small-scale directional bias is possible).
 
+  | Example: `1200_dyn_vert_tetrahedron_vol_mol_multiple_changes/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1200_dyn_vert_tetrahedron_vol_mol_multiple_changes/model.py>`_ 
+
+
 * | **center_molecules_on_grid**: bool = False
   | If set to True, then all molecules on a surface will be
   | located exactly at the center of their grid element. If False, the
@@ -50,9 +58,15 @@ Attributes:
   | will take place at the location of the target (or the site of impact
   | in the case of 3D molecule/surface reactions).
 
+  | Example: `1210_dyn_vert_tetrahedron_surf_mol_multiple_changes/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1210_dyn_vert_tetrahedron_surf_mol_multiple_changes/model.py>`_ 
+
+
 * | **partition_dimension**: float = 10
   | All the simulated 3d space is placed in a partition. The partition is a cube and 
   | this partition_dimension specifies the length of its edge in um.
+
+  | Example: `1100_point_release/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1100_point_release/model.py>`_ 
+
 
 * | **initial_partition_origin**: List[float] = None
   | Optional placement of the initial partition in um, specifies the left, lower front 
@@ -67,6 +81,9 @@ Attributes:
   | subvolume as large as possible. Crossing partition boundaries takes a small amount of time, 
   | so it is rarely useful to have partitions more finely spaced than the average diffusion distance 
   | of the faster-moving molecules in the simulation.
+
+  | Example: `2000_bngl_a_plus_b_to_c_partitioning/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2000_bngl_a_plus_b_to_c_partitioning/model.py>`_ 
+
 
 * | **total_iterations**: float = 1000000
   | Required for checkpointing so that the checkpointed model has information on
@@ -84,11 +101,17 @@ Attributes:
   | This provides faster reaction lookup faster but when the same reaction class is 
   | needed again, it must be recomputed.
 
+  | Example: `2701_concentration_based_rxn_rate_cleanup_check/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check/model.py>`_ 
+
+
 * | **species_cleanup_periodicity**: int = 10000
   | Species cleanup removes inactive species from memory. It removes also all reaction classes 
   | that reference it.
   | This provides faster addition of new species lookup faster but when the species is 
   | needed again, it must be recomputed.
+
+  | Example: `2701_concentration_based_rxn_rate_cleanup_check/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check/model.py>`_ 
+
 
 * | **sort_molecules**: bool = False
   | Enables sorting of molecules for diffusion, this may improve cache locality and provide 
@@ -99,6 +122,9 @@ Attributes:
 * | **memory_limit_gb**: int = -1
   | Sets memory limit in GB for simulation run. 
   | When this limit is hit, all buffers are flushed and simulation is terminated with an error.
+
+  | Example: `0200_memory_limit/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/nutmeg4_pymcell4/0200_memory_limit/model.py>`_ 
+
 
 * | **initial_iteration**: int = 0
   | Initial iteration, used when resuming a checkpoint.
@@ -122,6 +148,9 @@ Attributes:
   | continue_after_sigalrm is False, checkpoint is stored and simulation is terminated. 
   | When continue_after_sigalrm is True, checkpoint is stored and simulation continues.
   | SIGALRM is not supported on Windows.
+
+  | Example: `2785_schedule_checkpoint_async_w_sigalrm_continue/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/nutmeg4_pymcell4/2785_schedule_checkpoint_async_w_sigalrm_continue/model.py>`_ 
+
 
 Notifications
 =============
@@ -155,4 +184,7 @@ Attributes:
   | Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.
   | Warning when probability is greater than 1 is always printed.
   | Cannot be set to WarningLevel.ERROR.
+
+  | Example: `0615_bimol_rxn_prob_over_05_less_1_warning_disabled/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/nutmeg4_pymcell4/0615_bimol_rxn_prob_over_05_less_1_warning_disabled/model.py>`_ 
+
 

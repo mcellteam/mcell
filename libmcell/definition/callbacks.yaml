@@ -1,6 +1,12 @@
 # this file defines structures passed back through callbacks
 
 MolWallHitInfo:
+   doc: | 
+      Data structure passed to a callback function registered through
+      Model.register_mol_wall_hit_callback.
+       
+   examples: tests/pymcell4_positive/1300_wall_hit_callback/model.py
+
    items:
    - name: molecule_id
      type: int
@@ -35,7 +41,10 @@ MolWallHitInfo:
       
       
 ReactionInfo:
-   doc: Data structure passed to a reaction callback. 
+   doc: | 
+      Data structure passed to a reaction callback registered with 
+      Model.register_reaction_callback.
+   examples: tests/pymcell4_positive/1800_vol_rxn_callback/model.py
    items:
    - name: type
      type: ReactionType

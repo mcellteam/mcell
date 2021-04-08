@@ -52,7 +52,7 @@ SurfaceRegion:
      multiple regions inherit all parent regions’ surface properties. Users
      have to make sure that in case of overlapped regions their surface properties
      are compatible. 
-
+  examples: tests/pymcell4_positive/1700_linear_conc_gradient_w_conc_clamp/geometry.py
   items:
   - name: name
     type: str
@@ -82,7 +82,8 @@ SurfaceRegion:
     
 GeometryObject:
   superclass: Region
-  doc: Class represents eometry objects defined by triangular surface elements. 
+  doc: Class represents geometry objects defined by triangular surface elements.
+  examples: tests/pymcell4_positive/1330_get_wall/geometry.py 
   items:
   - name: name
     type: str
@@ -140,6 +141,7 @@ GeometryObject:
     doc: | 
        Move object by a specified vector. 
        Cannot be called after model was initialized.
+    examples: tests/pymcell4_positive/1400_object_translate/model.py
     params:
     - name: move
       type: List[float]

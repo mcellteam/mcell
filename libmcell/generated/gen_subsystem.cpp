@@ -60,7 +60,7 @@ std::string GenSubsystem::to_str(const std::string ind) const {
 }
 
 py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
-  return py::class_<Subsystem, std::shared_ptr<Subsystem>>(m, "Subsystem")
+  return py::class_<Subsystem, std::shared_ptr<Subsystem>>(m, "Subsystem", "Subsystem usually defines a reaction network. It is a collection of \nspecies and reaction rules that use these species. \nThe main motivation for introducing such an object to MCell4 is to have \na class independent on that particular initial model state and observables that \nonly contains reactions. This way, one can define independent reusable subsystems\nand possibly merge them together when creating a model that includes multiple reaction \nnetworks. \n")
       .def(
           py::init<
             const std::vector<std::shared_ptr<Species>>,
