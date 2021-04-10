@@ -35,7 +35,9 @@ def analyze_dat_file(file_name):
     for (complex, count) in complex_counts:
         
         weight = 0.0
-         
+        
+        # iterate over elementary molecules from which the 
+        # complex is composed
         for mi in complex.elementary_molecules:
             name = mi.elementary_molecule_type.name
             if name not in WEIGHTS:

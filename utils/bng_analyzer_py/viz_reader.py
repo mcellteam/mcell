@@ -30,25 +30,13 @@ def load_counts_from_dat_file(file_name):
 
 def parse_bngl_strings_to_complex_representations(counts_df):
     # returns a list of pairs (mcell.Complex, int), the second item is count 
-    
-    # the MCell4 API does not have currently a function to parse and convert 
-    # BNGL string to the internal Complex representation, 
-    # so we will create a BNGL file and load it instead
-    with open('tmp.bngl', 'w') as f:
-        f.write('begin seed species\n')
-        for index, row in counts_df.iterrows():
-            f.write('  ' + row['species'] + ' ' + str(row['count']) + '\n')  
-        f.write('\nend seed species\n')      
-
-    model = m.Model()
-    obj = m.geometry_utils.create_box('box', 1)
-    model.load_bngl('tmp.bngl', '', obj)
-    
-    # the information was generated as seed species so we just read it from 
-    # the release sites
     res = []
-    for rel_site in model.release_sites:
-        res.append((rel_site.complex, rel_site.number_to_release))
+    for index, row in counts_df.iterrows():
+        # constructor m.Complex parses the BNGL representaion into 
+        # a MCell4 API representation 
+        # (see https://cnl.salk.edu/~ahusar/mcell4_documentation/generated/subsystem.html#complex
+        cplx = m.Complex(row['species'])
+        res.append((cplx, row['count']))
     
     return res
 
