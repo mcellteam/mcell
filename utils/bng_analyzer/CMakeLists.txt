@@ -3,24 +3,30 @@ cmake_minimum_required(VERSION 2.8.4)
 project(bng_analyzer)
 
 include_directories(
-    "${CMAKE_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/"
-	"${CMAKE_CURRENT_SOURCE_DIR}/../../libs/sparsehash/src/"
+  "${CMAKE_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../../bnglib/"
 )
 
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/libs/ ${CMAKE_SOURCE_DIR}/libs/sparsehash/src)
+include_directories(
+  SYSTEM 
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../bnglib/libs/ 
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../bnglib/libs/sparsehash/src
+)
 
 if (NOT WIN32)
   add_definitions(-std=c++14)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall ")
 endif()
 
-if (NOT TARGET bng)
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
+if (NOT TARGET bnglib)
+	add_subdirectory(
+	  ${CMAKE_CURRENT_SOURCE_DIR}/../../../bnglib/bng 
+	  ${CMAKE_CURRENT_BINARY_DIR}/libs/bng
+	)
 endif()
 
 set(SOURCE_FILES
-    bng_analyzer.cpp
+  bng_analyzer.cpp
 	nfsim_species_unifier.cpp
 )
 
@@ -33,5 +39,5 @@ add_executable(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-    bng
+    bnglib
 )

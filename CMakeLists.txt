@@ -146,7 +146,9 @@ include_directories(
   "${CMAKE_CURRENT_BINARY_DIR}/deps" 
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
-  "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
+  "${CMAKE_SOURCE_DIR}/../bnglib/"
+  "${CMAKE_SOURCE_DIR}/../bnglib/libs/"
+  "${CMAKE_SOURCE_DIR}/../bnglib/libs/sparsehash/src/"
   "${CMAKE_SOURCE_DIR}/libs"  
   "${CMAKE_SOURCE_DIR}/libmcell"  
       
@@ -224,7 +226,7 @@ if (WIN32)
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
-add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../bnglib/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
@@ -371,7 +373,7 @@ set_target_properties(mcell PROPERTIES
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
-target_link_libraries(mcell mcell4 libmcell_dummy bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
+target_link_libraries(mcell mcell4 libmcell_dummy bnglib nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer) # used in MCell4 vs MCell4 validation
@@ -381,10 +383,10 @@ if (NOT WIN32 AND NOT APPLE)
     set(STDC_FS stdc++fs)
 endif()
 
-add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
+add_dependencies(mcell4_so libmcell mcell4 bnglib jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS} ${WIN_PYTHON}
+    PRIVATE mcell4 bnglib jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS} ${WIN_PYTHON}
     PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
 )
 

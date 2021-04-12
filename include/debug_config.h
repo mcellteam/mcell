@@ -184,10 +184,6 @@
 //#define DEBUG_COMPARTMENTS
 #define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
-//#define DEBUG_CPLX_RXNS
-//#define DEBUG_CPLX_MATCHING
-//#define DEBUG_CPLX_MATCHING_EXTRA_COMPARE
-
 //#define DEBUG_WALL_COLLISIONS
 
 //#define DEBUG_DYNAMIC_GEOMETRY

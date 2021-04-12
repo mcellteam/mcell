@@ -1,6 +1,0 @@
-Selected headers from Boost version 1.71.0
-
-This originally started as a small set of headers, however nfsim's requirements made this grow a lot.
-Probably make a separate repo and move all hereaders there.
-We would like to be independent on the system installation, beceuse not everyone has the permissions and 
-getting the required version on some OSes might be tricky.  

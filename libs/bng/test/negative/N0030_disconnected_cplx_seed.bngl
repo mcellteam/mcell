@@ -1,6 +1,0 @@
-# FAIL
-# OUTPUT: error: All complexes that are not patterns must be currently fully connected, error for 'A.B'.
-
-begin seed species
-  A.B 1
-end seed species

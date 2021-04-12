@@ -1,8 +1,0 @@
-# FAIL
-# OUTPUT: error: syntax error, unexpected '!'
-
-
-begin molecule types
-   A(a!+) # already the parser detects this error
-   B(z!1)
-end molecule types
