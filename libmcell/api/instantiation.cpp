@@ -70,7 +70,7 @@ std::shared_ptr<GeometryObject> Instantiation::find_surface_compartment_object(c
 }
 
 
-void Instantiation::load_bngl_seed_species(
+void Instantiation::load_bngl_compartments_and_seed_species(
     const std::string& file_name,
     std::shared_ptr<Region> default_release_region,
     const std::map<std::string, float_t>& parameter_overrides) {
@@ -135,6 +135,8 @@ void Instantiation::convert_compartments(const BNG::BNGData& bng_data) {
 
       add_geometry_object(box);
     }
+
+    // TODO: assign names of 2D compartments when 3D compartment already exists
   }
 }
 

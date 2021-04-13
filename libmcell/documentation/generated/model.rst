@@ -491,7 +491,7 @@ Methods:
   | Returns None if no such geometry object is present.
 
 
-* | **load_bngl_seed_species**
+* | **load_bngl_compartments_and_seed_species**
 
    * | file_name: str
      | Path to the BNGL file.
@@ -504,14 +504,17 @@ Methods:
      | its value is ignored and instead value parameter_overrides[k] is used.
 
 
-  | Loads section seed species from a BNGL file and creates release sites according to it.
+  | First loads section compartments and for each 3D compartment that does not 
+  | already exist as a geometry object in this Instantiation object, creates a 
+  | box with compartment's volume and also sets its 2D (membrane) compartment name.
+  | When multiple identical geometry objects are added to the final Model object, 
+  | only one copy is left so one can merge multiple Instantiation objects that created 
+  | compartments assuming that their volume is the same.        
+  | Then loads section seed species from a BNGL file and creates release sites according to it.
   | All elementary molecule types used in the seed species section must be already defined in subsystem.
   | If an item in the BNGL seed species section does not have its compartment set,
   | the argument default_region must be set and the molecules are then released into or onto the 
-  | default_region. 
-  | Does not create geometry objects. 
-  | All compartments used in the loaded BNGL seed species section must exist in the model before 
-  | model intialization.
+  | default_region.
 
   | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/pymcell4/2100_gradual_bngl_load/model.py>`_ 
 

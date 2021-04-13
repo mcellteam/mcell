@@ -607,7 +607,7 @@ class Instantiation():
         ) -> 'GeometryObject':
         pass
 
-    def load_bngl_seed_species(
+    def load_bngl_compartments_and_seed_species(
             self,
             file_name : str,
             default_release_region : Region = None,
@@ -915,7 +915,7 @@ class Model():
         ) -> 'GeometryObject':
         pass
 
-    def load_bngl_seed_species(
+    def load_bngl_compartments_and_seed_species(
             self,
             file_name : str,
             default_release_region : Region = None,

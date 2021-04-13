@@ -674,7 +674,7 @@ void MCell4Generator::generate_instantiation(const vector<string>& geometry_obje
 
     gen_method_call(
         out, INSTANTIATION,
-        NAME_LOAD_BNGL_SEED_SPECIES,
+        NAME_LOAD_BNGL_COMPARTMENTS_AND_SEED_SPECIES,
         get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)),
         data.has_default_compartment_object ? BNG::DEFAULT_COMPARTMENT_NAME : "None",
         S(SHARED) + "." + PARAMETER_OVERRIDES

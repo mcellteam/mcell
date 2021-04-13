@@ -58,7 +58,7 @@ public:
     return vec_find_by_name(geometry_objects, name);
   }
 
-  void load_bngl_seed_species(
+  void load_bngl_compartments_and_seed_species(
       const std::string& file_name,
       std::shared_ptr<Region> default_release_region = nullptr,
       const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
