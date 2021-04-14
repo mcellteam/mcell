@@ -378,6 +378,7 @@ target_link_libraries(mcell mcell4 libmcell_dummy bnglib nfsim_c_static NFsim_st
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer) # used in MCell4 vs MCell4 validation
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_species_reader_py)
 
 if (NOT WIN32 AND NOT APPLE)
     set(STDC_FS stdc++fs)
