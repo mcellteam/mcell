@@ -190,8 +190,13 @@ KEYWORD_VIRTUAL = 'virtual'
 CLASS_NAME_ATTR = 'class_name'
 CACHED_DATA_ARE_UPTODATE_ATTR = 'cached_data_are_uptodate'
 
+GEN_VECTORS_BIND = 'gen_vectors_bind(py::module& m)'
+
 GEN_CONSTANTS_H = 'gen_constants.h'
 GEN_CONSTANTS_CPP = 'gen_constants.cpp'
+
+GEN_VECTORS_MAKE_OPAQUE_H = 'gen_vectors_make_opaque.h'
+GEN_VECTORS_BIND_CPP = 'gen_vectors_bind.cpp'
 
 MCELL_PYI = 'mcell.pyi'
 EXT_RST = '.rst'
@@ -216,3 +221,8 @@ NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 VEC_NONPTR_TO_STR = 'vec_nonptr_to_str'
 VEC_PTR_TO_STR = 'vec_ptr_to_str'
 F_TO_STR = 'f_to_str'
+
+PY_BIND_VECTOR = 'py::bind_vector'
+PY_IMPLICITLY_CONVERTIBLE = 'py::implicitly_convertible'
+
+PYBIND11_MAKE_OPAQUE = 'PYBIND11_MAKE_OPAQUE'

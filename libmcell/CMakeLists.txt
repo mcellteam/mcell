@@ -68,6 +68,8 @@ set(SOURCE_FILES
     api/chkpt_surf_mol.cpp
     api/rng_state.cpp
 
+    generated/gen_vectors_bind.cpp
+
     generated/gen_component_type.cpp
     generated/gen_component.cpp
     generated/gen_elementary_molecule_type.cpp

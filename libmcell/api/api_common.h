@@ -23,12 +23,30 @@
 #ifndef LIBMCELL_API_COMMON_H
 #define LIBMCELL_API_COMMON_H
 
+#ifdef _MSC_VER
+#undef HAVE_UNISTD_H
+#undef HAVE_SYS_TIME_H
+#endif
+#ifdef _WIN64
+// fix for _hypot compilation issue
+#define _hypot hypot
+#include <cmath>
+#endif
+#include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
+#include "pybind11/include/pybind11/functional.h"
+#include "pybind11/include/pybind11/stl_bind.h"
+namespace py = pybind11;
+
+// must be included before any usage of std::vector in API
+#include "generated/gen_vectors_make_opaque.h"
+
 #include <ostream>
 #include <sstream>
 #include <exception>
 #include <string>
 #include <memory>
 #include <functional>
+
 
 namespace MCell {
 namespace API {
@@ -51,23 +69,12 @@ typedef std::invalid_argument ValueError; // using naming from Python
 // The associated value is a string indicating what precisely went wrong.
 typedef std::logic_error RuntimeError; // e.g. not defined?
 
+// forward declarations for PYBIND11_MAKE_OPAQUE
+class Component;
 }
 }
 
-#ifdef _MSC_VER
-#undef HAVE_UNISTD_H
-#undef HAVE_SYS_TIME_H
-#endif
-#ifdef _WIN64
-// fix for _hypot compilation issue
-#define _hypot hypot
-#include <cmath>
-#endif
-#include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
-#include "pybind11/include/pybind11/functional.h"
 
-namespace py = pybind11;
-#include <vector>
 
 #include "defines.h"
 #include "generated/gen_constants.h"

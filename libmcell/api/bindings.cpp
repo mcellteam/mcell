@@ -89,6 +89,8 @@
 namespace MCell {
 namespace API {
 
+// defined in gen_vectors_bind.cpp
+void gen_vectors_bind(py::module& m);
 
 void define_pybinding_Vec3(py::module& m) {
   py::class_<MCell::Vec3>(m, "Vec3")
@@ -188,6 +190,9 @@ PYBIND11_MODULE(mcell, m) {
 
   // version
   m.attr("__version__") = py::str(MCELL_VERSION);
+
+  // bindings of custom vector types
+  gen_vectors_bind(m);
 
   // some classes use enums, must be defined first
   define_pybinding_enums(m);

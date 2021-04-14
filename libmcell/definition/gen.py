@@ -133,8 +133,6 @@ def is_base_yaml_type(t):
         (is_yaml_list_type(t) and is_base_yaml_type(get_inner_list_type(t))) or \
         (is_yaml_dict_type(t) and is_base_yaml_type(get_inner_dict_key_type(t)) and is_base_yaml_type(get_inner_dict_value_type(t)))
 
-def is_base_yaml_typexx(t):xx
-    
     
 def is_yaml_ptr_type(t):
     if t == YAML_TYPE_PY_OBJECT:
@@ -143,7 +141,7 @@ def is_yaml_ptr_type(t):
         return t[-1] == '*'
 
 
-def yaml_type_to_cpp_type(t):
+def yaml_type_to_cpp_type(t, w_namespace=False):
     assert len(t) >= 1
     if t == YAML_TYPE_FLOAT:
         return CPP_TYPE_FLOAT
@@ -156,25 +154,28 @@ def yaml_type_to_cpp_type(t):
     elif t == YAML_TYPE_UINT64:
         return CPP_TYPE_BOOL
     elif t == YAML_TYPE_VEC2:
-        return CPP_TYPE_VEC2
+        ns = '' if not w_namespace else 'MCell::' 
+        return ns + CPP_TYPE_VEC2
     elif t == YAML_TYPE_VEC3:
-        return CPP_TYPE_VEC3
+        ns = '' if not w_namespace else 'MCell::' 
+        return ns + CPP_TYPE_VEC3
     elif t == YAML_TYPE_IVEC3:
-        return CPP_TYPE_IVEC3
+        ns = '' if not w_namespace else 'MCell::' 
+        return ns + CPP_TYPE_IVEC3
     elif is_yaml_list_type(t):
         assert len(t) > 7
-        inner_type = yaml_type_to_cpp_type(get_inner_list_type(t))
+        inner_type = yaml_type_to_cpp_type(get_inner_list_type(t), w_namespace)
         return CPP_VECTOR_TYPE + '<' + inner_type + '>'
     elif is_yaml_dict_type(t):
-        key_type = yaml_type_to_cpp_type(get_inner_dict_key_type(t))
-        value_type = yaml_type_to_cpp_type(get_inner_dict_value_type(t))
+        key_type = yaml_type_to_cpp_type(get_inner_dict_key_type(t), w_namespace)
+        value_type = yaml_type_to_cpp_type(get_inner_dict_value_type(t), w_namespace)
         return CPP_MAP_TYPE + '<' + key_type + ', ' + value_type + '>'
-        
     else:
+        ns = '' if not w_namespace else 'MCell::API::' 
         if is_yaml_ptr_type(t):
-            return SHARED_PTR + '<' + t[0:-1] + '>' 
+            return SHARED_PTR + '<' + ns + t[0:-1] + '>' 
         else:
-            return t # standard ttype
+            return ns + t # standard ttype
     
     
 def get_cpp_bool_string(val):
@@ -1695,12 +1696,111 @@ def set_global_enums(data_classes):
     g_enums = res
 
 
+def capitalize_first(s):
+    if s[0].islower():
+        return s[0].upper() + s[1:]
+    else:
+        return s
+
+
+def generate_vector_bindings(data_classes):
+    # collect all attributes that use List
+    list_types = set()
+    used_types = set()
+    for key, value in data_classes.items():
+        
+        if key != KEY_CONSTANTS and key != KEY_ENUMS:
+            # items 
+            if KEY_ITEMS in value:
+                for item in value[KEY_ITEMS]:
+                    if is_yaml_list_type(item[KEY_TYPE]):
+                        t = item[KEY_TYPE]
+                        list_types.add(t)
+                        
+                        inner = get_inner_list_type(t)
+                        if is_yaml_list_type(inner):
+                            inner = get_inner_list_type(inner)
+                        used_types.add(inner)
+                        
+    sorted_list_types = sorted(list_types)
+    sorted_used_types = sorted(used_types)
+    
+    # generate gen_make_opaque.h
+    with open(os.path.join(TARGET_DIRECTORY, GEN_VECTORS_MAKE_OPAQUE_H), 'w') as f:
+        f.write(COPYRIGHT)
+        guard = 'GEN_VECTORS_MAKE_OPAQUE_H'
+        f.write('#ifndef ' + guard + '\n')
+        f.write('#define ' + guard + '\n\n')
+        f.write('#include <vector>\n')
+        f.write('#include <memory>\n')
+        f.write('#include "pybind11/include/pybind11/pybind11.h"\n') 
+        f.write('#include "defines.h"\n\n')
+        f.write(NAMESPACES_BEGIN + '\n\n')
+        
+        for t in sorted_used_types:
+            if is_base_yaml_type(t):
+                continue
+            assert is_yaml_ptr_type(t)
+            f.write('class ' + t[:-1] + ';\n')
+        
+        f.write('\n' + NAMESPACES_END + '\n\n')
+        
+        for t in sorted_list_types:
+            f.write(PYBIND11_MAKE_OPAQUE + '(' + yaml_type_to_cpp_type(t, True) + ');\n')
+        
+        f.write('\n#endif // ' + guard + '\n')
+             
+    # generate gen_bind_vector.cpp
+    with open(os.path.join(TARGET_DIRECTORY, GEN_VECTORS_BIND_CPP), 'w') as f:
+        f.write(COPYRIGHT + '\n')
+        f.write('#include "api/pybind11_stl_include.h"\n')
+        f.write('#include "pybind11/include/pybind11/stl_bind.h"\n\n')
+        
+        f.write('namespace py = pybind11;\n\n')
+        
+        for t in sorted_used_types:
+            if is_base_yaml_type(t):
+                continue
+            assert is_yaml_ptr_type(t)
+            f.write('#include "' +  get_api_class_file_name_w_dir(t[:-1], EXT_H) + '"\n')
+        f.write('\n')
+        
+        f.write(NAMESPACES_BEGIN + '\n\n')
+
+        f.write('void ' + GEN_VECTORS_BIND + '{\n')
+        
+        ind = '  '
+        for t in sorted_list_types:
+            cpp_t = yaml_type_to_cpp_type(t, True)
+            
+            name = 'Vector'
+            inner = get_inner_list_type(t)
+            if is_yaml_list_type(inner):
+                inner2 = get_inner_list_type(inner)
+                name += name + capitalize_first(inner2)
+            else:
+                name += capitalize_first(inner)
+                
+            if name[-1] == '*':
+                name = name[:-1]
+                            
+            f.write(ind + PY_BIND_VECTOR + '<' + cpp_t + '>(m,"' + name + '");\n')
+            f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::list, ' + cpp_t + '>();\n\n')
+        
+        f.write('}\n')
+        f.write('\n' + NAMESPACES_END + '\n\n')
+        
+
 def generate_data_classes(data_classes):
     generate_constants_and_enums(
         data_classes[KEY_CONSTANTS] if KEY_CONSTANTS in data_classes else [],
         data_classes[KEY_ENUMS] if KEY_ENUMS in data_classes else [])
 
     set_global_enums(data_classes)
+    
+    # std::vector/list needs special handling because we need it to be opaque 
+    # so that the user can modify the internal value
+    generate_vector_bindings(data_classes)
 
     for key, value in data_classes.items():
         if key != KEY_CONSTANTS and key != KEY_ENUMS:

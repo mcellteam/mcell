@@ -216,7 +216,7 @@ void PythonExporter::export_molecules(std::ostream& out, PythonExportContext& ct
   // first export used species
   stringstream species_out;
   species_out << "# species used by molecules but not defined in subsystem\n";
-  species_out << NAME_SPECIES << " = [ ";
+  species_out << NAME_SPECIES << " = m.Vector" << NAME_CLASS_SPECIES << "([ ";
   int num_exported_species = 0;
 
   // prepare species map
@@ -246,7 +246,7 @@ void PythonExporter::export_molecules(std::ostream& out, PythonExportContext& ct
       }
     }
   }
-  species_out << "\n]\n\n";
+  species_out << "\n])\n\n";
   out << species_out.str();
 
   // prepare geometry objects map
@@ -364,7 +364,9 @@ std::string PythonExporter::export_model(
   }
   gen_assign(out, MODEL, NAME_CONFIG, NAME_APPEND_TO_COUNT_OUTPUT_DATA, true);
 
-  out << MODEL << "." << NAME_SPECIES << " += " << SIMULATION_STATE << "." << NAME_SPECIES << "\n";
+  out << "# internal type VectorSpecies does not provide operator += yet\n";
+  out << "for s in " << SIMULATION_STATE << "." << NAME_SPECIES << ":";
+  out << IND4 << MODEL << "." << NAME_SPECIES << ".append(s)\n";
   gen_assign(out, MODEL, NAME_CHECKPOINTED_MOLECULES, S(SIMULATION_STATE) + "." + NAME_CHECKPOINTED_MOLECULES);
   out << "\n";
 
