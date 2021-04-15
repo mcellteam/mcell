@@ -154,7 +154,7 @@ def generate_documentation(data_classes):
     # and generate api.rst file
     with open(os.path.join(DOC_DIRECTORY, API_RST), 'w') as f:
 
-        title = 'MCell 4 Python API documentation'
+        title = 'API Documentation'
         f.write(
             title + '\n' +
             '='*len(title) + '\n\n'

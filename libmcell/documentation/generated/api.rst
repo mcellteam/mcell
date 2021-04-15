@@ -1,5 +1,5 @@
-MCell 4 Python API documentation
-================================
+API Documentation
+=================
 
 .. toctree::
     :maxdepth: 2
