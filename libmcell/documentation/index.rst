@@ -13,6 +13,7 @@ MCell4 Reference Manual
    
    overview
    generated/api
+   file_formats
 
 This documentation contains overview of the MCell4 API 
 and a complete definition of the interface.  
@@ -20,6 +21,8 @@ and a complete definition of the interface.
 :ref:`overview:API Overview`
 
 :ref:`generated/api:API Documentation`
+
+:ref:`file_formats:File Formats`
 
 ..
    Indices and tables
