@@ -55,7 +55,7 @@ public:
   virtual void set_reactant_ids(const std::vector<int> new_reactant_ids_) {
     reactant_ids = new_reactant_ids_;
   }
-  virtual std::vector<int> get_reactant_ids() const {
+  virtual std::vector<int>& get_reactant_ids() {
     return reactant_ids;
   }
 
@@ -63,7 +63,7 @@ public:
   virtual void set_product_ids(const std::vector<int> new_product_ids_) {
     product_ids = new_product_ids_;
   }
-  virtual std::vector<int> get_product_ids() const {
+  virtual std::vector<int>& get_product_ids() {
     return product_ids;
   }
 

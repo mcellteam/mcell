@@ -92,7 +92,7 @@ public:
     cached_data_are_uptodate = false;
     wall_indices = new_wall_indices_;
   }
-  virtual std::vector<int> get_wall_indices() const {
+  virtual std::vector<int>& get_wall_indices() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return wall_indices;
   }
@@ -120,7 +120,7 @@ public:
     cached_data_are_uptodate = false;
     initial_surface_releases = new_initial_surface_releases_;
   }
-  virtual std::vector<std::shared_ptr<InitialSurfaceRelease>> get_initial_surface_releases() const {
+  virtual std::vector<std::shared_ptr<InitialSurfaceRelease>>& get_initial_surface_releases() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_surface_releases;
   }

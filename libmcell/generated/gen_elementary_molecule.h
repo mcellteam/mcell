@@ -89,7 +89,7 @@ public:
     cached_data_are_uptodate = false;
     components = new_components_;
   }
-  virtual std::vector<std::shared_ptr<Component>> get_components() const {
+  virtual std::vector<std::shared_ptr<Component>>& get_components() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return components;
   }

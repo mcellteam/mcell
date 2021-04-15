@@ -67,7 +67,7 @@ public:
   virtual void set_release_sites(const std::vector<std::shared_ptr<ReleaseSite>> new_release_sites_) {
     release_sites = new_release_sites_;
   }
-  virtual std::vector<std::shared_ptr<ReleaseSite>> get_release_sites() const {
+  virtual std::vector<std::shared_ptr<ReleaseSite>>& get_release_sites() {
     return release_sites;
   }
 
@@ -75,7 +75,7 @@ public:
   virtual void set_geometry_objects(const std::vector<std::shared_ptr<GeometryObject>> new_geometry_objects_) {
     geometry_objects = new_geometry_objects_;
   }
-  virtual std::vector<std::shared_ptr<GeometryObject>> get_geometry_objects() const {
+  virtual std::vector<std::shared_ptr<GeometryObject>>& get_geometry_objects() {
     return geometry_objects;
   }
 
@@ -83,7 +83,7 @@ public:
   virtual void set_checkpointed_molecules(const std::vector<std::shared_ptr<BaseChkptMol>> new_checkpointed_molecules_) {
     checkpointed_molecules = new_checkpointed_molecules_;
   }
-  virtual std::vector<std::shared_ptr<BaseChkptMol>> get_checkpointed_molecules() const {
+  virtual std::vector<std::shared_ptr<BaseChkptMol>>& get_checkpointed_molecules() {
     return checkpointed_molecules;
   }
 

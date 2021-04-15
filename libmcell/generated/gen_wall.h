@@ -98,7 +98,7 @@ public:
     cached_data_are_uptodate = false;
     vertices = new_vertices_;
   }
-  virtual std::vector<Vec3> get_vertices() const {
+  virtual std::vector<Vec3>& get_vertices() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return vertices;
   }

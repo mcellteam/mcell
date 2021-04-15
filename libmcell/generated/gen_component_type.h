@@ -72,7 +72,7 @@ public:
     cached_data_are_uptodate = false;
     states = new_states_;
   }
-  virtual std::vector<std::string> get_states() const {
+  virtual std::vector<std::string>& get_states() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return states;
   }

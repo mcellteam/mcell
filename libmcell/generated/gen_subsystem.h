@@ -70,7 +70,7 @@ public:
   virtual void set_species(const std::vector<std::shared_ptr<Species>> new_species_) {
     species = new_species_;
   }
-  virtual std::vector<std::shared_ptr<Species>> get_species() const {
+  virtual std::vector<std::shared_ptr<Species>>& get_species() {
     return species;
   }
 
@@ -78,7 +78,7 @@ public:
   virtual void set_reaction_rules(const std::vector<std::shared_ptr<ReactionRule>> new_reaction_rules_) {
     reaction_rules = new_reaction_rules_;
   }
-  virtual std::vector<std::shared_ptr<ReactionRule>> get_reaction_rules() const {
+  virtual std::vector<std::shared_ptr<ReactionRule>>& get_reaction_rules() {
     return reaction_rules;
   }
 
@@ -86,7 +86,7 @@ public:
   virtual void set_surface_classes(const std::vector<std::shared_ptr<SurfaceClass>> new_surface_classes_) {
     surface_classes = new_surface_classes_;
   }
-  virtual std::vector<std::shared_ptr<SurfaceClass>> get_surface_classes() const {
+  virtual std::vector<std::shared_ptr<SurfaceClass>>& get_surface_classes() {
     return surface_classes;
   }
 
@@ -94,7 +94,7 @@ public:
   virtual void set_elementary_molecule_types(const std::vector<std::shared_ptr<ElementaryMoleculeType>> new_elementary_molecule_types_) {
     elementary_molecule_types = new_elementary_molecule_types_;
   }
-  virtual std::vector<std::shared_ptr<ElementaryMoleculeType>> get_elementary_molecule_types() const {
+  virtual std::vector<std::shared_ptr<ElementaryMoleculeType>>& get_elementary_molecule_types() {
     return elementary_molecule_types;
   }
 

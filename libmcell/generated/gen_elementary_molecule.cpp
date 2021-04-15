@@ -113,7 +113,7 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
       .def("to_bngl_str", &ElementaryMolecule::to_bngl_str, py::arg("with_compartment") = true, "Creates a string that corresponds to its BNGL representation\n- with_compartment: Include compartment name in the returned BNGL string.\n\n")
       .def("dump", &ElementaryMolecule::dump)
       .def_property("elementary_molecule_type", &ElementaryMolecule::get_elementary_molecule_type, &ElementaryMolecule::set_elementary_molecule_type, "Reference to the type of this elementary molecule.")
-      .def_property("components", &ElementaryMolecule::get_components, &ElementaryMolecule::set_components, "List of component instances. Not all components need to be specified \nin case when this elementary molecule is used in a pattern.\n")
+      .def_property("components", &ElementaryMolecule::get_components, &ElementaryMolecule::set_components, py::return_value_policy::reference, "List of component instances. Not all components need to be specified \nin case when this elementary molecule is used in a pattern.\n")
       .def_property("compartment_name", &ElementaryMolecule::get_compartment_name, &ElementaryMolecule::set_compartment_name, "Optional BNGL compartment name for this elemenrary molecule. If a 2D/surface compartment is specified, the elementary moelcule must be of surface type. If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.")
     ;
 }

@@ -47,13 +47,9 @@ def convert_species_file(file_name):
     # representation 
     complex_counts = species_reader.read_species_file(file_name)
     
-    #print(complex_counts[0][0])
-    #print(complex_counts[0][1])
-    
     # prepare the component type that we will append to the CaMKII molecules
     # the new component means 'upper' and has a boolean state
-    # NOTE: not used yet
-    #ct_u = m.ComponentType('u', ['0','1'])
+    ct_u = m.ComponentType('u', ['0','1'])
     
     # process the data by adding component 'u' to the CaMKII elementary molecules 
     for (complex, count) in complex_counts:
@@ -95,60 +91,18 @@ def convert_species_file(file_name):
             
         assert lower_first is get_bound_em(complex, curr, 'r'), "A ring must be formed"
 
-        # TODO: modifications of vectors through a list in pybind11 is not straightforward,
-        # and does not work yet 
-        # we will output the individual elementary molecules and append the component 
-        # by string manipulation
-        str_rep = ''
-        for em in complex.elementary_molecules:
-            
-            curr = em.to_bngl_str()
-            
-            em_name = em.elementary_molecule_type.name
-            if em_name == 'CaMKII':
-                # upper or lower?
-                in_upper = False
-                for u in upper_ring:
-                    # using reference not contents comparison
-                    if em is u:
-                        in_upper = True
-                        break
-
-                in_lower = False
-                for u in lower_ring:
-                    # using reference not contents comparison
-                    if em is u:
-                        in_lower = True
-                        break
-                        
-                assert in_upper == (not in_lower), "CaMKII must be in one of the lists"
-                
-                # append component 'u' with state 1 - upper, or 0 - lower
-                curr = curr[:-1] + ',u~' + ('1' if in_upper else '0') + ')'
-                
-                
-            str_rep += curr
-            
-            if em is not complex.elementary_molecules[-1]:
-                str_rep += '.'
-                
-                
-        
-        """          
         # now the modifications - add components by instatiating the component type 'u'
         # the way how the complexes were is parsed was that each complex has its own instance 
         # of the elementary molecule type for CaMKII so lets change one of them
         upper_first.elementary_molecule_type.components.append(ct_u)
-        sys.exit(0)
-        
         
         for em in upper_ring:
             em.components.append(ct_u.inst('1'))
         
         for em in lower_ring:
             em.components.append(ct_u.inst('0'))
-        """ 
-        print(str_rep + " " + str(count))
+        
+        print(complex.to_bngl_str() + " " + str(count))
         
     
 if __name__ == '__main__':

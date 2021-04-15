@@ -90,7 +90,7 @@ public:
     cached_data_are_uptodate = false;
     species_list = new_species_list_;
   }
-  virtual std::vector<std::shared_ptr<Species>> get_species_list() const {
+  virtual std::vector<std::shared_ptr<Species>>& get_species_list() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return species_list;
   }

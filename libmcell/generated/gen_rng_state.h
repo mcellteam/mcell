@@ -138,7 +138,7 @@ public:
     cached_data_are_uptodate = false;
     randslr = new_randslr_;
   }
-  virtual std::vector<uint64_t> get_randslr() const {
+  virtual std::vector<uint64_t>& get_randslr() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return randslr;
   }
@@ -152,7 +152,7 @@ public:
     cached_data_are_uptodate = false;
     mm = new_mm_;
   }
-  virtual std::vector<uint64_t> get_mm() const {
+  virtual std::vector<uint64_t>& get_mm() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return mm;
   }

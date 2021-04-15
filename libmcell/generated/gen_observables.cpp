@@ -68,8 +68,8 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       .def("find_count", &Observables::find_count, py::arg("name"), "Finds a count object by its name, returns None if no such count is present.\n- name\n")
       .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("file_name"), py::arg("output_files_prefix") = "", py::arg("parameter_overrides") = std::map<std::string, float_t>(), "Loads section observables from a BNGL file and creates Count objects according to it.\nAll elementary molecule types used in the seed species section must be defined in subsystem.\n\n- file_name: Path to the BNGL file.\n\n- output_files_prefix: Prefix to be used when creating files with observable values.\nThe usual value is './react_data/seed_' + str(SEED).zfill(5) + '/'. \n\n\n- parameter_overrides: For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,\nits value is ignored and instead value parameter_overrides[k] is used.\n\n")
       .def("dump", &Observables::dump)
-      .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs, "List of visualization outputs to be included in the model.\nThere is usually just one VizOutput object.   \n")
-      .def_property("counts", &Observables::get_counts, &Observables::set_counts, "List of counts to be included in the model.\n")
+      .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs, py::return_value_policy::reference, "List of visualization outputs to be included in the model.\nThere is usually just one VizOutput object.   \n")
+      .def_property("counts", &Observables::get_counts, &Observables::set_counts, py::return_value_policy::reference, "List of counts to be included in the model.\n")
     ;
 }
 

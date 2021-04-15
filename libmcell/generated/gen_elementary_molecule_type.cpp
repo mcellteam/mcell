@@ -116,7 +116,7 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def("to_bngl_str", &ElementaryMoleculeType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")
       .def("dump", &ElementaryMoleculeType::dump)
       .def_property("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name, "Name of this elementary molecule type.")
-      .def_property("components", &ElementaryMoleculeType::get_components, &ElementaryMoleculeType::set_components, "List of components used by this elementary molecule type.")
+      .def_property("components", &ElementaryMoleculeType::get_components, &ElementaryMoleculeType::set_components, py::return_value_policy::reference, "List of components used by this elementary molecule type.")
       .def_property("diffusion_constant_2d", &ElementaryMoleculeType::get_diffusion_constant_2d, &ElementaryMoleculeType::set_diffusion_constant_2d, "Elementary molecule based on this type is constrained to a surface\nand diffuses with the specified diffusion constant.\nD can be zero, in which case the molecule doesn’t move. \nThe units of D are cm^2 /s.\n")
       .def_property("diffusion_constant_3d", &ElementaryMoleculeType::get_diffusion_constant_3d, &ElementaryMoleculeType::set_diffusion_constant_3d, "Elementary molecule based on this type diffuses in space with the \nspecified diffusion constant D. \nD can be zero, in which case the molecule doesn’t move. \nThe units of D are cm^2 /s.\n")
       .def_property("custom_time_step", &ElementaryMoleculeType::get_custom_time_step, &ElementaryMoleculeType::set_custom_time_step, "This molecule should take timesteps of length custom_time_step (in seconds). \nUse either this or custom_time_step, not both.\n")

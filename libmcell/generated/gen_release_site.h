@@ -112,7 +112,7 @@ public:
     cached_data_are_uptodate = false;
     molecule_list = new_molecule_list_;
   }
-  virtual std::vector<std::shared_ptr<MoleculeReleaseInfo>> get_molecule_list() const {
+  virtual std::vector<std::shared_ptr<MoleculeReleaseInfo>>& get_molecule_list() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return molecule_list;
   }
@@ -182,7 +182,7 @@ public:
     cached_data_are_uptodate = false;
     location = new_location_;
   }
-  virtual std::vector<float_t> get_location() const {
+  virtual std::vector<float_t>& get_location() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return location;
   }

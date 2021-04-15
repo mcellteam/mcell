@@ -86,7 +86,7 @@ public:
     cached_data_are_uptodate = false;
     location = new_location_;
   }
-  virtual std::vector<float_t> get_location() const {
+  virtual std::vector<float_t>& get_location() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return location;
   }

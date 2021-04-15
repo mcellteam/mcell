@@ -86,7 +86,7 @@ public:
     cached_data_are_uptodate = false;
     reactants = new_reactants_;
   }
-  virtual std::vector<std::shared_ptr<Complex>> get_reactants() const {
+  virtual std::vector<std::shared_ptr<Complex>>& get_reactants() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return reactants;
   }
@@ -100,7 +100,7 @@ public:
     cached_data_are_uptodate = false;
     products = new_products_;
   }
-  virtual std::vector<std::shared_ptr<Complex>> get_products() const {
+  virtual std::vector<std::shared_ptr<Complex>>& get_products() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return products;
   }
@@ -156,7 +156,7 @@ public:
     cached_data_are_uptodate = false;
     variable_rate = new_variable_rate_;
   }
-  virtual std::vector<std::vector<float_t>> get_variable_rate() const {
+  virtual std::vector<std::vector<float_t>>& get_variable_rate() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return variable_rate;
   }

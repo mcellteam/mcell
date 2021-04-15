@@ -216,13 +216,13 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def("translate", &GeometryObject::translate, py::arg("move"), "Move object by a specified vector. \nCannot be called after model was initialized.\n\n- move: 3D vector [x, y, z] that will be added to each vertex of this object.\n\n")
       .def("dump", &GeometryObject::dump)
       .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name, "Name of the object. Also represents BNGL compartment name if 'is_bngl_compartment' is True.\n")
-      .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list, "List of [x,y,z] triplets specifying positions of individual vertices of each triangle.\n \n")
-      .def_property("wall_list", &GeometryObject::get_wall_list, &GeometryObject::set_wall_list, "List of [a,b,c] triplets specifying each wall, individual values are indices into the \nvertex_list attribute.\n")
+      .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list, py::return_value_policy::reference, "List of [x,y,z] triplets specifying positions of individual vertices of each triangle.\n \n")
+      .def_property("wall_list", &GeometryObject::get_wall_list, &GeometryObject::set_wall_list, py::return_value_policy::reference, "List of [a,b,c] triplets specifying each wall, individual values are indices into the \nvertex_list attribute.\n")
       .def_property("is_bngl_compartment", &GeometryObject::get_is_bngl_compartment, &GeometryObject::set_is_bngl_compartment, "Set to True if this object represents a 3D BNGL compartment. \nIts name will be then the BNGL compartment name.       \n")
       .def_property("surface_compartment_name", &GeometryObject::get_surface_compartment_name, &GeometryObject::set_surface_compartment_name, "When is_bngl_compartment is True, this attribute can be set to specify its \nmembrane (2D) compartment name.\n")
-      .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions, "All surface regions associated with this geometry object.\n")
+      .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions, py::return_value_policy::reference, "All surface regions associated with this geometry object.\n")
       .def_property("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class, "Surface class for the whole object's surface. It is applied to the whole surface of this object \nexcept for those surface regions that have their specific surface class set explicitly.\n")
-      .def_property("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases, "Each item in this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
+      .def_property("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases, py::return_value_policy::reference, "Each item in this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
     ;
 }
 

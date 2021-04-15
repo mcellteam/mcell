@@ -17,7 +17,6 @@ http://www.gnu.org/licenses/gpl-2.0.html
 """
 
 # TODO: change 'items' to 'attributes'?
-# TODO: split to at least two files
 # TODO: cleanup const/nonconst handling
 # TODO: unify superclass vs superclasses - 
 #       w superclasses, the objects are inherited manually now and it should be made automatic
@@ -234,7 +233,10 @@ def is_cpp_ref_type(cpp_type):
     
     return not not_reference
     
+def is_cpp_vector_type(cpp_type):
+    return'std::vector' in cpp_type
     
+        
 def get_type_as_ref_param(attr):
     assert KEY_TYPE in attr
     
@@ -471,9 +473,27 @@ def write_attr_with_get_set(f, class_def, attr):
     f.write('  }\n') 
 
     # getter
+    ret_type_ref = ''
     ret_type_const = 'const ' if is_cpp_ref_type(cpp_type) else ''
+    method_const = 'const '
     
-    f.write('  virtual ' + ret_type_const + get_type_as_ref_param(attr) + ' get_' + name + '() const {\n')
+    # vectors are always returned as a non-const reference
+    if is_cpp_vector_type(cpp_type):
+        ret_type_ref = '&'
+        ret_type_const = ''
+        method_const = ''
+    
+    ret_type = get_type_as_ref_param(attr)
+    f.write('  virtual ' + ret_type_const + ret_type + ret_type_ref + ' get_' + name + '() ' + method_const +'{\n')
+    """
+    # original approach to protect already initialized classes but this behavior woudl probably be more confusing
+    if has_single_superclass(class_def) and is_cpp_vector_type(cpp_type):
+        f.write('    if (initialized) {\n')
+        f.write('      // any changes after initialization are ignored\n')
+        f.write('      static ' + ret_type + ' copy = ' + name + ';\n')
+        f.write('      return copy;\n')
+        f.write('    }\n')
+    """
     if has_single_superclass(class_def):
         f.write('    ' + CACHED_DATA_ARE_UPTODATE_ATTR + ' = false; // arrays and other data can be modified through getters\n');
     f.write('    return ' + name + ';\n')
@@ -1371,6 +1391,9 @@ def write_pybind11_bindings(f, class_name, class_def):
             if not has_single_superclass(class_def) or not is_inherited(items[i]):
                 name = items[i][KEY_NAME]
                 f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name)
+                
+                if is_yaml_list_type(items[i][KEY_TYPE]):
+                    f.write(', py::return_value_policy::reference') 
                 
                 if KEY_DOC in items[i]:
                     f.write(', ' + create_doc_str(items[i][KEY_DOC]))

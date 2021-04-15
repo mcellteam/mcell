@@ -131,8 +131,8 @@ py::class_<RngState> define_pybinding_RngState(py::module& m) {
       .def_property("aa", &RngState::get_aa, &RngState::set_aa)
       .def_property("bb", &RngState::get_bb, &RngState::set_bb)
       .def_property("cc", &RngState::get_cc, &RngState::set_cc)
-      .def_property("randslr", &RngState::get_randslr, &RngState::set_randslr, "Must contain RNG_SIZE items.")
-      .def_property("mm", &RngState::get_mm, &RngState::set_mm, "Must contain RNG_SIZE items.")
+      .def_property("randslr", &RngState::get_randslr, &RngState::set_randslr, py::return_value_policy::reference, "Must contain RNG_SIZE items.")
+      .def_property("mm", &RngState::get_mm, &RngState::set_mm, py::return_value_policy::reference, "Must contain RNG_SIZE items.")
       .def_property("rngblocks", &RngState::get_rngblocks, &RngState::set_rngblocks, "Must contain RNG_SIZE items.")
     ;
 }

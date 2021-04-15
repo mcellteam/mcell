@@ -62,7 +62,7 @@ public:
   virtual void set_viz_outputs(const std::vector<std::shared_ptr<VizOutput>> new_viz_outputs_) {
     viz_outputs = new_viz_outputs_;
   }
-  virtual std::vector<std::shared_ptr<VizOutput>> get_viz_outputs() const {
+  virtual std::vector<std::shared_ptr<VizOutput>>& get_viz_outputs() {
     return viz_outputs;
   }
 
@@ -70,7 +70,7 @@ public:
   virtual void set_counts(const std::vector<std::shared_ptr<Count>> new_counts_) {
     counts = new_counts_;
   }
-  virtual std::vector<std::shared_ptr<Count>> get_counts() const {
+  virtual std::vector<std::shared_ptr<Count>>& get_counts() {
     return counts;
   }
 

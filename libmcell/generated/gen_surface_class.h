@@ -86,7 +86,7 @@ public:
     cached_data_are_uptodate = false;
     properties = new_properties_;
   }
-  virtual std::vector<std::shared_ptr<SurfaceProperty>> get_properties() const {
+  virtual std::vector<std::shared_ptr<SurfaceProperty>>& get_properties() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return properties;
   }

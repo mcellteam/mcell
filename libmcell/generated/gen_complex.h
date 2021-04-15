@@ -77,7 +77,7 @@ public:
     cached_data_are_uptodate = false;
     elementary_molecules = new_elementary_molecules_;
   }
-  virtual std::vector<std::shared_ptr<ElementaryMolecule>> get_elementary_molecules() const {
+  virtual std::vector<std::shared_ptr<ElementaryMolecule>>& get_elementary_molecules() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return elementary_molecules;
   }

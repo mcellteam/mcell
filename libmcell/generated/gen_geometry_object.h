@@ -103,7 +103,7 @@ public:
     cached_data_are_uptodate = false;
     vertex_list = new_vertex_list_;
   }
-  virtual std::vector<std::vector<float_t>> get_vertex_list() const {
+  virtual std::vector<std::vector<float_t>>& get_vertex_list() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return vertex_list;
   }
@@ -117,7 +117,7 @@ public:
     cached_data_are_uptodate = false;
     wall_list = new_wall_list_;
   }
-  virtual std::vector<std::vector<int>> get_wall_list() const {
+  virtual std::vector<std::vector<int>>& get_wall_list() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return wall_list;
   }
@@ -159,7 +159,7 @@ public:
     cached_data_are_uptodate = false;
     surface_regions = new_surface_regions_;
   }
-  virtual std::vector<std::shared_ptr<SurfaceRegion>> get_surface_regions() const {
+  virtual std::vector<std::shared_ptr<SurfaceRegion>>& get_surface_regions() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return surface_regions;
   }
@@ -187,7 +187,7 @@ public:
     cached_data_are_uptodate = false;
     initial_surface_releases = new_initial_surface_releases_;
   }
-  virtual std::vector<std::shared_ptr<InitialSurfaceRelease>> get_initial_surface_releases() const {
+  virtual std::vector<std::shared_ptr<InitialSurfaceRelease>>& get_initial_surface_releases() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_surface_releases;
   }

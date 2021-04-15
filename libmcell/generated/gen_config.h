@@ -222,7 +222,7 @@ public:
     cached_data_are_uptodate = false;
     initial_partition_origin = new_initial_partition_origin_;
   }
-  virtual std::vector<float_t> get_initial_partition_origin() const {
+  virtual std::vector<float_t>& get_initial_partition_origin() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_partition_origin;
   }
