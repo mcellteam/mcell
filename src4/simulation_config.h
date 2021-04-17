@@ -57,6 +57,8 @@ public:
     continue_after_sigalrm(false),
     has_intersecting_counted_objects(false)
   {
+    // enable debug assertions in BNGlib
+    debug_requires_diffusion_constants = true;
   }
 
   // configuration
