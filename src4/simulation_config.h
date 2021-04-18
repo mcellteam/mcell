@@ -70,12 +70,12 @@ public:
 
   Vec3 partition0_llf;
 
-  float_t partition_edge_length; // TODO: rename to side
+  pos_t partition_edge_length; // TODO: rename to side
   uint num_subpartitions_per_partition_edge; // TODO: rename to subpart...
   uint num_subpartitions_per_partition_edge_squared;
   uint num_subpartitions; // == num_subpartitions_per_partition_edge^3
-  float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
-  float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
+  pos_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
+  pos_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
   uint num_radial_subdivisions; /* Size of 3D step length lookup tables, not configurable by user yet */
   std::vector<float_t> radial_2d_step; /* Lookup table of 2D diffusion step lengths (r_step_surface) */
@@ -114,7 +114,7 @@ public:
   float_t get_simulation_start_time() const {
     assert(initial_time != TIME_INVALID);
     // simulation starts always in integer values of internal time
-    float_t res = floor_to_multiple(initial_time / time_unit, 1);
+    float_t res = floor_to_multiple_f(initial_time / time_unit, 1);
     assert((int)res == res);
     return res;
   }

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
+ * Copyright (C) 2006-2017,2021 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -69,7 +69,7 @@ Out: Zeta value corresponding to (y,x), in the range 0 to 4.
      you need to sort by angle but don't need the angle itself.
 Note: This is a utility function in 'exact_disk()'.
 ****************************************************************/
-static float_t exd_zetize(float_t y, float_t x) {
+static pos_t exd_zetize(pos_t y, pos_t x) {
   if (y >= 0.0) {
     if (x >= 0) {
       if (x < y)
@@ -111,15 +111,15 @@ Note: This is a utility function for 'exact_disk()'.
 *********************************************************************/
 static void exd_coordize(const Vec3& mv, Vec3& m,
                          Vec3& u, Vec3& v) {
-  float_t a;
+  pos_t a;
 
   /* Normalize input vector */
   a = 1.0 / sqrt(dot(mv, mv));
   m = Vec3(a) * mv;
 
-  float_t mx2 = m.x * m.x;
-  float_t my2 = m.y * m.y;
-  float_t mz2 = m.z * m.z;
+  pos_t mx2 = m.x * m.x;
+  pos_t my2 = m.y * m.y;
+  pos_t mz2 = m.z * m.z;
 
   /* Find orthogonal vectors */
   if (mx2 > my2) {
@@ -201,10 +201,10 @@ struct exd_vertex_t {
 
   union
   {
-    struct{ float_t x, y; };
-    struct{ float_t u, v; };
+    struct{ pos_t x, y; };
+    struct{ pos_t u, v; };
   };
-  float_t r2, zeta;         /* r,theta style coordinates */
+  pos_t r2, zeta;         /* r,theta style coordinates */
 
   exd_vertex_t* e;    /* Edge to next vertex */
   //vector<exd_vertex_t*> span; /* List of edges spanning this point */
@@ -232,7 +232,7 @@ static inline void compute_intersect_w_m0(
     const Vec3& p0muv, const Vec3 p1muv,
     exd_vertex_t& intersect_uv)
 {
-  float_t t;
+  pos_t t;
 
   t = p0muv.m / (p0muv.m - p1muv.m);
 
@@ -245,33 +245,33 @@ static inline IntersectResult test_intersect_line_with_circle(
     const exd_vertex_t& pa, const exd_vertex_t& pb,
     const exd_vertex_t& sm,
     const float R2,
-    float_t& t, float_t& s
+    pos_t& t, pos_t& s
 ) {
   t = 0;
   s = 1;
   if (pa.r2 > R2 || pb.r2 > R2) {
-    float_t pa_pb = dot2(pa, pb);
-    if (!distinguishable_f(pa.r2 + pb.r2, 2 * pa_pb,  EPS)) { /* Wall endpoints are basically on top of each other */
+    pos_t pa_pb = dot2(pa, pb);
+    if (!distinguishable_f(pa.r2 + pb.r2, 2 * pa_pb,  POS_EPS)) { /* Wall endpoints are basically on top of each other */
       /* Might this tiny bit of wall block the target?  If not, continue, otherwise return TARGET_OCCLUDED */
       /* Safe if we're clearly closer; in danger if we're even remotely parallel, otherwise surely safe */
       /* Note: use SQRT_EPS_C for cross products since previous test vs. EPS_C was on squared values (linear difference term cancels) */
       if (sm.r2 < pa.r2 && sm.r2 < pb.r2 &&
-          distinguishable_f(sm.r2, pa.r2, EPS) &&
-          distinguishable_f(sm.r2, pa.r2, EPS)) {
+          distinguishable_f(sm.r2, pa.r2, POS_EPS) &&
+          distinguishable_f(sm.r2, pa.r2, POS_EPS)) {
         return IntersectResult::SKIP_THIS_WALL;
       }
-      if (!distinguishable_f(sm.u * pa.v, sm.v * pa.u, SQRT_EPS) ||
-          !distinguishable_f(sm.u * pb.v, sm.v * pb.u, SQRT_EPS)) {
+      if (!distinguishable_f(sm.u * pa.v, sm.v * pa.u, POS_SQRT_EPS) ||
+          !distinguishable_f(sm.u * pb.v, sm.v * pb.u, POS_SQRT_EPS)) {
 
         return IntersectResult::TARGET_OCCLUDED;
       }
       return IntersectResult::SKIP_THIS_WALL;
     }
 
-    float_t a = 1.0 / (pa.r2 + pb.r2 - 2 * pa_pb);
-    float_t b = (pa_pb - pa.r2) * a;
-    float_t c = (R2 - pa.r2) * a;
-    float_t d = b * b + c;
+    pos_t a = 1.0 / (pa.r2 + pb.r2 - 2 * pa_pb);
+    pos_t b = (pa_pb - pa.r2) * a;
+    pos_t c = (R2 - pa.r2) * a;
+    pos_t d = b * b + c;
     if (d <= 0)
       return IntersectResult::SKIP_THIS_WALL;
     d = sqrt(d);
@@ -291,7 +291,7 @@ static inline IntersectResult test_intersect_line_with_circle(
 
 
 static inline void construct_final_endpoints(
-    const float_t ti, const float_t si,
+    const pos_t ti, const pos_t si,
     const exd_vertex_t& pa, const exd_vertex_t& pb,
     exd_vertex_t*& ppa, exd_vertex_t*& ppb
 ) {
@@ -329,7 +329,7 @@ static void find_boundaries_occluding_disk(
     const Vec3& loc, const Vec3& mv,
     const Vec3& u, const Vec3& v,
     const subpart_index_t subpart_index,
-    const float_t R, const float_t R2, const float_t m2_i,
+    const pos_t R, const pos_t R2, const pos_t m2_i,
     exd_vertex_t*& vertex_head,
     int& n_verts,
     int& n_edges
@@ -341,8 +341,8 @@ static void find_boundaries_occluding_disk(
   /* First see if any overlap */
   int p_flags = 0;
 
-  float_t a, b, c;
-  float_t d = loc.x - subpart_llf.x;
+  pos_t a, b, c;
+  pos_t d = loc.x - subpart_llf.x;
   if (d < R) {
     c = R2 * (mv.y * mv.y + mv.z * mv.z) * m2_i;
     if (d * d < c)
@@ -424,9 +424,9 @@ static void find_boundaries_occluding_disk(
           continue;
         }
 
-        float_t s;
+        pos_t s;
         Vec2 pa, pb;
-        if (!distinguishable_f(a, 0, EPS)) {
+        if (!distinguishable_f(a, 0, POS_EPS)) {
           s = d / b;
           if (s * s > R2) {
             mcell_internal_error(
@@ -434,13 +434,13 @@ static void find_boundaries_occluding_disk(
                 s, s * s, R2);
             /*continue;*/
           }
-          float_t t = sqrt(R2 - s * s);
+          pos_t t = sqrt(R2 - s * s);
           pa.u = t;
           pa.v = s;
           pb.u = -t;
           pb.v = s;
-        } else if (!distinguishable_f(b, 0, EPS)) {
-          float_t t = d / a;
+        } else if (!distinguishable_f(b, 0, POS_EPS)) {
+          pos_t t = d / a;
           if (t * t > R2) {
             mcell_internal_error(
                 "Unexpected results in exact disk: t=%.2f t^2=%.2f R2=%.2f\n",
@@ -461,9 +461,9 @@ static void find_boundaries_occluding_disk(
                 d, d * d, R2, c, R2 * c);
             /*continue;*/
           }
-          float_t t = sqrt(R2 * c - d * d);
+          pos_t t = sqrt(R2 * c - d * d);
           c = 1.0 / c;
-          float_t r = 1.0 / a;
+          pos_t r = 1.0 / a;
           pa.v = c * (s + t * a);
           pa.u = (d - b * pa.v) * r;
           pb.v = c * (s - t * a);
@@ -515,21 +515,21 @@ static void find_boundaries_occluding_disk(
 }
 
 
-static inline float_t calculate_exd_span(const exd_vertex_t* v1, const exd_vertex_t* v2, const exd_vertex_t* p) {
+static inline pos_t calculate_exd_span(const exd_vertex_t* v1, const exd_vertex_t* v2, const exd_vertex_t* p) {
   return (v1->u - p->u) * (v2->v - p->v) -
         (v2->u - p->u) * (v1->v - p->v);
 }
 
 
-static inline float_t calculate_time_span(const exd_vertex_t* v1, const exd_vertex_t* v2, const exd_vertex_t* p) {
+static inline pos_t calculate_time_span(const exd_vertex_t* v1, const exd_vertex_t* v2, const exd_vertex_t* p) {
   return   (p->u * v1->v - p->v * v1->u) /
       (p->v * (v2->u - v1->u) - p->u * (v2->v - v1->v));
 }
 
 
-static float_t calculate_area_for_multiple_edges(
+static pos_t calculate_area_for_multiple_edges(
     /*const*/ exd_vertex_t* vertex_head,
-    const float_t R2
+    const pos_t R2
 ) {
   /* Insertion sort the multiple edges */
   exd_vertex_t* vp = vertex_head->next;
@@ -585,15 +585,15 @@ static float_t calculate_area_for_multiple_edges(
       pa.v = ppb->v - ppa->v;
       pb.u = pqb->u - pqa->u;
       pb.v = pqb->v - pqa->v;
-      float_t r = pb.u * pa.v - pa.u * pb.v;
+      pos_t r = pb.u * pa.v - pa.u * pb.v;
 
       /* Check if lines are parallel--combine if so */
       if (r * r <
-          EPS * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
+          POS_EPS * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
         pqa->e = NULL;
         pqa->role = ExdRole::OTHER;
 
-        float_t a = pqb->zeta - ppb->zeta;
+        pos_t a = pqb->zeta - ppb->zeta;
         if (a < 0)
           a += 4.0;
 
@@ -611,19 +611,19 @@ static float_t calculate_area_for_multiple_edges(
       }
 
       /* Check if these lines cross and find times at which they do */
-      float_t s = (ppa->u - pqa->u) * pa.v - (ppa->v - pqa->v) * pa.u;
-      if (s * r <= EPS * R2 * R2)
+      pos_t s = (ppa->u - pqa->u) * pa.v - (ppa->v - pqa->v) * pa.u;
+      if (s * r <= POS_EPS * R2 * R2)
         continue;
-      float_t t = s / r;
-      if (t >= 1 - EPS)
+      pos_t t = s / r;
+      if (t >= 1 - POS_EPS)
         continue;
       if (pa.u * pa.u > pa.v * pa.v) {
         s = (pqa->u - ppa->u + t * pb.u) * pa.u;
-        if (s <= EPS * R2 || s >= pa.u * pa.u * (1.0 - EPS))
+        if (s <= POS_EPS * R2 || s >= pa.u * pa.u * (1.0 - POS_EPS))
           continue;
       } else {
         s = (pqa->v - ppa->v + t * pb.v) * pa.v;
-        if (s <= EPS * R2 || s >= pa.v * pa.v * (1.0 - EPS))
+        if (s <= POS_EPS * R2 || s >= pa.v * pa.v * (1.0 - POS_EPS))
           continue;
       }
 
@@ -639,7 +639,7 @@ static float_t calculate_area_for_multiple_edges(
 
       /* Insert new point into the list */
       for (vp = ppa; vp != ppb; vp = vp->next) {
-        float_t a = vq->zeta - vp->next->zeta;
+        pos_t a = vq->zeta - vp->next->zeta;
         if (a > 2.0)
           a -= 4.0;
         else if (a < -2.0)
@@ -660,9 +660,9 @@ static float_t calculate_area_for_multiple_edges(
   exd_vertex_t* vq;
   for (vp = vertex_head, vq = NULL; vq != vertex_head; vp = vq) {
     for (vq = vp->next; vq != vertex_head; vq = vq->next) {
-      if (vq->zeta - vp->zeta < EPS) {
+      if (vq->zeta - vp->zeta < POS_EPS) {
         vq->zeta = vp->zeta;
-        if (-EPS < vq->r2 - vp->r2 && EPS > vq->r2 - vp->r2) {
+        if (-POS_EPS < vq->r2 - vp->r2 && POS_EPS > vq->r2 - vp->r2) {
           vq->r2 = vp->r2;
           /* Mark crosses that occur multiple times--only need one */
           //          if (vq->role==ExdRole::CROSS && vp->role != ExdRole::OTHER) vq->role
@@ -682,9 +682,9 @@ static float_t calculate_area_for_multiple_edges(
       continue;
 
     for (vq = vp->next; vq != vp->e; vq = vq->next) {
-      if (!distinguishable_f(vq->zeta, vp->zeta, EPS))
+      if (!distinguishable_f(vq->zeta, vp->zeta, POS_EPS))
         continue;
-      if (!distinguishable_f(vq->zeta, vp->e->zeta, EPS))
+      if (!distinguishable_f(vq->zeta, vp->e->zeta, POS_EPS))
         break;
       if (vq->role == ExdRole::OTHER)
         continue;
@@ -700,14 +700,14 @@ static float_t calculate_area_for_multiple_edges(
   }
 
   /* Now we finally walk through and calculate the area */
-  float_t A = 0.0;
-  float_t zeta = 0.0;
-  float_t last_zeta = -1;
+  pos_t A = 0.0;
+  pos_t zeta = 0.0;
+  pos_t last_zeta = -1;
   exd_vertex_t* vs = NULL;
-  for (vp = vertex_head; zeta < 4.0 - EPS; vp = vp->next) {
+  for (vp = vertex_head; zeta < 4.0 - POS_EPS; vp = vp->next) {
     if (vp->role == ExdRole::OTHER)
       continue;
-    if (!distinguishable_f(vp->zeta, last_zeta, EPS))
+    if (!distinguishable_f(vp->zeta, last_zeta, POS_EPS))
       continue;
     last_zeta = vp->zeta;
 
@@ -721,7 +721,7 @@ static float_t calculate_area_for_multiple_edges(
     vr->v = vp->v;
     vr->zeta = vp->zeta;
     if (vp->role == ExdRole::TAIL) {
-      vr->r2 = R2 * (1.0 + EPS);
+      vr->r2 = R2 * (1.0 + POS_EPS);
       vr->e = NULL;
     } else {
       vr->r2 = vp->r2;
@@ -729,7 +729,7 @@ static float_t calculate_area_for_multiple_edges(
     }
 
     /* Check head points at same place to see if they're closer */
-    for (vq = vp->next; (!distinguishable_f(vq->zeta, last_zeta, EPS));
+    for (vq = vp->next; (!distinguishable_f(vq->zeta, last_zeta, POS_EPS));
          vq = vq->next) {
       if (vq->role == ExdRole::HEAD) {
         if (vq->r2 < vp->r2 || vr->e == NULL) {
@@ -737,8 +737,8 @@ static float_t calculate_area_for_multiple_edges(
           vr->v = vq->v;
           vr->r2 = vq->r2;
           vr->e = vq->e;
-        } else if (!distinguishable_f(vq->r2, vr->r2, EPS)) {
-          float_t b = calculate_exd_span(vr, vr->e, vq->e);
+        } else if (!distinguishable_f(vq->r2, vr->r2, POS_EPS)) {
+          pos_t b = calculate_exd_span(vr, vr->e, vq->e);
           if (b > 0)
             vr->e = vq->e;
         }
@@ -749,9 +749,9 @@ static float_t calculate_area_for_multiple_edges(
     for (vq = vp->span; vq != NULL; vq = vq->next) {
       ppa = vq->e;
       ppb = ppa->e;
-      float_t b = calculate_exd_span(ppa, ppb, vr);
-      float_t c = b * b;
-      if (c < R2 * R2 * EPS) /* Span crosses the point */
+      pos_t b = calculate_exd_span(ppa, ppb, vr);
+      pos_t c = b * b;
+      if (c < R2 * R2 * POS_EPS) /* Span crosses the point */
       {
         if (vr->e == NULL) {
           vr->r2 = vr->u * vr->u + vr->v * vr->v;
@@ -764,7 +764,7 @@ static float_t calculate_area_for_multiple_edges(
       } else if (b < 0 ||
                  vr->e == NULL) /* Span is inside the point or spans tail */
       {
-        float_t t = calculate_time_span(ppa, ppb, vp);
+        pos_t t = calculate_time_span(ppa, ppb, vp);
         vr->u = ppa->u + t * (ppb->u - ppa->u);
         vr->v = ppa->v + t * (ppb->v - ppa->v);
         vr->r2 = vr->u * vr->u + vr->v * vr->v;
@@ -777,23 +777,23 @@ static float_t calculate_area_for_multiple_edges(
     {
       vs = vr;
     } else {
-      float_t c = vr->zeta - vs->zeta;
+      pos_t c = vr->zeta - vs->zeta;
       if (c < 0)
         c += 4.0;
-      if (c > EPS) {
+      if (c > POS_EPS) {
         zeta += c;
         if (vs->e == NULL ||
             (vs->e->zeta - vs->zeta) * (vs->e->zeta - vs->zeta) <
-                EPS * EPS) {
+                POS_EPS * POS_EPS) {
           if (c >= 2.0) /* More than pi */
           {
             vs->u = -vs->u;
             vs->v = -vs->v;
             A += 0.5 * MY_PI * R2;
           }
-          float_t a = vs->u * vr->u + vs->v * vr->v;
-          float_t b = vs->u * vr->v - vs->v * vr->u;
-          float_t s;
+          pos_t a = vs->u * vr->u + vs->v * vr->v;
+          pos_t b = vs->u * vr->v - vs->v * vr->u;
+          pos_t s;
           if (a <= 0) /* More than pi/2 */
           {
             s = atan(-a / b) + 0.5 * MY_PI;
@@ -802,12 +802,12 @@ static float_t calculate_area_for_multiple_edges(
           }
           A += 0.5 * s * R2;
         } else {
-          if (!distinguishable_f(vs->e->zeta, vr->zeta, EPS)) {
+          if (!distinguishable_f(vs->e->zeta, vr->zeta, POS_EPS)) {
             A += 0.5 * (vs->u * vs->e->v - vs->v * vs->e->u);
           } else {
-            float_t t = calculate_time_span(vs, vs->e, vr);
-            float_t b2 = vs->u + (vs->e->u - vs->u) * t;
-            float_t c2 = vs->v + (vs->e->v - vs->v) * t;
+            pos_t t = calculate_time_span(vs, vs->e, vr);
+            pos_t b2 = vs->u + (vs->e->u - vs->u) * t;
+            pos_t c2 = vs->v + (vs->e->v - vs->v) * t;
             A += 0.5 * (vs->u * c2 - vs->v * b2);
           }
         }
@@ -843,11 +843,11 @@ exact_disk:
 *************************************************************************/
 // TODO_LATER: get rid of linked lists
 // inlining leads to lower performance
-static float_t __attribute__((noinline)) exact_disk(
+static pos_t __attribute__((noinline)) exact_disk(
     Partition& p,
     const Vec3& loc, // point of collision
     Vec3& mv, // displacement
-    float_t R, // radius_3d
+    pos_t R, // radius_3d
     Molecule& moving, // molecule being diffused, we care about walls in its subparition
     Molecule& target, // molecule that we can potentionally hit
     bool use_expanded_list // option from world
@@ -858,8 +858,8 @@ static float_t __attribute__((noinline)) exact_disk(
   int n_edges = 0;
 
   /* Partially set up coordinate systems for first pass */
-  float_t R2 = R * R;
-  float_t m2_i = 1.0 / dot(mv, mv);
+  pos_t R2 = R * R;
+  pos_t m2_i = 1.0 / dot(mv, mv);
 
   /* Set up coordinate system and convert vertices */
   Vec3 m, u, v;
@@ -871,7 +871,7 @@ static float_t __attribute__((noinline)) exact_disk(
   Lmuv.v = dot(loc, v);
 
   exd_vertex_t sm;
-  if (!distinguishable_vec3(loc, target.v.pos, EPS)) { /* Hit target exactly! */
+  if (!distinguishable_vec3(loc, target.v.pos, POS_EPS)) { /* Hit target exactly! */
     sm.u = sm.v = sm.r2 = sm.zeta = 0.0;
   }
   else { /* Find location of target in moving-molecule-centric coords */
@@ -898,11 +898,11 @@ static float_t __attribute__((noinline)) exact_disk(
     /* Ignore this wall if it is too far away! */
 
     /* Find distance from plane of wall to molecule */
-    float_t l_n = dot(loc, w.normal);
-    float_t d = w.distance_to_origin - l_n;
+    pos_t l_n = dot(loc, w.normal);
+    pos_t d = w.distance_to_origin - l_n;
 
     /* See if we're within interaction distance of wall */
-    float_t m_n = dot(mv, w.normal);
+    pos_t m_n = dot(mv, w.normal);
     if (d * d >= R2 * (1 - m2_i * m_n * m_n))
       continue;
 
@@ -913,7 +913,7 @@ static float_t __attribute__((noinline)) exact_disk(
     GeometryUtils::get_wall_bounding_box(w_vert, llf, urb);
 
     /* Reject those without overlapping bounding boxes */
-    float_t a, b;
+    pos_t a, b;
     b = R2 * (1.0 - mv.x * mv.x * m2_i);
     a = llf.x - loc.x;
     if (a > 0 && a * a >= b)
@@ -987,13 +987,13 @@ static float_t __attribute__((noinline)) exact_disk(
     /* Check to make sure endpoints are sensible */
     pa.r2 = len2_squared(pa);
     pb.r2 = len2_squared(pb);
-    if (pa.r2 < EPS * R2 || pb.r2 < EPS * R2) /* Can't tell where origin is relative to wall endpoints */
+    if (pa.r2 < POS_EPS * R2 || pb.r2 < POS_EPS * R2) /* Can't tell where origin is relative to wall endpoints */
     {
       if (vertex_head != nullptr)
         delete_list(vertex_head);
       return TARGET_OCCLUDED_RES;
     }
-    if (!distinguishable_f(pa.u * pb.v, pb.u * pa.v, EPS) &&
+    if (!distinguishable_f(pa.u * pb.v, pb.u * pa.v, POS_EPS) &&
         dot2(pa, pb) < 0) /* Antiparallel, can't tell which side of wall origin is on */
     {
       if (vertex_head != nullptr)
@@ -1002,7 +1002,7 @@ static float_t __attribute__((noinline)) exact_disk(
     }
 
     /* Intersect line with circle; skip this wall if no intersection */
-    float_t ti, si;
+    pos_t ti, si;
     IntersectResult circle_res = test_intersect_line_with_circle(
         pa, pb, sm, R2,
         ti, si
@@ -1047,11 +1047,11 @@ static float_t __attribute__((noinline)) exact_disk(
       Vec2 ppa_minus_sm = Vec2(*ppa) - Vec2(sm);
       Vec2 ppb_minus_sm = Vec2(*ppb) - Vec2(sm);
 
-      float_t c = ppa_minus_sm.u * ppb_minus_sm.v - ppa_minus_sm.v * ppb_minus_sm.u;
+      pos_t c = ppa_minus_sm.u * ppb_minus_sm.v - ppa_minus_sm.v * ppb_minus_sm.u;
 
       if (c < 0 || !distinguishable_f(ppa_minus_sm.u * ppb_minus_sm.v,
                                     ppa_minus_sm.v * ppb_minus_sm.u,
-                                    EPS)) /* Blocked! */
+                                    POS_EPS)) /* Blocked! */
       {
         ppa->next = ppb;
         ppb->next = vertex_head;
@@ -1101,22 +1101,22 @@ static float_t __attribute__((noinline)) exact_disk(
     exd_vertex_t* ppa = vertex_head;
     exd_vertex_t* ppb = ppa->e;
 
-    float_t ares = dot2(*ppa, *ppb);
-    float_t bres = determinant2(*ppa, *ppb);
-    float_t sres;
+    pos_t ares = dot2(*ppa, *ppb);
+    pos_t bres = determinant2(*ppa, *ppb);
+    pos_t sres;
     if (ares <= 0) { /* Angle > pi/2 */
       sres = atan(-ares / bres) + 0.5 * MY_PI;
     } else {
       sres = atan(bres / ares);
     }
-    float_t A = (0.5 * bres + R2 * (MY_PI - 0.5 * sres)) / (MY_PI * R2);
+    pos_t A = (0.5 * bres + R2 * (MY_PI - 0.5 * sres)) / (MY_PI * R2);
 
     delete_list(vertex_head);
     return A;
   }
 
   /* If there are multiple edges, calculating area is more complex. */
-  float_t A = calculate_area_for_multiple_edges(vertex_head, R2);
+  pos_t A = calculate_area_for_multiple_edges(vertex_head, R2);
 
   /* Finally, let's clean up the mess we made! */
 

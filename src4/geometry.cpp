@@ -143,7 +143,7 @@ static void refine_edge_pairs(
 
   int temp;
 
-  float_t best_align = 2;
+  pos_t best_align = 2;
   bool share_region = false;
   poly_edge* best_p1 = pe;
   poly_edge* best_p2 = pe;
@@ -189,7 +189,7 @@ static void refine_edge_pairs(
         assert(wall_a.wall_constants_precomputed);
         assert(wall_b.wall_constants_precomputed);
 
-        float_t align = dot(wall_a.normal, wall_b.normal);
+        pos_t align = dot(wall_a.normal, wall_b.normal);
 
         // as soon as two walls have a common region we only consider walls who
         // share (any) region. We need to reset the best_align to make sure we
@@ -605,7 +605,7 @@ void Region::init_surface_region_edges(const Partition& p) {
  * the vertices a, b, c, and d.
  * The formula was taken from "Computational Geometry" (2nd Ed) by J. O'Rourke
  */
-static float_t tetrahedral_volume(
+static pos_t tetrahedral_volume(
     const Vec3& a, const Vec3& b,
     const Vec3& c, const Vec3& d
 ) {
@@ -650,7 +650,7 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
   perf() << "Computing volume of region " << name << "\n";
 
   volume = 0;
-  float_t current_volume = 0;
+  pos_t current_volume = 0;
   for (auto it: walls_and_edges) {
 
     if (!it.second.empty()) {
@@ -952,11 +952,11 @@ void Grid::initialize(const Partition& p, const Wall& w) {
 
   molecules_per_tile.resize(num_tiles, MOLECULE_ID_INVALID);
 
-  strip_width_rcp = 1.0 / (w.uv_vert2.v / ((float_t)num_tiles_along_axis));
+  strip_width_rcp = 1.0 / (w.uv_vert2.v / ((pos_t)num_tiles_along_axis));
   vert2_slope = w.uv_vert2.u / w.uv_vert2.v;
   fullslope = w.uv_vert1_u / w.uv_vert2.v;
 
-  binding_factor = ((float_t)num_tiles) / w.area;
+  binding_factor = ((pos_t)num_tiles) / w.area;
 
   const Vec3& vert0_tmp = p.get_wall_vertex(w, 0);
 
@@ -1043,7 +1043,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
   temp_ff.v = dot(diff_j_0, wf.unit_v) - O_f.v; /* Far side of e */
 
   assert(!cmp_eq(len2_squared(temp_ff), 0.0, EPS));
-  float_t d_f = 1.0 / len2(temp_ff);
+  pos_t d_f = 1.0 / len2(temp_ff);
 
   Vec2 ehat_f, fhat_f;
   ehat_f = temp_ff * d_f; /* ehat along edge */
@@ -1062,7 +1062,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
   temp_fb.v = dot(diff_j_b0, wb.unit_v) - O_b.v; /* Far side of e */
 
   assert(!cmp_eq(len2_squared(temp_fb), 0.0, EPS));
-  float_t d_b = 1.0 / len2(temp_fb);
+  pos_t d_b = 1.0 / len2(temp_fb);
 
   Vec2 ehat_b, fhat_b;
 
@@ -1072,7 +1072,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
 
   /* Calculate transformation matrix */
 
-  float_t mtx[2][2];
+  pos_t mtx[2][2];
   mtx[0][0] = ehat_f.u * ehat_b.u + fhat_f.u * fhat_b.u;
   mtx[0][1] = ehat_f.v * ehat_b.u + fhat_f.v * fhat_b.u;
   mtx[1][0] = ehat_f.u * ehat_b.v + fhat_f.u * fhat_b.v;
@@ -1103,8 +1103,8 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
 #ifndef NDEBUG
   Vec2 orig_translate = translate;
 #endif
-  float_t orig_cos_theta = cos_theta;
-  float_t orig_sin_theta = sin_theta;
+  pos_t orig_cos_theta = cos_theta;
+  pos_t orig_sin_theta = sin_theta;
 #ifdef DEBUG_EDGE_INITIALIZATION
   dump();
 #endif
@@ -1172,18 +1172,18 @@ void Wall::precompute_wall_constants(const Partition& p) {
   }
 
   Vec3 f1 = *v1 - *v0;
-  float_t f1_len_squared = len3_squared(f1);
+  pos_t f1_len_squared = len3_squared(f1);
   assert(f1_len_squared != 0);
-  float_t inv_f1_len = 1 / sqrt_f(f1_len_squared);
+  pos_t inv_f1_len = 1 / sqrt_f(f1_len_squared);
 
   unit_u = f1 * Vec3(inv_f1_len);
 
   Vec3 f2 = *v2 - *v0;
   normal = cross(unit_u, f2);
 
-  float_t norm_len_squared = len3_squared(normal);
+  pos_t norm_len_squared = len3_squared(normal);
   assert(norm_len_squared != 0);
-  float_t inv_norm_len = 1 / sqrt_f(norm_len_squared);
+  pos_t inv_norm_len = 1 / sqrt_f(norm_len_squared);
   normal = normal * Vec3(inv_norm_len);
 
   unit_v = cross(normal, unit_u);

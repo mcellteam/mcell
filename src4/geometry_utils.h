@@ -44,7 +44,7 @@ static inline Vec3 uv2xyz(const Vec2& a, const Wall& w, const Vec3& wall_vert0) 
 
 // only the needed functions for now
 
-static float_t closest_interior_point(
+static pos_t closest_interior_point(
     const Partition& p,
     const Vec3& pt,
     const Wall& w,

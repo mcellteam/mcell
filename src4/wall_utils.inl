@@ -66,7 +66,7 @@ static bool walls_share_full_edge(const Partition& p, const Wall& w1, const Wall
   for (i = 0; i < VERTICES_IN_TRIANGLE; i++) {
     for (k = 0; k < VERTICES_IN_TRIANGLE; k++) {
 
-      if (!distinguishable_vec3( p.get_wall_vertex(w1, i), p.get_wall_vertex(w2, k), EPS) ) {
+      if (!distinguishable_vec3( p.get_wall_vertex(w1, i), p.get_wall_vertex(w2, k), POS_EPS) ) {
         count++;
       }
     }
@@ -353,7 +353,7 @@ static int wall_in_box(
 
   /* Check if any wall edge intersects any face of the box */
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    float_t r, a3, a4;
+    pos_t r, a3, a4;
 
     const Vec3 *v1, *v2;
     v2 = vert[i];
@@ -427,21 +427,21 @@ static int wall_in_box(
   int edge2_vt[12] = { 1, 3, 2, 6, 7, 5, 4, 0, 2, 5, 7, 2 };
 
   const Vec3& normal = w.normal;
-  float_t d = w.distance_to_origin;
+  pos_t d = w.distance_to_origin;
 
 
   /* Check if any box edge intersects the wall */
 
   int n_opposite = 0;
-  float_t vu_[VERTICES_IN_TRIANGLE * 2]; /* Assume wall has 3 vertices */
-  float_t* vv_ = &(vu_[VERTICES_IN_TRIANGLE]);
+  pos_t vu_[VERTICES_IN_TRIANGLE * 2]; /* Assume wall has 3 vertices */
+  pos_t* vv_ = &(vu_[VERTICES_IN_TRIANGLE]);
 
   /* Wall coordinate system n,u,v */
   Vec3 n = normal;
   Vec3 u = *vert[1] - *vert[0];
-  float_t len_u_squared = len3_squared(u);
+  pos_t len_u_squared = len3_squared(u);
   assert(len_u_squared != 0);
-  float_t r_u = 1 / sqrt(len_u_squared);
+  pos_t r_u = 1 / sqrt(len_u_squared);
 
   u = u * Vec3(r_u);
   Vec3 v = cross(n, u);
@@ -452,11 +452,11 @@ static int wall_in_box(
 
   /* Test every edge. */
   Vec3 bb = llf;
-  float_t d_box[8];
+  pos_t d_box[8];
   d_box[0] = dot(bb, n);;
 
   for (uint i = 0; i < 12; i++) {
-    float_t a1, a2;
+    pos_t a1, a2;
     Vec3 ba;
 
     if (i < 7) /* Visiting new vertices in order */
@@ -492,10 +492,10 @@ static int wall_in_box(
       bb.z = (which_z2[i]) ? urb.z : llf.z;
     }
     /* Now ba,bb = box edge endpoints ; a1,a2 = distances along wall normal */
-    float_t r = (d - a1) / (a2 - a1);
+    pos_t r = (d - a1) / (a2 - a1);
     Vec3 c = ba + Vec3(r) * (bb - ba);
-    float_t cu = dot(c, u);
-    float_t cv = dot(c, v);
+    pos_t cu = dot(c, u);
+    pos_t cv = dot(c, v);
     /* Test for internal intersection point in wall coordinate space */
     int temp = 0;
     for (uint j = 0; j < VERTICES_IN_TRIANGLE; j++) {
@@ -684,7 +684,7 @@ static bool walls_belong_to_at_least_one_different_restricted_region(
 
 // returns square of the closest distance
 // wall must belong to the same object and region
-static float_t find_closest_wall(
+static pos_t find_closest_wall(
     Partition& p,
     const Vec3& pos, const wall_index_t wall_that_moved_molecule,
     const bool must_have_at_least_one_tile,
@@ -695,7 +695,7 @@ static float_t find_closest_wall(
   const Wall& moved_wall = p.get_wall(wall_that_moved_molecule);
 
   best_wall_index = WALL_INDEX_INVALID;
-  float_t best_d2 = FLT_GIGANTIC;
+  pos_t best_d2 = FLT_GIGANTIC;
   best_wall_pos2d = Vec2(0);
 
   // NOTE: use wall_that_moved_molecule to optimize the search,
@@ -719,7 +719,7 @@ static float_t find_closest_wall(
     }
 
     Vec2 wall_pos2d;
-    float_t d2 = GeometryUtils::closest_interior_point(p, pos, w, wall_pos2d);
+    pos_t d2 = GeometryUtils::closest_interior_point(p, pos, w, wall_pos2d);
 
     if (d2 <= best_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
       best_d2 = d2;
@@ -733,21 +733,21 @@ static float_t find_closest_wall(
 
 
 // returns square of the closest distance
-static float_t find_closest_wall_any_object(
+static pos_t find_closest_wall_any_object(
     Partition& p,
     const Vec3& pos,
-    const float_t search_d2, // squared search diameter
+    const pos_t search_d2, // squared search diameter
     const bool must_have_at_least_one_tile,
     wall_index_t& best_wall_index,
     Vec2& best_wall_pos2d
 ) {
 
   best_wall_index = WALL_INDEX_INVALID;
-  float_t best_d2 = FLT_GIGANTIC;
+  pos_t best_d2 = FLT_GIGANTIC;
   best_wall_pos2d = Vec2(0);
 
   // find which subpartitions we need to check
-  float_t search_d = sqrt_f(search_d2);
+  pos_t search_d = sqrt_f(search_d2);
   IVec3 subpart_indices;
   p.get_subpart_3d_indices(pos, subpart_indices);
   SubpartIndicesSet crossed_subpart_indices;
@@ -771,7 +771,7 @@ static float_t find_closest_wall_any_object(
       }
 
       Vec2 wall_pos2d;
-      float_t d2 = GeometryUtils::closest_interior_point(p, pos, w, wall_pos2d);
+      pos_t d2 = GeometryUtils::closest_interior_point(p, pos, w, wall_pos2d);
 
       if (d2 <= best_d2 && d2 <= search_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
         best_d2 = d2;

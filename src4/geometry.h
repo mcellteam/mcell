@@ -236,7 +236,7 @@ private:
 
   Vec3 bounding_box_llf;
   Vec3 bounding_box_urb;
-  float_t volume;
+  pos_t volume;
 
   WallsPerSubpartMap walls_per_subpart;
 
@@ -252,7 +252,7 @@ public:
     return region_is_manifold;
   }
 
-  float_t get_volume() const {
+  pos_t get_volume() const {
     assert(volume_info_initialized);
     return volume;
   }
@@ -375,12 +375,12 @@ public:
     return translate;
   }
 
-  float_t get_cos_theta() const {
+  pos_t get_cos_theta() const {
     //assert(is_initialized());
     return cos_theta;
   }
 
-  float_t get_sin_theta() const {
+  pos_t get_sin_theta() const {
     //assert(is_initialized());
     return sin_theta;
   }
@@ -389,19 +389,19 @@ public:
     translate = value;
   }
 
-  void set_cos_theta(const float_t value) {
+  void set_cos_theta(const pos_t value) {
     cos_theta = value;
   }
 
-  void set_sin_theta(const float_t value) {
+  void set_sin_theta(const pos_t value) {
     sin_theta = value;
   }
 
 private:
   // --- egde constants ---
   Vec2 translate;          /* Translation vector between coordinate systems */
-  float_t cos_theta;         /* Cosine of angle between coordinate systems */
-  float_t sin_theta;         /* Sine of angle between coordinate systems */
+  pos_t cos_theta;         /* Cosine of angle between coordinate systems */
+  pos_t sin_theta;         /* Sine of angle between coordinate systems */
 };
 
 
@@ -427,10 +427,10 @@ public:
   uint num_tiles_along_axis; // Number of slots along each axis (originally n)
   uint num_tiles; // Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) (originally n_tiles)
 
-  float_t strip_width_rcp; /* Reciprocal of the width of one strip */ // inv_strip_wid originally
-  float_t vert2_slope;   /* Slope from vertex 0 to vertex 2 */
-  float_t fullslope;     /* Slope of full width of triangle */
-  float_t binding_factor;
+  pos_t strip_width_rcp; /* Reciprocal of the width of one strip */ // inv_strip_wid originally
+  pos_t vert2_slope;   /* Slope from vertex 0 to vertex 2 */
+  pos_t fullslope;     /* Slope of full width of triangle */
+  pos_t binding_factor;
   Vec2 vert0;          /* Projection of vertex zero onto unit_u and unit_v of wall */
 
   void set_molecule_tile(tile_index_t tile_index, molecule_id_t id) {
@@ -516,7 +516,7 @@ public:
     : normal(POS_INVALID), distance_to_origin(POS_INVALID) {
   }
 
-  WallCollisionRejectionData(const Vec3& normal_, const float_t& distance_to_origin_)
+  WallCollisionRejectionData(const Vec3& normal_, const pos_t& distance_to_origin_)
     : normal(normal_), distance_to_origin(distance_to_origin_) {
   }
 
@@ -526,7 +526,7 @@ public:
   }
 
   Vec3 normal; /* Normal vector for this wall */
-  float_t distance_to_origin; // distance to origin (point normal form)
+  pos_t distance_to_origin; // distance to origin (point normal form)
 };
 
 /**
@@ -634,10 +634,10 @@ public:
 
   // --- wall constants ---
   bool wall_constants_precomputed;
-  float_t uv_vert1_u;   /* Surface u-coord of 2nd corner (v=0) */
+  pos_t uv_vert1_u;   /* Surface u-coord of 2nd corner (v=0) */
   Vec2 uv_vert2;      /* Surface coords of third corner */
 
-  float_t area;  /* Area of this element */
+  pos_t area;  /* Area of this element */
   Vec3 unit_u; /* U basis vector for this wall */
   Vec3 unit_v; /* V basis vector for this wall */
 

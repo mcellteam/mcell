@@ -56,11 +56,11 @@ are_walls_coplanar:
   Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and
         Eric Haines, pp. 590-591
 ******************************************************************/
-bool are_coplanar(const Partition& p, const Wall& w1, const Wall& w2, const float_t eps) {
+bool are_coplanar(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps) {
 
   /* find the plane equation of the second wall in the form (n*x + d2 = 0) */
 
-  float_t d2, d1_0, d1_1, d1_2;
+  pos_t d2, d1_0, d1_1, d1_2;
 
   const Vec3 w2_vert0 = p.get_wall_vertex(w2, 0);
 
@@ -93,7 +93,7 @@ are_walls_coincident:
   Out: 0 if the walls are not coincident
        1 if the walls are coincident
 *******************************************************************/
-bool are_coincident(const Partition& p, const Wall& w1, const Wall& w2, const float_t eps) {
+bool are_coincident(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps) {
 
   int count = 0;
 
@@ -119,22 +119,22 @@ bool are_coincident(const Partition& p, const Wall& w1, const Wall& w2, const fl
 static bool edge_edge_test(
     const Vec3& v0, const Vec3& u0, const Vec3& u1,
     uint i0, uint i1,
-    float_t Ax, float_t Ay) {
+    pos_t Ax, pos_t Ay) {
 
-  float_t Bx = u0[i0] - u1[i0];
-  float_t By = u0[i1] - u1[i1];
-  float_t Cx = v0[i0] - u0[i0];
-  float_t Cy = v0[i1] - u0[i1];
-  float_t f = Ay * Bx - Ax * By;
-  float_t d = By * Cx - Bx * Cy;
+  pos_t Bx = u0[i0] - u1[i0];
+  pos_t By = u0[i1] - u1[i1];
+  pos_t Cx = v0[i0] - u0[i0];
+  pos_t Cy = v0[i1] - u0[i1];
+  pos_t f = Ay * Bx - Ax * By;
+  pos_t d = By * Cx - Bx * Cy;
   if ((f > 0 && d >= 0 && d <= f) || (f < 0 && d <= 0 && d >= f)) {
-    float_t e = Ax * Cy - Ay * Cx;
+    pos_t e = Ax * Cy - Ay * Cx;
 
     // ignore edge or vertex overlaps
-    bool dz = !distinguishable_f(d, 0.0, EPS);
-    bool ez = !distinguishable_f(e, 0.0, EPS);
-    bool df = !distinguishable_f(d, f, EPS);
-    bool ef = !distinguishable_f(e, f, EPS);
+    bool dz = !distinguishable_f(d, 0.0, POS_EPS);
+    bool ez = !distinguishable_f(e, 0.0, POS_EPS);
+    bool df = !distinguishable_f(d, f, POS_EPS);
+    bool ef = !distinguishable_f(e, f, POS_EPS);
     if ((dz && ez) || (dz && ef) || (df && ez) || (df && ef)) {
       return false;
     }
@@ -161,8 +161,8 @@ static inline bool edge_against_tri_edges(
     const Vec3& u1, const Vec3& u2, uint i0,
     uint i1) {
 
-  float_t Ax = v1[i0] - v0[i0];
-  float_t Ay = v1[i1] - v0[i1];
+  pos_t Ax = v1[i0] - v0[i0];
+  pos_t Ay = v1[i1] - v0[i1];
   /* test edge u0,u1 against v0,v1 */
   if (edge_edge_test(v0, u0, u1, i0, i1, Ax, Ay)) {
     return true;
@@ -184,20 +184,20 @@ static bool point_in_tri(const Vec3& v0, const Vec3& u0, const Vec3& u1, const V
                                uint i0, uint i1) {
   /* is T1 completly inside T2? */
   /* check if v0 is inside tri(u0,u1,u2) */
-  float_t a = u1[i1] - u0[i1];
-  float_t b = -(u1[i0] - u0[i0]);
-  float_t c = -a * u0[i0] - b * u0[i1];
-  float_t d0 = a * v0[i0] + b * v0[i1] + c;
+  pos_t a = u1[i1] - u0[i1];
+  pos_t b = -(u1[i0] - u0[i0]);
+  pos_t c = -a * u0[i0] - b * u0[i1];
+  pos_t d0 = a * v0[i0] + b * v0[i1] + c;
 
   a = u2[i1] - u1[i1];
   b = -(u2[i0] - u1[i0]);
   c = -a * u1[i0] - b * u1[i1];
-  float_t d1 = a * v0[i0] + b * v0[i1] + c;
+  pos_t d1 = a * v0[i0] + b * v0[i1] + c;
 
   a = u0[i1] - u2[i1];
   b = -(u0[i0] - u2[i0]);
   c = -a * u2[i0] - b * u2[i1];
-  float_t d2 = a * v0[i0] + b * v0[i1] + c;
+  pos_t d2 = a * v0[i0] + b * v0[i1] + c;
   if (d0 * d1 > 0.0) {
     if (d0 * d2 > 0.0) return true;
   }
@@ -259,7 +259,7 @@ static bool coplanar_tri_tri(
  *         this will *not* be treated as an overlap.
  */
 bool coplanar_walls_overlap(const Partition& p, const Wall& w1, const Wall& w2) {
-  assert(are_coplanar(p, w1, w2, EPS));
+  assert(are_coplanar(p, w1, w2, POS_EPS));
 
   const Vec3& v0 = p.get_wall_vertex(w1, 0);
   const Vec3& v1 = p.get_wall_vertex(w1, 1);

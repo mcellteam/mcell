@@ -245,10 +245,10 @@ void MCell4Converter::convert_simulation_setup() {
   world->config.initial_time = config.initial_time;
   world->config.initial_iteration = config.initial_iteration;
 
-  float_t grid_density = config.surface_grid_density;
+  pos_t grid_density = config.surface_grid_density;
   world->config.grid_density = grid_density;
 
-  float_t length_unit = 1/sqrt_f(config.surface_grid_density);
+  pos_t length_unit = 1/sqrt_f(config.surface_grid_density);
   world->config.length_unit = length_unit;
 
   if (is_set(config.interaction_radius)) {
@@ -269,7 +269,7 @@ void MCell4Converter::convert_simulation_setup() {
     world->config.intermembrane_rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
   }
 
-  float_t vacancy_search_dist = config.vacancy_search_distance / length_unit; // Convert units
+  pos_t vacancy_search_dist = config.vacancy_search_distance / length_unit; // Convert units
   world->config.vacancy_search_dist2 = vacancy_search_dist * vacancy_search_dist; // and take square
 
   world->config.randomize_smol_pos = !config.center_molecules_on_grid;
@@ -287,11 +287,11 @@ void MCell4Converter::convert_simulation_setup() {
   Vec3 llf_w_margin = llf - Vec3(PARTITION_EDGE_EXTRA_MARGIN_UM);
   Vec3 urb_w_margin = urb + Vec3(PARTITION_EDGE_EXTRA_MARGIN_UM);
 
-  float_t llf_partition_dimension_diff = 0;
+  pos_t llf_partition_dimension_diff = 0;
 
   // TODO: simplify this code to set origin and partition dimensions
 
-  float_t auto_partition_dimension = max3(urb_w_margin) - min3(llf_w_margin);
+  pos_t auto_partition_dimension = max3(urb_w_margin) - min3(llf_w_margin);
   bool auto_origin_set = false;
   if (!is_set(config.initial_partition_origin) && auto_partition_dimension > config.partition_dimension) {
     cout <<
@@ -342,7 +342,7 @@ void MCell4Converter::convert_simulation_setup() {
     if (opposite.z < urb_w_margin.z) {
       urb_diff.z = urb_w_margin.z - opposite.z;
     }
-    float_t max_urb_diff = max3(urb_diff);
+    pos_t max_urb_diff = max3(urb_diff);
 
     world->config.partition_edge_length =
         (config.partition_dimension + llf_partition_dimension_diff + max_urb_diff)/ length_unit;
@@ -372,7 +372,7 @@ void MCell4Converter::convert_simulation_setup() {
   }
 
   // align the origin to a multiple of subpartition length
-  float_t sp_len = config.subpartition_dimension / length_unit;
+  pos_t sp_len = config.subpartition_dimension / length_unit;
 
   uint tentative_subparts = world->config.partition_edge_length / sp_len;
   if (tentative_subparts > MAX_SUBPARTS_PER_PARTITION) {
@@ -384,12 +384,12 @@ void MCell4Converter::convert_simulation_setup() {
 
   Vec3 orig_origin = world->config.partition0_llf;
   world->config.partition0_llf =
-      floor_to_multiple_allow_negative(orig_origin, sp_len);
+      floor_to_multiple_allow_negative_p(orig_origin, sp_len);
 
   // enlarge the partition by size we moved it in order to be aligned
   Vec3 llf_moved = orig_origin - world->config.partition0_llf;
-  float_t partition_edge_length_enlarged = world->config.partition_edge_length + max3(llf_moved);
-  world->config.partition_edge_length = ceil_to_multiple(partition_edge_length_enlarged, sp_len);
+  pos_t partition_edge_length_enlarged = world->config.partition_edge_length + max3(llf_moved);
+  world->config.partition_edge_length = ceil_to_multiple_f(partition_edge_length_enlarged, sp_len);
 
   world->config.num_subpartitions_per_partition_edge =
       round_f(world->config.partition_edge_length / sp_len);

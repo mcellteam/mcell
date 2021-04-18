@@ -28,11 +28,11 @@ static void collect_neighboring_subparts(
     const Partition& p,
     const Vec3& pos,
     const IVec3& subpart_indices,
-    const float_t rx_radius,
-    const float_t subpart_edge_len,
+    const pos_t rx_radius,
+    const pos_t subpart_edge_len,
     SubpartIndicesSet& crossed_subpart_indices
 ) {
-  const float_t part_len = p.config.partition_edge_length;
+  const pos_t part_len = p.config.partition_edge_length;
   const Vec3& origin = p.get_origin_corner();
 
   Vec3 rel_pos = pos - p.get_origin_corner();
@@ -117,8 +117,8 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
   const Vec3& displacement,
-  const float_t rx_radius,
-  const float_t sp_edge_length,
+  const pos_t rx_radius,
+  const pos_t sp_edge_length,
   const bool collect_for_molecules,
   const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
@@ -174,7 +174,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   // the diameter of a square, computing precise length would be most probably worse perfrmance-wise
   // TODO: explain why this should work
   // a more efficient variant if definitely possible
-  float_t rx_radius_for_neighbors = rx_radius * SQRT2;
+  pos_t rx_radius_for_neighbors = rx_radius * SQRT2;
 
   // first check what's around the starting point
   if (p.config.use_expanded_list) {
@@ -218,7 +218,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       Vec3 diff = sp_edges - curr_pos;
 
       // first check whether we are not in fact touching one of the boundaries
-      if (abs(diff.x) < EPS) {
+      if (abs(diff.x) < POS_EPS) {
         // only update the xyz subpartition index
         curr_subpart_indices.x += dir_urb_addend.x;\
         // in some cases, we can run out of partition
@@ -228,13 +228,13 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
           break;
         }
       }
-      else if (abs(diff.y) < EPS) {
+      else if (abs(diff.y) < POS_EPS) {
         curr_subpart_indices.y += dir_urb_addend.y;
         if (!p.is_subpart_index_in_range(curr_subpart_indices.y)) {
           break;
         }
       }
-      else if (abs(diff.z) < EPS) {
+      else if (abs(diff.z) < POS_EPS) {
         curr_subpart_indices.z += dir_urb_addend.z;
         if (!p.is_subpart_index_in_range(curr_subpart_indices.z)) {
           break;

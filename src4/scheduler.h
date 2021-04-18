@@ -98,7 +98,7 @@ private:
 
   float_t event_time_to_bucket_start_time(const float_t time) {
     // flooring to a multiple of BUCKET_TIME_INTERVAL
-    return floor_to_multiple(time, BUCKET_TIME_INTERVAL);
+    return floor_to_multiple_f(time, BUCKET_TIME_INTERVAL);
   }
 
   BucketDeque::iterator get_or_create_bucket(const float_t time);

@@ -31,8 +31,8 @@ class Wall;
 
 namespace WallOverlap {
 
-bool are_coplanar(const Partition& p, const Wall& w1, const Wall& w2, const float_t eps);
-bool are_coincident(const Partition& p, const Wall& w1, const Wall& w2, const float_t eps);
+bool are_coplanar(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps);
+bool are_coincident(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps);
 
 // w1 and w2 are assumed to be coplanar
 bool coplanar_walls_overlap(const Partition& p, const Wall& w1, const Wall& w2);

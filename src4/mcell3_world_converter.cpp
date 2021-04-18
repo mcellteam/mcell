@@ -265,7 +265,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     }
 
     // origin of the initial partition
-    world->config.partition0_llf = floor_to_multiple_allow_negative(mcell3_llf_w_margin, sp_len);
+    world->config.partition0_llf = floor_to_multiple_allow_negative_p(mcell3_llf_w_margin, sp_len);
     Vec3 llf_moved = mcell3_llf_w_margin - world->config.partition0_llf;
     Vec3 box_size_enlarged = mcell3_box_size + llf_moved;
     // size of the partition

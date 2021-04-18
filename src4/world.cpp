@@ -167,7 +167,7 @@ static float_t get_event_start_time(const float_t start_time, const float_t peri
     return 0;
   }
   else {
-    return floor_to_multiple(start_time + periodicity, periodicity);
+    return floor_to_multiple_f(start_time + periodicity, periodicity);
   }
 }
 

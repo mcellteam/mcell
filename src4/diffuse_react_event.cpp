@@ -683,9 +683,6 @@ RayTraceState ray_trace_vol(
   }
 #endif
 
-  //crossed_subparts_for_walls = crossed_subparts_for_walls_new;
-  //crossed_subparts_for_molecules = crossed_subparts_for_molecules_new;
-
   // changed when wall was hit
   Vec3 displacement_up_to_wall_collision = remaining_displacement;
   Vec3& corrected_displacement = remaining_displacement;

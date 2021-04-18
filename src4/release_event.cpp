@@ -158,7 +158,7 @@ bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
       current_release_in_train_from_0 * release_interval;
 
   // floor_to_multiple adds EPS to the value before flooring
-  event_time = floor_to_multiple(actual_release_time, 1);
+  event_time = floor_to_multiple_f(actual_release_time, 1);
 
   // increment release counter
   current_release_in_train_from_0++;

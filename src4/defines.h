@@ -99,10 +99,21 @@ namespace MCell {
 
 // import shared declarations from BNG into our own namespace
 using BNGCommon::f_to_str;
+
 using BNGCommon::float_t;
 using BNGCommon::EPS;
 using BNGCommon::SQRT_EPS;
 using BNGCommon::FLT_GIGANTIC;
+
+using BNGCommon::pos_t;
+using BNGCommon::POS_EPS;
+using BNGCommon::POS_SQRT_EPS;
+using BNGCommon::POS_FLT_GIGANTIC;
+
+using BNGCommon::stime_t;
+using BNGCommon::STIME_EPS;
+using BNGCommon::STIME_FLT_GIGANTIC;
+
 using BNGCommon::fabs_f;
 using BNGCommon::cmp_eq;
 using BNGCommon::distinguishable_f;
@@ -319,7 +330,7 @@ private:
 
 // ---------------------------------- vector types ----------------------------------
 
-#if FLOAT_T_BYTES == 8
+#if POS_T_BYTES == 8
 typedef glm::dvec3 glm_vec3_t;
 typedef glm::dvec2 glm_vec2_t;
 typedef glm::dmat4x4 mat4x4;
@@ -377,9 +388,10 @@ struct Vec3: public glm_vec3_t {
   Vec3(const Vec3& a) : glm_vec3_t(a.x, a.y, a.z) { }
   Vec3(const IVec3& a) : glm_vec3_t(a.x, a.y, a.z) { }
   Vec3(const vector3& a) { x = a.x; y = a.y; z = a.z; }
-  Vec3(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
-  Vec3(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
+  Vec3(const pos_t x_, const pos_t y_, const pos_t z_) { x = x_; y = y_; z = z_; }
+  Vec3(const pos_t xyz) { x = xyz; y = xyz; z = xyz; }
   Vec3(const std::vector<float_t>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
+  Vec3(const std::vector<pos_t>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
   Vec3& operator=(const Vec3& other) = default;
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID || z == POS_INVALID); }
@@ -394,9 +406,10 @@ struct Vec2: public glm_vec2_t {
   Vec2(const glm_vec2_t& a) { x = a.x; y = a.y; }
   Vec2(const Vec2& a) : glm_vec2_t(a.x, a.y) { }
   Vec2(const vector2& a) { x = a.u; y = a.v; }
-  Vec2(const float_t x_, const float_t y_) { x = x_; y = y_; }
-  Vec2(const float_t xy) { x = xy; y = xy; }
+  Vec2(const pos_t x_, const pos_t y_) { x = x_; y = y_; }
+  Vec2(const pos_t xy) { x = xy; y = xy; }
   Vec2(const std::vector<float_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
+  Vec2(const std::vector<pos_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
   Vec2& operator=(const Vec2& other) = default;
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID); }
@@ -453,13 +466,13 @@ static inline float_t abs_f(const float_t x) {
   }
 }
 
-static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
+static inline float_t floor_to_multiple_f(const float_t val, float_t multiple) {
   assert(val >= 0);
   assert(multiple > 0);
   return (float_t)((int)((val + EPS)/ multiple)) * multiple;
 }
 
-static inline float_t floor_to_multiple_allow_negative(const float_t val, float_t multiple) {
+static inline float_t floor_to_multiple_allow_negative_p(const float_t val, pos_t multiple) {
   if (val >= 0) {
     return (float_t)((int)((val + EPS)/ multiple)) * multiple;
   }
@@ -470,22 +483,22 @@ static inline float_t floor_to_multiple_allow_negative(const float_t val, float_
   }
 }
 
-static inline Vec3 floor_to_multiple(const Vec3& val, float_t multiple) {
+static inline Vec3 floor_to_multiple_p(const Vec3& val, pos_t multiple) {
   assert(val.x >= 0 && val.y >=0 && val.z >= 0);
   return (Vec3)((glm::ivec3)((val + Vec3(EPS))/ multiple)) * multiple;
 }
 
-static inline Vec3 floor_to_multiple_allow_negative(const Vec3& val, float_t multiple) {
+static inline Vec3 floor_to_multiple_allow_negative_p(const Vec3& val, pos_t multiple) {
   Vec3 res;
-  res.x = floor_to_multiple_allow_negative(val.x, multiple);
-  res.y = floor_to_multiple_allow_negative(val.y, multiple);
-  res.z = floor_to_multiple_allow_negative(val.z, multiple);
+  res.x = floor_to_multiple_allow_negative_p(val.x, multiple);
+  res.y = floor_to_multiple_allow_negative_p(val.y, multiple);
+  res.z = floor_to_multiple_allow_negative_p(val.z, multiple);
   return res;
 }
 
-static inline float_t ceil_to_multiple(const float_t val, float_t multiple) {
+static inline float_t ceil_to_multiple_f(const float_t val, float_t multiple) {
   assert(val >= 0);
-  float_t res = floor_to_multiple(val, multiple);
+  float_t res = floor_to_multiple_f(val, multiple);
   if (!cmp_eq(val, res)) {
     res += multiple;
   }
@@ -494,9 +507,9 @@ static inline float_t ceil_to_multiple(const float_t val, float_t multiple) {
 
 static inline Vec3 ceil_to_multiple(const Vec3& val, float_t multiple) {
   Vec3 res;
-  res.x = ceil_to_multiple(val.x, multiple);
-  res.y = ceil_to_multiple(val.y, multiple);
-  res.z = ceil_to_multiple(val.z, multiple);
+  res.x = ceil_to_multiple_f(val.x, multiple);
+  res.y = ceil_to_multiple_f(val.y, multiple);
+  res.z = ceil_to_multiple_f(val.z, multiple);
   return res;
 }
 
@@ -568,46 +581,46 @@ static inline Vec3 round3(const Vec3& v) {
 
 /* abs_max_2vec picks out the largest (absolute) value found among two vectors
  * (useful for properly handling floating-point rounding error). */
-static inline float_t abs_max_2vec(const Vec3& v1, const Vec3& v2) {
+static inline pos_t abs_max_2vec(const Vec3& v1, const Vec3& v2) {
   glm_vec3_t v1abs = abs3(v1);
   glm_vec3_t v2abs = abs3(v2);
   Vec3 vmax = glm::max(v1abs, v2abs);
   return MCell::max3(vmax);
 }
 
-static inline float_t determinant2(const Vec2& v1, const Vec2& v2) {
+static inline pos_t determinant2(const Vec2& v1, const Vec2& v2) {
   return v1.u * v2.v - v1.v * v2.u;
 }
 
-static inline float_t dot2(const Vec2& v1, const Vec2& v2) {
+static inline pos_t dot2(const Vec2& v1, const Vec2& v2) {
   return glm::dot((glm_vec2_t)v1, (glm_vec2_t)v2);
 }
 
-static inline float_t len2_squared(const Vec2& v1) {
+static inline pos_t len2_squared(const Vec2& v1) {
   return v1.u * v1.u + v1.v * v1.v;
 }
 
-static inline float_t len2(const Vec2& v1) {
+static inline pos_t len2(const Vec2& v1) {
   return sqrt_f(len2_squared(v1));
 }
 
-static inline float_t dot(const Vec3& v1, const Vec3& v2) {
+static inline pos_t dot(const Vec3& v1, const Vec3& v2) {
   return glm::dot((glm_vec3_t)v1, (glm_vec3_t)v2);
 }
 
-static inline float_t len3_squared(const Vec3& v1) {
+static inline pos_t len3_squared(const Vec3& v1) {
   return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
 }
 
-static inline float_t len3(const Vec3& v1) {
+static inline pos_t len3(const Vec3& v1) {
   return sqrt_f(len3_squared(v1));
 }
 
-static inline float_t distance3_squared(const Vec3& v1, const Vec3& v2) {
+static inline pos_t distance3_squared(const Vec3& v1, const Vec3& v2) {
   return len3_squared(v1 - v2);
 }
 
-static inline float_t distance3(const Vec3& v1, const Vec3& v2) {
+static inline pos_t distance3(const Vec3& v1, const Vec3& v2) {
   return sqrt_f( len3_squared(v1 - v2) );
 }
 
