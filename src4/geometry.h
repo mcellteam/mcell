@@ -370,18 +370,14 @@ public:
   edge_index_t edge_num_used_for_init;
 
   const Vec2& get_translate() const {
-    // FIXME: this checks should be here, but for some reason assert
-    //assert(is_initialized());
     return translate;
   }
 
   pos_t get_cos_theta() const {
-    //assert(is_initialized());
     return cos_theta;
   }
 
   pos_t get_sin_theta() const {
-    //assert(is_initialized());
     return sin_theta;
   }
 

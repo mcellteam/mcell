@@ -123,7 +123,7 @@ static void wall_subparts_collision_test(
     SubpartIndicesVector& colliding_subparts
 ) {
   Vec3 llf, urb; /* Bounding box for wall */
-  pos_t leeway = 1.0; /* Margin of error */
+  pos_t leeway = 1; /* Margin of error */
 
   Vec3 w_vert[VERTICES_IN_TRIANGLE];
   w_vert[0] = p.get_geometry_vertex(w.vertex_indices[0]);
@@ -244,35 +244,35 @@ static edge_index_t find_edge_point(
   // Make sure that the displacement vector isn't on v0v1
   pos_t f, s, t;
   if (dxc1 < -POS_EPS || dxc1 > POS_EPS) {
-    f = 1.0 / dxc1; /* f>0 is passing outwards */
+    f = 1 / dxc1; /* f>0 is passing outwards */
     s = -lxd * f;
-    if (0.0 < s && s < 1.0 && f > 0.0) {
+    if (0 < s && s < 1 && f > 0) {
       t = -lxc1 * f;
-      if (POS_EPS < t && t < 1.0) {
+      if (POS_EPS < t && t < 1) {
         edgept = loc + Vec2(t) * disp;
         return EDGE_INDEX_0;
       }
-      else if (t > 1.0 + POS_EPS) {
+      else if (t > 1 + POS_EPS) {
         return EDGE_INDEX_WITHIN_WALL;
       }
       /* else can't tell if we hit this edge, assume not */
     }
   }
 
-  pos_t  lxc2 = determinant2(loc, here.uv_vert2);
-  pos_t  dxc2 = determinant2(disp, here.uv_vert2);
+  pos_t lxc2 = determinant2(loc, here.uv_vert2);
+  pos_t dxc2 = determinant2(disp, here.uv_vert2);
 
   // Make sure that the displacement vector isn't on v1v2
   if (dxc2 < -POS_EPS || dxc2 > POS_EPS) {
-    f = 1.0 / dxc2; /* f<0 is passing outwards */
-    s = 1.0 + lxd * f;
-    if (0.0 < s && s < 1.0 && f < 0.0) {
+    f = 1 / dxc2; /* f<0 is passing outwards */
+    s = 1 + lxd * f;
+    if (0 < s && s < 1 && f < 0) {
       t = -lxc2 * f;
-      if (POS_EPS < t && t < 1.0) {
+      if (POS_EPS < t && t < 1) {
         edgept = loc + Vec2(t) * disp;
         return EDGE_INDEX_2;
       }
-      else if (t > 1.0 + POS_EPS) {
+      else if (t > 1 + POS_EPS) {
         return EDGE_INDEX_WITHIN_WALL;
       }
       /* else can't tell */
@@ -282,15 +282,15 @@ static edge_index_t find_edge_point(
   f = dxc2 - dxc1;
 
   if (f < -POS_EPS || f > POS_EPS) {
-    f = 1.0 / f; /* f>0 is passing outwards */
+    f = 1 / f; /* f>0 is passing outwards */
     s = -(lxd + dxc1) * f;
-    if (0.0 < s && s < 1.0 && f > 0.0) {
+    if (0 < s && s < 1 && f > 0) {
       t = (here.uv_vert1_u * here.uv_vert2.v + lxc1 - lxc2) * f;
-      if (POS_EPS < t && t < 1.0) {
+      if (POS_EPS < t && t < 1) {
         edgept = loc + Vec2(t) * disp;
         return EDGE_INDEX_1;
       }
-      else if (t > 1.0 + POS_EPS) {
+      else if (t > 1 + POS_EPS) {
         return EDGE_INDEX_WITHIN_WALL;
       }
       /* else can't tell */
@@ -393,15 +393,15 @@ static bool point_in_triangle(const Vec3& p, const Vec3& a, const Vec3& b, const
     return 1;
   }
 
-  if (((!distinguishable_f(p.x, a.x, POS_EPS)) &&
-       (!distinguishable_f(p.y, a.y, POS_EPS)) &&
-       (!distinguishable_f(p.z, a.z, POS_EPS))) ||
-      ((!distinguishable_f(p.x, b.x, POS_EPS)) &&
-       (!distinguishable_f(p.y, b.y, POS_EPS)) &&
-       (!distinguishable_f(p.z, b.z, POS_EPS))) ||
-      ((!distinguishable_f(p.x, c.x, POS_EPS)) &&
-       (!distinguishable_f(p.y, c.y, POS_EPS)) &&
-       (!distinguishable_f(p.z, c.z, POS_EPS)))) {
+  if (((!distinguishable_p(p.x, a.x, POS_EPS)) &&
+       (!distinguishable_p(p.y, a.y, POS_EPS)) &&
+       (!distinguishable_p(p.z, a.z, POS_EPS))) ||
+      ((!distinguishable_p(p.x, b.x, POS_EPS)) &&
+       (!distinguishable_p(p.y, b.y, POS_EPS)) &&
+       (!distinguishable_p(p.z, b.z, POS_EPS))) ||
+      ((!distinguishable_p(p.x, c.x, POS_EPS)) &&
+       (!distinguishable_p(p.y, c.y, POS_EPS)) &&
+       (!distinguishable_p(p.z, c.z, POS_EPS)))) {
     return 1;
   }
 
@@ -479,7 +479,7 @@ static void closest_pt_point_triangle(
   d1 = dot(ab, ap);
   d2 = dot(ac, ap);
 
-  if (d1 <= 0.0 && d2 <= 0.0) {
+  if (d1 <= 0 && d2 <= 0) {
     final_result = a;
     return;
   }
@@ -489,7 +489,7 @@ static void closest_pt_point_triangle(
   pos_t d3, d4;
   d3 = dot(ab, bp);
   d4 = dot(ac, bp);
-  if (d3 >= 0.0 && d4 <= d3) {
+  if (d3 >= 0 && d4 <= d3) {
     final_result = b;
     return;
   }
@@ -498,7 +498,7 @@ static void closest_pt_point_triangle(
   pos_t v, w;
   Vec3 result1;
   pos_t vc = d1 * d4 - d3 * d2;
-  if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
+  if (vc <= 0 && d1 >= 0 && d3 <= 0) {
     v = d1 / (d1 - d3);
     result1 = ab * Vec3(v);
     final_result = a + result1;
@@ -510,14 +510,14 @@ static void closest_pt_point_triangle(
   pos_t d5, d6;
   d5 = dot(ab, cp);
   d6 = dot(ac, cp);
-  if (d6 >= 0.0 && d5 <= d6) {
+  if (d6 >= 0 && d5 <= d6) {
     final_result = c;
     return;
   }
 
   /* Check if P in edge region of AC, if so return projection of P onto AC */
   pos_t vb = d5 * d2 - d1 * d6;
-  if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
+  if (vb <= 0 && d2 >= 0 && d6 <= 0) {
     w = d2 / (d2 - d6);
     result1 = ac * Vec3(w);
     final_result = a + result1;
@@ -526,7 +526,7 @@ static void closest_pt_point_triangle(
 
   /* Check if P in edge region of BC, if so return projection of P onto BC */
   pos_t va = d3 * d6 - d5 * d4;
-  if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
+  if (va <= 0 && (d4 - d3) >= 0 && (d5 - d6) >= 0) {
     w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
     result1 = (c - b) * Vec3(w);
     final_result = b + result1;
@@ -535,14 +535,14 @@ static void closest_pt_point_triangle(
 
   /* P inside face region. Compute Q through its barycentric
      coordinates (u,v,w) */
-  pos_t denom = 1.0f / (va + vb + vc);
+  pos_t denom = 1 / (va + vb + vc);
   v = vb * denom;
   w = vc * denom;
   ab = ab * Vec3(v);
   ac = ac * Vec3(w);
   result1 = ab + ac;
   final_result = a + result1;
-  return; /* = u*a + v*b + w*c, u = va * denom = 1.0f - v -w */
+  return; /* = u*a + v*b + w*c, u = va * denom = 1 - v -w */
 }
 
 
@@ -570,7 +570,6 @@ static pos_t closest_interior_point(
   w.dump(p, "", true);
 #endif
 
-
   Vec3 v;
   const Vec3& w_vert0 = p.get_wall_vertex(w, 0);
   const Vec3& w_vert1 = p.get_wall_vertex(w, 1);
@@ -587,23 +586,23 @@ static pos_t closest_interior_point(
   int give_up = 10;
   pos_t a1 = ip.u * w.uv_vert2.v - ip.v * w.uv_vert2.u;
   pos_t a2 = w.uv_vert1_u * ip.v;
-  Vec2 vert_0(0.0);
-  Vec2 vert_1(w.uv_vert1_u, 0.0);
+  Vec2 vert_0(0);
+  Vec2 vert_1(w.uv_vert1_u, 0);
 
   while (
       give_up_ctr < give_up
-      && (!distinguishable_p(ip.v, (pos_t)0.0, POS_EPS)
-          || !distinguishable_p(a1, (pos_t)0.0, POS_EPS)
-          || !distinguishable_p(a1 + a2, (pos_t)2.0 * w.area, POS_EPS)
-          || !point_in_triangle_2D(ip, vert_0, vert_1, w.uv_vert2))
+      && (!distinguishable_p(ip.v, 0, POS_EPS) ||
+          !distinguishable_p(a1, 0, POS_EPS) ||
+          !distinguishable_p(a1 + a2, 2 * w.area, POS_EPS) ||
+          !point_in_triangle_2D(ip, vert_0, vert_1, w.uv_vert2))
    ) {
     /* Move toward centroid. It's possible for this movement to be so small
      * that we are essentially stuck in this loop, so bail out after a set
      * number of tries. The number chosen is somewhat arbitrary. In most cases,
      * one try is sufficent. */
-    ip.u = (1.0 - 5 * POS_EPS) * ip.u +
+    ip.u = (1 - 5 * POS_EPS) * ip.u +
             5 * POS_EPS * 0.333333333333333 * (w.uv_vert1_u + w.uv_vert2.u);
-    ip.v = (1.0 - 5 * POS_EPS) * ip.v +
+    ip.v = (1 - 5 * POS_EPS) * ip.v +
             5 * POS_EPS * 0.333333333333333 * w.uv_vert2.v;
 
     a1 = ip.u * w.uv_vert2.v - ip.v * w.uv_vert2.u;
