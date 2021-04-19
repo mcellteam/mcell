@@ -1033,7 +1033,7 @@ static bool collide_line_and_line_test(
   Vec3 c_x_b = cross(c, b);
 
   pos_t len_squared_a_x_b = len3_squared(a_x_b);
-  if (cmp_eq(len_squared_a_x_b, 0)) {
+  if (cmp_eq(len_squared_a_x_b, (pos_t)0)) {
     // s would be too large if the divisor is close to 0
     return false;
   }
@@ -1058,7 +1058,7 @@ static bool collide_line_and_line_test(
   Vec3 b_x_a = cross(b, a);
 
   pos_t len_squared_b_x_a = len3_squared(b_x_a);
-  if (cmp_eq(len_squared_b_x_a, 0)) {
+  if (cmp_eq(len_squared_b_x_a, (pos_t)0)) {
     assert(false && "Should not happen anymore");
     // t would be too large if the divisor is close to 0
     return false;

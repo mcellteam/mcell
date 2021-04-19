@@ -73,8 +73,6 @@ public:
   }
 };
 
-typedef small_vector<wall_index_t> wall_indices_t;
-
 
 /**
  * Used as a pair molecule id, remaining timestep for molecules newly created in diffusion.
@@ -111,6 +109,7 @@ public:
   // TODO: can be removed and replaced with Molecule::previous_wall_index?
   WallTileIndexPair where_created_this_iteration;
 };
+
 
 /**
  * Diffuse all molecules with a given time step.

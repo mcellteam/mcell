@@ -754,7 +754,7 @@ grid_all_neighbors_across_walls_through_vertices:
 static void grid_all_neighbors_across_walls_through_vertices(
     Partition& p,
     const Molecule* sm, // may be nullptr, not used currently but should be
-    const wall_indices_t& neighboring_walls,
+    const WallIndicesVector& neighboring_walls,
     const Wall& wall,
     bool create_grid_flag,
     bool search_for_reactant, // TODO: this argument is ignored currently but seems important
@@ -1756,7 +1756,7 @@ static wall_index_t find_neighbor_tiles(
 
       /* create list of neighbor walls that share one vertex
          with the start tile  (not edge-to-edge neighbor walls) */
-      wall_indices_t neighboring_walls;
+      WallIndicesVector neighboring_walls;
       WallUtils::find_nbr_walls_shared_one_vertex(p, wall, shared_verts, neighboring_walls);
 
       if (!neighboring_walls.empty()) {

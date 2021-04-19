@@ -279,9 +279,9 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
     wall_index_t closest_hit_wall_index;
 
     Vec3 dir(
-        (cmp_eq(displacement.x, 0) ? 0 : ((displacement.x > 0) ? 1 : -1)),
-        (cmp_eq(displacement.y, 0) ? 0 : ((displacement.y > 0) ? 1 : -1)),
-        (cmp_eq(displacement.z, 0) ? 0 : ((displacement.z > 0) ? 1 : -1))
+        (cmp_eq(displacement.x, (pos_t)0) ? 0 : ((displacement.x > 0) ? 1 : -1)),
+        (cmp_eq(displacement.y, (pos_t)0) ? 0 : ((displacement.y > 0) ? 1 : -1)),
+        (cmp_eq(displacement.z, (pos_t)0) ? 0 : ((displacement.z > 0) ? 1 : -1))
     );
     // extra displacement to make sure that we will end up in front of a wall,
     // not on it

@@ -170,7 +170,7 @@ std::shared_ptr<Wall> Introspection::get_wall(std::shared_ptr<GeometryObject> ob
   }
   res->area = w.area * world->config.length_unit * world->config.length_unit;
   res->unit_normal = w.normal;
-  assert(cmp_eq(len3(res->unit_normal), 1));
+  assert(cmp_eq(len3(res->unit_normal), (pos_t)1));
   res->is_movable = w.is_movable;
   res->world = world;
   return res;
@@ -207,7 +207,7 @@ Vec3 Introspection::get_wall_unit_normal(std::shared_ptr<GeometryObject> object,
   const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
 
   // the value is is already normalized
-  assert(cmp_eq(len3(w.normal), 1));
+  assert(cmp_eq(len3(w.normal), (pos_t)1));
   return w.normal;
 }
 

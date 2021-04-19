@@ -292,12 +292,15 @@ typedef std::map<geometry_object_id_t, uint_set<geometry_object_id_t>> CountedVo
 const int BASE_CONTAINER_ALLOC = 16;
 
 #ifndef INDEXER_WA
+typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
+typedef boost::container::small_vector<wall_index_t, BASE_CONTAINER_ALLOC> WallIndicesVector;
 // WARNING: std::set_intersection and possibly other algorithms do not work correctly with dense_hash_set
 typedef uint_dense_hash_set<subpart_index_t> SubpartIndicesSet; // boost-based uint_set is worse on average
-typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
 #else
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
+typedef std::vector<wall_index_t> WallIndicesVector;
 typedef std::set<subpart_index_t> SubpartIndicesSet;
+
 #endif
 
 template<typename T>
@@ -439,19 +442,11 @@ static inline std::ostream & operator<<(std::ostream &out, const Vec2& a) {
 
 static inline float_t log_f(const float_t x) {
   assert(x != 0);
-#if FLOAT_T_BYTES == 8
   return log(x);
-#else
-  return logf(x);
-#endif
 }
 
 static inline float_t exp_f(const float_t x) {
-#if FLOAT_T_BYTES == 8
   return exp(x);
-#else
-  return expf(x);
-#endif
 }
 
 static inline float_t ceil_f(const float_t x) {

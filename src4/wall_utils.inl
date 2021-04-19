@@ -91,7 +91,7 @@ static void find_nbr_walls_shared_one_vertex(
     const Partition& p,
     const Wall& origin_wall,
     vertex_index_t shared_verts[VERTICES_IN_TRIANGLE],
-    wall_indices_t& neighboring_walls
+    WallIndicesVector& neighboring_walls
 )
 {
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
