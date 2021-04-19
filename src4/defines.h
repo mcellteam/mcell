@@ -623,7 +623,7 @@ static inline pos_t len2_squared(const Vec2& v1) {
 }
 
 static inline pos_t len2(const Vec2& v1) {
-  return sqrt_f(len2_squared(v1));
+  return sqrt_p(len2_squared(v1));
 }
 
 static inline pos_t dot(const Vec3& v1, const Vec3& v2) {
@@ -635,7 +635,7 @@ static inline pos_t len3_squared(const Vec3& v1) {
 }
 
 static inline pos_t len3(const Vec3& v1) {
-  return sqrt_f(len3_squared(v1));
+  return sqrt_p(len3_squared(v1));
 }
 
 static inline pos_t distance3_squared(const Vec3& v1, const Vec3& v2) {
@@ -643,7 +643,7 @@ static inline pos_t distance3_squared(const Vec3& v1, const Vec3& v2) {
 }
 
 static inline pos_t distance3(const Vec3& v1, const Vec3& v2) {
-  return sqrt_f( len3_squared(v1 - v2) );
+  return sqrt_p( len3_squared(v1 - v2) );
 }
 
 static inline uint get_largest_abs_dim_index(const Vec3& v) {

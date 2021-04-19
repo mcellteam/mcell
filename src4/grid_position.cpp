@@ -61,11 +61,11 @@ static void get_tile_vertices(
   int root, rootrem;
   Vec2 P, Q, X, Y;
   /* length of the segments PQ and XY (see below) */
-  float_t pq, xy;
+  pos_t pq, xy;
   /* cotangent of the angle formed between the u-axis
      and the wall edge opposite to the origin of the
      uv-coordinate system */
-  float_t cot_angle;
+  pos_t cot_angle;
 
   /* Calculate strip, stripe, and flip indices from idx */
   root = (int)sqrt_p(idx);
@@ -186,7 +186,7 @@ get_product_shared_segment_pos:
    Note: all points are on the plane
 ******************************************************************************/
 static Vec2 get_product_shared_segment_pos(
-    const Vec2& R_shared, const Vec2& S_shared, const Vec2& T, float_t k1, float_t k2) {
+    const Vec2& R_shared, const Vec2& S_shared, const Vec2& T, pos_t k1, pos_t k2) {
 
   Vec2 M; /* midpoint */
 
@@ -216,13 +216,13 @@ get_product_shared_vertex_pos:
    Note: all points are on the plane
 ******************************************************************************/
 static Vec2 get_product_shared_vertex_pos(
-    const Vec2& R_shared, const Vec2& S, const Vec2& T, float_t k1, float_t k2) {
+    const Vec2& R_shared, const Vec2& S, const Vec2& T, const pos_t k1, const pos_t k2) {
 
   struct vector2 M; /* midpoint */
 
   /* find midpoint on the segment ST */
-  M.u = 0.5 * (S.u + T.u);
-  M.v = 0.5 * (S.v + T.v);
+  M.u = (pos_t)0.5 * (S.u + T.u);
+  M.v = (pos_t)0.5 * (S.v + T.v);
 
   /* find coordinates of the  point such that internally
      divides the segment RM in the ratio (k1:k2)
@@ -243,7 +243,7 @@ get_product_close_to_segment_endpoint_pos:
    Note: all points are on the plane
 ******************************************************************************/
 static Vec2 get_product_close_to_segment_endpoint_pos(
-    const Vec2& S, const Vec2& E, float_t k1, float_t k2) {
+    const Vec2& S, const Vec2& E, const pos_t k1, const pos_t k2) {
 
   return Vec2(
       (k1 * S.u + k2 * E.u) / (k1 + k2),
@@ -260,15 +260,15 @@ static bool intersect_point_segment(
     const Vec3& P, const Vec3& A, const Vec3& B) {
 
   Vec3 ba, pa;
-  float_t t;                    /* parameter in the line parametrical equation */
-  float_t ba_length, pa_length; /* length of the vectors */
-  float_t cosine_angle;         /* cosine of the angle between ba and pa */
+  pos_t t;                    /* parameter in the line parametrical equation */
+  pos_t ba_length, pa_length; /* length of the vectors */
+  pos_t cosine_angle;         /* cosine of the angle between ba and pa */
 
   /* check for the end points */
-  if (!distinguishable_vec3(P, A, EPS)) {
+  if (!distinguishable_vec3(P, A, POS_EPS)) {
     return true;
   }
-  if (!distinguishable_vec3(P, B, EPS)) {
+  if (!distinguishable_vec3(P, B, POS_EPS)) {
     return true;
   }
 
@@ -280,7 +280,7 @@ static bool intersect_point_segment(
 
   /* if point intersects segment, vectors pa and ba should be collinear */
   cosine_angle = dot(ba, pa) / (ba_length * pa_length);
-  if (distinguishable(cosine_angle, 1.0, EPS)) {
+  if (distinguishable_p(cosine_angle, 1, POS_EPS)) {
     return false;
   }
 
@@ -315,7 +315,7 @@ bool parallel_segments(
   prod = cross(ba, rs);
   length = len3(prod);
 
-  if (!distinguishable(length, 0, EPS)) {
+  if (!distinguishable_p(length, 0, POS_EPS)) {
     return true;
   }
   else {
@@ -355,8 +355,8 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
   Vec2 A_new, B_new, C_new;
 
   /* the ratios in which we divide the segment */
-  float_t k1 = 1e-10; /* this is our good faith assumption */
-  float_t k2 = 1;
+  pos_t k1 = 1e-10; /* this is our good faith assumption */
+  pos_t k2 = 1;
 
   int flip1; /* flip information about first tile */
   int flip2; /* flip information about second tile */
@@ -401,7 +401,6 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
     T_3d = uv2xyz(T, wall1, wall1_vert0);
   }
 
-
   const Wall& wall2 = p.get_wall(gp2.wall_index);
   const Vec3& wall2_vert0 = p.get_wall_vertex(wall2, 0);
   const Grid& grid2 = wall2.grid;
@@ -410,7 +409,7 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
   get_tile_vertices(p, grid2, idx2, flip1, A, B, C);
 
   /* the code below tries to increase accuracy for the corner tiles */
-  // CODO: make a function out of this, same code as above
+  // TODO: make a function out of this, same code as above
   if (GridUtils::is_corner_tile(grid2, idx2)) {
     /* find out the shared vertex */
     int shared_wall_vertex_id_1 = find_wall_vertex_for_corner_tile(grid2, idx2);
@@ -439,21 +438,21 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
 
   /* find shared vertices */
   if (gp1.wall_index == gp2.wall_index) {
-    if (!distinguishable_vec2(R, A, EPS) ||
-        (!distinguishable_vec2(R, B, EPS)) ||
-        (!distinguishable_vec2(R, C, EPS))) {
+    if (!distinguishable_vec2(R, A, POS_EPS) ||
+        (!distinguishable_vec2(R, B, POS_EPS)) ||
+        (!distinguishable_vec2(R, C, POS_EPS))) {
       num_exact_shared_vertices++;
       R_shared = 1;
     }
-    if (!distinguishable_vec2(S, A, EPS) ||
-        (!distinguishable_vec2(S, B, EPS)) ||
-        (!distinguishable_vec2(S, C, EPS))) {
+    if (!distinguishable_vec2(S, A, POS_EPS) ||
+        (!distinguishable_vec2(S, B, POS_EPS)) ||
+        (!distinguishable_vec2(S, C, POS_EPS))) {
       num_exact_shared_vertices++;
       S_shared = 1;
     }
-    if (!distinguishable_vec2(T, A, EPS) ||
-        (!distinguishable_vec2(T, B, EPS)) ||
-        (!distinguishable_vec2(T, C, EPS))) {
+    if (!distinguishable_vec2(T, A, POS_EPS) ||
+        (!distinguishable_vec2(T, B, POS_EPS)) ||
+        (!distinguishable_vec2(T, C, POS_EPS))) {
       num_exact_shared_vertices++;
       T_shared = 1;
     }
@@ -461,23 +460,23 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
   } else {
     /* below there are cases when the grid structures on the neighbor
        walls are not shifted relative to one another */
-    if (!distinguishable_vec3(R_3d, A_3d, EPS) ||
-        (!distinguishable_vec3(R_3d, B_3d, EPS)) ||
-        (!distinguishable_vec3(R_3d, C_3d, EPS))) {
+    if (!distinguishable_vec3(R_3d, A_3d, POS_EPS) ||
+        (!distinguishable_vec3(R_3d, B_3d, POS_EPS)) ||
+        (!distinguishable_vec3(R_3d, C_3d, POS_EPS))) {
       num_exact_shared_vertices++;
       R_shared = 1;
     }
 
-    if (!distinguishable_vec3(S_3d, A_3d, EPS) ||
-        (!distinguishable_vec3(S_3d, B_3d, EPS)) ||
-        (!distinguishable_vec3(S_3d, C_3d, EPS))) {
+    if (!distinguishable_vec3(S_3d, A_3d, POS_EPS) ||
+        (!distinguishable_vec3(S_3d, B_3d, POS_EPS)) ||
+        (!distinguishable_vec3(S_3d, C_3d, POS_EPS))) {
       num_exact_shared_vertices++;
       S_shared = 1;
     }
 
-    if (!distinguishable_vec3(T_3d, A_3d, EPS) ||
-        (!distinguishable_vec3(T_3d, B_3d, EPS)) ||
-        (!distinguishable_vec3(T_3d, C_3d, EPS))) {
+    if (!distinguishable_vec3(T_3d, A_3d, POS_EPS) ||
+        (!distinguishable_vec3(T_3d, B_3d, POS_EPS)) ||
+        (!distinguishable_vec3(T_3d, C_3d, POS_EPS))) {
       num_exact_shared_vertices++;
       T_shared = 1;
     }
@@ -682,7 +681,8 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
           return get_product_shared_segment_pos(C_new, S, T, k1, k2);
         }
 
-      } else {
+      }
+      else {
         return get_product_shared_vertex_pos(S, R, T, k1, k2);
       }
 
@@ -784,10 +784,10 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
 
   min_dist = min3_p(dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d);
 
-  if (!distinguishable(min_dist, dist_A_A_close_3d, EPS)) {
+  if (!distinguishable_p(min_dist, dist_A_A_close_3d, POS_EPS)) {
     prod_pos_3d = A_close_3d;
   }
-  else if (!distinguishable(min_dist, dist_B_B_close_3d, EPS)) {
+  else if (!distinguishable_p(min_dist, dist_B_B_close_3d, POS_EPS)) {
     prod_pos_3d = B_close_3d;
   }
   else {

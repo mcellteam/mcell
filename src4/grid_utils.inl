@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017,2020 by
+ * Copyright (C) 2006-2017,2020-2021 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -111,11 +111,11 @@ static tile_index_t xyz2grid_tile_index(
   u0 = j * g.vert2_slope;
   u1_u0 = w.uv_vert1_u - j * g.fullslope;
 
-  stripeloc = ((i - u0) / u1_u0) * (((pos_t)strip) + (1.0 - striprem));
+  stripeloc = ((i - u0) / u1_u0) * (strip + (1 - striprem));
   stripe = (int)(stripeloc);
   striperem = stripeloc - stripe;
 
-  flip = (striperem < 1.0 - striprem) ? 0 : 1;
+  flip = (striperem < 1 - striprem) ? 0 : 1;
 
   tile_index_t idx = strip * strip + 2 * stripe + flip;
 
@@ -183,11 +183,11 @@ static tile_index_t uv2grid_tile_index(
   u0 = j * g.vert2_slope;
   u1_u0 = w.uv_vert1_u - j * g.fullslope;
 
-  stripeloc = ((i - u0) / u1_u0) * (((pos_t)strip) + (1.0 - striprem));
+  stripeloc = ((i - u0) / u1_u0) * (strip + (1 - striprem));
   stripe = (int)(stripeloc);
   striperem = stripeloc - stripe;
 
-  flip = (striperem < 1.0 - striprem) ? 0 : 1;
+  flip = (striperem < 1 - striprem) ? 0 : 1;
   idx = strip * strip + 2 * stripe + flip;
 
   if ((u_int)idx >= g.num_tiles) {
@@ -228,7 +228,7 @@ static Vec3 grid2xyz(Partition& p, const Wall& w, tile_index_t index) {
   j = rootrem / 2;
   i = rootrem - 2 * j;
 
-  over3n = 1.0 / (pos_t)(3 * g.num_tiles_along_axis);
+  over3n = 1 / (pos_t)(3 * g.num_tiles_along_axis);
 
   ucoef = ((pos_t)(3 * j + i + 1)) * over3n * w.uv_vert1_u +
           ((pos_t)(3 * k + i + 1)) * over3n * w.uv_vert2.u;
@@ -252,10 +252,10 @@ static Vec2 grid2uv(const Wall& w, tile_index_t index) {
   root = (int)(sqrt_p(index));
   rootrem = index - root * root;
   k = g.num_tiles_along_axis - root - 1;
-  j = rootrem / 2;
+  j = rootrem / 2; // integer division
   i = rootrem - 2 * j;
 
-  over3n = 1.0 / (pos_t)(3 * g.num_tiles_along_axis);
+  over3n = 1 / (pos_t)(3 * g.num_tiles_along_axis);
 
   res.u = ((pos_t)(3 * j + i + 1)) * over3n * w.uv_vert1_u +
          ((pos_t)(3 * k + i + 1)) * over3n * w.uv_vert2.u;
@@ -281,15 +281,14 @@ static Vec2 grid2uv_random(
   j = rootrem / 2;
   i = rootrem - 2 * j;
 
-  over_n = 1.0 / (pos_t)(g.num_tiles_along_axis);
+  over_n = 1 / (pos_t)(g.num_tiles_along_axis);
 
   u_ran = rng_dbl(&rng);
-  v_ran = 1.0 - sqrt_p(rng_dbl(&rng));
+  v_ran = 1 - sqrt_p(rng_dbl(&rng));
 
   Vec2 res;
   res.u =
-      ((pos_t)(j + i) + (1 - 2 * i) * (1.0 - v_ran) * u_ran) * over_n *
-          w.uv_vert1_u +
+      ((pos_t)(j + i) + (1 - 2 * i) * (1 - v_ran) * u_ran) * over_n * w.uv_vert1_u +
       ((pos_t)(k + i) + (1 - 2 * i) * v_ran) * over_n * w.uv_vert2.u;
   res.v =
       ((pos_t)(k + i) + (1 - 2 * i) * v_ran) * over_n * w.uv_vert2.v;
@@ -359,7 +358,6 @@ static void get_grid_neighbors_single_grid_and_index(
     const Wall& wall,
     tile_index_t tile_index,
     wall_index_t nb_wall_index,
-
     wall_index_t &res_nb_wall_index,
     tile_index_t& nb_index
 ) {
@@ -443,7 +441,7 @@ static void grid_neighbors(
   root = (int)(sqrt_p(tile_index));
   rootrem = tile_index - root * root;
   k = root;
-  j = rootrem / 2;
+  j = rootrem / 2; // integer division
   i = rootrem - 2 * j;
 
   /* First look "left" (towards edge 2) */
@@ -512,11 +510,11 @@ static int tile_orientation(const Vec2 v, const Wall& w) {
   u0 = j * g.vert2_slope;
   u1_u0 = w.uv_vert1_u - j * g.fullslope;
 
-  stripeloc = ((i - u0) / u1_u0) * (((pos_t)strip) + (1.0 - striprem));
+  stripeloc = ((i - u0) / u1_u0) * (((pos_t)strip) + (1 - striprem));
   stripe = (int)(stripeloc);
   striperem = stripeloc - stripe;
 
-  flip = (striperem < 1.0 - striprem) ? 0 : 1;
+  flip = (striperem < 1 - striprem) ? 0 : 1;
 
   return flip;
 }
@@ -718,7 +716,8 @@ static void find_shared_vertices_for_neighbor_walls(
       (!distinguishable_vec3(nb_wall_vert1, orig_wall_vert2, POS_EPS))) {
     if (shared_vert_1 < 0) {
       shared_vert_1 = 1;
-    } else {
+    }
+    else {
       shared_vert_2 = 1;
     }
   }
@@ -728,7 +727,8 @@ static void find_shared_vertices_for_neighbor_walls(
       (!distinguishable_vec3(nb_wall_vert2, orig_wall_vert2, POS_EPS))) {
     if (shared_vert_1 < 0) {
       shared_vert_1 = 2;
-    } else {
+    }
+    else {
       shared_vert_2 = 2;
     }
   }
@@ -896,13 +896,15 @@ static int bisect_high(const std::vector<pos_t>& list, int n, pos_t val) {
     mid = (hi + lo) / 2;
     if (list[mid] > val) {
       hi = mid;
-    } else {
+    }
+    else {
       lo = mid;
     }
   }
   if (list[lo] > val) {
     return lo;
-  } else {
+  }
+  else {
     return hi;
   }
 }
@@ -912,7 +914,7 @@ static void push_front_neighbor_if_not_present(
     TileNeighborVector& neighbors,
     const WallTileIndexPair& info
 ) {
-  auto it  = std::find(neighbors.begin(), neighbors.end(), info);
+  auto it = std::find(neighbors.begin(), neighbors.end(), info);
   if (it == neighbors.end()) {
     neighbors.push_front(info);
   }
@@ -928,8 +930,8 @@ add_more_tile_neighbors_to_list_fast:
           (edge has a direction from "start" to "end")
       index of the shared edge looking from the original orid
           (0 - for edge between vert[0] and vert[1],
-          1 - for edge between vert[1] and vert[2],
-          2 - for edge between vert[0] and vert[2])
+           1 - for edge between vert[1] and vert[2],
+           2 - for edge between vert[0] and vert[2])
       a surface grid of the neighbor wall
   Out: Returns number of new neighbor tiles added to the original
        linked list of neighbor tiles.
@@ -990,23 +992,27 @@ static int add_more_tile_neighbors_to_list_fast(
       if (orig_flip == 0) {
         orig_pos_1 = orig_strip * edge_length / (orig_grid.num_tiles_along_axis);
         orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid.num_tiles_along_axis);
-      } else { /* (orig_flip == 1) */
+      }
+      else { /* (orig_flip == 1) */
         orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid.num_tiles_along_axis);
       }
-    } else {
+    }
+    else {
       /* find out common edge refers to what side of the original wall */
       if (edge_index == 0) {
         if (orig_flip == 0) {
           orig_pos_1 = orig_stripe * edge_length / (orig_grid.num_tiles_along_axis);
           orig_pos_2 = (orig_stripe + 1) * edge_length / (orig_grid.num_tiles_along_axis);
-        } else { /* (orig_flip == 1) */
+        }
+        else { /* (orig_flip == 1) */
           orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid.num_tiles_along_axis);
         }
       }
       else if (edge_index == 1) {
         if (orig_flip == 0) {
           orig_pos_1 = (orig_strip) * edge_length / (orig_grid.num_tiles_along_axis);
-        } else { /* (orig_flip == 1) */
+        }
+        else { /* (orig_flip == 1) */
           orig_pos_1 = orig_strip * edge_length / (orig_grid.num_tiles_along_axis);
           orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid.num_tiles_along_axis);
         }
@@ -1015,7 +1021,8 @@ static int add_more_tile_neighbors_to_list_fast(
         if (orig_flip == 0) {
           orig_pos_1 = orig_strip * edge_length / (orig_grid.num_tiles_along_axis);
           orig_pos_2 = (orig_strip + 1) * edge_length / (orig_grid.num_tiles_along_axis);
-        } else { /* (orig_flip == 1) */
+        }
+        else { /* (orig_flip == 1) */
           orig_pos_1 = (orig_strip + 1) * edge_length / (orig_grid.num_tiles_along_axis);
         }
 
@@ -1042,7 +1049,8 @@ static int add_more_tile_neighbors_to_list_fast(
       else { /* (orig_flip == 1) */
         orig_pos_1 = (orig_stripe + 1) * edge_length / (orig_grid.num_tiles_along_axis);
       }
-    } else {
+    }
+    else {
       /* find out common edge refers to what side of the original wall */
       if (edge_index == 0) {
         if (orig_flip == 0) {
@@ -1286,13 +1294,6 @@ static void grid_all_neighbors_across_walls_through_edges(
   int root, rootrem, strip, stripe, flip;
   tile_index_t temp_index;
 
-  /* list of restricted regions */
-  // MCell4 - no supported yet
-  /*region_list *rlp_head_own_wall = NULL;
-  region_list *rlp_head_nbr_wall_0 = NULL;
-  region_list *rlp_head_nbr_wall_1 = NULL;
-  region_list *rlp_head_nbr_wall_2 = NULL;
-  */
   /* flags */
   bool move_thru_border_0 = true;
   bool move_thru_border_1 = true;
@@ -1331,7 +1332,6 @@ static void grid_all_neighbors_across_walls_through_edges(
   const Vec3& wall_vert0 = p.get_wall_vertex(wall, 0);
   const Vec3& wall_vert1 = p.get_wall_vertex(wall, 1);
   const Vec3& wall_vert2 = p.get_wall_vertex(wall, 2);
-
 
   if (create_grid_flag) {
     for (uint kk = 0; kk < EDGES_IN_TRIANGLE; kk++) {
@@ -1528,7 +1528,8 @@ static void grid_all_neighbors_across_walls_through_edges(
         neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
         neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 2));
       }
-    } else { /* (flip == 0) */
+    }
+    else { /* (flip == 0) */
       if (tile_index < grid.num_tiles - 1) {
         temp_index = move_strip_down(grid, tile_index);
         assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
@@ -1536,7 +1537,8 @@ static void grid_all_neighbors_across_walls_through_edges(
         neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
         neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 1));
         neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
-      } else {
+      }
+      else {
         /* this is a corner tile */
         temp_index = move_strip_down(grid, tile_index - 1);
         assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
@@ -1804,7 +1806,6 @@ static tile_index_t nearest_free(
   pos_t d2;
   const pos_t over3n = 0.333333333333333 / (pos_t)(g.num_tiles_along_axis);
 
-
   /* check whether the grid is fully occupied */
   if (g.is_full()) {
     found_dist2 = 0;
@@ -1812,7 +1813,7 @@ static tile_index_t nearest_free(
   }
 
   tile_index = TILE_INDEX_INVALID;
-  d2 = 2 * max_d2 + 1.0;
+  d2 = 2 * max_d2 + 1;
 
   // this seems quite inefficient
 
@@ -1906,7 +1907,7 @@ static void search_nbhd_for_free(
     return;
   }
 
-  pos_t best_d2 = 2.0 * max_search_d2 + 1.0;
+  pos_t best_d2 = 2 * max_search_d2 + 1;
   const Vec2& point = closest_pos2d;
 
   vector<wall_index_t> walls_to_try_if_fail;
@@ -1944,23 +1945,23 @@ static void search_nbhd_for_free(
     /* Calculate distance between point and edge j of origin wall */
     Vec2 vurt0, vurt1;
     switch (j) {
-    case 0:
-      vurt0 = Vec2(0);
-      vurt1.u = origin_wall.uv_vert1_u;
-      vurt1.v = 0;
-      break;
-    case 1:
-      vurt0.u = origin_wall.uv_vert1_u;
-      vurt0.v = 0;
-      vurt1 = origin_wall.uv_vert2;
-      break;
-    case 2:
-      vurt0 = origin_wall.uv_vert2;
-      vurt1 = Vec2(0);
-      break;
-    default:
-      /* default case should not occur since 0<=j<=2 */
-      assert(false);
+      case 0:
+        vurt0 = Vec2(0);
+        vurt1.u = origin_wall.uv_vert1_u;
+        vurt1.v = 0;
+        break;
+      case 1:
+        vurt0.u = origin_wall.uv_vert1_u;
+        vurt0.v = 0;
+        vurt1 = origin_wall.uv_vert2;
+        break;
+      case 2:
+        vurt0 = origin_wall.uv_vert2;
+        vurt1 = Vec2(0);
+        break;
+      default:
+        /* default case should not occur since 0<=j<=2 */
+        assert(false);
     }
 
     Vec2 pt, ed;
@@ -1969,13 +1970,11 @@ static void search_nbhd_for_free(
 
     pos_t d2;
     d2 = dot2(pt, ed);
-    d2 = len2_squared(pt) -
-         d2 * d2 / len2_squared(ed); /* Distance squared to line */
+    d2 = len2_squared(pt) - d2 * d2 / len2_squared(ed); /* Distance squared to line */
 
     /* Check for free grid element on neighbor if point to edge distance is
      * closer than best_d2  */
     if (d2 < best_d2) {
-
       if (!there_wall.grid.is_initialized()) {
         there_wall.grid.initialize(p, there_wall);
       }
@@ -2021,7 +2020,6 @@ static void find_closest_tile_on_wall(
     const pos_t closest_d2, const float_t search_d2,
     wall_index_t& found_wall_index, tile_index_t& found_tile_index, Vec2& found_pos2d
 ) {
-
   tile_index_t closest_tile_index;
 
   const Wall& w = p.get_wall(closest_wall_index);
@@ -2034,7 +2032,6 @@ static void find_closest_tile_on_wall(
 #endif
 
   molecule_id_t mol_on_tile = w.grid.get_molecule_on_tile(closest_tile_index);
-
 
   if (mol_on_tile == MOLECULE_ID_INVALID) {
     // ok, tile is empty
@@ -2053,7 +2050,6 @@ static void find_closest_tile_on_wall(
 
     wall_index_t new_wall_index;
     wall_index_t new_tile_index;
-
     set<wall_index_t> visited_walls;
     search_nbhd_for_free(
         p, closest_wall_index, closest_pos2d, max_search_d2,
@@ -2224,9 +2220,7 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
       species_id, orientation, current_time, release_delay_time);
 }
 
-
 } // namespace GridUtil
-
 } // namespace MCell
 
 #endif // SRC4_GRID_UTILS_INC_

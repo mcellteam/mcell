@@ -45,7 +45,7 @@ using namespace std;
 
 namespace MCell {
 
-// TODO: replace int with wall_index_t where possible
+// TODO: replace int with wall_index_t where applicable
 
 /***************************************************************************
 compatible_edges:
@@ -157,7 +157,8 @@ static void refine_edge_pairs(
     if (n1 == 1) {
       wA = p1->face[0];
       eA = p1->edge[0];
-    } else {
+    }
+    else {
       wA = p1->face[1];
       eA = p1->edge[1];
     }
@@ -167,10 +168,12 @@ static void refine_edge_pairs(
     if (n1 == 1) {
       n2 = n1 + 1;
       p2 = p1;
-    } else {
+    }
+    else {
       n2 = 1;
       p2 = p1->next;
     }
+
     while (p2 != NULL && p2->n >= n2) {
       int wB, eB;
       if (n2 == 1) {
@@ -211,20 +214,23 @@ static void refine_edge_pairs(
             best_align = align;
           }
         }
-      } else {
+      }
+      else {
         break;
       }
 
-      if (n2 == 1)
+      if (n2 == 1) {
         n2++;
+      }
       else {
         p2 = p2->next;
         n2 = 1;
       }
     }
 
-    if (n1 == 1)
+    if (n1 == 1) {
       n1++;
+    }
     else {
       p1 = p1->next;
       n1 = 1;
@@ -232,8 +238,9 @@ static void refine_edge_pairs(
   }
 
   /* swap best match into top spot */
-  if (best_align > 1.0)
+  if (best_align > 1) {
     return; /* No good pairs. */
+  }
 
   TSWAP(best_p1->face[best_n1-1], pe->face[0]);
   TSWAP(best_p1->edge[best_n1-1], pe->edge[0]);
@@ -341,7 +348,8 @@ static int surface_net(Partition& p, GeometryObject& obj) {
         else {
           is_closed = 0;
         }
-      } else if (pep->n == 1) {
+      }
+      else if (pep->n == 1) {
         is_closed = 0;
         Edge e;
 
@@ -388,8 +396,6 @@ void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryOb
 
 void GeometryObject::to_data_model_as_geometrical_object(
     const Partition& p, const SimulationConfig& config, Json::Value& object) const {
-
-  vector<uint> vertex_order;
 
   object[KEY_NAME] = DMUtils::remove_obj_name_prefix(parent_name, name);
   object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
@@ -610,7 +616,7 @@ static pos_t tetrahedral_volume(
     const Vec3& c, const Vec3& d
 ) {
   // TODO: maybe use vector operators
-  return 1.0 / 6.0 *
+  return (pos_t)1 / (pos_t)6 *
       (-1 * (a.z - d.z) * (b.y - d.y) * (c.x - d.x) +
       (a.y - d.y) * (b.z - d.z) * (c.x - d.x) +
       (a.z - d.z) * (b.x - d.x) * (c.y - d.y) -
@@ -723,7 +729,7 @@ bool Region::initialize_region_waypoint(
           *this, must_redo_test
       );
       release_assert(!must_redo_test && 
-      	"We cannot easily solve redo here (cannot move waypoints after initialization), "
+        "We cannot easily solve redo here (cannot move waypoints after initialization), "
         "it should have been fixed in Partition::initialize_waypoint");
 
       // ok, test passed safely
@@ -952,7 +958,7 @@ void Grid::initialize(const Partition& p, const Wall& w) {
 
   molecules_per_tile.resize(num_tiles, MOLECULE_ID_INVALID);
 
-  strip_width_rcp = 1.0 / (w.uv_vert2.v / ((pos_t)num_tiles_along_axis));
+  strip_width_rcp = 1 / (w.uv_vert2.v / ((pos_t)num_tiles_along_axis));
   vert2_slope = w.uv_vert2.u / w.uv_vert2.v;
   fullslope = w.uv_vert1_u / w.uv_vert2.v;
 
@@ -1042,8 +1048,8 @@ void Edge::reinit_edge_constants(const Partition& p) {
   temp_ff.u = dot(diff_j_0, wf.unit_u) - O_f.u;
   temp_ff.v = dot(diff_j_0, wf.unit_v) - O_f.v; /* Far side of e */
 
-  assert(!cmp_eq(len2_squared(temp_ff), (pos_t)0.0, POS_EPS));
-  pos_t d_f = 1.0 / len2(temp_ff);
+  assert(!cmp_eq(len2_squared(temp_ff), (pos_t)0, POS_EPS));
+  pos_t d_f = 1 / len2(temp_ff);
 
   Vec2 ehat_f, fhat_f;
   ehat_f = temp_ff * d_f; /* ehat along edge */
@@ -1061,8 +1067,8 @@ void Edge::reinit_edge_constants(const Partition& p) {
   temp_fb.u = dot(diff_j_b0, wb.unit_u) - O_b.u;
   temp_fb.v = dot(diff_j_b0, wb.unit_v) - O_b.v; /* Far side of e */
 
-  assert(!cmp_eq(len2_squared(temp_fb), (pos_t)0.0, POS_EPS));
-  pos_t d_b = 1.0 / len2(temp_fb);
+  assert(!cmp_eq(len2_squared(temp_fb), (pos_t)0, POS_EPS));
+  pos_t d_b = 1 / len2(temp_fb);
 
   Vec2 ehat_b, fhat_b;
 
@@ -1120,16 +1126,16 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
 
 void Edge::dump(const std::string ind) const {
   Vec2 translate_rounded;
-  translate_rounded.x = (translate.x < EPS) ? 0.0 : translate.x;
-  translate_rounded.y = (translate.y < EPS) ? 0.0 : translate.y;
+  translate_rounded.x = (translate.x < POS_EPS) ? 0 : translate.x;
+  translate_rounded.y = (translate.y < POS_EPS) ? 0 : translate.y;
 
   cout << ind <<
       "Edge: "
       "forward_index: " << forward_index <<
       ", backward_index: " << backward_index <<
       ", translate: " << translate_rounded <<
-      ", cos_theta: " << ((cos_theta < EPS) ? 0.0 : cos_theta) <<
-      ", sin_theta: " << ((sin_theta < EPS) ? 0.0 : sin_theta) <<
+      ", cos_theta: " << ((cos_theta < POS_EPS) ? 0 : cos_theta) <<
+      ", sin_theta: " << ((sin_theta < POS_EPS) ? 0 : sin_theta) <<
       ", edge_num_used_for_init: " << edge_num_used_for_init << "\n";
 }
 

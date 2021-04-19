@@ -426,8 +426,10 @@ public:
   pos_t strip_width_rcp; /* Reciprocal of the width of one strip */ // inv_strip_wid originally
   pos_t vert2_slope;   /* Slope from vertex 0 to vertex 2 */
   pos_t fullslope;     /* Slope of full width of triangle */
-  pos_t binding_factor;
+
   Vec2 vert0;          /* Projection of vertex zero onto unit_u and unit_v of wall */
+
+  pos_t binding_factor;
 
   void set_molecule_tile(tile_index_t tile_index, molecule_id_t id) {
     assert(is_initialized());
@@ -543,8 +545,8 @@ public:
       is_movable(true),
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
-      area(POS_INVALID),
-      unit_u(POS_INVALID), unit_v(POS_INVALID) {
+      unit_u(POS_INVALID), unit_v(POS_INVALID),
+      area(POS_INVALID) {
 
     nb_walls[0] = WALL_INDEX_INVALID;
     nb_walls[1] = WALL_INDEX_INVALID;
@@ -561,9 +563,8 @@ public:
       is_movable(true),
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
-      area(POS_INVALID),
-      unit_u(POS_INVALID), unit_v(POS_INVALID)
-    {
+      unit_u(POS_INVALID), unit_v(POS_INVALID),
+      area(POS_INVALID) {
     vertex_indices[0] = index0;
     vertex_indices[1] = index1;
     vertex_indices[2] = index2;
@@ -626,6 +627,8 @@ public:
   // NOTE: what about walls that are neighboring over a partition edge?
   wall_index_t nb_walls[EDGES_IN_TRIANGLE]; // neighboring wall indices
 
+  SubpartIndicesSet present_in_subparts; // in what subpartitions is this wall located
+
   Grid grid;
 
   // --- wall constants ---
@@ -633,11 +636,10 @@ public:
   pos_t uv_vert1_u;   /* Surface u-coord of 2nd corner (v=0) */
   Vec2 uv_vert2;      /* Surface coords of third corner */
 
-  pos_t area;  /* Area of this element */
   Vec3 unit_u; /* U basis vector for this wall */
   Vec3 unit_v; /* V basis vector for this wall */
 
-  SubpartIndicesSet present_in_subparts; // in what subpartitions is this wall located
+  pos_t area;  /* Area of this element (triangle) */
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind, const bool for_diff = false) const;
@@ -774,13 +776,11 @@ public:
   GridPosType type; // was this info initialized
   wall_index_t wall_index;  /* wall where the tile is on */
   tile_index_t tile_index;  /* index on that tile */
-  bool pos_is_set; // TODO: remove - covered by type
+  bool pos_is_set;
   Vec2 pos;
 };
 
-
 typedef std::vector<GeometryObject> GeometryObjectVector;
-
 
 // several utility functions related to geometry
 // TODO: move this to a separate file
