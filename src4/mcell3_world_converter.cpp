@@ -213,7 +213,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->config.initial_seed = s->seed_seq;
   world->rng = *s->rng;
 
-  float_t sp_len;
+  pos_t sp_len;
 
   // use partition settings supplied by user?
   if (s->partitions_initialized) {
@@ -269,7 +269,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     Vec3 llf_moved = mcell3_llf_w_margin - world->config.partition0_llf;
     Vec3 box_size_enlarged = mcell3_box_size + llf_moved;
     // size of the partition
-    Vec3 box_size_ceiled = ceil_to_multiple(box_size_enlarged, sp_len);
+    Vec3 box_size_ceiled = ceil_to_multiple_p(box_size_enlarged, sp_len);
     world->config.partition_edge_length = max3(box_size_ceiled);
 
     mcell_log("Using manually specified partition size (with margin): %f.",
@@ -345,9 +345,9 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->config.init();
   assert(cmp_eq(sp_len, world->config.subpartition_edge_length));
 
-  if (world->config.rx_radius_3d * 2 * SQRT2 > world->config.subpartition_edge_length) {
+  if (world->config.rx_radius_3d * 2 * POS_SQRT2 > world->config.subpartition_edge_length) {
     mcell_error("Reaction radius multiplied by sqrt(2) %f must be less than half of subpartition edge length %f.",
-        world->config.rx_radius_3d * world->config.length_unit * SQRT2,
+        world->config.rx_radius_3d * world->config.length_unit * POS_SQRT2,
         world->config.subpartition_edge_length * world->config.length_unit / 2.0
     );
   }

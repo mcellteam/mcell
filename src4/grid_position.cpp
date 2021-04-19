@@ -68,7 +68,7 @@ static void get_tile_vertices(
   float_t cot_angle;
 
   /* Calculate strip, stripe, and flip indices from idx */
-  root = (int)sqrt_f(idx);
+  root = (int)sqrt_p(idx);
   rootrem = idx - root * root;
   strip = sg.num_tiles_along_axis - root - 1;
   stripe = rootrem / 2;
@@ -770,7 +770,7 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
 
   /* find points on the triangle RST that are closest to A, B, C */
   Vec3 A_close_3d, B_close_3d, C_close_3d;
-  float_t dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d, min_dist;
+  pos_t dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d, min_dist;
   Vec3 prod_pos_3d;
   Vec2 prod_pos;
 
@@ -782,7 +782,7 @@ Vec2 find_closest_position(const Partition& p, const GridPos& gp1, const GridPos
   dist_B_B_close_3d = distance3(B_3d, B_close_3d);
   dist_C_C_close_3d = distance3(C_3d, C_close_3d);
 
-  min_dist = min3_f(dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d);
+  min_dist = min3_p(dist_A_A_close_3d, dist_B_B_close_3d, dist_C_C_close_3d);
 
   if (!distinguishable(min_dist, dist_A_A_close_3d, EPS)) {
     prod_pos_3d = A_close_3d;

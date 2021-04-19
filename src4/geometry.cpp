@@ -943,7 +943,7 @@ void Grid::initialize(const Partition& p, const Wall& w) {
     num_occupied = 0;
   }
 
-  num_tiles_along_axis = (int)ceil_f(sqrt_f(w.area));
+  num_tiles_along_axis = (int)ceil_p(sqrt_p(w.area));
   if (num_tiles_along_axis < 1) {
     num_tiles_along_axis = 1;
   }
@@ -1174,7 +1174,7 @@ void Wall::precompute_wall_constants(const Partition& p) {
   Vec3 f1 = *v1 - *v0;
   pos_t f1_len_squared = len3_squared(f1);
   assert(f1_len_squared != 0);
-  pos_t inv_f1_len = 1 / sqrt_f(f1_len_squared);
+  pos_t inv_f1_len = 1 / sqrt_p(f1_len_squared);
 
   unit_u = f1 * Vec3(inv_f1_len);
 
@@ -1183,7 +1183,7 @@ void Wall::precompute_wall_constants(const Partition& p) {
 
   pos_t norm_len_squared = len3_squared(normal);
   assert(norm_len_squared != 0);
-  pos_t inv_norm_len = 1 / sqrt_f(norm_len_squared);
+  pos_t inv_norm_len = 1 / sqrt_p(norm_len_squared);
   normal = normal * Vec3(inv_norm_len);
 
   unit_v = cross(normal, unit_u);

@@ -114,7 +114,7 @@ static void exd_coordize(const Vec3& mv, Vec3& m,
   pos_t a;
 
   /* Normalize input vector */
-  a = 1.0 / sqrt(dot(mv, mv));
+  a = 1.0 / sqrt_p(dot(mv, mv));
   m = Vec3(a) * mv;
 
   pos_t mx2 = m.x * m.x;
@@ -157,7 +157,7 @@ static void exd_coordize(const Vec3& mv, Vec3& m,
   }
 
   /* Normalize orthogonal vectors */
-  a = 1 / sqrt(a);
+  a = 1 / sqrt_p(a);
   u = u * a;
   v = v * a;
 }
@@ -274,7 +274,7 @@ static inline IntersectResult test_intersect_line_with_circle(
     pos_t d = b * b + c;
     if (d <= 0)
       return IntersectResult::SKIP_THIS_WALL;
-    d = sqrt(d);
+    d = sqrt_p(d);
     t = -b - d;
     if (t >= 1)
       return IntersectResult::SKIP_THIS_WALL;
@@ -434,20 +434,20 @@ static void find_boundaries_occluding_disk(
                 s, s * s, R2);
             /*continue;*/
           }
-          pos_t t = sqrt(R2 - s * s);
+          stime_t t = sqrt_p(R2 - s * s);
           pa.u = t;
           pa.v = s;
           pb.u = -t;
           pb.v = s;
         } else if (!distinguishable_f(b, 0, POS_EPS)) {
-          pos_t t = d / a;
+          stime_t t = d / a;
           if (t * t > R2) {
             mcell_internal_error(
                 "Unexpected results in exact disk: t=%.2f t^2=%.2f R2=%.2f\n",
                 t, t * t, R2);
             /*continue;*/
           }
-          s = sqrt(R2 - t * t);
+          s = sqrt_p(R2 - t * t);
           pa.u = t;
           pa.v = s;
           pb.u = t;
@@ -461,7 +461,7 @@ static void find_boundaries_occluding_disk(
                 d, d * d, R2, c, R2 * c);
             /*continue;*/
           }
-          pos_t t = sqrt(R2 * c - d * d);
+          stime_t t = sqrt_p(R2 * c - d * d);
           c = 1.0 / c;
           pos_t r = 1.0 / a;
           pa.v = c * (s + t * a);

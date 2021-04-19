@@ -25,7 +25,6 @@
 #define SRC4_COLLISION_UTILS_INC_
 
 #define INLINE_ATTR __attribute__((always_inline))
-//#define INLINE_ATTR __attribute__((noinline))
 
 /**
  * This file is directly included into diffuse_react_event.cpp.
@@ -530,6 +529,7 @@ static bool collide_mol(
   }
 
   rel_collision_time = d / movelen2;
+  CHECK_STIME_MAX(rel_collision_time);
 
   rel_collision_pos = diffused_vm.v.pos + rel_collision_time * displacement;
   return true;
@@ -604,11 +604,13 @@ static void jump_away_line(
   f.y = n.z * e.x - n.x * e.z;
   f.z = n.x * e.y - n.y * e.x;
 
-  tiny = POS_EPS * (MCell::abs_max_2vec(p, v) + 1.0) /
+  tiny = POS_EPS * (abs_max_2vec(p, v) + (pos_t)1.0) /
          (k * max3(glm::abs((glm_vec3_t)f)));
+
   if ((rng_uint(&rng) & 1) == 0) {
     tiny = -tiny;
   }
+
   v.x -= tiny * f.x;
   v.y -= tiny * f.y;
   v.z -= tiny * f.z;
@@ -685,32 +687,36 @@ static inline CollisionType INLINE_ATTR collide_wall(
   else {
     d_eps = -POS_EPS;
     if (dd > d_eps)
-      d_eps = 0.5 * dd;
+      d_eps = (pos_t)0.5 * dd;
 
     /* Start & end below plane */
-    if (dd < 0.0 && dd + dv < d_eps) {
+    if (dd < 0 && dd + dv < d_eps) {
       return CollisionType::WALL_MISS;
     }
   }
 
   pos_t a;
 
-  if (dd == 0.0) {
+  if (dd == 0) {
     /* Start beside plane, end above or below */
-    if (dv != 0.0)
+    if (dv != 0) {
       return CollisionType::WALL_MISS;
+    }
 
     // in case that the trajectory is parallel to the wall?
     // update the displacement a bit
     if (update_move) {
-      a = (MCell::abs_max_2vec(pos, move) + 1.0) * POS_EPS;
-      if ((rng_uint(&rng) & 1) == 0)
+      a = (abs_max_2vec(pos, move) + (pos_t)1.0) * POS_EPS;
+
+      if ((rng_uint(&rng) & 1) == 0) {
         a = -a;
+      }
+
       if (dd == 0.0) {
         move = move - Vec3(a) * normal;
       }
       else {
-        move = move * Vec3(1.0 - a);
+        move = move * Vec3((pos_t)1.0 - a);
       }
       return CollisionType::WALL_REDO;
     }
@@ -742,7 +748,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
   pos_t c = dot(local, face->unit_v);
 
   pos_t f;
-  if (face->uv_vert2.v < 0.0) {
+  if (face->uv_vert2.v < 0) {
     c = -c;
     f = -face->uv_vert2.v;
   }
@@ -767,6 +773,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
           c * face->uv_vert1_u + g,
           h + face->uv_vert1_u * face->uv_vert2.v,
           POS_EPS))) {
+
         if (update_move) {
           const Vec3& face_vert1 = p.get_geometry_vertex(face->vertex_indices[1]);
           const Vec3& face_vert2 = p.get_geometry_vertex(face->vertex_indices[2]);
@@ -811,7 +818,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
   }
 }
 
-static bool is_immediate_collision(const stime_t time) {
+static inline bool is_immediate_collision(const stime_t time) {
   return time < STIME_EPS;
 }
 
@@ -846,10 +853,6 @@ restart_on_redo:
       continue;
     }
 
-    //const Wall& w = p.get_wall(wall_index);
-    stime_t collision_time;
-    Vec3 collision_pos;
-
 #ifdef DEBUG_COLLISIONS_WALL_EXTRA
     SimulationStats* world = &p.stats;
     // just faking the name for the dump condition macro - FIXME - use better name
@@ -859,6 +862,8 @@ restart_on_redo:
     );
 #endif
 
+    stime_t collision_time;
+    Vec3 collision_pos;
     CollisionType collision_type =
         collide_wall(p, vm.v.pos, wall_index, rng, true, displacement, collision_time, collision_pos);
 
@@ -1059,9 +1064,9 @@ static bool collide_line_and_line_test(
     return false;
   }
 
-  pos_t t = dot(d_x_a, b_x_a) / len_squared_b_x_a;
+  stime_t t = dot(d_x_a, b_x_a) / len_squared_b_x_a;
 
-  if (t < 0.0 || t > 1.0) {
+  if (t < (stime_t)0.0 || (stime_t)t > 1.0) {
     return false;
   }
 
@@ -1215,7 +1220,7 @@ static bool find_plane_crossing_efop(
     t_previous = t;
     t = t_previous - ft / dft;
 
-    if (t < 0.0 || t > 1.0) {
+    if (t < (stime_t)0.0 || t > (stime_t)1.0) {
       t_out_of_range = true;
       break;
     }
@@ -1362,10 +1367,7 @@ static uint get_num_crossed_region_walls(
 
       stime_t collision_time_ignored;
       Vec3 collision_pos_ignored;
-
-      CollisionType collision_type;
-
-      collision_type = collide_wall(
+      CollisionType collision_type = collide_wall(
             p, pos, wall_index, p.aux_rng, true, displacement,
             collision_time_ignored, collision_pos_ignored);
 
@@ -1392,7 +1394,6 @@ static stime_t get_num_crossed_walls_per_object(
     bool& must_redo_test,
     geometry_object_id_t ignored_object_id = GEOMETRY_OBJECT_ID_INVALID,
     wall_index_t* closest_hit_wall_index = nullptr
-
 ) {
   stime_t min_collision_time = 1; // 1 - no collision
 
@@ -1437,10 +1438,7 @@ static stime_t get_num_crossed_walls_per_object(
 
       stime_t collision_time;
       Vec3 collision_pos_ignored;
-
-      CollisionType collision_type;
-
-      collision_type = collide_wall(
+      CollisionType collision_type = collide_wall(
             p, pos, wall_index, p.aux_rng, true, displacement,
             collision_time, collision_pos_ignored);
 
@@ -1528,9 +1526,8 @@ static counted_volume_index_t compute_counted_volume_for_pos(
 
   // move a bit along by a magic number the side of the partition so that the ray trace hits correctly
   // this is a temporary measure to minimize REDOs with wall collision
-  // TODO:
-  dst.x += p.config.subpartition_edge_length / 11;
-  dst.y += p.config.subpartition_edge_length / 21;
+  dst.x += p.config.subpartition_edge_length / (pos_t)11;
+  dst.y += p.config.subpartition_edge_length / (pos_t)21;
 
   bool must_redo_test;
   get_num_crossed_walls_per_object(p, pos, dst, true, num_crossed_walls_per_object, must_redo_test);
@@ -1664,7 +1661,7 @@ static void update_counted_volume_id_when_crossing_wall(
       else {
 
         pos_t bump = POS_EPS; // hit from back - we go in the direction of the normal
-        Vec3 displacement = Vec3(2 * bump) * w.normal;
+        Vec3 displacement = Vec3((pos_t)2 * bump) * w.normal;
 
         // intersect - need to check waypoints or simply recompute the counted volumes
         vm.v.counted_volume_index = compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
@@ -1683,7 +1680,7 @@ static void update_counted_volume_id_when_crossing_wall(
       }
       else {
         pos_t bump = -POS_EPS; // hit from front - we go against the direction of the normal
-        Vec3 displacement = Vec3(2 * bump) * w.normal;
+        Vec3 displacement = Vec3((pos_t)2 * bump) * w.normal;
 
         vm.v.counted_volume_index = compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
       }
@@ -1720,7 +1717,7 @@ static int reflect_or_periodic_bc(
 
   const Wall& w = p.get_wall(collision.colliding_wall_index);
   wall_index_t reflect_w = collision.colliding_wall_index;
-  float_t t_reflect = collision.time;
+  stime_t t_reflect = collision.time;
 
   /* Update molecule location to the point of reflection (originally in register_hits) */
   vm.v.pos = collision.pos;

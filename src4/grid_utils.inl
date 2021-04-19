@@ -222,7 +222,7 @@ static Vec3 grid2xyz(Partition& p, const Wall& w, tile_index_t index) {
   int k, j, i;
   pos_t ucoef, vcoef, over3n;
 
-  root = (int)(sqrt_f((pos_t)index));
+  root = (int)(sqrt_p(index));
   rootrem = index - root * root;
   k = g.num_tiles_along_axis - root - 1;
   j = rootrem / 2;
@@ -249,7 +249,7 @@ static Vec2 grid2uv(const Wall& w, tile_index_t index) {
   int k, j, i;
   pos_t over3n;
 
-  root = (int)(sqrt((pos_t)index));
+  root = (int)(sqrt_p(index));
   rootrem = index - root * root;
   k = g.num_tiles_along_axis - root - 1;
   j = rootrem / 2;
@@ -275,7 +275,7 @@ static Vec2 grid2uv_random(
   pos_t over_n;
   pos_t u_ran, v_ran;
 
-  root = (int)(sqrt((pos_t)tile_index));
+  root = (int)(sqrt_p(tile_index));
   rootrem = tile_index - root * root;
   k = g.num_tiles_along_axis - root - 1;
   j = rootrem / 2;
@@ -284,7 +284,7 @@ static Vec2 grid2uv_random(
   over_n = 1.0 / (pos_t)(g.num_tiles_along_axis);
 
   u_ran = rng_dbl(&rng);
-  v_ran = 1.0 - sqrt(rng_dbl(&rng));
+  v_ran = 1.0 - sqrt_p(rng_dbl(&rng));
 
   Vec2 res;
   res.u =
@@ -308,7 +308,7 @@ is_inner_tile:
 static bool is_inner_tile(const Grid& g, tile_index_t index) {
   int root, rootrem, strip, stripe, flip;
 
-  root = (int)(sqrt_f((pos_t)index));
+  root = (int)(sqrt_p(index));
   rootrem = index - root * root;
   strip = g.num_tiles_along_axis - root - 1;
   stripe = rootrem / 2;
@@ -440,7 +440,7 @@ static void grid_neighbors(
   pos_t d;
 
   /* Calculate strip (k), stripe (j), and flip (i) indices from idx */
-  root = (int)(sqrt_f((pos_t)tile_index));
+  root = (int)(sqrt_p(tile_index));
   rootrem = tile_index - root * root;
   k = root;
   j = rootrem / 2;
@@ -537,7 +537,7 @@ static tile_index_t move_strip_up(const Grid& grid, tile_index_t index) {
   int root;
   int tile_up_idx; /* return value */
 
-  root = (int)(sqrt_f((pos_t)index)) + 1;
+  root = (int)(sqrt_p(index)) + 1;
 
   if ((int)grid.num_tiles_along_axis == root) {
     /* tile above is on another wall */
@@ -567,7 +567,7 @@ static tile_index_t move_strip_down(const Grid& grid, tile_index_t index) {
   tile_index_t tile_down_index; /* return value */
 
   /* find internal coordinates (strip, stripe, flip) */
-  root = (int)(sqrt_f((pos_t)index));
+  root = (int)(sqrt_p(index));
   rootrem = index - root * root;
   strip = grid.num_tiles_along_axis - root - 1;
   stripe = rootrem / 2;
@@ -1322,7 +1322,7 @@ static void grid_all_neighbors_across_walls_through_edges(
   }
   
   /* find (strip, stripe, flip) coordinates of the tile */
-  root = (int)(sqrt_f((pos_t)tile_index));
+  root = (int)(sqrt_p(tile_index));
   rootrem = tile_index - root * root;
   strip = grid.num_tiles_along_axis - root - 1;
   stripe = rootrem / 2;

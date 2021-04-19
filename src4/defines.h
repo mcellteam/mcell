@@ -161,15 +161,15 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 const uint MAX_SUBPARTS_PER_PARTITION = 300;
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
-const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
-const float_t LENGTH_INVALID = FLT_MAX;
+const pos_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
+const pos_t LENGTH_INVALID = FLT_MAX;
 
 const float_t TIME_INVALID = -256;
 const float_t TIME_FOREVER = 1e20; // based on MCell3
 const float_t TIME_SIMULATION_START = 0;
 
-const float_t SQRT2 = 1.41421356238;
-const float_t RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
+const pos_t POS_SQRT2 = 1.41421356238;
+const pos_t POS_RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
 
 const uint INT_INVALID = INT32_MAX;
 
@@ -285,7 +285,7 @@ typedef std::pair<partition_id_t, wall_index_t> PartitionWallIndexPair;
 typedef std::pair<partition_id_t, region_index_t> PartitionRegionIndexPair;
 typedef std::pair<partition_id_t, vertex_index_t> PartitionVertexIndexPair;
 
-typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
+typedef std::pair<pos_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
 typedef std::map<geometry_object_id_t, uint_set<geometry_object_id_t>> CountedVolumesMap;
 
@@ -455,23 +455,18 @@ static inline float_t exp_f(const float_t x) {
 }
 
 static inline float_t ceil_f(const float_t x) {
-#if FLOAT_T_BYTES == 8
+  return ceil(x);
+}
+
+static inline float_t ceil_p(const pos_t x) {
+#if POS_T_BYTES == 8
   return ceil(x);
 #else
   return ceilf(x);
 #endif
 }
 
-static inline float_t abs_f(const float_t x) {
-  if (x < 0) {
-    return -x;
-  }
-  else {
-    return x;
-  }
-}
-
-static inline pos_t abs_p(const pos_t x) {
+static inline pos_t fabs_p(const pos_t x) {
   if (x < 0) {
     return -x;
   }
@@ -486,6 +481,12 @@ static inline float_t floor_to_multiple_f(const float_t val, float_t multiple) {
   return (float_t)((int)((val + EPS)/ multiple)) * multiple;
 }
 
+static inline pos_t floor_to_multiple_p(const pos_t val, pos_t multiple) {
+  assert(val >= 0);
+  assert(multiple > 0);
+  return (pos_t)((int)((val + EPS)/ multiple)) * multiple;
+}
+
 static inline float_t floor_to_multiple_allow_negative_p(const float_t val, pos_t multiple) {
   if (val >= 0) {
     return (float_t)((int)((val + EPS)/ multiple)) * multiple;
@@ -497,12 +498,7 @@ static inline float_t floor_to_multiple_allow_negative_p(const float_t val, pos_
   }
 }
 
-static inline Vec3 floor_to_multiple_p(const Vec3& val, pos_t multiple) {
-  assert(val.x >= 0 && val.y >=0 && val.z >= 0);
-  return (Vec3)((glm::ivec3)((val + Vec3(EPS))/ multiple)) * multiple;
-}
-
-static inline Vec3 floor_to_multiple_allow_negative_p(const Vec3& val, pos_t multiple) {
+static inline Vec3 floor_to_multiple_allow_negative_p(const Vec3& val, const pos_t multiple) {
   Vec3 res;
   res.x = floor_to_multiple_allow_negative_p(val.x, multiple);
   res.y = floor_to_multiple_allow_negative_p(val.y, multiple);
@@ -510,20 +506,20 @@ static inline Vec3 floor_to_multiple_allow_negative_p(const Vec3& val, pos_t mul
   return res;
 }
 
-static inline float_t ceil_to_multiple_f(const float_t val, float_t multiple) {
+static inline float_t ceil_to_multiple_p(const float_t val, const pos_t multiple) {
   assert(val >= 0);
-  float_t res = floor_to_multiple_f(val, multiple);
+  float_t res = floor_to_multiple_p(val, multiple);
   if (!cmp_eq(val, res)) {
     res += multiple;
   }
   return res;
 }
 
-static inline Vec3 ceil_to_multiple(const Vec3& val, float_t multiple) {
+static inline Vec3 ceil_to_multiple_p(const Vec3& val, const pos_t multiple) {
   Vec3 res;
-  res.x = ceil_to_multiple_f(val.x, multiple);
-  res.y = ceil_to_multiple_f(val.y, multiple);
-  res.z = ceil_to_multiple_f(val.z, multiple);
+  res.x = ceil_to_multiple_p(val.x, multiple);
+  res.y = ceil_to_multiple_p(val.y, multiple);
+  res.z = ceil_to_multiple_p(val.z, multiple);
   return res;
 }
 
@@ -577,7 +573,7 @@ static inline pos_t min3(const Vec3& v) {
   return glm::compMin((glm_vec3_t)v);
 }
 
-static inline float_t min3_f(float_t x, float_t y, float_t z) {
+static inline pos_t min3_p(const pos_t x, const pos_t y, const pos_t z) {
   return (z < y) ? ((z < x) ? z : x) : ((y < x) ? y : x);
 }
 
@@ -692,28 +688,28 @@ static inline Vec3 cross(const Vec3& v1, const Vec3& v2) {
 }
 
 
-static inline int distinguishable_vec2(const Vec2& a, const Vec2& b, float_t eps) {
+static inline int distinguishable_vec2(const Vec2& a, const Vec2& b, const pos_t eps) {
   float_t c, cc, d;
 
   /* Find largest coordinate */
-  c = fabs_f(a.u);
+  c = fabs_p(a.u);
 
-  d = fabs_f(a.v);
+  d = fabs_p(a.v);
   if (d > c)
     c = d;
 
-  d = fabs_f(b.u);
+  d = fabs_p(b.u);
   if (d > c)
     c = d;
 
-  d = fabs_f(b.v);
+  d = fabs_p(b.v);
   if (d > c)
     c = d;
 
   /* Find largest difference */
-  cc = fabs_f(a.u - b.u);
+  cc = fabs_p(a.u - b.u);
 
-  d = fabs_f(a.v - b.v);
+  d = fabs_p(a.v - b.v);
   if (d > cc)
     cc = d;
 
@@ -725,40 +721,40 @@ static inline int distinguishable_vec2(const Vec2& a, const Vec2& b, float_t eps
 }
 
 
-static inline bool distinguishable_vec3(const Vec3& a, const Vec3& b, float_t eps) {
+static inline bool distinguishable_vec3(const Vec3& a, const Vec3& b, const pos_t eps) {
   float_t c, cc, d;
 
   /* Find largest coordinate */
-  c = fabs_f(a.x);
+  c = fabs_p(a.x);
 
-  d = fabs_f(a.y);
+  d = fabs_p(a.y);
   if (d > c)
     c = d;
 
-  d = fabs_f(a.z);
+  d = fabs_p(a.z);
   if (d > c)
     c = d;
 
-  d = fabs_f(b.x);
+  d = fabs_p(b.x);
   if (d > c)
     c = d;
 
-  d = fabs_f(b.y);
+  d = fabs_p(b.y);
   if (d > c)
     c = d;
 
-  d = fabs_f(b.z);
+  d = fabs_p(b.z);
   if (d > c)
     c = d;
 
   /* Find largest difference */
-  cc = fabs_f(a.x - b.x);
+  cc = fabs_p(a.x - b.x);
 
-  d = fabs_f(a.y - b.y);
+  d = fabs_p(a.y - b.y);
   if (d > cc)
     cc = d;
 
-  d = fabs_f(a.z - b.z);
+  d = fabs_p(a.z - b.z);
   if (d > cc)
     cc = d;
 

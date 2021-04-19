@@ -210,12 +210,12 @@ void ClampReleaseEvent::step() {
 
     pos_t eps = POS_EPS * o;
 
-    pos_t move1 = abs_p(v.x);
-    pos_t move2 = abs_p(v.y);
+    pos_t move1 = fabs_p(v.x);
+    pos_t move2 = fabs_p(v.y);
     if (move1 < move2) {
       move1 = move2;
     }
-    move2 = abs_p(v.z);
+    move2 = fabs_p(v.z);
     if (move1 < move2) {
       move1 = move2;
     }

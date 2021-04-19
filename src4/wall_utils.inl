@@ -441,7 +441,7 @@ static int wall_in_box(
   Vec3 u = *vert[1] - *vert[0];
   pos_t len_u_squared = len3_squared(u);
   assert(len_u_squared != 0);
-  pos_t r_u = 1 / sqrt(len_u_squared);
+  pos_t r_u = 1 / sqrt_p(len_u_squared);
 
   u = u * Vec3(r_u);
   Vec3 v = cross(n, u);
@@ -747,7 +747,7 @@ static pos_t find_closest_wall_any_object(
   best_wall_pos2d = Vec2(0);
 
   // find which subpartitions we need to check
-  pos_t search_d = sqrt_f(search_d2);
+  pos_t search_d = sqrt_p(search_d2);
   IVec3 subpart_indices;
   p.get_subpart_3d_indices(pos, subpart_indices);
   SubpartIndicesSet crossed_subpart_indices;

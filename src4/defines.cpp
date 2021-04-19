@@ -79,9 +79,6 @@ void SimulationStats::dump() {
         diffusion_cummtime / (float_t)diffusion_number << " timesteps " <<
         " (" << diffusion_cummtime << "/" << diffusion_number << ")\n";
   }
-
-  uint64_t diffusion_number;
-  float_t diffusion_cummtime;
 }
 
 

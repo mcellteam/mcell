@@ -65,7 +65,7 @@ public:
   float_t initial_time; // simulation start time in us, non-zero if starting from a checkpoint
   uint64_t initial_iteration; // initial iteration, non-zero if starting from a checkpoint
 
-  float_t vacancy_search_dist2; /* Square of distance to search for free grid
+  pos_t vacancy_search_dist2; /* Square of distance to search for free grid
                                   location to place surface product */
 
   Vec3 partition0_llf;

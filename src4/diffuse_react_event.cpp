@@ -1677,7 +1677,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
         Vec2 reflector;
         reflector.u = -this_wall->uv_vert2.v;
         reflector.v = this_wall->uv_vert2.u - this_wall->uv_vert1_u;
-        f = 1.0 / sqrt_f( len2_squared(reflector) );
+        f = 1.0 / sqrt_p( len2_squared(reflector) );
         reflector *= f;
         f = 2.0 * dot2(new_disp, reflector);
         new_disp -= Vec2(f) * reflector;
@@ -1688,7 +1688,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
         Vec2 reflector;
         reflector.u = this_wall->uv_vert2.v;
         reflector.v = -this_wall->uv_vert2.u;
-        f = 1.0 / sqrt_f( len2_squared(reflector) );
+        f = 1.0 / sqrt_p( len2_squared(reflector) );
         reflector *= f;
         f = 2.0 * dot2(new_disp, reflector);
         new_disp -= Vec2(f) * reflector;

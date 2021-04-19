@@ -132,9 +132,9 @@ void MCell4Converter::convert_before_init() {
   convert_initial_iteration_and_time_and_move_scheduler_time();
 
   // some general checks
-  if (world->config.rx_radius_3d * SQRT2 >= world->config.subpartition_edge_length / 2) {
+  if (world->config.rx_radius_3d * POS_SQRT2 >= world->config.subpartition_edge_length / 2) {
     throw ValueError(S("Reaction radius multiplied by sqrt(2) ") +
-        to_string(world->config.rx_radius_3d * world->config.length_unit * SQRT2) +
+        to_string(world->config.rx_radius_3d * world->config.length_unit * POS_SQRT2) +
         " must be less than half of subpartition edge length " +
         to_string(world->config.subpartition_edge_length * world->config.length_unit / 2) + ". " +
         "Increase the model's " + NAME_CONFIG + "." + NAME_SUBPARTITION_DIMENSION + ".");
@@ -389,7 +389,7 @@ void MCell4Converter::convert_simulation_setup() {
   // enlarge the partition by size we moved it in order to be aligned
   Vec3 llf_moved = orig_origin - world->config.partition0_llf;
   pos_t partition_edge_length_enlarged = world->config.partition_edge_length + max3(llf_moved);
-  world->config.partition_edge_length = ceil_to_multiple_f(partition_edge_length_enlarged, sp_len);
+  world->config.partition_edge_length = ceil_to_multiple_p(partition_edge_length_enlarged, sp_len);
 
   world->config.num_subpartitions_per_partition_edge =
       round_f(world->config.partition_edge_length / sp_len);

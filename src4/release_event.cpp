@@ -913,7 +913,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(int computed_release_number) 
     } while (is_spheroidal && len3_squared(pos) >= 0.25);
 
     if (release_shape == ReleaseShape::SPHERICAL_SHELL) {
-      float_t r = sqrt(len3_squared(pos)) * 2.0;
+      pos_t r = sqrt_p(len3_squared(pos)) * 2.0;
       if (r == 0.0) {
         pos = Vec3(0.0, 0.0, 0.5);
       } else {

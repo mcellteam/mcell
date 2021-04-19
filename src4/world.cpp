@@ -1068,7 +1068,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   initialization[KEY_TIME_STEP_MAX] = "";
 
   // reversed computation from mcell3's init_reactions
-  float_t vsd = sqrt(config.vacancy_search_dist2) * config.length_unit;
+  pos_t vsd = sqrt_p(config.vacancy_search_dist2) * config.length_unit;
   initialization[KEY_VACANCY_SEARCH_DISTANCE] = f_to_str(vsd);
 
   initialization[KEY_SPACE_STEP] = "";
