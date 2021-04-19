@@ -445,6 +445,15 @@ static inline float_t log_f(const float_t x) {
   return log(x);
 }
 
+static inline float_t log_p(const pos_t x) {
+  assert(x != 0);
+#if POS_T_BYTES == 4
+  return logf(x);
+#else
+  return log(x);
+#endif
+}
+
 static inline float_t exp_f(const float_t x) {
   return exp(x);
 }

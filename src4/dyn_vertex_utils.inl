@@ -69,7 +69,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
 #endif
 
   // displacement
-  float_t bump = (molecule_move_info.place_above) ? EPS : -EPS;
+  pos_t bump = (molecule_move_info.place_above) ? POS_EPS : -POS_EPS;
   Vec3 displacement(2 * bump * wall.normal.x, 2 * bump * wall.normal.y, 2 * bump * wall.normal.z);
 
   // move the molecule a bit so that it ends up at the correct side of the wall
@@ -78,18 +78,15 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
   Vec3 new_pos_after_diffuse;
   DiffusionUtils::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
 
-
   // TODO:
   // Make sure we didn't end up on a neighbor's wall, which is kind of easy to
   // do with, for example, a shrinking box/cuboid.
   // - see place_mol_relative_to_mesh
 
-
   // move the molecule and also update the information on subpartition reactants
   vm.v.pos = new_pos_after_diffuse;
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
   p.update_molecule_reactants_map(vm);
-
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
   vm.dump(p, "", "Vm after being moved: ", p.stats.get_current_iteration() /*iteration*/, 0);
@@ -115,7 +112,7 @@ static void move_surface_molecule_to_closest_wall_point(
   //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
   wall_index_t best_wall_index;
   Vec2 best_wall_pos2d;
-  float_t best_d2 = WallUtils::find_closest_wall(
+  pos_t best_d2 = WallUtils::find_closest_wall(
       p, molecule_move_info.pos3d, molecule_move_info.wall_index, true, best_wall_index, best_wall_pos2d);
 
   if (best_wall_index == WALL_INDEX_INVALID) {
@@ -147,6 +144,7 @@ static void move_surface_molecule_to_closest_wall_point(
   sm.dump(p, "", "Sm after being moved: ", p.stats.get_current_iteration() /*iteration*/, 0);
 #endif
 }
+
 
 namespace Local {
 static void dump_blender_display_code(
@@ -342,9 +340,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
       }
     }
 
-
     if (num_hits % 2 == 1) {
-
       // we are moving with a single wall here.
       // different from MCell3 behavior where it tries to find the closest point on the mesh with a given name
       // this might be super expensive if the mesh is large
@@ -358,7 +354,6 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
       // and remember that we must not be moving it anymore
       // should work even without it...
       already_moved_molecules.insert_unique(m.id);
-
     }
   }
 

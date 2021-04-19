@@ -69,7 +69,7 @@ pick_2D_displacement:
          2D molecule, scaled by the scaling factor.
 *************************************************************************/
 static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng) {
-  const float_t one_over_2_to_16th = 1.52587890625e-5;
+  const pos_t one_over_2_to_16th = 1.52587890625e-5f;
   Vec2 a;
 
   /*
@@ -80,14 +80,14 @@ static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng)
    * of "Non-Uniform Random Variate Generation" by Luc Devroye
    * (http://luc.devroye.org/rnbookindex.html).
    */
-  float_t f;
+  pos_t f;
   do {
     unsigned int n = rng_uint(&rng);
 
-    a.u = 2.0 * one_over_2_to_16th * (n & 0xFFFF) - 1.0;
-    a.v = 2.0 * one_over_2_to_16th * (n >> 16) - 1.0;
+    a.u = 2 * one_over_2_to_16th * (n & 0xFFFF) - 1;
+    a.v = 2 * one_over_2_to_16th * (n >> 16) - 1;
     f = len2_squared(a);
-  } while ((f < EPS) || (f > 1.0));
+  } while ((f < POS_EPS) || (f > 1));
 
   /*
    * NOTE: The scaling factor to go from a uniform to
@@ -98,8 +98,8 @@ static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng)
    * and divide by an additional factor of sqrt(2)
    * resulting in normalFactor.
    */
-  float_t normal_factor = sqrt_f(-log_f(f) / f);
-  v = a * Vec2(normal_factor * scale);
+  pos_t normal_factor = sqrt_p(-log_p(f) / f);
+  v = a * Vec2(normal_factor * (pos_t)scale);
 }
 
 
@@ -124,9 +124,9 @@ static void compute_surf_displacement(
 static inline void pick_vol_displacement(const BNG::Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
 
   assert(sp.can_diffuse());
-  displacement.x = scale * rng_gauss(&rng) * .70710678118654752440;
-  displacement.y = scale * rng_gauss(&rng) * .70710678118654752440;
-  displacement.z = scale * rng_gauss(&rng) * .70710678118654752440;
+  displacement.x = scale * rng_gauss(&rng) * 0.70710678118654752440;
+  displacement.y = scale * rng_gauss(&rng) * 0.70710678118654752440;
+  displacement.z = scale * rng_gauss(&rng) * 0.70710678118654752440;
 }
 
 
@@ -163,9 +163,9 @@ static inline float_t get_safe_diffusion_step(
 ) {
   assert(vm.is_vol());
 
-  float_t d2_nearmax;
-  float_t d2min = FLT_GIGANTIC;
-  float_t steps;
+  pos_t d2_nearmax;
+  pos_t d2min = POS_FLT_GIGANTIC;
+  pos_t steps;
 
   d2_nearmax = sp.space_step * p.config.radial_3d_step[(int)(p.config.num_radial_subdivisions * MULTISTEP_PERCENTILE)];
   d2_nearmax *= d2_nearmax;
@@ -177,7 +177,7 @@ static inline float_t get_safe_diffusion_step(
   Vec3 llf_subpart_boundary = p.config.partition0_llf + Vec3(subpart_indices) * Vec3(subpart_side_length);
   const Vec3& pos = vm.v.pos;
 
-  float_t d2;
+  pos_t d2;
   d2 = (pos.x - llf_subpart_boundary.x);
   d2 *= d2;
   if (d2 < d2min) {
@@ -226,7 +226,7 @@ static inline float_t get_safe_diffusion_step(
       const Molecule& subpart_vm = p.get_m(subpart_vm_id);
       assert(subpart_vm.is_vol());
 
-      float_t md2 = distance3_squared(vm.v.pos, subpart_vm.v.pos);
+      pos_t md2 = distance3_squared(vm.v.pos, subpart_vm.v.pos);
 
       if (md2 < d2min) {
         d2min = md2;
@@ -633,6 +633,7 @@ static void reflect_absorb_check_wall(
   /* count hits if we absorb or reflect */
 }
 
+
 /*************************************************************************
 reflect_absorb_inside_out:
   In: world: simulation state
@@ -662,7 +663,6 @@ static void reflect_absorb_inside_out(
     reflect_absorb_check_wall(p, sm, this_wall, reflect_now, absorb_now);
   }
 }
-
 
 
 /*************************************************************************
