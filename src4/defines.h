@@ -116,6 +116,7 @@ using BNGCommon::STIME_FLT_GIGANTIC;
 
 using BNGCommon::fabs_f;
 using BNGCommon::cmp_eq;
+using BNGCommon::distinguishable_p;
 using BNGCommon::distinguishable_f;
 using BNGCommon::sqrt_f;
 using BNGCommon::pow_f;
@@ -391,7 +392,9 @@ struct Vec3: public glm_vec3_t {
   Vec3(const pos_t x_, const pos_t y_, const pos_t z_) { x = x_; y = y_; z = z_; }
   Vec3(const pos_t xyz) { x = xyz; y = xyz; z = xyz; }
   Vec3(const std::vector<float_t>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
+#if POS_T_BYTES == 4
   Vec3(const std::vector<pos_t>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
+#endif
   Vec3& operator=(const Vec3& other) = default;
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID || z == POS_INVALID); }
@@ -409,7 +412,9 @@ struct Vec2: public glm_vec2_t {
   Vec2(const pos_t x_, const pos_t y_) { x = x_; y = y_; }
   Vec2(const pos_t xy) { x = xy; y = xy; }
   Vec2(const std::vector<float_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
+#if POS_T_BYTES == 4
   Vec2(const std::vector<pos_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
+#endif
   Vec2& operator=(const Vec2& other) = default;
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID); }
@@ -466,6 +471,15 @@ static inline float_t abs_f(const float_t x) {
   }
 }
 
+static inline pos_t abs_p(const pos_t x) {
+  if (x < 0) {
+    return -x;
+  }
+  else {
+    return x;
+  }
+}
+
 static inline float_t floor_to_multiple_f(const float_t val, float_t multiple) {
   assert(val >= 0);
   assert(multiple > 0);
@@ -513,7 +527,7 @@ static inline Vec3 ceil_to_multiple(const Vec3& val, float_t multiple) {
   return res;
 }
 
-static inline bool cmp_eq(const Vec3& a, const Vec3& b, const float_t eps) {
+static inline bool cmp_eq(const Vec3& a, const Vec3& b, const pos_t eps) {
   return cmp_eq(a.x, b.x, eps) && cmp_eq(a.y, b.y, eps) && cmp_eq(a.z, b.z, eps);
 }
 
@@ -521,7 +535,7 @@ static inline bool cmp_eq(const Vec3& a, const Vec3& b) {
   return cmp_eq(a, b, EPS);
 }
 
-static inline bool cmp_eq(const Vec2& a, const Vec2& b, const float_t eps) {
+static inline bool cmp_eq(const Vec2& a, const Vec2& b, const pos_t eps) {
   return cmp_eq(a.x, b.x, eps) && cmp_eq(a.y, b.y, eps);
 }
 
@@ -537,6 +551,14 @@ static inline bool cmp_gt(const float_t a, const float_t b, const float_t eps) {
   return a > b && !cmp_eq(a, b, eps);
 }
 
+static inline pos_t sqrt_p(const pos_t x) {
+#if POS_T_BYTES == 4
+  return sqrtf(x);
+#else
+  return sqrt(x);
+#endif
+}
+
 
 static inline uint powu(const uint a, const uint n) {
   uint res = a;
@@ -547,11 +569,11 @@ static inline uint powu(const uint a, const uint n) {
 }
 
 
-static inline float_t max3(const Vec3& v) {
+static inline pos_t max3(const Vec3& v) {
   return glm::compMax((glm_vec3_t)v);
 }
 
-static inline float_t min3(const Vec3& v) {
+static inline pos_t min3(const Vec3& v) {
   return glm::compMin((glm_vec3_t)v);
 }
 

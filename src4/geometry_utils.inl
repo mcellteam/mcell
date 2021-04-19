@@ -592,9 +592,9 @@ static pos_t closest_interior_point(
 
   while (
       give_up_ctr < give_up
-      && (!distinguishable_f(ip.v, 0, POS_EPS)
-          || !distinguishable_f(a1, 0, POS_EPS)
-          || !distinguishable_f(a1 + a2, 2.0 * w.area, POS_EPS)
+      && (!distinguishable_p(ip.v, (pos_t)0.0, POS_EPS)
+          || !distinguishable_p(a1, (pos_t)0.0, POS_EPS)
+          || !distinguishable_p(a1 + a2, (pos_t)2.0 * w.area, POS_EPS)
           || !point_in_triangle_2D(ip, vert_0, vert_1, w.uv_vert2))
    ) {
     /* Move toward centroid. It's possible for this movement to be so small
@@ -629,7 +629,7 @@ static bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall&
 
   // dot product with normal gives ||a|| * ||b|| * cos(phi)
   pos_t dot_prod = dot(w0_pos, w.normal);
-  assert(!cmp_eq(dot_prod, 0, POS_EPS) && "Checked point is on the plane");
+  assert(!cmp_eq(dot_prod, (pos_t)0.0, POS_EPS) && "Checked point is on the plane");
   return dot_prod > 0;
 }
 

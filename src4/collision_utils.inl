@@ -596,7 +596,7 @@ static void jump_away_line(
 
   e = B - A;
   pos_t elen2 = glm::dot((glm_vec3_t)e, (glm_vec3_t)e);
-  le_1 = 1.0 / sqrt(elen2);
+  le_1 = (pos_t)1.0 / sqrt_p(elen2);
 
   e = e * Vec3(le_1);
 
@@ -675,7 +675,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
   if (dd > 0) {
     d_eps = POS_EPS;
     if (dd < d_eps)
-      d_eps = 0.5 * dd;
+      d_eps = (pos_t)0.5 * dd;
 
     /* Start & end above plane */
     if (dd + dv > d_eps) {
@@ -719,7 +719,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
     }
   }
 
-  a = 1.0 / dv;
+  a = (pos_t)1.0 / dv;
   a *= -dd; /* Time we actually hit */
   collision_time = a;
 
@@ -763,7 +763,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
           return CollisionType::WALL_FRONT;
         }
       }
-      else if ((!distinguishable_f(
+      else if ((!distinguishable_p(
           c * face->uv_vert1_u + g,
           h + face->uv_vert1_u * face->uv_vert2.v,
           POS_EPS))) {
@@ -781,7 +781,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
         return CollisionType::WALL_MISS;
       }
     }
-    else if (!distinguishable_f(g, h, POS_EPS)) {
+    else if (!distinguishable_p(g, h, POS_EPS)) {
       if (update_move) {
         const Vec3& face_vert2 = p.get_geometry_vertex(face->vertex_indices[2]);
         jump_away_line(pos, a, face_vert2, *face_vert0, face->normal, rng, move);
@@ -795,7 +795,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
       return CollisionType::WALL_MISS;
     }
   }
-  else if (!distinguishable_f(c, 0, POS_EPS)) /* Hit first edge! */
+  else if (!distinguishable_p(c, (pos_t)0.0, POS_EPS)) /* Hit first edge! */
   {
     if (update_move) {
       const Vec3& face_vert1 = p.get_geometry_vertex(face->vertex_indices[1]);
@@ -1203,11 +1203,11 @@ static bool find_plane_crossing_efop(
   bool t_out_of_range = false;
 
   pos_t ft;
-  while (!cmp_eq(t, t_previous, SQRT_EPS)) {
+  while (!cmp_eq(t, t_previous, POS_SQRT_EPS)) {
     ft = Local::compute_f(e, f, k, l, m, n, t);
     pos_t dft = Local::compute_df(e, f, k, l, m, n, t);
 
-    if (cmp_eq(dft, 0, POS_EPS)) {
+    if (cmp_eq(dft, (pos_t)0.0, POS_EPS)) {
       dft_is_zero = true;
       break;
     }
@@ -1225,7 +1225,7 @@ static bool find_plane_crossing_efop(
     return false;
   }
 
-  bool ft_is_zero = (cmp_eq(ft, 0, POS_EPS));
+  bool ft_is_zero = (cmp_eq(ft, (pos_t)0.0, POS_EPS));
 
   if (dft_is_zero && !ft_is_zero) {
     // we found a minimum that is not zero however
@@ -1727,11 +1727,11 @@ static int reflect_or_periodic_bc(
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
 
   /* Reduce our remaining available time. */
-  remaining_time_step *= (1.0 - t_reflect);
+  remaining_time_step *= ((pos_t)1.0 - t_reflect);
 
   last_hit_wall_index = reflect_w;
 
-  pos_t reflect_factor = -2.0 * glm::dot((glm_vec3_t)displacement, (glm_vec3_t)w.normal);
+  pos_t reflect_factor = (pos_t)-2.0 * glm::dot((glm_vec3_t)displacement, (glm_vec3_t)w.normal);
 
   // Set displacement for remainder of step length
   // No PBCs or non-traditional PBCs

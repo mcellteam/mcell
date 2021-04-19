@@ -92,7 +92,7 @@ void ClampReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 
 
 void ClampReleaseEvent::update_cumm_areas_and_scaling() {
-  float_t cumm_area = 0;
+  pos_t cumm_area = 0;
   for (auto& area_pindex_pair: cumm_area_and_pwall_index_pairs) {
     PartitionWallIndexPair pindex = area_pindex_pair.second;
     const Wall& w = world->get_partition(pindex.first).get_wall(pindex.second);
@@ -182,7 +182,7 @@ void ClampReleaseEvent::step() {
     return;
   }
 
-  float_t total_area = cumm_area_and_pwall_index_pairs.back().first;
+  pos_t total_area = cumm_area_and_pwall_index_pairs.back().first;
 
   while (n_to_emit > 0) {
 
@@ -208,18 +208,18 @@ void ClampReleaseEvent::step() {
       o = orientation;
     }
 
-    float_t eps = EPS * o;
+    pos_t eps = POS_EPS * o;
 
-    float_t move1 = abs_f(v.x);
-    float_t move2 = abs_f(v.y);
+    pos_t move1 = abs_p(v.x);
+    pos_t move2 = abs_p(v.y);
     if (move1 < move2) {
       move1 = move2;
     }
-    move2 = abs_f(v.z);
+    move2 = abs_p(v.z);
     if (move1 < move2) {
       move1 = move2;
     }
-    if (move1 > 1.0){
+    if (move1 > 1.0f){
       eps *= move1;
     }
 

@@ -1042,7 +1042,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
   temp_ff.u = dot(diff_j_0, wf.unit_u) - O_f.u;
   temp_ff.v = dot(diff_j_0, wf.unit_v) - O_f.v; /* Far side of e */
 
-  assert(!cmp_eq(len2_squared(temp_ff), 0.0, EPS));
+  assert(!cmp_eq(len2_squared(temp_ff), (pos_t)0.0, POS_EPS));
   pos_t d_f = 1.0 / len2(temp_ff);
 
   Vec2 ehat_f, fhat_f;
@@ -1061,7 +1061,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
   temp_fb.u = dot(diff_j_b0, wb.unit_u) - O_b.u;
   temp_fb.v = dot(diff_j_b0, wb.unit_v) - O_b.v; /* Far side of e */
 
-  assert(!cmp_eq(len2_squared(temp_fb), 0.0, EPS));
+  assert(!cmp_eq(len2_squared(temp_fb), (pos_t)0.0, POS_EPS));
   pos_t d_b = 1.0 / len2(temp_fb);
 
   Vec2 ehat_b, fhat_b;
