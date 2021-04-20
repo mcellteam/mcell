@@ -694,7 +694,7 @@ static inline Vec3 cross(const Vec3& v1, const Vec3& v2) {
 
 
 static inline int distinguishable_vec2(const Vec2& a, const Vec2& b, const pos_t eps) {
-  float_t c, cc, d;
+  pos_t c, cc, d;
 
   /* Find largest coordinate */
   c = fabs_p(a.u);
@@ -727,7 +727,7 @@ static inline int distinguishable_vec2(const Vec2& a, const Vec2& b, const pos_t
 
 
 static inline bool distinguishable_vec3(const Vec3& a, const Vec3& b, const pos_t eps) {
-  float_t c, cc, d;
+  pos_t c, cc, d;
 
   /* Find largest coordinate */
   c = fabs_p(a.x);

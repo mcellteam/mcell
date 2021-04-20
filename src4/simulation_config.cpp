@@ -67,7 +67,8 @@ r_func:
   In: double containing distance (arbitrary units, mean=1.0)
   Out: double containing probability of diffusing that distance
 ***************************************************************************/
-float_t r_func(float_t s) {
+static float_t r_func(float_t s) {
+  // keeping as double because it is used for time/spece step computations
   float_t f, s_sqr, val;
 
   f = 2.2567583341910251478; /* 4.0/sqrt(pi) */

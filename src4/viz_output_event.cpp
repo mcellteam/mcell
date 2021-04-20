@@ -161,6 +161,7 @@ void VizOutputEvent::output_ascii_molecules() {
 
       const BNG::Species& species = world->get_all_species().get(m.species_id);
 
+      // cast to double for printouts
       glm::dvec3 dwhere = where;
       glm::dvec3 dnorm = norm;
       assert(sizeof(dwhere.x) == sizeof(double));

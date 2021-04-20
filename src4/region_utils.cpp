@@ -103,7 +103,6 @@ static void find_restricted_regions_by_object(
   int kk, i, wall_idx = INT_MIN;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
-
   for (region_index_t ri: obj.regions) {
     if (ri == obj.encompassing_region_index) {
       continue;

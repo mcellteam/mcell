@@ -130,7 +130,6 @@ string RegionExprNode::to_string(const World* world, const bool for_datamodel) c
 
 void RegionExprNode::dump(const World* world) const {
   cout << to_string(world);
-
 }
 
 
@@ -299,7 +298,6 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
   release_pattern_item[KEY_TRAIN_INTERVAL] = f_to_str(train_interval * world->config.time_unit);
   release_pattern_item[KEY_TRAIN_DURATION] = f_to_str(train_duration * world->config.time_unit);
   release_pattern_item[KEY_RELEASE_INTERVAL] = f_to_str(release_interval * world->config.time_unit);
-
 
   release_pattern_item[KEY_NAME] = name;
   release_pattern_item[KEY_DESCRIPTION] = "";
@@ -662,7 +660,7 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
   float_t seek_cost = 0;
 
   assert(!cumm_area_and_pwall_index_pairs.empty());
-  float_t total_area = cumm_area_and_pwall_index_pairs.back().first;
+  float_t total_area = cumm_area_and_pwall_index_pairs.back().first; // extending to double
   float_t est_sites_avail = (int)total_area;
   const float_t rel_list_gen_cost = 10.0; /* Just a guess */
   float_t pick_cost = rel_list_gen_cost * est_sites_avail;
@@ -913,15 +911,15 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(int computed_release_number) 
     } while (is_spheroidal && len3_squared(pos) >= 0.25);
 
     if (release_shape == ReleaseShape::SPHERICAL_SHELL) {
-      pos_t r = sqrt_p(len3_squared(pos)) * 2.0;
-      if (r == 0.0) {
+      pos_t r = sqrt_p(len3_squared(pos)) * 2;
+      if (r == 0) {
         pos = Vec3(0.0, 0.0, 0.5);
       } else {
         pos /= r;
       }
     }
 
-    float_t base_location[1][4];
+    pos_t base_location[1][4];
     base_location[0][0] = pos.x * diameter.x + location.x;
     base_location[0][1] = pos.y * diameter.y + location.y;
     base_location[0][2] = pos.z * diameter.z + location.z;

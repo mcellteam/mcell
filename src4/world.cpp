@@ -1114,7 +1114,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   partitions[KEY_RECURSION_FLAG] = false;
 
   const Vec3& origin = (config.partition0_llf * config.length_unit);
-  float_t length = config.partition_edge_length * config.length_unit;
+  pos_t length = config.partition_edge_length * config.length_unit;
 
   partitions[KEY_X_START] = f_to_str(origin.x);
   partitions[KEY_X_END] = f_to_str(origin.x + length);
@@ -1123,7 +1123,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   partitions[KEY_Z_START] = f_to_str(origin.z);
   partitions[KEY_Z_END] = f_to_str(origin.z + length);
 
-  float_t step = config.subpartition_edge_length * config.length_unit;
+  pos_t step = config.subpartition_edge_length * config.length_unit;
   string step_str = f_to_str(step);
   partitions[KEY_X_STEP] = step_str;
   partitions[KEY_Y_STEP] = step_str;
