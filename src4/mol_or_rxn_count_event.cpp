@@ -620,7 +620,6 @@ float_t MolOrRxnCountEvent::get_single_count_value() {
   CountItemVector count_items;
 
   compute_counts(count_items);
-
   assert(count_items.size() == 1);
 
   return count_items[0].value;

@@ -142,8 +142,8 @@ bool MCell3WorldConverter::convert(volume* s) {
 }
 
 
-static float_t get_largest_abs_value(const vector3& v) {
-  float_t max = 0;
+static double get_largest_abs_value(const vector3& v) {
+  double max = 0;
   if (fabs_f(v.x) > max) {
     max = fabs_f(v.x);
   }
@@ -157,9 +157,9 @@ static float_t get_largest_abs_value(const vector3& v) {
 }
 
 
-static float_t get_largest_distance_from_center(const vector3& llf, const vector3& urb) {
-  float_t max1 = get_largest_abs_value(llf);
-  float_t max2 = get_largest_abs_value(urb);
+static double get_largest_distance_from_center(const vector3& llf, const vector3& urb) {
+  double max1 = get_largest_abs_value(llf);
+  double max2 = get_largest_abs_value(urb);
   return max1 > max2 ? max1 : max2;
 }
 
@@ -174,21 +174,9 @@ static uint get_even_higher_or_same_value(const uint val) {
 }
 
 
-static float_t get_partition_edge_length(const World* world, const float_t largest_mcell3_distance_from_center) {
+static double get_partition_edge_length(const World* world, const float_t largest_mcell3_distance_from_center) {
   // some MCell models have their partition boundary set exactly. we need to add a bit of margin
-  return (largest_mcell3_distance_from_center + PARTITION_EDGE_EXTRA_MARGIN_UM / world->config.length_unit) * 2 ;
-}
-
-
-static float_t get_shortest_subvol_step(volume* s) {
-  float_t shortest_step = FLT_GIGANTIC;
-  release_assert(s->num_subparts.x != 0 && s->num_subparts.y != 0 && s->num_subparts.z != 0);
-  Vec3 step;
-  step.x = (s->partition_urb.x - s->partition_llf.x)/s->num_subparts.x;
-  step.y = (s->partition_urb.y - s->partition_llf.y)/s->num_subparts.y;
-  step.z = (s->partition_urb.z - s->partition_llf.z)/s->num_subparts.z;
-
-  return min3(step);
+  return (largest_mcell3_distance_from_center + (double)PARTITION_EDGE_EXTRA_MARGIN_UM / world->config.length_unit) * 2 ;
 }
 
 
@@ -229,7 +217,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
           "You may need to increase the partition size if get an error later that a vertex does not fit any partition."
       );
 
-      float_t lu = s->length_unit;
+      double lu = s->length_unit;
       mcell_log("Bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
           s->bb_llf.x*lu, s->bb_llf.y*lu, s->bb_llf.z*lu, s->bb_urb.x*lu, s->bb_urb.y*lu, s->bb_urb.z*lu);
       mcell_log("Partition box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
@@ -276,22 +264,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
       (double)world->config.partition_edge_length * world->config.length_unit);
 
     // and how many subparts per dimension
-    // the roundin is needed because we can get a result like .99999999 from the division
+    // the rounding is needed because we can get a result like .99999999 from the division
     world->config.num_subpartitions_per_partition_edge = round_f(world->config.partition_edge_length / sp_len);
-
-#if 0
-    // simply choose the largest abs value from all the values
-    float_t largest_mcell3_distance_from_center = get_largest_distance_from_center(s->partition_llf, s->partition_urb);
-
-    world->config.partition_edge_length = get_partition_edge_length(world, largest_mcell3_distance_from_center);
-
-    mcell_log("Using manually specified partition size (with margin): %f.",
-      (double)world->config.partition_edge_length * world->config.length_unit);
-
-    // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
-    assert(s->num_subparts > 0);
-    world->config.num_subpartitions_per_partition_edge = get_even_higher_or_same_value(s->num_subparts);
-#endif
   }
   else {
     CHECK_PROPERTY(s->bb_urb.x >= s->bb_llf.x);
@@ -299,8 +273,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     CHECK_PROPERTY(s->bb_urb.z >= s->bb_llf.z);
 
     // use MCell's bounding box, however, we must make a cube out of it
-    float_t largest_mcell3_distance_from_center = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
-    float_t auto_length = get_partition_edge_length(world, largest_mcell3_distance_from_center);
+    double largest_mcell3_distance_from_center = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
+    double auto_length = get_partition_edge_length(world, largest_mcell3_distance_from_center);
 
     if (auto_length > PARTITION_EDGE_LENGTH_DEFAULT_UM / world->config.length_unit) {
       world->config.partition_edge_length = auto_length;
@@ -655,9 +629,7 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   assert(r != nullptr);
 
   Region new_region;
-
   new_region.name = get_sym_name(r->sym);
-
   LOG("Converting region " << new_region.name);
 
   // u_int hashval;          // ignored
@@ -684,8 +656,8 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   string parent_name = get_sym_name(r->parent->sym);
   const GeometryObject* obj = world->get_partition(0).find_geometry_object_by_name(parent_name);
   CHECK_PROPERTY(obj != nullptr);
-  new_region.geometry_object_id = obj->id;
 
+  new_region.geometry_object_id = obj->id;
   new_region.id = world->get_next_region_id();
 
   sm_dat* current_sm_dat = r->sm_dat_head;
@@ -765,7 +737,6 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
     reg_cnt++;
   }
   CHECK_PROPERTY(o->num_regions == reg_cnt);
-  // TODO: add regions to the object
 
   // --- vertices ---
   // to stay identical to mcell3, will use the exact number of vertices as in mcell3, for this to work,
@@ -779,19 +750,14 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   }
 
   // --- walls ---
-
   // vertex info contains also partition indices when it is inserted into the
   // world geometry
 
-  //walls_vertices.resize(o->n_walls);
   for (int i = 0; i < o->n_walls; i++) {
-    //walls_vertices[i].resize(VERTICES_IN_TRIANGLE);
     // uses precomputed map vector_ptr_to_vertex_index_map to transform vertices
     // also uses mcell3_region_to_mcell4_index mapping to set that it belongs to a given region
-    //
     CHECK(convert_wall_and_update_regions(o->wall_p[i], obj, o->regions));
   }
-
 
   // after wall conversion, we can initialize the walls for this release event created from
   // MOLECULE_DENSITY or MOLECULE_NUMBER
@@ -923,9 +889,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
           new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
     }
 
-    // simply copy all the flags from mcell3 except for a few one that we really don't need
-    // FIXME: copy only those that are supported
-    // probably just clear it and keep it on the new detection
+    // copy all the flags from mcell3 except for a few one that we really don't need
     uint cleaned_flags = spec->flags & ~REGION_PRESENT;
     cleaned_flags = cleaned_flags & ~COUNT_CONTENTS;
     cleaned_flags = cleaned_flags & ~COUNT_ENCLOSED;
@@ -1080,8 +1044,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
 
-  //?? u_int n_reactants - obtained from pathways, might check it
-
   CHECK_PROPERTY(
       mcell3_rx->n_pathways >= 1
       || mcell3_rx->n_pathways == RX_REFLEC // reflections for surf mols
@@ -1111,8 +1073,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     CHECK_PROPERTY(mcell3_rx->prob_t == nullptr);
   }
 
-  // TODO_CONVERSION: pathway_info *info - magic_list, also some checks might be useful
-
   int pathway_index = 0;
   for (
       pathway* current_pathway = mcell3_rx->pathway_head;
@@ -1124,8 +1084,8 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     // there can be a single reaction for absorb, reflect and transparent reactions
     assert((pathway_index < mcell3_rx->n_pathways) || (pathway_index == 0 && mcell3_rx->n_pathways < 0));
 
-    // -> pathway is renamed in MCell3 to reaction because pathway has a different meaning
-    //    MCell3 reaction is reaction class
+    // pathway is renamed in MCell3 to reaction because pathway has a different meaning
+    //  MCell3 reaction is MCell4 reaction class
     RxnRule rxn(&world->bng_engine.get_data());
 
     if (mcell3_rx->prob_t == nullptr) {
@@ -1187,7 +1147,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     CHECK_PROPERTY(current_pathway->km_filename == nullptr);
 
-
     if (mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_ABSORP);
       // TODO: check and if really not used, completely remove AbsorbRegionBorder
@@ -1240,7 +1199,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         rxn.base_rate_constant = FLT_GIGANTIC;
       }
     }
-
 
     if (current_pathway->pathname != nullptr) {
       assert(current_pathway->pathname->sym != nullptr);
@@ -1359,12 +1317,11 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
 
 bool MCell3WorldConverter::convert_release_events(volume* s) {
 
-
   // -- schedule_helper -- (as volume.releaser)
   for (schedule_helper* releaser = s->releaser; releaser != NULL; releaser = releaser->next_scale) {
 
-    //CHECK_PROPERTY(releaser->dt == 1); // it seems that wecan safely ignore dt
-    //CHECK_PROPERTY(releaser->dt_1 == 1);
+    // CHECK_PROPERTY(releaser->dt == 1); // it seems that we can safely ignore dt
+    // CHECK_PROPERTY(releaser->dt_1 == 1);
     // CHECK_PROPERTY(releaser->now == 0); // and now as well?
     //ok now: CHECK_PROPERTY(releaser->count == 1);
     CHECK_PROPERTY(releaser->index == 0);
@@ -1397,7 +1354,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           release_region_data* region_data = rel_site->region_data;
           rel_event->location = Vec3(POS_INVALID);
 
-          // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
+          // CHECK_PROPERTY(region_data->in_release == nullptr); // ignored
 
           if (rel_site->region_data->cum_area_list != nullptr) {
             // surface molecules release onto region
@@ -1480,15 +1437,12 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
 
         CHECK_PROPERTY(rel_event->release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
-        rel_event->orientation = rel_site->orientation;
-
-        rel_event->release_number = rel_site->release_number;
-
         CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
-
-        rel_event->concentration = rel_site->concentration;
-
         CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
+
+        rel_event->orientation = rel_site->orientation;
+        rel_event->release_number = rel_site->release_number;
+        rel_event->concentration = rel_site->concentration;
 
         if (rel_site->diameter != nullptr) {
           rel_event->diameter = *rel_site->diameter;
@@ -1498,7 +1452,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         }
 
         CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
-        // rel_site->periodic_box - ignoring?
+        // rel_site->periodic_box - ignored
 
         rel_event->release_site_name = rel_site->name;
         // rel_site->graph_pattern - ignored
@@ -1538,8 +1492,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
     CHECK_PROPERTY(releaser->current_tail == nullptr);
     CHECK_PROPERTY(releaser->defunct_count == 0);
     CHECK_PROPERTY(releaser->error == 0);
-    //CHECK_PROPERTY(releaser->depth == 0); // ignore
-
+    //CHECK_PROPERTY(releaser->depth == 0); // ignored
   }
 
   return true;
@@ -1554,7 +1507,9 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
     return true; // no visualization data
   }
   CHECK_PROPERTY(viz_blocks->next == nullptr);
-  CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE || viz_blocks->viz_mode  == ASCII_MODE || viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
+  CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE ||
+      viz_blocks->viz_mode  == ASCII_MODE ||
+      viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
   viz_mode_t viz_mode = viz_blocks->viz_mode;
   // CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // ignored (for now?)
 
@@ -1642,6 +1597,7 @@ static const output_request* find_output_request_by_requester(const volume* s, c
 
   return nullptr;
 }
+
 
 // returns false if conversion failed
 static bool find_output_requests_terms_recursively(
@@ -1743,6 +1699,7 @@ static bool find_output_requests_terms_recursively(
   return true;
 }
 
+
 static bool ends_with(std::string const & value, std::string const & ending)
 {
     if (ending.size() > value.size()) {
@@ -1750,6 +1707,7 @@ static bool ends_with(std::string const & value, std::string const & ending)
     }
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
+
 
 bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
 

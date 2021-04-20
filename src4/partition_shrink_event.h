@@ -32,6 +32,7 @@ namespace MCell {
  * When a reaction occurs, a hole is created in the parition's molecules array,
  * defragmentation "squeezes" this array so that there are no defuct molecules anymore;
  * updates all related data
+ * Does not do anything yet
  */
 class PartitionShrinkEvent: public BaseEvent {
 public:
