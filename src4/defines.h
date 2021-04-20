@@ -112,6 +112,7 @@ using BNGCommon::POS_FLT_GIGANTIC;
 
 using BNGCommon::stime_t;
 using BNGCommon::STIME_EPS;
+using BNGCommon::STIME_SQRT_EPS;
 using BNGCommon::STIME_FLT_GIGANTIC;
 
 using BNGCommon::fabs_f;

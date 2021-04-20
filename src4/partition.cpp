@@ -289,7 +289,7 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
 
     // TODO: preferably use some function that does not collect what we hit,
     // but we do not have such
-    float_t collision_time = CollisionUtils::get_num_crossed_walls_per_object(
+    stime_t collision_time = CollisionUtils::get_num_crossed_walls_per_object(
         *this, pos, pos + displacement + wall_gap_displacement, false,
         num_crossed_walls_per_object_ignored, must_redo_test,
         vertex_move_info.geometry_object_id,
@@ -309,11 +309,11 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
     assert(collision_time >= 0.0 && collision_time <= 1.0);
     if (collision_time != 1.0) {
 
-      if (collision_time < SQRT_EPS) {
+      if (collision_time < STIME_SQRT_EPS) {
         collision_time = 0.0;
       }
       else {
-        collision_time -= SQRT_EPS;
+        collision_time -= STIME_SQRT_EPS;
       }
 
       // clamp the displacement (it is a reference)
@@ -359,7 +359,6 @@ void Partition::dump(const bool with_geometry) {
         urb = llf + Vec3(config.subpartition_edge_length);
 
         cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n";
-        //walls_per_subpart[i].dump("Indices contained in a subpartition");
       }
     }
   }
@@ -409,17 +408,16 @@ void Partition::initialize_waypoint(
 
   // make sure that the waypoint is not on any wall, this is required for correct function
   // of regions as well
-  float_t dist2;
+  pos_t dist2;
   do {
     wall_index_t wall_index_ignored;
     Vec2 wall_pos2d_ignored;
     dist2 = WallUtils::find_closest_wall_any_object(
-        *this, waypoint.pos, SQRT_EPS, false, wall_index_ignored, wall_pos2d_ignored);
-    if (dist2 < EPS) {
+        *this, waypoint.pos, POS_SQRT_EPS, false, wall_index_ignored, wall_pos2d_ignored);
+    if (dist2 < POS_EPS) {
        move_waypoint_because_positioned_on_wall(waypoint_index, false);
     }
-  } while (dist2 < EPS);
-
+  } while (dist2 < POS_EPS);
 
   // another required check is that there must not be an edge between the current and
   // previous waypoint, this is required for initialization of regions
@@ -692,7 +690,7 @@ void Partition::shrink_all_volume_molecule_reactants_per_subpart() {
 
 void Partition::to_data_model(Json::Value& mcell) const {
 
-  // there are two placen in data model where geometry objects are
+  // there are two places in data model where geometry objects are
   // defined - in KEY_GEOMETRICAL_OBJECTS and KEY_MODEL_OBJECTS
 
   Json::Value& geometrical_objects = mcell[KEY_GEOMETRICAL_OBJECTS];
@@ -734,24 +732,11 @@ void Partition::to_data_model(Json::Value& mcell) const {
 
 
 void Partition::print_periodic_stats() const {
-
-  // TODO
-  long long total_reactants = 0;
-  /*
-  for (const auto& subpart_reacts: volume_molecule_reactants_per_subpart) {
-    for (const auto& per_species: subpart_reacts) {
-      total_reactants += per_species.size();
-    }
-  }*/
-
   std::cout <<
       "Partition: molecules.size() = " << molecules.size() << "\n" <<
       "Partition: molecule_id_to_index_mapping.size() = " << molecule_id_to_index_mapping.size() << "\n" <<
       "Partition: next_molecule_id = " << next_molecule_id << "\n" <<
-      "Partition: known_vol_species.size() = " << known_vol_species.size() << "\n" <<
-      "Partition: volume_molecule_reactants_per_subpart total size = " << total_reactants << "\n";
- // how to dump volume_molecule_reactants_per_subpart?
+      "Partition: known_vol_species.size() = " << known_vol_species.size() << "\n";
 }
-
 
 } // namespace mcell

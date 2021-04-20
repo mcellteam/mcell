@@ -317,7 +317,6 @@ public:
   }
 
   void get_subpart_3d_indices(const Vec3& pos, IVec3& res) const {
-    // FIXME: make two variants of this function - with and without release check?
     assert(in_this_partition(pos) &&
         "Requested position is outside of a partition, usually a molecule diffused there. Please enlarge the partition size.");
     Vec3 relative_position = pos - origin_corner;
@@ -339,7 +338,6 @@ public:
   subpart_index_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
     return get_subpart_index_from_3d_indices(IVec3(x, y, z));
   }
-
 
   void get_subpart_3d_indices_from_index(const subpart_index_t index, IVec3& indices) const {
     uint32_t dim = config.num_subpartitions_per_partition_edge;
@@ -365,7 +363,6 @@ public:
   void get_subpart_urb_point_from_llf(const Vec3& llf, Vec3& urb) const {
     urb = llf + Vec3(config.subpartition_edge_length);
   }
-
 
   // - called when a volume molecule is added and it is detected that this is a new species,
   // - ignore the current molecule because it will be added a little later,
@@ -487,8 +484,8 @@ private:
 #endif
 
     if (vm_copy.id == MOLECULE_ID_INVALID) {
-      // assign new ID
-      // TODO: molecule IDs must be assigned by World
+      // assign new ID, in theory, molecule IDs should be assigned by World, but this
+      // is a common operation and some decentralized solution is needed
       molecule_id_t molecule_id = next_molecule_id;
       next_molecule_id++;
 
@@ -645,7 +642,6 @@ public:
     return new_vm;
   }
 
-
   Molecule& add_surface_molecule(const Molecule& sm_copy, const float_t release_delay_time = 0) {
     assert(sm_copy.is_surf() && sm_copy.s.wall_index != WALL_INDEX_INVALID);
 
@@ -658,7 +654,6 @@ public:
 
     return new_sm;
   }
-
 
   void set_molecule_as_defunct(Molecule& m) {
     // set that this molecule does not exist anymore
@@ -696,17 +691,14 @@ public:
         get_subparts_reactants_for_reactant_class(species.get_reactant_class_id()).get_contained_set(subpart_index);
   }
 
-
   const std::vector<Molecule>& get_molecules() const {
     return molecules;
   }
-
 
   std::vector<Molecule>& get_molecules() {
     return molecules;
   }
   
-
   std::vector<molecule_index_t>& get_molecule_id_to_index_mapping() {
     return molecule_id_to_index_mapping;
   }
