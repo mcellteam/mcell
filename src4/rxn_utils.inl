@@ -803,7 +803,7 @@ static void pick_unimol_rxn_classes(
 ) {
   // MCell3 returns mol+surf class rxn(s) as the first one(s), then the true unimol rxns
   // maintaining order only for compatibility
-  const BNG::Species& species = p.get_all_species().get(m.species_id);
+  const BNG::Species& species = p.get_species(m.species_id);
   if (species.has_flag(BNG::SPECIES_FLAG_CAN_SURFWALL)) {
     assert(m.is_surf());
     const Wall& w = p.get_wall(m.s.wall_index);

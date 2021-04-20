@@ -919,7 +919,7 @@ void Region::to_data_model(const Partition& p, Json::Value& modify_surface_regio
   modify_surface_region[KEY_NAME] = ""; // don't care
 
   if (species_id != SPECIES_ID_INVALID) {
-    modify_surface_region[KEY_SURF_CLASS_NAME] = p.get_all_species().get(species_id).name;
+    modify_surface_region[KEY_SURF_CLASS_NAME] = p.get_species(species_id).name;
   }
 
   if (!initial_region_molecules.empty()) {

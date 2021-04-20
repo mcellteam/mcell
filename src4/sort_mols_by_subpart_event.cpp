@@ -85,7 +85,7 @@ void SortMolsBySubpartEvent::step() {
     vector<uint> mempart_indices(p.get_next_molecule_id_no_increment());
 
     for (Molecule& m: molecules) {
-      const BNG::Species& sp = p.get_all_species().get(m.species_id);
+      const BNG::Species& sp = p.get_species(m.species_id);
       if (m.is_vol() && sp.can_diffuse()) {
         mempart_indices[m.id] = m.v.subpart_index;
       }

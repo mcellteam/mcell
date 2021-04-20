@@ -63,7 +63,7 @@ static bool are_restricted_regions_for_species_on_object(
   assert(sm.is_surf());
 
   wall_index_t wall_idx = WALL_INDEX_INVALID;
-  const BNG::Species& s = p.get_all_species().get(sm.species_id);
+  const BNG::Species& s = p.get_species(sm.species_id);
   if (!s.can_interact_with_border()) {
     return false;
   }
@@ -93,7 +93,7 @@ static void find_restricted_regions_by_object(
 
   res.clear();
 
-  const BNG::Species& s = p.get_all_species().get(sm.species_id);
+  const BNG::Species& s = p.get_species(sm.species_id);
   if (!s.can_interact_with_border()) {
     return;
   }
@@ -172,8 +172,8 @@ uint determine_molecule_region_topology(
 
   /* bimolecular surf-surf reaction */
   if (sm_1 != NULL && sm_2 != NULL) {
-    const BNG::Species& species1 = p.get_all_species().get(sm_1->species_id);
-    const BNG::Species& species2 = p.get_all_species().get(sm_2->species_id);
+    const BNG::Species& species1 = p.get_species(sm_1->species_id);
+    const BNG::Species& species2 = p.get_species(sm_2->species_id);
 
     const Wall& w_1 = p.get_wall(sm_1->s.wall_index);
     const Wall& w_2 = p.get_wall(sm_2->s.wall_index);
@@ -256,7 +256,7 @@ uint determine_molecule_region_topology(
 
   /* unimolecular reactions */
   else if ((sm_1 != NULL) && is_unimol) {
-    const BNG::Species& species1 = p.get_all_species().get(sm_1->species_id);
+    const BNG::Species& species1 = p.get_species(sm_1->species_id);
     const Wall& w_1 = p.get_wall(sm_1->s.wall_index);
     const GeometryObject& go_1 = p.get_geometry_object(w_1.object_index);
 

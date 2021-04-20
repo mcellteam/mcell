@@ -1309,7 +1309,7 @@ static void grid_all_neighbors_across_walls_through_edges(
      that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
      checks against molecule's own wall and neighbor wall */
   if (sm != nullptr) {
-    const BNG::Species& species = p.get_all_species().get(sm->species_id);
+    const BNG::Species& species = p.get_species(sm->species_id);
     if (search_for_reactant && species.can_interact_with_border()) {
       assert(sm->s.wall_index == wall.index);
   

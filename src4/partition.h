@@ -303,10 +303,6 @@ public:
     }
   }
 
-  const BNG::Species& get_species(const species_id_t species_id) const {
-    return get_all_species().get(species_id);
-  }
-
   bool in_this_partition(const Vec3& pos) const {
     return glm::all(glm::greaterThanEqual(pos, origin_corner))
       && glm::all(glm::lessThan(pos, opposite_corner));
@@ -372,7 +368,7 @@ public:
       const species_id_t new_species_id, const molecule_id_t current_molecule_id
   ) {
     // can the new species initiate a reaction?
-    const BNG::Species& initiator_reactant_species = get_all_species().get(new_species_id);
+    const BNG::Species& initiator_reactant_species = get_species(new_species_id);
     if (initiator_reactant_species.is_target_only()) {
       // nothing to do
       return;
@@ -393,7 +389,7 @@ public:
 
       assert(m.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
 
-      const BNG::Species& reactant_species = get_all_species().get(m.species_id);
+      const BNG::Species& reactant_species = get_species(m.species_id);
 
       if (reacting_classes.count(reactant_species.get_reactant_class_id()) != 0) {
         reactant_sets_per_subpart.insert(m.v.reactant_subpart_index, m.id);
@@ -411,7 +407,7 @@ public:
     assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
     // TODO: check !(vm.v.reactant_subpart_index == vm.v.reactant_subpart_index && adding && removing)
-    const BNG::Species& vm_species = get_all_species().get(vm.species_id);
+    const BNG::Species& vm_species = get_species(vm.species_id);
     if (!vm_species.has_bimol_vol_rxn()) {
       return;
     }
@@ -479,7 +475,7 @@ private:
   // do not use species-id here because it may change
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol, const float_t release_delay_time) {
 #ifndef NDEBUG
-    const BNG::Species& species = get_all_species().get(vm_copy.species_id);
+    const BNG::Species& species = get_species(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
 #endif
 
@@ -545,7 +541,7 @@ private:
 
   void update_species_for_new_molecule_and_add_to_schedulable_list(Molecule& m) {
     // make sure that the rxn for this species flags are up-to-date
-    BNG::Species& sp = get_all_species().get(m.species_id);
+    BNG::Species& sp = get_species(m.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
       sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns());
     }
@@ -555,7 +551,7 @@ private:
       get_all_rxns().get_bimol_rxns_for_reactant(sp.id);
     }
     // we must get a new reference
-    get_all_species().get(m.species_id).inc_num_instantiations();
+    get_species(m.species_id).inc_num_instantiations();
 
     // also set a flag used for optimization
     m.set_no_need_to_schedule_flag(bng_engine.get_all_species());
@@ -566,7 +562,7 @@ private:
   }
 
   void update_compartment(Molecule& new_m, const BNG::compartment_id_t target_compartment_id) {
-    BNG::Species& species = get_all_species().get(new_m.species_id);
+    const BNG::Species& species = get_species(new_m.species_id);
 
     // set compartment/define new species if needed, surface species may have only one surface compartment
     BNG::compartment_id_t species_compartment_id = species.get_primary_compartment_id();
@@ -581,7 +577,7 @@ private:
   }
 
   void update_volume_compartment(Molecule& new_vm) {
-    const BNG::Species& species = get_all_species().get(new_vm.species_id);
+    const BNG::Species& species = get_species(new_vm.species_id);
      BNG::compartment_id_t target_compartment_id = get_compartment_id_for_counted_volume(new_vm.v.counted_volume_index);
      assert(target_compartment_id == BNG::COMPARTMENT_ID_NONE ||
          bng_engine.get_data().get_compartment(target_compartment_id).is_3d);
@@ -659,7 +655,7 @@ public:
     // set that this molecule does not exist anymore
     m.set_is_defunct();
 
-    BNG::Species& sp = get_all_species().get(m.species_id);
+    BNG::Species& sp = get_species(m.species_id);
     sp.dec_num_instantiations();
 
     if (m.is_vol()) {
@@ -686,7 +682,7 @@ public:
 
   const MoleculeIdsSet& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) const {
     assert(subpart_index < config.num_subpartitions);
-    const BNG::Species& species = get_all_species().get(species_id);
+    const BNG::Species& species = get_species(species_id);
     return volume_molecule_reactants_per_reactant_class.
         get_subparts_reactants_for_reactant_class(species.get_reactant_class_id()).get_contained_set(subpart_index);
   }
@@ -1000,9 +996,12 @@ private:
 
 public:
   // ---------------------------------- other ----------------------------------
-  // TODO: add get_species method
   BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
   const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
+
+  // helper methods to get directly a Species object
+  BNG::Species& get_species(const species_id_t id) { return bng_engine.get_all_species().get(id); }
+  const BNG::Species& get_species(const species_id_t id) const { return bng_engine.get_all_species().get(id); }
 
   BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }

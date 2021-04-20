@@ -255,7 +255,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
   float_t unimol_rx_time = m.unimol_rx_time; // copy for a minor compiler optimization
 
 #ifdef DEBUG_DIFFUSION
-  const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
+  const BNG::Species& debug_species = p.get_species(m.species_id);
   DUMP_CONDITION4(
 #ifdef DUMP_NONDIFFUSING_VMS
     const char* title =
@@ -380,7 +380,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& vm = p.get_m(vm_id);
-  const BNG::Species& species = p.get_all_species().get(vm.species_id);
+  const BNG::Species& species = p.get_species(vm.species_id);
 
   if (!species.can_diffuse()) {
     return;
@@ -599,7 +599,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       bool move_to_another_partition = !p.in_this_partition(m_new_ref.v.pos);
       if (move_to_another_partition) {
         Vec3 pos_um = m_new_ref.v.pos * p.config.length_unit;
-        const BNG::Species& s = p.get_all_species().get(m_new_ref.species_id);
+        const BNG::Species& s = p.get_species(m_new_ref.species_id);
         world->fatal_error(
             "Molecule with species " + s.name + " escaped the simulation area defined by partition size.\n"
             "Diffused molecule reached position (" +
@@ -1052,7 +1052,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
     const float_t diffusion_start_time
 ) {
   Molecule& sm = p.get_m(sm_id);
-  const BNG::Species& species = p.get_all_species().get(sm.species_id);
+  const BNG::Species& species = p.get_species(sm.species_id);
 
   float_t steps = 0.0;
   float_t t_steps = 0.0;
@@ -1232,7 +1232,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  const BNG::Species& sm_species = p.get_all_species().get(sm.species_id);
+  const BNG::Species& sm_species = p.get_species(sm.species_id);
 
   // each item in array corresponds to one potential reaction
   small_vector<float_t> correction_factors;
@@ -1253,7 +1253,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
 
     Molecule& nsm = p.get_m(nid);
-    const BNG::Species& nsm_species = p.get_all_species().get(nsm.species_id);
+    const BNG::Species& nsm_species = p.get_species(nsm.species_id);
 
 #ifdef DEBUG_RXNS
     DUMP_CONDITION4(
@@ -1895,7 +1895,7 @@ int DiffuseReactEvent::outcome_intersect(
   bool keep_reacA = true, keep_reacB = true;
 
   // expecting that the surface is always the second reactant
-  assert(p.get_all_species().get(rxn_class->reactant_ids[1]).is_reactive_surface());
+  assert(p.get_species(rxn_class->reactant_ids[1]).is_reactive_surface());
 
   if (rxn_class->reactant_ids[0] == all_molecules_id ||
       rxn_class->reactant_ids[0] == all_volume_molecules_id) {
@@ -1955,7 +1955,7 @@ int DiffuseReactEvent::find_surf_product_positions(
 
   uint needed_surface_positions = 0;
   for (const ProductSpeciesIdWIndices& prod: actual_products) {
-    if (p.get_all_species().get(prod.product_species_id).is_surf()) {
+    if (p.get_species(prod.product_species_id).is_surf()) {
       needed_surface_positions++;
     }
   }
@@ -2066,7 +2066,7 @@ int DiffuseReactEvent::find_surf_product_positions(
 
     BNG::compartment_id_t compartment_prod0 = rxn->products[0].get_primary_compartment_id();
 
-    BNG::compartment_id_t compartment_reacA = p.get_all_species().get(reacA->species_id).get_primary_compartment_id();
+    BNG::compartment_id_t compartment_reacA = p.get_species(reacA->species_id).get_primary_compartment_id();
 
     // use compartment to determine location (
     if (compartment_reacA == compartment_prod0) {
@@ -2117,7 +2117,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assert(product_index < actual_products.size());
 
       // we care only about surface molecules
-      if (p.get_all_species().get(actual_products[product_index].product_species_id).is_vol()) {
+      if (p.get_species(actual_products[product_index].product_species_id).is_vol()) {
         continue;
       }
 
@@ -2395,10 +2395,10 @@ int DiffuseReactEvent::outcome_products_random(
 #ifdef DEBUG_RXNS
   DUMP_CONDITION4(
     collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), time);
-    cout << p.get_all_species().get(p.get_m(collision.diffused_molecule_id).species_id).name;
+    cout << p.get_species(p.get_m(collision.diffused_molecule_id).species_id).name;
     if (collision.is_mol_mol_reaction()) {
       cout << " + " <<
-          p.get_all_species().get(p.get_m(collision.colliding_molecule_id).species_id).name;
+          p.get_species(p.get_m(collision.colliding_molecule_id).species_id).name;
     }
     cout << "\nreaction_index: " << pathway_index << "\n";
     if (collision.rxn_class != nullptr) {
@@ -2659,7 +2659,7 @@ int DiffuseReactEvent::outcome_products_random(
     }
 
     species_id_t product_species_id = actual_products[product_index].product_species_id;
-    const BNG::Species& species = p.get_all_species().get(product_species_id);
+    const BNG::Species& species = p.get_species(product_species_id);
 
     molecule_id_t new_m_id;
 
@@ -2703,7 +2703,7 @@ int DiffuseReactEvent::outcome_products_random(
       // id used to schedule a diffusion action
       new_m_id = new_vm.id;
 
-      const BNG::Species& species_new_ref = p.get_all_species().get(product_species_id);
+      const BNG::Species& species_new_ref = p.get_species(product_species_id);
       new_vm.set_flag(MOLECULE_FLAG_VOL);
       new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
@@ -2922,7 +2922,7 @@ bool DiffuseReactEvent::cross_transparent_wall(
     molecule_id_t orig_vm_id = vm.id;
 
     // get species, pretty inefficient, may need to be cached if this is a feature that is used often
-    BNG::Species new_species = p.get_all_species().get(vm.species_id);
+    BNG::Species new_species = p.get_species(vm.species_id);
     new_species.set_compartment_id(BNG::COMPARTMENT_ID_NONE);
     new_species.finalize_species(world->bng_engine.get_config(), true);
     species_id_t new_species_id = p.get_all_species().find_or_add(new_species, true);

@@ -569,7 +569,7 @@ static void tiny_diffuse_3D(
   assert(vm.is_vol());
   assert(vm.v.subpart_index != SUBPART_INDEX_INVALID && "Molecule must be already placed into a subvolume");
 
-  const BNG::Species& species = p.get_all_species().get(vm.species_id);
+  const BNG::Species& species = p.get_species(vm.species_id);
   Vec3 ignored_displacement = displacement;
   subpart_index_t new_subpart_index;
   CollisionsVector collisions;
