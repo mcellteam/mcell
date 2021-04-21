@@ -229,7 +229,7 @@ public:
     // required for correct function of raycast_with_endpoints,
     // round is required because values might be negative
     Vec3 how_many_subparts_from_000 = origin_corner/Vec3(config.subpartition_edge_length);
-    release_assert(cmp_eq(round3(how_many_subparts_from_000), how_many_subparts_from_000, SQRT_EPS) &&
+    release_assert(cmp_eq(round3(how_many_subparts_from_000), how_many_subparts_from_000, POS_SQRT_EPS) &&
         "Partition is not aligned to the subpartition grid."
     );
 
