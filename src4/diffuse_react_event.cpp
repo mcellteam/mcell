@@ -2270,19 +2270,16 @@ int DiffuseReactEvent::find_surf_product_positions(
 // TODO: better name?
 static void update_vol_mol_after_rxn_with_surf_mol(
     Partition& p,
-    const Molecule* surf_reac,
+    const Wall& wall,
     const orientation_t product_orientation,
     const Collision& collision,
     Molecule& vm
 ) {
-  assert(surf_reac != nullptr);
-  Wall& w = p.get_wall(surf_reac->s.wall_index);
-
   float_t bump = (product_orientation > 0) ? EPS : -EPS;
-  Vec3 displacement = Vec3(2 * bump) * w.normal;
+  Vec3 displacement = Vec3(2 * bump) * wall.normal;
   Vec3 new_pos_after_diffuse;
 
-  DiffusionUtils::tiny_diffuse_3D(p, vm, displacement, w.index, new_pos_after_diffuse);
+  DiffusionUtils::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
 
   // update position and subpart if needed
   vm.v.pos = new_pos_after_diffuse;
@@ -2722,17 +2719,30 @@ int DiffuseReactEvent::outcome_products_random(
           || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
       );
 
+      Wall* wall = nullptr;
       if (is_orientable) {
-        const Wall& w = p.get_wall(surf_reac->s.wall_index);
+        if (surf_reac != nullptr) {
+          wall = &p.get_wall(surf_reac->s.wall_index);
+          // position is used to schedule a diffusion action
+          where_is_vm_created = surf_reac_wall_tile;
+        }
+        else {
+          assert(collision.is_wall_collision());
+          wall = &p.get_wall(collision.colliding_wall_index);
+
+          Vec2 hit_wall_pos2d = GeometryUtils::xyz2uv(p, collision.pos, *wall);
+          if (!wall->grid.is_initialized()) {
+            wall->initialize_grid(p);
+          }
+          tile_index_t hit_wall_tile_index = GridUtils::uv2grid_tile_index(hit_wall_pos2d, *wall);
+
+          where_is_vm_created = WallTileIndexPair(collision.colliding_wall_index, hit_wall_tile_index);
+        }
+
         // tiny diffuse done in update_vol_mol_after_rxn_with_surf_mol
         // cannot cross walls
         CollisionUtils::update_counted_volume_id_when_crossing_wall(
-            p, w, product_orientation, vm_initialization);
-      }
-
-      //  position is used to schedule a diffusion action
-      if (surf_reac != nullptr) {
-        where_is_vm_created = surf_reac_wall_tile;
+            p, *wall, product_orientation, vm_initialization);
       }
 
       // adding molecule might invalidate references of already existing molecules and also of species
@@ -2748,10 +2758,8 @@ int DiffuseReactEvent::outcome_products_random(
       if (is_orientable) {
         // - for an orientable reaction, we need to move products away from the surface
         //   to ensure they end up on the correct side of the plane.
-        assert(surf_reac_id != MOLECULE_ID_INVALID);
-        const Molecule& surf_reac_new_ref = p.get_m(surf_reac_id);
         update_vol_mol_after_rxn_with_surf_mol(
-            p, &surf_reac_new_ref, product_orientation, collision, new_vm
+            p, *wall, product_orientation, collision, new_vm
         );
       }
     #ifdef DEBUG_RXNS
