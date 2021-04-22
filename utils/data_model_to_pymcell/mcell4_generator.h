@@ -63,7 +63,7 @@ private:
   std::string generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
 
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
-  std::vector<IdLoc> generate_reaction_rules(std::ostream& out);
+  std::vector<IdLoc> generate_reaction_rules(std::ostream& out, const std::vector<std::string>& surf_class_names);
 
   void find_required_compartments(std::set<std::string>& compartments);
   void analyze_and_generate_bngl_compartments(std::ostream& out);
