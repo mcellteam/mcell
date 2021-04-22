@@ -1086,12 +1086,17 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   warnings[KEY_HIGH_PROBABILITY_THRESHOLD] = "1";
   warnings[KEY_DEGENERATE_POLYGONS] = VALUE_WARNING;
   warnings[KEY_USELESS_VOLUME_ORIENTATION] = VALUE_WARNING;
-  warnings[KEY_HIGH_REACTION_PROBABILITY] = VALUE_IGNORED;
+
+  warnings[KEY_HIGH_REACTION_PROBABILITY] =
+      DMUtils::bool_to_warning_level(config.warnings.warn_on_bimol_rxn_probability_over_05_less_1);
+
   warnings[KEY_LARGE_MOLECULAR_DISPLACEMENT] = VALUE_WARNING;
   warnings[KEY_MISSING_SURFACE_ORIENTATION] = VALUE_ERROR;
 
   // --- notifications ---
   Json::Value& notifications = initialization[KEY_NOTIFICATIONS];
+
+  notifications[KEY_SPECIES_REACTIONS_REPORT] = config.rxn_and_species_report;
   notifications[KEY_FILE_OUTPUT_REPORT] = false;
   notifications[KEY_ALL_NOTIFICATIONS] = VALUE_INDIVIDUAL;
   notifications[KEY_PROBABILITY_REPORT_THRESHOLD] = "0";
@@ -1101,7 +1106,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   notifications[KEY_MOLECULE_COLLISION_REPORT] = false;
   notifications[KEY_ITERATION_REPORT] = true;
   notifications[KEY_FINAL_SUMMARY] = true;
-  notifications[KEY_VARYING_PROBABILITY_REPORT] = true;
+  notifications[KEY_VARYING_PROBABILITY_REPORT] = config.notifications.rxn_probability_changed;
   notifications[KEY_PROBABILITY_REPORT] = VALUE_ON;
   notifications[KEY_PARTITION_LOCATION_REPORT] = false;
   notifications[KEY_DIFFUSION_CONSTANT_REPORT] = VALUE_BRIEF;

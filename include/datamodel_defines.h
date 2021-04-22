@@ -325,6 +325,7 @@ const char* const KEY_Z_STEP = "z_step";
 const char* const KEY_Y_STEP = "y_step";
 
 const char* const KEY_NOTIFICATIONS = "notifications";
+const char* const KEY_SPECIES_REACTIONS_REPORT = "species_reactions_report";
 const char* const KEY_FILE_OUTPUT_REPORT = "file_output_report";
 const char* const KEY_ALL_NOTIFICATIONS = "all_notifications";
 const char* const KEY_PROBABILITY_REPORT_THRESHOLD = "probability_report_threshold";
@@ -487,6 +488,14 @@ static inline std::string orientation_to_str(const orientation_t o) {
   }
 }
 
+static inline std::string bool_to_warning_level(const bool v) {
+  if (v) {
+    return VALUE_WARNING;
+  }
+  else {
+    return VALUE_IGNORED;
+  }
+}
 
 #define CONVERSION_UNSUPPORTED(msg) \
   do { errs() << msg << " This is not supported yet.\n"; exit(1); } while (0)

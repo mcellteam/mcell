@@ -1006,6 +1006,19 @@ void MCell4Generator::generate_observables() {
   out.close();
 }
 
+// returns true for "ON and false for "OFF, fails when a different value is used
+static std::string convert_warning_level(const std::string& value) {
+  if (value == "WARNING") {
+    return S(MDOT) + NAME_ENUM_WARNING_LEVEL + "." + NAME_EV_WARNING;
+  }
+  else if (value == "IGNORED") {
+    return S(MDOT) + NAME_ENUM_WARNING_LEVEL + "." + NAME_EV_IGNORE;
+  }
+  else {
+    ERROR("Invalid value " + value + ", expected only WARNING or IGNORED.\n");
+  }
+}
+
 
 void MCell4Generator::generate_config(ostream& out) {
   out << make_section_comment("configuration");
@@ -1015,14 +1028,41 @@ void MCell4Generator::generate_config(ostream& out) {
   gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, PARAM_SEED);
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS, PARAM_ITERATIONS);
   out << "\n";
-  gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT, true);
+
+  Value& initialization = data.mcell[KEY_INITIALIZATION];
+
+  if (initialization.isMember(KEY_WARNINGS)) {
+    Value& warnings = initialization[KEY_WARNINGS];
+
+    if (warnings.isMember(KEY_HIGH_REACTION_PROBABILITY)) {
+      gen_assign(out, MODEL, NAME_WARNINGS, NAME_HIGH_REACTION_PROBABILITY,
+          convert_warning_level(warnings[KEY_HIGH_REACTION_PROBABILITY].asString())
+      );
+    }
+  }
+
+  if (initialization.isMember(KEY_NOTIFICATIONS)) {
+    Value& notifications = initialization[KEY_NOTIFICATIONS];
+
+    if (notifications.isMember(KEY_SPECIES_REACTIONS_REPORT)) {
+      gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT,
+          notifications[KEY_SPECIES_REACTIONS_REPORT].asBool()
+      );
+    }
+
+    if (notifications.isMember(KEY_VARYING_PROBABILITY_REPORT)) {
+      gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_PROBABILITY_CHANGED,
+          notifications[KEY_VARYING_PROBABILITY_REPORT].asBool()
+      );
+    }
+  }
+
   out << "\n";
 
   if (!data.mcell.isMember(KEY_INITIALIZATION)) {
     ERROR(S("Data model does not contain key ") + KEY_INITIALIZATION + ".");
   }
 
-  Value& initialization = data.mcell[KEY_INITIALIZATION];
   Value& partitions = initialization[KEY_PARTITIONS];
 
   // choose the largest value for partition size and the smallest step

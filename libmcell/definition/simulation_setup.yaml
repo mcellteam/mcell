@@ -218,9 +218,9 @@ Notifications:
   
   - name: rxn_and_species_report
     type: bool
-    default: True
+    default: False
     doc: | 
-       When set to True (default) simulation generates files rxn_report_SEED.txt, and 
+       When set to True, simulation generates files rxn_report_SEED.txt, and 
        species_report_SEED.txt that contain details on reaction classes and species 
        that were created based on reaction rules.   
   
@@ -284,7 +284,7 @@ Warnings:
   items:
   - name: high_reaction_probability
     type: WarningLevel
-    default: WarningLevel.WARNING
+    default: WarningLevel.IGNORE
     doc: | 
        Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.
        Warning when probability is greater than 1 is always printed.
