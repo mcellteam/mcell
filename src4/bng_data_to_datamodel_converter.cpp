@@ -339,6 +339,9 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
       case RxnType::Reflect:
         sc_property[KEY_SURF_CLASS_TYPE] = VALUE_REFLECTIVE;
         break;
+      case RxnType::AbsorbRegionBorder:
+        sc_property[KEY_SURF_CLASS_TYPE] = VALUE_ABSORPTIVE;
+        break;
       case RxnType::Standard:
         if (rxn_rule->is_absorptive_region_rxn()) {
           sc_property[KEY_SURF_CLASS_TYPE] = VALUE_ABSORPTIVE;
@@ -412,16 +415,15 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
         surface_class_list.append(surface_class);
       }
     }
-    else if (rxn_rule->type == RxnType::Transparent || rxn_rule->type == RxnType::Reflect) {
+    else if (rxn_rule->type == RxnType::Transparent ||
+        rxn_rule->type == RxnType::Reflect ||
+        rxn_rule->type == RxnType::AbsorbRegionBorder) {
       // this rxn rule defines a surface class
       if (processed_surface_classes.count(get_surface_class_name(*rxn_rule)) == 0) {
         Value surface_class;
         CHECK(convert_single_surface_class(*rxn_rule, surface_class));
         surface_class_list.append(surface_class);
       }
-    }
-    else if (rxn_rule->type == RxnType::AbsorbRegionBorder) {
-      CONVERSION_UNSUPPORTED("AbsorbRegionBorder surf classes are not supported yet.");
     }
     else {
       CONVERSION_UNSUPPORTED("Invalid reaction type");

@@ -95,7 +95,8 @@ SurfacePropertyType
 * | **ABSORPTIVE** = 4
   | If affected_complex_pattern refers to a volume molecule it is destroyed if it touches surfaces with this surface class. 
   | If affected_complex_pattern refers to a surface molecule it is destroyed if it touches the border of the surface with 
-  | this surface class. 
+  | this surface class, i.e., it is allowed to release surface molecules on absorptive surfaces, they get destroyed only
+  | when they touch the border of this surface. 
   | Tick marks on name allow destruction from only one side of the surface for volume molecules or selective destruction 
   | for surface molecules on the surfaces’s border based on their orientation. 
   | To make a surface with this surface class absorptive to all volume molecules, m.ALL_VOLUME_MOLECULES 

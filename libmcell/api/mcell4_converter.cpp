@@ -533,7 +533,14 @@ void MCell4Converter::convert_surface_class_rxn(
 
   switch (sp.type) {
     case API::SurfacePropertyType::ABSORPTIVE:
-      rxn.type = BNG::RxnType::Standard;
+      if (affected_pattern.is_surf()) {
+        // we are using special type for surf + absorptive surf class
+        rxn.type = BNG::RxnType::AbsorbRegionBorder;
+      }
+      else {
+        // the type is standard for vol + absorptive surf class
+        rxn.type = BNG::RxnType::Standard;
+      }
       break;
     case API::SurfacePropertyType::CONCENTRATION_CLAMP:
       rxn.type = BNG::RxnType::Standard;

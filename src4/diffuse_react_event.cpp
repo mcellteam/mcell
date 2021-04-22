@@ -1130,13 +1130,25 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 
       // ray_trace does the movement and all other stuff
       Vec2 new_loc;
+      BNG::RxnClass* absorb_now_rxn_class;
       wall_index_t new_wall_index =
-          ray_trace_surf(p, species, sm_id, displacement, new_loc);
+          ray_trace_surf(p, species, sm_id, displacement, new_loc, absorb_now_rxn_class);
 
       // Either something ambiguous happened or we hit absorptive border
       if (new_wall_index == WALL_INDEX_INVALID) {
+        if (absorb_now_rxn_class != nullptr) {
+          absorb_now_rxn_class->init_rxn_pathways_and_rates();
+          assert(absorb_now_rxn_class->get_num_pathways() == 1);
+          bool kept = outcome_unimolecular(
+              p, p.get_m(sm_id), diffusion_start_time, absorb_now_rxn_class, 0, nullptr);
+          assert(!kept);
+          return;
+        }
+
         continue; /* Something went wrong--try again */
       }
+
+      assert(absorb_now_rxn_class == nullptr);
 
       // After diffusing, are we still on the SAME triangle?
       if (new_wall_index == sm.s.wall_index) {
@@ -1554,9 +1566,11 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     const BNG::Species& species,
     const molecule_id_t sm_id,
     Vec2& remaining_displacement,
-    Vec2& new_pos/*,
-    float_t& elapsed_molecule_time*/
+    Vec2& new_pos,
+    BNG::RxnClass*& absorb_now_rxn_class // set to non-null is molecule has to be absorbed
 ) {
+  absorb_now_rxn_class = nullptr;
+
   Molecule& sm  = p.get_m(sm_id);
   const Wall* this_wall = &p.get_wall(sm.s.wall_index);
 
@@ -1585,13 +1599,9 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     // We didn't hit the edge. Stay inside this wall. We're done!
     else if (edge_index_that_was_hit == EDGE_INDEX_WITHIN_WALL) {
       new_pos = this_pos + this_disp;
-
-      // ???
       sm.s.pos = orig_pos;
-      // *hit_data_info = hit_data_head;
       return this_wall->index;
     }
-
 
     // Neither ambiguous (EDGE_INDEX_CANNOT_TELL) nor inside wall (EDGE_INDEX_WITHIN_WALL),
     // must have hit edge (0, 1, 2)
@@ -1601,25 +1611,16 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
        edges of the wall if they are region borders
        Note - here we test for potential collisions with the region
        border while moving INSIDE OUT */
-    bool absorb_now = false;
     bool reflect_now = false;
     if (species.can_interact_with_border()) {
       DiffusionUtils::reflect_absorb_inside_out(
           p, sm, *this_wall, edge_index_that_was_hit,
-          reflect_now, absorb_now
+          reflect_now, absorb_now_rxn_class
       );
 
-      assert(!absorb_now && "TODO");
-
-#if 0
-      if (absorb_now) {
-        assert(false && "TODO");
-        /**kill_me = 1;
-        *rxp = rx;
-        *hit_data_info = hit_data_head;
-        return NULL;*/
+      if (absorb_now_rxn_class != nullptr) {
+        return WALL_INDEX_INVALID;
       }
-#endif
     }
 
     /* no reflection - keep going */
@@ -1638,10 +1639,12 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
           const Wall& target_wall = p.get_wall(target_wall_index);
           DiffusionUtils::reflect_absorb_outside_in(
               p, sm, target_wall, *this_wall,
-              reflect_now, absorb_now
+              reflect_now, absorb_now_rxn_class
           );
 
-          assert(!absorb_now && "TODO");
+          if (absorb_now_rxn_class != nullptr) {
+            return WALL_INDEX_INVALID;
+          }
         }
 
 
@@ -2491,7 +2494,9 @@ int DiffuseReactEvent::outcome_products_random(
   bool reactants_swapped = false;
 
   // the second reactant might be a surface
-  uint num_mol_reactants = collision.is_wall_collision() ? 1 : rxn->reactants.size();
+  uint num_mol_reactants =
+      (collision.is_wall_collision() || rxn->is_absorptive_region_rxn()) ?
+      1 : rxn->reactants.size();
 
   if (num_mol_reactants == 2) {
     reacB = &p.get_m(collision.colliding_molecule_id);
@@ -2920,7 +2925,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     const RxnRule* unimol_rx = rxn_class->get_rxn_for_pathway(pathway_index);
 
     // and defunct this molecule if it was not kept
-    assert(unimol_rx->reactants.size() == 1);
+    assert(unimol_rx->reactants.size() == 1 || unimol_rx->is_absorptive_region_rxn());
     if (outcome_res != RX_BLOCKED && !unimol_rx->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0)) {
     #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
