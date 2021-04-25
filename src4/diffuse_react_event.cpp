@@ -1118,13 +1118,25 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 
       // ray_trace does the movement and all other stuff
       Vec2 new_loc;
+      BNG::RxnClass* absorb_now_rxn_class;
       wall_index_t new_wall_index =
-          ray_trace_surf(p, species, sm_id, displacement, new_loc);
+          ray_trace_surf(p, species, sm_id, displacement, new_loc, absorb_now_rxn_class);
 
       // Either something ambiguous happened or we hit absorptive border
       if (new_wall_index == WALL_INDEX_INVALID) {
+        if (absorb_now_rxn_class != nullptr) {
+          absorb_now_rxn_class->init_rxn_pathways_and_rates();
+          assert(absorb_now_rxn_class->get_num_pathways() == 1);
+          bool kept = outcome_unimolecular(
+              p, p.get_m(sm_id), diffusion_start_time, absorb_now_rxn_class, 0, nullptr);
+          assert(!kept);
+          return;
+        }
+
         continue; /* Something went wrong--try again */
       }
+
+      assert(absorb_now_rxn_class == nullptr);
 
       // After diffusing, are we still on the SAME triangle?
       if (new_wall_index == sm.s.wall_index) {
@@ -1542,6 +1554,8 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     Vec2& remaining_displacement,
     Vec2& new_pos
 ) {
+  absorb_now_rxn_class = nullptr;
+
   Molecule& sm  = p.get_m(sm_id);
   const Wall* this_wall = &p.get_wall(sm.s.wall_index);
 
@@ -1581,15 +1595,16 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
        edges of the wall if they are region borders
        Note - here we test for potential collisions with the region
        border while moving INSIDE OUT */
-    bool absorb_now = false;
     bool reflect_now = false;
     if (species.can_interact_with_border()) {
       DiffusionUtils::reflect_absorb_inside_out(
           p, sm, *this_wall, edge_index_that_was_hit,
-          reflect_now, absorb_now
+          reflect_now, absorb_now_rxn_class
       );
 
-      release_assert(!absorb_now && "TODO");
+      if (absorb_now_rxn_class != nullptr) {
+        return WALL_INDEX_INVALID;
+      }
     }
 
     /* no reflection - keep going */
@@ -1607,10 +1622,12 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
           const Wall& target_wall = p.get_wall(target_wall_index);
           DiffusionUtils::reflect_absorb_outside_in(
               p, sm, target_wall, *this_wall,
-              reflect_now, absorb_now
+              reflect_now, absorb_now_rxn_class
           );
 
-          release_assert(!absorb_now && "TODO");
+          if (absorb_now_rxn_class != nullptr) {
+            return WALL_INDEX_INVALID;
+          }
         }
 
         if (!reflect_now) {
@@ -2236,19 +2253,16 @@ int DiffuseReactEvent::find_surf_product_positions(
 
 static void update_vol_mol_after_rxn_with_surf_mol(
     Partition& p,
-    const Molecule* surf_reac,
+    const Wall& wall,
     const orientation_t product_orientation,
     const Collision& collision,
     Molecule& vm
 ) {
-  assert(surf_reac != nullptr);
-  Wall& w = p.get_wall(surf_reac->s.wall_index);
-
   pos_t bump = (product_orientation > 0) ? POS_EPS : -POS_EPS;
-  Vec3 displacement = Vec3(2 * bump) * w.normal;
+  Vec3 displacement = Vec3(2 * bump) * wall.normal;
   Vec3 new_pos_after_diffuse;
 
-  DiffusionUtils::tiny_diffuse_3D(p, vm, displacement, w.index, new_pos_after_diffuse);
+  DiffusionUtils::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
 
   // update position and subpart if needed
   vm.v.pos = new_pos_after_diffuse;
@@ -2458,7 +2472,9 @@ int DiffuseReactEvent::outcome_products_random(
   bool reactants_swapped = false;
 
   // the second reactant might be a surface
-  uint num_mol_reactants = collision.is_wall_collision() ? 1 : rxn->reactants.size();
+  uint num_mol_reactants =
+      (collision.is_wall_collision() || rxn->is_absorptive_region_rxn()) ?
+      1 : rxn->reactants.size();
 
   if (num_mol_reactants == 2) {
     reacB = &p.get_m(collision.colliding_molecule_id);
@@ -2684,17 +2700,30 @@ int DiffuseReactEvent::outcome_products_random(
           || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
       );
 
+      Wall* wall = nullptr;
       if (is_orientable) {
-        const Wall& w = p.get_wall(surf_reac->s.wall_index);
+        if (surf_reac != nullptr) {
+          wall = &p.get_wall(surf_reac->s.wall_index);
+          // position is used to schedule a diffusion action
+          where_is_vm_created = surf_reac_wall_tile;
+        }
+        else {
+          assert(collision.is_wall_collision());
+          wall = &p.get_wall(collision.colliding_wall_index);
+
+          Vec2 hit_wall_pos2d = GeometryUtils::xyz2uv(p, collision.pos, *wall);
+          if (!wall->grid.is_initialized()) {
+            wall->initialize_grid(p);
+          }
+          tile_index_t hit_wall_tile_index = GridUtils::uv2grid_tile_index(hit_wall_pos2d, *wall);
+
+          where_is_vm_created = WallTileIndexPair(collision.colliding_wall_index, hit_wall_tile_index);
+        }
+
         // tiny diffuse done in update_vol_mol_after_rxn_with_surf_mol
         // cannot cross walls
         CollisionUtils::update_counted_volume_id_when_crossing_wall(
-            p, w, product_orientation, vm_initialization);
-      }
-
-      //  position is used to schedule a diffusion action
-      if (surf_reac != nullptr) {
-        where_is_vm_created = surf_reac_wall_tile;
+            p, *wall, product_orientation, vm_initialization);
       }
 
       // adding molecule might invalidate references of already existing molecules and also of species
@@ -2710,10 +2739,8 @@ int DiffuseReactEvent::outcome_products_random(
       if (is_orientable) {
         // - for an orientable reaction, we need to move products away from the surface
         //   to ensure they end up on the correct side of the plane.
-        assert(surf_reac_id != MOLECULE_ID_INVALID);
-        const Molecule& surf_reac_new_ref = p.get_m(surf_reac_id);
         update_vol_mol_after_rxn_with_surf_mol(
-            p, &surf_reac_new_ref, product_orientation, collision, new_vm
+            p, *wall, product_orientation, collision, new_vm
         );
       }
     #ifdef DEBUG_RXNS
@@ -2874,7 +2901,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     const RxnRule* unimol_rx = rxn_class->get_rxn_for_pathway(pathway_index);
 
     // and defunct this molecule if it was not kept
-    assert(unimol_rx->reactants.size() == 1);
+    assert(unimol_rx->reactants.size() == 1 || unimol_rx->is_absorptive_region_rxn());
     if (outcome_res != RX_BLOCKED && !unimol_rx->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0)) {
 #ifdef DEBUG_RXNS
       DUMP_CONDITION4(

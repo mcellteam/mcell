@@ -608,8 +608,10 @@ static void reflect_absorb_check_wall(
     const Molecule& sm,
     const Wall& wall,
     bool& reflect_now,
-    bool& absorb_now
+    BNG::RxnClass*& absorb_now_rxn_class // set no non-null value when molecule should be absorbed
 ) {
+  absorb_now_rxn_class = nullptr;
+
   BNG::RxnClassesVector matching_rxns;
   RxnUtils::trigger_intersect(
       p, sm, sm.s.orientation, wall, true,
@@ -618,15 +620,15 @@ static void reflect_absorb_check_wall(
 
   /* check if this wall has any reflective or absorptive region borders for
    * this molecule (aka special reactions) */
-  for (const BNG::RxnClass* rxn: matching_rxns) {
-    if (rxn->is_reflect()) {
+  for (BNG::RxnClass* rxn_class: matching_rxns) {
+    if (rxn_class->is_reflect()) {
       /* check for REFLECTIVE border */
       reflect_now = true;
       break;
     }
-    else if (rxn->is_absorb_region_border()) {
+    else if (rxn_class->is_absorb_region_border()) {
       /* check for ABSORPTIVE border */
-      absorb_now = 1;
+      absorb_now_rxn_class = rxn_class;
       break;
     }
   }
@@ -656,11 +658,13 @@ static void reflect_absorb_inside_out(
     const Wall& this_wall,
     const edge_index_t edge_index_that_was_hit,
     bool& reflect_now,
-    bool& absorb_now
+    BNG::RxnClass*& absorb_now_rxn_class
 ) {
+  absorb_now_rxn_class = nullptr;
+
   // missing hit from the second side
   if (WallUtils::is_wall_edge_region_border(p, this_wall, edge_index_that_was_hit, true)) {
-    reflect_absorb_check_wall(p, sm, this_wall, reflect_now, absorb_now);
+    reflect_absorb_check_wall(p, sm, this_wall, reflect_now, absorb_now_rxn_class);
   }
 }
 
@@ -687,13 +691,14 @@ static void reflect_absorb_outside_in(
     const Wall& target_wall,
     const Wall& this_wall,
     bool& reflect_now,
-    bool& absorb_now) {
+    BNG::RxnClass*& absorb_now_rxn_class) {
+  absorb_now_rxn_class = nullptr;
 
   /* index of the shared edge in the coordinate system of target wall */
   edge_index_t target_edge_index = WallUtils::find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
 
   if (WallUtils::is_wall_edge_region_border(p, target_wall, target_edge_index, true)) {
-    reflect_absorb_check_wall(p, sm, target_wall, reflect_now, absorb_now);
+    reflect_absorb_check_wall(p, sm, target_wall, reflect_now, absorb_now_rxn_class);
   }
 }
 

@@ -34,7 +34,7 @@ class PythonExportContext;
 
 #define WARNINGS_CTOR() \
     Warnings( \
-        const WarningLevel high_reaction_probability_ = WarningLevel::WARNING \
+        const WarningLevel high_reaction_probability_ = WarningLevel::IGNORE \
     ) { \
       class_name = "Warnings"; \
       high_reaction_probability = high_reaction_probability_; \

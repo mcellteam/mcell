@@ -39,7 +39,7 @@ void GenNotifications::set_initialized() {
 void GenNotifications::set_all_attributes_as_default_or_unset() {
   class_name = "Notifications";
   bng_verbosity_level = 0;
-  rxn_and_species_report = true;
+  rxn_and_species_report = false;
   simulation_stats_every_n_iterations = 0;
   rxn_probability_changed = true;
 }
@@ -80,7 +80,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
             const bool
           >(),
           py::arg("bng_verbosity_level") = 0,
-          py::arg("rxn_and_species_report") = true,
+          py::arg("rxn_and_species_report") = false,
           py::arg("simulation_stats_every_n_iterations") = 0,
           py::arg("rxn_probability_changed") = true
       )
@@ -89,7 +89,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def("__eq__", &Notifications::__eq__, py::arg("other"))
       .def("dump", &Notifications::dump)
       .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level, "Sets verbosity level that enables printouts of extra information on BioNetGen \nspecies and rules created and used during simulation.\n")
-      .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "When set to True (default) simulation generates files rxn_report_SEED.txt, and \nspecies_report_SEED.txt that contain details on reaction classes and species \nthat were created based on reaction rules.   \n")
+      .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "When set to True, simulation generates files rxn_report_SEED.txt, and \nspecies_report_SEED.txt that contain details on reaction classes and species \nthat were created based on reaction rules.   \n")
       .def_property("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations, "When set to a value other than 0, internal simulation stats will be printed. \n")
       .def_property("rxn_probability_changed", &Notifications::get_rxn_probability_changed, &Notifications::set_rxn_probability_changed, "When True, information that a reaction's probability has changed is printed during simulation.    \n")
     ;
@@ -117,7 +117,7 @@ std::string GenNotifications::export_to_python(std::ostream& out, PythonExportCo
   if (bng_verbosity_level != 0) {
     ss << ind << "bng_verbosity_level = " << bng_verbosity_level << "," << nl;
   }
-  if (rxn_and_species_report != true) {
+  if (rxn_and_species_report != false) {
     ss << ind << "rxn_and_species_report = " << rxn_and_species_report << "," << nl;
   }
   if (simulation_stats_every_n_iterations != 0) {

@@ -880,6 +880,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_VOLWALL)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_REGION_BORDER)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFWALL)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFWALL | SPECIES_FLAG_CAN_SURFSURF)
@@ -904,7 +905,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         CHECK_PROPERTY(spec->refl_mols == nullptr || spec->refl_mols->next == nullptr);
 
         // reflective surface, seems that this information is transformed into reactions, so we do no need to store anything else
-        CHECK_PROPERTY(spec->refl_mols->orient == ORIENTATION_NONE);
+        // CHECK_PROPERTY(spec->refl_mols->orient == ORIENTATION_NONE); // ignored
       }
     }
     else {
@@ -1048,6 +1049,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       mcell3_rx->n_pathways >= 1
       || mcell3_rx->n_pathways == RX_REFLEC // reflections for surf mols
       || mcell3_rx->n_pathways == RX_TRANSP
+      || mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER
   ); // limited for now
 
   assert(mcell3_rx->cum_probs != nullptr);
@@ -1150,7 +1152,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     if (mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_ABSORP);
       // TODO: check and if really not used, completely remove AbsorbRegionBorder
-      CHECK_PROPERTY(false && "Check to see whether PATHW_ABSORP is really produced by MCell, probably not.");
+      // CHECK_PROPERTY(false && "Check to see whether PATHW_ABSORP is really produced by MCell, probably not.");
       rxn.type = RxnType::AbsorbRegionBorder;
     }
     else if (mcell3_rx->n_pathways == RX_TRANSP) {

@@ -38,7 +38,7 @@ void GenWarnings::set_initialized() {
 
 void GenWarnings::set_all_attributes_as_default_or_unset() {
   class_name = "Warnings";
-  high_reaction_probability = WarningLevel::WARNING;
+  high_reaction_probability = WarningLevel::IGNORE;
 }
 
 bool GenWarnings::__eq__(const Warnings& other) const {
@@ -64,7 +64,7 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
           py::init<
             const WarningLevel
           >(),
-          py::arg("high_reaction_probability") = WarningLevel::WARNING
+          py::arg("high_reaction_probability") = WarningLevel::IGNORE
       )
       .def("check_semantics", &Warnings::check_semantics)
       .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
@@ -93,7 +93,7 @@ std::string GenWarnings::export_to_python(std::ostream& out, PythonExportContext
     ss << exported_name << " = ";
   }
   ss << "m.Warnings(" << nl;
-  if (high_reaction_probability != WarningLevel::WARNING) {
+  if (high_reaction_probability != WarningLevel::IGNORE) {
     ss << ind << "high_reaction_probability = " << high_reaction_probability << "," << nl;
   }
   ss << ")" << nl << nl;

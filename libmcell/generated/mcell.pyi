@@ -1056,7 +1056,7 @@ class Notifications():
     def __init__(
             self,
             bng_verbosity_level : int = 0,
-            rxn_and_species_report : bool = True,
+            rxn_and_species_report : bool = False,
             simulation_stats_every_n_iterations : int = 0,
             rxn_probability_changed : bool = True
         ):
@@ -1473,7 +1473,7 @@ class WallWallHitInfo():
 class Warnings():
     def __init__(
             self,
-            high_reaction_probability : WarningLevel = WarningLevel.WARNING
+            high_reaction_probability : WarningLevel = WarningLevel.IGNORE
         ):
         self.high_reaction_probability = high_reaction_probability
 

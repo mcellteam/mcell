@@ -35,7 +35,7 @@ class PythonExportContext;
 #define NOTIFICATIONS_CTOR() \
     Notifications( \
         const int bng_verbosity_level_ = 0, \
-        const bool rxn_and_species_report_ = true, \
+        const bool rxn_and_species_report_ = false, \
         const int simulation_stats_every_n_iterations_ = 0, \
         const bool rxn_probability_changed_ = true \
     ) { \

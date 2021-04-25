@@ -161,8 +161,8 @@ Attributes:
   | Sets verbosity level that enables printouts of extra information on BioNetGen 
   | species and rules created and used during simulation.
 
-* | **rxn_and_species_report**: bool = True
-  | When set to True (default) simulation generates files rxn_report_SEED.txt, and 
+* | **rxn_and_species_report**: bool = False
+  | When set to True, simulation generates files rxn_report_SEED.txt, and 
   | species_report_SEED.txt that contain details on reaction classes and species 
   | that were created based on reaction rules.
 
@@ -180,7 +180,7 @@ warning.
 
 Attributes:
 ***********
-* | **high_reaction_probability**: WarningLevel = WarningLevel.WARNING
+* | **high_reaction_probability**: WarningLevel = WarningLevel.IGNORE
   | Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.
   | Warning when probability is greater than 1 is always printed.
   | Cannot be set to WarningLevel.ERROR.

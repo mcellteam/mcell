@@ -345,6 +345,24 @@ static bool rxn_has_variable_rate(Value& reaction_list_item) {
 }
 
 
+static bool rxn_uses_surf_class(
+    Value& reaction_list_item,
+    const std::vector<std::string>& surf_class_names) {
+
+  vector<string> substances;
+  vector<string> orientations;
+  Value& reactants = reaction_list_item[KEY_REACTANTS];
+  parse_rxn_rule_side(reactants, substances, orientations);
+
+  for (const string& reac: substances) {
+    if (find(surf_class_names.begin(), surf_class_names.end(), reac) != surf_class_names.end()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 // returns true if the rxn name might be referenced by counts
 static bool is_rxn_used_in_observables(Value& mcell, const string& rxn_name) {
   if (rxn_name == "") {
@@ -366,7 +384,7 @@ static bool is_rxn_used_in_observables(Value& mcell, const string& rxn_name) {
 }
 
 
-vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out) {
+vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out, const std::vector<std::string>& surf_class_names) {
   vector<IdLoc> rxn_names_w_loc;
 
   if (!data.mcell.isMember(KEY_DEFINE_REACTIONS)) {
@@ -389,7 +407,9 @@ vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out) {
       Value& reaction_list_item = reaction_list[i];
       check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
 
-      if (!rxn_uses_mcell_orientation(reaction_list_item) && !rxn_has_variable_rate(reaction_list_item)) {
+      if (!rxn_uses_mcell_orientation(reaction_list_item) &&
+          !rxn_has_variable_rate(reaction_list_item) &&
+          !rxn_uses_surf_class(reaction_list_item, surf_class_names)) {
 
         bool used_in_observables = is_rxn_used_in_observables(data.mcell, reaction_list_item[KEY_RXN_NAME].asString());
         string name = bng_gen->generate_single_reaction_rule(reaction_list_item, used_in_observables);
@@ -510,7 +530,7 @@ void MCell4Generator::generate_subsystem() {
   vector<string> surface_class_names;
   python_gen->generate_surface_classes(out, surface_class_names);
 
-  data.all_reaction_rules_names = generate_reaction_rules(out);
+  data.all_reaction_rules_names = generate_reaction_rules(out, surface_class_names);
 
   out << make_section_comment("create subsystem object and add components");
   gen_ctor_call(out, SUBSYSTEM, NAME_CLASS_SUBSYSTEM, false);
@@ -1006,6 +1026,19 @@ void MCell4Generator::generate_observables() {
   out.close();
 }
 
+// returns true for "ON and false for "OFF, fails when a different value is used
+static std::string convert_warning_level(const std::string& value) {
+  if (value == "WARNING") {
+    return S(MDOT) + NAME_ENUM_WARNING_LEVEL + "." + NAME_EV_WARNING;
+  }
+  else if (value == "IGNORED") {
+    return S(MDOT) + NAME_ENUM_WARNING_LEVEL + "." + NAME_EV_IGNORE;
+  }
+  else {
+    ERROR("Invalid value " + value + ", expected only WARNING or IGNORED.\n");
+  }
+}
+
 
 void MCell4Generator::generate_config(ostream& out) {
   out << make_section_comment("configuration");
@@ -1015,14 +1048,41 @@ void MCell4Generator::generate_config(ostream& out) {
   gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, PARAM_SEED);
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS, PARAM_ITERATIONS);
   out << "\n";
-  gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT, true);
+
+  Value& initialization = data.mcell[KEY_INITIALIZATION];
+
+  if (initialization.isMember(KEY_WARNINGS)) {
+    Value& warnings = initialization[KEY_WARNINGS];
+
+    if (warnings.isMember(KEY_HIGH_REACTION_PROBABILITY)) {
+      gen_assign(out, MODEL, NAME_WARNINGS, NAME_HIGH_REACTION_PROBABILITY,
+          convert_warning_level(warnings[KEY_HIGH_REACTION_PROBABILITY].asString())
+      );
+    }
+  }
+
+  if (initialization.isMember(KEY_NOTIFICATIONS)) {
+    Value& notifications = initialization[KEY_NOTIFICATIONS];
+
+    if (notifications.isMember(KEY_SPECIES_REACTIONS_REPORT)) {
+      gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_AND_SPECIES_REPORT,
+          notifications[KEY_SPECIES_REACTIONS_REPORT].asBool()
+      );
+    }
+
+    if (notifications.isMember(KEY_VARYING_PROBABILITY_REPORT)) {
+      gen_assign(out, MODEL, NAME_NOTIFICATIONS, NAME_RXN_PROBABILITY_CHANGED,
+          notifications[KEY_VARYING_PROBABILITY_REPORT].asBool()
+      );
+    }
+  }
+
   out << "\n";
 
   if (!data.mcell.isMember(KEY_INITIALIZATION)) {
     ERROR(S("Data model does not contain key ") + KEY_INITIALIZATION + ".");
   }
 
-  Value& initialization = data.mcell[KEY_INITIALIZATION];
   Value& partitions = initialization[KEY_PARTITIONS];
 
   // choose the largest value for partition size and the smallest step
