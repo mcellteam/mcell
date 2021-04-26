@@ -379,7 +379,7 @@ void Partition::move_waypoint_because_positioned_on_wall(
   float_t r2 = rng_dbl(&aux_rng);
   float_t r3 = rng_dbl(&aux_rng);
 
-  Vec3 random_displacement = Vec3(SQRT_EPS * r1, SQRT_EPS * r2, SQRT_EPS * r3);
+  Vec3 random_displacement = Vec3(POS_SQRT_EPS * r1, POS_SQRT_EPS * r2, POS_SQRT_EPS * r3);
 
   waypoint.pos = waypoint.pos + random_displacement;
   if (reinitialize) {
