@@ -1552,7 +1552,8 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     const BNG::Species& species,
     const molecule_id_t sm_id,
     Vec2& remaining_displacement,
-    Vec2& new_pos
+    Vec2& new_pos,
+    BNG::RxnClass*& absorb_now_rxn_class // set to non-null is molecule has to be absorbed
 ) {
   absorb_now_rxn_class = nullptr;
 
