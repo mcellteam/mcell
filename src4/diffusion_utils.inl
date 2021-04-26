@@ -570,16 +570,20 @@ static void tiny_diffuse_3D(
   assert(vm.v.subpart_index != SUBPART_INDEX_INVALID && "Molecule must be already placed into a subvolume");
 
   const BNG::Species& species = p.get_species(vm.species_id);
-  Vec3 ignored_displacement = displacement;
+  Vec3 temp_displacement = displacement;
   subpart_index_t new_subpart_index;
   CollisionsVector collisions;
 
+  // remember original location
+  new_pos = vm.v.pos;
+
   // NOTE: can be optimized by ignoring molecule collisions
+  // changes vm.pos
   ray_trace_vol(
         p, p.aux_rng,
         vm.id, species.can_vol_react(),
         previous_reflected_wall,
-        ignored_displacement,
+        temp_displacement,
         collisions
   );
   assert(vm.v.subpart_index == p.get_subpart_index(vm.v.pos));
@@ -587,19 +591,18 @@ static void tiny_diffuse_3D(
   // sort collisions by time
   sort_collisions_by_time(collisions);
 
-  new_pos = vm.v.pos;
   Vec3 new_displacement = displacement;
   for (size_t collision_index = 0; collision_index < collisions.size(); collision_index++) {
     Collision& collision = collisions[collision_index];
 
     // stop after first collision
-    if (collision.is_wall_collision()) {
-      new_pos = collision.pos - new_pos;
-      new_displacement = displacement * Vec3(0.5);
+    if (collision.is_wall_collision() && cmp_le(collision.time, 1, EPS)) {
+      // different implementation than in MCell3
+      new_displacement = displacement * Vec3(collision.time*0.5);
     }
   }
 
-  new_pos = new_pos + displacement;
+  new_pos = new_pos + new_displacement;
 }
 
 

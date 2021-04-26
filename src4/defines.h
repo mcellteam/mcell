@@ -548,6 +548,10 @@ static inline bool cmp_lt(const float_t a, const float_t b, const float_t eps) {
   return a < b && !cmp_eq(a, b, eps);
 }
 
+static inline bool cmp_le(const float_t a, const float_t b, const float_t eps) {
+  return a < b || cmp_eq(a, b, eps);
+}
+
 static inline bool cmp_gt(const float_t a, const float_t b, const float_t eps) {
   return a > b && !cmp_eq(a, b, eps);
 }
