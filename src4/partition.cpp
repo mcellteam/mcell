@@ -358,7 +358,12 @@ void Partition::dump(const bool with_geometry) {
         get_subpart_llf_point(i, llf);
         urb = llf + Vec3(config.subpartition_edge_length);
 
-        cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n";
+        cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n  ";
+
+        for (wall_index_t wi: walls_per_subpart[i]) {
+          cout << wi << ", ";
+        }
+        cout << "\n";
       }
     }
   }

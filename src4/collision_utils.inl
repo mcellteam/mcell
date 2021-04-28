@@ -316,7 +316,7 @@ static inline void get_corner_points_for_subpart_colection(
   Vec3 vp = cross(v, move);
 
   // 3) and compute the vectors v1-v4 of length rx_radius * SQRT2
-  pos_t radius = rx_radius * SQRT2 * RX_RADIUS_MULTIPLIER;
+  pos_t radius = rx_radius * POS_SQRT2 * POS_RX_RADIUS_MULTIPLIER;
   pos_t ratio = 1/len3(v) * radius;
   pos_t ratiop = 1/len3(vp) * radius;
 
@@ -329,8 +329,8 @@ static inline void get_corner_points_for_subpart_colection(
       cmp_eq(len3(v0), radius, POS_SQRT_EPS) && cmp_eq(len3(v1), radius, POS_SQRT_EPS) &&
       cmp_eq(len3(v2), radius, POS_SQRT_EPS) && cmp_eq(len3(v3), radius, POS_SQRT_EPS));
   assert(
-      cmp_eq(dot(v0, move), 0, POS_SQRT_EPS) && cmp_eq(dot(v1, move), 0, POS_SQRT_EPS) &&
-      cmp_eq(dot(v2, move), 0, POS_SQRT_EPS) && cmp_eq(dot(v3, move), 0, POS_SQRT_EPS));
+      cmp_eq(dot(v0, move), (pos_t)0, POS_SQRT_EPS) && cmp_eq(dot(v1, move), (pos_t)0, POS_SQRT_EPS) &&
+      cmp_eq(dot(v2, move), (pos_t)0, POS_SQRT_EPS) && cmp_eq(dot(v3, move), (pos_t)0, POS_SQRT_EPS));
 
   pts[0] = pos + v0;
   pts[1] = pos + v1;
@@ -386,7 +386,7 @@ static inline void collect_crossed_subparts_orig(
   // we need to move the points a bit backwards and also forwards
   pos_t displacement_length = len3(displacement);
   Vec3 displacement_unit = displacement/Vec3(displacement_length);
-  Vec3 displacement_of_radius_length = displacement_unit * Vec3(rx_radius * SQRT2 * RX_RADIUS_MULTIPLIER);
+  Vec3 displacement_of_radius_length = displacement_unit * Vec3(rx_radius * POS_SQRT2 * POS_RX_RADIUS_MULTIPLIER);
 
   // move molecule collision detection points a bit back
   small_vector<subpart_index_t> start_subpart_indices;
@@ -897,11 +897,9 @@ restart_on_redo:
       // (we might have walls that are in the current subpart but a hit will actually occur later
       //  than a hit in another subpart)
       // this optimization does not work correctly with float32
-#if POS_T_BYTES != 4
       if (p.get_subpart_index(collision_pos) != subpart_index) {
         continue;
       }
-#endif
 
       // remember only the closest hit position
       if (collision_time < closest_hit_time) {

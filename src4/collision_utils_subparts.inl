@@ -217,8 +217,12 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
       Vec3 diff = sp_edges - curr_pos;
 
+      bool touching_x = fabs_p(diff.x) < POS_EPS;
+      bool touching_y = fabs_p(diff.y) < POS_EPS;
+      bool touching_z = fabs_p(diff.z) < POS_EPS;
+
       // first check whether we are not in fact touching one of the boundaries
-      if (fabs_p(diff.x) < POS_SQRT_EPS) {
+      if (touching_x) {
         // only update the xyz subpartition index
         curr_subpart_indices.x += dir_urb_addend.x;
         // in some cases, we can run out of partition
@@ -228,13 +232,13 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
           break;
         }
       }
-      else if (fabs_p(diff.y) < POS_SQRT_EPS) {
+      else if (touching_y) {
         curr_subpart_indices.y += dir_urb_addend.y;
         if (!p.is_subpart_index_in_range(curr_subpart_indices.y)) {
           break;
         }
       }
-      else if (fabs_p(diff.z) < POS_SQRT_EPS) {
+      else if (touching_z) {
         curr_subpart_indices.z += dir_urb_addend.z;
         if (!p.is_subpart_index_in_range(curr_subpart_indices.z)) {
           break;
