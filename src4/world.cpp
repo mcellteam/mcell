@@ -116,7 +116,8 @@ World::~World() {
 
 
 void World::init_fpu() {
-  // empty
+  // default is FE_TONEAREST but let's set it to be sure
+  fesetround(FE_TONEAREST);
 }
 
 

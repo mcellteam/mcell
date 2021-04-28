@@ -189,7 +189,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   // moving along them
   if ( !glm::all( glm::equal(dest_subpart_indices, src_subpart_indices) ) ) {
 
-    subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices(dest_subpart_indices);
+    subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices_allow_outside(dest_subpart_indices);
 
     IVec3 dir_urb_addend(
         (dir_urb_direction.x == 0) ? -1 : 1,
@@ -220,7 +220,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       // first check whether we are not in fact touching one of the boundaries
       if (fabs_p(diff.x) < POS_SQRT_EPS) {
         // only update the xyz subpartition index
-        curr_subpart_indices.x += dir_urb_addend.x;\
+        curr_subpart_indices.x += dir_urb_addend.x;
         // in some cases, we can run out of partition
         // this means that we missed the destination partition which is fine since collection of subparts
         // is only an optimization, but still we must terminate

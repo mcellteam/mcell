@@ -431,6 +431,10 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   bool was_defunct = false;
   wall_index_t last_hit_wall_index = WALL_INDEX_INVALID;
 
+  if (p.stats.get_current_iteration() >= 79 && vm_id == 4391) {
+    cout << "BKPT\n";
+  }
+
   float_t elapsed_molecule_time = diffusion_start_time; // == vm->t
   bool can_vol_react = species.can_vol_react();
   do {
@@ -457,7 +461,11 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     // evaluate and possible execute collisions and reactions
     for (Collision& collision: molecule_collisions) {
 
+#if POS_T_BYTES == 8
       assert(collision.time >= 0 && collision.time <= 1);
+#else
+      assert(collision.time >= 0 && cmp_le(collision.time, 1, (float_t)POS_SQRT_EPS));
+#endif
 
       if (collision.is_vol_mol_vol_mol_collision()) {
         p.stats.inc_vol_mol_vol_mol_collisions();
@@ -603,7 +611,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         world->fatal_error(
             "Molecule with species " + s.name + " escaped the simulation area defined by partition size.\n"
             "Diffused molecule reached position (" +
-            to_string(pos_um.x) + ", " + to_string(pos_um.y) + ", " + to_string(pos_um.z) + ")."
+            to_string(pos_um.x) + ", " + to_string(pos_um.y) + ", " + to_string(pos_um.z) + "). "
             "MCell4 requires a fixed-size simulation 3D space compared to MCell3 that allows unlimited space.\n"
             "One can create a geometry object box that keeps all molecules within a given area.\n"
             "This box can either reflect molecules (by default) or destroy the molecules with an absorptive surface class.\n"
@@ -709,7 +717,10 @@ RayTraceState ray_trace_vol(
       if (collision_found) {
         collisions.push_back(closest_collision);
         res_state = RayTraceState::RAY_TRACE_HIT_WALL;
+        // TODO: optimize/preferably remove 
+#if POS_T_BYTES != 4
         break;
+#endif
       }
     }
   }

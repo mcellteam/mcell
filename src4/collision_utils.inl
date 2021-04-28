@@ -604,8 +604,15 @@ static void jump_away_line(
   f.y = n.z * e.x - n.x * e.z;
   f.z = n.x * e.y - n.y * e.x;
 
+#if POS_T_BYTES != 4
   tiny = POS_EPS * (abs_max_2vec(p, v) + (pos_t)1.0) /
          (k * max3(glm::abs((glm_vec3_t)f)));
+#else
+  // with float32, k can be really small that would lead to 
+  // large value of 'tiny', this occurs rarely so a simple 
+  // solution is sufficient
+  tiny = POS_SQRT_EPS;
+#endif
 
   if ((rng_uint(&rng) & 1) == 0) {
     tiny = -tiny;
@@ -889,9 +896,12 @@ restart_on_redo:
       // that tells to end searching for hits in other subparts once a hit was found won't work
       // (we might have walls that are in the current subpart but a hit will actually occur later
       //  than a hit in another subpart)
+      // this optimization does not work correctly with float32
+#if POS_T_BYTES != 4
       if (p.get_subpart_index(collision_pos) != subpart_index) {
         continue;
       }
+#endif
 
       // remember only the closest hit position
       if (collision_time < closest_hit_time) {
@@ -1729,6 +1739,13 @@ static int reflect_or_periodic_bc(
   last_hit_wall_index = reflect_w;
 
   pos_t reflect_factor = (pos_t)-2.0 * glm::dot((glm_vec3_t)displacement, (glm_vec3_t)w.normal);
+
+#if POS_T_BYTES == 4
+  // need to make displacement a bit larger so that we wont end on the wall
+  if (1.0 - t_reflect < (float_t)POS_SQRT_EPS) {
+    t_reflect -= (float_t)POS_SQRT_EPS;
+  }
+#endif
 
   // Set displacement for remainder of step length
   // No PBCs or non-traditional PBCs

@@ -347,8 +347,9 @@ static int wall_in_box(
 
   /* Check if any vertex of the wall is in the box. */
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    if (point_in_box(*vert[i], llf, urb))
+    if (point_in_box(*vert[i], llf, urb)) {
       return 1;
+    }
   }
 
   /* Check if any wall edge intersects any face of the box */

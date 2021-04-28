@@ -556,6 +556,10 @@ static inline bool cmp_gt(const float_t a, const float_t b, const float_t eps) {
   return a > b && !cmp_eq(a, b, eps);
 }
 
+static inline bool cmp_ge(const float_t a, const float_t b, const float_t eps) {
+  return a > b || cmp_eq(a, b, eps);
+}
+
 static inline pos_t sqrt_p(const pos_t x) {
 #if POS_T_BYTES == 4
   return sqrtf(x);

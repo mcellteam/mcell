@@ -319,16 +319,22 @@ public:
     res = relative_position * config.subpartition_edge_length_rcp;
   }
 
+  subpart_index_t get_subpart_index_from_3d_indices_allow_outside(const IVec3& indices) const {
+    // does nto check whether we are outside the partition
+    // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
+    return
+        indices.x +
+        indices.y * config.num_subpartitions_per_partition_edge +
+        indices.z * config.num_subpartitions_per_partition_edge_squared;
+  }
+
   subpart_index_t get_subpart_index_from_3d_indices(const IVec3& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     assert(indices.x < (int)config.num_subpartitions_per_partition_edge);
     assert(indices.y < (int)config.num_subpartitions_per_partition_edge);
     assert(indices.z < (int)config.num_subpartitions_per_partition_edge);
     // this recomputation can be slow when done often, but we need subpart indices to be continuous
-    return
-        indices.x +
-        indices.y * config.num_subpartitions_per_partition_edge +
-        indices.z * config.num_subpartitions_per_partition_edge_squared;
+    return get_subpart_index_from_3d_indices_allow_outside(indices);
   }
 
   subpart_index_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
