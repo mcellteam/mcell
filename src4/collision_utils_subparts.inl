@@ -217,9 +217,9 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
       Vec3 diff = sp_edges - curr_pos;
 
-      bool touching_x = fabs_p(diff.x) < POS_EPS;
-      bool touching_y = fabs_p(diff.y) < POS_EPS;
-      bool touching_z = fabs_p(diff.z) < POS_EPS;
+      bool touching_x = fabs_p(diff.x) < POS_SQRT_EPS;
+      bool touching_y = fabs_p(diff.y) < POS_SQRT_EPS;
+      bool touching_z = fabs_p(diff.z) < POS_SQRT_EPS;
 
       // first check whether we are not in fact touching one of the boundaries
       if (touching_x) {
@@ -256,7 +256,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
         assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
             && "Subpartition 'edges' must be computed from direction, we cannot hit a subpart boundary that is behind us");
 
-        // which of the times is the smallest? - i.e. which boundary we hit first
+        // which of the times is the smallest? - i.e. which boundary we hit first (values may be negative due to flt32 imprecisions)
         if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
           // new position on the edge of the subpartition
           curr_pos += displacement * coll_times.x;

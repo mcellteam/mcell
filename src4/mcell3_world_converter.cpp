@@ -315,9 +315,9 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // check is done in MCell3 initialization code
   world->config.check_overlapped_walls = false;
 
-	// compute other constants
+  // compute other constants
+  // may change world->config.subpartition_edge_length
   world->config.init();
-  assert(cmp_eq(sp_len, world->config.subpartition_edge_length));
 
   if (world->config.rx_radius_3d * 2 * POS_SQRT2 > world->config.subpartition_edge_length) {
     mcell_error("Reaction radius multiplied by sqrt(2) %f must be less than half of subpartition edge length %f.",

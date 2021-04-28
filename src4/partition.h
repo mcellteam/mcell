@@ -213,37 +213,7 @@ public:
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
       SimulationStats& stats_
-  )
-    : origin_corner(origin_corner_),
-      next_molecule_id(0),
-      volume_molecule_reactants_per_reactant_class(config_.num_subpartitions),
-      id(id_),
-      config(config_),
-      bng_engine(bng_engine_),
-      stats(stats_) {
-
-    opposite_corner = origin_corner + config.partition_edge_length;
-
-    // check that the subpart grid goes through (0, 0, 0),
-    // (this point does not have to be contained in this partition)
-    // required for correct function of raycast_with_endpoints,
-    // round is required because values might be negative
-    Vec3 how_many_subparts_from_000 = origin_corner/Vec3(config.subpartition_edge_length);
-    release_assert(cmp_eq(round3(how_many_subparts_from_000), how_many_subparts_from_000, POS_SQRT_EPS) &&
-        "Partition is not aligned to the subpartition grid."
-    );
-
-    // pre-allocate volume_molecules arrays and also volume_molecule_indices_per_time_step
-    walls_per_subpart.resize(config.num_subpartitions);
-
-    // create an empty counted volume
-    CountedVolume counted_volume_outside_all;
-    counted_volume_index_t index = find_or_add_counted_volume(counted_volume_outside_all);
-    assert(index == COUNTED_VOLUME_INDEX_OUTSIDE_ALL && "The empty counted volume must have index 0");
-
-    rng_init(&aux_rng, 0);
-  }
-
+  );
 
   Molecule& get_m(const molecule_id_t id) {
     assert(id != MOLECULE_ID_INVALID);
