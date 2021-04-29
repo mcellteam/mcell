@@ -108,6 +108,7 @@ string Collision::to_string(const Partition& p) const {
   }
   else {
     ss << "obj name: " << p.get_geometry_object(p.get_wall(colliding_wall_index).object_index).name;
+    ss << ", wall index: " << colliding_wall_index;
     ss << ", wall side: " << p.get_wall(colliding_wall_index).side;
 #ifdef DEBUG_COUNTED_VOLUMES
     ss << ", geom obj id: " << p.get_wall(colliding_wall_index).object_id;

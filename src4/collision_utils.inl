@@ -840,7 +840,8 @@ static inline bool INLINE_ATTR get_closest_wall_collision(
     // if there was a hit, is changed to the closest displacement
     Vec3& displacement,
     Vec3& displacement_up_to_wall_collision, // overwritten only when there is a wall collision
-    Collision& closest_collision
+    Collision& closest_collision,
+    CollisionsVector& tentative_collisions // collisions encountered in other subpartitions
 ) {
 
   // optimization of the main loop
@@ -896,8 +897,12 @@ restart_on_redo:
       // that tells to end searching for hits in other subparts once a hit was found won't work
       // (we might have walls that are in the current subpart but a hit will actually occur later
       //  than a hit in another subpart)
-      // this optimization does not work correctly with float32
-      if (p.get_subpart_index(collision_pos) != subpart_index) {
+      subpart_index_t coll_subpart_index = p.get_subpart_index(collision_pos);
+      if (coll_subpart_index != subpart_index) {
+        // this optimization does not work correctly with float32
+#if POS_T_BYTES == 4
+        tentative_collisions.push_back(Collision(collision_type, &p, vm.id, collision_time, collision_pos, wall_index));
+#endif
         continue;
       }
 

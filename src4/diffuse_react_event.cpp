@@ -693,6 +693,7 @@ RayTraceState ray_trace_vol(
   // check wall collisions in the crossed subparitions,
   if (!crossed_subparts_for_walls.empty()) {
     Collision closest_collision;
+    CollisionsVector tentative_collisions;
     for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
 
       bool collision_found =
@@ -704,7 +705,8 @@ RayTraceState ray_trace_vol(
               rng,
               remaining_displacement,
               displacement_up_to_wall_collision, // may be update in case we need to 'redo' the collision detection
-              closest_collision
+              closest_collision,
+              tentative_collisions
           );
 
       // stop at first crossing because crossed_subparts_for_walls are ordered
@@ -715,6 +717,13 @@ RayTraceState ray_trace_vol(
         res_state = RayTraceState::RAY_TRACE_HIT_WALL;
         break;
       }
+    }
+    // float32 implementation may find collisions but in unexpected subpartitions,
+    // we must not ignore them - select the closes one
+    if (res_state != RayTraceState::RAY_TRACE_HIT_WALL && !tentative_collisions.empty()) {
+      sort_collisions_by_time(tentative_collisions);
+      collisions.push_back(tentative_collisions[0]);
+      res_state = RayTraceState::RAY_TRACE_HIT_WALL;
     }
   }
 
