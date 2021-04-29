@@ -840,8 +840,10 @@ static inline bool INLINE_ATTR get_closest_wall_collision(
     // if there was a hit, is changed to the closest displacement
     Vec3& displacement,
     Vec3& displacement_up_to_wall_collision, // overwritten only when there is a wall collision
-    Collision& closest_collision,
-    CollisionsVector& tentative_collisions // collisions encountered in other subpartitions
+    Collision& closest_collision
+#if POS_T_BYTES == 4
+    , CollisionsVector& tentative_collisions // collisions encountered in other subpartitions
+#endif
 ) {
 
   // optimization of the main loop

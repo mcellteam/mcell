@@ -217,6 +217,11 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
       Vec3 diff = sp_edges - curr_pos;
 
+#if POS_T_BYTES == 4
+	  pos_t dist = POS_SQRT_EPS;
+#else
+	  pos_t dist = POS_EPS;
+#endif	  
       bool touching_x = fabs_p(diff.x) < POS_SQRT_EPS;
       bool touching_y = fabs_p(diff.y) < POS_SQRT_EPS;
       bool touching_z = fabs_p(diff.z) < POS_SQRT_EPS;

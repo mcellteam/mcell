@@ -60,9 +60,11 @@ Partition::Partition(
     bng_engine(bng_engine_),
     stats(stats_) {
 
+#if POS_T_BYTES == 4
   zero_out_lowest_bits_pos(&origin_corner.x);
   zero_out_lowest_bits_pos(&origin_corner.y);
   zero_out_lowest_bits_pos(&origin_corner.z);
+#endif
 
   opposite_corner = origin_corner + config.partition_edge_length;
 
@@ -70,11 +72,10 @@ Partition::Partition(
   // (this point does not have to be contained in this partition)
   // required for correct function of raycast_with_endpoints,
   // round is required because values might be negative
-  // TODO: reenable
-  /*Vec3 how_many_subparts_from_000 = origin_corner/Vec3(config.subpartition_edge_length);
+  Vec3 how_many_subparts_from_000 = origin_corner/Vec3(config.subpartition_edge_length);
   release_assert(cmp_eq(round3(how_many_subparts_from_000), how_many_subparts_from_000, POS_SQRT_EPS) &&
       "Partition is not aligned to the subpartition grid."
-  );*/
+  );
 
   // pre-allocate volume_molecules arrays and also volume_molecule_indices_per_time_step
   walls_per_subpart.resize(config.num_subpartitions);
