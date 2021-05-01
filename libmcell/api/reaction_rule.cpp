@@ -69,7 +69,7 @@ static std::string get_rxn_side_str(
     }
   }
   else {
-    res = BNG::COMPLEX_Null;
+    res = BNG::COMPLEX_ZERO;
   }
   return res;
 }

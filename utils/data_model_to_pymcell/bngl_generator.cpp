@@ -360,7 +360,13 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
 
   check_that_only_allowed_orientations_are_set(prod_orientations, has_in_out);
   for (size_t i = 0; i < prod_substances.size(); i++) {
-    bng_out << prod_substances[i];
+    if (prod_substances[i] == VALUE_NULL) {
+      // BNGL does not allow "NULL"
+      bng_out << "0";
+    }
+    else {
+      bng_out << prod_substances[i];
+    }
     if (i != prod_substances.size() - 1) {
       bng_out << " + ";
     }
