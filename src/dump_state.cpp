@@ -126,7 +126,7 @@ std::ostream & operator<<(std::ostream &out, const viz_mode_t &a) {
   switch (a) {
     case NO_VIZ_MODE: out << "NO_VIZ_MODE"; break;
     case ASCII_MODE: out << "ASCII_MODE"; break;
-    case CELLBLENDER_MODE: out << "CELLBLENDER_MODE"; break;
+    case CELLBLENDER_MODE_V1: out << "CELLBLENDER_MODE"; break;
     default: assert(false);
   }
   return out;

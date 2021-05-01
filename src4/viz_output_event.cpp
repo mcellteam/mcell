@@ -58,16 +58,17 @@ void VizOutputEvent::dump(const std::string ind) const {
 
 void VizOutputEvent::step() {
   switch (viz_mode) {
-  case NO_VIZ_MODE:
-    break;
-  case ASCII_MODE:
-    output_ascii_molecules();
-    break;
-  case CELLBLENDER_MODE:
-    output_cellblender_molecules();
-    break;
-  default:
-    assert(false);
+    case NO_VIZ_MODE:
+      break;
+    case ASCII_MODE:
+      output_ascii_molecules();
+      break;
+    case CELLBLENDER_MODE_V1:
+    case CELLBLENDER_MODE_V2:
+      output_cellblender_molecules();
+      break;
+    default:
+      assert(false);
   }
 }
 
@@ -154,7 +155,6 @@ void VizOutputEvent::output_ascii_molecules() {
         continue;
       }
 
-
       Vec3 where;
       Vec3 norm;
       compute_where_and_norm(p, m, where, norm);
@@ -183,7 +183,8 @@ void VizOutputEvent::output_ascii_molecules() {
 
 
 void VizOutputEvent::output_cellblender_molecules() {
-  // assuming that fdlp->type == ALL_MOL_DATA
+  assert(sizeof(u_int) == sizeof(uint));
+
   FILE *custom_file = create_and_open_output_file_name();
   double length_unit = world->config.length_unit;
 
@@ -206,9 +207,8 @@ void VizOutputEvent::output_cellblender_molecules() {
   }
 
   /* Write file header */
-  assert(sizeof(u_int) == sizeof(uint));
-  uint cellbin_version = 1;
-  fwrite(&cellbin_version, sizeof(cellbin_version), 1, custom_file);
+  uint ver = (viz_mode == CELLBLENDER_MODE_V2) ? 2 : 1;
+  fwrite(&ver, sizeof(uint), 1, custom_file);
 
   /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
   for (species_id_t species_idx = 0; species_idx < world->get_all_species().get_count(); species_idx++) {
@@ -221,9 +221,15 @@ void VizOutputEvent::output_cellblender_molecules() {
     /* Write species name: */
     const BNG::Species& species = world->get_all_species().get(species_idx);
     string mol_name = species.name;
-    unsigned char name_len = mol_name.length();
-    fwrite(&name_len, sizeof(unsigned char), 1, custom_file);
-    fwrite(mol_name.c_str(), sizeof(unsigned char), name_len, custom_file);
+    if (ver == 1) {
+      unsigned char name_len = mol_name.length();
+      fwrite(&name_len, sizeof(unsigned char), 1, custom_file);
+    }
+    else {
+      uint name_len = mol_name.length();
+      fwrite(&name_len, sizeof(uint), 1, custom_file);
+    }
+    fwrite(mol_name.c_str(), sizeof(char), mol_name.length(), custom_file);
 
      /* Write species type: */
     unsigned char species_type = 0;
@@ -233,8 +239,21 @@ void VizOutputEvent::output_cellblender_molecules() {
     fwrite(&species_type, sizeof(unsigned char), 1, custom_file);
 
     /* write number of x,y,z floats for mol positions to follow: */
-    uint n_floats = 3 * species_molecules.size();
-    fwrite(&n_floats, sizeof(uint), 1, custom_file);
+    if (ver == 1) {
+      uint n_floats = 3 * species_molecules.size();
+      fwrite(&n_floats, sizeof(uint), 1, custom_file);
+    }
+    else {
+      uint n_mols = species_molecules.size();
+      fwrite(&n_mols, sizeof(uint), 1, custom_file);
+    }
+
+    /* Write molecule ids: */
+    if (ver == 2) {
+      for (const PartitionMoleculePair& partition_molecule_ptr_pair :species_molecules) {
+        fwrite(&partition_molecule_ptr_pair.second->id, sizeof(uint), 1, custom_file);
+      }
+    }
 
     /* Write positions of volume and surface molecules: */
     std::vector<Vec3> norms;

@@ -41,7 +41,16 @@ VizMode
 =======
 
 * | **ASCII** = 0
-* | **CELLBLENDER** = 1
+  | Readable molecule visualization output.
+
+* | **CELLBLENDER_V1** = 1
+  | Binary molecule visualization output used by MCell3, format v1.
+  | Allows only limited length of species name (256 chars) and 
+  | does not contain molecule IDs.
+
+* | **CELLBLENDER** = 2
+  | Binary molecule visualization output, format v2.
+
 
 Shape
 =====

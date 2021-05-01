@@ -111,13 +111,15 @@ static inline std::ostream& operator << (std::ostream& out, const WarningLevel v
 
 enum class VizMode {
   ASCII = 0,
-  CELLBLENDER = 1
+  CELLBLENDER_V1 = 1,
+  CELLBLENDER = 2
 };
 
 
 static inline std::ostream& operator << (std::ostream& out, const VizMode v) {
   switch (v) {
     case VizMode::ASCII: out << "m.VizMode.ASCII"; break;
+    case VizMode::CELLBLENDER_V1: out << "m.VizMode.CELLBLENDER_V1"; break;
     case VizMode::CELLBLENDER: out << "m.VizMode.CELLBLENDER"; break;
   }
   return out;

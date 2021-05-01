@@ -71,8 +71,9 @@ void define_pybinding_enums(py::module& m) {
     .value("WARNING", WarningLevel::WARNING)
     .value("ERROR", WarningLevel::ERROR)
     .export_values();
-  py::enum_<VizMode>(m, "VizMode", py::arithmetic(), "- ASCII\n\n- CELLBLENDER\n\n")
+  py::enum_<VizMode>(m, "VizMode", py::arithmetic(), "- ASCII: Readable molecule visualization output.\n- CELLBLENDER_V1: Binary molecule visualization output used by MCell3, format v1.\nAllows only limited length of species name (256 chars) and \ndoes not contain molecule IDs.   \n\n- CELLBLENDER: Binary molecule visualization output, format v2.\n")
     .value("ASCII", VizMode::ASCII)
+    .value("CELLBLENDER_V1", VizMode::CELLBLENDER_V1)
     .value("CELLBLENDER", VizMode::CELLBLENDER)
     .export_values();
   py::enum_<Shape>(m, "Shape", py::arithmetic(), "- UNSET\n\n- SPHERICAL\n\n- REGION_EXPR\n\n- LIST\n\n- COMPARTMENT\n\n")

@@ -51,8 +51,10 @@ static viz_mode_t convert_viz_mode(const VizMode m) {
   switch (m) {
     case VizMode::ASCII:
       return ASCII_MODE;
+    case VizMode::CELLBLENDER_V1:
+      return CELLBLENDER_MODE_V1;
     case VizMode::CELLBLENDER:
-      return CELLBLENDER_MODE;
+      return CELLBLENDER_MODE_V2;
     default:
       throw ValueError("Invalid VizMode value " + to_string((int)m) + ".");
   }

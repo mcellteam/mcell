@@ -1511,7 +1511,7 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   CHECK_PROPERTY(viz_blocks->next == nullptr);
   CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE ||
       viz_blocks->viz_mode  == ASCII_MODE ||
-      viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
+      viz_blocks->viz_mode == CELLBLENDER_MODE_V1); // just checking valid values
   viz_mode_t viz_mode = viz_blocks->viz_mode;
   // CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // ignored (for now?)
 

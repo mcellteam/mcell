@@ -2450,7 +2450,7 @@ int init_frame_data_list(struct volume *world,
       return 1;
     break;
 
-  case CELLBLENDER_MODE:
+  case CELLBLENDER_MODE_V1:
     count_time_values(world, vizblk->frame_data_head);
     if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
       return 1;
@@ -2547,7 +2547,7 @@ int update_frame_data_list(struct volume *world,
         return 1;
       break;
 
-    case CELLBLENDER_MODE:
+    case CELLBLENDER_MODE_V1:
       if (output_cellblender_molecules(world, vizblk, fdlp))
         return 1;
       break;

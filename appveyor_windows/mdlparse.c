@@ -5788,7 +5788,7 @@ yyreduce:
 
   case 571:
 #line 2215 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
-    { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE)); }
+    { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE_V1)); }
 #line 5793 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
 
@@ -5812,7 +5812,7 @@ yyreduce:
 
   case 575:
 #line 2221 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
-    { (yyval.ival) = CELLBLENDER_MODE; }
+    { (yyval.ival) = CELLBLENDER_MODE_V1; }
 #line 5817 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
 

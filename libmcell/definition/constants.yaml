@@ -146,8 +146,16 @@ enums:
     values:
     - name: ASCII
       value: 0
-    - name: CELLBLENDER
+      doc: Readable molecule visualization output.
+    - name: CELLBLENDER_V1
       value: 1
+      doc: | 
+         Binary molecule visualization output used by MCell3, format v1.
+         Allows only limited length of species name (256 chars) and 
+         does not contain molecule IDs.   
+    - name: CELLBLENDER
+      value: 2
+      doc: Binary molecule visualization output, format v2. 
       
   # other shapes are defined in in release_shape_t but only the spherical one is supported by mcell4 now
   - name: Shape

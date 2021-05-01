@@ -71,7 +71,7 @@ mcell_create_viz_output(MCELL_STATE *state, const char *filename,
   state->viz_blocks = vizblk;
 
   // Only CELLBLENDER mode is supported right now
-  vizblk->viz_mode = ascii_output ? ASCII_MODE : CELLBLENDER_MODE;
+  vizblk->viz_mode = ascii_output ? ASCII_MODE : CELLBLENDER_MODE_V1;
 
   // Set the viz output path and filename prefix
   vizblk->file_prefix_name = CHECKED_STRDUP(filename, "file_prefix_name");

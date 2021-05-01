@@ -310,6 +310,7 @@ const char* const NAME_EV_ANY = "ANY";
 const char* const NAME_EV_ASCII = "ASCII";
 const char* const NAME_EV_BRIEF = "BRIEF";
 const char* const NAME_EV_CELLBLENDER = "CELLBLENDER";
+const char* const NAME_EV_CELLBLENDER_V1 = "CELLBLENDER_V1";
 const char* const NAME_EV_COMPARTMENT = "COMPARTMENT";
 const char* const NAME_EV_CONCENTRATION_CLAMP = "CONCENTRATION_CLAMP";
 const char* const NAME_EV_DEFAULT = "DEFAULT";

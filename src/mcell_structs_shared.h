@@ -76,7 +76,8 @@ enum viz_mode_t {
   VIZ_MODE_INVALID = -1,
   NO_VIZ_MODE = 0,
   ASCII_MODE = 1,
-  CELLBLENDER_MODE = 2,
+  CELLBLENDER_MODE_V1 = 2,
+  CELLBLENDER_MODE_V2 = 3,
 };
 
 int distinguishable(double a, double b, double eps);

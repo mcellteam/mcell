@@ -116,7 +116,8 @@ class WarningLevel(Enum):
 
 class VizMode(Enum):
     ASCII = 0
-    CELLBLENDER = 1
+    CELLBLENDER_V1 = 1
+    CELLBLENDER = 2
 
 class Shape(Enum):
     UNSET = 0
