@@ -1726,22 +1726,6 @@ def capitalize_first(s):
         return s
 
 
-def gen_bind_vector(f, ind, cpp_t, py_t, base_name_override=None):
-    
-    inner = get_inner_list_type(py_t)
-    if is_yaml_list_type(inner):
-        inner2 = get_inner_list_type(inner)
-        name = 'VectorVector' + capitalize_first(inner2 if not base_name_override else base_name_override)
-    else:
-        name = 'Vector' + capitalize_first(inner if not base_name_override else base_name_override)
-        
-    if name[-1] == '*':
-        name = name[:-1]
-                    
-    f.write(ind + PY_BIND_VECTOR + '<' + cpp_t + '>(m,"' + name + '");\n')
-    f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::list, ' + cpp_t + '>();\n\n')
-
-
 def generate_vector_bindings(data_classes):
     # collect all attributes that use List
     list_types = set()
@@ -1785,11 +1769,7 @@ def generate_vector_bindings(data_classes):
         f.write('\n' + NAMESPACES_END + '\n\n')
         
         for t in sorted_list_types:
-            cpp_t = yaml_type_to_cpp_type(t, True)
-            if CPP_TYPE_DOUBLE in cpp_t:
-                f.write('// opaque double vector must be generated as float\n')
-                cpp_t = cpp_t.replace(CPP_TYPE_DOUBLE, CPP_TYPE_FLOAT)
-            f.write(PYBIND11_MAKE_OPAQUE + '(' + cpp_t + ');\n')
+            f.write(PYBIND11_MAKE_OPAQUE + '(' + yaml_type_to_cpp_type(t, True) + ');\n')
         
         f.write('\n#endif // ' + guard + '\n')
              
@@ -1816,15 +1796,20 @@ def generate_vector_bindings(data_classes):
         for t in sorted_list_types:
             cpp_t = yaml_type_to_cpp_type(t, True)
             
-            
-
-            if CPP_TYPE_DOUBLE in cpp_t:
-                gen_bind_vector(f, ind, cpp_t, t, "Double")
-                cpp_t_float = cpp_t.replace(CPP_TYPE_DOUBLE, CPP_TYPE_FLOAT)
-                gen_bind_vector(f, ind, cpp_t_float, t, "Float")
+            name = 'Vector'
+            inner = get_inner_list_type(t)
+            if is_yaml_list_type(inner):
+                inner2 = get_inner_list_type(inner)
+                name += name + capitalize_first(inner2)
             else:
-                gen_bind_vector(f, ind, cpp_t, t)
-
+                name += capitalize_first(inner)
+                
+            if name[-1] == '*':
+                name = name[:-1]
+                            
+            f.write(ind + PY_BIND_VECTOR + '<' + cpp_t + '>(m,"' + name + '");\n')
+            f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::list, ' + cpp_t + '>();\n')
+            f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::tuple, ' + cpp_t + '>();\n\n')
         
         f.write('}\n')
         f.write('\n' + NAMESPACES_END + '\n\n')
