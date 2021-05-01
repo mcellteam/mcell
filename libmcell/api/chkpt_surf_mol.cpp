@@ -35,8 +35,8 @@ namespace API {
 
 ChkptSurfMol::ChkptSurfMol(
     const MCell::Molecule& sm,
-    const IdSpeciesMap& id_species_map, const float_t time_unit,
-    const float_t length_unit,
+    const IdSpeciesMap& id_species_map, const double time_unit,
+    const double length_unit,
     const MCell::Partition& p,
     const IdGeometryObjectMap& id_geometry_object_map) :
     GEN_CHKPT_MOL_CTOR(GenChkptSurfMol, sm, id_species_map, time_unit) {

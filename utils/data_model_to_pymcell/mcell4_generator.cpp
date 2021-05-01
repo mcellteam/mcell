@@ -1086,17 +1086,17 @@ void MCell4Generator::generate_config(ostream& out) {
   Value& partitions = initialization[KEY_PARTITIONS];
 
   // choose the largest value for partition size and the smallest step
-  float_t x_start = stod(partitions[KEY_X_START].asString());
-  float_t x_end = stod(partitions[KEY_X_END].asString());
-  float_t x_step = stod(partitions[KEY_X_STEP].asString());
-  float_t y_start = stod(partitions[KEY_Y_START].asString());
-  float_t y_end = stod(partitions[KEY_Y_END].asString());
-  float_t y_step = stod(partitions[KEY_Y_STEP].asString());
-  float_t z_start = stod(partitions[KEY_Z_START].asString());
-  float_t z_end = stod(partitions[KEY_Z_END].asString());
-  float_t z_step = stod(partitions[KEY_Z_STEP].asString());
+  double x_start = stod(partitions[KEY_X_START].asString());
+  double x_end = stod(partitions[KEY_X_END].asString());
+  double x_step = stod(partitions[KEY_X_STEP].asString());
+  double y_start = stod(partitions[KEY_Y_START].asString());
+  double y_end = stod(partitions[KEY_Y_END].asString());
+  double y_step = stod(partitions[KEY_Y_STEP].asString());
+  double z_start = stod(partitions[KEY_Z_START].asString());
+  double z_end = stod(partitions[KEY_Z_END].asString());
+  double z_step = stod(partitions[KEY_Z_STEP].asString());
 
-  float_t partition_dimension;
+  double partition_dimension;
   if (!cmp_eq(x_start, -x_end) || !cmp_eq(y_start, -y_end) || !cmp_eq(y_start, -y_end) ||
       !cmp_eq(x_start, y_start) || !cmp_eq(y_start, z_start) ||
       !cmp_eq(x_end, y_end) || !cmp_eq(y_end, z_end)
@@ -1111,7 +1111,7 @@ void MCell4Generator::generate_config(ostream& out) {
   }
 
 
-  float_t partition_step;
+  double partition_step;
   if (!cmp_eq(x_step, y_step) || !cmp_eq(y_step, z_step)) {
     cout << "Message: Individual partition step sizes are different, changing the step to be the smallest of them.\n";
 

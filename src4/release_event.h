@@ -170,7 +170,7 @@ public:
     return true;
   }
 
-  float_t get_secondary_ordering_value() override {
+  double get_secondary_ordering_value() override {
     assert(actual_release_time != TIME_INVALID);
     return actual_release_time;
   }
@@ -200,7 +200,7 @@ public:
 
   ReleaseNumberMethod release_number_method; // specifies what does the release_number mean
   uint release_number; // number of molecules to release
-  float_t concentration; // or density for surface releases
+  double concentration; // or density for surface releases
 
   orientation_t orientation;
 
@@ -241,15 +241,15 @@ public:
   std::string release_pattern_name;
 
   // --- release pattern information ---
-  float_t delay;
+  double delay;
   int number_of_trains; // -1 means that the number of trains is unlimited
-  float_t train_interval;
-  float_t train_duration;
-  float_t release_interval;
+  double train_interval;
+  double train_duration;
+  double release_interval;
 
 
 private:
-  float_t actual_release_time;
+  double actual_release_time;
 
   // both values are initialized to 0 and counted from 0
   int current_train_from_0;
@@ -295,7 +295,7 @@ private:
   void schedule_for_immediate_diffusion_if_needed(
       const molecule_id_t id, const WallTileIndexPair& where_released = WallTileIndexPair());
 
-  float_t get_release_delay_time() const {
+  double get_release_delay_time() const {
     if (cmp_eq(actual_release_time, event_time)) {
       return 0; // same as event time
     }
@@ -334,7 +334,7 @@ private:
 
 
 // utilities used also from ConcentrationClampReleaseEvent
-size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, float_t val);
+size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, double val);
 void dump_cumm_area_and_pwall_index_pairs(
     const std::vector<CummAreaPWallIndexPair>& cumm_area_and_pwall_index_pairs, const std::string ind);
 

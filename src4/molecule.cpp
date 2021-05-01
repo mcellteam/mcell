@@ -97,7 +97,7 @@ void Molecule::dump(
     const string extra_comment,
     const string ind,
     const uint64_t iteration,
-    const float_t time,
+    const double time,
     const bool print_position,
     const bool print_flags
 ) const {

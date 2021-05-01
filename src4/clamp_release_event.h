@@ -71,9 +71,9 @@ public:
   ClampType type; // used only when converting to data model
   species_id_t species_id;
   species_id_t surf_class_species_id;
-  float_t concentration;
+  double concentration;
   orientation_t orientation;
-  float_t scaling_factor;
+  double scaling_factor;
 
   std::vector<CummAreaPWallIndexPair> cumm_area_and_pwall_index_pairs;
 

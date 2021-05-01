@@ -40,12 +40,12 @@ class Partition;
 class Molecule;
 
 // we are executing diffusion every iteration, do not change this constant
-const float_t DIFFUSE_REACT_EVENT_PERIODICITY = 1.0;
+const double DIFFUSE_REACT_EVENT_PERIODICITY = 1.0;
 
 // this is an arbitrary value but let's say that we do now want to
 // simulate more than 100 iterations at once, this is used in scheduler
 // to find the next barrier
-const float_t DIFFUSION_TIME_UPPER_LIMIT = 100.0;
+const double DIFFUSION_TIME_UPPER_LIMIT = 100.0;
 
 enum class RayTraceState {
   // TODO: use UpperCase
@@ -147,11 +147,11 @@ public:
     return true;
   }
 
-  float_t get_max_time_up_to_next_barrier() const override {
+  double get_max_time_up_to_next_barrier() const override {
     return DIFFUSION_TIME_UPPER_LIMIT;
   }
 
-  void set_barrier_time_for_next_execution(const float_t time_up_to_next_barrier_) override {
+  void set_barrier_time_for_next_execution(const double time_up_to_next_barrier_) override {
     // scheduler says to this event for how long it can execute
     // either the maximum time step (periodicity_interval) or time up to the
     // first barrier
@@ -165,7 +165,7 @@ public:
     new_diffuse_actions.push_back(action);
   }
 
-  bool before_this_iterations_end(const float_t time) const {
+  bool before_this_iterations_end(const double time) const {
     return cmp_lt(time, event_time + periodicity_interval, EPS);
   }
 
@@ -174,7 +174,7 @@ public:
   bool outcome_unimolecular(
       Partition& p,
       Molecule& vm,
-      const float_t scheduled_time,
+      const double scheduled_time,
       BNG::RxnClass* rxn_class,
       const rxn_class_pathway_index_t pathway_index,
       MoleculeIdsVector* optional_product_ids = nullptr
@@ -186,15 +186,15 @@ public:
       const Collision& collision,
       Molecule& vm, // moves vm to the reflection point
       Vec3& remaining_displacement,
-      float_t& t_steps,
-      float_t& elapsed_molecule_time,
+      double& t_steps,
+      double& elapsed_molecule_time,
       wall_index_t& last_hit_wall_index
   );
 
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
-  float_t time_up_to_next_barrier;
+  double time_up_to_next_barrier;
 
 private:
   // auxiliary array used to store result from Partition::get_molecules_ready_for_diffusion
@@ -204,14 +204,13 @@ private:
   // internal event's schedule of molecules newly created in reactions that must be diffused
   std::vector<DiffuseAction> new_diffuse_actions;
 
-  float_t get_max_time(Partition& p, const molecule_id_t m_id);
+  double get_max_time(Partition& p, const molecule_id_t m_id);
 
   void diffuse_molecules(Partition& p, const MoleculeIdsVector& indices);
 
   void diffuse_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      //const float_t diffusion_start_time,
       WallTileIndexPair where_created_this_iteration
   );
 
@@ -219,8 +218,8 @@ private:
   void diffuse_vol_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      float_t& max_time,
-      const float_t diffusion_start_time,
+      double& max_time,
+      const double diffusion_start_time,
       WallTileIndexPair& where_created_this_iteration
   );
 
@@ -228,28 +227,28 @@ private:
       Partition& p,
       const Collision& collision,
       Vec3& displacement,
-      const float_t t_steps,
-      const float_t r_rate_factor,
-      const float_t elapsed_molecule_time
+      const double t_steps,
+      const double r_rate_factor,
+      const double elapsed_molecule_time
   );
 
   int collide_and_react_with_surf_mol(
       Partition& p,
       const Collision& collision,
-      const float_t r_rate_factor,
+      const double r_rate_factor,
       WallTileIndexPair& where_created_this_iteration,
       wall_index_t& last_hit_wall_index,
       Vec3& remaining_displacement,
-      float_t& t_steps,
-      float_t& elapsed_molecule_time
+      double& t_steps,
+      double& elapsed_molecule_time
   );
 
   WallRxnResult collide_and_react_with_walls(
       Partition& p,
       Collision& collision,
-      const float_t r_rate_factor,
-      const float_t elapsed_molecule_time,
-      const float_t t_steps
+      const double r_rate_factor,
+      const double elapsed_molecule_time,
+      const double t_steps
   );
 
   // ---------------------------------- surface molecules ----------------------------------
@@ -257,8 +256,8 @@ private:
   void diffuse_surf_molecule(
       Partition& p,
       const molecule_id_t sm_id,
-      float_t& max_time,
-      const float_t diffusion_start_time
+      double& max_time,
+      const double diffusion_start_time
   );
 
   wall_index_t ray_trace_surf(
@@ -273,13 +272,13 @@ private:
   bool react_2D_all_neighbors(
       Partition& p,
       Molecule& sm,
-      const float_t time, // same argument as t passed in mcell3 (come up with a better name)
-      const float_t diffusion_start_time // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
+      const double time, // same argument as t passed in mcell3 (come up with a better name)
+      const double diffusion_start_time // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
   );
 
   bool react_2D_intermembrane(
       Partition& p, Molecule& sm,
-      const float_t t_steps, const float_t diffusion_start_time
+      const double t_steps, const double diffusion_start_time
   );
 
   // ---------------------------------- reactions ----------------------------------
@@ -300,7 +299,7 @@ private:
       Partition& p,
       const Collision& collision,
       const int path,
-      const float_t remaining_time_step
+      const double remaining_time_step
   );
 
   int outcome_intersect(
@@ -308,14 +307,14 @@ private:
       BNG::RxnClass* rxn_class,
       const rxn_class_pathway_index_t pathway_index,
       Collision& collision,
-      const float_t time
+      const double time
   );
 
 
   void handle_rxn_callback(
       Partition& p,
       const Collision& collision,
-      const float_t time,
+      const double time,
       const BNG::RxnRule* rxn,
       const Molecule* reac1,
       const Molecule* reac2,
@@ -330,7 +329,7 @@ private:
   int outcome_products_random(
       Partition& p,
       const Collision& collision,
-      const float_t remaining_time_step,
+      const double remaining_time_step,
       const rxn_class_pathway_index_t pathway_index,
       bool& keep_reacA,
       bool& keep_reacB,
@@ -339,7 +338,7 @@ private:
 
   void pick_unimol_rxn_class_and_set_rxn_time(
       Partition& p,
-      const float_t remaining_time_step,
+      const double remaining_time_step,
       Molecule& vm
   );
 

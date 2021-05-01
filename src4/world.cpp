@@ -73,7 +73,7 @@ static double tosecs(timeval& t) {
 }
 
 
-static void print_periodic_stats_func(float_t time, World* world) {
+static void print_periodic_stats_func(double time, World* world) {
   release_assert(world != nullptr);
   world->print_periodic_stats();
 }
@@ -163,7 +163,7 @@ void World::init_counted_volumes() {
 }
 
 
-static float_t get_event_start_time(const float_t start_time, const float_t periodicity) {
+static double get_event_start_time(const double start_time, const double periodicity) {
   if (periodicity == 0) {
     return 0;
   }
@@ -247,7 +247,7 @@ void World::check_checkpointing_signal() {
 }
 
 
-void World::init_simulation(const float_t start_time) {
+void World::init_simulation(const double start_time) {
 
   release_assert((int)start_time == start_time && "Iterations start time must be an integer.");
 
@@ -370,7 +370,7 @@ void World::init_simulation(const float_t start_time) {
 }
 
 
-uint64_t World::time_to_iteration(const float_t time) {
+uint64_t World::time_to_iteration(const double time) {
   return (uint64_t)(time - config.get_simulation_start_time()) + config.initial_iteration;
 }
 
@@ -401,7 +401,7 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
     check_checkpointing_signal();
 
     // current_iteration corresponds to the number of executed time steps
-    float_t time = scheduler.get_next_event_time();
+    double time = scheduler.get_next_event_time();
 
     // convert time to iteration
     current_iteration = time_to_iteration(time);
@@ -810,12 +810,12 @@ std::string World::export_to_bngl(const std::string& file_name) const {
   }
   const GeometryObject& obj = p.get_geometry_objects()[0];
 
-  float_t volume_internal_units = CountedVolumeUtils::get_geometry_object_volume(this, obj);
+  double volume_internal_units = CountedVolumeUtils::get_geometry_object_volume(this, obj);
   if (volume_internal_units == FLT_INVALID) {
     return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
   }
 
-  float_t volume = volume_internal_units * pow(config.length_unit, 3);
+  double volume = volume_internal_units * pow(config.length_unit, 3);
 
   stringstream parameters;
   stringstream molecule_types;

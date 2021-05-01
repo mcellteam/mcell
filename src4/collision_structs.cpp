@@ -53,7 +53,7 @@ void Collision::dump(Partition& p, const std::string ind) const {
     cout << ind << "colliding_wall_index: " << colliding_wall_index << "\n";
   }
 
-  cout << "time: \t\t" << time << " [float_t] \t\t\n";
+  cout << "time: \t\t" << time << " [double] \t\t\n";
   cout << "position: \t\t" << pos << " [vec3_t] \t\t\n";
 }
 
@@ -61,7 +61,7 @@ void Collision::dump(
     const Partition& p,
     const std::string extra_comment,
     const uint64_t iteration,
-    float_t time_override
+    double time_override
 ) const {
 
   cout << extra_comment << "it:" << iteration << ", ";

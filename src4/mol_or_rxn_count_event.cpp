@@ -616,7 +616,7 @@ void MolOrRxnCountEvent::step() {
 }
 
 
-float_t MolOrRxnCountEvent::get_single_count_value() {
+double MolOrRxnCountEvent::get_single_count_value() {
   CountItemVector count_items;
 
   compute_counts(count_items);

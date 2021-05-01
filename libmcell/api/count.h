@@ -71,7 +71,7 @@ public:
     }
   }
 
-  float_t get_current_value() override;
+  double get_current_value() override;
 
   std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override {
     // we need to overwrite the current value for export however we do not want to change it

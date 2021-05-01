@@ -38,11 +38,11 @@ namespace MCell {
 
 // we should represent the time interval with a precisely
 // represented floating point value
-const float_t BUCKET_TIME_INTERVAL = 1;
+const double BUCKET_TIME_INTERVAL = 1;
 
 class Bucket {
 public:
-  Bucket(float_t start_time_) :
+  Bucket(double start_time_) :
     start_time(start_time_) {
   }
   ~Bucket();
@@ -50,7 +50,7 @@ public:
 
   void dump() const;
 
-  float_t start_time;
+  double start_time;
   std::list<BaseEvent*> events;
 };
 
@@ -70,7 +70,7 @@ public:
   }
 
   void insert(BaseEvent* event);
-  float_t get_next_time();
+  double get_next_time();
   BaseEvent* pop_next();
 
   void dump() const;
@@ -82,7 +82,7 @@ public:
   void get_all_events_with_type_index(
       const event_type_index_t event_type_index, std::vector<const BaseEvent*>& events) const;
 
-  float_t get_time_up_to_next_barrier(const float_t current_time, const float_t max_time_step) const;
+  double get_time_up_to_next_barrier(const double current_time, const double max_time_step) const;
 
   void print_periodic_stats() const {
     std::cout << "Calendar: queue.size() = " << queue.size() << "\n";
@@ -91,17 +91,17 @@ public:
 private:
   // differs from get_next_time - does not clear empty buckets
   // and returns bucket start time, not the next event time
-  float_t get_first_bucket_start_time() {
+  double get_first_bucket_start_time() {
     assert(queue.size() != 0);
     return queue.front().start_time;
   }
 
-  float_t event_time_to_bucket_start_time(const float_t time) {
+  double event_time_to_bucket_start_time(const double time) {
     // flooring to a multiple of BUCKET_TIME_INTERVAL
     return floor_to_multiple_f(time, BUCKET_TIME_INTERVAL);
   }
 
-  BucketDeque::iterator get_or_create_bucket(const float_t time);
+  BucketDeque::iterator get_or_create_bucket(const double time);
 
   void clear_empty_buckets();
 
@@ -112,10 +112,10 @@ private:
 // Structure used to return information about the event that was just handled
 struct EventExecutionInfo {
   EventExecutionInfo(
-      const float_t time_, const event_type_index_t type_index_, const bool return_from_run_iterations_) :
+      const double time_, const event_type_index_t type_index_, const bool return_from_run_iterations_) :
       time(time_), type_index(type_index_), return_from_run_iterations(return_from_run_iterations_) {
   }
-  float_t time;
+  double time;
   event_type_index_t type_index;
   bool return_from_run_iterations;
 };
@@ -141,14 +141,14 @@ public:
   void schedule_event_asynchronously(BaseEvent* event);
 
   // returns the time of next event
-  float_t get_next_event_time(const bool skip_async_events_check = false);
+  double get_next_event_time(const bool skip_async_events_check = false);
 
   // returns time of the event that was handled
   EventExecutionInfo handle_next_event();
 
   // skip events for checkpointing,
   // may take long time if periodic events are scheduled
-  void skip_events_up_to_time(const float_t start_time);
+  void skip_events_up_to_time(const double start_time);
 
   void dump() const;
 

@@ -365,14 +365,12 @@ const char* const RELEASE_PATTERN_PREFIX = "release_pattern_";
 
 namespace DMUtils {
 
-using BNGCommon::float_t;
-
 static inline void add_version(Json::Value& node, const char* ver) {
   node[KEY_DATA_MODEL_VERSION] = ver;
 }
 
 
-static inline void append_triplet(Json::Value& list, const float_t x, const float_t y, const float_t z) {
+static inline void append_triplet(Json::Value& list, const double x, const double y, const double z) {
   Json::Value list_triplet;
   list_triplet.append(Json::Value(x));
   list_triplet.append(Json::Value(y));

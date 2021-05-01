@@ -66,11 +66,11 @@ public:
     return wall_index;
   }
 
-  float_t time;
-  virtual void set_time(const float_t new_time_) {
+  double time;
+  virtual void set_time(const double new_time_) {
     time = new_time_;
   }
-  virtual float_t get_time() const {
+  virtual double get_time() const {
     return time;
   }
 
@@ -82,11 +82,11 @@ public:
     return pos3d;
   }
 
-  float_t time_before_hit;
-  virtual void set_time_before_hit(const float_t new_time_before_hit_) {
+  double time_before_hit;
+  virtual void set_time_before_hit(const double new_time_before_hit_) {
     time_before_hit = new_time_before_hit_;
   }
-  virtual float_t get_time_before_hit() const {
+  virtual double get_time_before_hit() const {
     return time_before_hit;
   }
 

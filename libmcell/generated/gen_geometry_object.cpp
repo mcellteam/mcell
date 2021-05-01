@@ -63,7 +63,7 @@ void GenGeometryObject::set_initialized() {
 void GenGeometryObject::set_all_attributes_as_default_or_unset() {
   class_name = "GeometryObject";
   name = STR_UNSET;
-  vertex_list = std::vector<std::vector<float_t>>();
+  vertex_list = std::vector<std::vector<double>>();
   wall_list = std::vector<std::vector<int>>();
   is_bngl_compartment = false;
   surface_compartment_name = STR_UNSET;
@@ -187,7 +187,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const std::vector<std::vector<float_t>>,
+            const std::vector<std::vector<double>>,
             const std::vector<std::vector<int>>,
             const bool,
             const std::string&,

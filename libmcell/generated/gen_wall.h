@@ -103,8 +103,8 @@ public:
     return vertices;
   }
 
-  float_t area;
-  virtual void set_area(const float_t new_area_) {
+  double area;
+  virtual void set_area(const double new_area_) {
     if (initialized) {
       throw RuntimeError("Value 'area' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -112,7 +112,7 @@ public:
     cached_data_are_uptodate = false;
     area = new_area_;
   }
-  virtual float_t get_area() const {
+  virtual double get_area() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return area;
   }

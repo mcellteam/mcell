@@ -112,7 +112,7 @@ void gen_vectors_bind(py::module& m){
   py::implicitly_convertible<py::list, std::vector<std::shared_ptr<MCell::API::VizOutput>>>();
 
   py::bind_vector<std::vector<double>>(m,"VectorDouble");
-  py::implicitly_convertible<py::list, std::vector<double>>();
+  //py::implicitly_convertible<py::list, std::vector<double>>();
 
   py::bind_vector<std::vector<float>>(m,"VectorFloat");
   py::implicitly_convertible<py::list, std::vector<float>>();

@@ -36,7 +36,7 @@ const int STATE_UNSET_INT = -1;
 const int BOND_UNBOUND = -1;
 const int BOND_BOUND = -2;
 const int BOND_ANY = -3;
-const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
+const double PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const int DEFAULT_COUNT_BUFFER_SIZE = 100;
 const std::string ALL_MOLECULES = "ALL_MOLECULES";
 const std::string ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
@@ -47,9 +47,9 @@ const int DEFAULT_SEED_DIR_DIGITS = 5;
 const std::string DEFAULT_ITERATION_DIR_PREFIX = "it_";
 const int ID_INVALID = -1;
 const int NUMBER_OF_TRAINS_UNLIMITED = -1;
-const float_t TIME_INFINITY = 1e140;
+const double TIME_INFINITY = 1e140;
 const int INT_UNSET = INT32_MAX;
-const float_t FLT_UNSET = FLT_MAX;
+const double FLT_UNSET = FLT_MAX;
 const int RNG_SIZE = 256;
 
 enum class Orientation {

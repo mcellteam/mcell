@@ -572,7 +572,7 @@ bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point) {
 #endif
 
 
-static float_t is_watertight(vtkSmartPointer<vtkPolyData> polydata) {
+static double is_watertight(vtkSmartPointer<vtkPolyData> polydata) {
   // check if the object is watertight,
   // based on https://lorensen.github.io/VTKExamples/site/Cxx/Meshes/BoundaryEdges/
   vtkSmartPointer<vtkFeatureEdges> featureEdges =
@@ -590,7 +590,7 @@ static float_t is_watertight(vtkSmartPointer<vtkPolyData> polydata) {
 
 // auxiliary function to compute volume, not related to counted volumes but uses VTK
 // returns FLT_INVALID if the object is not watertight
-float_t get_geometry_object_volume(const World* world, const GeometryObject& obj) {
+double get_geometry_object_volume(const World* world, const GeometryObject& obj) {
   vtkSmartPointer<vtkPolyData> polydata = convert_geometry_object_to_polydata(world, obj);
 
   if (!is_watertight(polydata)) {

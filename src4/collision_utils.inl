@@ -1726,7 +1726,7 @@ static int reflect_or_periodic_bc(
     const Collision& collision,
     Molecule& vm, // moves vm to the reflection point
     Vec3& displacement,
-    float_t& remaining_time_step, // same as t_steps
+    double& remaining_time_step, // same as t_steps
     wall_index_t& last_hit_wall_index
 ) {
 
@@ -1747,8 +1747,8 @@ static int reflect_or_periodic_bc(
 
 #if POS_T_BYTES == 4
   // need to make displacement a bit larger so that we wont end on the wall
-  if (1.0 - t_reflect < (float_t)POS_SQRT_EPS) {
-    t_reflect -= (float_t)POS_SQRT_EPS;
+  if (1.0 - t_reflect < (double)POS_SQRT_EPS) {
+    t_reflect -= (double)POS_SQRT_EPS;
   }
 #endif
 

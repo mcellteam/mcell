@@ -66,7 +66,7 @@ std::string Observables::get_first_viz_output_files_prefix(const char* method_na
 void Observables::load_bngl_observables(
     const std::string& file_name,
     const std::string& output_files_prefix,
-    const std::map<std::string, float_t>& parameter_overrides) {
+    const std::map<std::string, double>& parameter_overrides) {
   BNG::BNGData bng_data;
 
   int num_errors = BNG::parse_bngl_file(file_name, bng_data, parameter_overrides);

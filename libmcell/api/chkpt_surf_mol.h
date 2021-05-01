@@ -41,8 +41,8 @@ public:
 
   ChkptSurfMol(
       const MCell::Molecule& sm,
-      const IdSpeciesMap& id_species_map, const float_t time_unit,
-      const float_t length_unit,
+      const IdSpeciesMap& id_species_map, const double time_unit,
+      const double length_unit,
       const MCell::Partition& p,
       const IdGeometryObjectMap& id_geometry_object_map
   );

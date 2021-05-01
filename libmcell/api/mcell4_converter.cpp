@@ -788,7 +788,7 @@ void MCell4Converter::convert_initial_surface_releases(
     }
     else if (is_set(api_rel->density)) {
       mcell_releases.push_back(
-          InitialRegionMolecules(species_id, orientation, false, (float_t)api_rel->density)
+          InitialRegionMolecules(species_id, orientation, false, (double)api_rel->density)
       );
     }
     else {

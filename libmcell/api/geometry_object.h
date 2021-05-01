@@ -97,7 +97,7 @@ public:
     }
   }
 
-  void translate(const std::vector<float_t> move) override {
+  void translate(const std::vector<double> move) override {
     if (move.size() != 3) {
       throw ValueError(S("Argument ") + NAME_MOVE + " must be a list containing exactly 3 floats.");
     }

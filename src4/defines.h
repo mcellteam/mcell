@@ -55,6 +55,10 @@
 #include <boost/container/flat_set.hpp>
 #endif
 
+/*namespace MCell {
+typedef double float_t;
+}*/
+
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
 
@@ -100,7 +104,6 @@ namespace MCell {
 // import shared declarations from BNG into our own namespace
 using BNGCommon::f_to_str;
 
-using BNGCommon::float_t;
 using BNGCommon::EPS;
 using BNGCommon::SQRT_EPS;
 using BNGCommon::FLT_GIGANTIC;
@@ -124,7 +127,7 @@ using BNGCommon::pow_f;
 using BNGCommon::floor_f;
 using BNGCommon::round_f;
 
-const float_t MIN_WALL_GAP = 1e-4; // 1 angstrom
+const double MIN_WALL_GAP = 1e-4; // 1 angstrom
 
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) || defined(unlikely)
@@ -141,9 +144,9 @@ const float_t MIN_WALL_GAP = 1e-4; // 1 angstrom
 
 // ---------------------------------- float types ----------------------------------
 
-const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
+const double SCHEDULER_COMPARISON_EPS = 1e-10;
 
-const float_t MESH_DISTINCTIVE_EPS = EPS;
+const double MESH_DISTINCTIVE_EPS = EPS;
 
 // ---------------------------------- configurable constants----------------------------------
 
@@ -165,9 +168,9 @@ const uint MAX_SUBPARTS_PER_PARTITION = 300;
 const pos_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 const pos_t LENGTH_INVALID = FLT_MAX;
 
-const float_t TIME_INVALID = -256;
-const float_t TIME_FOREVER = 1e20; // based on MCell3
-const float_t TIME_SIMULATION_START = 0;
+const double TIME_INVALID = -256;
+const double TIME_FOREVER = 1e20; // based on MCell3
+const double TIME_SIMULATION_START = 0;
 
 const pos_t POS_SQRT2 = 1.41421356238;
 const pos_t POS_RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
@@ -395,7 +398,7 @@ struct Vec3: public glm_vec3_t {
   Vec3(const vector3& a) { x = a.x; y = a.y; z = a.z; }
   Vec3(const pos_t x_, const pos_t y_, const pos_t z_) { x = x_; y = y_; z = z_; }
   Vec3(const pos_t xyz) { x = xyz; y = xyz; z = xyz; }
-  Vec3(const std::vector<float_t>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
+  Vec3(const std::vector<double>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
 #if POS_T_BYTES == 4
   Vec3(const std::vector<pos_t>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
 #endif
@@ -415,7 +418,7 @@ struct Vec2: public glm_vec2_t {
   Vec2(const vector2& a) { x = a.u; y = a.v; }
   Vec2(const pos_t x_, const pos_t y_) { x = x_; y = y_; }
   Vec2(const pos_t xy) { x = xy; y = xy; }
-  Vec2(const std::vector<float_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
+  Vec2(const std::vector<double>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
 #if POS_T_BYTES == 4
   Vec2(const std::vector<pos_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
 #endif
@@ -441,12 +444,12 @@ static inline std::ostream & operator<<(std::ostream &out, const Vec2& a) {
 
 // ---------------------------------- auxiliary functions ----------------------------------
 
-static inline float_t log_f(const float_t x) {
+static inline double log_f(const double x) {
   assert(x != 0);
   return log(x);
 }
 
-static inline float_t log_p(const pos_t x) {
+static inline pos_t log_p(const pos_t x) {
   assert(x != 0);
 #if POS_T_BYTES == 4
   return logf(x);
@@ -455,15 +458,15 @@ static inline float_t log_p(const pos_t x) {
 #endif
 }
 
-static inline float_t exp_f(const float_t x) {
+static inline double exp_f(const double x) {
   return exp(x);
 }
 
-static inline float_t ceil_f(const float_t x) {
+static inline double ceil_f(const double x) {
   return ceil(x);
 }
 
-static inline float_t ceil_p(const pos_t x) {
+static inline double ceil_p(const pos_t x) {
 #if POS_T_BYTES == 8
   return ceil(x);
 #else
@@ -480,10 +483,10 @@ static inline pos_t fabs_p(const pos_t x) {
   }
 }
 
-static inline float_t floor_to_multiple_f(const float_t val, float_t multiple) {
+static inline double floor_to_multiple_f(const double val, double multiple) {
   assert(val >= 0);
   assert(multiple > 0);
-  return (float_t)((int)((val + EPS)/ multiple)) * multiple;
+  return (double)((int)((val + EPS)/ multiple)) * multiple;
 }
 
 static inline pos_t floor_to_multiple_p(const pos_t val, pos_t multiple) {
@@ -492,14 +495,14 @@ static inline pos_t floor_to_multiple_p(const pos_t val, pos_t multiple) {
   return (pos_t)((int)((val + EPS)/ multiple)) * multiple;
 }
 
-static inline float_t floor_to_multiple_allow_negative_p(const float_t val, pos_t multiple) {
+static inline double floor_to_multiple_allow_negative_p(const double val, pos_t multiple) {
   if (val >= 0) {
-    return (float_t)((int)((val + EPS)/ multiple)) * multiple;
+    return (double)((int)((val + EPS)/ multiple)) * multiple;
   }
   else {
     // we need to floor towards the lower negative value, the code above would
     // ceil the value for negative inputs
-    return (float_t)((int)((val + EPS - multiple)/ multiple)) * multiple;
+    return (double)((int)((val + EPS - multiple)/ multiple)) * multiple;
   }
 }
 
@@ -511,9 +514,9 @@ static inline Vec3 floor_to_multiple_allow_negative_p(const Vec3& val, const pos
   return res;
 }
 
-static inline float_t ceil_to_multiple_p(const float_t val, const pos_t multiple) {
+static inline double ceil_to_multiple_p(const double val, const pos_t multiple) {
   assert(val >= 0);
-  float_t res = floor_to_multiple_p(val, multiple);
+  double res = floor_to_multiple_p(val, multiple);
   if (!cmp_eq(val, res)) {
     res += multiple;
   }
@@ -544,19 +547,19 @@ static inline bool cmp_eq(const Vec2& a, const Vec2& b) {
   return cmp_eq(a, b, EPS);
 }
 
-static inline bool cmp_lt(const float_t a, const float_t b, const float_t eps) {
+static inline bool cmp_lt(const double a, const double b, const double eps) {
   return a < b && !cmp_eq(a, b, eps);
 }
 
-static inline bool cmp_le(const float_t a, const float_t b, const float_t eps) {
+static inline bool cmp_le(const double a, const double b, const double eps) {
   return a < b || cmp_eq(a, b, eps);
 }
 
-static inline bool cmp_gt(const float_t a, const float_t b, const float_t eps) {
+static inline bool cmp_gt(const double a, const double b, const double eps) {
   return a > b && !cmp_eq(a, b, eps);
 }
 
-static inline bool cmp_ge(const float_t a, const float_t b, const float_t eps) {
+static inline bool cmp_ge(const double a, const double b, const double eps) {
   return a > b || cmp_eq(a, b, eps);
 }
 
@@ -836,7 +839,7 @@ public:
     diffuse_3d_calls++;
   }
 
-  void inc_diffusion_cummtime(const float_t steps) {
+  void inc_diffusion_cummtime(const double steps) {
     diffusion_number++;
     diffusion_cummtime += steps; // this is a bit weird, steps are not time
   }
@@ -891,7 +894,7 @@ private:
   uint64_t diffuse_3d_calls;
 
   uint64_t diffusion_number;
-  float_t diffusion_cummtime;
+  double diffusion_cummtime;
 };
 
 } // namespace mcell

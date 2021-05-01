@@ -96,7 +96,7 @@ const void* const PTR_UNSET = nullptr;
 const std::string INTROSPECTED_OBJECT = "introspected object";
 
 // specialization for each type
-static inline bool is_set(const float_t a) {
+static inline bool is_set(const double a) {
   return a != FLT_UNSET;
 }
 static inline bool is_set(const int a) {

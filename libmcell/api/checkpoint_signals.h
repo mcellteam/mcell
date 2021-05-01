@@ -47,7 +47,7 @@ void set_checkpoint_signals(Model* model);
 void unset_checkpoint_signals(Model* model);
 
 // called from CustomFunctionCallEvent
-void save_checkpoint_func(const float_t time, CheckpointSaveEventContext ctx);
+void save_checkpoint_func(const double time, CheckpointSaveEventContext ctx);
 
 } // namespace API
 } // namespace MCell

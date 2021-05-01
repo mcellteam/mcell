@@ -78,7 +78,7 @@ static std::string get_rxn_side_str(
 static std::string get_rxn_str(
     const std::vector<std::shared_ptr<Complex>>& reactants,
     const std::vector<std::shared_ptr<Complex>>& products,
-    const float_t rev_rate,
+    const double rev_rate,
     bool canonical) {
 
   string res;
@@ -123,7 +123,7 @@ std::string ReactionRule::get_canonical_name() const {
 }
 
 
-void ReactionRule::update_reaction_rate(const BNG::rxn_rule_id_t rxn_rule_id, const float_t new_rate) {
+void ReactionRule::update_reaction_rate(const BNG::rxn_rule_id_t rxn_rule_id, const double new_rate) {
   assert(is_initialized());
 
   if (world->scheduler.get_event_being_executed() != nullptr) {
@@ -138,7 +138,7 @@ void ReactionRule::update_reaction_rate(const BNG::rxn_rule_id_t rxn_rule_id, co
 }
 
 
-void ReactionRule::set_fwd_rate(const float_t new_fwd_rate_) {
+void ReactionRule::set_fwd_rate(const double new_fwd_rate_) {
   if (!is_set(new_fwd_rate_)) {
     throw ValueError(S("Attribute ") + NAME_FWD_RATE + " must be set to a different value than " +
         NAME_CV_FLT_UNSET + ".");
@@ -156,7 +156,7 @@ void ReactionRule::set_fwd_rate(const float_t new_fwd_rate_) {
 }
 
 
-void ReactionRule::set_rev_rate(const float_t new_rev_rate_) {
+void ReactionRule::set_rev_rate(const double new_rev_rate_) {
   if (is_initialized()) {
     // TODO: add test
     if (is_set(rev_rate) && !is_set(new_rev_rate_)) {
@@ -177,7 +177,7 @@ void ReactionRule::set_rev_rate(const float_t new_rev_rate_) {
 }
 
 
-void ReactionRule::set_variable_rate(const std::vector<std::vector<float_t>> new_variable_rate_) {
+void ReactionRule::set_variable_rate(const std::vector<std::vector<double>> new_variable_rate_) {
   if (initialized) {
     throw RuntimeError("Value 'variable_rate' of object with name " + name + " (class " + class_name + ") "
                        "cannot be set after model was initialized.");

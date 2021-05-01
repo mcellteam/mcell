@@ -80,12 +80,12 @@ void Bucket::dump() const {
 void Calendar::insert(BaseEvent* event) {
   // align time to multiple of one if the value is close to it
   // required for example for custom time step where 0.1 * 10 must be equal to 1
-  float_t rounded_time = round_f(event->event_time);
+  double rounded_time = round_f(event->event_time);
   if (cmp_eq(round_f(event->event_time), event->event_time, SCHEDULER_COMPARISON_EPS)) {
     event->event_time = rounded_time;
   }
 
-  float_t bucket_start_time = event_time_to_bucket_start_time(event->event_time);
+  double bucket_start_time = event_time_to_bucket_start_time(event->event_time);
   if (queue.empty()) {
     // no items yet - simply create new bucket and insert our event there
     queue.push_back( Bucket(bucket_start_time) );
@@ -93,7 +93,7 @@ void Calendar::insert(BaseEvent* event) {
   }
   else {
     // we first need to find out whether we already have a bucket for this event
-    float_t first_start_time = get_first_bucket_start_time();
+    double first_start_time = get_first_bucket_start_time();
     release_assert(bucket_start_time - first_start_time >= 0 && "cannot schedule to the past"); // some eps?
     size_t buckets_from_first = (bucket_start_time - first_start_time) / BUCKET_TIME_INTERVAL;
 
@@ -104,7 +104,7 @@ void Calendar::insert(BaseEvent* event) {
     else {
       // we need to create new buckets
       size_t missing_buckets = buckets_from_first - queue.size() + 1;
-      float_t next_time = queue.back().start_time + BUCKET_TIME_INTERVAL;
+      double next_time = queue.back().start_time + BUCKET_TIME_INTERVAL;
       for (size_t i = 0; i < missing_buckets; i++) {
         queue.push_back(Bucket(next_time));
         next_time += BUCKET_TIME_INTERVAL;
@@ -131,7 +131,7 @@ BaseEvent* Calendar::pop_next() {
 }
 
 
-float_t Calendar::get_next_time() {
+double Calendar::get_next_time() {
   clear_empty_buckets();
   assert(!queue.empty() && !queue.front().events.empty());
   BaseEvent* next_event = queue.front().events.front();
@@ -201,10 +201,10 @@ void Calendar::get_all_events_with_type_index(
 // returns max_time_step if no barrier is scheduled for interval
 // current_time .. current_time+max_time_step
 // if such a barrier exists, returns barrier time - current_time
-float_t Calendar::get_time_up_to_next_barrier(
-    const float_t current_time, const float_t max_time_step) const {
+double Calendar::get_time_up_to_next_barrier(
+    const double current_time, const double max_time_step) const {
 
-  float_t max_time = current_time + max_time_step;
+  double max_time = current_time + max_time_step;
 
   // expecting that there are only events that are scheduled
   // for the future
@@ -263,7 +263,7 @@ void Scheduler::schedule_events_from_async_queue() {
 }
 
 
-float_t Scheduler::get_next_event_time(const bool skip_async_events_check) {
+double Scheduler::get_next_event_time(const bool skip_async_events_check) {
   if (!skip_async_events_check) {
     schedule_events_from_async_queue();
   }
@@ -280,10 +280,10 @@ EventExecutionInfo Scheduler::handle_next_event() {
 
   BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");
-  float_t event_time = event->event_time;
+  double event_time = event->event_time;
 
   if (event->may_be_blocked_by_barrier_and_needs_set_time_step()) {
-    float_t max_time_step = calendar.get_time_up_to_next_barrier(
+    double max_time_step = calendar.get_time_up_to_next_barrier(
         event->event_time, event->get_max_time_up_to_next_barrier());
     event->set_barrier_time_for_next_execution(max_time_step);
   }
@@ -299,7 +299,7 @@ EventExecutionInfo Scheduler::handle_next_event() {
   bool return_from_run_iterations = event->return_from_run_n_iterations_after_execution();
 
   // schedule itself for the next period or just delete
-  float_t next_time;
+  double next_time;
   bool to_schedule = event->update_event_time_for_next_scheduled_time();
   if (to_schedule) {
     calendar.insert(event);
@@ -312,7 +312,7 @@ EventExecutionInfo Scheduler::handle_next_event() {
 }
 
 
-void Scheduler::skip_events_up_to_time(const float_t start_time) {
+void Scheduler::skip_events_up_to_time(const double start_time) {
 
   // need to deal with imprecisions, e.g. 0.0000005 * 10^6 ~= 5.0000000000008
   while (calendar.get_next_time() < start_time - EPS) {

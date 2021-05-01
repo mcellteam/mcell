@@ -247,7 +247,7 @@ public:
   void get_molecules_ready_for_diffusion(MoleculeIdsVector& ready_vector) const {
     // select all molecules that are scheduled for this iteration and are not defunct
     ready_vector.clear();
-    float_t time_it_end = stats.get_current_iteration() + 1;
+    double time_it_end = stats.get_current_iteration() + 1;
 
     if (schedulable_molecule_ids.size() != molecules.size()) {
       // more efficient variant when there is less molecules in schedulable_molecule_ids
@@ -449,7 +449,7 @@ public:
 private:
   // internal methods that sets molecule's id and adds it to all relevant structures,
   // do not use species-id here because it may change
-  Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol, const float_t release_delay_time) {
+  Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol, const double release_delay_time) {
 #ifndef NDEBUG
     const BNG::Species& species = get_species(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
@@ -577,7 +577,7 @@ public:
   // any molecule flags are set by caller after the molecule is created by this method
   // molecule releases should use update_compartment = true,
   // when a molecule is created by a reaction, the compartment is usually known and update_compartment may be false for efficiency
-  Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0) {
+  Molecule& add_volume_molecule(const Molecule& vm_copy, const double release_delay_time = 0) {
     assert(vm_copy.is_vol());
 
     // add a new molecule
@@ -614,7 +614,7 @@ public:
     return new_vm;
   }
 
-  Molecule& add_surface_molecule(const Molecule& sm_copy, const float_t release_delay_time = 0) {
+  Molecule& add_surface_molecule(const Molecule& sm_copy, const double release_delay_time = 0) {
     assert(sm_copy.is_surf() && sm_copy.s.wall_index != WALL_INDEX_INVALID);
 
     Molecule& new_sm = add_molecule(sm_copy, false, release_delay_time);

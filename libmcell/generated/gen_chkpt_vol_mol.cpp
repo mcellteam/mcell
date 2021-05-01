@@ -131,10 +131,10 @@ py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
             const Vec3&,
             const int,
             std::shared_ptr<Species>,
-            const float_t,
-            const float_t,
+            const double,
+            const double,
             const int,
-            const float_t
+            const double
           >(),
           py::arg("pos"),
           py::arg("id"),

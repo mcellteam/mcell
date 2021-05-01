@@ -61,7 +61,7 @@ public:
   void load_bngl_compartments_and_seed_species(
       const std::string& file_name,
       std::shared_ptr<Region> default_release_region = nullptr,
-      const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
+      const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()
   ) override;
 
   std::shared_ptr<GeometryObject> find_volume_compartment_object(const std::string& name) override;

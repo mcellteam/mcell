@@ -75,11 +75,11 @@ public:
     return reaction_rule;
   }
 
-  float_t time;
-  virtual void set_time(const float_t new_time_) {
+  double time;
+  virtual void set_time(const double new_time_) {
     time = new_time_;
   }
-  virtual float_t get_time() const {
+  virtual double get_time() const {
     return time;
   }
 

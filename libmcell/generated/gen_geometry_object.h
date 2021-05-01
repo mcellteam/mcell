@@ -40,7 +40,7 @@ class PythonExportContext;
 #define GEOMETRY_OBJECT_CTOR() \
     GeometryObject( \
         const std::string& name_, \
-        const std::vector<std::vector<float_t>> vertex_list_, \
+        const std::vector<std::vector<double>> vertex_list_, \
         const std::vector<std::vector<int>> wall_list_, \
         const bool is_bngl_compartment_ = false, \
         const std::string& surface_compartment_name_ = STR_UNSET, \
@@ -94,8 +94,8 @@ public:
 
 
   // --- attributes ---
-  std::vector<std::vector<float_t>> vertex_list;
-  virtual void set_vertex_list(const std::vector<std::vector<float_t>> new_vertex_list_) {
+  std::vector<std::vector<double>> vertex_list;
+  virtual void set_vertex_list(const std::vector<std::vector<double>> new_vertex_list_) {
     if (initialized) {
       throw RuntimeError("Value 'vertex_list' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -103,7 +103,7 @@ public:
     cached_data_are_uptodate = false;
     vertex_list = new_vertex_list_;
   }
-  virtual std::vector<std::vector<float_t>>& get_vertex_list() {
+  virtual std::vector<std::vector<double>>& get_vertex_list() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return vertex_list;
   }
@@ -193,7 +193,7 @@ public:
   }
 
   // --- methods ---
-  virtual void translate(const std::vector<float_t> move) = 0;
+  virtual void translate(const std::vector<double> move) = 0;
 }; // GenGeometryObject
 
 class GeometryObject;

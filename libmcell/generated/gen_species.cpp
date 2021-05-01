@@ -103,10 +103,10 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const float_t,
-            const float_t,
-            const float_t,
-            const float_t,
+            const double,
+            const double,
+            const double,
+            const double,
             const bool,
             const std::vector<std::shared_ptr<ElementaryMolecule>>,
             const Orientation,

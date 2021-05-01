@@ -36,23 +36,23 @@ class PythonExportContext;
 #define CONFIG_CTOR() \
     Config( \
         const int seed_ = 1, \
-        const float_t time_step_ = 1e-6, \
-        const float_t surface_grid_density_ = 10000, \
-        const float_t interaction_radius_ = FLT_UNSET, \
-        const float_t intermembrane_interaction_radius_ = FLT_UNSET, \
-        const float_t vacancy_search_distance_ = 10, \
+        const double time_step_ = 1e-6, \
+        const double surface_grid_density_ = 10000, \
+        const double interaction_radius_ = FLT_UNSET, \
+        const double intermembrane_interaction_radius_ = FLT_UNSET, \
+        const double vacancy_search_distance_ = 10, \
         const bool center_molecules_on_grid_ = false, \
-        const float_t partition_dimension_ = 10, \
-        const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
-        const float_t subpartition_dimension_ = 0.5, \
-        const float_t total_iterations_ = 1000000, \
+        const double partition_dimension_ = 10, \
+        const std::vector<double> initial_partition_origin_ = std::vector<double>(), \
+        const double subpartition_dimension_ = 0.5, \
+        const double total_iterations_ = 1000000, \
         const bool check_overlapped_walls_ = true, \
         const int reaction_class_cleanup_periodicity_ = 500, \
         const int species_cleanup_periodicity_ = 10000, \
         const bool sort_molecules_ = false, \
         const int memory_limit_gb_ = -1, \
         const uint64_t initial_iteration_ = 0, \
-        const float_t initial_time_ = 0, \
+        const double initial_time_ = 0, \
         std::shared_ptr<RngState> initial_rng_state_ = nullptr, \
         const bool append_to_count_output_data_ = false, \
         const bool continue_after_sigalrm_ = false \
@@ -115,8 +115,8 @@ public:
     return seed;
   }
 
-  float_t time_step;
-  virtual void set_time_step(const float_t new_time_step_) {
+  double time_step;
+  virtual void set_time_step(const double new_time_step_) {
     if (initialized) {
       throw RuntimeError("Value 'time_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -124,13 +124,13 @@ public:
     cached_data_are_uptodate = false;
     time_step = new_time_step_;
   }
-  virtual float_t get_time_step() const {
+  virtual double get_time_step() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return time_step;
   }
 
-  float_t surface_grid_density;
-  virtual void set_surface_grid_density(const float_t new_surface_grid_density_) {
+  double surface_grid_density;
+  virtual void set_surface_grid_density(const double new_surface_grid_density_) {
     if (initialized) {
       throw RuntimeError("Value 'surface_grid_density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -138,13 +138,13 @@ public:
     cached_data_are_uptodate = false;
     surface_grid_density = new_surface_grid_density_;
   }
-  virtual float_t get_surface_grid_density() const {
+  virtual double get_surface_grid_density() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return surface_grid_density;
   }
 
-  float_t interaction_radius;
-  virtual void set_interaction_radius(const float_t new_interaction_radius_) {
+  double interaction_radius;
+  virtual void set_interaction_radius(const double new_interaction_radius_) {
     if (initialized) {
       throw RuntimeError("Value 'interaction_radius' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -152,13 +152,13 @@ public:
     cached_data_are_uptodate = false;
     interaction_radius = new_interaction_radius_;
   }
-  virtual float_t get_interaction_radius() const {
+  virtual double get_interaction_radius() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return interaction_radius;
   }
 
-  float_t intermembrane_interaction_radius;
-  virtual void set_intermembrane_interaction_radius(const float_t new_intermembrane_interaction_radius_) {
+  double intermembrane_interaction_radius;
+  virtual void set_intermembrane_interaction_radius(const double new_intermembrane_interaction_radius_) {
     if (initialized) {
       throw RuntimeError("Value 'intermembrane_interaction_radius' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -166,13 +166,13 @@ public:
     cached_data_are_uptodate = false;
     intermembrane_interaction_radius = new_intermembrane_interaction_radius_;
   }
-  virtual float_t get_intermembrane_interaction_radius() const {
+  virtual double get_intermembrane_interaction_radius() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return intermembrane_interaction_radius;
   }
 
-  float_t vacancy_search_distance;
-  virtual void set_vacancy_search_distance(const float_t new_vacancy_search_distance_) {
+  double vacancy_search_distance;
+  virtual void set_vacancy_search_distance(const double new_vacancy_search_distance_) {
     if (initialized) {
       throw RuntimeError("Value 'vacancy_search_distance' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -180,7 +180,7 @@ public:
     cached_data_are_uptodate = false;
     vacancy_search_distance = new_vacancy_search_distance_;
   }
-  virtual float_t get_vacancy_search_distance() const {
+  virtual double get_vacancy_search_distance() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return vacancy_search_distance;
   }
@@ -199,8 +199,8 @@ public:
     return center_molecules_on_grid;
   }
 
-  float_t partition_dimension;
-  virtual void set_partition_dimension(const float_t new_partition_dimension_) {
+  double partition_dimension;
+  virtual void set_partition_dimension(const double new_partition_dimension_) {
     if (initialized) {
       throw RuntimeError("Value 'partition_dimension' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -208,13 +208,13 @@ public:
     cached_data_are_uptodate = false;
     partition_dimension = new_partition_dimension_;
   }
-  virtual float_t get_partition_dimension() const {
+  virtual double get_partition_dimension() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return partition_dimension;
   }
 
-  std::vector<float_t> initial_partition_origin;
-  virtual void set_initial_partition_origin(const std::vector<float_t> new_initial_partition_origin_) {
+  std::vector<double> initial_partition_origin;
+  virtual void set_initial_partition_origin(const std::vector<double> new_initial_partition_origin_) {
     if (initialized) {
       throw RuntimeError("Value 'initial_partition_origin' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -222,13 +222,13 @@ public:
     cached_data_are_uptodate = false;
     initial_partition_origin = new_initial_partition_origin_;
   }
-  virtual std::vector<float_t>& get_initial_partition_origin() {
+  virtual std::vector<double>& get_initial_partition_origin() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_partition_origin;
   }
 
-  float_t subpartition_dimension;
-  virtual void set_subpartition_dimension(const float_t new_subpartition_dimension_) {
+  double subpartition_dimension;
+  virtual void set_subpartition_dimension(const double new_subpartition_dimension_) {
     if (initialized) {
       throw RuntimeError("Value 'subpartition_dimension' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -236,13 +236,13 @@ public:
     cached_data_are_uptodate = false;
     subpartition_dimension = new_subpartition_dimension_;
   }
-  virtual float_t get_subpartition_dimension() const {
+  virtual double get_subpartition_dimension() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return subpartition_dimension;
   }
 
-  float_t total_iterations;
-  virtual void set_total_iterations(const float_t new_total_iterations_) {
+  double total_iterations;
+  virtual void set_total_iterations(const double new_total_iterations_) {
     if (initialized) {
       throw RuntimeError("Value 'total_iterations' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -250,7 +250,7 @@ public:
     cached_data_are_uptodate = false;
     total_iterations = new_total_iterations_;
   }
-  virtual float_t get_total_iterations() const {
+  virtual double get_total_iterations() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return total_iterations;
   }
@@ -339,8 +339,8 @@ public:
     return initial_iteration;
   }
 
-  float_t initial_time;
-  virtual void set_initial_time(const float_t new_initial_time_) {
+  double initial_time;
+  virtual void set_initial_time(const double new_initial_time_) {
     if (initialized) {
       throw RuntimeError("Value 'initial_time' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -348,7 +348,7 @@ public:
     cached_data_are_uptodate = false;
     initial_time = new_initial_time_;
   }
-  virtual float_t get_initial_time() const {
+  virtual double get_initial_time() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_time;
   }

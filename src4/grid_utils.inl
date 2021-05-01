@@ -859,8 +859,8 @@ static void grid_all_neighbors_across_walls_through_vertices(
 
 /*************************************************************************
 bisect:
-  In: array of float_ts, sorted low to high
-      int saying how many float_ts there are
+  In: array of doubles, sorted low to high
+      int saying how many doubles there are
       pos_t we are using to bisect the array
   Out: index of the largest element in the array smaller than the bisector
 *************************************************************************/
@@ -883,8 +883,8 @@ static int bisect(const std::vector<pos_t>& list, int n, pos_t val) {
 
 /*************************************************************************
 bisect_high:
-  In: array of float_ts, sorted low to high
-      int saying how many float_ts there are
+  In: array of floats, sorted low to high
+      int saying how many floats there are
       pos_t we are using to bisect the array
   Out: index of the smallest element in the array larger than the bisector
 *************************************************************************/
@@ -2017,7 +2017,7 @@ static void search_nbhd_for_free(
 static void find_closest_tile_on_wall(
     Partition& p,
     const wall_index_t closest_wall_index, const Vec2& closest_pos2d,
-    const pos_t closest_d2, const float_t search_d2,
+    const pos_t closest_d2, const double search_d2,
     wall_index_t& found_wall_index, tile_index_t& found_tile_index, Vec2& found_pos2d
 ) {
   tile_index_t closest_tile_index;
@@ -2086,8 +2086,8 @@ static molecule_id_t place_single_molecule_onto_grid(
     const Vec2& pos_on_wall_override_value,
     const species_id_t species_id,
     const orientation_t orientation,
-    const float_t current_time,
-    const float_t release_delay_time
+    const double current_time,
+    const double release_delay_time
 
 ) {
 
@@ -2151,9 +2151,9 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
     const Vec3& pos,
     const species_id_t species_id,
     const orientation_t orientation,
-    const float_t search_diam,
-    const float_t current_time,
-    const float_t release_delay_time
+    const double search_diam,
+    const double current_time,
+    const double release_delay_time
 ) {
   int grid_index = 0;
   int *grid_index_p = &grid_index;

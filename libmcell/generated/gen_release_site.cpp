@@ -62,7 +62,7 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   release_pattern = nullptr;
   shape = Shape::UNSET;
   region = nullptr;
-  location = std::vector<float_t>();
+  location = std::vector<double>();
   site_diameter = 0;
   site_radius = FLT_UNSET;
   number_to_release = FLT_UNSET;
@@ -190,16 +190,16 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const std::string&,
             std::shared_ptr<Complex>,
             const std::vector<std::shared_ptr<MoleculeReleaseInfo>>,
-            const float_t,
+            const double,
             std::shared_ptr<ReleasePattern>,
             const Shape,
             std::shared_ptr<Region>,
-            const std::vector<float_t>,
-            const float_t,
-            const float_t,
-            const float_t,
-            const float_t,
-            const float_t
+            const std::vector<double>,
+            const double,
+            const double,
+            const double,
+            const double,
+            const double
           >(),
           py::arg("name"),
           py::arg("complex") = nullptr,
@@ -208,7 +208,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("release_pattern") = nullptr,
           py::arg("shape") = Shape::UNSET,
           py::arg("region") = nullptr,
-          py::arg("location") = std::vector<float_t>(),
+          py::arg("location") = std::vector<double>(),
           py::arg("site_diameter") = 0,
           py::arg("site_radius") = FLT_UNSET,
           py::arg("number_to_release") = FLT_UNSET,
@@ -273,7 +273,7 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   if (is_set(region)) {
     ss << ind << "region = " << region->export_to_python(out, ctx) << "," << nl;
   }
-  if (location != std::vector<float_t>() && !skip_vectors_export()) {
+  if (location != std::vector<double>() && !skip_vectors_export()) {
     ss << ind << "location = " << export_vec_location(out, ctx, exported_name) << "," << nl;
   }
   if (site_diameter != 0) {

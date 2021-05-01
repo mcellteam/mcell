@@ -116,7 +116,7 @@ const GeomObjectInfo* get_direct_parent_info(
 
 
 // auxiliary function to compute volume, not related to counted volumes but uses VTK
-float_t get_geometry_object_volume(const World* world, const GeometryObject& obj);
+double get_geometry_object_volume(const World* world, const GeometryObject& obj);
 
 }; // namespace CountedVolumesUtil
 

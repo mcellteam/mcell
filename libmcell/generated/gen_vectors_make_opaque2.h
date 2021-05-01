@@ -26,8 +26,6 @@
 #include <vector>
 #include <memory>
 #include "pybind11/include/pybind11/pybind11.h"
-#include "api/pybind11_stl_include.h"
-#include "pybind11/include/pybind11/stl_bind.h"
 #include "defines.h"
 
 namespace MCell {
@@ -63,8 +61,7 @@ PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ElementaryMolecule>
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ElementaryMoleculeType>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::GeometryObject>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::InitialSurfaceRelease>>);
-// opaque double vector must be generated as float
-PYBIND11_MAKE_OPAQUE(std::vector<std::vector<double>>);
+//PYBIND11_MAKE_OPAQUE(std::vector<std::vector<double>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::vector<float>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::vector<int>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::MoleculeReleaseInfo>>);
@@ -76,10 +73,7 @@ PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceProperty>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceRegion>>);
 PYBIND11_MAKE_OPAQUE(std::vector<MCell::Vec3>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::VizOutput>>);
-// opaque double vector must be generated as float
-// https://indico.cern.ch/event/648602/contributions/2636804/attachments/1481481/2297505/Meeting_06.22.17.pdf ?
-// http://www.open3d.org/docs/latest/cpp_api/open3d__pybind_8h.html ??
-PYBIND11_MAKE_OPAQUE(std::vector<double>);
+//PYBIND11_MAKE_OPAQUE(std::vector<double>);
 PYBIND11_MAKE_OPAQUE(std::vector<float>);
 PYBIND11_MAKE_OPAQUE(std::vector<int>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::string>);

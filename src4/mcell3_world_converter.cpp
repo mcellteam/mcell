@@ -174,7 +174,7 @@ static uint get_even_higher_or_same_value(const uint val) {
 }
 
 
-static double get_partition_edge_length(const World* world, const float_t largest_mcell3_distance_from_center) {
+static double get_partition_edge_length(const World* world, const double largest_mcell3_distance_from_center) {
   // some MCell models have their partition boundary set exactly. we need to add a bit of margin
   return (largest_mcell3_distance_from_center + (double)PARTITION_EDGE_EXTRA_MARGIN_UM / world->config.length_unit) * 2 ;
 }
@@ -679,7 +679,7 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
       new_region.initial_region_molecules.insert(
           new_region.initial_region_molecules.begin(),
           InitialRegionMolecules(
-              species_id, current_sm_dat->orientation, false, (float_t)current_sm_dat->quantity
+              species_id, current_sm_dat->orientation, false, (double)current_sm_dat->quantity
           )
       );
     }
@@ -1098,7 +1098,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       CHECK_PROPERTY(mcell3_rx->pb_factor != 0);
 
       // with variable rates, we may need to recompute the initial value for iteration 0
-      float_t prob = (pathway_index == 0) ?
+      double prob = (pathway_index == 0) ?
           mcell3_rx->cum_probs[0] : (mcell3_rx->cum_probs[pathway_index] - mcell3_rx->cum_probs[pathway_index-1]);
 
       rxn.base_rate_constant = prob / mcell3_rx->pb_factor;
@@ -1546,7 +1546,7 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   // determine periodicity
   CHECK_PROPERTY(frame_data_head->n_viz_iterations > 0);
 
-  float_t periodicity;
+  double periodicity;
 
   if (frame_data_head->n_viz_iterations > 1) {
     num_expr_list* iteration_ptr = frame_data_head->iteration_list;
@@ -1605,13 +1605,13 @@ static const output_request* find_output_request_by_requester(const volume* s, c
 static bool find_output_requests_terms_recursively(
     const volume* s, const output_expression* expr, const int sign, const bool top_level,
     std::vector< pair<const output_request*, int>>& requests_with_sign,
-    float_t& multiplier
+    double& multiplier
 ) {
   assert(sign == -1 || sign == 1);
 
   // operator must me one of +, -, #
   // # - cast output_request to expr
-  float_t ignored;
+  double ignored;
 
   switch (expr->oper) {
     case '#': {
@@ -1753,7 +1753,7 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
       // we simplify it to a list of terms with their sign
       // first is the output request, second is sign (-1 or +1)
       std::vector< pair<const output_request*, int>> requests_with_sign;
-      float_t multiplier = 1;
+      double multiplier = 1;
       CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, true, requests_with_sign, multiplier));
 
       MolOrRxnCountItem info(buffer_id);

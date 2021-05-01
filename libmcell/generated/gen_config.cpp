@@ -50,7 +50,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   vacancy_search_distance = 10;
   center_molecules_on_grid = false;
   partition_dimension = 10;
-  initial_partition_origin = std::vector<float_t>();
+  initial_partition_origin = std::vector<double>();
   subpartition_dimension = 0.5;
   total_iterations = 1000000;
   check_overlapped_walls = true;
@@ -167,23 +167,23 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def(
           py::init<
             const int,
-            const float_t,
-            const float_t,
-            const float_t,
-            const float_t,
-            const float_t,
+            const double,
+            const double,
+            const double,
+            const double,
+            const double,
             const bool,
-            const float_t,
-            const std::vector<float_t>,
-            const float_t,
-            const float_t,
+            const double,
+            const std::vector<double>,
+            const double,
+            const double,
             const bool,
             const int,
             const int,
             const bool,
             const int,
             const uint64_t,
-            const float_t,
+            const double,
             std::shared_ptr<RngState>,
             const bool,
             const bool
@@ -196,7 +196,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("vacancy_search_distance") = 10,
           py::arg("center_molecules_on_grid") = false,
           py::arg("partition_dimension") = 10,
-          py::arg("initial_partition_origin") = std::vector<float_t>(),
+          py::arg("initial_partition_origin") = std::vector<double>(),
           py::arg("subpartition_dimension") = 0.5,
           py::arg("total_iterations") = 1000000,
           py::arg("check_overlapped_walls") = true,
@@ -281,7 +281,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   if (partition_dimension != 10) {
     ss << ind << "partition_dimension = " << f_to_str(partition_dimension) << "," << nl;
   }
-  if (initial_partition_origin != std::vector<float_t>() && !skip_vectors_export()) {
+  if (initial_partition_origin != std::vector<double>() && !skip_vectors_export()) {
     ss << ind << "initial_partition_origin = " << export_vec_initial_partition_origin(out, ctx, exported_name) << "," << nl;
   }
   if (subpartition_dimension != 0.5) {

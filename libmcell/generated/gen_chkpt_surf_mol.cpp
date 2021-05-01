@@ -187,10 +187,10 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
             const int,
             const int,
             std::shared_ptr<Species>,
-            const float_t,
-            const float_t,
+            const double,
+            const double,
             const int,
-            const float_t
+            const double
           >(),
           py::arg("pos"),
           py::arg("orientation"),

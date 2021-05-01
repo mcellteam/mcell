@@ -20,7 +20,7 @@
  *
 ******************************************************************************/
 
-// Windows build needs a fix otherwise this error occurs:
+// Windows build needs a fix otherwise this compilation error occurs:
 // msys/mingw64/include/c++/10.2.0/cmath:1121:11: error: 'hypot' has not been declared in '::'
 
 #ifndef API_PYBIND_STL_INCLUDE

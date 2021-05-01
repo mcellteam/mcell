@@ -32,8 +32,8 @@ namespace API {
 
 ChkptVolMol::ChkptVolMol(
     const MCell::Molecule& vm,
-    const IdSpeciesMap& id_species_map, const float_t time_unit,
-    const float_t length_unit) :
+    const IdSpeciesMap& id_species_map, const double time_unit,
+    const double length_unit) :
     GEN_CHKPT_MOL_CTOR(GenChkptVolMol, vm, id_species_map, time_unit) {
 
   assert(vm.id != MOLECULE_ID_INVALID);

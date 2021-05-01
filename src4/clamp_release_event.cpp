@@ -47,8 +47,8 @@ void ClampReleaseEvent::dump(const std::string indent) const {
   BaseEvent::dump(ind2);
   cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t]\n";
   cout << ind2 << "surf_class_species_id: \t\t" << surf_class_species_id << " [species_id_t]\n";
-  cout << ind2 << "concentration: \t\t" << concentration << " [float_t]\n";
-  cout << ind2 << "scaling_factor: \t\t" << scaling_factor << " [float_t]\n";
+  cout << ind2 << "concentration: \t\t" << concentration << " [double]\n";
+  cout << ind2 << "scaling_factor: \t\t" << scaling_factor << " [double]\n";
   dump_cumm_area_and_pwall_index_pairs(cumm_area_and_pwall_index_pairs, ind2);
 }
 
@@ -120,10 +120,10 @@ poisson_dist:
         that low values of the random number will give low values.  It
         is also not super-efficient, but it works.
 *************************************************************************/
-static int poisson_dist(float_t lambda, float_t p) {
+static int poisson_dist(double lambda, double p) {
   int i, lo, hi;
-  float_t plo, phi, pctr;
-  float_t lambda_i;
+  double plo, phi, pctr;
+  double lambda_i;
 
   i = (int)lambda;
   pctr = exp_f(-lambda + i * log_f(lambda) -
@@ -173,7 +173,7 @@ void ClampReleaseEvent::step() {
 
   const BNG::Species& species = world->bng_engine.get_all_species().get(species_id);
   assert(species.is_vol());
-  float_t n_collisions = scaling_factor * species.space_step * concentration / species.time_step;
+  double n_collisions = scaling_factor * species.space_step * concentration / species.time_step;
   if (orientation != ORIENTATION_NONE) {
     n_collisions *= 0.5;
   }
@@ -194,8 +194,8 @@ void ClampReleaseEvent::step() {
     const Vec3& v1 = p.get_wall_vertex(w, 1);
     const Vec3& v2 = p.get_wall_vertex(w, 2);
 
-    float_t s1 = sqrt_f(rng_dbl(&world->rng));
-    float_t s2 = rng_dbl(&world->rng) * s1;
+    double s1 = sqrt_f(rng_dbl(&world->rng));
+    double s2 = rng_dbl(&world->rng) * s1;
 
     Vec3 v;
     v = v0 + Vec3(s1) * (v1 - v0) + Vec3(s2) * (v2 - v1);

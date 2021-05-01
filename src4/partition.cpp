@@ -430,9 +430,9 @@ void Partition::move_waypoint_because_positioned_on_wall(
   Waypoint& waypoint = get_waypoint(waypoint_index);
   // rng_dbl when used in Vec3 ctor causes compiler to print warnings
   // that a constant is subtracted from uint
-  float_t r1 = rng_dbl(&aux_rng);
-  float_t r2 = rng_dbl(&aux_rng);
-  float_t r3 = rng_dbl(&aux_rng);
+  double r1 = rng_dbl(&aux_rng);
+  double r2 = rng_dbl(&aux_rng);
+  double r3 = rng_dbl(&aux_rng);
 
   Vec3 random_displacement = Vec3(POS_SQRT_EPS * r1, POS_SQRT_EPS * r2, POS_SQRT_EPS * r3);
 
@@ -564,10 +564,10 @@ void Partition::initialize_all_waypoints() {
 
 bool Partition::check_for_overlapped_walls(const Vec3& rand_vec) const {
 
-  typedef pair<wall_index_t, float_t> WallDprodPair;
+  typedef pair<wall_index_t, double> WallDprodPair;
   vector<WallDprodPair> wall_indices_w_dprod;
   for (const Wall& w: walls) {
-    float_t d_prod = dot(rand_vec, w.normal);
+    double d_prod = dot(rand_vec, w.normal);
 
     /* we want to place walls with opposite normals into
        neighboring positions in the sorted list */

@@ -82,7 +82,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
             const std::string&,
             const std::vector<std::shared_ptr<Species>>,
             const VizMode,
-            const float_t
+            const double
           >(),
           py::arg("output_files_prefix"),
           py::arg("species_list") = std::vector<std::shared_ptr<Species>>(),

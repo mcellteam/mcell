@@ -60,7 +60,7 @@ static void convert_compartment_objects_to_geom_object_infos(
 
     // first collect vertices
     uint_set<vertex_index_t> vertex_indices;
-    for (const std::vector<float_t>& v: obj.vertex_list) {
+    for (const std::vector<double>& v: obj.vertex_list) {
       assert(v.size() == 3);
       points->InsertNextPoint(v[0], v[1], v[2]);
     }

@@ -36,7 +36,7 @@ class PythonExportContext;
 #define MOLECULE_RELEASE_INFO_CTOR() \
     MoleculeReleaseInfo( \
         std::shared_ptr<Complex> complex_, \
-        const std::vector<float_t> location_ \
+        const std::vector<double> location_ \
     ) { \
       class_name = "MoleculeReleaseInfo"; \
       complex = complex_; \
@@ -77,8 +77,8 @@ public:
     return complex;
   }
 
-  std::vector<float_t> location;
-  virtual void set_location(const std::vector<float_t> new_location_) {
+  std::vector<double> location;
+  virtual void set_location(const std::vector<double> new_location_) {
     if (initialized) {
       throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -86,7 +86,7 @@ public:
     cached_data_are_uptodate = false;
     location = new_location_;
   }
-  virtual std::vector<float_t>& get_location() {
+  virtual std::vector<double>& get_location() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return location;
   }

@@ -78,7 +78,7 @@ public:
   // volume molecule
   Molecule(
       const molecule_id_t id_, const species_id_t species_id_,
-      const Vec3& pos_, const float_t birthday_
+      const Vec3& pos_, const double birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
@@ -93,7 +93,7 @@ public:
   // surface molecule
   Molecule(
       const molecule_id_t id_, const species_id_t species_id_,
-      const Vec2& pos2d, const float_t birthday_
+      const Vec2& pos2d, const double birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
@@ -136,17 +136,17 @@ public:
 
   // time for which it was scheduled, based on this value Partition creates 'ready list'
   // for DiffuseAndReactEvent
-  float_t diffusion_time;
+  double diffusion_time;
 
   // time assigned for unimol rxn, TIME_INVALID if time has not been set or molecule has no unimol rxn,
   // TIME_FOREVER if the probability of an existing unimol rxn is 0
-  float_t unimol_rx_time;
+  double unimol_rx_time;
 
   // - time when the molecule was released or created
   // - used when determining whether this molecule is mature
   // - release delay time is not added to the birthday time, a newly released molecule
   //   with release delay will have its birthday at the beginning of the iteration
-  float_t birthday;
+  double birthday;
 
   // update assignment operator when modifying this
   union {
@@ -259,7 +259,7 @@ public:
       const std::string extra_comment,
       const std::string ind = "  ",
       const uint64_t iteration = 0,
-      const float_t time = 0,
+      const double time = 0,
       const bool print_position = true,
       const bool print_flags = false
   ) const;

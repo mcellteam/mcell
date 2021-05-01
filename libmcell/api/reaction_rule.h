@@ -89,9 +89,9 @@ public:
     return to_bngl_str_w_orientation();
   }
 
-  void set_fwd_rate(const float_t new_fwd_rate_) override;
-  void set_rev_rate(const float_t new_rev_rate_) override;
-  void set_variable_rate(const std::vector<std::vector<float_t>> new_variable_rate_) override;
+  void set_fwd_rate(const double new_fwd_rate_) override;
+  void set_rev_rate(const double new_rev_rate_) override;
+  void set_variable_rate(const std::vector<std::vector<double>> new_variable_rate_) override;
 
   // added methods
   bool is_reversible() const {
@@ -117,7 +117,7 @@ public:
   World* world;
 
 private:
-  void update_reaction_rate(const BNG::rxn_rule_id_t rxn_rule_id, const float_t new_rate);
+  void update_reaction_rate(const BNG::rxn_rule_id_t rxn_rule_id, const double new_rate);
 };
 
 } // namespace API

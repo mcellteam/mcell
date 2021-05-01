@@ -94,7 +94,7 @@ public:
       const CollisionType type_,
       Partition* partition_ptr,
       const molecule_id_t diffused_molecule_id_,
-      const float_t time_,
+      const double time_,
       const Vec3& pos_,
       const molecule_id_t colliding_molecule_id_,
       BNG::RxnClass* rxn_class_ptr
@@ -117,7 +117,7 @@ public:
       const CollisionType type_,
       Partition* partition_ptr,
       const molecule_id_t diffused_molecule_id_,
-      const float_t time_, // time from event start
+      const double time_, // time from event start
       const molecule_id_t colliding_molecule_id_,
       BNG::RxnClass* rxn_class_ptr
       )
@@ -140,7 +140,7 @@ public:
       const CollisionType type_,
       Partition* partition_ptr,
       const molecule_id_t diffused_molecule_id_,
-      const float_t time_,
+      const double time_,
       const Vec3& pos_,
       const wall_index_t colliding_wall_index_
       )
@@ -161,7 +161,7 @@ public:
       const CollisionType type_,
       Partition* partition_ptr,
       const molecule_id_t diffused_molecule_id_,
-      const float_t time_,
+      const double time_,
       const Vec3& pos_,
       BNG::RxnClass* rxn_class_ptr
       )
@@ -181,7 +181,7 @@ public:
   CollisionType type;
   Partition* partition;
   molecule_id_t diffused_molecule_id;
-  float_t time;
+  double time;
   Vec3 pos;
 
   // valid only for is_wall_collision
@@ -244,7 +244,7 @@ public:
       const Partition& p,
       const std::string extra_comment,
       const uint64_t iteration,
-      float_t time_override = TIME_INVALID
+      double time_override = TIME_INVALID
   ) const;
 
   std::string to_string(const Partition& p) const;

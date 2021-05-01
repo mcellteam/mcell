@@ -73,7 +73,7 @@ std::shared_ptr<GeometryObject> Instantiation::find_surface_compartment_object(c
 void Instantiation::load_bngl_compartments_and_seed_species(
     const std::string& file_name,
     std::shared_ptr<Region> default_release_region,
-    const std::map<std::string, float_t>& parameter_overrides) {
+    const std::map<std::string, double>& parameter_overrides) {
 
   BNG::BNGData bng_data;
 
@@ -121,7 +121,7 @@ void Instantiation::convert_compartments(const BNG::BNGData& bng_data) {
         continue;
       }
 
-      float_t side = pow_f(bng_comp.get_volume(), 1.0/3.0);
+      double side = pow_f(bng_comp.get_volume(), 1.0/3.0);
 
       // create box for the given compartment
       shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);

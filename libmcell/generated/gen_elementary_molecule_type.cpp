@@ -95,10 +95,10 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
           py::init<
             const std::string&,
             const std::vector<std::shared_ptr<ComponentType>>,
-            const float_t,
-            const float_t,
-            const float_t,
-            const float_t,
+            const double,
+            const double,
+            const double,
+            const double,
             const bool
           >(),
           py::arg("name"),

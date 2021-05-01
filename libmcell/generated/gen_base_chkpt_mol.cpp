@@ -123,10 +123,10 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
           py::init<
             const int,
             std::shared_ptr<Species>,
-            const float_t,
-            const float_t,
+            const double,
+            const double,
             const int,
-            const float_t
+            const double
           >(),
           py::arg("id"),
           py::arg("species"),

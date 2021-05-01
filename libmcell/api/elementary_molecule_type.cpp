@@ -37,9 +37,9 @@ std::shared_ptr<API::ElementaryMoleculeType> ElementaryMoleculeType::construct_f
 
   // using the MCELL_* parameters for now, see if the diffusion rate was
   // specified in the model
-  float_t D2 = FLT_INVALID; // init to silence compiler warning
+  double D2 = FLT_INVALID; // init to silence compiler warning
   bool found2 = bng_data.get_parameter_value(BNG::MCELL_DIFFUSION_CONSTANT_2D_PREFIX + name, D2);
-  float_t D3 = FLT_INVALID;
+  double D3 = FLT_INVALID;
   bool found3 = bng_data.get_parameter_value(BNG::MCELL_DIFFUSION_CONSTANT_3D_PREFIX + name, D3);
 
   if (found2 && found3) {

@@ -27,7 +27,7 @@
 namespace MCell {
 namespace API {
 
-float_t Count::get_current_value() {
+double Count::get_current_value() {
   if (count_event == nullptr) {
     throw RuntimeError(S(NAME_CLASS_COUNT) + " with name " + name + " was not initialized.");
   }

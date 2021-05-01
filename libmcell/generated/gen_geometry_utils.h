@@ -33,7 +33,7 @@ class PythonExportContext;
 
 namespace geometry_utils {
 
-std::shared_ptr<GeometryObject> create_box(const std::string& name, const float_t edge_length);
+std::shared_ptr<GeometryObject> create_box(const std::string& name, const double edge_length);
 
 } // namespace geometry_utils
 

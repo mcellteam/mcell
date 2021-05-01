@@ -49,7 +49,7 @@ void GenMoleculeReleaseInfo::set_initialized() {
 void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
   class_name = "MoleculeReleaseInfo";
   complex = nullptr;
-  location = std::vector<float_t>();
+  location = std::vector<double>();
 }
 
 bool GenMoleculeReleaseInfo::__eq__(const MoleculeReleaseInfo& other) const {
@@ -97,7 +97,7 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def(
           py::init<
             std::shared_ptr<Complex>,
-            const std::vector<float_t>
+            const std::vector<double>
           >(),
           py::arg("complex"),
           py::arg("location")

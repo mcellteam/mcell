@@ -73,7 +73,7 @@ public:
   // MCell MDL mode
   void init_and_run_simulation(const bool dump_initial_state = false, const bool dump_with_geometry = false);
 
-  void init_simulation(const float_t start_time);
+  void init_simulation(const double start_time);
 
   // MCell Python mode, init_simulation must be called first
   // returns number of executed iterations
@@ -247,7 +247,7 @@ public:
 private:
   void check_checkpointing_signal();
 
-  uint64_t time_to_iteration(const float_t time);
+  uint64_t time_to_iteration(const double time);
 
   void init_fpu();
   void init_counted_volumes();

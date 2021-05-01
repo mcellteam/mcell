@@ -40,7 +40,7 @@ namespace MCell {
 template<typename T>
 class CustomFunctionCallEvent: public BaseEvent {
 public:
-  typedef void (*CalledFunctionType)(float_t, T);
+  typedef void (*CalledFunctionType)(double, T);
 
   CustomFunctionCallEvent(
       CalledFunctionType function_ptr_,

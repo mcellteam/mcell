@@ -35,9 +35,9 @@ class PythonExportContext;
 #define RELEASE_PATTERN_CTOR() \
     ReleasePattern( \
         const std::string& name_ = STR_UNSET, \
-        const float_t release_interval_ = TIME_INFINITY, \
-        const float_t train_duration_ = TIME_INFINITY, \
-        const float_t train_interval_ = TIME_INFINITY, \
+        const double release_interval_ = TIME_INFINITY, \
+        const double train_duration_ = TIME_INFINITY, \
+        const double train_interval_ = TIME_INFINITY, \
         const int number_of_trains_ = 1 \
     ) { \
       class_name = "ReleasePattern"; \
@@ -67,8 +67,8 @@ public:
 
 
   // --- attributes ---
-  float_t release_interval;
-  virtual void set_release_interval(const float_t new_release_interval_) {
+  double release_interval;
+  virtual void set_release_interval(const double new_release_interval_) {
     if (initialized) {
       throw RuntimeError("Value 'release_interval' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -76,13 +76,13 @@ public:
     cached_data_are_uptodate = false;
     release_interval = new_release_interval_;
   }
-  virtual float_t get_release_interval() const {
+  virtual double get_release_interval() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return release_interval;
   }
 
-  float_t train_duration;
-  virtual void set_train_duration(const float_t new_train_duration_) {
+  double train_duration;
+  virtual void set_train_duration(const double new_train_duration_) {
     if (initialized) {
       throw RuntimeError("Value 'train_duration' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -90,13 +90,13 @@ public:
     cached_data_are_uptodate = false;
     train_duration = new_train_duration_;
   }
-  virtual float_t get_train_duration() const {
+  virtual double get_train_duration() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return train_duration;
   }
 
-  float_t train_interval;
-  virtual void set_train_interval(const float_t new_train_interval_) {
+  double train_interval;
+  virtual void set_train_interval(const double new_train_interval_) {
     if (initialized) {
       throw RuntimeError("Value 'train_interval' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -104,7 +104,7 @@ public:
     cached_data_are_uptodate = false;
     train_interval = new_train_interval_;
   }
-  virtual float_t get_train_interval() const {
+  virtual double get_train_interval() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return train_interval;
   }

@@ -67,7 +67,7 @@ void dump_cumm_area_and_pwall_index_pairs(
 }
 
 
-size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, float_t val) {
+size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, double val) {
   size_t low = 0;
   size_t hi = array.size() - 1;
   size_t mid = 0;
@@ -230,11 +230,11 @@ void ReleaseEvent::dump(const string ind) const {
   BaseEvent::dump(ind2);
   cout << ind2 << "name: \t\t" << release_site_name << " [string]\n";
   cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t]\n";
-  cout << ind2 << "actual_release_time: \t\t" << actual_release_time << " [float_t]\n";
+  cout << ind2 << "actual_release_time: \t\t" << actual_release_time << " [double]\n";
   cout << ind2 << "release_number_method: \t\t" << release_number_method_to_str(release_number_method) << " [ReleaseNumberMethod]\n";
   cout << ind2 << "release_number: \t\t" << release_number << " [uint]\n";
-  cout << ind2 << "concentration: \t\t" << concentration << " [float_t]\n";
-  cout << ind2 << "orientation: \t\t" << orientation << " [float_t]\n";
+  cout << ind2 << "concentration: \t\t" << concentration << " [double]\n";
+  cout << ind2 << "orientation: \t\t" << orientation << " [double]\n";
   cout << ind2 << "release_shape: \t\t" << release_shape_to_str(release_shape) << " [ReleaseShape]\n";
   cout << ind2 << "location: \t\t" << location << " [Vec3]\n";
   cout << ind2 << "diameter: \t\t" << diameter << " [Vec3]\n";
@@ -248,11 +248,11 @@ void ReleaseEvent::dump(const string ind) const {
     region_expr_root->dump(world);
   }
 
-  cout << ind2 << "delay: \t\t" << delay << " [float_t]\n";
+  cout << ind2 << "delay: \t\t" << delay << " [double]\n";
   cout << ind2 << "number_of_trains: \t\t" << number_of_trains << " [uint]\n";
-  cout << ind2 << "train_interval: \t\t" << train_interval << " [float_t]\n";
-  cout << ind2 << "train_duration: \t\t" << train_duration << " [float_t]\n";
-  cout << ind2 << "release_interval: \t\t" << release_interval << " [float_t]\n";
+  cout << ind2 << "train_interval: \t\t" << train_interval << " [double]\n";
+  cout << ind2 << "train_duration: \t\t" << train_duration << " [double]\n";
+  cout << ind2 << "release_interval: \t\t" << release_interval << " [double]\n";
 }
 
 
@@ -512,7 +512,7 @@ bool ReleaseEvent::initialize_walls_for_release() {
 }
 
 
-static void check_max_release_count(float_t num_to_release, const std::string& name) {
+static void check_max_release_count(double num_to_release, const std::string& name) {
   long long num = (long long)num_to_release;
   if (num < 0 || num > (long long)INT_MAX) {
     mcell_error(
@@ -536,7 +536,7 @@ uint ReleaseEvent::calculate_number_to_release() {
         return 0;
       }
       else {
-        float_t vol;
+        double vol;
         switch (release_shape) {
           case ReleaseShape::SPHERICAL:
           //case ReleaseShape::ELLIPTIC:
@@ -565,7 +565,7 @@ uint ReleaseEvent::calculate_number_to_release() {
             break;
         }
         assert(concentration != FLT_INVALID);
-        float_t num_to_release =
+        double num_to_release =
             N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3.0) + 0.5;
         check_max_release_count(num_to_release, release_site_name);
         return (uint)num_to_release;
@@ -575,11 +575,11 @@ uint ReleaseEvent::calculate_number_to_release() {
     case ReleaseNumberMethod::DensityNum: {
         // computed in release_onto_regions in MCell3
         assert(!cumm_area_and_pwall_index_pairs.empty());
-        float_t max_A = cumm_area_and_pwall_index_pairs.back().first;
-        float_t est_sites_avail = (int)max_A;
+        double max_A = cumm_area_and_pwall_index_pairs.back().first;
+        double est_sites_avail = (int)max_A;
 
         assert(concentration != FLT_INVALID);
-        float_t num_to_release = concentration * est_sites_avail / world->config.grid_density;
+        double num_to_release = concentration * est_sites_avail / world->config.grid_density;
         check_max_release_count(num_to_release, release_site_name);
         return (uint)num_to_release;
       }
@@ -601,7 +601,7 @@ int ReleaseEvent::randomly_remove_molecules(
     molecule_id_t m_id = mol_ids_in_region[i];
     int remaining = mol_ids_in_region.size() - i;
 
-    if (rng_dbl(&world->rng) < ((float_t)(number_to_remove)) / ((float_t)remaining)) {
+    if (rng_dbl(&world->rng) < ((double)(number_to_remove)) / ((double)remaining)) {
       p.set_molecule_as_defunct(p.get_m(m_id));
       num_removed++;
       number_to_remove--;
@@ -657,13 +657,13 @@ int ReleaseEvent::vacuum_from_regions(int number_to_remove) {
 
 void ReleaseEvent::release_onto_regions(int& computed_release_number) {
   int success = 0, failure = 0;
-  float_t seek_cost = 0;
+  double seek_cost = 0;
 
   assert(!cumm_area_and_pwall_index_pairs.empty());
-  float_t total_area = cumm_area_and_pwall_index_pairs.back().first; // extending to double
-  float_t est_sites_avail = (int)total_area;
-  const float_t rel_list_gen_cost = 10.0; /* Just a guess */
-  float_t pick_cost = rel_list_gen_cost * est_sites_avail;
+  double total_area = cumm_area_and_pwall_index_pairs.back().first; // extending to double
+  double est_sites_avail = (int)total_area;
+  const double rel_list_gen_cost = 10.0; /* Just a guess */
+  double pick_cost = rel_list_gen_cost * est_sites_avail;
 
   int n = computed_release_number;
 
@@ -680,7 +680,7 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
     }
 
     if (seek_cost < pick_cost) {
-      float_t A = rng_dbl(&world->rng) * total_area;
+      double A = rng_dbl(&world->rng) * total_area;
       size_t cum_area_index = cum_area_bisect_high(cumm_area_and_pwall_index_pairs, A);
       PartitionWallIndexPair pw = cumm_area_and_pwall_index_pairs[cum_area_index].second;
       Partition& p = world->get_partition(pw.first);
@@ -770,7 +770,7 @@ bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const V
  */
 uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  float_t vol = 0.0;
+  double vol = 0.0;
   if (region_expr_root->op == RegionExprOperator::Leaf) {
     Region& r = p.get_region_by_id(region_expr_root->region_id);
     r.initialize_volume_info_if_needed(p);
@@ -787,7 +787,7 @@ uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
     exact_number = false;
   }
 
-  float_t num_to_release =
+  double num_to_release =
       N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3) + 0.5;
 
   check_max_release_count(num_to_release, release_site_name);
@@ -895,7 +895,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(int computed_release_number) 
   assert(computed_release_number >= 0 && "Cannot have negative SPHERICAL release");
 
   Partition& p = world->get_partition(world->get_or_add_partition_index(location));
-  float_t time_step = world->get_all_species().get(species_id).time_step;
+  double time_step = world->get_all_species().get(species_id).time_step;
 
   const int is_spheroidal = (release_shape == ReleaseShape::SPHERICAL ||
                              /*release_shape == SHAPE_ELLIPTIC ||*/
@@ -979,7 +979,7 @@ void ReleaseEvent::release_list() {
         orient = info.orientation;
       }
 
-      float_t diam = diameter.x;
+      double diam = diameter.x;
       assert(diam != FLT_INVALID);
       molecule_id_t sm_id = GridUtils::place_surface_molecule_to_closest_pos(
           p, world->rng, info.pos, info.species_id, orient, diameter.x,
@@ -1074,10 +1074,10 @@ void ReleaseEvent::init_surf_mols_by_density(
     w.initialize_grid(p);
   }
 
-  float_t tot_prob = 0;
-  float_t tot_density = 0;
+  double tot_prob = 0;
+  double tot_density = 0;
 
-  vector<pair<float_t, InitialRegionMolecules>> prob_info_pairs;
+  vector<pair<double, InitialRegionMolecules>> prob_info_pairs;
 
   // do for all surface regions of a wall at once
   for (region_index_t reg_index: w.regions) {
@@ -1111,7 +1111,7 @@ void ReleaseEvent::init_surf_mols_by_density(
 
   // for each tile of the wall
   for (tile_index_t ti = 0; ti < w.grid.num_tiles; ti++) {
-    float_t rnd = rng_dbl(&world->rng);
+    double rnd = rng_dbl(&world->rng);
 
     size_t index;
     for (index = 0; index < prob_info_pairs.size(); ++index) {

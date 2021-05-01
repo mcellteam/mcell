@@ -41,16 +41,16 @@ class PythonExportContext;
         const std::string& name_, \
         std::shared_ptr<Complex> complex_ = nullptr, \
         const std::vector<std::shared_ptr<MoleculeReleaseInfo>> molecule_list_ = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(), \
-        const float_t release_time_ = 0, \
+        const double release_time_ = 0, \
         std::shared_ptr<ReleasePattern> release_pattern_ = nullptr, \
         const Shape shape_ = Shape::UNSET, \
         std::shared_ptr<Region> region_ = nullptr, \
-        const std::vector<float_t> location_ = std::vector<float_t>(), \
-        const float_t site_diameter_ = 0, \
-        const float_t site_radius_ = FLT_UNSET, \
-        const float_t number_to_release_ = FLT_UNSET, \
-        const float_t density_ = FLT_UNSET, \
-        const float_t concentration_ = FLT_UNSET \
+        const std::vector<double> location_ = std::vector<double>(), \
+        const double site_diameter_ = 0, \
+        const double site_radius_ = FLT_UNSET, \
+        const double number_to_release_ = FLT_UNSET, \
+        const double density_ = FLT_UNSET, \
+        const double concentration_ = FLT_UNSET \
     ) { \
       class_name = "ReleaseSite"; \
       name = name_; \
@@ -117,8 +117,8 @@ public:
     return molecule_list;
   }
 
-  float_t release_time;
-  virtual void set_release_time(const float_t new_release_time_) {
+  double release_time;
+  virtual void set_release_time(const double new_release_time_) {
     if (initialized) {
       throw RuntimeError("Value 'release_time' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -126,7 +126,7 @@ public:
     cached_data_are_uptodate = false;
     release_time = new_release_time_;
   }
-  virtual float_t get_release_time() const {
+  virtual double get_release_time() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return release_time;
   }
@@ -173,8 +173,8 @@ public:
     return region;
   }
 
-  std::vector<float_t> location;
-  virtual void set_location(const std::vector<float_t> new_location_) {
+  std::vector<double> location;
+  virtual void set_location(const std::vector<double> new_location_) {
     if (initialized) {
       throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -182,13 +182,13 @@ public:
     cached_data_are_uptodate = false;
     location = new_location_;
   }
-  virtual std::vector<float_t>& get_location() {
+  virtual std::vector<double>& get_location() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return location;
   }
 
-  float_t site_diameter;
-  virtual void set_site_diameter(const float_t new_site_diameter_) {
+  double site_diameter;
+  virtual void set_site_diameter(const double new_site_diameter_) {
     if (initialized) {
       throw RuntimeError("Value 'site_diameter' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -196,13 +196,13 @@ public:
     cached_data_are_uptodate = false;
     site_diameter = new_site_diameter_;
   }
-  virtual float_t get_site_diameter() const {
+  virtual double get_site_diameter() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return site_diameter;
   }
 
-  float_t site_radius;
-  virtual void set_site_radius(const float_t new_site_radius_) {
+  double site_radius;
+  virtual void set_site_radius(const double new_site_radius_) {
     if (initialized) {
       throw RuntimeError("Value 'site_radius' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -210,13 +210,13 @@ public:
     cached_data_are_uptodate = false;
     site_radius = new_site_radius_;
   }
-  virtual float_t get_site_radius() const {
+  virtual double get_site_radius() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return site_radius;
   }
 
-  float_t number_to_release;
-  virtual void set_number_to_release(const float_t new_number_to_release_) {
+  double number_to_release;
+  virtual void set_number_to_release(const double new_number_to_release_) {
     if (initialized) {
       throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -224,13 +224,13 @@ public:
     cached_data_are_uptodate = false;
     number_to_release = new_number_to_release_;
   }
-  virtual float_t get_number_to_release() const {
+  virtual double get_number_to_release() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return number_to_release;
   }
 
-  float_t density;
-  virtual void set_density(const float_t new_density_) {
+  double density;
+  virtual void set_density(const double new_density_) {
     if (initialized) {
       throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -238,13 +238,13 @@ public:
     cached_data_are_uptodate = false;
     density = new_density_;
   }
-  virtual float_t get_density() const {
+  virtual double get_density() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return density;
   }
 
-  float_t concentration;
-  virtual void set_concentration(const float_t new_concentration_) {
+  double concentration;
+  virtual void set_concentration(const double new_concentration_) {
     if (initialized) {
       throw RuntimeError("Value 'concentration' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -252,7 +252,7 @@ public:
     cached_data_are_uptodate = false;
     concentration = new_concentration_;
   }
-  virtual float_t get_concentration() const {
+  virtual double get_concentration() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return concentration;
   }

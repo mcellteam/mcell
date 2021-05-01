@@ -153,7 +153,7 @@ void Model::initialize(const bool print_copyright) {
 }
 
 
-uint64_t Model::run_iterations(const float_t iterations) {
+uint64_t Model::run_iterations(const double iterations) {
   // release GIL before calling into long-running C++ code, 
   // necessary for other Python threads to be allowed to run (e.g. a timer)
   py::gil_scoped_release release;
@@ -204,7 +204,7 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
   }
 
   // check that time is now or in the future
-  float_t iteration_start_time = world->stats.get_current_iteration() * world->config.time_unit;
+  double iteration_start_time = world->stats.get_current_iteration() * world->config.time_unit;
   if (release_site->release_time < iteration_start_time) {
     throw ValueError("Cannot release molecules for time " + to_string(release_site->release_time) +
         " before the start time of the current iteration " + to_string(iteration_start_time) + ".");
@@ -241,7 +241,7 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
 std::vector<int> Model::run_reaction(
     std::shared_ptr<ReactionRule> reaction_rule,
     const std::vector<int> reactant_ids,
-    const float_t time) {
+    const double time) {
 
   // need to release lock because we might be calling callbacks that are locking back
   py::gil_scoped_release release;
@@ -330,7 +330,7 @@ std::vector<int> Model::run_reaction(
 
 
 void Model::add_vertex_move(
-    std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<float_t> displacement
+    std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<double> displacement
 ) {
   // - currently, it is not expected that the user will have access to the scheduled vertex moves
   // - later we can use the object id to determine the partition
@@ -453,7 +453,7 @@ void Model::load_bngl(
     const std::string& file_name,
     const std::string& observables_files_prefix,
     std::shared_ptr<Region> default_release_region,
-    const std::map<std::string, float_t>& parameter_overrides) {
+    const std::map<std::string, double>& parameter_overrides) {
 
   BNG::BNGData bng_data;
 

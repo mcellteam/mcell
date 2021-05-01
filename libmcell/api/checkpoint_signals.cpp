@@ -120,7 +120,7 @@ void unset_checkpoint_signals(Model* model) {
 }
 
 
-void save_checkpoint_func(const float_t time, CheckpointSaveEventContext ctx) {
+void save_checkpoint_func(const double time, CheckpointSaveEventContext ctx) {
 
   const World* world = ctx.model->get_world();
 

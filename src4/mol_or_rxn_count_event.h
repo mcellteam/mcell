@@ -170,7 +170,7 @@ public:
   MolOrRxnCountTermVector terms;
 
   // value used to multiply the whole result
-  float_t multiplier;
+  double multiplier;
 };
 
 typedef small_vector<MolOrRxnCountItem> MolOrRxnCountItemVector;
@@ -216,7 +216,7 @@ public:
   void step() override;
 
   // used from MCell4 API
-  float_t get_single_count_value();
+  double get_single_count_value();
 
   // DiffuseReactEvent must execute only up to this event
   bool is_barrier() const override { return true; }

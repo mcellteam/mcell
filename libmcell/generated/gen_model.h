@@ -110,7 +110,7 @@ public:
 
   // --- methods ---
   virtual void initialize(const bool print_copyright = true) = 0;
-  virtual uint64_t run_iterations(const float_t iterations) = 0;
+  virtual uint64_t run_iterations(const double iterations) = 0;
   virtual void end_simulation(const bool print_final_report = true) = 0;
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
   virtual void add_instantiation(std::shared_ptr<Instantiation> instantiation) = 0;
@@ -119,12 +119,12 @@ public:
   virtual void export_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void export_viz_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void release_molecules(std::shared_ptr<ReleaseSite> release_site) = 0;
-  virtual std::vector<int> run_reaction(std::shared_ptr<ReactionRule> reaction_rule, const std::vector<int> reactant_ids, const float_t time) = 0;
-  virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<float_t> displacement) = 0;
+  virtual std::vector<int> run_reaction(std::shared_ptr<ReactionRule> reaction_rule, const std::vector<int> reactant_ids, const double time) = 0;
+  virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<double> displacement) = 0;
   virtual std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) = 0;
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
   virtual void register_reaction_callback(const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function, py::object context, std::shared_ptr<ReactionRule> reaction_rule) = 0;
-  virtual void load_bngl(const std::string& file_name, const std::string& observables_files_prefix = "", std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
+  virtual void load_bngl(const std::string& file_name, const std::string& observables_files_prefix = "", std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()) = 0;
   virtual void export_to_bngl(const std::string& file_name) = 0;
   virtual void save_checkpoint(const std::string& custom_dir = STR_UNSET) = 0;
   virtual void schedule_checkpoint(const uint64_t iteration = 0, const bool continue_simulation = false, const std::string& custom_dir = STR_UNSET) = 0;

@@ -42,8 +42,8 @@ class PythonExportContext;
         const std::string& name_ = STR_UNSET, \
         const std::string& file_name_ = STR_UNSET, \
         std::shared_ptr<CountTerm> count_expression_ = nullptr, \
-        const float_t multiplier_ = 1, \
-        const float_t every_n_timesteps_ = 1, \
+        const double multiplier_ = 1, \
+        const double every_n_timesteps_ = 1, \
         std::shared_ptr<Complex> species_pattern_ = nullptr, \
         std::shared_ptr<Complex> molecules_pattern_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
@@ -127,8 +127,8 @@ public:
     return count_expression;
   }
 
-  float_t multiplier;
-  virtual void set_multiplier(const float_t new_multiplier_) {
+  double multiplier;
+  virtual void set_multiplier(const double new_multiplier_) {
     if (initialized) {
       throw RuntimeError("Value 'multiplier' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -136,13 +136,13 @@ public:
     cached_data_are_uptodate = false;
     multiplier = new_multiplier_;
   }
-  virtual float_t get_multiplier() const {
+  virtual double get_multiplier() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return multiplier;
   }
 
-  float_t every_n_timesteps;
-  virtual void set_every_n_timesteps(const float_t new_every_n_timesteps_) {
+  double every_n_timesteps;
+  virtual void set_every_n_timesteps(const double new_every_n_timesteps_) {
     if (initialized) {
       throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -150,13 +150,13 @@ public:
     cached_data_are_uptodate = false;
     every_n_timesteps = new_every_n_timesteps_;
   }
-  virtual float_t get_every_n_timesteps() const {
+  virtual double get_every_n_timesteps() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return every_n_timesteps;
   }
 
   // --- methods ---
-  virtual float_t get_current_value() = 0;
+  virtual double get_current_value() = 0;
 }; // GenCount
 
 class Count;

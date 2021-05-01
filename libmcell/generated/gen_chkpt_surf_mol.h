@@ -44,10 +44,10 @@ class PythonExportContext;
         const int grid_tile_index_, \
         const int id_, \
         std::shared_ptr<Species> species_, \
-        const float_t diffusion_time_, \
-        const float_t birthday_, \
+        const double diffusion_time_, \
+        const double birthday_, \
         const int flags_, \
-        const float_t unimol_rx_time_ = FLT_UNSET \
+        const double unimol_rx_time_ = FLT_UNSET \
     )  : GenChkptSurfMol(id_,species_,diffusion_time_,birthday_,flags_,unimol_rx_time_) { \
       class_name = "ChkptSurfMol"; \
       pos = pos_; \
@@ -70,10 +70,10 @@ public:
   GenChkptSurfMol( 
       const int id_, 
       std::shared_ptr<Species> species_, 
-      const float_t diffusion_time_, 
-      const float_t birthday_, 
+      const double diffusion_time_, 
+      const double birthday_, 
       const int flags_, 
-      const float_t unimol_rx_time_ = FLT_UNSET 
+      const double unimol_rx_time_ = FLT_UNSET 
   )  : BaseChkptMol(id_,species_,diffusion_time_,birthday_,flags_,unimol_rx_time_)  {
   }
   void postprocess_in_ctor() override {}

@@ -98,11 +98,11 @@ void define_pybinding_Vec3(py::module& m) {
           py::init<>()
       )
       .def(
-          py::init<const float_t>(),
+          py::init<const double>(),
           py::arg("xyz")
       )
       .def(
-          py::init<const float_t, const float_t, const float_t>(),
+          py::init<const double, const double, const double>(),
           py::arg("x"), py::arg("y"), py::arg("z")
       )
       .def("__add__", [](const Vec3& a, const Vec3& b) { return Vec3(a + b); } )
@@ -114,7 +114,7 @@ void define_pybinding_Vec3(py::module& m) {
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + ")"; } )
       .def("__repr__",  [](const Vec3& a)
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + ")"; } )
-      .def("to_list",  [](const Vec3& a) { return py::cast(std::vector<float_t>{a.x, a.y, a.z}); } )
+      .def("to_list",  [](const Vec3& a) { return py::cast(std::vector<double>{a.x, a.y, a.z}); } )
       .def_readwrite("x", &Vec3::x)
       .def_readwrite("y", &Vec3::y)
       .def_readwrite("z", &Vec3::z)
@@ -127,11 +127,11 @@ void define_pybinding_Vec2(py::module& m) {
           py::init<>()
       )
       .def(
-          py::init<const float_t>(),
+          py::init<const double>(),
           py::arg("xy")
       )
       .def(
-          py::init<const float_t, const float_t>(),
+          py::init<const double, const double>(),
           py::arg("x"), py::arg("y")
       )
       .def("__add__", [](const Vec2& a, const Vec2& b) { return Vec2(a + b); } )
@@ -143,7 +143,7 @@ void define_pybinding_Vec2(py::module& m) {
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ")"; } )
       .def("__repr__",  [](const Vec2& a)
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ")"; } )
-      .def("to_list",  [](const Vec2& a) { return std::vector<float_t>{a.x, a.y}; } )
+      .def("to_list",  [](const Vec2& a) { return std::vector<double>{a.x, a.y}; } )
       .def_readwrite("x", &Vec2::x)
       .def_readwrite("y", &Vec2::y)
       .def_readwrite("u", &Vec2::u)
@@ -157,7 +157,7 @@ void define_pybinding_IVec3(py::module& m) {
           py::init<>()
       )
       .def(
-          py::init<const float_t>(),
+          py::init<const double>(),
           py::arg("xyz")
       )
       .def(
@@ -170,7 +170,7 @@ void define_pybinding_IVec3(py::module& m) {
       // reenable parts of testing in mcell_tests/tests/pymcell4_positive/0050_vec_operators
       // once fixed
       /*.def(
-          py::init<const float_t, const float_t, const float_t>(),
+          py::init<const double, const double, const double>(),
           py::arg("x"), py::arg("y"), py::arg("z")
       )
       .def("__add__", [](const IVec3& a, const IVec3& b) { return IVec3(a + b); } )
@@ -253,7 +253,7 @@ PYBIND11_MODULE(mcell, m) {
 }
 
 
-void check_ctrl_c(const float_t current_time, World* world) {
+void check_ctrl_c(const double current_time, World* world) {
   // make sure to re-acquire lock, PyErr_CheckSignals segfaults otherwise
   py::gil_scoped_acquire acquire;
   if (PyErr_CheckSignals() != 0) {

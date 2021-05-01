@@ -111,7 +111,7 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
             const std::vector<std::shared_ptr<SurfaceProperty>>,
             const SurfacePropertyType,
             std::shared_ptr<Complex>,
-            const float_t
+            const double
           >(),
           py::arg("name"),
           py::arg("properties") = std::vector<std::shared_ptr<SurfaceProperty>>(),

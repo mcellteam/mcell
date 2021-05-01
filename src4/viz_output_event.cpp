@@ -185,7 +185,7 @@ void VizOutputEvent::output_ascii_molecules() {
 void VizOutputEvent::output_cellblender_molecules() {
   // assuming that fdlp->type == ALL_MOL_DATA
   FILE *custom_file = create_and_open_output_file_name();
-  float_t length_unit = world->config.length_unit;
+  double length_unit = world->config.length_unit;
 
   // sort all molecules by species
   typedef pair<const Partition*, const Molecule*> PartitionMoleculePair;

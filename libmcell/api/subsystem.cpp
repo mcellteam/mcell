@@ -125,7 +125,7 @@ void Subsystem::unify_and_register_elementary_molecule_types() {
 
 void Subsystem::load_bngl_molecule_types_and_reaction_rules(
     const std::string& file_name,
-    const std::map<std::string, float_t>& parameter_overrides) {
+    const std::map<std::string, double>& parameter_overrides) {
 
   BNG::BNGData bng_data;
 

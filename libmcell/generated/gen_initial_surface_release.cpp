@@ -99,7 +99,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
           py::init<
             std::shared_ptr<Complex>,
             const int,
-            const float_t
+            const double
           >(),
           py::arg("complex"),
           py::arg("number_to_release") = INT_UNSET,

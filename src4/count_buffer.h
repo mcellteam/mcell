@@ -35,7 +35,7 @@ public:
     : time(TIME_INVALID), value(0) {
   }
 
-  CountItem(const float_t time_, const float_t value_)
+  CountItem(const double time_, const double value_)
     : time(time_), value(value_) {
   }
 
@@ -44,8 +44,8 @@ public:
     value += (sign * count);
   }
 
-  float_t time; // time is in outside units, was already precomputed for printing
-  float_t value; // e.g. count
+  double time; // time is in outside units, was already precomputed for printing
+  double value; // e.g. count
 
   void write(std::ostream& out) const;
 };

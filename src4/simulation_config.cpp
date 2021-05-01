@@ -56,7 +56,7 @@ void SimulationConfig::initialize_run_report_file() {
 void SimulationConfig::init_subpartition_edge_length() {
   release_assert(partition_edge_length > 0);
 
-  subpartition_edge_length = partition_edge_length / (float_t)num_subpartitions_per_partition_edge;
+  subpartition_edge_length = partition_edge_length / (double)num_subpartitions_per_partition_edge;
 
 #if POS_T_BYTES == 4
   // we must transform the subpart edge length so that it can be precisely represented with reciprocal
@@ -86,9 +86,9 @@ r_func:
   In: double containing distance (arbitrary units, mean=1.0)
   Out: double containing probability of diffusing that distance
 ***************************************************************************/
-static float_t r_func(float_t s) {
+static double r_func(double s) {
   // keeping as double because it is used for time/spece step computations
-  float_t f, s_sqr, val;
+  double f, s_sqr, val;
 
   f = 2.2567583341910251478; /* 4.0/sqrt(pi) */
   s_sqr = s * s;
@@ -113,7 +113,7 @@ init_r_step_surface:
   Note: This is for 3D molecules emitted from a plane
 ***************************************************************************/
 void SimulationConfig::init_radial_steps() {
-  float_t inc, target, accum, r, r_max, delta_r, delta_r2;
+  double inc, target, accum, r, r_max, delta_r, delta_r2;
 
   // 3D
   radial_3d_step.resize(num_radial_subdivisions);
@@ -138,19 +138,19 @@ void SimulationConfig::init_radial_steps() {
 
   // 2D
   radial_2d_step.resize(num_radial_subdivisions);
-  static const float_t sqrt_pi = 1.7724538509055160273;
+  static const double sqrt_pi = 1.7724538509055160273;
 
-  float_t step = 1.0 / num_radial_subdivisions;
+  double step = 1.0 / num_radial_subdivisions;
   int i = 0;
-  float_t p = (1.0 - 1e-6) * step;
+  double p = (1.0 - 1e-6) * step;
   r = 0;
   for (; p < 1.0; p += step, i++) {
-    float_t r_min = 0;
-    float_t r_max = 3.0;          /* 17 bit high-end CDF cutoff */
+    double r_min = 0;
+    double r_max = 3.0;          /* 17 bit high-end CDF cutoff */
     for (int j = 0; j < 20; j++) /* 20 bits of accuracy */
     {
       r = 0.5 * (r_min + r_max);
-      float_t cdf = 1.0 - exp(-r * r) + sqrt_pi * r * erfc(r);
+      double cdf = 1.0 - exp(-r * r) + sqrt_pi * r * erfc(r);
       if (cdf > p)
         r_max = r;
       else

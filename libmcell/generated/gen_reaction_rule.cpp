@@ -47,7 +47,7 @@ void GenReactionRule::set_all_attributes_as_default_or_unset() {
   fwd_rate = FLT_UNSET;
   rev_name = STR_UNSET;
   rev_rate = FLT_UNSET;
-  variable_rate = std::vector<std::vector<float_t>>();
+  variable_rate = std::vector<std::vector<double>>();
   is_intermembrane_surface_reaction = false;
 }
 
@@ -96,10 +96,10 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
             const std::string&,
             const std::vector<std::shared_ptr<Complex>>,
             const std::vector<std::shared_ptr<Complex>>,
-            const float_t,
+            const double,
             const std::string&,
-            const float_t,
-            const std::vector<std::vector<float_t>>,
+            const double,
+            const std::vector<std::vector<double>>,
             const bool
           >(),
           py::arg("name") = STR_UNSET,
@@ -108,7 +108,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
           py::arg("fwd_rate") = FLT_UNSET,
           py::arg("rev_name") = STR_UNSET,
           py::arg("rev_rate") = FLT_UNSET,
-          py::arg("variable_rate") = std::vector<std::vector<float_t>>(),
+          py::arg("variable_rate") = std::vector<std::vector<double>>(),
           py::arg("is_intermembrane_surface_reaction") = false
       )
       .def("check_semantics", &ReactionRule::check_semantics)
@@ -164,7 +164,7 @@ std::string GenReactionRule::export_to_python(std::ostream& out, PythonExportCon
   if (rev_rate != FLT_UNSET) {
     ss << ind << "rev_rate = " << f_to_str(rev_rate) << "," << nl;
   }
-  if (variable_rate != std::vector<std::vector<float_t>>() && !skip_vectors_export()) {
+  if (variable_rate != std::vector<std::vector<double>>() && !skip_vectors_export()) {
     ss << ind << "variable_rate = " << export_vec_variable_rate(out, ctx, exported_name) << "," << nl;
   }
   if (is_intermembrane_surface_reaction != false) {

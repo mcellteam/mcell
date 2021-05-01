@@ -85,7 +85,7 @@ public:
   // the beginning of a timestep but internally they need to be ordered
   // also according to another value such as actual release time
   virtual bool needs_secondary_ordering() { return false; }
-  virtual float_t get_secondary_ordering_value() { return 0; }
+  virtual double get_secondary_ordering_value() { return 0; }
 
   // if this event should be rescheduled, updates event_time and
   // possibly other attributes,
@@ -120,14 +120,14 @@ public:
 
   // maximum search time for a barrier, i.e. we do not care whether
   // there is a barrier after the time interval returned by this method
-  virtual float_t get_max_time_up_to_next_barrier() const {
+  virtual double get_max_time_up_to_next_barrier() const {
     // the subclass must return true in may_be_blocked_by_barrier_and_needs_set_time_step
     assert(false && "Only overridden variant of this method may be called.");
     return 0;
   }
 
   // if an event is blocked
-  virtual void set_barrier_time_for_next_execution(const float_t time_step) {
+  virtual void set_barrier_time_for_next_execution(const double time_step) {
     // the subclass must return true in may_be_blocked_by_barrier_and_needs_set_time_step
     assert(false && "Only overridden variant of this method may be called.");
   }
@@ -138,11 +138,11 @@ public:
   }
 
   // time when this object's step() method will be called
-  float_t event_time;
+  double event_time;
 
   // once this event is executed, schedule next one after this interval
   // do not schedule if the value is 0
-  float_t periodicity_interval;
+  double periodicity_interval;
 
   // this value specifies both id of the event and ordering when multiple
   // events of a different type are sheduled for the same time

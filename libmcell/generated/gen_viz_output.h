@@ -38,7 +38,7 @@ class PythonExportContext;
         const std::string& output_files_prefix_, \
         const std::vector<std::shared_ptr<Species>> species_list_ = std::vector<std::shared_ptr<Species>>(), \
         const VizMode mode_ = VizMode::ASCII, \
-        const float_t every_n_timesteps_ = 1 \
+        const double every_n_timesteps_ = 1 \
     ) { \
       class_name = "VizOutput"; \
       output_files_prefix = output_files_prefix_; \
@@ -109,8 +109,8 @@ public:
     return mode;
   }
 
-  float_t every_n_timesteps;
-  virtual void set_every_n_timesteps(const float_t new_every_n_timesteps_) {
+  double every_n_timesteps;
+  virtual void set_every_n_timesteps(const double new_every_n_timesteps_) {
     if (initialized) {
       throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -118,7 +118,7 @@ public:
     cached_data_are_uptodate = false;
     every_n_timesteps = new_every_n_timesteps_;
   }
-  virtual float_t get_every_n_timesteps() const {
+  virtual double get_every_n_timesteps() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return every_n_timesteps;
   }

@@ -30,8 +30,8 @@ static void dump_vol_mol_timing(
     std::string extra_comment,
     uint64_t iteration,
     molecule_id_t id,
-    float_t scheduled_time, float_t max_time, float_t unimol_time,
-    float_t rate_factor, float_t r_rate_factor, float_t steps, float_t t_steps
+    double scheduled_time, double max_time, double unimol_time,
+    double rate_factor, double r_rate_factor, double steps, double t_steps
 ) {
 
   std::cout
@@ -51,8 +51,8 @@ static void dump_surf_mol_timing(
     std::string extra_comment,
     uint64_t iteration,
     molecule_id_t id,
-    float_t scheduled_time, float_t max_time, float_t unimol_time,
-    float_t space_factor, float_t steps, float_t t_steps
+    double scheduled_time, double max_time, double unimol_time,
+    double space_factor, double steps, double t_steps
 ) {
 
   std::cout
@@ -68,8 +68,8 @@ static void dump_surf_mol_timing(
 
 
 static void dump_react_2D_all_neighbors_timing(
-    float_t time,
-    float_t mol_time
+    double time,
+    double mol_time
 ) {
   std::cout
     << "react_2D_all_neighbors: "
@@ -79,7 +79,7 @@ static void dump_react_2D_all_neighbors_timing(
 }
 
 static void dump_outcome_bimolecular_timing(
-    float_t time
+    double time
 ) {
   std::cout
     << "outcome_bimolecular: time: " << time

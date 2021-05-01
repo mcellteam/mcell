@@ -37,7 +37,7 @@ class PythonExportContext;
     SurfaceProperty( \
         const SurfacePropertyType type_ = SurfacePropertyType::UNSET, \
         std::shared_ptr<Complex> affected_complex_pattern_ = nullptr, \
-        const float_t concentration_ = FLT_UNSET \
+        const double concentration_ = FLT_UNSET \
     ) { \
       class_name = "SurfaceProperty"; \
       type = type_; \
@@ -92,8 +92,8 @@ public:
     return affected_complex_pattern;
   }
 
-  float_t concentration;
-  virtual void set_concentration(const float_t new_concentration_) {
+  double concentration;
+  virtual void set_concentration(const double new_concentration_) {
     if (initialized) {
       throw RuntimeError("Value 'concentration' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -101,7 +101,7 @@ public:
     cached_data_are_uptodate = false;
     concentration = new_concentration_;
   }
-  virtual float_t get_concentration() const {
+  virtual double get_concentration() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return concentration;
   }

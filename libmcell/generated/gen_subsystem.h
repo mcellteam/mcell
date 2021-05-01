@@ -107,7 +107,7 @@ public:
   virtual std::shared_ptr<SurfaceClass> find_surface_class(const std::string& name) = 0;
   virtual void add_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> mt) = 0;
   virtual std::shared_ptr<ElementaryMoleculeType> find_elementary_molecule_type(const std::string& name) = 0;
-  virtual void load_bngl_molecule_types_and_reaction_rules(const std::string& file_name, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
+  virtual void load_bngl_molecule_types_and_reaction_rules(const std::string& file_name, const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()) = 0;
 }; // GenSubsystem
 
 class Subsystem;

@@ -63,7 +63,7 @@ namespace MCell {
 
 void DiffuseReactEvent::step() {
   assert(world->get_partitions().size() == 1 && "Must extend cache to handle multiple partitions");
-  assert(cmp_eq(event_time, (float_t)world->stats.get_current_iteration()) &&
+  assert(cmp_eq(event_time, (double)world->stats.get_current_iteration()) &&
   	"DiffuseReactEvent is expected to be run exactly at iteration starts");
 
   // for each partition
@@ -92,7 +92,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
     // here we compute both release delay and also partially sort molecules to be diffused
     // so that molecules not scheduled for he beginning of the event are diffused later
     // (but according to their id, not time)
-    float_t diffusion_delay =  p.get_m(id).diffusion_time - event_time;
+    double diffusion_delay =  p.get_m(id).diffusion_time - event_time;
 
     if (cmp_eq(diffusion_delay, 0.0)) { // NOTE: this can be optimized
       // existing molecules or created at the beginning of this timestep
@@ -143,7 +143,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
 
     // find the closest event that we did not process yet
     uint best_index = UINT_INVALID;
-    float_t best_time = TIME_FOREVER;
+    double best_time = TIME_FOREVER;
     for (size_t k = 0; k < new_diffuse_actions.size(); k++) {
       molecule_id_t id = new_diffuse_actions[k].id;
       if (id == MOLECULE_ID_INVALID) {
@@ -172,16 +172,16 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
 }
 
 
-inline float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t m_id) {
+inline double DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t m_id) {
   Molecule& m = p.get_m(m_id);
   const Species& species = p.get_species(m.species_id);
 
-  float_t diffusion_time = m.diffusion_time;
-  float_t unimol_rx_time = m.unimol_rx_time;
-  float_t time_from_event_start = m.diffusion_time - event_time;
+  double diffusion_time = m.diffusion_time;
+  double unimol_rx_time = m.unimol_rx_time;
+  double time_from_event_start = m.diffusion_time - event_time;
 
   // clamp to barrier time
-  float_t max_time = time_up_to_next_barrier - time_from_event_start;
+  double max_time = time_up_to_next_barrier - time_from_event_start;
 
   // clamp to unimol_rx time
   if (unimol_rx_time != TIME_INVALID &&
@@ -196,7 +196,7 @@ inline float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t
     //   their timestep to the full value,
     // - this behavior is here due to unbinding events so that the molecule
     //   does not diffuse so far when in reality it could re-bind
-    float_t age_dependent_max_time = 1.0 + 0.2 * (diffusion_time - m.birthday);
+    double age_dependent_max_time = 1.0 + 0.2 * (diffusion_time - m.birthday);
     if (max_time > age_dependent_max_time) {
       max_time = age_dependent_max_time;
     }
@@ -216,7 +216,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
     WallTileIndexPair wall_tile_pair_where_created_this_iteration // set only for newly created molecules
 ) {
   Molecule& m_initial = p.get_m(m_id);
-  float_t diffusion_start_time = m_initial.diffusion_time;
+  double diffusion_start_time = m_initial.diffusion_time;
   assert(diffusion_start_time + EPS >= event_time && before_this_iterations_end(diffusion_start_time));
   assert(m_initial.birthday != TIME_INVALID && m_initial.birthday <= diffusion_start_time);
 
@@ -252,7 +252,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
     pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
   }
 
-  float_t unimol_rx_time = m.unimol_rx_time; // copy for a minor compiler optimization
+  double unimol_rx_time = m.unimol_rx_time; // copy for a minor compiler optimization
 
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_species(m.species_id);
@@ -273,7 +273,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 #endif
 
   // max_time is the time for which we should simulate the diffusion
-  float_t max_time = get_max_time(p, m_id);
+  double max_time = get_max_time(p, m_id);
   
   if (m.is_vol()) {
     diffuse_vol_molecule(
@@ -292,7 +292,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
   // update time for which the molecule should be scheduled next
   Molecule& m_for_sched_update = p.get_m(m_id);
   if (!m_for_sched_update.is_defunct()) {
-    float_t event_end_time = p.stats.get_current_iteration() + 1;
+    double event_end_time = p.stats.get_current_iteration() + 1;
 
     const Species& species = world->get_all_species().get(m_for_sched_update.species_id);
 
@@ -319,7 +319,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
         // round diffusion_time to a whole number if it is close to it,
         // this did not give any error for the test that were available when this
         // code was implemented
-        float_t rounded_dt = round_f(m_for_sched_update.diffusion_time);
+        double rounded_dt = round_f(m_for_sched_update.diffusion_time);
         if (cmp_eq(m_for_sched_update.diffusion_time, rounded_dt, SQRT_EPS)) {
           m_for_sched_update.diffusion_time = rounded_dt;
         }
@@ -375,8 +375,8 @@ void sort_collisions_by_time(CollisionsVector& molecule_collisions) {
 void DiffuseReactEvent::diffuse_vol_molecule(
     Partition& p,
     const molecule_id_t vm_id,
-    float_t& max_time,
-    const float_t diffusion_start_time,
+    double& max_time,
+    const double diffusion_start_time,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& vm = p.get_m(vm_id);
@@ -391,10 +391,10 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   // diffuse each molecule - get information on position change
   Vec3 displacement;
 
-  float_t steps = 1.0;
-  float_t t_steps = 1.0;
-  float_t rate_factor = 1.0;
-  float_t r_rate_factor = 1.0;
+  double steps = 1.0;
+  double t_steps = 1.0;
+  double rate_factor = 1.0;
+  double r_rate_factor = 1.0;
   DiffusionUtils::compute_vol_displacement(
       p, species, vm, max_time, world->rng,
       displacement, rate_factor, r_rate_factor, steps, t_steps
@@ -431,7 +431,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   bool was_defunct = false;
   wall_index_t last_hit_wall_index = WALL_INDEX_INVALID;
 
-  float_t elapsed_molecule_time = diffusion_start_time; // == vm->t
+  double elapsed_molecule_time = diffusion_start_time; // == vm->t
   bool can_vol_react = species.can_vol_react();
   do {
     state =
@@ -460,7 +460,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 #if POS_T_BYTES == 8
       assert(collision.time >= 0 && collision.time <= 1);
 #else
-      assert(collision.time >= 0 && cmp_le(collision.time, 1, (float_t)POS_SQRT_EPS));
+      assert(collision.time >= 0 && cmp_le(collision.time, 1, (double)POS_SQRT_EPS));
 #endif
 
       if (collision.is_vol_mol_vol_mol_collision()) {
@@ -512,7 +512,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         cout << "  mol id: " << vm_new_ref.id << ", species: " << p.all_species.get(vm_new_ref.species_id).name << "\n";
         cout << "  obj: " << geom_obj->name << ", id: " << geom_obj->id << "\n";
         cout << "  wall id: " << colliding_wall.id << "\n";
-        cout << "  time: " << float_t(world->get_current_iteration()) + collision.time << "\n";
+        cout << "  time: " << double(world->get_current_iteration()) + collision.time << "\n";
         cout << "  pos: " << collision.pos << "\n";
 #endif
 
@@ -782,16 +782,16 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     Partition& p,
     const Collision& collision,
     Vec3& displacement,
-    const float_t t_steps,
-    const float_t r_rate_factor,
-    const float_t elapsed_molecule_time
+    const double t_steps,
+    const double r_rate_factor,
+    const double elapsed_molecule_time
 )  {
 
   Molecule& colliding_molecule = p.get_m(collision.colliding_molecule_id); // am
   Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
 
   // returns 1 when there are no walls at all
-  float_t factor = ExactDiskUtils::exact_disk(
+  double factor = ExactDiskUtils::exact_disk(
       p, collision.pos, displacement, p.config.rx_radius_3d,
       diffused_molecule, colliding_molecule,
       p.config.use_expanded_list
@@ -804,11 +804,11 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   RxnClass* rxn_class = collision.rxn_class;
   assert(rxn_class != nullptr);
 
-  float_t absolute_collision_time = elapsed_molecule_time + t_steps * collision.time;
+  double absolute_collision_time = elapsed_molecule_time + t_steps * collision.time;
 
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
-  float_t scaling = factor * r_rate_factor;
+  double scaling = factor * r_rate_factor;
   int i = RxnUtils::test_bimolecular(
       rxn_class, world->rng, colliding_molecule, diffused_molecule, scaling, 0, absolute_collision_time);
 
@@ -840,12 +840,12 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
 int DiffuseReactEvent::collide_and_react_with_surf_mol(
     Partition& p,
     const Collision& collision,
-    const float_t r_rate_factor,
+    const double r_rate_factor,
     WallTileIndexPair& where_created_this_iteration,
     wall_index_t& last_hit_wall_index,
     Vec3& remaining_displacement,
-    float_t& t_steps,
-    float_t& elapsed_molecule_time
+    double& t_steps,
+    double& elapsed_molecule_time
 ) {
   Wall& wall = p.get_wall(collision.colliding_wall_index);
   Grid& grid = wall.grid;
@@ -894,7 +894,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   assert(matching_rxn_classes.size() == 1 && "There should be max 1 rxn class");
 
   // FIXME: this code is very similar to code in react_2D_all_neighbors
-  small_vector<float_t> scaling_coefs;
+  small_vector<double> scaling_coefs;
   for (size_t i = 0; i < matching_rxn_classes.size(); i++) {
     const RxnClass* rxn = matching_rxn_classes[i];
     assert(rxn != nullptr);
@@ -902,7 +902,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     scaling_coefs.push_back(r_rate_factor / grid.binding_factor);
   }
 
-  float_t collision_time = elapsed_molecule_time + t_steps * collision.time;
+  double collision_time = elapsed_molecule_time + t_steps * collision.time;
 
   int selected_rx_pathway;
   if (matching_rxn_classes.size() == 1) {
@@ -940,7 +940,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   else if (outcome_bimol_result == RX_FLIP) {
     // update position and timing for flipped molecule
 
-    float_t t_smash = collision.time;
+    double t_smash = collision.time;
     Molecule& vm = p.get_m(collision.diffused_molecule_id);
 
     // update position and subpart if needed
@@ -986,9 +986,9 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
     Partition& p,
     Collision& collision,
-    const float_t r_rate_factor,
-    const float_t elapsed_molecule_time,
-    const float_t t_steps
+    const double r_rate_factor,
+    const double elapsed_molecule_time,
+    const double t_steps
 ) {
   assert(collision.type == CollisionType::WALL_FRONT || collision.type == CollisionType::WALL_BACK);
 
@@ -1026,7 +1026,7 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
   rxn_class_index_t rxn_class_index = RNX_CLASS_INDEX_INVALID;
   rxn_class_pathway_index_t pathway_index;
 
-  float_t current_time = elapsed_molecule_time + t_steps * collision.time;
+  double current_time = elapsed_molecule_time + t_steps * collision.time;
 
   if (matching_rxn_classes.size() == 1) {
     rxn_class_index = 0;
@@ -1067,14 +1067,14 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 inline void DiffuseReactEvent::diffuse_surf_molecule(
     Partition& p,
     const molecule_id_t sm_id,
-    float_t& max_time,
-    const float_t diffusion_start_time
+    double& max_time,
+    const double diffusion_start_time
 ) {
   Molecule& sm = p.get_m(sm_id);
   const BNG::Species& species = p.get_species(sm.species_id);
 
-  float_t steps = 0.0;
-  float_t t_steps = 0.0;
+  double steps = 0.0;
+  double t_steps = 0.0;
 
   wall_index_t original_wall_index = sm.s.wall_index;
 
@@ -1100,7 +1100,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
       steps = 1.0;
     }
 
-    float_t space_factor = 0.0;
+    double space_factor = 0.0;
 
     if (steps == 1.0) {
       space_factor = species.get_space_step();
@@ -1175,7 +1175,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
         // a surf mol + surf class rxn
         // Do this only if the current unimol rxn is not scheduled
         // for this timestep (t_steps is set to end at the unimol rx time)
-        float_t time_until_unimol = sm.unimol_rx_time - t_steps - sm.diffusion_time;
+        double time_until_unimol = sm.unimol_rx_time - t_steps - sm.diffusion_time;
         time_until_unimol = (time_until_unimol < 0) ? 0 : time_until_unimol;
 
         if (species.has_flag(SPECIES_FLAG_CAN_SURFWALL) &&
@@ -1242,8 +1242,8 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 bool DiffuseReactEvent::react_2D_all_neighbors(
     Partition& p,
     Molecule& sm,
-    const float_t time, // same argument as t passed in mcell3 (come up with a better name)
-    const float_t diffusion_start_time // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
+    const double time, // same argument as t passed in mcell3 (come up with a better name)
+    const double diffusion_start_time // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
 ) {
 
 #ifdef DEBUG_TIMING
@@ -1266,7 +1266,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   const BNG::Species& sm_species = p.get_species(sm.species_id);
 
   // each item in array corresponds to one potential reaction
-  small_vector<float_t> correction_factors;
+  small_vector<double> correction_factors;
   small_vector<molecule_id_t> reactant_molecule_ids;
 
   RxnClassesVector matching_rxn_classes;
@@ -1338,12 +1338,12 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   rxn_class_pathway_index_t selected_pathway_index;
   Collision collision;
 
-  float_t collision_time = diffusion_start_time;
+  double collision_time = diffusion_start_time;
 
   /* Calculate local_prob_factor for the reaction probability.
      Here we convert from 3 neighbor tiles (upper probability
      limit) to the real "num_nbrs" neighbor tiles. */
-  float_t local_prob_factor = 3.0 / neighbors.size();
+  double local_prob_factor = 3.0 / neighbors.size();
   int rxn_class_index;
   if (num_matching_rxn_classes == 1) {
     // figure out what should happen
@@ -1386,7 +1386,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
 bool DiffuseReactEvent::react_2D_intermembrane(
     Partition& p, Molecule& sm,
-    const float_t t_steps, const float_t diffusion_start_time
+    const double t_steps, const double diffusion_start_time
 ) {
   const Wall& w1 = p.get_wall(sm.s.wall_index);
   const Vec3& w1_vert0 = p.get_wall_vertex(w1, 0);
@@ -1494,7 +1494,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   // collision_time is the same as for surf mols,
   // TODO: not sure if correct, this molecule has already diffused and newly created
   // molecules birthdays will be this one
-  float_t collision_time = diffusion_start_time;
+  double collision_time = diffusion_start_time;
 
   bool was_defunct = false;
   for (const IdDist2Pair& id_dist2_pair: reactants_dist2) {
@@ -1721,7 +1721,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
 void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
     Partition& p,
-    const float_t current_time,
+    const double current_time,
     Molecule& m
 ) {
   assert(current_time >= 0);
@@ -1739,9 +1739,9 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
   }
 
   // there is a check when computing the reaction rate to make sure that the time is reasonably higher than 0
-  float_t time_from_now = RxnUtils::compute_unimol_lifetime(p, world->rng, rxn_classes[idx], current_time, m);
+  double time_from_now = RxnUtils::compute_unimol_lifetime(p, world->rng, rxn_classes[idx], current_time, m);
 
-  float_t scheduled_time = current_time + time_from_now;
+  double scheduled_time = current_time + time_from_now;
 
   // we need to store the end time to the molecule because it is needed in diffusion to
   // figure out whether we should do the whole time step
@@ -1763,7 +1763,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     return false;
   }
 
-  float_t scheduled_time = m.unimol_rx_time;
+  double scheduled_time = m.unimol_rx_time;
 
   assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN));
   assert(scheduled_time >= event_time && scheduled_time <= event_time + time_up_to_next_barrier);
@@ -1825,7 +1825,7 @@ int DiffuseReactEvent::outcome_bimolecular(
     Partition& p,
     const Collision& collision,
     const int path,
-    const float_t time
+    const double time
 ) {
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
@@ -1905,7 +1905,7 @@ int DiffuseReactEvent::outcome_intersect(
     RxnClass* rxn_class,
     const rxn_class_pathway_index_t pathway_index,
     Collision& collision, // rxn_class can be set
-    const float_t time
+    const double time
 ) {
   if (!rxn_class->is_standard()) {
     if (rxn_class->is_reflect()) {
@@ -2294,7 +2294,7 @@ static void update_vol_mol_after_rxn_with_surf_mol(
 void DiffuseReactEvent::handle_rxn_callback(
     Partition& p,
     const Collision& collision,
-    const float_t time,
+    const double time,
     const BNG::RxnRule* rxn,
     // reac1 is the diffused molecule and reac2 is the optional second reactant
     const Molecule* reacA,
@@ -2415,7 +2415,7 @@ orientation_t DiffuseReactEvent::determine_orientation_depending_on_surf_comp(
 int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
-    const float_t time,
+    const double time,
     const rxn_class_pathway_index_t pathway_index,
     bool& keep_reacA,
     bool& keep_reacB,
@@ -2881,7 +2881,7 @@ int DiffuseReactEvent::outcome_products_random(
 bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
-    const float_t scheduled_time,
+    const double scheduled_time,
     RxnClass* rxn_class,
     const rxn_class_pathway_index_t pathway_index,
     MoleculeIdsVector* optional_product_ids
@@ -2949,8 +2949,8 @@ bool DiffuseReactEvent::cross_transparent_wall(
     const Collision& collision,
     Molecule& vm, // moves vm to the reflection point
     Vec3& remaining_displacement,
-    float_t& t_steps,
-    float_t& elapsed_molecule_time,
+    double& t_steps,
+    double& elapsed_molecule_time,
     wall_index_t& last_hit_wall_index
 ) {
 #ifdef DEBUG_COUNTED_VOLUMES
@@ -2975,7 +2975,7 @@ bool DiffuseReactEvent::cross_transparent_wall(
     species_id_t new_species_id = p.get_all_species().find_or_add(new_species, true);
 
     // using the same computation of collision time as in collide_and_react_with_surf_mol
-    float_t collision_time = elapsed_molecule_time + t_steps * collision.time;
+    double collision_time = elapsed_molecule_time + t_steps * collision.time;
 
     // we create a new molecule on the boundary, move it a tiny bit in the right direction
     Molecule vm_initialization(
@@ -3015,7 +3015,7 @@ bool DiffuseReactEvent::cross_transparent_wall(
 
     // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
     // same time step
-    float_t t_smash = collision.time;
+    double t_smash = collision.time;
 
     remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
     elapsed_molecule_time += t_steps * t_smash;
@@ -3040,7 +3040,7 @@ void DiffuseReactEvent::dump(const std::string ind) const {
   cout << ind << "Diffuse-react event:\n";
   std::string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
-  cout << ind2 << "barrier_time_from_event_time: \t\t" << time_up_to_next_barrier << " [float_t] (may be unset initally)\t\t\n";
+  cout << ind2 << "barrier_time_from_event_time: \t\t" << time_up_to_next_barrier << " [double] (may be unset initally)\t\t\n";
 }
 
 

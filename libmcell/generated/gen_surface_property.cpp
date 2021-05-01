@@ -96,7 +96,7 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
           py::init<
             const SurfacePropertyType,
             std::shared_ptr<Complex>,
-            const float_t
+            const double
           >(),
           py::arg("type") = SurfacePropertyType::UNSET,
           py::arg("affected_complex_pattern") = nullptr,

@@ -393,7 +393,7 @@ binary_search_double
   Out: Returns the index of the match in the array
   Note: This should possibly be moved to util.c
 *************************************************************************/
-static int binary_search_double(const std::vector<float_t>& A, float_t match, int max_idx, double mult) {
+static int binary_search_double(const std::vector<double>& A, double match, int max_idx, double mult) {
   int min_idx = 0;
 
   while (max_idx - min_idx > 1) {
@@ -433,9 +433,9 @@ static int test_bimolecular(
     rng_state& rng,
     const Molecule& a1, // unused for now
     const Molecule& a2, // unused for now
-    const float_t scaling,
-    const float_t local_prob_factor,
-    const float_t current_time
+    const double scaling,
+    const double local_prob_factor,
+    const double current_time
 ) {
   assert(rxn_class != nullptr);
   assert(rxn_class->get_num_reactions() != 0);
@@ -444,12 +444,12 @@ static int test_bimolecular(
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
-  float_t max_fixed_p = rxn_class->get_max_fixed_p(); // local_prob_factor == 0
+  double max_fixed_p = rxn_class->get_max_fixed_p(); // local_prob_factor == 0
   if (local_prob_factor != 0) {
     max_fixed_p = rxn_class->get_max_fixed_p() * local_prob_factor;
   }
 
-  float_t p;
+  double p;
   if (max_fixed_p < scaling) {
     /* Instead of scaling rx->cum_probs array we scale random probability */
     p = rng_dbl(&rng) * scaling;
@@ -564,11 +564,11 @@ test_many_bimolecular:
 *************************************************************************/
 static int test_many_bimolecular(
     BNG::RxnClassesVector& rxn_classes,
-    const small_vector<float_t>& scaling,
-    const float_t local_prob_factor,
+    const small_vector<double>& scaling,
+    const double local_prob_factor,
     rng_state& rng,
     const bool all_neighbors_flag,
-    const float_t current_time,
+    const double current_time,
     rxn_class_pathway_index_t& chosen_pathway_index
 ) {
   assert(rxn_classes.size() == scaling.size());
@@ -579,11 +579,11 @@ static int test_many_bimolecular(
   }
 
   /* array of cumulative rxn probabilities */
-  std::vector<float_t> cum_rxn_class_probs; // rxn in mcell3
+  std::vector<double> cum_rxn_class_probs; // rxn in mcell3
   cum_rxn_class_probs.resize(2 * n, 0.0);
 
   int m;
-  float_t p;
+  double p;
 
   if (all_neighbors_flag && local_prob_factor <= 0) {
     mcell_internal_error(
@@ -683,17 +683,17 @@ test_intersect
 // TODO LATER: see if it can be merged with test_bimolecular
 static rxn_class_pathway_index_t test_intersect(
     BNG::RxnClass* rxn_class,
-    const float_t scaling,
-    const float_t current_time,
+    const double scaling,
+    const double current_time,
     rng_state& rng) {
-  float_t p;
+  double p;
 
   assert(rxn_class->type == BNG::RxnType::Standard &&
       "Reflect and Transparent should be handled elsewhere, AbsorbRegionBorder is not applicable here");
 
   rxn_class->update_rxn_rates_if_needed(current_time);
 
-  float_t max_prob = rxn_class->get_max_fixed_p();
+  double max_prob = rxn_class->get_max_fixed_p();
 
   if (max_prob > scaling) {
     /*if (scaling <= 0.0)
@@ -714,7 +714,7 @@ static rxn_class_pathway_index_t test_intersect(
     return PATHWAY_INDEX_NO_RXN;
   }
 
-  float_t match = rng_dbl(&rng);
+  double match = rng_dbl(&rng);
   match = match * rxn_class->get_max_fixed_p();
 
   return rxn_class->get_pathway_index_for_probability(match, 1);
@@ -735,8 +735,8 @@ test_many_intersect:
 // TODO LATER: see if it can be merged with test_many bimolecular
 static rxn_class_pathway_index_t test_many_intersect(
     BNG::RxnClassesVector& rxn_classes,
-    const float_t scaling,
-    const float_t current_time,
+    const double scaling,
+    const double current_time,
     rxn_class_index_t& selected_rxn_class_index,
     rng_state& rng) {
 
@@ -752,7 +752,7 @@ static rxn_class_pathway_index_t test_many_intersect(
   }
 
   // array of cumulative rxn probabilities
-  std::vector<float_t> rxn_probs;
+  std::vector<double> rxn_probs;
   rxn_probs.resize(num_classes);
 
   rxn_probs[0] = rxn_classes[0]->get_max_fixed_p() / scaling;
@@ -798,7 +798,7 @@ static rxn_class_pathway_index_t test_many_intersect(
 static void pick_unimol_rxn_classes(
     Partition& p,
     const Molecule& m,
-    const float_t current_time,
+    const double current_time,
     BNG::RxnClassesVector& matching_rxn_classes
 ) {
   // MCell3 returns mol+surf class rxn(s) as the first one(s), then the true unimol rxns
@@ -820,15 +820,15 @@ static void pick_unimol_rxn_classes(
 
 
 // based on timeof_unimolecular
-static float_t time_of_unimol(BNG::RxnClass* rxn_class, rng_state& rng) {
-  float_t k_tot = rxn_class->get_max_fixed_p();
+static double time_of_unimol(BNG::RxnClass* rxn_class, rng_state& rng) {
+  double k_tot = rxn_class->get_max_fixed_p();
 #ifdef MCELL4_NO_RNG_FOR_UNIMOL_RXN_P_0
   if (k_tot <= 0) {
     // not calling random generator when p is 0 - for bompatibility with MCell3R
     return TIME_FOREVER;
   }
 #endif  
-  float_t p = rng_dbl(&rng);
+  double p = rng_dbl(&rng);
 
   if ((k_tot <= 0) || (!distinguishable_f(p, 0, EPS))) {
     return TIME_FOREVER;
@@ -838,16 +838,16 @@ static float_t time_of_unimol(BNG::RxnClass* rxn_class, rng_state& rng) {
 
 
 // based on compute_lifetime
-static float_t compute_unimol_lifetime(
+static double compute_unimol_lifetime(
     const Partition& p,
     rng_state& rng,
     BNG::RxnClass* rx,
-    const float_t current_time,
+    const double current_time,
     Molecule& m
 ) {
   assert(rx != nullptr);
 
-  float_t unimol_time_from_now = time_of_unimol(rx, rng);
+  double unimol_time_from_now = time_of_unimol(rx, rng);
 
 #ifdef DEBUG_RXNS
   SimulationStats* world = &p.stats;
@@ -858,7 +858,7 @@ static float_t compute_unimol_lifetime(
 #endif
 
   // ignore if the is the next change if rxn probability closer than the scheduled time
-  float_t update_time = rx->get_next_time_of_rxn_rate_update();
+  double update_time = rx->get_next_time_of_rxn_rate_update();
   if (current_time + unimol_time_from_now > update_time) {
     m.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
     unimol_time_from_now = update_time - current_time;
@@ -881,7 +881,7 @@ static rxn_class_pathway_index_t which_unimolecular(const Molecule& m, BNG::RxnC
   // TODO_COMPARTMENTS check compartments & pass to which_unimolecular only
   // those that match compartments
 
-  float_t match = rng_dbl(&rng);
+  double match = rng_dbl(&rng);
   match = match * rxn_class->get_max_fixed_p();
   return rxn_class->get_pathway_index_for_probability(match, 1);
 }

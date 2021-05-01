@@ -85,7 +85,7 @@ public:
 
   void load_bngl_molecule_types_and_reaction_rules(
       const std::string& file_name,
-      const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
+      const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()
   ) override;
 
   // added manually

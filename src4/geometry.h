@@ -160,7 +160,7 @@ public:
     species_id_t species_id_,
     orientation_t orientation_,
     bool const_num_not_density_,
-    float_t release_density_)
+    double release_density_)
     : species_id(species_id_), orientation(orientation_), const_num_not_density(const_num_not_density_),
       release_num(UINT_INVALID), release_density(release_density_) {
     assert(!const_num_not_density_ && "This ctor is for density");
@@ -185,7 +185,7 @@ public:
   orientation_t orientation;
   bool const_num_not_density;
   uint release_num;
-  float_t release_density;
+  double release_density;
 };
 
 

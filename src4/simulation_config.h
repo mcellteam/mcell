@@ -62,7 +62,7 @@ public:
   }
 
   // configuration
-  float_t initial_time; // simulation start time in us, non-zero if starting from a checkpoint
+  double initial_time; // simulation start time in us, non-zero if starting from a checkpoint
   uint64_t initial_iteration; // initial iteration, non-zero if starting from a checkpoint
 
   pos_t vacancy_search_dist2; /* Square of distance to search for free grid
@@ -78,8 +78,8 @@ public:
   pos_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
   uint num_radial_subdivisions; /* Size of 3D step length lookup tables, not configurable by user yet */
-  std::vector<float_t> radial_2d_step; /* Lookup table of 2D diffusion step lengths (r_step_surface) */
-  std::vector<float_t> radial_3d_step; /* Lookup table of 3D diffusion step lengths (r_step) */
+  std::vector<double> radial_2d_step; /* Lookup table of 2D diffusion step lengths (r_step_surface) */
+  std::vector<double> radial_3d_step; /* Lookup table of 3D diffusion step lengths (r_step) */
 
   // other options
   bool use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
@@ -111,10 +111,10 @@ public:
 
   void dump();
 
-  float_t get_simulation_start_time() const {
+  double get_simulation_start_time() const {
     assert(initial_time != TIME_INVALID);
     // simulation starts always in integer values of internal time
-    float_t res = floor_to_multiple_f(initial_time / time_unit, 1);
+    double res = floor_to_multiple_f(initial_time / time_unit, 1);
     assert((int)res == res);
     return res;
   }

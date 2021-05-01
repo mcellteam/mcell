@@ -54,9 +54,9 @@ namespace MCell {
 
 namespace DiffusionUtils {
 
-const float_t MULTISTEP_WORTHWHILE = 2.0; // TODO: make this tweakable through API, 2.0 is the value used in MCell3
-const float_t MULTISTEP_PERCENTILE = 0.99;
-const float_t MULTISTEP_FRACTION = 0.9;
+const double MULTISTEP_WORTHWHILE = 2.0; // TODO: make this tweakable through API, 2.0 is the value used in MCell3
+const double MULTISTEP_PERCENTILE = 0.99;
+const double MULTISTEP_FRACTION = 0.9;
 
 
 /*************************************************************************
@@ -68,7 +68,7 @@ pick_2D_displacement:
          distance chosen from the probability distribution of a diffusing
          2D molecule, scaled by the scaling factor.
 *************************************************************************/
-static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng) {
+static void pick_surf_displacement(Vec2& v, const double scale, rng_state& rng) {
   const pos_t one_over_2_to_16th = 1.52587890625e-5f;
   Vec2 a;
 
@@ -105,7 +105,7 @@ static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng)
 
 static void compute_surf_displacement(
     const BNG::Species& sp,
-    const float_t scale,
+    const double scale,
     rng_state& rng,
     Vec2& v
 ) {
@@ -121,7 +121,7 @@ static void compute_surf_displacement(
 // ---------------------------------- volume mol diffusion ----------------------------------
 
 // get displacement based on scale (related to diffusion constant) and gauss random number
-static inline void pick_vol_displacement(const BNG::Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
+static inline void pick_vol_displacement(const BNG::Species& sp, const double scale, rng_state& rng, Vec3& displacement) {
 
   assert(sp.can_diffuse());
   displacement.x = scale * rng_gauss(&rng) * 0.70710678118654752440;
@@ -156,7 +156,7 @@ safe_diffusion_step:
         this off entirely, aside from the TIME_STEP_MAX= directive.
 ****************************************************************************/
 // TODO: this needs to be optimized because we are losing ~7% in benchmarks
-static inline float_t get_safe_diffusion_step(
+static inline double get_safe_diffusion_step(
     const Partition& p,
     const BNG::Species& sp,
     const Molecule& vm
@@ -171,7 +171,7 @@ static inline float_t get_safe_diffusion_step(
   d2_nearmax *= d2_nearmax;
 
 
-  float_t subpart_side_length = p.config.subpartition_edge_length;
+  double subpart_side_length = p.config.subpartition_edge_length;
   IVec3 subpart_indices;
   p.get_subpart_3d_indices_from_index(vm.v.subpart_index, subpart_indices);
   Vec3 llf_subpart_boundary = p.config.partition0_llf + Vec3(subpart_indices) * Vec3(subpart_side_length);
@@ -239,7 +239,7 @@ static inline float_t get_safe_diffusion_step(
   for (wall_index_t wi: wall_ids) {
     const Wall& w = p.get_wall(wi);
 
-    float_t wd2 = dot(w.normal, vm.v.pos) - w.distance_to_origin;
+    double wd2 = dot(w.normal, vm.v.pos) - w.distance_to_origin;
     wd2 *= wd2;
     if (wd2 < d2min)
       d2min = wd2;
@@ -253,7 +253,7 @@ static inline float_t get_safe_diffusion_step(
     steps = 1.0;
   }
   else {
-    float_t steps_sq = d2min / d2_nearmax;
+    double steps_sq = d2min / d2_nearmax;
     if (steps_sq < MULTISTEP_WORTHWHILE * MULTISTEP_WORTHWHILE)
       steps = 1.0;
     else
@@ -276,41 +276,41 @@ erfcinv:
   In: a value between 0 and 1 (not including endpoints)
   Out: the value y such that erfc(y) = input value
 *************************************************************************/
-static float_t erfcinv_f(float_t x) {
+static double erfcinv_f(double x) {
   /* Misc constants */
-  const float_t tail_cutoff = 0.0485;
-  const float_t neg_twice_log_half = 1.386294361119891;
-  // const float_t sqrt_half_pi = 1.253314137315501;  /* For refinement */
-  const float_t scaling_const = -0.7071067811865475;
+  const double tail_cutoff = 0.0485;
+  const double neg_twice_log_half = 1.386294361119891;
+  // const double sqrt_half_pi = 1.253314137315501;  /* For refinement */
+  const double scaling_const = -0.7071067811865475;
 
   /* Tail numerator */
-  const float_t tn0 = 2.938163982698783;
-  const float_t tn1 = 4.374664141464968;
-  const float_t tn2 = -2.549732539343734;
-  const float_t tn3 = -2.400758277161838;
-  const float_t tn4 = -3.223964580411365e-1;
-  const float_t tn5 = -7.784894002430293e-3;
+  const double tn0 = 2.938163982698783;
+  const double tn1 = 4.374664141464968;
+  const double tn2 = -2.549732539343734;
+  const double tn3 = -2.400758277161838;
+  const double tn4 = -3.223964580411365e-1;
+  const double tn5 = -7.784894002430293e-3;
   /* Tail denominator */
-  const float_t td1 = 3.754408661907416;
-  const float_t td2 = 2.445134137142996;
-  const float_t td3 = 3.224671290700398e-1;
-  const float_t td4 = 7.784695709041462e-3;
+  const double td1 = 3.754408661907416;
+  const double td2 = 2.445134137142996;
+  const double td3 = 3.224671290700398e-1;
+  const double td4 = 7.784695709041462e-3;
 
   /* Central numerator */
-  const float_t cn0 = 2.506628277459239;
-  const float_t cn1 = -3.066479806614716e1;
-  const float_t cn2 = 1.383577518672690e2;
-  const float_t cn3 = -2.759285104469687e2;
-  const float_t cn4 = 2.209460984245205e2;
-  const float_t cn5 = -3.969683028665376e1;
+  const double cn0 = 2.506628277459239;
+  const double cn1 = -3.066479806614716e1;
+  const double cn2 = 1.383577518672690e2;
+  const double cn3 = -2.759285104469687e2;
+  const double cn4 = 2.209460984245205e2;
+  const double cn5 = -3.969683028665376e1;
   /* Central denominator */
-  const float_t cd1 = -1.328068155288572e1;
-  const float_t cd2 = 6.680131188771972e1;
-  const float_t cd3 = -1.556989798598866e2;
-  const float_t cd4 = 1.615858368580409e2;
-  const float_t cd5 = -5.447609879822406e1;
+  const double cd1 = -1.328068155288572e1;
+  const double cd2 = 6.680131188771972e1;
+  const double cd3 = -1.556989798598866e2;
+  const double cd4 = 1.615858368580409e2;
+  const double cd5 = -5.447609879822406e1;
 
-  float_t p, q, r;
+  double p, q, r;
 
   if (x < tail_cutoff) {
     p = sqrt_f(-2 * log_f(x) + neg_twice_log_half);
@@ -351,7 +351,7 @@ static void pick_clamped_displacement(
     rng_state& rng,
     Vec3& displacement) {
 
-  const float_t one_over_2_to_20th = 9.5367431640625e-7;
+  const double one_over_2_to_20th = 9.5367431640625e-7;
 
   assert(vm.v.previous_wall_index != WALL_INDEX_INVALID);
   const Wall& w = p.get_wall(vm.v.previous_wall_index);
@@ -359,10 +359,10 @@ static void pick_clamped_displacement(
   uint n = rng_uint(&rng);
 
   /* Correct distribution along normal from surface (from lookup table) */
-  float_t r_n = p.config.radial_2d_step[n & (p.config.num_radial_subdivisions - 1)];
+  double r_n = p.config.radial_2d_step[n & (p.config.num_radial_subdivisions - 1)];
 
-  float_t pval = one_over_2_to_20th * ((n >> 12) + 0.5);
-  float_t t = r_n / erfcinv_f(pval * erfc(r_n));
+  double pval = one_over_2_to_20th * ((n >> 12) + 0.5);
+  double t = r_n / erfcinv_f(pval * erfc(r_n));
   Vec2 r_uv;
   pick_surf_displacement(r_uv, sqrt_f(t) * sp.space_step, rng);
 
@@ -378,13 +378,13 @@ static void compute_vol_displacement(
     const Partition& p,
     const BNG::Species& sp,
     Molecule& vm,
-    float_t& max_time, // gets updated to t_steps
+    double& max_time, // gets updated to t_steps
     rng_state& rng,
     Vec3& displacement,
-    float_t& rate_factor,
-    float_t& r_rate_factor,
-    float_t& steps, // number of steps
-    float_t& t_steps // time of steps
+    double& rate_factor,
+    double& r_rate_factor,
+    double& steps, // number of steps
+    double& t_steps // time of steps
 ) {
   assert(max_time != 0);
   assert(vm.is_vol());

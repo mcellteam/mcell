@@ -33,9 +33,9 @@ namespace API {
 
 namespace bngl_utils {
 
-std::map<std::string, float_t> load_bngl_parameters(
+std::map<std::string, double> load_bngl_parameters(
     const std::string& file_name,
-    const std::map<std::string, float_t>& parameter_overrides
+    const std::map<std::string, double>& parameter_overrides
 ) {
 
   BNG::BNGData bng_data;

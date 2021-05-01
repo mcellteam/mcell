@@ -38,10 +38,10 @@ class PythonExportContext;
 #define SPECIES_CTOR() \
     Species( \
         const std::string& name_ = STR_UNSET, \
-        const float_t diffusion_constant_2d_ = FLT_UNSET, \
-        const float_t diffusion_constant_3d_ = FLT_UNSET, \
-        const float_t custom_time_step_ = FLT_UNSET, \
-        const float_t custom_space_step_ = FLT_UNSET, \
+        const double diffusion_constant_2d_ = FLT_UNSET, \
+        const double diffusion_constant_3d_ = FLT_UNSET, \
+        const double custom_time_step_ = FLT_UNSET, \
+        const double custom_space_step_ = FLT_UNSET, \
         const bool target_only_ = false, \
         const std::vector<std::shared_ptr<ElementaryMolecule>> elementary_molecules_ = std::vector<std::shared_ptr<ElementaryMolecule>>(), \
         const Orientation orientation_ = Orientation::DEFAULT, \
@@ -86,8 +86,8 @@ public:
 
 
   // --- attributes ---
-  float_t diffusion_constant_2d;
-  virtual void set_diffusion_constant_2d(const float_t new_diffusion_constant_2d_) {
+  double diffusion_constant_2d;
+  virtual void set_diffusion_constant_2d(const double new_diffusion_constant_2d_) {
     if (initialized) {
       throw RuntimeError("Value 'diffusion_constant_2d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -95,13 +95,13 @@ public:
     cached_data_are_uptodate = false;
     diffusion_constant_2d = new_diffusion_constant_2d_;
   }
-  virtual float_t get_diffusion_constant_2d() const {
+  virtual double get_diffusion_constant_2d() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return diffusion_constant_2d;
   }
 
-  float_t diffusion_constant_3d;
-  virtual void set_diffusion_constant_3d(const float_t new_diffusion_constant_3d_) {
+  double diffusion_constant_3d;
+  virtual void set_diffusion_constant_3d(const double new_diffusion_constant_3d_) {
     if (initialized) {
       throw RuntimeError("Value 'diffusion_constant_3d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -109,13 +109,13 @@ public:
     cached_data_are_uptodate = false;
     diffusion_constant_3d = new_diffusion_constant_3d_;
   }
-  virtual float_t get_diffusion_constant_3d() const {
+  virtual double get_diffusion_constant_3d() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return diffusion_constant_3d;
   }
 
-  float_t custom_time_step;
-  virtual void set_custom_time_step(const float_t new_custom_time_step_) {
+  double custom_time_step;
+  virtual void set_custom_time_step(const double new_custom_time_step_) {
     if (initialized) {
       throw RuntimeError("Value 'custom_time_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -123,13 +123,13 @@ public:
     cached_data_are_uptodate = false;
     custom_time_step = new_custom_time_step_;
   }
-  virtual float_t get_custom_time_step() const {
+  virtual double get_custom_time_step() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return custom_time_step;
   }
 
-  float_t custom_space_step;
-  virtual void set_custom_space_step(const float_t new_custom_space_step_) {
+  double custom_space_step;
+  virtual void set_custom_space_step(const double new_custom_space_step_) {
     if (initialized) {
       throw RuntimeError("Value 'custom_space_step' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -137,7 +137,7 @@ public:
     cached_data_are_uptodate = false;
     custom_space_step = new_custom_space_step_;
   }
-  virtual float_t get_custom_space_step() const {
+  virtual double get_custom_space_step() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return custom_space_step;
   }

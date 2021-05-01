@@ -37,10 +37,10 @@ class PythonExportContext;
     BaseChkptMol( \
         const int id_, \
         std::shared_ptr<Species> species_, \
-        const float_t diffusion_time_, \
-        const float_t birthday_, \
+        const double diffusion_time_, \
+        const double birthday_, \
         const int flags_, \
-        const float_t unimol_rx_time_ = FLT_UNSET \
+        const double unimol_rx_time_ = FLT_UNSET \
     ) { \
       class_name = "BaseChkptMol"; \
       id = id_; \
@@ -98,8 +98,8 @@ public:
     return species;
   }
 
-  float_t diffusion_time;
-  virtual void set_diffusion_time(const float_t new_diffusion_time_) {
+  double diffusion_time;
+  virtual void set_diffusion_time(const double new_diffusion_time_) {
     if (initialized) {
       throw RuntimeError("Value 'diffusion_time' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -107,13 +107,13 @@ public:
     cached_data_are_uptodate = false;
     diffusion_time = new_diffusion_time_;
   }
-  virtual float_t get_diffusion_time() const {
+  virtual double get_diffusion_time() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return diffusion_time;
   }
 
-  float_t birthday;
-  virtual void set_birthday(const float_t new_birthday_) {
+  double birthday;
+  virtual void set_birthday(const double new_birthday_) {
     if (initialized) {
       throw RuntimeError("Value 'birthday' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -121,7 +121,7 @@ public:
     cached_data_are_uptodate = false;
     birthday = new_birthday_;
   }
-  virtual float_t get_birthday() const {
+  virtual double get_birthday() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return birthday;
   }
@@ -140,8 +140,8 @@ public:
     return flags;
   }
 
-  float_t unimol_rx_time;
-  virtual void set_unimol_rx_time(const float_t new_unimol_rx_time_) {
+  double unimol_rx_time;
+  virtual void set_unimol_rx_time(const double new_unimol_rx_time_) {
     if (initialized) {
       throw RuntimeError("Value 'unimol_rx_time' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -149,7 +149,7 @@ public:
     cached_data_are_uptodate = false;
     unimol_rx_time = new_unimol_rx_time_;
   }
-  virtual float_t get_unimol_rx_time() const {
+  virtual double get_unimol_rx_time() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return unimol_rx_time;
   }

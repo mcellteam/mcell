@@ -79,9 +79,9 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const float_t,
-            const float_t,
-            const float_t,
+            const double,
+            const double,
+            const double,
             const int
           >(),
           py::arg("name") = STR_UNSET,

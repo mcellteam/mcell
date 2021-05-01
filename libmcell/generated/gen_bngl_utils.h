@@ -32,7 +32,7 @@ class PythonExportContext;
 
 namespace bngl_utils {
 
-std::map<std::string, float_t> load_bngl_parameters(const std::string& file_name, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>());
+std::map<std::string, double> load_bngl_parameters(const std::string& file_name, const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>());
 
 } // namespace bngl_utils
 

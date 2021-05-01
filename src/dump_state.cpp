@@ -1001,8 +1001,8 @@ void dump_rxn_pathway_for_diff(pathway* pw) {
 
 
 void dump_rxn_for_diff(rxn* rx) {
-  cout << "max_fixed_p: \t\t" << rx->max_fixed_p << " [float_t]\n";
-  cout << "min_noreaction_p: \t\t" << rx->min_noreaction_p << " [float_t]\n";
+  cout << "max_fixed_p: \t\t" << rx->max_fixed_p << " [double]\n";
+  cout << "min_noreaction_p: \t\t" << rx->min_noreaction_p << " [double]\n";
 
   cout << "cum_probs: ";
   for (int i = 0; i < rx->n_pathways; i++) {

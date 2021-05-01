@@ -38,10 +38,10 @@ class PythonExportContext;
         const std::string& name_ = STR_UNSET, \
         const std::vector<std::shared_ptr<Complex>> reactants_ = std::vector<std::shared_ptr<Complex>>(), \
         const std::vector<std::shared_ptr<Complex>> products_ = std::vector<std::shared_ptr<Complex>>(), \
-        const float_t fwd_rate_ = FLT_UNSET, \
+        const double fwd_rate_ = FLT_UNSET, \
         const std::string& rev_name_ = STR_UNSET, \
-        const float_t rev_rate_ = FLT_UNSET, \
-        const std::vector<std::vector<float_t>> variable_rate_ = std::vector<std::vector<float_t>>(), \
+        const double rev_rate_ = FLT_UNSET, \
+        const std::vector<std::vector<double>> variable_rate_ = std::vector<std::vector<double>>(), \
         const bool is_intermembrane_surface_reaction_ = false \
     ) { \
       class_name = "ReactionRule"; \
@@ -105,8 +105,8 @@ public:
     return products;
   }
 
-  float_t fwd_rate;
-  virtual void set_fwd_rate(const float_t new_fwd_rate_) {
+  double fwd_rate;
+  virtual void set_fwd_rate(const double new_fwd_rate_) {
     if (initialized) {
       throw RuntimeError("Value 'fwd_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -114,7 +114,7 @@ public:
     cached_data_are_uptodate = false;
     fwd_rate = new_fwd_rate_;
   }
-  virtual float_t get_fwd_rate() const {
+  virtual double get_fwd_rate() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return fwd_rate;
   }
@@ -133,8 +133,8 @@ public:
     return rev_name;
   }
 
-  float_t rev_rate;
-  virtual void set_rev_rate(const float_t new_rev_rate_) {
+  double rev_rate;
+  virtual void set_rev_rate(const double new_rev_rate_) {
     if (initialized) {
       throw RuntimeError("Value 'rev_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -142,13 +142,13 @@ public:
     cached_data_are_uptodate = false;
     rev_rate = new_rev_rate_;
   }
-  virtual float_t get_rev_rate() const {
+  virtual double get_rev_rate() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return rev_rate;
   }
 
-  std::vector<std::vector<float_t>> variable_rate;
-  virtual void set_variable_rate(const std::vector<std::vector<float_t>> new_variable_rate_) {
+  std::vector<std::vector<double>> variable_rate;
+  virtual void set_variable_rate(const std::vector<std::vector<double>> new_variable_rate_) {
     if (initialized) {
       throw RuntimeError("Value 'variable_rate' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -156,7 +156,7 @@ public:
     cached_data_are_uptodate = false;
     variable_rate = new_variable_rate_;
   }
-  virtual std::vector<std::vector<float_t>>& get_variable_rate() {
+  virtual std::vector<std::vector<double>>& get_variable_rate() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return variable_rate;
   }

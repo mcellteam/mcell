@@ -76,7 +76,7 @@ void SimulationStats::dump() {
   cout << "Total number of diffuse 3d calls: " << diffuse_3d_calls << "\n";
   if (diffusion_number != 0) {
     cout << "Average diffusion jump was: " <<
-        diffusion_cummtime / (float_t)diffusion_number << " timesteps " <<
+        diffusion_cummtime / (double)diffusion_number << " timesteps " <<
         " (" << diffusion_cummtime << "/" << diffusion_number << ")\n";
   }
 }

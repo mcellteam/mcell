@@ -44,8 +44,8 @@ public:
 
   ChkptVolMol(
       const MCell::Molecule& vm,
-      const IdSpeciesMap& id_species_map, const float_t time_unit,
-      const float_t length_unit);
+      const IdSpeciesMap& id_species_map, const double time_unit,
+      const double length_unit);
 
   virtual ~ChkptVolMol() {
   };

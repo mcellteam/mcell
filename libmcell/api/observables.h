@@ -62,7 +62,7 @@ public:
   void load_bngl_observables(
       const std::string& file_name,
       const std::string& output_files_prefix = "",
-      const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
+      const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()
   ) override;
 
   // added manually

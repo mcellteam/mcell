@@ -55,7 +55,7 @@ public:
 
   // from generated template
   void initialize(const bool print_copyright = true) override;
-  uint64_t run_iterations(const float_t iterations) override;
+  uint64_t run_iterations(const double iterations) override;
   void end_simulation(const bool print_final_report = true) override;
 
   void add_subsystem(std::shared_ptr<Subsystem> subsystem) override;
@@ -76,10 +76,10 @@ public:
   std::vector<int> run_reaction(
       std::shared_ptr<ReactionRule> reaction_rule,
       const std::vector<int> reactant_ids,
-      const float_t time) override;
+      const double time) override;
 
   void add_vertex_move(
-      std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<float_t> displacement
+      std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<double> displacement
   ) override;
 
   std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) override;
@@ -101,7 +101,7 @@ public:
       const std::string& file_name,
       const std::string& observables_files_prefix = "",
       std::shared_ptr<Region> default_release_region = nullptr,
-      const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
+      const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()
   ) override;
 
   void export_to_bngl(const std::string& file_name) override;

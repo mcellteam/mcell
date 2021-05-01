@@ -37,7 +37,7 @@ class PythonExportContext;
     InitialSurfaceRelease( \
         std::shared_ptr<Complex> complex_, \
         const int number_to_release_ = INT_UNSET, \
-        const float_t density_ = FLT_UNSET \
+        const double density_ = FLT_UNSET \
     ) { \
       class_name = "InitialSurfaceRelease"; \
       complex = complex_; \
@@ -92,8 +92,8 @@ public:
     return number_to_release;
   }
 
-  float_t density;
-  virtual void set_density(const float_t new_density_) {
+  double density;
+  virtual void set_density(const double new_density_) {
     if (initialized) {
       throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -101,7 +101,7 @@ public:
     cached_data_are_uptodate = false;
     density = new_density_;
   }
-  virtual float_t get_density() const {
+  virtual double get_density() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return density;
   }
