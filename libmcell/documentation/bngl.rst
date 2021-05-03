@@ -1,10 +1,28 @@
-******************
-BioNetGen Language
-******************
+**************************
+BioNetGen Language Support
+**************************
 
 MCell4 uses BioNetGen rule-based definition formalism to define species and reaction rules.
 Documentation on the BioNetGen lanuage (BNGL) can be found on the official `BioNetGen website <http://bionetgen.org/>`_.
 This section contains a short overview of BNGL with described limitations and extensions.  
+
+Loading a BNGL File
+###################
+
+A file in BioNetGen lanuage can be loaded directly from MCell4 Python model without any previous conversions like this: 
+
+.. code-block:: python
+
+   model = m.Model()
+   ...
+   # load our BNGL file and set directory for BNGL observables
+   model.load_bngl('model.bngl', './react_data/seed_' + str(SEED).zfill(5) + '/')
+
+this invokes a BNGL parser and the parsed data are represented into MCell4 classes. 
+For more details see Model.load_bngl that loads the full BNGL file, or methods that load only partial information:
+Subsystem.load_bngl_molecule_types_and_reaction_rules, Instatiation.load_bngl_compartments_and_seed_species,
+Observables.load_bngl_observables, and bngl_utils.load_bngl_parameters. 
+
 
 Terminology
 ###########
@@ -196,12 +214,48 @@ type.
 
 All these parameter prefixes are ignored by the BioNetGen tools.
 
-Compartments
-############
+Compartments and Orientations
+#############################
 
-TODO
+BNGL compartments allow to define hierarchical volumes or surfaces where molecules are located. 
+With compartments, one can define e.g. a transport reaction where a molecule that usually diffuses in volume is transported by a channel located in a membrane into another volume compartment. Let’s say we need to define a reaction where a volume molecule A in a volume/3D compartment reacts with a surface molecule T (transporter) in a surface compartment as shown in Fig. X7. 
+
+
+Example of compartments is shown in the following figure. 
+EC is extracellular space, PM is plasma membrane, and CP is cytoplasm. 
+A is a molecule that diffuses freely in 3D space and T is located in a membrane.
+
+.. image:: images/bngl_compartments.png
+
+In BNGL, a reaction that defines a transport of A from compartment EC into CP is represented like this: 
+A\@EC + T\@PM -> A\@CP + T\@PM. An issue arises when one needs to model multiple instances of cells or organelles. 
+A compartment is a specific object in the simulation and if we wanted to simulate multiple cells, we would need 
+to repeat the definition of this reaction rule for 
+each cell (with PM1, PM2, ...) e.g. like this: A\@EC + T\@PM1 -> A\@CP1 + T\@PM1, A\@EC + T\@PM2 -> A\@CP2 + T\@PM2, etc. 
+
+
+To avoid the repetition of reaction rules for each compartment and to keep the BNG language consistent, 
+an extension to the BNG language that uses compartment classes \@IN and \@OUT was introduced. 
+The original BNG reaction with specific compartments is more generally represented as A\@OUT + T -> A\@IN + T. 
+Only bimolecular reactions with one volume a one surface reactant may use \@IN or \@OUT compartment classes because 
+the compartment of the surface reactant defines the meaning of the \@IN and \@OUT compartment class of the volume reactant.
+
+When this rule is applied to reactants A\@EC and T\@CP, we know that the compartment of T is PM, the compartment outside (parent) 
+is EC, and inside is CP. So, we insert this information to the rule A\@OUT + T -> A\@IN + T and get A\@EC + T\@PM -> A\@CP + T\@PM 
+(same as the example rule we started with). 
+
+MCell3 used molecule orientations to limit which surface and volume reactions can occur. 
+A surface molecule S could be released or created as a product in two different states S' (UP) and S, (DOWN).
+This behavior was deprecated in MCell4 and all surface molecules are by default created with orientation UP.
+If specific orientation is needed, one can use a component with state such as S(orient~UP~DOWN).
+
 
 Limitations
 ###########
 
-TODO
+This sections lists limitations of the MCell4 BNGL support compared to the BioNetGen tools.
+
+- Section `functions` is not supported and loading a file with BNGL functions will report an error. 
+- The only reaction kinetics supported is the law of mass action, BNG supports others through keywords but
+  the MCell4 parser will report an error.
+- Actions such as `generate_network` or `simulate` are silently ignored.
