@@ -1,3 +1,5 @@
+.. _api-constants:
+
 *******************
 Enums and Constants
 *******************

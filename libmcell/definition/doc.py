@@ -21,7 +21,17 @@ import yaml
 
 from constants import *
 from gen import indent_and_fix_rst_chars, yaml_type_to_py_type, get_default_or_unset_value_py
+
+
+def cat_to_title(cat):
+    if cat == CATEGORY_CONSTANTS:
+        return 'Enums and Constants'
+    else:
+        return cat.replace('_', ' ').capitalize()
         
+def write_cat_label(f, cat):
+    f.write('.. _api-' + cat + ':\n\n')
+            
         
 def gen_example_links(base_links):
     split_links = base_links.strip().split()
@@ -101,10 +111,10 @@ def generate_documentation(data_classes):
     
     # generate constants
     with open(os.path.join(DOC_DIRECTORY, CATEGORY_CONSTANTS + EXT_RST), 'w') as f:
-
+        write_cat_label(f, CATEGORY_CONSTANTS)
         f.write(
-            '*******************\n'
-            'Enums and Constants\n'
+            '*******************\n' +
+            cat_to_title(CATEGORY_CONSTANTS) + '\n' +
             '*******************\n\n'
         )
 
@@ -143,8 +153,8 @@ def generate_documentation(data_classes):
             continue
         input_file = cat + EXT_RST
         with open(os.path.join(DOC_DIRECTORY, input_file), 'w') as f:
-            cat_name = cat.replace('_', ' ').capitalize()
-            
+            write_cat_label(f, cat)
+            cat_name = cat_to_title(cat)
             f.write('*'*len(cat_name) + '\n' + cat_name + '\n' + '*'*len(cat_name) + '\n')
                  
             for key, value in sorted(data_classes.items()):
@@ -170,3 +180,9 @@ def generate_documentation(data_classes):
         for cat in CATEGORIES:
             f.write('    ' + cat + '\n')
         
+        f.write('\nThis section contains automatically generated documentation on Python classes, enums, '
+            'and constants provided by MCell.\n\n')
+        
+        for cat in CATEGORIES:
+            f.write('- :ref:`api-' + cat + '`\n')
+            

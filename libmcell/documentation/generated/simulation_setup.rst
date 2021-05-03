@@ -1,3 +1,5 @@
+.. _api-simulation_setup:
+
 ****************
 Simulation setup
 ****************
