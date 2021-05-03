@@ -89,7 +89,7 @@ bool NFSimSpeciesUnifier::read_input_file(const std::string& input_file, const b
 
     // see what species it is
     BNG::Species new_species = BNG::Species(cplx_inst, bng_engine.get_data(), bng_engine.get_config(), false);
-    species_id_t id = bng_engine.get_all_species().find_or_add(new_species);
+    BNG::species_id_t id = bng_engine.get_all_species().find_or_add(new_species);
 
     // convert count
     double count;

@@ -176,7 +176,7 @@ public:
       Molecule& vm,
       const double scheduled_time,
       BNG::RxnClass* rxn_class,
-      const rxn_class_pathway_index_t pathway_index,
+      const BNG::rxn_class_pathway_index_t pathway_index,
       MoleculeIdsVector* optional_product_ids = nullptr
   );
 
@@ -305,7 +305,7 @@ private:
   int outcome_intersect(
       Partition& p,
       BNG::RxnClass* rxn_class,
-      const rxn_class_pathway_index_t pathway_index,
+      const BNG::rxn_class_pathway_index_t pathway_index,
       Collision& collision,
       const double time
   );
@@ -330,7 +330,7 @@ private:
       Partition& p,
       const Collision& collision,
       const double remaining_time_step,
-      const rxn_class_pathway_index_t pathway_index,
+      const BNG::rxn_class_pathway_index_t pathway_index,
       bool& keep_reacA,
       bool& keep_reacB,
       MoleculeIdsVector* optional_product_ids = nullptr

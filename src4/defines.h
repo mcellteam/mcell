@@ -55,10 +55,6 @@
 #include <boost/container/flat_set.hpp>
 #endif
 
-/*namespace MCell {
-typedef double float_t;
-}*/
-
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
 
@@ -127,7 +123,19 @@ using BNGCommon::pow_f;
 using BNGCommon::floor_f;
 using BNGCommon::round_f;
 
-const double MIN_WALL_GAP = 1e-4; // 1 angstrom
+// also import commonly used declarations from BNG into our own namespace
+using BNG::species_id_t;
+using BNG::SPECIES_ID_INVALID;
+
+using BNG::orientation_t;
+using BNG::ORIENTATION_DOWN;
+using BNG::ORIENTATION_NONE;
+using BNG::ORIENTATION_UP;
+using BNG::ORIENTATION_NOT_SET;
+using BNG::ORIENTATION_DEPENDS_ON_SURF_COMP;
+
+
+const double MIN_WALL_GAP = 1e-4; // 1 angstrom when length unit is 1um
 
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) || defined(unlikely)
@@ -176,6 +184,8 @@ const pos_t POS_SQRT2 = 1.41421356238;
 const pos_t POS_RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
 
 const uint INT_INVALID = INT32_MAX;
+
+
 
 // molecule id is a unique identifier of a molecule,
 // no 2 molecules may have the same ID in the course of a simulation (at least for now)

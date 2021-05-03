@@ -285,13 +285,13 @@ std::vector<int> Model::run_reaction(
     // also determine pathway index
     BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(m1.species_id);
     rxn_class->init_rxn_pathways_and_rates(); // initialize if needed
-    rxn_class_pathway_index_t index = 0;
-    while (index < (rxn_class_pathway_index_t)rxn_class->get_num_pathways() &&
+    BNG::rxn_class_pathway_index_t index = 0;
+    while (index < (BNG::rxn_class_pathway_index_t)rxn_class->get_num_pathways() &&
         rxn_class->get_rxn_for_pathway(index)->id != rxn->id) {
       index++;
     }
 
-    if (index >= (rxn_class_pathway_index_t)rxn_class->get_num_pathways()) {
+    if (index >= (BNG::rxn_class_pathway_index_t)rxn_class->get_num_pathways()) {
       const BNG::Species& species = world->get_all_species().get(m1.species_id);
       throw RuntimeError("Reaction rule " + reaction_rule->to_bngl_str() +
           " cannot be applied on molecule with species " + species.name);

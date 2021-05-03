@@ -1023,8 +1023,8 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
    * the default surfaces after this loop. */
 
   // TODO: use rxn_class_index_t and rxn_index_t also in other places
-  rxn_class_index_t rxn_class_index = RNX_CLASS_INDEX_INVALID;
-  rxn_class_pathway_index_t pathway_index;
+  BNG::rxn_class_index_t rxn_class_index = BNG::RNX_CLASS_INDEX_INVALID;
+  BNG::rxn_class_pathway_index_t pathway_index;
 
   double current_time = elapsed_molecule_time + t_steps * collision.time;
 
@@ -1036,7 +1036,7 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
         matching_rxn_classes, r_rate_factor, current_time, rxn_class_index, world->rng);
   }
 
-  if (rxn_class_index != RNX_CLASS_INDEX_INVALID && pathway_index >= PATHWAY_INDEX_LEAST_VALID) {
+  if (rxn_class_index != BNG::RNX_CLASS_INDEX_INVALID && pathway_index >= BNG::PATHWAY_INDEX_LEAST_VALID) {
     BNG::RxnClass* rxn_class = matching_rxn_classes[rxn_class_index];
 
     assert(collision.type == CollisionType::WALL_FRONT || collision.type == CollisionType::WALL_BACK);
@@ -1335,7 +1335,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  rxn_class_pathway_index_t selected_pathway_index;
+  BNG::rxn_class_pathway_index_t selected_pathway_index;
   Collision collision;
 
   double collision_time = diffusion_start_time;
@@ -1364,7 +1364,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     selected_pathway_index = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
-  if (rxn_class_index == PATHWAY_INDEX_NO_RXN || selected_pathway_index < PATHWAY_INDEX_LEAST_VALID) {
+  if (rxn_class_index == BNG::PATHWAY_INDEX_NO_RXN || selected_pathway_index < BNG::PATHWAY_INDEX_LEAST_VALID) {
     return true; /* No reaction */
   }
 
@@ -1797,7 +1797,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
       idx = RxnUtils::test_many_unimol(rxn_classes, world->rng);
     }
 
-    rxn_class_pathway_index_t pi = RxnUtils::which_unimolecular(m, rxn_classes[idx], world->rng);
+    BNG::rxn_class_pathway_index_t pi = RxnUtils::which_unimolecular(m, rxn_classes[idx], world->rng);
 
     if (rxn_classes[idx]->is_unimol()) {
       // standard unimolecular rxn
@@ -1903,7 +1903,7 @@ outcome_intersect:
 int DiffuseReactEvent::outcome_intersect(
     Partition& p,
     RxnClass* rxn_class,
-    const rxn_class_pathway_index_t pathway_index,
+    const BNG::rxn_class_pathway_index_t pathway_index,
     Collision& collision, // rxn_class can be set
     const double time
 ) {
@@ -2416,7 +2416,7 @@ int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
     const double time,
-    const rxn_class_pathway_index_t pathway_index,
+    const BNG::rxn_class_pathway_index_t pathway_index,
     bool& keep_reacA,
     bool& keep_reacB,
     MoleculeIdsVector* optional_product_ids
@@ -2883,14 +2883,14 @@ bool DiffuseReactEvent::outcome_unimolecular(
     Molecule& m,
     const double scheduled_time,
     RxnClass* rxn_class,
-    const rxn_class_pathway_index_t pathway_index,
+    const BNG::rxn_class_pathway_index_t pathway_index,
     MoleculeIdsVector* optional_product_ids
 ) {
   molecule_id_t id = m.id;
 
   // a PATHWAY_INDEX_NO_RXN pathway might have been selected
   // when no unimol rxn matched compartments
-  if (pathway_index >= PATHWAY_INDEX_LEAST_VALID) {
+  if (pathway_index >= BNG::PATHWAY_INDEX_LEAST_VALID) {
 
     Vec3 pos;
     if (m.is_vol()) {

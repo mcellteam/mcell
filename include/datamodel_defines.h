@@ -475,11 +475,11 @@ static inline std::string to_id(const std::string& name) {
 }
 
 
-static inline std::string orientation_to_str(const orientation_t o) {
+static inline std::string orientation_to_str(const BNG::orientation_t o) {
   switch (o) {
-    case ORIENTATION_DOWN: return ",";
-    case ORIENTATION_UP: return "'";
-    case ORIENTATION_NONE: return ";"; // this character is used by cellblender for volume mols is release sites
+    case BNG::ORIENTATION_DOWN: return ",";
+    case BNG::ORIENTATION_UP: return "'";
+    case BNG::ORIENTATION_NONE: return ";"; // this character is used by cellblender for volume mols is release sites
     default:
       assert(false);
       return "ERROR";

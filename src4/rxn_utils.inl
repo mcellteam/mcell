@@ -455,7 +455,7 @@ static int test_bimolecular(
     p = rng_dbl(&rng) * scaling;
 
     if (p >= max_fixed_p) {
-      return PATHWAY_INDEX_NO_RXN;
+      return BNG::PATHWAY_INDEX_NO_RXN;
     }
     // continue below
   }
@@ -484,7 +484,7 @@ static int test_bimolecular(
       p = rng_dbl(&rng) * scaling;
 
       if (p >= max_p)
-        return PATHWAY_INDEX_NO_RXN;
+        return BNG::PATHWAY_INDEX_NO_RXN;
     }
   }
 
@@ -569,7 +569,7 @@ static int test_many_bimolecular(
     rng_state& rng,
     const bool all_neighbors_flag,
     const double current_time,
-    rxn_class_pathway_index_t& chosen_pathway_index
+    BNG::rxn_class_pathway_index_t& chosen_pathway_index
 ) {
   assert(rxn_classes.size() == scaling.size());
   uint n = rxn_classes.size();
@@ -641,7 +641,7 @@ static int test_many_bimolecular(
   else {
     p = rng_dbl(&rng);
     if (p > cum_rxn_class_probs[n - 1]) {
-      return PATHWAY_INDEX_NO_RXN;
+      return BNG::PATHWAY_INDEX_NO_RXN;
     }
   }
 
@@ -681,7 +681,7 @@ test_intersect
         update counters assuming the reaction will take place.
 *************************************************************************/
 // TODO LATER: see if it can be merged with test_bimolecular
-static rxn_class_pathway_index_t test_intersect(
+static BNG::rxn_class_pathway_index_t test_intersect(
     BNG::RxnClass* rxn_class,
     const double scaling,
     const double current_time,
@@ -706,12 +706,12 @@ static rxn_class_pathway_index_t test_intersect(
     p = rng_dbl(&rng) * scaling;
 
     if (p > max_prob) {
-      return PATHWAY_INDEX_NO_RXN;
+      return BNG::PATHWAY_INDEX_NO_RXN;
     }
   }
 
   if (p > rxn_class->get_max_fixed_p()) {
-    return PATHWAY_INDEX_NO_RXN;
+    return BNG::PATHWAY_INDEX_NO_RXN;
   }
 
   double match = rng_dbl(&rng);
@@ -733,11 +733,11 @@ test_many_intersect:
         update counters assuming the reaction will take place.
 *************************************************************************/
 // TODO LATER: see if it can be merged with test_many bimolecular
-static rxn_class_pathway_index_t test_many_intersect(
+static BNG::rxn_class_pathway_index_t test_many_intersect(
     BNG::RxnClassesVector& rxn_classes,
     const double scaling,
     const double current_time,
-    rxn_class_index_t& selected_rxn_class_index,
+    BNG::rxn_class_index_t& selected_rxn_class_index,
     rng_state& rng) {
 
   for (BNG::RxnClass* cls: rxn_classes) {
@@ -773,8 +773,8 @@ static rxn_class_pathway_index_t test_many_intersect(
   } else {
     p = rng_dbl(&rng);
     if (p > rxn_probs[num_classes - 1]) {
-      selected_rxn_class_index = RNX_CLASS_INDEX_INVALID;
-      return PATHWAY_INDEX_NO_RXN;
+      selected_rxn_class_index = BNG::RNX_CLASS_INDEX_INVALID;
+      return BNG::PATHWAY_INDEX_NO_RXN;
     }
   }
 
@@ -872,7 +872,7 @@ which_unimolecular:
   In: the reaction we're testing
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
-static rxn_class_pathway_index_t which_unimolecular(const Molecule& m, BNG::RxnClass *rxn_class, rng_state& rng) {
+static BNG::rxn_class_pathway_index_t which_unimolecular(const Molecule& m, BNG::RxnClass *rxn_class, rng_state& rng) {
   assert(rxn_class != nullptr);
   if (rxn_class->get_num_reactions() == 1) {
     return 0;

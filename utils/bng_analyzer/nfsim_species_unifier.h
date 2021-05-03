@@ -38,7 +38,7 @@ public:
   bool read_input_file(const std::string& input_file, const bool is_dat);
   bool print_unified_species(const std::string& out_file = "");
 
-  std::map<species_id_t, double> counts_per_unique_species;
+  std::map<BNG::species_id_t, double> counts_per_unique_species;
   BNG::BNGConfig bng_config;
   BNG::BNGEngine bng_engine;
 };
