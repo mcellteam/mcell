@@ -71,7 +71,7 @@ It uses the following structure:
 
    0x0: 2 (4 bytes, uint), constant, used to distinguish binary and ascii formats and to specify binary version
    0x4: here start species blocks, each block contains:
-        0x0:        name_len (1 byte, unsigned char)
+        0x0:        name_len (4 byte, unsigned int)
         0x4:        name (sequence of 1-byte characters representing the species name without the terminating zero)
         name_len+4: species_type (1 byte, unsigned char), 0 for volume molecules and 1 for surface molecules  
         name_len+5: num_mols (4 bytes, uint)
