@@ -53,8 +53,15 @@ Config:
   - name: vacancy_search_distance
     type: float
     default: 10
-    min: 0 
+    min: 0
     doc: |
+       Rather internal, there is usually no need to change this value.
+       Used in dynamic geometry (see Model.apply_vertex_moves()). 
+       When a wall moves or its dimensions change, this is the maximum search distance 
+       use when looking onto which tiles place the molecules on this wall. 
+       If no empty tile is found within this distance, simulation fails.  
+           
+    old_doc: |
        Normally, a reaction will not proceed on a surface unless there
        is room to place all products on the single grid element where
        the reaction is initiated. By increasing r from its default value

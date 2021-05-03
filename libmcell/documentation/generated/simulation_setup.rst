@@ -37,16 +37,11 @@ Attributes:
 
 
 * | **vacancy_search_distance**: float = 10
-  | Normally, a reaction will not proceed on a surface unless there
-  | is room to place all products on the single grid element where
-  | the reaction is initiated. By increasing r from its default value
-  | of 0, one can specify how far from the reaction’s location, in microns, the
-  | reaction can place its products. To be useful, r must
-  | be larger than the longest axis of the grid element on the triangle
-  | in question. The reaction will then proceed if there is room to
-  | place its products within a radius r, and will place those products as 
-  | close as possible to the place where the reaction occurs
-  | (deterministically, so small-scale directional bias is possible).
+  | Rather internal, there is usually no need to change this value.
+  | Used in dynamic geometry (see Model.apply_vertex_moves()). 
+  | When a wall moves or its dimensions change, this is the maximum search distance 
+  | use when looking onto which tiles place the molecules on this wall. 
+  | If no empty tile is found within this distance, simulation fails.
 
   | Example: `1200_dyn_vert_tetrahedron_vol_mol_multiple_changes/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1200_dyn_vert_tetrahedron_vol_mol_multiple_changes/model.py>`_ 
 

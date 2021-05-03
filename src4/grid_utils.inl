@@ -1731,8 +1731,23 @@ static void grid_all_neighbors_for_inner_tile(
 }
 
 
-
-static wall_index_t find_neighbor_tiles(
+/**************************************************************************
+find_neighbor_tiles:
+  In: a surface molecule
+      wall where hit happens, or surface molecule is located
+      index of the tile where hit happens, or surface molecule is located
+      flag that tells whether we need to create a grid on a neighbor wall
+      flag that tells whether we are searching for reactant
+          (value = 1) or doing product placement (value = 0)
+      a linked list of  neighbor tiles (return value)
+      a length of the linked list above (return value)
+  Out:
+      The list of nearest neighbors
+      Neighbors should share either common edge or common vertex.
+  Note: This version allows looking for the neighbors at the neighbor walls
+       that are connected to the start wall through vertices only.
+****************************************************************************/
+static void find_neighbor_tiles(
     Partition& p,
     const Molecule* sm, // may be nullptr
     const Wall& wall,
@@ -1779,8 +1794,6 @@ static wall_index_t find_neighbor_tiles(
 #ifdef DEBUG_GRIDS
   neighbors.dump(__FUNCTION__, "  ");
 #endif
-
-  return WALL_INDEX_INVALID;
 }
 
 
@@ -2050,11 +2063,11 @@ static void find_closest_tile_on_wall(
 
     wall_index_t new_wall_index;
     wall_index_t new_tile_index;
-    set<wall_index_t> visited_walls;
+    set<wall_index_t> visited_walls_ignored;
     search_nbhd_for_free(
         p, closest_wall_index, closest_pos2d, max_search_d2,
         new_wall_index, new_tile_index,
-        visited_walls
+        visited_walls_ignored
     );
     assert(new_wall_index != TILE_INDEX_INVALID);
     assert(new_tile_index != TILE_INDEX_INVALID);
