@@ -53,7 +53,7 @@ private:
       const bool for_append = false,
       const bool bngl = false);
 
-  void generate_scripting();
+  void generate_customization();
 
   void generate_shared();
 

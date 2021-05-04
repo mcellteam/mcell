@@ -93,7 +93,7 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   python_gen = new PythonGenerator(data);
 
 
-  CHECK(generate_scripting(), failed);
+  CHECK(generate_customization(), failed);
 
   CHECK(generate_shared(), failed);
   CHECK(generate_parameters(), failed);
@@ -129,7 +129,7 @@ static std::string get_file_base_name(const std::string& path) {
 }
 
 
-void MCell4Generator::generate_scripting() {
+void MCell4Generator::generate_customization() {
   // first check unsupported MCell3 scripting
   Value& scripting = get_node(data.mcell, KEY_SCRIPTING);
   if (scripting.isMember(KEY_SCRIPTING_LIST)) {
@@ -1294,10 +1294,10 @@ void MCell4Generator::generate_customization_template() {
       "# This file contains hooks to override default MCell4 model\n"
       "# code behavior for models generated from CellBlender\n";
 
+  out << IMPORT_SYS_OS;
   out << IMPORT_SHARED;
   out << IMPORT_MCELL_AS_M;
-  // TODO: figure out how to handle parameter overrides in customization
-  //out << IMPORT << " " << get_module_name(PARAMETERS) << "\n\n";
+  out << IMPORT << " " << get_module_name(PARAMETERS) << " as " << PARAMETERS << "\n\n";
 
   out << TEMPLATE_CUSTOM_ARGPARSE_AND_PARAMETERS << "\n";
   out << TEMPLATE_CUSTOM_CONFIG << "\n";
