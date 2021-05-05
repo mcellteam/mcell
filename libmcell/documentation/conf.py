@@ -17,8 +17,8 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'MCell 4'
-copyright = '2020, Salk Institute'
+project = 'MCell4'
+copyright = '2020-2021, Salk Institute'
 author = 'Salk Institute'
 
 import os
