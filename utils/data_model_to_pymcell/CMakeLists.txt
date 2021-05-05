@@ -32,5 +32,5 @@ add_executable(${PROJECT_NAME}
 add_dependencies(data_model_to_pymcell version_h)  
 
 target_link_libraries(${PROJECT_NAME}
-    jsoncpp_lib
+    jsoncpp_lib libmcell
 )

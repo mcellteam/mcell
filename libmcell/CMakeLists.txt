@@ -57,6 +57,7 @@ set(SOURCE_FILES
     api/bng_converter.cpp
     api/mcell4_converter.cpp
     api/callbacks.cpp
+    api/python_export_constants.cpp
     api/python_export_utils.cpp
     api/python_exporter.cpp
     

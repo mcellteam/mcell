@@ -1297,11 +1297,10 @@ void MCell4Generator::generate_customization_template() {
   out << IMPORT_SYS_OS;
   out << IMPORT_SHARED;
   out << IMPORT_MCELL_AS_M;
-  out << IMPORT << " " << get_module_name(PARAMETERS) << " as " << PARAMETERS << "\n\n";
 
   out << TEMPLATE_CUSTOM_ARGPARSE_AND_PARAMETERS << "\n";
   out << TEMPLATE_CUSTOM_CONFIG << "\n";
-  out << TEMPLATE_CUSTOM_INIT_AND_RUN << "\n";
+  out << get_template_custom_init_and_run(get_module_name(PARAMETERS)) << "\n";
 }
 
 
