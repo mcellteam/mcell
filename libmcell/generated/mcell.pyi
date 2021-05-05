@@ -751,6 +751,12 @@ class Model():
         ) -> None:
         pass
 
+    def export_geometry(
+            self,
+            output_files_prefix : str = None
+        ) -> None:
+        pass
+
     def release_molecules(
             self,
             release_site : ReleaseSite

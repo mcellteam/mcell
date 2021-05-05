@@ -114,7 +114,7 @@ std::string get_import_star(const std::string module) {
 }
 
 
-static std::string get_template_custom_init_and_run(const std::string& parameters_module) {
+std::string get_template_custom_init_and_run(const std::string& parameters_module) {
   return
       "\"\"\"\n"
       "def custom_init_and_run(model):\n"

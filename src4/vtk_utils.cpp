@@ -33,6 +33,10 @@
 #include <vtkFeatureEdges.h>
 #include <vtkMassProperties.h>
 #include <vtkPolyDataNormals.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkRenderWindow.h>
+#include <vtkRenderer.h>
+#include <vtkOBJExporter.h>
 
 #include "logging.h"
 
@@ -40,13 +44,13 @@
 #include "partition.h"
 #include "geometry.h"
 
-#include "counted_volume_utils.h"
+#include "vtk_utils.h"
 
 using namespace std;
 
 namespace MCell {
 
-namespace CountedVolumeUtils {
+namespace VtkUtils {
 
 enum class ContainmentResult {
   Error,
@@ -75,7 +79,7 @@ const GeometryObject& GeomObjectInfo::get_geometry_object(const World* world) co
 
 
 static vtkSmartPointer<vtkPolyData> convert_geometry_object_to_polydata(
-    const World* world, const GeometryObject& obj) {
+    const World* world, const GeometryObject& obj, const bool convert_units = false) {
 
   const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
@@ -101,6 +105,9 @@ static vtkSmartPointer<vtkPolyData> convert_geometry_object_to_polydata(
   for (vertex_index_t vi: vertex_indices) {
 
     Vec3 pt = p.get_geometry_vertex(vi);
+    if (convert_units) {
+      pt = pt * Vec3(world->config.length_unit);
+    }
     points->InsertNextPoint(pt.x, pt.y, pt.z);
 
     vertex_mapping[vi] = curr_vtk_index;
@@ -619,5 +626,34 @@ double get_geometry_object_volume(const World* world, const GeometryObject& obj)
 }
 
 
-} // namespace CountedVolumesUtil
+void export_geometry_objects_to_obj(
+    const World* world, const GeometryObjectVector& objs, const std::string& file_prefix) {
+
+  vtkNew<vtkRenderer> renderer;
+
+  for (const GeometryObject& o: objs) {
+    // convert objects
+    vtkSmartPointer<vtkPolyData> polydata =
+        convert_geometry_object_to_polydata(world, o, true);
+
+    vtkNew<vtkPolyDataMapper> mapper;
+    mapper->SetInputData(polydata);
+
+    vtkNew<vtkActor> actor;
+    actor->SetMapper(mapper);
+
+    renderer->AddActor(actor);
+  }
+
+  vtkNew<vtkRenderWindow> window;
+  window->AddRenderer(renderer);
+
+  vtkNew<vtkOBJExporter> exporter;
+  exporter->SetRenderWindow(window);
+  exporter->SetFilePrefix(file_prefix.c_str());
+  exporter->Write();
+}
+
+
+} // namespace VtkUtils
 } // namespace MCell

@@ -30,14 +30,14 @@
 #include "compartment_utils.h"
 
 #include "api/api_common.h"
-#include "counted_volume_utils.h"
+#include "vtk_utils.h"
 #include "geometry_object.h"
 
 using namespace std;
 
 namespace MCell {
 
-using namespace CountedVolumeUtils;
+using namespace VtkUtils;
 
 namespace API {
 

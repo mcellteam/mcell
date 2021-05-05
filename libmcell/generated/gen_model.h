@@ -118,6 +118,7 @@ public:
   virtual void dump_internal_state() = 0;
   virtual void export_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void export_viz_data_model(const std::string& file = STR_UNSET) = 0;
+  virtual void export_geometry(const std::string& output_files_prefix = STR_UNSET) = 0;
   virtual void release_molecules(std::shared_ptr<ReleaseSite> release_site) = 0;
   virtual std::vector<int> run_reaction(std::shared_ptr<ReactionRule> reaction_rule, const std::vector<int> reactant_ids, const double time) = 0;
   virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<double> displacement) = 0;

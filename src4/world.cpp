@@ -50,6 +50,7 @@
 #include "diffuse_react_event.h"
 #include "run_n_iterations_end_event.h"
 #include "custom_function_call_event.h"
+#include "vtk_utils.h"
 
 #include "api/mol_wall_hit_info.h"
 #include "api/geometry_object.h"
@@ -154,7 +155,7 @@ void World::create_initial_surface_region_release_event() {
 void World::init_counted_volumes() {
   assert(partitions.size() == 1);
 
-  bool ok = CountedVolumeUtils::initialize_counted_volumes(this, config.has_intersecting_counted_objects);
+  bool ok = VtkUtils::initialize_counted_volumes(this, config.has_intersecting_counted_objects);
   if (!ok) {
     mcell_error("Processing of counted volumes failed, terminating.");
   }
@@ -810,7 +811,7 @@ std::string World::export_to_bngl(const std::string& file_name) const {
   }
   const GeometryObject& obj = p.get_geometry_objects()[0];
 
-  double volume_internal_units = CountedVolumeUtils::get_geometry_object_volume(this, obj);
+  double volume_internal_units = VtkUtils::get_geometry_object_volume(this, obj);
   if (volume_internal_units == FLT_INVALID) {
     return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
   }
@@ -875,6 +876,18 @@ std::string World::export_to_bngl(const std::string& file_name) const {
   out.close();
 
   return "";
+}
+
+
+void World::export_geometry_to_obj(const std::string& files_prefix) const {
+
+  // create directories if needed
+  FSUtils::make_dir_for_file_w_multiple_attempts(files_prefix);
+
+  // only one partition now
+  const Partition& p = get_partition(PARTITION_ID_INITIAL);
+
+  VtkUtils::export_geometry_objects_to_obj(this, p.get_geometry_objects(), files_prefix);
 }
 
 

@@ -180,6 +180,25 @@ void Model::dump_internal_state() {
 }
 
 
+void Model::export_geometry(const std::string& output_files_prefix) {
+  if (world == nullptr) {
+    throw RuntimeError(S("Model must be initialized before a call to ") + NAME_EXPORT_DATA_MODEL + ".");
+  }
+
+  if (is_set(output_files_prefix)) {
+    world->export_geometry_to_obj(output_files_prefix);
+  }
+  else {
+    stringstream prefix;
+    prefix <<
+        get_first_viz_output_files_prefix(NAME_EXPORT_GEOMETRY) << ".geom." <<
+        VizOutputEvent::iterations_to_string(world->stats.get_current_iteration(), config.total_iterations);
+
+    world->export_geometry_to_obj(prefix.str());
+  }
+}
+
+
 void Model::export_data_model_viz_or_full(
     const std::string& file,
     const bool only_for_visualization,

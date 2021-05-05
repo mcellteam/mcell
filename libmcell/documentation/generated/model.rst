@@ -122,12 +122,14 @@ Methods:
 * | **export_data_model**
 
    * | file: str = None
+     | If file is not set, then uses the first VizOutput to determine the target directory 
+     | and creates name using the current iteration. Fails if argument file is not set and 
+     | there is no VizOutput in the model.
+
 
   | Exports the current state of the model into a data model JSON format.
   | Does not export state of molecules.
   | Must be called after model initialization.
-  | If file is not set, then uses the first VizOutput to determine the target directory 
-  | and creates name using the current iteration. Fails if argument file is not set and there is no VizOutput.
   | Always exports the current state, i.e. with the current geometry and reaction rates. 
   | Events (ReleaseSites and VizOutputs) with scheduled time other than zero are not exported correctly yet.
 
@@ -139,10 +141,22 @@ Methods:
 
 
   | Same as export_data_model, only the created data model will contain only information required for visualization
-  | in CellBlender. This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential
+  | in CellBlender. This makes the loading of themodel by CellBlender faster and also allows to avoid potential
   | compatibility issues.
 
   | Example: `1520_sphere_collision/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1520_sphere_collision/model.py>`_ 
+
+
+* | **export_geometry**
+
+   * | output_files_prefix: str = None
+     | Optional prefix for .obj and .mtl files that will be created on export. 
+     | If output_files_prefix is not set, then uses the first VizOutput to determine the target directory 
+     | and creates names using the current iteration. Fails if argument output_files_prefix is not set and 
+     | there is no VizOutput in the model.
+
+
+  | Exports model geometry as Wavefront OBJ format.
 
 
 * | **release_molecules**

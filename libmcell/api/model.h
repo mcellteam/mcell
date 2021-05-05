@@ -70,6 +70,7 @@ public:
   void export_viz_data_model(const std::string& file = STR_UNSET) override {
     export_data_model_viz_or_full(file, true, NAME_EXPORT_VIZ_DATA_MODEL);
   }
+  void export_geometry(const std::string& output_files_prefix = STR_UNSET) override;
 
   void release_molecules(std::shared_ptr<ReleaseSite> release_site) override;
 

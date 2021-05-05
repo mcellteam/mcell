@@ -46,7 +46,6 @@
 #include "scheduler.h"
 #include "geometry.h"
 #include "count_buffer.h"
-#include "counted_volume_utils.h"
 #include "memory_limit_checker.h"
 
 #include "logging.h"
@@ -178,6 +177,9 @@ public:
 
   // returns empty string if everything went well, nonempty string with error message
   std::string export_to_bngl(const std::string& file_name) const;
+
+  // exports model geometry to Wavefront OBJ format
+  void export_geometry_to_obj(const std::string& files_prefix) const;
 
   // the export to directory is usually called periodically and the output is used for visualization
   void export_data_model_to_dir(const std::string& prefix, const bool only_for_viz = true) const;

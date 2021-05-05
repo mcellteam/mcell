@@ -1568,7 +1568,7 @@ static counted_volume_index_t compute_counted_volume_for_pos(
   cv.contained_in_objects.clear();
   for (GeometryObject& obj: p.get_geometry_objects()) {
     if (obj.is_counted_volume_or_compartment()) {
-      if (CountedVolumeUtils::is_point_inside_counted_volume(obj, pos)) {
+      if (VtkUtils::is_point_inside_counted_volume(obj, pos)) {
         cv.contained_in_objects.insert(obj.index);
       }
     }

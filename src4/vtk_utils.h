@@ -31,6 +31,7 @@
 #include <vtkPolyData.h>
 
 #include "defines.h"
+#include "geometry.h"
 
 namespace MCell {
 
@@ -38,7 +39,7 @@ class World;
 class Partition;
 class GeometryObject;
 
-namespace CountedVolumeUtils {
+namespace VtkUtils {
 
 
 class GeomObjectInfo {
@@ -118,7 +119,10 @@ const GeomObjectInfo* get_direct_parent_info(
 // auxiliary function to compute volume, not related to counted volumes but uses VTK
 double get_geometry_object_volume(const World* world, const GeometryObject& obj);
 
-}; // namespace CountedVolumesUtil
+void export_geometry_objects_to_obj(
+    const World* world, const GeometryObjectVector& objs, const std::string& file_prefix);
+
+}; // namespace VtkUtils
 
 } // namespace MCell
 

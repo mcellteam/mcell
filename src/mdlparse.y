@@ -2315,13 +2315,13 @@ list_viz_output_cmds:
           viz_output_cmd
 ;
 
-viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE)); }
+viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE_V1)); }
                          | viz_mode_def               { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, $1)); }
 ;
 
 viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
-            | MODE '=' CELLBLENDER                    { $$ = CELLBLENDER_MODE; }
+            | MODE '=' CELLBLENDER                    { $$ = CELLBLENDER_MODE_V1; }
 ;
 
 viz_output_cmd:
