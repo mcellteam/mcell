@@ -631,6 +631,7 @@ void export_geometry_objects_to_obj(
 
   vtkNew<vtkRenderer> renderer;
 
+  vector<string> names;
   for (const GeometryObject& o: objs) {
     // convert objects
     vtkSmartPointer<vtkPolyData> polydata =
@@ -643,6 +644,11 @@ void export_geometry_objects_to_obj(
     actor->SetMapper(mapper);
 
     renderer->AddActor(actor);
+
+    // we must also set names to the exported objects,
+    // there is no support for object names in VTK and
+    // the OBJ exporter needed to be updated
+    names.push_back(o.name);
   }
 
   vtkNew<vtkRenderWindow> window;
@@ -651,6 +657,7 @@ void export_geometry_objects_to_obj(
   vtkNew<vtkOBJExporter> exporter;
   exporter->SetRenderWindow(window);
   exporter->SetFilePrefix(file_prefix.c_str());
+  exporter->SetActorNames(names); // custom MCell method
   exporter->Write();
 }
 
