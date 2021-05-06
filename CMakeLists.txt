@@ -339,6 +339,7 @@ SET(BUILD_UTILS_DIR ${CMAKE_CURRENT_BINARY_DIR}/utils)
 configure_file(${MCELL_UTILS_DIR}/mcell4_runner/mcell4_runner.py ${BUILD_UTILS_DIR}/mcell4_runner.py COPYONLY)
 configure_file(${MCELL_UTILS_DIR}/plotter/plotter.py ${BUILD_UTILS_DIR}/plotter.py COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/libmcell/generated/mcell.pyi ${BUILD_UTILS_DIR}/mcell.pyi COPYONLY)
+configure_file(${MCELL_UTILS_DIR}/visualize/visualize.sh ${BUILD_UTILS_DIR}/visualize.sh COPYONLY)
 
 # copy tools for MDLr to MDL
 # TODO: list all files using configure_file
