@@ -34,6 +34,7 @@
 #include <vtkMassProperties.h>
 #include <vtkPolyDataNormals.h>
 #include <vtkPolyDataMapper.h>
+#include <vtkProperty.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderer.h>
 #include <vtkOBJExporter.h>
@@ -642,6 +643,10 @@ void export_geometry_objects_to_obj(
 
     vtkNew<vtkActor> actor;
     actor->SetMapper(mapper);
+
+    // material, the default is white with 25% transparency
+    actor->GetProperty()->SetDiffuseColor(1, 1, 1);
+    actor->GetProperty()->SetOpacity(0.25);
 
     renderer->AddActor(actor);
 
