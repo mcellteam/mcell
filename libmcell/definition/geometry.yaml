@@ -1,3 +1,45 @@
+Color:
+  superclass: BaseDataClass
+  doc: | 
+     Represents color with alpha component.
+     Provides two means to set value, either red, green, blue and alpha, 
+     or rgba. If both color individual components and rgba are set in initialization,
+     the individual components are used.
+      
+  items:
+  - name: red
+    type: float
+    default: unset
+    doc: Red component in range 0-1.
+
+  - name: green
+    type: float
+    default: unset
+    doc: Green component in range 0-1.
+
+  - name: blue
+    type: float
+    default: unset
+    doc: Blue component in range 0-1.
+
+  - name: alpha
+    type: float
+    default: 1
+    doc: Alpha component in range 0-1. 1 means nontransparent.
+      
+  - name: rgba
+    type: uint32
+    default: 0
+    doc: | 
+       This attribute provides an alternative way of defining colors by supplying a 
+       32-bit unsigned integer representation of the color with an aplha channel. 
+       In hexadecimal notation the first 2 digits are value for red, second 2 digits are 
+       green, third 2 digits are blue and the last two digits are alpha. 
+       The range for each component is thus 0x0-0xFF (0-255). 
+       Example\: 0x0000ffcc represents the same color as rgba(0, 0, 100%, 80%).
+       All values are valid.
+          
+
 Region:
   superclass: BaseDataClass
   doc: Represents region construted from 1 or more multiple, usually unnamed? 
@@ -69,7 +111,7 @@ SurfaceRegion:
     default: unset
     doc: | 
        Optional surface class assigned to this surface region.
-       If not set, it is inherited from the parent heometry object's surface_class.
+       If not set, it is inherited from the parent geometry object's surface_class.
 
   - name: initial_surface_releases
     type: List[InitialSurfaceRelease*]
@@ -79,6 +121,10 @@ SurfaceRegion:
       regions when simulation starts.
     internal: Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER. 
     
+  - name: color
+    type: Color*
+    default: unset
+    doc: Color for this specific surface region. If not set, color of the parent's GeometryObject is used. 
     
 GeometryObject:
   superclass: Region
@@ -135,6 +181,14 @@ GeometryObject:
       Each item in this list defines either density or number of molecules to be released on this surface 
       regions when simulation starts.
     internal: Shouldn't we be inheriting this from Region?
+    
+  - name: color
+    type: Color*
+    default: unset
+    doc: | 
+       Color for this geometry object. If a surface region has its color set, its value 
+       is used for the walls of that surface region.
+        
     
   methods:
   - name: translate

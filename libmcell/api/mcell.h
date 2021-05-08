@@ -41,6 +41,7 @@
 #include "api/reaction_rule.h"
 #include "api/subsystem.h"
 
+#include "api/color.h"
 #include "api/region.h"
 #include "api/initial_surface_release.h"
 #include "api/surface_region.h"

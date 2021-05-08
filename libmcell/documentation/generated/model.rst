@@ -142,7 +142,8 @@ Methods:
 
   | Same as export_data_model, only the created data model will contain only information required for visualization
   | in CellBlender. This makes the loading of themodel by CellBlender faster and also allows to avoid potential
-  | compatibility issues.
+  | compatibility issues. 
+  | Must be called after model initialization.
 
   | Example: `1520_sphere_collision/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1520_sphere_collision/model.py>`_ 
 
@@ -156,7 +157,9 @@ Methods:
      | there is no VizOutput in the model.
 
 
-  | Exports model geometry as Wavefront OBJ format.
+  | Exports model geometry as Wavefront OBJ format. 
+  | Must be called after model initialization.
+  | Does not export material colors (yet).
 
 
 * | **release_molecules**
@@ -228,6 +231,7 @@ Methods:
   | Applies all the vertex moves specified with Model.add_vertex_move call.
   | Walls of different objects are checked against collisions and move the maximal way so that they do not 
   | overlap.
+  | The API representation (GeometryObject) is not updated, only the internal MCell data are changed.
   | Note\: It is not supported yet to move two objects that woudl collide at the same time.  
   | When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
   | when collect_wall_wall_hits is False, and empty list is returned.

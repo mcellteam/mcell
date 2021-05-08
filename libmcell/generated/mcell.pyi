@@ -12,6 +12,8 @@ class ChkptSurfMol():
     pass
 class ChkptVolMol():
     pass
+class Color():
+    pass
 class Complex():
     pass
 class Component():
@@ -250,6 +252,22 @@ class ChkptVolMol():
         self.birthday = birthday
         self.flags = flags
         self.unimol_rx_time = unimol_rx_time
+
+
+class Color():
+    def __init__(
+            self,
+            red : float = None,
+            green : float = None,
+            blue : float = None,
+            alpha : float = 1,
+            rgba : int = 0
+        ):
+        self.red = red
+        self.green = green
+        self.blue = blue
+        self.alpha = alpha
+        self.rgba = rgba
 
 
 class Complex():
@@ -507,6 +525,7 @@ class GeometryObject():
             surface_regions : List[SurfaceRegion] = None,
             surface_class : SurfaceClass = None,
             initial_surface_releases : List[InitialSurfaceRelease] = None,
+            color : Color = None,
             node_type : RegionNodeType = RegionNodeType.UNSET,
             left_node : Region = None,
             right_node : Region = None
@@ -519,6 +538,7 @@ class GeometryObject():
         self.surface_regions = surface_regions
         self.surface_class = surface_class
         self.initial_surface_releases = initial_surface_releases
+        self.color = color
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
@@ -1404,6 +1424,7 @@ class SurfaceRegion():
             wall_indices : List[int],
             surface_class : SurfaceClass = None,
             initial_surface_releases : List[InitialSurfaceRelease] = None,
+            color : Color = None,
             node_type : RegionNodeType = RegionNodeType.UNSET,
             left_node : Region = None,
             right_node : Region = None
@@ -1412,6 +1433,7 @@ class SurfaceRegion():
         self.wall_indices = wall_indices
         self.surface_class = surface_class
         self.initial_surface_releases = initial_surface_releases
+        self.color = color
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node

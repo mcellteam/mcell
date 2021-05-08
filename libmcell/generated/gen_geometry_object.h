@@ -31,6 +31,7 @@ namespace MCell {
 namespace API {
 
 class GeometryObject;
+class Color;
 class InitialSurfaceRelease;
 class Region;
 class SurfaceClass;
@@ -47,6 +48,7 @@ class PythonExportContext;
         const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions_ = std::vector<std::shared_ptr<SurfaceRegion>>(), \
         std::shared_ptr<SurfaceClass> surface_class_ = nullptr, \
         const std::vector<std::shared_ptr<InitialSurfaceRelease>> initial_surface_releases_ = std::vector<std::shared_ptr<InitialSurfaceRelease>>(), \
+        std::shared_ptr<Color> color_ = nullptr, \
         const RegionNodeType node_type_ = RegionNodeType::UNSET, \
         std::shared_ptr<Region> left_node_ = nullptr, \
         std::shared_ptr<Region> right_node_ = nullptr \
@@ -60,6 +62,7 @@ class PythonExportContext;
       surface_regions = surface_regions_; \
       surface_class = surface_class_; \
       initial_surface_releases = initial_surface_releases_; \
+      color = color_; \
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
@@ -190,6 +193,20 @@ public:
   virtual std::vector<std::shared_ptr<InitialSurfaceRelease>>& get_initial_surface_releases() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return initial_surface_releases;
+  }
+
+  std::shared_ptr<Color> color;
+  virtual void set_color(std::shared_ptr<Color> new_color_) {
+    if (initialized) {
+      throw RuntimeError("Value 'color' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    color = new_color_;
+  }
+  virtual std::shared_ptr<Color> get_color() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return color;
   }
 
   // --- methods ---

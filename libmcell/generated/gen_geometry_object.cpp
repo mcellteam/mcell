@@ -25,6 +25,7 @@
 #include "api/python_export_utils.h"
 #include "gen_geometry_object.h"
 #include "api/geometry_object.h"
+#include "api/color.h"
 #include "api/initial_surface_release.h"
 #include "api/region.h"
 #include "api/surface_class.h"
@@ -51,6 +52,9 @@ void GenGeometryObject::set_initialized() {
     surface_class->set_initialized();
   }
   vec_set_initialized(initial_surface_releases);
+  if (is_set(color)) {
+    color->set_initialized();
+  }
   if (is_set(left_node)) {
     left_node->set_initialized();
   }
@@ -70,6 +74,7 @@ void GenGeometryObject::set_all_attributes_as_default_or_unset() {
   surface_regions = std::vector<std::shared_ptr<SurfaceRegion>>();
   surface_class = nullptr;
   initial_surface_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
+  color = nullptr;
   node_type = RegionNodeType::UNSET;
   left_node = nullptr;
   right_node = nullptr;
@@ -95,6 +100,17 @@ bool GenGeometryObject::__eq__(const GeometryObject& other) const {
         )
      )  &&
     vec_ptr_eq(initial_surface_releases, other.initial_surface_releases) &&
+    (
+      (is_set(color)) ?
+        (is_set(other.color) ?
+          (color->__eq__(*other.color)) : 
+          false
+        ) :
+        (is_set(other.color) ?
+          false :
+          true
+        )
+     )  &&
     node_type == other.node_type &&
     (
       (is_set(left_node)) ?
@@ -140,6 +156,17 @@ bool GenGeometryObject::eq_nonarray_attributes(const GeometryObject& other, cons
         )
      )  &&
     true /*initial_surface_releases*/ &&
+    (
+      (is_set(color)) ?
+        (is_set(other.color) ?
+          (color->__eq__(*other.color)) : 
+          false
+        ) :
+        (is_set(other.color) ?
+          false :
+          true
+        )
+     )  &&
     node_type == other.node_type &&
     (
       (is_set(left_node)) ?
@@ -176,6 +203,7 @@ std::string GenGeometryObject::to_str(const std::string ind) const {
       "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ") << ", " << "\n" << ind + "  " <<
       "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "initial_surface_releases=" << vec_ptr_to_str(initial_surface_releases, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "color=" << "(" << ((color != nullptr) ? color->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
@@ -194,6 +222,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
             const std::vector<std::shared_ptr<SurfaceRegion>>,
             std::shared_ptr<SurfaceClass>,
             const std::vector<std::shared_ptr<InitialSurfaceRelease>>,
+            std::shared_ptr<Color>,
             const RegionNodeType,
             std::shared_ptr<Region>,
             std::shared_ptr<Region>
@@ -206,6 +235,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
           py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>(),
           py::arg("surface_class") = nullptr,
           py::arg("initial_surface_releases") = std::vector<std::shared_ptr<InitialSurfaceRelease>>(),
+          py::arg("color") = nullptr,
           py::arg("node_type") = RegionNodeType::UNSET,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
@@ -223,6 +253,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions, py::return_value_policy::reference, "All surface regions associated with this geometry object.\n")
       .def_property("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class, "Surface class for the whole object's surface. It is applied to the whole surface of this object \nexcept for those surface regions that have their specific surface class set explicitly.\n")
       .def_property("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases, py::return_value_policy::reference, "Each item in this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
+      .def_property("color", &GeometryObject::get_color, &GeometryObject::set_color, "Color for this geometry object. If a surface region has its color set, its value \nis used for the walls of that surface region.\n \n")
     ;
 }
 
@@ -271,6 +302,9 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
   }
   if (initial_surface_releases != std::vector<std::shared_ptr<InitialSurfaceRelease>>() && !skip_vectors_export()) {
     ss << ind << "initial_surface_releases = " << export_vec_initial_surface_releases(out, ctx, exported_name) << "," << nl;
+  }
+  if (is_set(color)) {
+    ss << ind << "color = " << color->export_to_python(out, ctx) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

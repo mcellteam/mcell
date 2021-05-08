@@ -125,7 +125,7 @@ def get_first_inner_type(t):
 # returns true also for enums
 def is_base_yaml_type(t):
     return \
-        t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_UINT64 or \
+        t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_UINT64 or t == YAML_TYPE_UINT32 or \
         t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or t == YAML_TYPE_IVEC3 or \
         t == YAML_TYPE_PY_OBJECT or \
         (is_yaml_function_type(t) and is_base_yaml_type(get_inner_function_type(t))) or \
@@ -150,7 +150,9 @@ def yaml_type_to_cpp_type(t, w_namespace=False):
         return CPP_TYPE_INT
     elif t == YAML_TYPE_UINT64:
         return CPP_TYPE_UINT64
-    elif t == YAML_TYPE_UINT64:
+    elif t == YAML_TYPE_UINT32:
+        return CPP_TYPE_UINT32
+    elif t == YAML_TYPE_BOOL:
         return CPP_TYPE_BOOL
     elif t == YAML_TYPE_VEC2:
         ns = '' if not w_namespace else 'MCell::' 
@@ -198,6 +200,8 @@ def yaml_type_to_pybind_type(t):
         return CPP_TYPE_INT + '_'
     elif t == YAML_TYPE_UINT64:
         return CPP_TYPE_INT + '_'
+    elif t == YAML_TYPE_UINT32:
+        return CPP_TYPE_INT + '_'
     elif t == YAML_TYPE_SPECIES:
         return PYBIND_TYPE_OBJECT
     else:
@@ -206,7 +210,7 @@ def yaml_type_to_pybind_type(t):
     
 def yaml_type_to_py_type(t):
     assert len(t) >= 1
-    if t == YAML_TYPE_UINT64:
+    if t == YAML_TYPE_UINT64 or t == YAML_TYPE_UINT32:
         return YAML_TYPE_INT # not sure what should be the name
     elif is_yaml_function_type(t):
         return "Callable, # " + t
@@ -214,6 +218,8 @@ def yaml_type_to_py_type(t):
         return "Any, # " + t
     elif is_yaml_list_type(t) and get_inner_list_type(t) == YAML_TYPE_UINT64:
         return t.replace(YAML_TYPE_UINT64, YAML_TYPE_INT)
+    elif is_yaml_list_type(t) and get_inner_list_type(t) == YAML_TYPE_UINT32:
+        return t.replace(YAML_TYPE_UINT32, YAML_TYPE_INT)
     else:
         return t.replace('*', '')
 
@@ -277,6 +283,8 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_INT
     elif t == YAML_TYPE_UINT64:
         return UNSET_VALUE_UINT64
+    elif t == YAML_TYPE_UINT32:
+        return UNSET_VALUE_UINT32
     elif t == YAML_TYPE_BOOL:
         assert False, "There is no unset value for bool - for " + attr[KEY_NAME]
         return "error"

@@ -31,6 +31,7 @@
 #include "generated/gen_reaction_rule.h"
 #include "generated/gen_subsystem.h"
 
+#include "generated/gen_color.h"
 #include "generated/gen_region.h"
 #include "generated/gen_initial_surface_release.h"
 #include "generated/gen_surface_region.h"
@@ -216,6 +217,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_MoleculeReleaseInfo(m);
   define_pybinding_ReleaseSite(m);
 
+  define_pybinding_Color(m);
   define_pybinding_Region(m);
   define_pybinding_InitialSurfaceRelease(m);
   define_pybinding_SurfaceRegion(m);

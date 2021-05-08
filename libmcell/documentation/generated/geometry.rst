@@ -3,6 +3,37 @@
 ********
 Geometry
 ********
+Color
+=====
+
+Represents color with alpha component.
+Provides two means to set value, either red, green, blue and alpha, 
+or rgba. If both color individual components and rgba are set in initialization,
+the individual components are used.
+
+Attributes:
+***********
+* | **red**: float = None
+  | Red component in range 0-1.
+
+* | **green**: float = None
+  | Green component in range 0-1.
+
+* | **blue**: float = None
+  | Blue component in range 0-1.
+
+* | **alpha**: float = 1
+  | Alpha component in range 0-1. 1 means nontransparent.
+
+* | **rgba**: int = 0
+  | This attribute provides an alternative way of defining colors by supplying a 
+  | 32-bit unsigned integer representation of the color with an aplha channel. 
+  | In hexadecimal notation the first 2 digits are value for red, second 2 digits are 
+  | green, third 2 digits are blue and the last two digits are alpha. 
+  | The range for each component is thus 0x0-0xFF (0-255). 
+  | Example\: 0x0000ffcc represents the same color as rgba(0, 0, 100%, 80%).
+  | All values are valid.
+
 GeometryObject
 ==============
 
@@ -40,6 +71,10 @@ Attributes:
 * | **initial_surface_releases**: List[InitialSurfaceRelease] = None
   | Each item in this list defines either density or number of molecules to be released on this surface 
   | regions when simulation starts.
+
+* | **color**: Color = None
+  | Color for this geometry object. If a surface region has its color set, its value 
+  | is used for the walls of that surface region.
 
 * | **node_type**: RegionNodeType = RegionNodeType.UNSET
   | When this values is LeafGeometryObject, then this object is of class GeometryObject,
@@ -166,11 +201,14 @@ Attributes:
 
 * | **surface_class**: SurfaceClass = None
   | Optional surface class assigned to this surface region.
-  | If not set, it is inherited from the parent heometry object's surface_class.
+  | If not set, it is inherited from the parent geometry object's surface_class.
 
 * | **initial_surface_releases**: List[InitialSurfaceRelease] = None
   | Each item of this list defines either density or number of molecules to be released on this surface 
   | regions when simulation starts.
+
+* | **color**: Color = None
+  | Color for this specific surface region. If not set, color of the parent's GeometryObject is used.
 
 * | **node_type**: RegionNodeType = RegionNodeType.UNSET
   | When this values is LeafGeometryObject, then this object is of class GeometryObject,

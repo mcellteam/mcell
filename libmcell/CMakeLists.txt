@@ -42,6 +42,8 @@ set(SOURCE_FILES
     
     api/count.cpp
     
+    api/color.cpp
+    
     api/subsystem.cpp
     api/instantiation.cpp
     api/observables.cpp
@@ -82,6 +84,7 @@ set(SOURCE_FILES
     generated/gen_reaction_rule.cpp
     generated/gen_subsystem.cpp
 
+    generated/gen_color.cpp
     generated/gen_region.cpp
     generated/gen_initial_surface_release.cpp
     generated/gen_surface_region.cpp
