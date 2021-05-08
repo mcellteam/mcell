@@ -55,6 +55,9 @@ public:
   Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
   Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) override;
 
+  std::shared_ptr<Color> get_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index) override;
+  void set_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index, std::shared_ptr<Color> color) override;
+
   void dump() const {}
 
 private:

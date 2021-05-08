@@ -21,6 +21,7 @@
 ******************************************************************************/
 
 #include "api/color.h"
+#include "geometry.h"
 
 namespace MCell {
 namespace API {
@@ -64,11 +65,7 @@ void Color::components_to_rgba() {
 
 
 void Color::rgba_to_components() {
-  const double MAX = 255.0;
-  red = (((uint)rgba >> 24) & 0xFF) / MAX;
-  green = (((uint)rgba >> 16) & 0xFF) / MAX;
-  blue = (((uint)rgba >> 8) & 0xFF) / MAX;
-  alpha = ((uint)rgba & 0xFF) / MAX;
+  Geometry::rgba_to_components(rgba, red, green, blue, alpha);
 }
 
 } // namespace API

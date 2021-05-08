@@ -117,6 +117,35 @@ Methods:
   | Example: `1310_get_wall_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/pymcell4_positive/1310_get_wall_unit_normal/model.py>`_ 
 
 
+* | **get_wall_color**
+
+   * | object: GeometryObject
+     | Geometry object whose wall's color to retrieve.
+
+   * | wall_index: int
+     | This is the index of the vertex in the geometry object's walls (wall_list).
+
+   * | return type: Color
+
+
+  | Returns color of a wall.
+
+
+* | **set_wall_color**
+
+   * | object: GeometryObject
+     | Geometry object whose wall's color to retrieve.
+
+   * | wall_index: int
+     | This is the index of the vertex in the geometry object's walls (wall_list).
+
+   * | color: Color
+     | Color to be set.
+
+
+  | Sets color of a wall.
+
+
 
 Molecule
 ========

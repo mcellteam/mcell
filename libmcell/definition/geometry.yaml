@@ -121,10 +121,10 @@ SurfaceRegion:
       regions when simulation starts.
     internal: Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER. 
     
-  - name: color
+  - name: initial_color
     type: Color*
     default: unset
-    doc: Color for this specific surface region. If not set, color of the parent's GeometryObject is used. 
+    doc: Initial color for this specific surface region. If not set, color of the parent's GeometryObject is used. 
     
 GeometryObject:
   superclass: Region
@@ -182,13 +182,12 @@ GeometryObject:
       regions when simulation starts.
     internal: Shouldn't we be inheriting this from Region?
     
-  - name: color
+  - name: initial_color
     type: Color*
     default: unset
     doc: | 
-       Color for this geometry object. If a surface region has its color set, its value 
+       Initial color for this geometry object. If a surface region has its color set, its value 
        is used for the walls of that surface region.
-        
     
   methods:
   - name: translate

@@ -525,7 +525,7 @@ class GeometryObject():
             surface_regions : List[SurfaceRegion] = None,
             surface_class : SurfaceClass = None,
             initial_surface_releases : List[InitialSurfaceRelease] = None,
-            color : Color = None,
+            initial_color : Color = None,
             node_type : RegionNodeType = RegionNodeType.UNSET,
             left_node : Region = None,
             right_node : Region = None
@@ -538,7 +538,7 @@ class GeometryObject():
         self.surface_regions = surface_regions
         self.surface_class = surface_class
         self.initial_surface_releases = initial_surface_releases
-        self.color = color
+        self.initial_color = initial_color
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
@@ -686,6 +686,21 @@ class Introspection():
             object : GeometryObject,
             wall_index : int
         ) -> 'Vec3':
+        pass
+
+    def get_wall_color(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Color':
+        pass
+
+    def set_wall_color(
+            self,
+            object : GeometryObject,
+            wall_index : int,
+            color : Color
+        ) -> None:
         pass
 
 class Model():
@@ -1020,6 +1035,21 @@ class Model():
             object : GeometryObject,
             wall_index : int
         ) -> 'Vec3':
+        pass
+
+    def get_wall_color(
+            self,
+            object : GeometryObject,
+            wall_index : int
+        ) -> 'Color':
+        pass
+
+    def set_wall_color(
+            self,
+            object : GeometryObject,
+            wall_index : int,
+            color : Color
+        ) -> None:
         pass
 
 class MolWallHitInfo():
@@ -1424,7 +1454,7 @@ class SurfaceRegion():
             wall_indices : List[int],
             surface_class : SurfaceClass = None,
             initial_surface_releases : List[InitialSurfaceRelease] = None,
-            color : Color = None,
+            initial_color : Color = None,
             node_type : RegionNodeType = RegionNodeType.UNSET,
             left_node : Region = None,
             right_node : Region = None
@@ -1433,7 +1463,7 @@ class SurfaceRegion():
         self.wall_indices = wall_indices
         self.surface_class = surface_class
         self.initial_surface_releases = initial_surface_releases
-        self.color = color
+        self.initial_color = initial_color
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node

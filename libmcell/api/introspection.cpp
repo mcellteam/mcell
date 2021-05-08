@@ -27,6 +27,7 @@
 #include "api/molecule.h"
 #include "api/wall.h"
 #include "api/geometry_object.h"
+#include "api/color.h"
 #include "api/bng_converter.h"
 
 #include "world.h"
@@ -37,6 +38,13 @@ using namespace std;
 
 namespace MCell {
 namespace API {
+
+static void object_is_set_and_initialized(std::shared_ptr<GeometryObject> object) {
+  if (!is_set(object)) {
+    throw ValueError(S("Argument passed as ") + NAME_CLASS_GEOMETRY_OBJECT + " must not be None.");
+  }
+  object->check_is_initialized();
+}
 
 void Introspection::initialize_introspection(Model* model_) {
   model_inst = model_;
@@ -157,7 +165,7 @@ Vec3 Introspection::get_vertex(std::shared_ptr<GeometryObject> object, const int
 
 
 std::shared_ptr<Wall> Introspection::get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) {
-  object->check_is_initialized();
+  object_is_set_and_initialized(object);
 
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
@@ -178,7 +186,7 @@ std::shared_ptr<Wall> Introspection::get_wall(std::shared_ptr<GeometryObject> ob
 
 
 Vec3 Introspection::get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) {
-  object->check_is_initialized();
+  object_is_set_and_initialized(object);
 
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
@@ -201,7 +209,7 @@ Vec3 Introspection::get_vertex_unit_normal(std::shared_ptr<GeometryObject> objec
 
 
 Vec3 Introspection::get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) {
-  object->check_is_initialized();
+  object_is_set_and_initialized(object);
 
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
@@ -209,6 +217,32 @@ Vec3 Introspection::get_wall_unit_normal(std::shared_ptr<GeometryObject> object,
   // the value is is already normalized
   assert(cmp_eq(len3(w.normal), (pos_t)1));
   return w.normal;
+}
+
+
+std::shared_ptr<Color> Introspection::get_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index) {
+  object_is_set_and_initialized(object);
+
+  wall_index_t wi = object->get_partition_wall_index(wall_index);
+  const MCell::GeometryObject& obj = world->get_geometry_object(object->geometry_object_id);
+
+  rgba_t color = obj.get_wall_color(wi);
+  std::shared_ptr<Color> res = make_shared<Color>();
+  res->set_rgba(color); // must use setter - initializes also other attributes
+  return res;
+}
+
+
+void Introspection::set_wall_color(
+    std::shared_ptr<GeometryObject> object, const int wall_index, std::shared_ptr<Color> color) {
+  object_is_set_and_initialized(object);
+
+  object_is_set_and_initialized(object);
+
+  wall_index_t wi = object->get_partition_wall_index(wall_index);
+  MCell::GeometryObject& obj = world->get_geometry_object(object->geometry_object_id);
+
+  obj.set_wall_color(wi, color->get_rgba());
 }
 
 

@@ -743,7 +743,7 @@ void Partition::shrink_all_volume_molecule_reactants_per_subpart() {
 }
 
 
-void Partition::to_data_model(Json::Value& mcell) const {
+void Partition::to_data_model(Json::Value& mcell, std::set<rgba_t>& used_colors) const {
 
   // there are two places in data model where geometry objects are
   // defined - in KEY_GEOMETRICAL_OBJECTS and KEY_MODEL_OBJECTS
@@ -756,7 +756,7 @@ void Partition::to_data_model(Json::Value& mcell) const {
 
   for (const GeometryObject& g: geometry_objects) {
     Json::Value object;
-    g.to_data_model_as_geometrical_object(*this, config, object);
+    g.to_data_model_as_geometrical_object(*this, config, object, used_colors);
     object_list.append(object);
   }
 

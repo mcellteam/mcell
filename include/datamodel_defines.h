@@ -3,6 +3,8 @@
 // TODO: rename to data_model_...
 
 #include <cctype>
+#include <sstream>
+#include <iomanip>
 
 #include "defines.h"
 #include "json/json.h"
@@ -65,6 +67,7 @@ const char* const KEY_ELEMENT_CONNECTIONS = "element_connections";
 const char* const KEY_VERTEX_LIST = "vertex_list";
 const char* const KEY_DEFINE_SURFACE_REGIONS = "define_surface_regions";
 const char* const KEY_INCLUDE_ELEMENTS = "include_elements";
+const char* const KEY_ELEMENT_MATERIAL_INDICES = "element_material_indices";
 
 const char* const KEY_REACTION_LIST = "reaction_list";
 const char* const KEY_DEFINE_REACTIONS = "define_reactions";
@@ -360,6 +363,8 @@ const char* const VALUE_SEED = "/SEED";
 
 const char* const RELEASE_PATTERN_PREFIX = "release_pattern_";
 
+const char* const COLOR_MAT_PREFIX = "color_";
+
 // ---------------------------------- datamodel utilities----------------------------------
 // TODO: move the utility functions into a c++ file
 
@@ -493,6 +498,13 @@ static inline std::string bool_to_warning_level(const bool v) {
   else {
     return VALUE_IGNORED;
   }
+}
+
+
+static inline std::string color_to_mat_name(const uint color) {
+  std::stringstream ss;
+  ss << std::setfill('0') << std::setw(8) << std::hex << (color);
+  return COLOR_MAT_PREFIX + ss.str();
 }
 
 #define CONVERSION_UNSUPPORTED(msg) \

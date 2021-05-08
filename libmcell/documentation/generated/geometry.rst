@@ -72,8 +72,8 @@ Attributes:
   | Each item in this list defines either density or number of molecules to be released on this surface 
   | regions when simulation starts.
 
-* | **color**: Color = None
-  | Color for this geometry object. If a surface region has its color set, its value 
+* | **initial_color**: Color = None
+  | Initial color for this geometry object. If a surface region has its color set, its value 
   | is used for the walls of that surface region.
 
 * | **node_type**: RegionNodeType = RegionNodeType.UNSET
@@ -207,8 +207,8 @@ Attributes:
   | Each item of this list defines either density or number of molecules to be released on this surface 
   | regions when simulation starts.
 
-* | **color**: Color = None
-  | Color for this specific surface region. If not set, color of the parent's GeometryObject is used.
+* | **initial_color**: Color = None
+  | Initial color for this specific surface region. If not set, color of the parent's GeometryObject is used.
 
 * | **node_type**: RegionNodeType = RegionNodeType.UNSET
   | When this values is LeafGeometryObject, then this object is of class GeometryObject,

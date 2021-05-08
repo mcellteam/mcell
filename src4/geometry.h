@@ -79,6 +79,7 @@ public:
       surf_compartment_id(BNG::COMPARTMENT_ID_NONE),
       counted_volume_index_inside(COUNTED_VOLUME_INDEX_INVALID),
       counted_volume_index_outside(COUNTED_VOLUME_INDEX_INVALID),
+      default_color(DEFAULT_COLOR),
       is_used_in_mol_rxn_counts(false)
     {
   }
@@ -96,20 +97,12 @@ public:
   std::string name;
   std::string parent_name;
 
-  // all walls (triangles) that form this object
+  // all walls (triangles) that form this object,
+  // wall indices are unique in each partition, i.e. they are not counted from 0 for each object
   std::vector<wall_index_t> wall_indices;
 
   // all regions located on this object
   uint_set<region_index_t> regions;
-
-  bool represents_compartment() const {
-    return vol_compartment_id != BNG::COMPARTMENT_ID_NONE;
-  }
-
-  bool is_counted_volume_or_compartment() const {
-    assert(vol_compartment_id != BNG::COMPARTMENT_ID_INVALID);
-    return is_used_in_mol_rxn_counts || represents_compartment();
-  }
 
   // counted volume to be set when a molecule goes inside of this object
   // might be set to COUNTED_VOLUME_INDEX_INTERSECTS if this object intersects
@@ -121,6 +114,21 @@ public:
   // this object intersects with another object
   counted_volume_index_t counted_volume_index_outside;
 
+  // default color id of this object
+  rgba_t default_color;
+
+  // if wall index is not present in this map the wall's color is the default_color
+  std::map<wall_index_t, rgba_t> wall_specific_colors;
+
+  bool represents_compartment() const {
+    return vol_compartment_id != BNG::COMPARTMENT_ID_NONE;
+  }
+
+  bool is_counted_volume_or_compartment() const {
+    assert(vol_compartment_id != BNG::COMPARTMENT_ID_INVALID);
+    return is_used_in_mol_rxn_counts || represents_compartment();
+  }
+
   void initialize_neighboring_walls_and_their_edges(Partition& p);
 
   void set_is_used_in_mol_rxn_counts(const bool value = true) {
@@ -130,8 +138,19 @@ public:
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
-  void to_data_model_as_geometrical_object(const Partition& p, const SimulationConfig& config, Json::Value& object) const;
+  void to_data_model_as_geometrical_object(
+      const Partition& p, const SimulationConfig& config,
+      Json::Value& object,
+      std::set<rgba_t>& used_colors) const;
   void to_data_model_as_model_object(const Partition& p, Json::Value& model_object) const;
+
+  // checks only in debug mode whether the wall index belongs to this object
+  rgba_t get_wall_color(const wall_index_t wi) const;
+
+  // sets wall_specific_colors[wi] = color even if color is default_color
+  // checks only in debug mode whether the wall index belongs to this object
+  void set_wall_color(const wall_index_t wi, const rgba_t color);
+
 private:
   // true if there are MolOrRxnCountEvents that use this geometry object,
   // made private to make sure that is_counted_volume() is used when checking
@@ -807,6 +826,10 @@ void update_moved_walls(
     // but the keys of the map walls_with_their_moves are the walls that we need to update
     const WallsWithTheirMovesMap& walls_with_their_moves
 );
+
+void rgba_to_components(
+    const rgba_t rgba,
+    double& red, double& green, double& blue, double& alpha);
 
 } // namespace Geometry
 

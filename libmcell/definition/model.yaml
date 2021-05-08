@@ -264,7 +264,7 @@ Model:
       type: ReactionRule*
       doc: The callback function will be called whenever this reaction rule is applied.
       internal: maybe also add filtering by species
-          
+  
   # --- other ---
   
   - name: load_bngl

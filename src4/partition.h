@@ -1070,7 +1070,7 @@ public:
   void print_periodic_stats() const;
 
   void dump(const bool with_geometry = false);
-  void to_data_model(Json::Value& mcell) const;
+  void to_data_model(Json::Value& mcell, std::set<rgba_t>& used_colors) const;
 
   // ------------ Pymcell4 API ------------
   bool does_molecule_exist(const molecule_id_t id) {

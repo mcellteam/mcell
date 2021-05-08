@@ -25,6 +25,7 @@
 #include "api/python_export_utils.h"
 #include "gen_introspection.h"
 #include "api/introspection.h"
+#include "api/color.h"
 #include "api/complex.h"
 #include "api/geometry_object.h"
 #include "api/molecule.h"
@@ -64,6 +65,8 @@ py::class_<Introspection> define_pybinding_Introspection(py::module& m) {
       .def("get_wall", &Introspection::get_wall, py::arg("object"), py::arg("wall_index"), "Returns information about a wall belonging to a given object.\n- object: Geometry object whose wall to retrieve.\n\n- wall_index: This is the index of the wall in the geometry object's walls (wall_list).\n\n")
       .def("get_vertex_unit_normal", &Introspection::get_vertex_unit_normal, py::arg("object"), py::arg("vertex_index"), "Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.\nThis represents the unit vector pointing outwards from the vertex.\n\n- object: Geometry object whose vertex to retrieve.\n\n- vertex_index: This is the index of the vertex in the geometry object's vertex_list.\n\n")
       .def("get_wall_unit_normal", &Introspection::get_wall_unit_normal, py::arg("object"), py::arg("wall_index"), "Returns wall normal converted to a unit vector of length 1um.\n- object: Geometry object whose wall's normal to retrieve.\n\n- wall_index: This is the index of the vertex in the geometry object's walls (wall_list).\n\n")
+      .def("get_wall_color", &Introspection::get_wall_color, py::arg("object"), py::arg("wall_index"), "Returns color of a wall.\n- object: Geometry object whose wall's color to retrieve.\n\n- wall_index: This is the index of the vertex in the geometry object's walls (wall_list).\n\n")
+      .def("set_wall_color", &Introspection::set_wall_color, py::arg("object"), py::arg("wall_index"), py::arg("color"), "Sets color of a wall.\n- object: Geometry object whose wall's color to retrieve.\n\n- wall_index: This is the index of the vertex in the geometry object's walls (wall_list).\n\n- color: Color to be set.\n\n")
       .def("dump", &Introspection::dump)
     ;
 }

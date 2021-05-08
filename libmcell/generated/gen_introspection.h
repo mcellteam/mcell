@@ -29,6 +29,7 @@ namespace MCell {
 namespace API {
 
 class Introspection;
+class Color;
 class Complex;
 class GeometryObject;
 class Molecule;
@@ -53,6 +54,8 @@ public:
   virtual std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
   virtual Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) = 0;
   virtual Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
+  virtual std::shared_ptr<Color> get_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
+  virtual void set_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index, std::shared_ptr<Color> color) = 0;
 }; // GenIntrospection
 
 class Introspection;

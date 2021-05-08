@@ -39,6 +39,7 @@ namespace API {
 
 class Model;
 class BaseChkptMol;
+class Color;
 class Complex;
 class Config;
 class Count;

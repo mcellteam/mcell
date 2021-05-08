@@ -645,6 +645,7 @@ void export_geometry_objects_to_obj(
     actor->SetMapper(mapper);
 
     // material, the default is white with 25% transparency
+    // note: same as DEFAULT_COLOR
     actor->GetProperty()->SetDiffuseColor(1, 1, 1);
     actor->GetProperty()->SetOpacity(0.25);
 

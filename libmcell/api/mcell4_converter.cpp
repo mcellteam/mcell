@@ -902,6 +902,11 @@ void MCell4Converter::convert_geometry_objects() {
     obj.parent_name = ""; // empty, we do not really care
     o->geometry_object_id = obj.id;
 
+    if (is_set(o->initial_color)) {
+      // set default color
+      obj.default_color = o->initial_color->rgba;
+    }
+
     // vertices
     // remember the "offset" from the first vertex in the target partition
     o->first_vertex_index = p.get_geometry_vertex_count();
@@ -959,6 +964,14 @@ void MCell4Converter::convert_geometry_objects() {
       std::shared_ptr<SurfaceRegion> surface_region = o->surface_regions[k];
       region_index_t ri = convert_surface_region(p, *surface_region, *o, obj);
       region_indices.push_back(ri);
+
+      // also set colors if they were specified
+      if (is_set(surface_region->initial_color)) {
+        rgba_t color = surface_region->initial_color->rgba;
+        for (wall_index_t wi: surface_region->wall_indices) {
+          obj.wall_specific_colors[o->get_partition_wall_index(wi)] = color;
+        }
+      }
     }
 
     // also set regions for walls

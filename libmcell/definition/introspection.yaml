@@ -220,4 +220,32 @@ Introspection:
     - name: wall_index
       type: int 
       doc: This is the index of the vertex in the geometry object's walls (wall_list).
+          
+          
+  # --- display/export manipulation ---
+  - name: get_wall_color
+    doc: Returns color of a wall.
+    return_type: Color*
+    params:
+    - name: object
+      type: GeometryObject*
+      doc: Geometry object whose wall's color to retrieve.
+    - name: wall_index
+      type: int 
+      doc: This is the index of the vertex in the geometry object's walls (wall_list).
+    
+  - name: set_wall_color
+    doc: Sets color of a wall.
+    params:
+    - name: object
+      type: GeometryObject*
+      doc: Geometry object whose wall's color to retrieve.
+    - name: wall_index
+      type: int 
+      doc: This is the index of the vertex in the geometry object's walls (wall_list).
+    - name: color
+      type: Color*
+      doc: Color to be set.
+  
+          
                      

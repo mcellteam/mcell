@@ -395,10 +395,11 @@ void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryOb
 
 
 void GeometryObject::to_data_model_as_geometrical_object(
-    const Partition& p, const SimulationConfig& config, Json::Value& object) const {
+    const Partition& p, const SimulationConfig& config,
+    Json::Value& object,
+    std::set<rgba_t>& used_colors) const {
 
   object[KEY_NAME] = DMUtils::remove_obj_name_prefix(parent_name, name);
-  object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
 
   bool first = true; // to indicate when to use a comma
 
@@ -486,6 +487,55 @@ void GeometryObject::to_data_model_as_geometrical_object(
       define_surface_regions.append(surface_region);
     }
   }
+
+  // colors
+  if (default_color != DEFAULT_COLOR || !wall_specific_colors.empty()) {
+    used_colors.insert(default_color);
+    std::map<rgba_t, int> colors_this_object;
+    colors_this_object[default_color] = 0;
+
+    // collect all wall_specific_colors and define their ID
+    for (const auto& pair_index_color: wall_specific_colors) {
+      rgba_t wall_color = pair_index_color.second;
+      auto it = colors_this_object.find(wall_color);
+      if (it == colors_this_object.end()) {
+        // new item
+        int local_index = colors_this_object.size();
+        colors_this_object[wall_color] = local_index;
+      }
+    }
+
+    // generate material names for this object, must be sorted by their id
+    vector<rgba_t> sorted_colors;
+    sorted_colors.resize(colors_this_object.size());
+    for (const auto& pair_color_local_index: colors_this_object) {
+      sorted_colors[pair_color_local_index.second] = pair_color_local_index.first;
+    }
+    Json::Value& material_names = object[KEY_MATERIAL_NAMES];
+    for (const rgba_t color: sorted_colors) {
+      material_names.append(DMUtils::color_to_mat_name(color));
+    }
+
+    // and finally assign element_material_indices
+    Json::Value& element_material_indices = object[KEY_ELEMENT_MATERIAL_INDICES];
+    for (wall_index_t wi: wall_indices) {
+      rgba_t color;
+      auto it = wall_specific_colors.find(wi);
+      if (it != wall_specific_colors.end()) {
+        color = it->second;
+        used_colors.insert(color);
+      }
+      else {
+        color = default_color;
+      }
+      assert(colors_this_object.count(color) == 1);
+      element_material_indices.append(colors_this_object[color]);
+    }
+  }
+  else {
+    // material_names must not be empty
+    object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
+  }
 }
 
 
@@ -541,6 +591,30 @@ void GeometryObject::to_data_model_as_model_object(
   }
 
   model_object[KEY_DYNAMIC] = false;
+}
+
+
+// checks only in debug mode whether the wall index belongs to this object
+rgba_t GeometryObject::get_wall_color(const wall_index_t wi) const {
+  assert(!wall_indices.empty());
+  assert(wi >= wall_indices.front() && wi <= wall_indices.back());
+
+  auto it = wall_specific_colors.find(wi);
+  if (it == wall_specific_colors.end()) {
+    return default_color;
+  }
+  else {
+    return it->second;
+  }
+}
+
+
+// checks only in debug mode whether the wall index belongs to this object
+void GeometryObject::set_wall_color(const wall_index_t wi, const rgba_t color) {
+  assert(!wall_indices.empty());
+  assert(wi >= wall_indices.front() && wi <= wall_indices.back());
+
+  wall_specific_colors[wi] = color;
 }
 
 
@@ -1479,6 +1553,17 @@ void update_moved_walls(
   }
 }
 
+
+void rgba_to_components(
+    const rgba_t rgba,
+    double& red, double& green, double& blue, double& alpha) {
+
+  const double MAX = 255.0;
+  red = (((uint)rgba >> 24) & 0xFF) / MAX;
+  green = (((uint)rgba >> 16) & 0xFF) / MAX;
+  blue = (((uint)rgba >> 8) & 0xFF) / MAX;
+  alpha = ((uint)rgba & 0xFF) / MAX;
+}
 
 } /* namespace Geometry */
 

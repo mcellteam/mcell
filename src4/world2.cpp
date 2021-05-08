@@ -102,6 +102,10 @@ World::World(API::Callbacks& callbacks_)
   // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
   // uninitialized variable
   reset_rusage(&sim_start_time);
+
+
+  color_id_t cid = find_or_add_color(DEFAULT_COLOR);
+  assert(cid == DEFAULT_COLOR_ID);
 }
 
 
@@ -956,10 +960,9 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   model_object_list = Json::Value(Json::arrayValue);
 
   // then dump all partition data
-  set<rgba_t> used_colors;
   bool first = true;
   for (const Partition& p: partitions) {
-    p.to_data_model(mcell, used_colors);
+    p.to_data_model(mcell);
   }
 
   if (!only_for_viz) {
@@ -984,33 +987,16 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   BngDataToDatamodelConverter bng_converter;
   bng_converter.to_data_model(this, mcell, only_for_viz);
 
+
   // add other default values, might need to generate this better
   Json::Value& materials = mcell[KEY_MATERIALS];
   Json::Value& material_dict = materials[KEY_MATERIAL_DICT];
-
-  if (used_colors.empty()) {
-    // need at least one material (unused)
-    Json::Value& membrane = material_dict[KEY_VALUE_MEMBRANE];
-    Json::Value& diffuse_color = membrane[KEY_DIFFUSE_COLOR];
-    diffuse_color[KEY_R] = DEFAULT_OBJECT_COLOR_COMPONENT;
-    diffuse_color[KEY_G] = DEFAULT_OBJECT_COLOR_COMPONENT;
-    diffuse_color[KEY_B] = DEFAULT_OBJECT_COLOR_COMPONENT;
-    diffuse_color[KEY_A] = DEFAULT_OBJECT_ALPHA;
-  }
-  else {
-    for (rgba_t color: used_colors) {
-      string name = DMUtils::color_to_mat_name(color);
-      Json::Value& mat = material_dict[name];
-      Json::Value& diffuse_color = mat[KEY_DIFFUSE_COLOR];
-
-      double r, g, b, a;
-      Geometry::rgba_to_components(color, r, g, b, a);
-      diffuse_color[KEY_R] = r;
-      diffuse_color[KEY_G] = g;
-      diffuse_color[KEY_B] = b;
-      diffuse_color[KEY_A] = a;
-    }
-  }
+  Json::Value& membrane = material_dict[KEY_VALUE_MEMBRANE];
+  Json::Value& diffuse_color = membrane[KEY_DIFFUSE_COLOR];
+  diffuse_color[KEY_R] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_G] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_B] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_A] = DEFAULT_OBJECT_ALPHA;
 
   // diverse settings not read from the mcell4 state
 
@@ -1221,6 +1207,32 @@ void World::export_data_layout() const {
     cout << "Unable to open file " << DEFAULT_DATA_LAYOUT_FILENAME << " for writing.\n";
   }
 }
+
+
+color_id_t World::find_or_add_color(const rgba_t rgba) {
+  assert(color_id_to_rgba.size() == color_rgba_to_id.size());
+  auto it = color_rgba_to_id.find(rgba);
+  if (it == color_rgba_to_id.end()) {
+    // not present
+    color_id_t new_id = color_id_to_rgba.size();
+    color_id_to_rgba[new_id] = rgba;
+    color_rgba_to_id[rgba] = new_id;
+    assert(color_id_to_rgba.size() == color_rgba_to_id.size());
+    return new_id;
+  }
+  else {
+    // exists
+    return it->second;
+  }
+}
+
+
+rgba_t World::get_color(const color_id_t id) const {
+  const auto it = color_id_to_rgba.find(id);
+  assert(it != color_id_to_rgba.end());
+  return it->second;
+}
+
 
 } // namespace mcell
 
