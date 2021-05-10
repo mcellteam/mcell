@@ -165,6 +165,8 @@ include_directories(
   "${VTK_DIR}/Filters/Core/"
   "${CMAKE_SOURCE_DIR}/../VTK/Filters/Modeling/"
   "${VTK_DIR}/Filters/Modeling/"
+  "${CMAKE_SOURCE_DIR}/../VTK/Filters/Sources/"
+  "${VTK_DIR}/Filters/Sources/"
   "${CMAKE_SOURCE_DIR}/../VTK/Rendering/Core/"
   "${VTK_DIR}/Rendering/Core/"
   "${CMAKE_SOURCE_DIR}/../VTK/Rendering/Context2D/"

@@ -31,7 +31,8 @@ namespace API {
 
 void define_pybinding_geometry_utils(py::module& m) {
   m.def_submodule("geometry_utils")
-      .def("create_box", &geometry_utils::create_box, py::arg("name"), py::arg("edge_length"), "Creates a GeometryObject whose center is at (0, 0, 0).\n- name: Name of the created geometry object.\n\n- edge_length: Specifies length of each edge of the box in um.\n\n")
+      .def("create_box", &geometry_utils::create_box, py::arg("name"), py::arg("edge_length"), "Creates a GeometryObject in the shape of a cube whose center is at (0, 0, 0).\n- name: Name of the created geometry object.\n\n- edge_length: Specifies length of each edge of the box in um.\n\n")
+      .def("create_icosphere", &geometry_utils::create_icosphere, py::arg("name"), py::arg("radius"), py::arg("subdivisions"), "Creates a GeometryObject in the shape of an icosphere whose center is at (0, 0, 0).\n- name: Name of the created geometry object.\n\n- radius: Specifies radius of the sphere.\n\n- subdivisions: Number of subdivisions from the initial icosphere. \nThe higher this value will be the smoother the icosphere will be.\nAllowed range is between 1 and 8.\n\n\n")
     ;
 }
 

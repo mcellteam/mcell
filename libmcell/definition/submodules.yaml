@@ -6,7 +6,7 @@ geometry_utils:
   type: submodule  # default type is class
   methods:
   - name: create_box
-    doc: Creates a GeometryObject whose center is at (0, 0, 0).
+    doc: Creates a GeometryObject in the shape of a cube whose center is at (0, 0, 0).
     return_type: GeometryObject*
     examples: tests/pymcell4/1400_rel_site_for_each_it/model.py
     params:
@@ -18,6 +18,27 @@ geometry_utils:
       type: float
       doc: Specifies length of each edge of the box in um.
       
+  - name: create_icosphere
+    doc: Creates a GeometryObject in the shape of an icosphere whose center is at (0, 0, 0).
+    return_type: GeometryObject*
+    examples: tests/pymcell4/1110_point_release_w_create_icosphere/model.py
+    params:
+    - name: name
+      type: str
+      doc: Name of the created geometry object.
+
+    - name: radius
+      type: float
+      doc: Specifies radius of the sphere.
+
+    - name: subdivisions
+      type: int
+      min: 1
+      max: 8
+      doc: | 
+         Number of subdivisions from the initial icosphere. 
+         The higher this value will be the smoother the icosphere will be.
+         Allowed range is between 1 and 8.
       
 bngl_utils:
   doc: | 

@@ -1563,6 +1563,14 @@ class geometry_utils():
         ) -> 'GeometryObject':
         pass
 
+    def create_icosphere(
+            self,
+            name : str,
+            radius : float,
+            subdivisions : int
+        ) -> 'GeometryObject':
+        pass
+
 class run_utils():
     def __init__(
             self,

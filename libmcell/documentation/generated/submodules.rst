@@ -49,9 +49,30 @@ Methods:
    * | return type: GeometryObject
 
 
-  | Creates a GeometryObject whose center is at (0, 0, 0).
+  | Creates a GeometryObject in the shape of a cube whose center is at (0, 0, 0).
 
   | Example: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1400_rel_site_for_each_it/model.py>`_ 
+
+
+* | **create_icosphere**
+
+   * | name: str
+     | Name of the created geometry object.
+
+   * | radius: float
+     | Specifies radius of the sphere.
+
+   * | subdivisions: int
+     | Number of subdivisions from the initial icosphere. 
+     | The higher this value will be the smoother the icosphere will be.
+     | Allowed range is between 1 and 8.
+
+   * | return type: GeometryObject
+
+
+  | Creates a GeometryObject in the shape of an icosphere whose center is at (0, 0, 0).
+
+  | Example: `1110_point_release_w_create_icosphere/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1110_point_release_w_create_icosphere/model.py>`_ 
 
 
 
