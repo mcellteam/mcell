@@ -262,7 +262,7 @@ void check_ctrl_c(const double current_time, World* world) {
     std::cout << "Caught Ctrl-C signal in iteration " << current_time << ".\n";
     std::cout << "Flushing buffers.\n";
     release_assert(world != nullptr);
-    world->flush_buffers();
+    world->flush_and_close_buffers();
 
     throw py::error_already_set();
   }

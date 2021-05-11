@@ -172,6 +172,11 @@ const uint SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 const uint MAX_SUBPARTS_PER_PARTITION = 300;
 
+// with low sampling rate, the buffers take long to flush and
+// the user may want to see the results earlier, so the buffers are
+// periodically flushed, not only when they are full
+const uint COUNT_BUFFER_FLUSH_PERIODICITY = 10000;
+
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const pos_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 const pos_t LENGTH_INVALID = FLT_MAX;

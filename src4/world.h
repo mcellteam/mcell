@@ -243,6 +243,8 @@ public:
 
   void flush_buffers();
 
+  void flush_and_close_buffers();
+
   // prints message, flushes buffers, and terminates
   void fatal_error(const std::string& msg);
 

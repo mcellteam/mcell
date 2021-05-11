@@ -83,7 +83,6 @@ public:
   // open file, return false if file could not be opened and error_is_fatal is false
   bool open(bool error_is_fatal = true);
 
-private:
   // flush buffer, open output file if needed, keep file open afterwards
   void flush();
 

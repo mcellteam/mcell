@@ -107,7 +107,7 @@ World::World(API::Callbacks& callbacks_)
 
 World::~World() {
   if (!buffers_flushed) {
-    flush_buffers();
+    flush_and_close_buffers();
   }
 
   for (MolOrRxnCountEvent* e: unscheduled_count_events) {
@@ -472,6 +472,11 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
       break;
     }
 
+    // periodical buffer flush
+    if (current_iteration % COUNT_BUFFER_FLUSH_PERIODICITY == 0) {
+      flush_buffers();
+    }
+
   } while (true); // terminated when the nr. of iterations is reached
 
 #ifndef NDEBUG
@@ -487,6 +492,14 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
 
 
 void World::flush_buffers() {
+  // only flush count buffers
+  for (CountBuffer& b: count_buffers) {
+    b.flush();
+  }
+}
+
+
+void World::flush_and_close_buffers() {
   assert(!buffers_flushed && "Buffers can be flushed only once");
 
   // flush and close count buffers
@@ -500,7 +513,7 @@ void World::flush_buffers() {
 // prints message (appends newline), flushes buffers, and terminates
 void World::fatal_error(const std::string& msg) {
   errs() << msg << "\n";
-  flush_buffers();
+  flush_and_close_buffers();
   exit(1);
 }
 
@@ -521,7 +534,7 @@ void World::end_simulation(const bool print_final_report) {
     run_n_iterations(1, true);
   }
 
-  flush_buffers();
+  flush_and_close_buffers();
 
   if (print_final_report) {
     cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully";
