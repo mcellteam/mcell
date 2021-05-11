@@ -33,7 +33,7 @@ class PythonExportContext;
 
 namespace geometry_utils {
 
-std::shared_ptr<GeometryObject> create_box(const std::string& name, const double edge_length);
+std::shared_ptr<GeometryObject> create_box(const std::string& name, const double edge_dimension = FLT_UNSET, const std::vector<double> xyz_dimensions = std::vector<double>());
 std::shared_ptr<GeometryObject> create_icosphere(const std::string& name, const double radius, const int subdivisions);
 
 } // namespace geometry_utils

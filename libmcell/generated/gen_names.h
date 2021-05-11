@@ -125,7 +125,7 @@ const char* const NAME_DIFFUSION_CONSTANT_3D = "diffusion_constant_3d";
 const char* const NAME_DIFFUSION_TIME = "diffusion_time";
 const char* const NAME_DISPLACEMENT = "displacement";
 const char* const NAME_DUMP_INTERNAL_STATE = "dump_internal_state";
-const char* const NAME_EDGE_LENGTH = "edge_length";
+const char* const NAME_EDGE_DIMENSION = "edge_dimension";
 const char* const NAME_ELEMENTARY_MOLECULE_TYPE = "elementary_molecule_type";
 const char* const NAME_ELEMENTARY_MOLECULE_TYPES = "elementary_molecule_types";
 const char* const NAME_ELEMENTARY_MOLECULES = "elementary_molecules";
@@ -306,6 +306,7 @@ const char* const NAME_WALL_INDICES = "wall_indices";
 const char* const NAME_WALL_LIST = "wall_list";
 const char* const NAME_WARNINGS = "warnings";
 const char* const NAME_WITH_COMPARTMENT = "with_compartment";
+const char* const NAME_XYZ_DIMENSIONS = "xyz_dimensions";
 
 const char* const NAME_ENUM_EXPR_NODE_TYPE = "ExprNodeType";
 const char* const NAME_ENUM_MOLECULE_TYPE = "MoleculeType";

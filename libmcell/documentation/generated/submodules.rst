@@ -43,15 +43,19 @@ Methods:
    * | name: str
      | Name of the created geometry object.
 
-   * | edge_length: float
-     | Specifies length of each edge of the box in um.
+   * | edge_dimension: float = None
+     | Specifies length of each edge of the box in um. 
+     | None of x/y/z dimensions can be set.
+
+   * | xyz_dimensions: List[float] = None
+     | Specifies x/y/z sizes of the box in um. Parameter edge_dimension must not be set.
 
    * | return type: GeometryObject
 
 
   | Creates a GeometryObject in the shape of a cube whose center is at (0, 0, 0).
 
-  | Example: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1400_rel_site_for_each_it/model.py>`_ 
+  | Examples: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1400_rel_site_for_each_it/model.py>`_ `1105_point_release_w_create_box_not_cube/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1105_point_release_w_create_box_not_cube/model.py>`_ 
 
 
 * | **create_icosphere**

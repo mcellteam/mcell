@@ -1559,7 +1559,8 @@ class geometry_utils():
     def create_box(
             self,
             name : str,
-            edge_length : float
+            edge_dimension : float = None,
+            xyz_dimensions : List[float] = None
         ) -> 'GeometryObject':
         pass
 

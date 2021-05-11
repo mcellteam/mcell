@@ -8,15 +8,23 @@ geometry_utils:
   - name: create_box
     doc: Creates a GeometryObject in the shape of a cube whose center is at (0, 0, 0).
     return_type: GeometryObject*
-    examples: tests/pymcell4/1400_rel_site_for_each_it/model.py
+    examples: tests/pymcell4/1400_rel_site_for_each_it/model.py tests/pymcell4/1105_point_release_w_create_box_not_cube/model.py
     params:
     - name: name
       type: str
       doc: Name of the created geometry object.
 
-    - name: edge_length
+    - name: edge_dimension
       type: float
-      doc: Specifies length of each edge of the box in um.
+      default: unset
+      doc: | 
+         Specifies length of each edge of the box in um. 
+         None of x/y/z dimensions can be set.
+
+    - name: xyz_dimensions
+      type: List[float]
+      default: unset
+      doc: Specifies x/y/z sizes of the box in um. Parameter edge_dimension must not be set.
       
   - name: create_icosphere
     doc: Creates a GeometryObject in the shape of an icosphere whose center is at (0, 0, 0).
