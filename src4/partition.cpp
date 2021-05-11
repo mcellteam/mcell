@@ -478,6 +478,7 @@ void Partition::initialize_waypoint(
   // previous waypoint, this is required for initialization of regions
   if (use_previous_waypoint) {
     bool redo;
+    int num_attempts = 0;
     Vec3& previous_waypoint_pos = get_waypoint(previous_waypoint_index).pos;
     do {
       map<geometry_object_index_t, uint> num_crossed_walls_per_object;
@@ -489,6 +490,13 @@ void Partition::initialize_waypoint(
 
       if (redo) {
          move_waypoint_because_positioned_on_wall(waypoint_index, false);
+
+         if (num_attempts >= 5) {
+           // give up because we are getting redos due to the previous waypoint,
+           // count from scratch
+           break;
+         }
+         num_attempts++;
       }
     } while (redo);
   }
