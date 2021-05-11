@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 This is free and unencumbered software released into the public domain.
 
@@ -25,35 +27,51 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to [http://unlicense.org] 
 """
 
-import sys
-import os
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import os
+import sys
+import glob
 
-MCELL_PATH = os.environ.get('MCELL_PATH', '')
-if MCELL_PATH:
-    sys.path.append(os.path.join(MCELL_PATH, 'lib'))
-else:
-    print("Error: variable MCELL_PATH that is used to find the mcell library was not set.")
-    sys.exit(1)
-
-import mcell as m
-
-
-def read_species_file(file_name):
-    # load the .species file as a list of pairs (mcell.Complex, int), the second item is count
-    res = []
-    with open(file_name, 'r') as f:
-        for line in f:
-            if not line.strip():
-                continue 
-            
-            items = line.split()
-            assert len(items) == 2, "Invalid input file contents " + line
-            
-            # constructor m.Complex parses the BNGL representaion into 
-            # a MCell4 API representation 
-            # (see https://cnl.salk.edu/~ahusar/mcell4_documentation/generated/subsystem.html#complex
-            cplx = m.Complex(items[0])
-            res.append((cplx, str(items[1])))
+def load_dat_files(dat_dir):
+    counts = {}
     
+    res = pd.DataFrame
+    
+    # read all .dat files
+    dat_files = sorted(glob.glob(os.path.join(dat_dir, "*.dat"))) 
+    for file in dat_files:
+        observable = os.path.splitext(os.path.basename(file))[0]
+        df = pd.read_csv(file, sep=' ', index_col='time', names=['time', observable])
+
+        # use the first data frame as basis and the join with new observables 
+        # to create a single data frame        
+        if res.empty:
+            res = df
+        else:
+            res = res.join(df)
+
     return res
+
+
+def main():
+    if len(sys.argv) != 2:
+        sys.exit("Expecting exactly one argument that is the path to directory with .dat files.")
+    
+    # load all .dat files in directory passed as the first argument
+    dat_dir = sys.argv[1]
+    if not os.path.exists(dat_dir):
+        sys.exit("Directory " + dat_dir + " does not exist.")
+    
+    
+    df = load_dat_files(dat_dir)
+    
+    df.plot(kind='line')
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
+    
+    

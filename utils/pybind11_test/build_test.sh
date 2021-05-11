@@ -1,1 +1,0 @@
-g++.exe -shared -std=c++11 -isystem c:\\husar\\mcell\\build_tools\\Python35\\include -isystem C:\\husar\\mcell\\build\\mcell\\libs\\pybind11\\include -DMS_WIN64 -fPIC   test.cpp -o testx.pyd C:\\husar\\mcell\\build\\mcell\\libs\\windows_python35\\libpython35.a

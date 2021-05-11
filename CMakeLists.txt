@@ -338,10 +338,7 @@ configure_file(${MCELL_RULES_DIR}/write_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/write
 
 SET(MCELL_UTILS_DIR ${CMAKE_SOURCE_DIR}/utils)
 SET(BUILD_UTILS_DIR ${CMAKE_CURRENT_BINARY_DIR}/utils)
-configure_file(${MCELL_UTILS_DIR}/mcell4_runner/mcell4_runner.py ${BUILD_UTILS_DIR}/mcell4_runner.py COPYONLY)
-configure_file(${MCELL_UTILS_DIR}/plotter/plotter.py ${BUILD_UTILS_DIR}/plotter.py COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/libmcell/generated/mcell.pyi ${BUILD_UTILS_DIR}/mcell.pyi COPYONLY)
-configure_file(${MCELL_UTILS_DIR}/visualize/visualize.sh ${BUILD_UTILS_DIR}/visualize.sh COPYONLY)
 
 # copy tools for MDLr to MDL
 # TODO: list all files using configure_file
@@ -389,9 +386,7 @@ add_dependencies(mcell version_h mcell4)
 target_link_libraries(mcell mcell4 libmcell_dummy bnglib nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer) # used in MCell4 vs MCell4 validation
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_analyzer_py)
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/bng_species_reader_py)
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
 
 if (NOT WIN32 AND NOT APPLE)
     set(STDC_FS stdc++fs)
