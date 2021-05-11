@@ -42,6 +42,7 @@ void CountBuffer::flush() {
   for (const auto& item: data) {
     item.write(fout);
   }
+  fout.flush(); // flush the data so the user can see them
   data.clear();
 }
 
