@@ -723,10 +723,24 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
       n--;
     }
     else {
+      // prepare detailed information for error message
+      uint total_tiles = 0;
+      uint free_tiles = 0;
+      for (const auto& area_index_pair: cumm_area_and_pwall_index_pairs) {
+        PartitionWallIndexPair pw = area_index_pair.second;
+        const Partition& p = world->get_partition(pw.first);
+        const Wall& w = p.get_wall(pw.second);
+
+        total_tiles += w.grid.num_tiles;
+        free_tiles += w.grid.get_num_free_tiles();
+      }
+
       // TODO: MCell3 handles these cases better
       const BNG::Species& species = world->get_all_species().get(species_id);
-      mcell_error("Could not release %d of %s at %s, too many failed attempts to place surface molecules.",
-          computed_release_number, species.name.c_str(), release_site_name.c_str());
+      mcell_error("Could not release %d of %s at %s, too many failed attempts to place surface molecules. "
+          "The surface regions has total of %d tiles and %d were left empty after release attempts.",
+          computed_release_number, species.name.c_str(), release_site_name.c_str(),
+          total_tiles, free_tiles);
     }
   }
 }
