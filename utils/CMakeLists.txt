@@ -16,6 +16,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mcell4_runner/run_remotely.sh ${BUILD
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/plotting/plot_averages_into_images.py ${BUILD_UTILS_DIR}/plot_averages_into_images.py COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/plotting/plot_single_run.py ${BUILD_UTILS_DIR}/plot_single_run.py COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/plotting/plot_multicolumn_dat_file.py ${BUILD_UTILS_DIR}/plot_multicolumn_dat_file.py COPYONLY)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/visualize/visualize.sh ${BUILD_UTILS_DIR}/visualize.sh COPYONLY)
 
