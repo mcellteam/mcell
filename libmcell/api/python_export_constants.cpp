@@ -122,7 +122,7 @@ std::string get_template_custom_init_and_run(const std::string& parameters_modul
       "    # components defined in CellBlender were added to the model.\n"
       "    # It allows to add additional model components before initialization \n"
       "    # is done and then to customize how simulation is ran.\n"
-      "    # The module parameters must be imported locally otherwise "
+      "    # The module parameters must be imported locally otherwise\n"
       "    # changes to shared.parameter_overrides done elsewhere won't be applied.\n"
       "    import " + parameters_module + " as " + PARAMETERS + "\n" +
       "    model.initialize()\n"
