@@ -550,11 +550,11 @@ void World::end_simulation(const bool print_final_report) {
     reset_rusage(&run_time);
     getrusage(RUSAGE_SELF, &run_time);
     cout << "Simulation CPU time = "
-      << tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  "(user) and "
-      << tosecs(run_time.ru_stime) - tosecs(sim_start_time.ru_stime) <<  "(system)\n";
+      << tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  " (user) and "
+      << tosecs(run_time.ru_stime) - tosecs(sim_start_time.ru_stime) <<  " (system)\n";
     cout << "Simulation CPU time without iteration 0 = "
-      << tosecs(run_time.ru_utime) - tosecs(it1_start_time.ru_utime) <<  "(user) and "
-      << tosecs(run_time.ru_stime) - tosecs(it1_start_time.ru_stime) <<  "(system)\n";
+      << tosecs(run_time.ru_utime) - tosecs(it1_start_time.ru_utime) <<  " (user) and "
+      << tosecs(run_time.ru_stime) - tosecs(it1_start_time.ru_stime) <<  " (system)\n";
 
     // and warnings
     bng_engine.get_config().print_final_warnings();
