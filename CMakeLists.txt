@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
 project(mcell)
 
-option(PYTHON_VERSION "Python version to used when building MCell Python library" "3.5")
+if ("${PYTHON_VERSION}" STREQUAL "")
+  set(PYTHON_VERSION 3.5)
+endif()
 set(PYBIND11_PYTHON_VERSION ${PYTHON_VERSION})
 
 find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
