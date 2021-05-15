@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
 project(mcell)
 
-set(PYBIND11_PYTHON_VERSION 3.5)
+option(PYTHON_VERSION "Python version to used when building MCell Python library" "3.5")
+set(PYBIND11_PYTHON_VERSION ${PYTHON_VERSION})
+
 find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 include_directories(${Python3_INCLUDE_DIRS})
