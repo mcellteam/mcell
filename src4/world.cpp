@@ -382,24 +382,39 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
 
   run_n_iterations_terminated_with_checkpoint = false;
   uint64_t output_frequency = determine_output_frequency(total_iterations);
-  uint64_t start_iteration = stats.get_current_iteration();
+  uint64_t this_run_first_iteration = stats.get_current_iteration();
   uint64_t& current_iteration = stats.get_current_iteration();
-
-  // create events that are used to check whether simulation should end right after the last viz output,
-  // also serves as a simulation barrier to not to do diffusion after this point in time
-  RunNIterationsEndEvent* run_n_iterations_end_event = new RunNIterationsEndEvent();
-  run_n_iterations_end_event->event_time = current_iteration + num_iterations;
-  run_n_iterations_end_event->periodicity_interval = 0; // these markers are inserted into every time step
-  scheduler.schedule_event(run_n_iterations_end_event);
 
   if (current_iteration == 0) {
     cout << "Iterations: " << current_iteration << " of " << total_iterations << "\n";
   }
 
-  uint64_t this_run_first_iteration = current_iteration;
+  // information for scheduling of RunNIterationsEndEvent
+  bool run_n_iters_end_event_created = false;
+  uint64_t iteration_to_create_run_n_iters_end_event;
+  if (num_iterations <= ITERATIONS_BEFORE_RUN_N_ITERATIONS_END_EVENT) {
+    // schedule right away
+    iteration_to_create_run_n_iters_end_event = this_run_first_iteration;
+  }
+  else {
+    // schedule later
+    iteration_to_create_run_n_iters_end_event =
+        this_run_first_iteration + num_iterations - ITERATIONS_BEFORE_RUN_N_ITERATIONS_END_EVENT;
+  }
 
   do {
     check_checkpointing_signal();
+
+    if (!run_n_iters_end_event_created && iteration_to_create_run_n_iters_end_event == current_iteration) {
+      // create event that is used to check whether simulation should end right after the last viz output,
+      // also serves as a simulation barrier to not to do diffusion after this point in time
+      // must not be created right away when run_n_iterations is called because this might require too much memory
+      RunNIterationsEndEvent* run_n_iterations_end_event = new RunNIterationsEndEvent();
+      run_n_iterations_end_event->event_time = this_run_first_iteration + num_iterations;
+      run_n_iterations_end_event->periodicity_interval = 0; // these markers are inserted into every time step
+      scheduler.schedule_event(run_n_iterations_end_event);
+      run_n_iters_end_event_created = true;
+    }
 
     // current_iteration corresponds to the number of executed time steps
     double time = scheduler.get_next_event_time();
@@ -487,7 +502,7 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
   fflush(stderr);
 #endif
 
-  return current_iteration - start_iteration;
+  return current_iteration - this_run_first_iteration;
 }
 
 

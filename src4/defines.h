@@ -177,6 +177,10 @@ const uint MAX_SUBPARTS_PER_PARTITION = 300;
 // periodically flushed, not only when they are full
 const uint COUNT_BUFFER_FLUSH_PERIODICITY = 100000;
 
+// ideally we would need this event to be scheduled right away but this may
+// require too much memory (related to maximal distance of simulation barrier)
+const uint64_t ITERATIONS_BEFORE_RUN_N_ITERATIONS_END_EVENT = 10000;
+
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const pos_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 const pos_t LENGTH_INVALID = FLT_MAX;
@@ -503,23 +507,23 @@ static inline pos_t fabs_p(const pos_t x) {
 static inline double floor_to_multiple_f(const double val, double multiple) {
   assert(val >= 0);
   assert(multiple > 0);
-  return (double)((int)((val + EPS)/ multiple)) * multiple;
+  return (double)((long long)((val + EPS)/ multiple)) * multiple;
 }
 
 static inline pos_t floor_to_multiple_p(const pos_t val, pos_t multiple) {
   assert(val >= 0);
   assert(multiple > 0);
-  return (pos_t)((int)((val + EPS)/ multiple)) * multiple;
+  return (pos_t)((long long)((val + EPS)/ multiple)) * multiple;
 }
 
 static inline double floor_to_multiple_allow_negative_p(const double val, pos_t multiple) {
   if (val >= 0) {
-    return (double)((int)((val + EPS)/ multiple)) * multiple;
+    return (double)((long long)((val + EPS)/ multiple)) * multiple;
   }
   else {
     // we need to floor towards the lower negative value, the code above would
     // ceil the value for negative inputs
-    return (double)((int)((val + EPS - multiple)/ multiple)) * multiple;
+    return (double)((long long)((val + EPS - multiple)/ multiple)) * multiple;
   }
 }
 
