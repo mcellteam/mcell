@@ -8,9 +8,9 @@ include_directories(${CMAKE_SOURCE_DIR}
     "${CMAKE_CURRENT_SOURCE_DIR}/../include" 
     "${CMAKE_CURRENT_SOURCE_DIR}/../libs"
     "${CMAKE_CURRENT_SOURCE_DIR}/../libmcell"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../bnglib/"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../bnglib/libs/"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../bnglib/libs/sparsehash/src/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/libs/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/libs/sparsehash/src/"
     "${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include/"
 )
 

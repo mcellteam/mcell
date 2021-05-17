@@ -4,13 +4,13 @@ project(bng_analyzer)
 
 include_directories(
   "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../../../bnglib/"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../../../libbng/"
 )
 
 include_directories(
   SYSTEM 
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../../bnglib/libs/ 
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../../bnglib/libs/sparsehash/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../libbng/libs/ 
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../libbng/libs/sparsehash/src
 )
 
 if (NOT WIN32)
@@ -18,9 +18,9 @@ if (NOT WIN32)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall ")
 endif()
 
-if (NOT TARGET bnglib)
+if (NOT TARGET libbng)
 	add_subdirectory(
-	  ${CMAKE_CURRENT_SOURCE_DIR}/../../../bnglib/bng 
+	  ${CMAKE_CURRENT_SOURCE_DIR}/../../../libbng/bng 
 	  ${CMAKE_CURRENT_BINARY_DIR}/libs/bng
 	)
 endif()
@@ -39,5 +39,5 @@ add_executable(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-    bnglib
+    libbng
 )

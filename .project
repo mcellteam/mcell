@@ -3,7 +3,7 @@
 	<name>mcell</name>
 	<comment></comment>
 	<projects>
-		<project>bnglib</project>
+		<project>libbng</project>
 		<project>VTK</project>
 	</projects>
 	<buildSpec>
@@ -32,7 +32,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1620250436963</id>
+			<id>1621289856888</id>
 			<name></name>
 			<type>14</type>
 			<matcher>
@@ -41,7 +41,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1620250436963</id>
+			<id>1621289856890</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
