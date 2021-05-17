@@ -254,6 +254,27 @@ static inline std::ostream& operator << (std::ostream& out, const MoleculeType v
 };
 
 
+enum class BNGSimulationMethod {
+  NONE = 0,
+  ODE = 1,
+  SSA = 2,
+  PLA = 3,
+  NF = 4
+};
+
+
+static inline std::ostream& operator << (std::ostream& out, const BNGSimulationMethod v) {
+  switch (v) {
+    case BNGSimulationMethod::NONE: out << "m.BNGSimulationMethod.NONE"; break;
+    case BNGSimulationMethod::ODE: out << "m.BNGSimulationMethod.ODE"; break;
+    case BNGSimulationMethod::SSA: out << "m.BNGSimulationMethod.SSA"; break;
+    case BNGSimulationMethod::PLA: out << "m.BNGSimulationMethod.PLA"; break;
+    case BNGSimulationMethod::NF: out << "m.BNGSimulationMethod.NF"; break;
+  }
+  return out;
+};
+
+
 void define_pybinding_constants(py::module& m);
 void define_pybinding_enums(py::module& m);
 

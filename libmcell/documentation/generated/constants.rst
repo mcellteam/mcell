@@ -182,6 +182,18 @@ MoleculeType
 * | **VOLUME** = 1
 * | **SURFACE** = 2
 
+BNGSimulationMethod
+===================
+
+
+  | Specifies simulation method in exported BNGL, used in Model.export_to_bngl.
+
+* | **NONE** = 0
+* | **ODE** = 1
+* | **SSA** = 2
+* | **PLA** = 3
+* | **NF** = 4
+
 
 
 Constants

@@ -127,7 +127,7 @@ public:
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
   virtual void register_reaction_callback(const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function, py::object context, std::shared_ptr<ReactionRule> reaction_rule) = 0;
   virtual void load_bngl(const std::string& file_name, const std::string& observables_files_prefix = "", std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()) = 0;
-  virtual void export_to_bngl(const std::string& file_name) = 0;
+  virtual void export_to_bngl(const std::string& file_name, const BNGSimulationMethod simulation_method = BNGSimulationMethod::NONE) = 0;
   virtual void save_checkpoint(const std::string& custom_dir = STR_UNSET) = 0;
   virtual void schedule_checkpoint(const uint64_t iteration = 0, const bool continue_simulation = false, const std::string& custom_dir = STR_UNSET) = 0;
 }; // GenModel

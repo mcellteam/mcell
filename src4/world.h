@@ -60,6 +60,7 @@ namespace MCell {
 namespace API {
 class Model;
 class Callbacks;
+enum class BNGSimulationMethod;
 }
 
 class MolOrRxnCountEvent;
@@ -176,7 +177,8 @@ public:
   void dump(const bool with_geometry = false);
 
   // returns empty string if everything went well, nonempty string with error message
-  std::string export_to_bngl(const std::string& file_name) const;
+  std::string export_to_bngl(
+      const std::string& file_name, const API::BNGSimulationMethod simulation_method) const;
 
   // exports model geometry to Wavefront OBJ format
   void export_geometry_to_obj(const std::string& files_prefix) const;

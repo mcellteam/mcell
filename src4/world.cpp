@@ -55,6 +55,7 @@
 #include "api/mol_wall_hit_info.h"
 #include "api/geometry_object.h"
 #include "api/model.h"
+#include "generated/gen_constants.h"
 
 #include "bng/filesystem_utils.h"
 
@@ -824,7 +825,9 @@ std::string World::export_counts_to_bngl_observables(std::ostream& observables) 
 
 
 // returns empty string if everything went well, nonempty string with error message
-std::string World::export_to_bngl(const std::string& file_name) const {
+std::string World::export_to_bngl(
+    const std::string& file_name,
+    const API::BNGSimulationMethod simulation_method) const {
 
   ofstream out;
   out.open(file_name);
@@ -898,11 +901,43 @@ std::string World::export_to_bngl(const std::string& file_name) const {
 
   out << reaction_rules.str() << "\n";
 
-  // NFSim/ODE
-  // simulate({method=>"nf",seed=>1,gml=>1000000,t_end=>1e-3,n_steps=>1000})
+
+  string method;
+  switch (simulation_method) {
+    case API::BNGSimulationMethod::NONE:
+      // nothing to do
+      break;
+    case API::BNGSimulationMethod::ODE:
+      method = "ode";
+      break;
+    case API::BNGSimulationMethod::PLA:
+      method = "pla";
+      break;
+    case API::BNGSimulationMethod::SSA:
+      method = "ssa";
+      break;
+    case API::BNGSimulationMethod::NF:
+      method = "nf";
+      break;
+    default:
+      release_assert(false && "Invalid BNG simulation method.");
+  }
+
+  if (simulation_method != API::BNGSimulationMethod::NONE) {
+    out <<
+        "simulate({method=>\"" << method << "\"," <<
+        "seed=>1," <<
+        "t_end=>" << total_iterations * config.time_unit << ","
+        "n_steps=>" << total_iterations;
+
+    if (simulation_method == API::BNGSimulationMethod::NF) {
+      out << ",glm=>1000000"; // just some default max. molecule count
+    }
+
+    out << "})\n";
+  }
 
   out.close();
-
   return "";
 }
 

@@ -492,12 +492,22 @@ void Model::load_bngl(
 }
 
 
-void Model::export_to_bngl(const std::string& file_name) {
+void Model::export_to_bngl(const std::string& file_name,
+    const BNGSimulationMethod simulation_method) {
   if (!initialized) {
     throw RuntimeError("Model must be initialized for BNGL export.");
   }
 
-  string err_msg = world->export_to_bngl(file_name);
+  if (simulation_method != BNGSimulationMethod::NONE &&
+      simulation_method != BNGSimulationMethod::ODE &&
+      simulation_method != BNGSimulationMethod::SSA &&
+      simulation_method != BNGSimulationMethod::PLA &&
+      simulation_method != BNGSimulationMethod::NF) {
+    throw ValueError(S("Invalid ") + NAME_SIMULATION_METHOD + " argument value.");
+  }
+
+
+  string err_msg = world->export_to_bngl(file_name, simulation_method);
   if (err_msg != "") {
     throw RuntimeError("BNGL export failed: " + err_msg);
   }

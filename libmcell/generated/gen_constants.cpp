@@ -119,6 +119,13 @@ void define_pybinding_enums(py::module& m) {
     .value("VOLUME", MoleculeType::VOLUME)
     .value("SURFACE", MoleculeType::SURFACE)
     .export_values();
+  py::enum_<BNGSimulationMethod>(m, "BNGSimulationMethod", py::arithmetic(), "Specifies simulation method in exported BNGL, used in Model.export_to_bngl.\n- NONE\n\n- ODE\n\n- SSA\n\n- PLA\n\n- NF\n\n")
+    .value("NONE", BNGSimulationMethod::NONE)
+    .value("ODE", BNGSimulationMethod::ODE)
+    .value("SSA", BNGSimulationMethod::SSA)
+    .value("PLA", BNGSimulationMethod::PLA)
+    .value("NF", BNGSimulationMethod::NF)
+    .export_values();
 }
 
 } // namespace API

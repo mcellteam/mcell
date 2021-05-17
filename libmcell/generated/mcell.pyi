@@ -164,6 +164,13 @@ class MoleculeType(Enum):
     VOLUME = 1
     SURFACE = 2
 
+class BNGSimulationMethod(Enum):
+    NONE = 0
+    ODE = 1
+    SSA = 2
+    PLA = 3
+    NF = 4
+
 
 
 STATE_UNSET = 'STATE_UNSET'
@@ -848,7 +855,8 @@ class Model():
 
     def export_to_bngl(
             self,
-            file_name : str
+            file_name : str,
+            simulation_method : BNGSimulationMethod = BNGSimulationMethod.NONE
         ) -> None:
         pass
 

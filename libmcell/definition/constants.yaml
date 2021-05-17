@@ -308,3 +308,17 @@ enums:
     - name: SURFACE
       value: 2
       
+  - name: BNGSimulationMethod
+    doc: Specifies simulation method in exported BNGL, used in Model.export_to_bngl.
+    values: 
+    - name: NONE
+      value: 0
+    - name: ODE
+      value: 1
+    - name: SSA
+      value: 2    
+    - name: PLA
+      value: 3    
+    - name: NF
+      value: 4
+      

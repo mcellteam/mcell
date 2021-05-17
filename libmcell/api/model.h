@@ -105,7 +105,9 @@ public:
       const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()
   ) override;
 
-  void export_to_bngl(const std::string& file_name) override;
+  void export_to_bngl(
+      const std::string& file_name,
+      const BNGSimulationMethod simulation_method = BNGSimulationMethod::NONE) override;
 
   void save_checkpoint(const std::string& custom_dir = STR_UNSET) override;
 

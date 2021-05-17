@@ -318,6 +318,10 @@ Methods:
    * | file_name: str
      | Output file name.
 
+   * | simulation_method: BNGSimulationMethod = BNGSimulationMethod.NONE
+     | When set, the exported file also contains action to run 
+     | BioNetGen with the selected simulation method.
+
 
   | Exports all defined species, reaction rules and applicable observables
   | as a BNGL file that can be then loaded by MCell4 or BioNetGen. 

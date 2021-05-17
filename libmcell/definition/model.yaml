@@ -309,6 +309,13 @@ Model:
       type: str
       doc: Output file name.
       
+    - name: simulation_method
+      type: BNGSimulationMethod
+      default: BNGSimulationMethod.NONE
+      doc: |
+         When set, the exported file also contains action to run 
+         BioNetGen with the selected simulation method.
+      
   - name: save_checkpoint
     todo: provide more configurability for parameters
     doc: |
