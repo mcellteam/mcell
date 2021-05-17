@@ -924,11 +924,24 @@ std::string World::export_to_bngl(
   }
 
   if (simulation_method != API::BNGSimulationMethod::NONE) {
+    // get sampling frequency from observables
+    std::vector<BaseEvent*> count_events;
+    scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
+    double min_periodicity = DBL_MAX;
+    for (const BaseEvent* e: count_events) {
+      if (e->periodicity_interval != 0 && e->periodicity_interval < min_periodicity) {
+        min_periodicity = e->periodicity_interval;
+      }
+    }
+    if (min_periodicity == DBL_MAX) {
+      min_periodicity = 1;
+    }
+
     out <<
         "simulate({method=>\"" << method << "\"," <<
         "seed=>1," <<
         "t_end=>" << total_iterations * config.time_unit << ","
-        "n_steps=>" << total_iterations;
+        "n_steps=>" << total_iterations / min_periodicity;
 
     if (simulation_method == API::BNGSimulationMethod::NF) {
       out << ",glm=>1000000"; // just some default max. molecule count
