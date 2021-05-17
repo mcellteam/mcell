@@ -1025,6 +1025,9 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     string compartment;
     if (shape != VALUE_LIST) {
       string cplx = release_site_item[KEY_MOLECULE].asString();
+      if (cplx == "") {
+        ERROR("Release site '" + name + "' does not have its molecule/complex to be released set.");
+      }
       bool is_vol = is_volume_species(data.mcell, cplx);
       string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString(), !is_vol);
       if (orientation != "" && is_vol) {

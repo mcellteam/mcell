@@ -598,7 +598,7 @@ bool is_volume_mol_type(Json::Value& mcell, const std::string& mol_type_name) {
     return mol_type == VALUE_MOL_TYPE_3D;
   }
 
-  ERROR("Could not find species or molecule type " + mol_type_name_no_comp + ".");
+  ERROR("Could not find species or molecule type '" + mol_type_name_no_comp + "'.");
 }
 
 
