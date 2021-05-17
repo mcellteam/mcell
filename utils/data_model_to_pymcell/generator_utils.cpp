@@ -345,17 +345,17 @@ string make_species_or_cplx(
     const std::string& orient,
     const std::string& compartment) {
 
-  if (is_mdot_superclass(name)) {
-    release_assert(orient == "");
-    release_assert(compartment == "");
+  bool is_superclass = is_mdot_superclass(name);
+
+  if (is_superclass && orient == "" && compartment == "") {
     return name;
   }
 
-  if (!data.bng_mode) {
+  if (is_superclass || !data.bng_mode) {
     stringstream ss;
     const SpeciesOrMolType* species_info = data.find_species_or_mol_type_info(name);
 
-    if (species_info != nullptr && species_info->is_species) {
+    if (is_superclass || (species_info != nullptr && species_info->is_species)) {
       // substance was declared as species, we can use its id directly
       ss << make_id(name) << "." << API::NAME_INST << "(";
 
