@@ -224,8 +224,9 @@ void DiffuseReactEvent::diffuse_single_molecule(
     return;
   }
 
-  if (m_initial.unimol_rx_time == diffusion_start_time) {
+  if (m_initial.unimol_rx_time != TIME_INVALID && m_initial.unimol_rx_time <= diffusion_start_time) {
     // call to this diffuse_single_molecule was scheduled for time of an unimol rxn
+    // (the <= is to handle floating point imprecisions)
     // may invalidate molecule references
     bool molecule_survived = react_unimol_single_molecule(p, m_id);
     if (!molecule_survived) {
@@ -1007,7 +1008,7 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
   const BNG::RxnClass* transp_rxn_class = nullptr;
   for (const BNG::RxnClass* rxn: matching_rxn_classes) {
-    if (rxn->is_transparent()) {
+    if (rxn->is_transparent_type()) {
       transp_rxn_class = rxn;
       break;
     }
@@ -1908,11 +1909,11 @@ int DiffuseReactEvent::outcome_intersect(
     const double time
 ) {
   if (!rxn_class->is_standard()) {
-    if (rxn_class->is_reflect()) {
+    if (rxn_class->is_reflect_type()) {
       return RX_A_OK; /* just reflect */
     }
     else {
-      assert(rxn_class->is_transparent()); // already dealt with before for better performance, but let's keep this general
+      assert(rxn_class->is_transparent_type()); // already dealt with before for better performance, but let's keep this general
       return RX_FLIP; /* Flip = transparent is default special case */
     }
   }
@@ -2510,8 +2511,10 @@ int DiffuseReactEvent::outcome_products_random(
     // Needed to maintain the same behavior as in mcell3
     // With BNG, a pattern can match both of the reactants so we must check both
     // Rules are usually short so this should be rather cheap
-    if (!p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id) ||
-        !p.bng_engine.matches_ignore_orientation(rxn->reactants[1], reacB->species_id)
+    // TODO: use some other cached information such as RxnRule.species_applicable_as_reactant?
+    //       what about ALL_MOLECULES?
+    if (!p.bng_engine.matches_pattern_incl_all_mols_ignore_orientation(rxn->reactants[0], reacA->species_id) ||
+        !p.bng_engine.matches_pattern_incl_all_mols_ignore_orientation(rxn->reactants[1], reacB->species_id)
     ) {
       Molecule* tmp_mol = reacA;
       reacA = reacB;
@@ -2519,15 +2522,15 @@ int DiffuseReactEvent::outcome_products_random(
       reactants_swapped = true;
     }
     // both reactants must match
-    assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
-    assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[1], reacB->species_id));
+    assert(p.bng_engine.matches_pattern_incl_all_mols_ignore_orientation(rxn->reactants[0], reacA->species_id));
+    assert(p.bng_engine.matches_pattern_incl_all_mols_ignore_orientation(rxn->reactants[1], reacB->species_id));
 
     keep_reacB = rxn->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(1);
   }
   else {
     surf_reac = reacA->is_surf() ? reacA : nullptr;
   }
-  assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
+  assert(p.bng_engine.matches_pattern_incl_all_mols_ignore_orientation(rxn->reactants[0], reacA->species_id));
   keep_reacA = rxn->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0);
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf()) || collision.is_wall_collision();
@@ -2671,7 +2674,7 @@ int DiffuseReactEvent::outcome_products_random(
         // if not swapped, reacA is the diffused molecule and matches the reactant with index 0
         // reacA  matches reactant with index 0, reacB matches reactant with index 1
         assert(reactant != nullptr);
-        assert(p.bng_engine.matches_ignore_orientation(rxn->products[single_rxn_product_index], reactant->species_id));
+        assert(p.bng_engine.matches_pattern_incl_all_mols_ignore_orientation(rxn->products[single_rxn_product_index], reactant->species_id));
 
         if (reactant->is_vol()) {
           Molecule* initiator = (!reactants_swapped) ? reacA : reacB;

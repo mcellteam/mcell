@@ -621,16 +621,16 @@ static void reflect_absorb_check_wall(
       matching_rxns
   );
 
-  /* check if this wall has any reflective or absorptive region borders for
-   * this molecule (aka special reactions) */
+  // check if this wall has any reflective or absorptive region borders for
+  // this molecule (aka special reactions)
   for (BNG::RxnClass* rxn_class: matching_rxns) {
-    if (rxn_class->is_reflect()) {
-      /* check for REFLECTIVE border */
+    if (rxn_class->is_reflect_type()) {
+      // check for REFLECTIVE border
       reflect_now = true;
       break;
     }
-    else if (rxn_class->is_absorb_region_border()) {
-      /* check for ABSORPTIVE border */
+    else if (rxn_class->is_absorb_region_border_type_incl_all_molecules()) {
+      // check for ABSORPTIVE border including a special case ALL_MOLECULES + surf class -> 0
       absorb_now_rxn_class = rxn_class;
       break;
     }

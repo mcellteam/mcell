@@ -550,7 +550,7 @@ static void find_restricted_regions_by_wall(
   uint_set<species_id_t> restricted_surf_classes;
   for (const BNG::RxnClass* rxn_class: matching_rxn_classes) {
     release_assert(rxn_class->is_simple() && "BNG not supported here yet");
-    if (rxn_class->is_reflect() || rxn_class->is_absorb_region_border()) {
+    if (rxn_class->is_reflect_type() || rxn_class->is_absorb_region_border_type_incl_all_molecules()) {
       assert(rxn_class->is_bimol());
 
       // rxn class may use ALL_MOLECULES or ALL_SURFACE_MOLECULES therefore we cannot use 

@@ -47,7 +47,7 @@ public:
     const BNG::ElemMolType& bng_mt);
 
   void postprocess_in_ctor() override {
-    mol_type_id = BNG::MOL_TYPE_ID_INVALID;
+    mol_type_id = BNG::ELEM_MOL_TYPE_ID_INVALID;
   }
 
   std::shared_ptr<ElementaryMolecule> inst(

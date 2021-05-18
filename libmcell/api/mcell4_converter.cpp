@@ -490,7 +490,7 @@ void MCell4Converter::convert_species() {
     // find elementary molecule type for our species
     // must exist because it was added in Subsystem::unify_and_register_elementary_molecule_types
     BNG::elem_mol_type_id_t mol_type_id = world->bng_engine.get_data().find_elem_mol_type_id(s->name);
-    release_assert(mol_type_id != BNG::MOL_TYPE_ID_INVALID);
+    release_assert(mol_type_id != BNG::ELEM_MOL_TYPE_ID_INVALID);
 
     BNG::ElemMol mol_inst;
     mol_inst.elem_mol_type_id = mol_type_id;
@@ -505,13 +505,13 @@ void MCell4Converter::convert_species() {
 
     // and also set superclass id for container if needed
     if (new_species.name == ALL_MOLECULES) {
-      world->get_all_species().set_all_molecules_species_id(new_species_id);
+      world->get_all_species().set_all_molecules_ids(new_species_id, mol_type_id);
     }
     else if (new_species.name == ALL_VOLUME_MOLECULES) {
-      world->get_all_species().set_all_volume_molecules_species_id(new_species_id);
+      world->get_all_species().set_all_volume_molecules_ids(new_species_id, mol_type_id);
     }
     else if (new_species.name == ALL_SURFACE_MOLECULES) {
-      world->get_all_species().set_all_surface_molecules_species_id(new_species_id);
+      world->get_all_species().set_all_surface_molecules_ids(new_species_id, mol_type_id);
     }
 
   }

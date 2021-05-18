@@ -101,7 +101,7 @@ BNG::ElemMol BNGConverter::convert_molecule_instance(API::ElementaryMolecule& mi
 
 BNG::elem_mol_type_id_t BNGConverter::convert_elementary_molecule_type(
     API::ElementaryMoleculeType& api_mt, const bool in_rxn_or_observables) {
-  if (api_mt.mol_type_id != BNG::MOL_TYPE_ID_INVALID) {
+  if (api_mt.mol_type_id != BNG::ELEM_MOL_TYPE_ID_INVALID) {
     // already converted
     return api_mt.mol_type_id;
   }

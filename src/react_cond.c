@@ -58,7 +58,11 @@ which_unimolecular:
 *************************************************************************/
 int which_unimolecular(struct rxn *rx, struct abstract_molecule *a,
                        struct rng_state *rng) {
-  if (rx->n_pathways == 1) {
+  if (rx->n_pathways == 1
+#ifdef MCELL3_UNIMOL_RX_ABSORB_NO_RNG
+      || rx->n_pathways == RX_ABSORB_REGION_BORDER
+#endif
+  ) {
     return 0;
   }
 

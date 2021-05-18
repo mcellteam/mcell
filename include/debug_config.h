@@ -103,6 +103,8 @@
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
 //#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+
+#define MCELL3_UNIMOL_RX_ABSORB_NO_RNG
 #endif
 
 // ^^^^ MCell4 macros to match MCell3R ^^^^
@@ -165,11 +167,13 @@
 
 #define MCELL3_SORTED_WALLS_FOR_COLLISION
 #define MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
+#define MCELL3_UNIMOL_RX_ABSORB_NO_RNG
 */
 //#define DUMP_LOCAL_SCHEDULE_HELPER
 
-#define FROM_ITERATION 35
-#define TO_ITERATION 38
+
+#define FROM_ITERATION 0
+#define TO_ITERATION 2
 
 #define DUMP_NONDIFFUSING_VMS
 

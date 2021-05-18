@@ -962,7 +962,7 @@ static pos_t __attribute__((noinline)) exact_disk(
       for (const BNG::RxnClass* rxn_class: matching_rxn_classes) {
         // NOTE: same as in mcell3, but some explanation would be useful,
         // not sure hot the code corresponds with the comment above
-        if (rxn_class->is_reflect()) {
+        if (rxn_class->is_reflect_type()) {
           blocked = true;
         }
       }
