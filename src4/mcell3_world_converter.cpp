@@ -1167,7 +1167,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         // the rxn is in the form of: a + sc -> null
         rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_FLUX_CLAMP);
         create_clamp_release_event(current_pathway, rxn, reactant_species_ids);
-        rxn.base_rate_constant = FLT_GIGANTIC;
+        rxn.base_rate_constant = DBL_GIGANTIC;
       }
     }
     else {
@@ -1198,7 +1198,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP);
 
         create_clamp_release_event(current_pathway, rxn, reactant_species_ids);
-        rxn.base_rate_constant = FLT_GIGANTIC;
+        rxn.base_rate_constant = DBL_GIGANTIC;
       }
     }
 

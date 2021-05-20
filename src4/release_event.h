@@ -145,7 +145,7 @@ public:
     number_of_trains(1),
     train_interval(EPS),
     train_duration(EPS),
-    release_interval(FLT_GIGANTIC),
+    release_interval(DBL_GIGANTIC),
 
     actual_release_time(TIME_INVALID),
     current_train_from_0(0),

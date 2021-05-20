@@ -1215,7 +1215,7 @@ static bool find_plane_crossing_efop(
 
   // starting from 0
   stime_t t = 0;
-  stime_t t_previous = STIME_FLT_GIGANTIC;
+  stime_t t_previous = STIME_GIGANTIC;
 
   // use Newton's Method to find solution to 't' (https://en.wikipedia.org/wiki/Newton's_method)
   // using high precision, we should converge quickly

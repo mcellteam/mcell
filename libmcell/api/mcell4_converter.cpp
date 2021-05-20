@@ -191,8 +191,8 @@ species_id_t MCell4Converter::get_species_id(
 
 void MCell4Converter::get_geometry_bounding_box(Vec3& llf, Vec3& urb) {
 
-  llf = Vec3(FLT_GIGANTIC);
-  urb = Vec3(-FLT_GIGANTIC);
+  llf = Vec3(DBL_GIGANTIC);
+  urb = Vec3(-DBL_GIGANTIC);
 
   for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
     // go through all vertices
@@ -563,7 +563,7 @@ void MCell4Converter::convert_surface_class_rxn(
   }
 
   // all these reactions happen always
-  rxn.base_rate_constant = FLT_GIGANTIC;
+  rxn.base_rate_constant = DBL_GIGANTIC;
 
   // any compartment of the
   affected_pattern.set_compartment_id(BNG::COMPARTMENT_ID_NONE);

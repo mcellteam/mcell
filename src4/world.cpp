@@ -559,7 +559,7 @@ void World::end_simulation(const bool print_final_report) {
     }
     cout << "\n";
 
-    stats.dump();
+    stats.print_report();
 
     // report final time
     rusage run_time;
@@ -617,7 +617,7 @@ void World::print_periodic_stats() const {
 
 void World::dump(const bool with_geometry) {
   config.dump();
-  stats.dump();
+  stats.print_report();
 
   bng_engine.get_data().dump();
   get_all_species().dump();

@@ -811,7 +811,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   // returns which reaction pathway to take
   double scaling = factor * r_rate_factor;
   int i = RxnUtils::test_bimolecular(
-      rxn_class, world->rng, colliding_molecule, diffused_molecule, scaling, 0, absolute_collision_time);
+      p, rxn_class, world->rng, colliding_molecule, diffused_molecule, scaling, 0, absolute_collision_time);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
     return false;
@@ -908,7 +908,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   int selected_rx_pathway;
   if (matching_rxn_classes.size() == 1) {
     selected_rx_pathway = RxnUtils::test_bimolecular(
-        matching_rxn_classes[0], world->rng,
+        p, matching_rxn_classes[0], world->rng,
         diffused_molecule, colliding_molecule,
         scaling_coefs[0], 0, collision_time);
   }
@@ -1349,7 +1349,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   if (num_matching_rxn_classes == 1) {
     // figure out what should happen
     selected_pathway_index = RxnUtils::test_bimolecular(
-        matching_rxn_classes[0], world->rng,
+        p, matching_rxn_classes[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor, collision_time);
 
@@ -1360,7 +1360,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     bool all_neighbors_flag = true;
     rxn_class_index =
         RxnUtils::test_many_bimolecular(
-            matching_rxn_classes, correction_factors, local_prob_factor,
+            p, matching_rxn_classes, correction_factors, local_prob_factor,
             world->rng, all_neighbors_flag, collision_time, selected_pathway_index);
     selected_pathway_index = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
@@ -1516,7 +1516,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
     int rxn_class_index;
     if (matching_rxn_classes.size() == 1) {
       selected_pathway_index = RxnUtils::test_bimolecular(
-          matching_rxn_classes[0], world->rng,
+          p, matching_rxn_classes[0], world->rng,
           sm, sm2,
           // TODO: not sure what to put as scaling coeff
           1,
@@ -1846,6 +1846,8 @@ int DiffuseReactEvent::outcome_bimolecular(
         keep_reacA, keep_reacB
       );
 
+  p.stats.inc_rxn_occurred(p.get_all_rxns(), collision.rxn_class);
+
   if (result == RX_A_OK || result == RX_FLIP) {
     Molecule& reacA = p.get_m(collision.diffused_molecule_id);
     Molecule& reacB = p.get_m(collision.colliding_molecule_id);
@@ -1909,6 +1911,7 @@ int DiffuseReactEvent::outcome_intersect(
     const double time
 ) {
   if (!rxn_class->is_standard()) {
+    // no need to count these reactions in p.stats
     if (rxn_class->is_reflect_type()) {
       return RX_A_OK; /* just reflect */
     }
@@ -1947,6 +1950,8 @@ int DiffuseReactEvent::outcome_intersect(
     result = outcome_products_random(p, collision, time, pathway_index, keep_reacA, keep_reacB);
     assert(keep_reacB && "We are keeping the surface");
   }
+
+  p.stats.inc_rxn_occurred(p.get_all_rxns(), rxn_class);
 
   if (result == RX_BLOCKED) {
     return RX_A_OK; /* reflect the molecule */
@@ -2915,6 +2920,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     bool ignoredA, ignoredB;
     // creates new molecule(s) as output of the unimolecular reaction
     // !! might invalidate references (we might reorder defuncting and outcome call later)
+    // we are not counting unimol rxns in p.stats because they cannot be missed
     int outcome_res = outcome_products_random(
         p, collision, scheduled_time, pathway_index, ignoredA, ignoredB, optional_product_ids);
     assert(outcome_res == RX_A_OK || outcome_res == RX_BLOCKED);

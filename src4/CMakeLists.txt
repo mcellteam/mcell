@@ -40,6 +40,7 @@ set(SRC4_SOURCE_FILES
     geometry.cpp
     memory_limit_checker.cpp
     world.cpp
+    simulation_stats.cpp
     simulation_config.cpp
     vtk_utils.cpp
     region_utils.cpp

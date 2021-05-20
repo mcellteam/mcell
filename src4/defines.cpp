@@ -64,24 +64,6 @@ void Vec2::dump(const std::string extra_comment, const std::string ind) const {
 }
 
 
-void SimulationStats::dump() {
-  cout << "Total number of ray-subvolume intersection tests (number of ray_trace calls): " << ray_voxel_tests << "\n";
-  cout << "Total number of ray-polygon intersection tests: " << ray_polygon_tests << "\n";
-  cout << "Total number of ray-polygon intersections: " << ray_polygon_colls << "\n";
-  cout << "Total number of mol reflections from a wall: " << mol_wall_reflections << "\n";
-  cout << "Total number of vol mol vol mol collisions: " << vol_mol_vol_mol_collisions << "\n";
-  cout << "Total number of molecule moves between walls: " << mol_moves_between_walls << "\n";
-  cout << "Total number of usages of waypoints for counted volumes: " << num_waypoints_used << "\n";
-  cout << "Total number of counted volume recomputations: " << recomputations_of_counted_volume << "\n";
-  cout << "Total number of diffuse 3d calls: " << diffuse_3d_calls << "\n";
-  if (diffusion_number != 0) {
-    cout << "Average diffusion jump was: " <<
-        diffusion_cummtime / (double)diffusion_number << " timesteps " <<
-        " (" << diffusion_cummtime << "/" << diffusion_number << ")\n";
-  }
-}
-
-
 uint64_t get_mem_usage() {
 #ifdef _WIN64
   return 0;

@@ -429,6 +429,7 @@ test_bimolecular
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
 static int test_bimolecular(
+    Partition& p,
     BNG::RxnClass* rxn_class,
     rng_state& rng,
     const Molecule& a1, // unused for now
@@ -449,12 +450,12 @@ static int test_bimolecular(
     max_fixed_p = rxn_class->get_max_fixed_p() * local_prob_factor;
   }
 
-  double p;
+  double prob;
   if (max_fixed_p < scaling) {
     /* Instead of scaling rx->cum_probs array we scale random probability */
-    p = rng_dbl(&rng) * scaling;
+    prob = rng_dbl(&rng) * scaling;
 
-    if (p >= max_fixed_p) {
+    if (prob >= max_fixed_p) {
       return BNG::PATHWAY_INDEX_NO_RXN;
     }
     // continue below
@@ -467,23 +468,27 @@ static int test_bimolecular(
 
     if (max_p >= scaling) /* we cannot scale enough. add missed rxns */
     {
-      // TODO: this statistics is important
-      // where to store this info? - RXN is constant and should stay like this
-      /* How may reactions will we miss? - only statistics?? */
-      /*if (scaling == 0.0)
-        rx->n_skipped += GIGANTIC4;
-      else
-        rx->n_skipped += (max_p / scaling) - 1.0;*/
+      /* How may reactions will we miss? */
+      // rxn class is created for a pairs of reactants so we can just take the first one
+      double skipped;
+      if (scaling == 0.0) {
+        skipped = DBL_GIGANTIC;
+      }
+      else {
+        skipped = (max_p / scaling) - 1.0;
+      }
+
+      p.stats.inc_rxn_skipped(p.get_all_rxns(), rxn_class, skipped);
 
       /* Keep the proportions of outbound pathways the same. */
-      p = rng_dbl(&rng) * max_p;
+      prob = rng_dbl(&rng) * max_p;
     }
     else /* we can scale enough */
     {
       /* Instead of scaling rx->cum_probs array we scale random probability */
-      p = rng_dbl(&rng) * scaling;
+      prob = rng_dbl(&rng) * scaling;
 
-      if (p >= max_p)
+      if (prob >= max_p)
         return BNG::PATHWAY_INDEX_NO_RXN;
     }
   }
@@ -491,15 +496,15 @@ static int test_bimolecular(
 #ifdef DEBUG_REACTION_PROBABILITIES
   mcell_log(
       "test_bimolecular: p = %.8f, scaling = %.8f, max_fixed_p = %.8f, local_prob_factor = %.8f",
-      p, scaling, max_fixed_p, local_prob_factor
+      prob, scaling, max_fixed_p, local_prob_factor
   );
 #endif
 
   if (local_prob_factor > 0) {
-    return rxn_class->get_pathway_index_for_probability(p, local_prob_factor);
+    return rxn_class->get_pathway_index_for_probability(prob, local_prob_factor);
   }
   else {
-    return rxn_class->get_pathway_index_for_probability(p, 1);
+    return rxn_class->get_pathway_index_for_probability(prob, 1);
   }
 }
 
@@ -563,6 +568,7 @@ test_many_bimolecular:
         such reactions local_prob_factor > 0.
 *************************************************************************/
 static int test_many_bimolecular(
+    Partition& p,
     BNG::RxnClassesVector& rxn_classes,
     const small_vector<double>& scaling,
     const double local_prob_factor,
@@ -583,7 +589,7 @@ static int test_many_bimolecular(
   cum_rxn_class_probs.resize(2 * n, 0.0);
 
   int m;
-  double p;
+  double prob;
 
   if (all_neighbors_flag && local_prob_factor <= 0) {
     mcell_internal_error(
@@ -595,10 +601,10 @@ static int test_many_bimolecular(
   if (n == 1) {
     Molecule dummy;
     if (all_neighbors_flag) {
-      return test_bimolecular(rxn_classes[0], rng, dummy, dummy, scaling[0], local_prob_factor, current_time);
+      return test_bimolecular(p, rxn_classes[0], rng, dummy, dummy, scaling[0], local_prob_factor, current_time);
     }
     else {
-      return test_bimolecular(rxn_classes[0], rng, dummy, dummy, scaling[0], 0, current_time);
+      return test_bimolecular(p, rxn_classes[0], rng, dummy, dummy, scaling[0], 0, current_time);
     }
   }
 
@@ -621,47 +627,46 @@ static int test_many_bimolecular(
   }
 
   if (cum_rxn_class_probs[n - 1] > 1.0) {
-    //f = rxp[n - 1] - 1.0;   /* Number of failed reactions */
-    // TODO: important statistics
-#if 0
-    for (i = 0; i < n; i++) /* Distribute failures */
-    {
+    double f = cum_rxn_class_probs[n - 1] - 1.0; /* Number of failed reactions */
+
+    for (uint i = 0; i < n; i++) { /* Distribute failures */
+      double skipped;
       if (all_neighbors_flag && local_prob_factor > 0) {
-        rxn_classes[i]->n_skipped += f * ((rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) *
-                                 local_prob_factor) /
-                            cum_rxn_class_probs[n - 1];
+        skipped =
+            f * rxn_classes[i]->get_max_fixed_p() * local_prob_factor / cum_rxn_class_probs[n - 1];
       } else {
-        rxn_classes[i]->n_skipped +=
-            f * (rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) / cum_rxn_class_probs[n - 1];
+        skipped =
+            f * rxn_classes[i]->get_max_fixed_p() / cum_rxn_class_probs[n - 1];
       }
+      p.stats.inc_rxn_skipped(p.get_all_rxns(), rxn_classes[i], skipped);
     }
-#endif
-    p = rng_dbl(&rng) * cum_rxn_class_probs[n - 1];
+
+    prob = rng_dbl(&rng) * cum_rxn_class_probs[n - 1];
   }
   else {
-    p = rng_dbl(&rng);
-    if (p > cum_rxn_class_probs[n - 1]) {
+    prob = rng_dbl(&rng);
+    if (prob > cum_rxn_class_probs[n - 1]) {
       return BNG::PATHWAY_INDEX_NO_RXN;
     }
   }
 
   /* Pick the reaction class that happens */
-  int rx_index = binary_search_double(cum_rxn_class_probs, p, cum_rxn_class_probs.size() - 1, 1);
+  int rx_index = binary_search_double(cum_rxn_class_probs, prob, cum_rxn_class_probs.size() - 1, 1);
   assert(rx_index >= 0);
 
   BNG::RxnClass* selected_rxn_class = rxn_classes[rx_index];
   if (rx_index > 0) {
-    p = (p - cum_rxn_class_probs[rx_index - 1]);
+    prob = (prob - cum_rxn_class_probs[rx_index - 1]);
   }
-  p = p * scaling[rx_index];
+  prob = prob * scaling[rx_index];
 
   /* Now pick the pathway within that reaction */
   // NOTE: might optimize if there is just one rxn
   if (all_neighbors_flag && local_prob_factor > 0) {
-    m = selected_rxn_class->get_pathway_index_for_probability(p, local_prob_factor);
+    m = selected_rxn_class->get_pathway_index_for_probability(prob, local_prob_factor);
   }
   else {
-    m = selected_rxn_class->get_pathway_index_for_probability(p, 1);
+    m = selected_rxn_class->get_pathway_index_for_probability(prob, 1);
   }
 
   chosen_pathway_index = m;

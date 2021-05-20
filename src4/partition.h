@@ -31,6 +31,7 @@
 #include "molecule.h"
 #include "scheduler.h"
 #include "geometry.h"
+#include "simulation_stats.h"
 #include "simulation_config.h"
 #include "libmcell/api/shared_structs.h"
 

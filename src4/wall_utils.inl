@@ -696,7 +696,7 @@ static pos_t find_closest_wall(
   const Wall& moved_wall = p.get_wall(wall_that_moved_molecule);
 
   best_wall_index = WALL_INDEX_INVALID;
-  pos_t best_d2 = FLT_GIGANTIC;
+  pos_t best_d2 = DBL_GIGANTIC;
   best_wall_pos2d = Vec2(0);
 
   // NOTE: use wall_that_moved_molecule to optimize the search,
@@ -744,7 +744,7 @@ static pos_t find_closest_wall_any_object(
 ) {
 
   best_wall_index = WALL_INDEX_INVALID;
-  pos_t best_d2 = FLT_GIGANTIC;
+  pos_t best_d2 = DBL_GIGANTIC;
   best_wall_pos2d = Vec2(0);
 
   // find which subpartitions we need to check
