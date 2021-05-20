@@ -50,8 +50,8 @@ class Options:
         self.main_model_file = None
     
     
-def create_argparse():
-    parser = argparse.ArgumentParser(description='MCell4 Runner')
+def create_argparse(name):
+    parser = argparse.ArgumentParser(description=name + ' Runner')
     parser.add_argument(
         '-s', '--seeds', type=str, 
         help='seeds in the form first:last:step, e.g. 1:100:2 will use seeds 1 through 100 in steps of 2, '
@@ -68,8 +68,8 @@ def create_argparse():
     return parser
 
 
-def process_opts():
-    parser = create_argparse()
+def process_opts(name = 'MCell4'):
+    parser = create_argparse(name)
     args = parser.parse_args()
     opts = Options()
     
