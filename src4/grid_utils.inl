@@ -764,6 +764,17 @@ static void grid_all_neighbors_across_walls_through_vertices(
   vertex_index_t nbr_wall_vertex_index; /* index of the neighbor wall vertex in "world->all_vertices" array  that coincides with tile vertex */
   tile_index_t nbr_tile_index; /* index of the neighbor tile */
 
+  /* check for possible reflection (absorption) from the wall edges
+     that may be region borders.  This is INSIDE_OUT check against
+     molecule's own wall */
+  uint_set<region_index_t> restricted_regions;
+  if (sm != nullptr && search_for_reactant) {
+    const BNG::Species& species = p.get_species(sm->species_id);
+    if (species.can_interact_with_border()) {
+      WallUtils::find_restricted_regions_by_wall(p, wall, *sm, restricted_regions);
+    }
+  }
+
   /* only one corner tile from each neighbor wall
      can be a neighbor to our start tile */
 
@@ -788,10 +799,11 @@ static void grid_all_neighbors_across_walls_through_vertices(
        we assume that neighbor wall lies outside the
        restricted region boundary and we DO NOT add
        tile on such wall to the list of neighbor tiles  */
-    /*if (search_for_reactant && (rlp_head_own_wall != NULL)) {
-      if (!wall_belongs_to_all_regions_in_region_list(w, rlp_head_own_wall))
+    if (search_for_reactant &&
+        !restricted_regions.empty() &&
+        !WallUtils::wall_belongs_to_all_regions_in_region_list(neighboring_wall, restricted_regions)) {
         continue;
-    }*/
+    }
 
     /* Similar test done OUTSIDE-IN */
 #if 0
@@ -1308,9 +1320,9 @@ static void grid_all_neighbors_across_walls_through_edges(
   /* check for possible reflection (absorption) from the wall edges
      that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
      checks against molecule's own wall and neighbor wall */
-  if (sm != nullptr) {
+  if (sm != nullptr && search_for_reactant) {
     const BNG::Species& species = p.get_species(sm->species_id);
-    if (search_for_reactant && species.can_interact_with_border()) {
+    if (species.can_interact_with_border()) {
       assert(sm->s.wall_index == wall.index);
   
       uint_set<region_index_t> regions;

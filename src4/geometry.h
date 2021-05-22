@@ -244,9 +244,6 @@ public:
   std::vector<InitialSurfaceReleases> initial_region_molecules;
 
 private:
-  // TODO: initialize all this when a region is created/finalized
-  // and get rid of the *_initialized values
-
   bool volume_info_initialized;
   bool region_is_manifold;
   bool walls_per_subpart_initialized;
@@ -803,7 +800,6 @@ public:
 typedef std::vector<GeometryObject> GeometryObjectVector;
 
 // several utility functions related to geometry
-// TODO: move this to a separate file
 namespace Geometry {
 
 // used when creating release event
