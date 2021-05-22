@@ -56,28 +56,28 @@ void SimulationConfig::initialize_run_report_file() {
 void SimulationConfig::init_subpartition_edge_length() {
   release_assert(partition_edge_length > 0);
 
-  subpartition_edge_length = partition_edge_length / (double)num_subpartitions_per_partition_edge;
+  subpart_edge_length = partition_edge_length / (double)num_subparts_per_partition_edge;
 
 #if POS_T_BYTES == 4
   // we must transform the subpart edge length so that it can be precisely represented with reciprocal
   // -> clear the lowest bits
   uint tmp;
-  memcpy(&tmp, &subpartition_edge_length, sizeof(uint));
+  memcpy(&tmp, &subpart_edge_length, sizeof(uint));
   tmp &= 0xFFFFF000;
-  memcpy(&subpartition_edge_length, &tmp, sizeof(uint));
+  memcpy(&subpart_edge_length, &tmp, sizeof(uint));
 
-  subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
-  assert(1.0f/subpartition_edge_length_rcp == subpartition_edge_length);
+  subpart_edge_length_rcp = 1.0/subpart_edge_length;
+  assert(1.0f/subpart_edge_length_rcp == subpart_edge_length);
 
   assert(length_unit == 1.0f/rcp_length_unit);
 #else
-  subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
+  subpart_edge_length_rcp = 1.0/subpart_edge_length;
 #endif
 
-  partition_edge_length = subpartition_edge_length * num_subpartitions_per_partition_edge;
+  partition_edge_length = subpart_edge_length * num_subparts_per_partition_edge;
 
-  num_subpartitions_per_partition_edge_squared = powu(num_subpartitions_per_partition_edge, 2);
-  num_subpartitions = powu(num_subpartitions_per_partition_edge, 3);
+  num_subparts_per_partition_edge_squared = powu(num_subparts_per_partition_edge, 2);
+  num_subparts = powu(num_subparts_per_partition_edge, 3);
 }
 
 
@@ -169,11 +169,11 @@ void SimulationConfig::dump() {
   DUMP_ATTR(vacancy_search_dist2);
   DUMP_ATTR(partition0_llf);
   DUMP_ATTR(partition_edge_length);
-  DUMP_ATTR(num_subpartitions_per_partition_edge);
-  DUMP_ATTR(num_subpartitions_per_partition_edge_squared);
-  DUMP_ATTR(num_subpartitions);
-  DUMP_ATTR(subpartition_edge_length);
-  DUMP_ATTR(subpartition_edge_length_rcp);
+  DUMP_ATTR(num_subparts_per_partition_edge);
+  DUMP_ATTR(num_subparts_per_partition_edge_squared);
+  DUMP_ATTR(num_subparts);
+  DUMP_ATTR(subpart_edge_length);
+  DUMP_ATTR(subpart_edge_length_rcp);
   DUMP_ATTR(num_radial_subdivisions);
   DUMP_ATTR(use_expanded_list);
   DUMP_ATTR(randomize_smol_pos);

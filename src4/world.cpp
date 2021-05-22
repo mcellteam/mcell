@@ -97,7 +97,7 @@ World::World(API::Callbacks& callbacks_)
     signaled_checkpoint_model(nullptr)
 {
   config.partition_edge_length = FLT_INVALID;
-  config.num_subpartitions_per_partition_edge = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
+  config.num_subparts_per_partition_edge = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 
   // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
   // uninitialized variable
@@ -281,8 +281,8 @@ void World::init_simulation(const double start_time) {
   init_counted_volumes();
 
   cout <<
-      "Partition contains " <<  config.num_subpartitions_per_partition_edge << "^3 subpartitions, " <<
-      "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
+      "Partition contains " <<  config.num_subparts_per_partition_edge << "^3 subpartitions, " <<
+      "subpartition size is " << config.subpart_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
   // create event that diffuses molecules
@@ -1230,7 +1230,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   partitions[KEY_Z_START] = f_to_str(origin.z);
   partitions[KEY_Z_END] = f_to_str(origin.z + length);
 
-  pos_t step = config.subpartition_edge_length * config.length_unit;
+  pos_t step = config.subpart_edge_length * config.length_unit;
   string step_str = f_to_str(step);
   partitions[KEY_X_STEP] = step_str;
   partitions[KEY_Y_STEP] = step_str;

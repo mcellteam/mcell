@@ -663,7 +663,7 @@ RayTraceState ray_trace_vol(
 
   CollisionUtils::collect_crossed_subparts(
       p, vm, partition_displacement,
-      radius, p.config.subpartition_edge_length,
+      radius, p.config.subpart_edge_length,
       can_vol_react, true,
       crossed_subparts_for_walls, crossed_subparts_for_molecules
   );
@@ -742,7 +742,7 @@ RayTraceState ray_trace_vol(
       crossed_subparts_for_walls.clear();
       CollisionUtils::collect_crossed_subparts(
           p, vm, displacement_up_to_wall_collision,
-          radius, p.config.subpartition_edge_length,
+          radius, p.config.subpart_edge_length,
           true, false,
           crossed_subparts_for_walls, crossed_subparts_for_molecules
       );
@@ -1428,7 +1428,7 @@ bool DiffuseReactEvent::react_2D_intermembrane(
   // subpartitioning can put a boundary right between membranes
   SubpartIndicesSet subpart_indices_set;
   CollisionUtils::collect_neighboring_subparts(
-      p, reac1_pos3d, subpart_indices, p.config.intermembrane_rx_radius_3d, p.config.subpartition_edge_length,
+      p, reac1_pos3d, subpart_indices, p.config.intermembrane_rx_radius_3d, p.config.subpart_edge_length,
       subpart_indices_set
   );
   // and include current subpart

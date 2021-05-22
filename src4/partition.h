@@ -280,14 +280,14 @@ public:
   }
 
   bool is_subpart_index_in_range(const int index) const {
-    return index >= 0 && index < (int)config.num_subpartitions_per_partition_edge;
+    return index >= 0 && index < (int)config.num_subparts_per_partition_edge;
   }
 
   void get_subpart_3d_indices(const Vec3& pos, IVec3& res) const {
     assert(in_this_partition(pos) &&
         "Requested position is outside of a partition, usually a molecule diffused there. Please enlarge the partition size.");
     Vec3 relative_position = pos - origin_corner;
-    res = relative_position * config.subpartition_edge_length_rcp;
+    res = relative_position * config.subpart_edge_length_rcp;
   }
 
   subpart_index_t get_subpart_index_from_3d_indices_allow_outside(const IVec3& indices) const {
@@ -295,15 +295,15 @@ public:
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
         indices.x +
-        indices.y * config.num_subpartitions_per_partition_edge +
-        indices.z * config.num_subpartitions_per_partition_edge_squared;
+        indices.y * config.num_subparts_per_partition_edge +
+        indices.z * config.num_subparts_per_partition_edge_squared;
   }
 
   subpart_index_t get_subpart_index_from_3d_indices(const IVec3& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
-    assert(indices.x < (int)config.num_subpartitions_per_partition_edge);
-    assert(indices.y < (int)config.num_subpartitions_per_partition_edge);
-    assert(indices.z < (int)config.num_subpartitions_per_partition_edge);
+    assert(indices.x < (int)config.num_subparts_per_partition_edge);
+    assert(indices.y < (int)config.num_subparts_per_partition_edge);
+    assert(indices.z < (int)config.num_subparts_per_partition_edge);
     // this recomputation can be slow when done often, but we need subpart indices to be continuous
     return get_subpart_index_from_3d_indices_allow_outside(indices);
   }
@@ -313,11 +313,11 @@ public:
   }
 
   void get_subpart_3d_indices_from_index(const subpart_index_t index, IVec3& indices) const {
-    uint32_t dim = config.num_subpartitions_per_partition_edge;
+    uint32_t dim = config.num_subparts_per_partition_edge;
     // example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)
     indices.x = index % dim;
     indices.y = (index / dim) % dim;
-    indices.z = (index / config.num_subpartitions_per_partition_edge_squared) % dim;
+    indices.z = (index / config.num_subparts_per_partition_edge_squared) % dim;
   }
 
   subpart_index_t get_subpart_index(const Vec3& pos) const {
@@ -330,11 +330,11 @@ public:
   void get_subpart_llf_point(const subpart_index_t subpart_index, Vec3& llf) const {
     IVec3 indices;
     get_subpart_3d_indices_from_index(subpart_index, indices);
-    llf = origin_corner + Vec3(indices) * Vec3(config.subpartition_edge_length);
+    llf = origin_corner + Vec3(indices) * Vec3(config.subpart_edge_length);
   }
 
   void get_subpart_urb_point_from_llf(const Vec3& llf, Vec3& urb) const {
-    urb = llf + Vec3(config.subpartition_edge_length);
+    urb = llf + Vec3(config.subpart_edge_length);
   }
 
   // - called when a volume molecule is added and it is detected that this is a new species,
@@ -429,8 +429,8 @@ public:
 
 
   void update_molecule_reactants_map(Molecule& vm) {
-    assert(vm.v.subpart_index < config.num_subpartitions);
-    assert(vm.v.reactant_subpart_index < config.num_subpartitions);
+    assert(vm.v.subpart_index < config.num_subparts);
+    assert(vm.v.reactant_subpart_index < config.num_subparts);
     if (vm.v.subpart_index == vm.v.reactant_subpart_index) {
       return; // nothing to do
     }
@@ -657,7 +657,7 @@ public:
   }
 
   const MoleculeIdsSet& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) const {
-    assert(subpart_index < config.num_subpartitions);
+    assert(subpart_index < config.num_subparts);
     const BNG::Species& species = get_species(species_id);
     return volume_molecule_reactants_per_reactant_class.
         get_subparts_reactants_for_reactant_class(species.get_reactant_class_id()).get_contained_set(subpart_index);

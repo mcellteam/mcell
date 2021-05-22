@@ -54,7 +54,7 @@ Partition::Partition(
 )
   : origin_corner(origin_corner_),
     next_molecule_id(0),
-    volume_molecule_reactants_per_reactant_class(config_.num_subpartitions),
+    volume_molecule_reactants_per_reactant_class(config_.num_subparts),
     id(id_),
     config(config_),
     bng_engine(bng_engine_),
@@ -72,13 +72,13 @@ Partition::Partition(
   // (this point does not have to be contained in this partition)
   // required for correct function of raycast_with_endpoints,
   // round is required because values might be negative
-  Vec3 how_many_subparts_from_000 = origin_corner/Vec3(config.subpartition_edge_length);
+  Vec3 how_many_subparts_from_000 = origin_corner/Vec3(config.subpart_edge_length);
   release_assert(cmp_eq(round3(how_many_subparts_from_000), how_many_subparts_from_000, POS_SQRT_EPS) &&
       "Partition is not aligned to the subpartition grid."
   );
 
   // pre-allocate volume_molecules arrays and also volume_molecule_indices_per_time_step
-  walls_per_subpart.resize(config.num_subpartitions);
+  walls_per_subpart.resize(config.num_subparts);
 
   // create an empty counted volume
   CountedVolume counted_volume_outside_all;
@@ -406,7 +406,7 @@ void Partition::dump(const bool with_geometry) {
       if (!walls_per_subpart[i].empty()) {
         Vec3 llf, urb;
         get_subpart_llf_point(i, llf);
-        urb = llf + Vec3(config.subpartition_edge_length);
+        urb = llf + Vec3(config.subpart_edge_length);
 
         cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n  ";
 
@@ -456,8 +456,8 @@ void Partition::initialize_waypoint(
   if (!keep_pos) {
     waypoint.pos =
         origin_corner +
-        Vec3(config.subpartition_edge_length) * Vec3(waypoint_index) + // llf of a subpart
-        Vec3(config.subpartition_edge_length / 2)
+        Vec3(config.subpart_edge_length) * Vec3(waypoint_index) + // llf of a subpart
+        Vec3(config.subpart_edge_length / 2)
     ;
   }
 
@@ -544,7 +544,7 @@ void Partition::initialize_all_waypoints() {
   // by regions when detecting whether a point is inside
 
   // each center of a subpartition has a waypoint
-  uint num_waypoints_per_dimension = config.num_subpartitions_per_partition_edge;
+  uint num_waypoints_per_dimension = config.num_subparts_per_partition_edge;
 
   mcell_log("Initializing %d waypoints... ", powu(num_waypoints_per_dimension, 3));
 

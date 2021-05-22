@@ -154,13 +154,13 @@ static void raycast_with_endpoints(
     SubpartIndicesSet& crossed_subparts_for_molecules
 )
 {
-  const pos_t cell_side = p.config.subpartition_edge_length;
-  const pos_t cell_size_rcp = p.config.subpartition_edge_length_rcp;
+  const pos_t cell_side = p.config.subpart_edge_length;
+  const pos_t cell_size_rcp = p.config.subpart_edge_length_rcp;
 
   // computing subpart index using get_subpart_index_from_3d_indices every time is rather expensive
   const int subpart_x_addend = dir.x;
-  const int subpart_y_addend = dir.y * p.config.num_subpartitions_per_partition_edge;
-  const int subpart_z_addend = dir.z * p.config.num_subpartitions_per_partition_edge_squared;
+  const int subpart_y_addend = dir.y * p.config.num_subparts_per_partition_edge;
+  const int subpart_z_addend = dir.z * p.config.num_subparts_per_partition_edge_squared;
 
   IVec3 indices;
   p.get_subpart_3d_indices(pt1, indices);
@@ -441,7 +441,7 @@ static inline void collect_crossed_subparts_orig(
   Vec3 abs_d_rcp;
   Vec3 deltat;
   compute_inputs_for_raycast_with_endpoints(
-      p.config.subpartition_edge_length, extended_displacement,
+      p.config.subpart_edge_length, extended_displacement,
       dir, abs_d_rcp, deltat
   );
 
@@ -1313,7 +1313,7 @@ static void get_crossed_subparts_for_walls(
   Vec3 abs_d_rcp;
   Vec3 deltat;
   compute_inputs_for_raycast_with_endpoints(
-      p.config.subpartition_edge_length, displacement,
+      p.config.subpart_edge_length, displacement,
       dir, abs_d_rcp, deltat
   );
 
@@ -1500,8 +1500,8 @@ static bool is_point_inside_region_no_waypoints(
   Vec3 dst = reg.get_bounding_box_llf() - Vec3(POS_EPS);
 
   // move it by a magic constant until REDO is handled
-  dst.x += p.config.subpartition_edge_length / 11;
-  dst.y += p.config.subpartition_edge_length / 22;
+  dst.x += p.config.subpart_edge_length / 11;
+  dst.y += p.config.subpart_edge_length / 22;
 
   uint num_crossed = get_num_crossed_region_walls(p, pos, dst, reg, must_redo_test);
   if (must_redo_test) {
@@ -1530,8 +1530,8 @@ static counted_volume_index_t compute_counted_volume_for_pos(
 
   // move a bit along by a magic number the side of the partition so that the ray trace hits correctly
   // this is a temporary measure to minimize REDOs with wall collision
-  dst.x += p.config.subpartition_edge_length / (pos_t)11;
-  dst.y += p.config.subpartition_edge_length / (pos_t)21;
+  dst.x += p.config.subpart_edge_length / (pos_t)11;
+  dst.y += p.config.subpart_edge_length / (pos_t)21;
 
   bool must_redo_test;
   get_num_crossed_walls_per_object(p, pos, dst, true, num_crossed_walls_per_object, must_redo_test);

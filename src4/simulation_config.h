@@ -32,7 +32,6 @@ namespace MCell {
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world
  */
-// TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
 class SimulationConfig: public BNG::BNGConfig {
 public:
   SimulationConfig() :
@@ -40,11 +39,11 @@ public:
     initial_iteration(UINT_INVALID),
     vacancy_search_dist2(FLT_INVALID),
     partition_edge_length(FLT_INVALID),
-    num_subpartitions_per_partition_edge(UINT_INVALID),
-    num_subpartitions_per_partition_edge_squared(UINT_INVALID),
-    num_subpartitions(UINT_INVALID),
-    subpartition_edge_length(FLT_INVALID),
-    subpartition_edge_length_rcp(FLT_INVALID),
+    num_subparts_per_partition_edge(UINT_INVALID),
+    num_subparts_per_partition_edge_squared(UINT_INVALID),
+    num_subparts(UINT_INVALID),
+    subpart_edge_length(FLT_INVALID),
+    subpart_edge_length_rcp(FLT_INVALID),
     num_radial_subdivisions(1024),
     use_expanded_list(true),
     randomize_smol_pos(false),
@@ -70,12 +69,12 @@ public:
 
   Vec3 partition0_llf;
 
-  pos_t partition_edge_length; // TODO: rename to side
-  uint num_subpartitions_per_partition_edge; // TODO: rename to subpart...
-  uint num_subpartitions_per_partition_edge_squared;
-  uint num_subpartitions; // == num_subpartitions_per_partition_edge^3
-  pos_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
-  pos_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
+  pos_t partition_edge_length;
+  uint num_subparts_per_partition_edge;
+  uint num_subparts_per_partition_edge_squared;
+  uint num_subparts; // == num_subpartitions_per_partition_edge^3
+  pos_t subpart_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
+  pos_t subpart_edge_length_rcp; // == 1/subpartition_edge_length
 
   uint num_radial_subdivisions; /* Size of 3D step length lookup tables, not configurable by user yet */
   std::vector<double> radial_2d_step; /* Lookup table of 2D diffusion step lengths (r_step_surface) */

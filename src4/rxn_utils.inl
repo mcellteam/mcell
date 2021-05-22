@@ -614,7 +614,6 @@ test_intersect
   Note: If not PATHWAY_INDEX_NO_RXN, and not the trasparency shortcut, then we
         update counters assuming the reaction will take place.
 *************************************************************************/
-// TODO LATER: see if it can be merged with test_bimolecular
 static BNG::rxn_class_pathway_index_t test_intersect(
     BNG::RxnClass* rxn_class,
     const double scaling,
@@ -630,10 +629,6 @@ static BNG::rxn_class_pathway_index_t test_intersect(
   double max_prob = rxn_class->get_max_fixed_p();
 
   if (max_prob > scaling) {
-    /*if (scaling <= 0.0)
-      rxn_class->n_skipped += GIGANTIC;
-    else
-      rxn_class->n_skipped += rxn_class->cum_probs[rxn_class->n_pathways - 1] / scaling - 1.0;*/
     p = rng_dbl(&rng) * max_prob;
   }
   else {
@@ -654,6 +649,7 @@ static BNG::rxn_class_pathway_index_t test_intersect(
   return rxn_class->get_pathway_index_for_probability(match, 1);
 }
 
+
 /*************************************************************************
 test_many_intersect:
   In: an array of reactions we're testing
@@ -666,7 +662,6 @@ test_many_intersect:
   Note: If not PATHWAY_INDEX_NO_RXN, and not the trasparency shortcut, then we
         update counters assuming the reaction will take place.
 *************************************************************************/
-// TODO LATER: see if it can be merged with test_many bimolecular
 static BNG::rxn_class_pathway_index_t test_many_intersect(
     BNG::RxnClassesVector& rxn_classes,
     const double scaling,
@@ -696,13 +691,6 @@ static BNG::rxn_class_pathway_index_t test_many_intersect(
 
   double p;
   if (rxn_probs[num_classes - 1] > 1.0) {
-    /*double f = rxp[n - 1] - 1.0; // Number of failed reactions
-    for (i = 0; i < n; i++)      // Distribute failures
-    {
-      rxn_classes[i]->n_skipped +=
-          f * (rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) / rxp[n - 1];
-    }
-    */
     p = rng_dbl(&rng) * rxn_probs[num_classes - 1];
   } else {
     p = rng_dbl(&rng);

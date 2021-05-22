@@ -754,7 +754,7 @@ static pos_t find_closest_wall_any_object(
   SubpartIndicesSet crossed_subpart_indices;
   crossed_subpart_indices.insert(p.get_subpart_index_from_3d_indices(subpart_indices));
   CollisionUtils::collect_neighboring_subparts(
-      p, pos, subpart_indices, search_d, p.config.subpartition_edge_length,
+      p, pos, subpart_indices, search_d, p.config.subpart_edge_length,
       crossed_subpart_indices
   );
 

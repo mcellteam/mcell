@@ -265,7 +265,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     // and how many subparts per dimension
     // the rounding is needed because we can get a result like .99999999 from the division
-    world->config.num_subpartitions_per_partition_edge = round_f(world->config.partition_edge_length / sp_len);
+    world->config.num_subparts_per_partition_edge = round_f(world->config.partition_edge_length / sp_len);
   }
   else {
     CHECK_PROPERTY(s->bb_urb.x >= s->bb_llf.x);
@@ -289,12 +289,12 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     // nx_parts counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
     int max_n_p_parts = max3_i(IVec3(s->nx_parts, s->ny_parts, s->nz_parts));
-    world->config.num_subpartitions_per_partition_edge = get_even_higher_or_same_value(max_n_p_parts - 3);
+    world->config.num_subparts_per_partition_edge = get_even_higher_or_same_value(max_n_p_parts - 3);
 
     world->config.partition0_llf = Vec3(-world->config.partition_edge_length/2);
 
     // temporary, for the check after init
-    sp_len = world->config.partition_edge_length / world->config.num_subpartitions_per_partition_edge;
+    sp_len = world->config.partition_edge_length / world->config.num_subparts_per_partition_edge;
   }
 
   Vec3 partition0_llf_microns = world->config.partition0_llf * Vec3(s->length_unit);
@@ -302,7 +302,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ], with %d subpartitions per dimension",
       partition0_llf_microns.x, partition0_llf_microns.y, partition0_llf_microns.z,
       partition0_urb_microns.x, partition0_urb_microns.y, partition0_urb_microns.z,
-      (int)world->config.num_subpartitions_per_partition_edge
+      (int)world->config.num_subparts_per_partition_edge
   );
 
   world->config.randomize_smol_pos = s->randomize_smol_pos; // set in MDL using negated value of CENTER_MOLECULES_ON_GRID
@@ -319,10 +319,10 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // may change world->config.subpartition_edge_length
   world->config.init();
 
-  if (world->config.rx_radius_3d * 2 * POS_SQRT2 > world->config.subpartition_edge_length) {
+  if (world->config.rx_radius_3d * 2 * POS_SQRT2 > world->config.subpart_edge_length) {
     mcell_error("Reaction radius multiplied by sqrt(2) %f must be less than half of subpartition edge length %f.",
         world->config.rx_radius_3d * world->config.length_unit * POS_SQRT2,
-        world->config.subpartition_edge_length * world->config.length_unit / 2.0
+        world->config.subpart_edge_length * world->config.length_unit / 2.0
     );
   }
 

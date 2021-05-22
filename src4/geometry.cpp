@@ -857,7 +857,7 @@ void Region::initialize_region_waypoints_if_needed(Partition& p) {
   // then compute how many waypoints in each dimension we need to check
   Vec3 region_dims = bounding_box_urb - bounding_box_llf;
   // num_waypoints need to be incremented by 2 - for each of the side regions
-  IVec3 num_waypoints = region_dims / Vec3(p.config.subpartition_edge_length) + Vec3(2);
+  IVec3 num_waypoints = region_dims / Vec3(p.config.subpart_edge_length) + Vec3(2);
 
   bool previous_waypoint_present = false;
   bool use_previous_waypoint = false;
