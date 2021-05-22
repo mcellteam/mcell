@@ -808,7 +808,7 @@ static void grid_all_neighbors_across_walls_through_vertices(
     }
 
     /* Similar test done OUTSIDE-IN */
-    // TODO!
+    // TODO_CHECK
 #if 0
     if (sm != NULL) {
       if (search_for_reactant && (sm->properties->flags & SPECIES_FLAG_CAN_REGION_BORDER)) {
