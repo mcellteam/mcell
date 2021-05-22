@@ -82,18 +82,8 @@ static Vec3 get_displacement_up_to_partition_boundary(
   stime_t hit_time = 1;
 
   // first check whether we are not in fact touching one of the boundaries
-  if (abs(diff.x) < POS_EPS) {
-    // only update the xyz subpartition index
-    // curr_subpart_indices.x += dir_urb_addend.x;
-    assert(false && "TODO");
-  }
-  else if (abs(diff.y) < POS_EPS) {
-    //curr_subpart_indices.y += dir_urb_addend.y;
-    assert(false && "TODO");
-  }
-  else if (abs(diff.z) < POS_EPS) {
-    //curr_subpart_indices.z += dir_urb_addend.z;
-    assert(false && "TODO");
+  if (abs(diff.x) < POS_EPS || abs(diff.y) < POS_EPS || abs(diff.z) < POS_EPS) {
+    return Vec3(0);
   }
   else {
     // compute time for the next subpartition collision, let's assume that displacemnt
@@ -1336,7 +1326,7 @@ static void get_crossed_subparts_for_walls(
   );
 }
 
-// TODO REG: move as private into Region
+
 static uint get_num_crossed_region_walls(
     const Partition& p, const Vec3& pos, const Vec3& dst,
     const Region& reg,
@@ -1493,7 +1483,6 @@ static stime_t get_num_crossed_walls_per_object(
     Used only for releases
 
 *************************************************************************/
-// TODO: move as private into Region
 static bool is_point_inside_region_no_waypoints(
     const Partition& p, const Vec3& pos, Region& reg,
     // if wall REDO was encountered, the result cannot be safely determined,
@@ -1580,7 +1569,7 @@ static counted_volume_index_t compute_counted_volume_for_pos(
 
 
 // TODO: optimization - search in a direction where a molecule is moving,
-// we must probably just crossed a wall
+// we probably just crossed a wall
 static counted_volume_index_t compute_counted_volume_using_waypoints(
     Partition& p,
     const Vec3& pos) {
