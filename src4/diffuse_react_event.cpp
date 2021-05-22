@@ -543,7 +543,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         if (p.get_species(vm_new_ref.species_id).has_flag(SPECIES_FLAG_CAN_VOLWALL)) {
           WallRxnResult collide_res = collide_and_react_with_walls(p, collision, r_rate_factor, elapsed_molecule_time, t_steps);
 
-          if (collide_res == WallRxnResult::Transparent) {
+          if (collide_res == WallRxnResult::TRANSPARENT) {
             // update molecules' counted volume, time and displacement and continue
             was_defunct = !cross_transparent_wall(
                 p, collision, vm_new_ref, remaining_displacement,
@@ -553,10 +553,10 @@ void DiffuseReactEvent::diffuse_vol_molecule(
             // continue with diffusion
             break;
           }
-          else if (collide_res == WallRxnResult::Destroyed) {
+          else if (collide_res == WallRxnResult::DESTROYED) {
             was_defunct = true;
           }
-          else if (collide_res == WallRxnResult::Reflect) {
+          else if (collide_res == WallRxnResult::REFLECT) {
             // reflect in reflect_or_periodic_bc and continue with diffusion
           }
           else {
@@ -1003,7 +1003,7 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
   RxnUtils::trigger_intersect(p, diffused_molecule, orient, wall, true, matching_rxn_classes);
   if (matching_rxn_classes.empty() ||
       (matching_rxn_classes.size() == 1 && matching_rxn_classes[0]->type == BNG::RxnType::Reflect)) {
-    return WallRxnResult::Reflect;
+    return WallRxnResult::REFLECT;
   }
 
   const BNG::RxnClass* transp_rxn_class = nullptr;
@@ -1017,13 +1017,12 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
   if (transp_rxn_class != nullptr) {
     // we are crossing this wall
     assert(matching_rxn_classes.size() == 1 && "Expected only a single transparent rxn for transparent walls");
-    return WallRxnResult::Transparent;
+    return WallRxnResult::TRANSPARENT;
   }
 
   /* Collisions with the surfaces declared REFLECTIVE are treated similar to
    * the default surfaces after this loop. */
 
-  // TODO: use rxn_class_index_t and rxn_index_t also in other places
   BNG::rxn_class_index_t rxn_class_index = BNG::RNX_CLASS_INDEX_INVALID;
   BNG::rxn_class_pathway_index_t pathway_index;
 
@@ -1046,21 +1045,21 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
         p, rxn_class, pathway_index, collision, current_time);
 
     if (j == RX_FLIP) {
-      return WallRxnResult::Transparent;
+      return WallRxnResult::TRANSPARENT;
     }
     else if (j == RX_A_OK) {
-      return WallRxnResult::Reflect;
+      return WallRxnResult::REFLECT;
     }
     else if (j == RX_DESTROY) {
-      return WallRxnResult::Destroyed;
+      return WallRxnResult::DESTROYED;
     }
     else {
       assert(false);
-      return WallRxnResult::Invalid;
+      return WallRxnResult::INVALID;
     }
   }
 
-  return WallRxnResult::Reflect;
+  return WallRxnResult::REFLECT;
 }
 
 
@@ -1306,7 +1305,6 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
       }
 
       /* OUTSIDE-IN check */
-      // note: the pairing wall is same as in mcell3, TODO: explain why is it so
       if (WallUtils::walls_belong_to_at_least_one_different_restricted_region(p, wall, nsm, nwall, sm)) {
         continue;
       }

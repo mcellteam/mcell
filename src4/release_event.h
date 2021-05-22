@@ -38,7 +38,7 @@ class Partition;
 class Region;
 class Wall;
 class Grid;
-class InitialRegionMolecules;
+class InitialSurfaceReleases;
 class DiffuseReactEvent;
 
 // TODO: replace with defines from API
@@ -287,7 +287,7 @@ private:
 
   // for releases specified by MODIFY_SURFACE_REGIONS -> MOLECULE_NUMBER or MOLECULE_DENSITY
   void init_surf_mols_by_number(
-      Partition& p, const Region& reg, const InitialRegionMolecules& info);
+      Partition& p, const Region& reg, const InitialSurfaceReleases& info);
   void init_surf_mols_by_density(
       Partition& p, Wall& w, std::map<species_id_t, uint>& num_released_per_species);
   void release_initial_molecules_onto_surf_regions();

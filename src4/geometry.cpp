@@ -45,8 +45,6 @@ using namespace std;
 
 namespace MCell {
 
-// TODO: replace int with wall_index_t where applicable
-
 /***************************************************************************
 compatible_edges:
   In: array of pointers to walls
@@ -54,6 +52,7 @@ compatible_edges:
       index of edge in first wall
       index of second wall
       index of edge in second wall
+      indices may be -1
   Out: 1 if the edge joins the two walls
        0 if not (i.e. the wall doesn't contain the edge or the edge is
        traversed in the same direction in each or the two walls are
@@ -113,7 +112,7 @@ static int compatible_edges(
  are part of a common region or not
 ******************************************************************************/
 static bool have_common_region(
-    const Partition& p, const GeometryObject& obj, int wall1, int wall2) {
+    const Partition& p, const GeometryObject& obj, wall_index_t wall1, wall_index_t wall2) {
 
   const Wall& w1 = p.get_wall(obj.wall_indices[wall1]);
   const Wall& w2 = p.get_wall(obj.wall_indices[wall2]);
@@ -618,7 +617,7 @@ void GeometryObject::set_wall_color(const wall_index_t wi, const rgba_t color) {
 }
 
 
-void InitialRegionMolecules::to_data_model(
+void InitialSurfaceReleases::to_data_model(
     const BNG::SpeciesContainer& all_species,
     Json::Value& initial_region_molecules
 ) const {
@@ -633,7 +632,7 @@ void InitialRegionMolecules::to_data_model(
 }
 
 
-void InitialRegionMolecules::dump(const std::string ind) const {
+void InitialSurfaceReleases::dump(const std::string ind) const {
   cout << ind <<
       "species_id: " << species_id <<
       ", orientation: " << orientation <<
@@ -998,7 +997,7 @@ void Region::to_data_model(const Partition& p, Json::Value& modify_surface_regio
 
   if (!initial_region_molecules.empty()) {
     Json::Value& initial_region_molecules_list = modify_surface_region[KEY_INITIAL_REGION_MOLECULES_LIST];
-    for (const InitialRegionMolecules& info: initial_region_molecules) {
+    for (const InitialSurfaceReleases& info: initial_region_molecules) {
       Json::Value initial_region_molecules_item;
       info.to_data_model(p.get_all_species(), initial_region_molecules_item);
       initial_region_molecules_list.append(initial_region_molecules_item);
@@ -1432,7 +1431,6 @@ bool compute_region_expr_bounding_box(
     urb = urb_left;
 
     if (expr->op == RegionExprOperator::Union) {
-      // TODO: make some function for it
       if (llf.x > llf_right.x) {
         llf.x = llf_right.x;
       }

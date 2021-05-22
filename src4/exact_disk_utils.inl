@@ -27,13 +27,6 @@
  * the opportunity to inline these functions into methods of diffuse&react event.
  */
 
-/**
- * TODO_LATER: exact_disk uses dynamic allocation of exd_vertex_t,
- * we will need to get rid of that in order to execute on GPUs,
- * however, it will be quite time consuming to make this right,
- * so this change was postponed.
- */
-
 #include <vector>
 
 #include "diffuse_react_event.h"

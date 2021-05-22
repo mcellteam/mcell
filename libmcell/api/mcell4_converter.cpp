@@ -775,7 +775,7 @@ MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
 
 void MCell4Converter::convert_initial_surface_releases(
     const std::vector<std::shared_ptr<API::InitialSurfaceRelease>>& api_releases,
-    std::vector<MCell::InitialRegionMolecules>& mcell_releases
+    std::vector<MCell::InitialSurfaceReleases>& mcell_releases
 ) {
   for (auto api_rel: api_releases) {
     species_id_t species_id =
@@ -785,12 +785,12 @@ void MCell4Converter::convert_initial_surface_releases(
 
     if (is_set(api_rel->number_to_release)) {
       mcell_releases.push_back(
-          InitialRegionMolecules(species_id, orientation, true, (uint)api_rel->number_to_release)
+          InitialSurfaceReleases(species_id, orientation, true, (uint)api_rel->number_to_release)
       );
     }
     else if (is_set(api_rel->density)) {
       mcell_releases.push_back(
-          InitialRegionMolecules(species_id, orientation, false, (double)api_rel->density)
+          InitialSurfaceReleases(species_id, orientation, false, (double)api_rel->density)
       );
     }
     else {

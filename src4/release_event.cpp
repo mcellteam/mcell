@@ -1021,7 +1021,7 @@ void ReleaseEvent::release_list() {
 }
 
 
-void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, const InitialRegionMolecules& info) {
+void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, const InitialSurfaceReleases& info) {
   uint n_free_sm = 0;
 
   /* initialize surface molecule grids in region as needed and */
@@ -1091,12 +1091,12 @@ void ReleaseEvent::init_surf_mols_by_density(
   double tot_prob = 0;
   double tot_density = 0;
 
-  vector<pair<double, InitialRegionMolecules>> prob_info_pairs;
+  vector<pair<double, InitialSurfaceReleases>> prob_info_pairs;
 
   // do for all surface regions of a wall at once
   for (region_index_t reg_index: w.regions) {
     const Region& reg = p.get_region(reg_index);
-    for (const InitialRegionMolecules& info: reg.initial_region_molecules) {
+    for (const InitialSurfaceReleases& info: reg.initial_region_molecules) {
       if (!info.is_release_by_density()) {
         // skip release by number, they will be handled later
         continue;
@@ -1187,7 +1187,7 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
 
   for (const Region& reg: p.get_regions()) {
     // for each specifies initial molecules
-    for (const InitialRegionMolecules& info: reg.initial_region_molecules) {
+    for (const InitialSurfaceReleases& info: reg.initial_region_molecules) {
       if (!info.is_release_by_num()) {
         // skip density, they were already handled
         continue;

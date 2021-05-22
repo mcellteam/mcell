@@ -48,7 +48,6 @@ const double DIFFUSE_REACT_EVENT_PERIODICITY = 1.0;
 const double DIFFUSION_TIME_UPPER_LIMIT = 100.0;
 
 enum class RayTraceState {
-  // TODO: use UpperCase
   UNDEFINED,
   HIT_SUBPARTITION,
   RAY_TRACE_HIT_WALL,
@@ -56,10 +55,10 @@ enum class RayTraceState {
 };
 
 enum class WallRxnResult {
-  Invalid,
-  Transparent,
-  Reflect,
-  Destroyed
+  INVALID,
+  TRANSPARENT,
+  REFLECT,
+  DESTROYED
 };
 
 

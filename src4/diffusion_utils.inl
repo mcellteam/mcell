@@ -54,7 +54,7 @@ namespace MCell {
 
 namespace DiffusionUtils {
 
-const double MULTISTEP_WORTHWHILE = 2.0; // TODO: make this tweakable through API, 2.0 is the value used in MCell3
+const double MULTISTEP_WORTHWHILE = 2.0; // 2.0 is the value used in MCell3
 const double MULTISTEP_PERCENTILE = 0.99;
 const double MULTISTEP_FRACTION = 0.9;
 

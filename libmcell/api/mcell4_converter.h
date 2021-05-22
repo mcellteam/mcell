@@ -41,7 +41,7 @@ namespace MCell {
 
 class World;
 class Partition;
-class InitialRegionMolecules;
+class InitialSurfaceReleases;
 class GeometryObject;
 class RegionExprNode;
 class ReleaseEvent;
@@ -113,7 +113,7 @@ private:
 
   void convert_initial_surface_releases(
       const std::vector<std::shared_ptr<API::InitialSurfaceRelease>>& api_releases,
-      std::vector<MCell::InitialRegionMolecules>& mcell_releases
+      std::vector<MCell::InitialSurfaceReleases>& mcell_releases
   );
 
   void convert_concentration_clamp_release(

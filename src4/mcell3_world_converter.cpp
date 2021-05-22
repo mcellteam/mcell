@@ -670,7 +670,7 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
       // inserting from front because the order in r->sm_dat_head is reversed
       new_region.initial_region_molecules.insert(
           new_region.initial_region_molecules.begin(),
-          InitialRegionMolecules(
+          InitialSurfaceReleases(
               species_id, current_sm_dat->orientation, true, (uint)current_sm_dat->quantity
           )
       );
@@ -678,7 +678,7 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
     else if (current_sm_dat->quantity_type == SURFMOLDENS) {
       new_region.initial_region_molecules.insert(
           new_region.initial_region_molecules.begin(),
-          InitialRegionMolecules(
+          InitialSurfaceReleases(
               species_id, current_sm_dat->orientation, false, (double)current_sm_dat->quantity
           )
       );

@@ -162,10 +162,9 @@ typedef std::map<subpart_index_t, small_vector<wall_index_t>> WallsPerSubpartMap
 
 // this class holds information for initial release of molecules onto regions specified by
 // MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER
-// TODO: rename to initial_surface_releases?
-class InitialRegionMolecules {
+class InitialSurfaceReleases {
 public:
-  InitialRegionMolecules(
+  InitialSurfaceReleases(
     species_id_t species_id_,
     orientation_t orientation_,
     bool const_num_not_density_,
@@ -175,7 +174,7 @@ public:
     assert(const_num_not_density_ && "This ctor is for const_num");
   }
 
-  InitialRegionMolecules(
+  InitialSurfaceReleases(
     species_id_t species_id_,
     orientation_t orientation_,
     bool const_num_not_density_,
@@ -242,7 +241,7 @@ public:
   std::map<wall_index_t, std::set<edge_index_t>> walls_and_edges;
 
   // initial counts of molecules for this region
-  std::vector<InitialRegionMolecules> initial_region_molecules;
+  std::vector<InitialSurfaceReleases> initial_region_molecules;
 
 private:
   // TODO: initialize all this when a region is created/finalized
