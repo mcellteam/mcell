@@ -31,7 +31,6 @@ set(SRC4_SOURCE_FILES
     mol_or_rxn_count_event.cpp
     viz_output_event.cpp
     defragmentation_event.cpp
-    partition_shrink_event.cpp
     sort_mols_by_subpart_event.cpp
     rxn_class_cleanup_event.cpp
     species_cleanup_event.cpp

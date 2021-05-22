@@ -1066,8 +1066,6 @@ public:
   void remove_from_known_vol_species(const species_id_t species_id);
   void remove_reactant_class_usage(const BNG::reactant_class_id_t reactant_class_id);
 
-  void shrink_all_volume_molecule_reactants_per_subpart();
-
   void print_periodic_stats() const;
 
   void dump(const bool with_geometry = false);

@@ -741,16 +741,6 @@ void Partition::remove_reactant_class_usage(const BNG::reactant_class_id_t react
 }
 
 
-void Partition::shrink_all_volume_molecule_reactants_per_subpart() {
-  // TODO if needed
-  /*for (SpeciesReactantsMap& reac_map: volume_molecule_reactants_per_subpart) {
-    for (MoleculeIdsSet& s: reac_map) {
-      s.shrink();
-    }
-  }*/
-}
-
-
 void Partition::to_data_model(Json::Value& mcell, std::set<rgba_t>& used_colors) const {
 
   // there are two places in data model where geometry objects are
