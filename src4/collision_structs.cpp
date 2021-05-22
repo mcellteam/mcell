@@ -71,7 +71,6 @@ void Collision::dump(
       "bimol rxn" <<
       ", idA:"  << diffused_molecule_id <<
       ", idB:"  << colliding_molecule_id <<
-      //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
       ", time: " << ((time_override == TIME_INVALID) ? time : time_override);
 
       if (type != CollisionType::SURFMOL_SURFMOL) {
@@ -82,7 +81,6 @@ void Collision::dump(
     cout <<
       "unimol rxn" <<
       ", idA:"  << diffused_molecule_id <<
-      //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
       ", time: " << ((time_override == TIME_INVALID) ? time : time_override);
   }
   else if (is_wall_collision()) {

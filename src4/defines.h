@@ -162,7 +162,6 @@ const uint SORT_MOLS_BY_SUBPART_PERIODICITY = 20;
 
 const uint DEFRAGMENTATION_PERIODICITY = 100;
 
-// TODO: make this configurable so that we can run tests
 const uint PARTITION_SHRINK_PERIODICITY = 10000;
 
 

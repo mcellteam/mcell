@@ -188,9 +188,7 @@ public:
   molecule_id_t colliding_molecule_id;
 
   // used for VOLMOL_VOLMOL or type == CollisionType::VOLMOL_SURFMOL
-  // TODO: make them private? so that we can check access
   BNG::RxnClass* rxn_class;
-
 
   // valid only for COLLISION_WALL*
   wall_index_t colliding_wall_index;

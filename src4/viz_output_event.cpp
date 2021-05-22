@@ -118,7 +118,6 @@ void VizOutputEvent::compute_where_and_norm(
 ) {
   const BNG::Species& species = world->get_all_species().get(m.species_id);
 
-  // TODO: replace with new flags
   if (species.is_vol()) {
     // neither surface nor on grid
     where = m.v.pos;

@@ -883,9 +883,6 @@ static BNG::rxn_class_pathway_index_t which_unimolecular(const Molecule& m, BNG:
     return 0;
   }
 
-  // TODO_COMPARTMENTS check compartments & pass to which_unimolecular only
-  // those that match compartments
-
   double match = rng_dbl(&rng);
   match = match * rxn_class->get_max_fixed_p();
   return rxn_class->get_pathway_index_for_probability(match, 1);
