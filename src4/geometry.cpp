@@ -720,7 +720,7 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
   }
 
   // initialize bounding box
-  Geometry::compute_region_bounding_box(p, *this, bounding_box_llf, bounding_box_urb);
+  compute_bounding_box(p, bounding_box_llf, bounding_box_urb);
 
   // use the center of the region bounding box as reference point for
   // computing the volume
@@ -1343,22 +1343,14 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
 }
 
 
-namespace Geometry {
-
-
 /***************************************************************************
 create_region_bbox:
   In: a region
-  Out: pointer to a 2-element array contining the LLF and URB corners of
-       a bounding box around the region, or NULL if out of memory.
+  Out: LLF and URB corners of a bounding box around the region
 ***************************************************************************/
-void compute_region_bounding_box(
-    const Partition& p, const Region& r,
-    Vec3& llf, Vec3& urb
-)
-{
+void Region::compute_bounding_box(const Partition& p, Vec3& llf, Vec3& urb) {
   bool found_first_wall = false;
-  for (auto it: r.walls_and_edges) {
+  for (auto it: walls_and_edges) {
     const Wall& w = p.get_wall(it.first);
     const Vec3* verts[VERTICES_IN_TRIANGLE];
     verts[0] = &p.get_wall_vertex(w, 0);
@@ -1397,6 +1389,7 @@ void compute_region_bounding_box(
   }
 }
 
+namespace Geometry {
 
 /***************************************************************************
 eval_rel_region_bbox:
@@ -1417,7 +1410,7 @@ bool compute_region_expr_bounding_box(
 
   if (expr->op == RegionExprOperator::Leaf) {
     Region& reg = p.get_region_by_id(expr->region_id);
-    compute_region_bounding_box(p, reg, llf, urb);
+    reg.compute_bounding_box(p, llf, urb);
     return true;
   }
   else {

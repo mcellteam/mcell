@@ -265,6 +265,8 @@ public:
 
   void initialize_volume_info_if_needed(const Partition& p);
 
+  void compute_bounding_box(const Partition& p, Vec3& llf, Vec3& urb);
+
   bool is_manifold() const {
     assert(volume_info_initialized);
     return region_is_manifold;
@@ -803,13 +805,6 @@ typedef std::vector<GeometryObject> GeometryObjectVector;
 // several utility functions related to geometry
 // TODO: move this to a separate file
 namespace Geometry {
-
-
-// TODO: move under Region
-void compute_region_bounding_box(
-    const Partition& p, const Region& r,
-    Vec3& llf, Vec3& urb
-);
 
 // used when creating release event
 bool compute_region_expr_bounding_box(
