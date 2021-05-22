@@ -460,7 +460,7 @@ void GeometryObject::to_data_model_as_geometrical_object(
   for (region_index_t region_index: region_indices.get_as_vector()) {
     const Region& reg = p.get_region(region_index);
 
-    if (reg.name_has_all_suffix()) {
+    if (reg.name_has_suffix_ALL()) {
       continue;
     }
 
@@ -1408,7 +1408,7 @@ bool compute_region_expr_bounding_box(
   int count_regions_flag = 1;
   Partition& p = world->get_partition(0);
 
-  if (expr->op == RegionExprOperator::Leaf) {
+  if (expr->op == RegionExprOperator::LEAF) {
     Region& reg = p.get_region_by_id(expr->region_id);
     reg.compute_bounding_box(p, llf, urb);
     return true;
@@ -1423,7 +1423,7 @@ bool compute_region_expr_bounding_box(
     llf = llf_left;
     urb = urb_left;
 
-    if (expr->op == RegionExprOperator::Union) {
+    if (expr->op == RegionExprOperator::UNION) {
       if (llf.x > llf_right.x) {
         llf.x = llf_right.x;
       }
@@ -1443,11 +1443,11 @@ bool compute_region_expr_bounding_box(
         urb.z = urb_right.z;
       }
     }
-    else if (expr->op == RegionExprOperator::Difference) {
+    else if (expr->op == RegionExprOperator::DIFFERENCE) {
       // for difference/subtraction the MCell3 implementation returns
       // the llf_left/urb_left
     }
-    else if (expr->op == RegionExprOperator::Intersect) {
+    else if (expr->op == RegionExprOperator::INTERSECT) {
       if (llf.x < llf_right.x) {
         llf.x = llf_right.x;
       }

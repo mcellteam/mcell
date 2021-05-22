@@ -1101,20 +1101,20 @@ static MCell::RegionExprOperator convert_region_node_type(API::RegionNodeType t)
   switch (t) {
     case API::RegionNodeType::LEAF_GEOMETRY_OBJECT:
     case API::RegionNodeType::LEAF_SURFACE_REGION:
-      return MCell::RegionExprOperator::Leaf;
+      return MCell::RegionExprOperator::LEAF;
 
     case API::RegionNodeType::UNION:
-      return MCell::RegionExprOperator::Union;
+      return MCell::RegionExprOperator::UNION;
 
     case API::RegionNodeType::DIFFERENCE:
-      return MCell::RegionExprOperator::Difference;
+      return MCell::RegionExprOperator::DIFFERENCE;
 
     case API::RegionNodeType::INTERSECT:
-      return MCell::RegionExprOperator::Intersect;
+      return MCell::RegionExprOperator::INTERSECT;
 
     default:
       assert(false);
-      return MCell::RegionExprOperator::Invalid;
+      return MCell::RegionExprOperator::INVALID;
   }
 }
 
@@ -1176,7 +1176,7 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
 
         // overwrite region expr with intersection with compartment
         rel_event->region_expr_root = rel_event->create_new_region_expr_node_op(
-            RegionExprOperator::Intersect,
+            RegionExprOperator::INTERSECT,
             rel_event->region_expr_root,
             compartment_region
         );
@@ -1282,19 +1282,19 @@ MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
 
   // release_number_method
   if (is_set(r->number_to_release)) {
-    rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
+    rel_event->release_number_method = ReleaseNumberMethod::CONST_NUM;
     rel_event->release_number = r->number_to_release;
   }
   else if (is_set(r->density)) {
-    rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
+    rel_event->release_number_method = ReleaseNumberMethod::DENSITY_NUM;
     rel_event->concentration = r->density;
   }
   else if (is_set(r->concentration)) {
-    rel_event->release_number_method = ReleaseNumberMethod::ConcentrationNum;
+    rel_event->release_number_method = ReleaseNumberMethod::CONCENTRATION_NUM;
     rel_event->concentration = r->concentration;
   }
   else if (is_set(r->molecule_list)) {
-    rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
+    rel_event->release_number_method = ReleaseNumberMethod::CONST_NUM;
     convert_molecule_list(r->molecule_list, r->name, rel_event);
   }
   else {

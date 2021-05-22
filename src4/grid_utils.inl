@@ -757,12 +757,14 @@ static void grid_all_neighbors_across_walls_through_vertices(
     const WallIndicesVector& neighboring_walls,
     const Wall& wall,
     bool create_grid_flag,
-    bool search_for_reactant, // TODO: this argument is ignored currently but seems important
+    bool search_for_reactant,
     TileNeighborVector& neighbors
 ) {
   const Grid& grid = wall.grid;
-  vertex_index_t nbr_wall_vertex_index; /* index of the neighbor wall vertex in "world->all_vertices" array  that coincides with tile vertex */
-  tile_index_t nbr_tile_index; /* index of the neighbor tile */
+  /* index of the neighbor wall vertex in "world->all_vertices" array  that coincides with tile vertex */
+  vertex_index_t nbr_wall_vertex_index;
+  /* index of the neighbor tile */
+  tile_index_t nbr_tile_index;
 
   /* check for possible reflection (absorption) from the wall edges
      that may be region borders.  This is INSIDE_OUT check against
@@ -806,6 +808,7 @@ static void grid_all_neighbors_across_walls_through_vertices(
     }
 
     /* Similar test done OUTSIDE-IN */
+    // TODO!
 #if 0
     if (sm != NULL) {
       if (search_for_reactant && (sm->properties->flags & SPECIES_FLAG_CAN_REGION_BORDER)) {

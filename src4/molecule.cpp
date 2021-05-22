@@ -58,8 +58,6 @@ void Molecule::set_no_need_to_schedule_flag(
 }
 
 
-// TODO_LATER: same as in dump_state.cpp, remove one of the copies
-// for now, dump_state might be useful also without mcell4
 string get_molecule_flags_string(uint flags, bool full_dump = true) {
   string res;
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";

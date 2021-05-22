@@ -55,7 +55,6 @@ namespace RegionUtils {
  * SURF2_OUT: flag that indicates that only reactant "sm_2" has
  *            restrictive regions on the object and it lies
  *            outside its restrictive region.  */
-// TODO: make an enum?? how are other flags made? ---------------------
 enum surf_mol_region_relationship_flag_t {
   ALL_INSIDE = 0x01,
   ALL_OUTSIDE = 0x02,

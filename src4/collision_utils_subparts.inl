@@ -21,7 +21,7 @@ using namespace std;
 namespace MCell {
 
 namespace CollisionUtils {
-//#if 0 // legacy implementation, kept in case it was needed for reference
+
 // This function checks if any of the neighboring subpartitions are within radius
 // from pos and inserts them into crossed_subparition_indices
 static void collect_neighboring_subparts(

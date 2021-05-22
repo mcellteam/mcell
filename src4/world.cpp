@@ -701,10 +701,10 @@ std::string World::export_releases_to_bngl_seed_species(
     if (re->release_shape != ReleaseShape::REGION) {
       return "Only region release shapes are currently supported for BNGL export" + err_suffix;
     }
-    if (re->release_number_method != ReleaseNumberMethod::ConstNum) {
+    if (re->release_number_method != ReleaseNumberMethod::CONST_NUM) {
       return "Only constant release number releases are currently supported for BNGL export" + err_suffix;
     }
-    if (re->region_expr_root->op != RegionExprOperator::Leaf) {
+    if (re->region_expr_root->op != RegionExprOperator::LEAF) {
       return "Only simple release regions are currently supported for BNGL export" + err_suffix;
     }
     if (re->event_time != 0) {

@@ -1248,19 +1248,19 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
     release_evaluator* expr, ReleaseEvent& event_data
 ) {
   assert(expr != nullptr);
-  RegionExprOperator new_op = RegionExprOperator::Invalid;
+  RegionExprOperator new_op = RegionExprOperator::INVALID;
 
   uint op_masked = expr->op & REXP_MASK;
 
   switch (op_masked) {
     case REXP_UNION:
-      new_op = RegionExprOperator::Union;
+      new_op = RegionExprOperator::UNION;
       break;
     case REXP_INTERSECTION:
-      new_op = RegionExprOperator::Intersect;
+      new_op = RegionExprOperator::INTERSECT;
       break;
     case REXP_SUBTRACTION:
-      new_op = RegionExprOperator::Difference;
+      new_op = RegionExprOperator::DIFFERENCE;
       break;
 
     case REXP_NO_OP:
@@ -1280,7 +1280,7 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
     release_assert(reg != nullptr);
     new_left = event_data.create_new_region_expr_node_leaf(reg->id);
   }
-  else if (new_op != RegionExprOperator::Invalid){
+  else if (new_op != RegionExprOperator::INVALID){
     // there is an operator so we assume that the left node is a subexpr
     new_left = create_release_region_terms_recursively((release_evaluator*)expr->left, event_data);
   }
@@ -1293,7 +1293,7 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
     release_assert(reg != nullptr);
     new_right = event_data.create_new_region_expr_node_leaf(reg->id);
   }
-  else if (new_op != RegionExprOperator::Invalid) {
+  else if (new_op != RegionExprOperator::INVALID) {
     new_right = create_release_region_terms_recursively((release_evaluator*)expr->right, event_data);
   }
   else {
@@ -1301,7 +1301,7 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
   }
 
   if (new_left != nullptr && new_right != nullptr) {
-    assert(new_op != RegionExprOperator::Invalid);
+    assert(new_op != RegionExprOperator::INVALID);
     return event_data.create_new_region_expr_node_op(new_op, new_left, new_right);
   }
   else if (new_left != nullptr) {
@@ -1424,14 +1424,14 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         );
         switch(rel_site->release_number_method) {
           case CONSTNUM:
-            rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
+            rel_event->release_number_method = ReleaseNumberMethod::CONST_NUM;
             CHECK_PROPERTY(rel_site->concentration == 0);
             break;
           case DENSITYNUM:
-            rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
+            rel_event->release_number_method = ReleaseNumberMethod::DENSITY_NUM;
             break;
           case CCNNUM:
-            rel_event->release_number_method = ReleaseNumberMethod::ConcentrationNum;
+            rel_event->release_number_method = ReleaseNumberMethod::CONCENTRATION_NUM;
             break;
           default:
             assert(false);

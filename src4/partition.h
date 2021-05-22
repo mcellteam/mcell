@@ -383,7 +383,6 @@ public:
     assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
-    // TODO: check !(vm.v.reactant_subpart_index == vm.v.reactant_subpart_index && adding && removing)
     const BNG::Species& vm_species = get_species(vm.species_id);
     if (!vm_species.has_bimol_vol_rxn()) {
       return;

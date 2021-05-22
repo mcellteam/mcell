@@ -103,11 +103,8 @@ public:
   // 0 - invalid
   int sign_in_expression;
 
-  // TODO: add getters/setters with checks
-
   // valid when type is EnclosedInWorld, EnclosedInObject or PresentOnSurfaceRegion
   orientation_t orientation;
-
 
   SpeciesPatternType species_pattern_type;
 

@@ -93,9 +93,9 @@ size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, do
 
 string RegionExprNode::to_string(const World* world, const bool for_datamodel) const {
   stringstream out;
-  assert(op != RegionExprOperator::Invalid);
+  assert(op != RegionExprOperator::INVALID);
 
-  if (op == RegionExprOperator::Leaf) {
+  if (op == RegionExprOperator::LEAF) {
     const string& region_name = world->get_region(region_id).name;
     if (for_datamodel) {
       return DMUtils::get_object_w_region_name(region_name);
@@ -110,13 +110,13 @@ string RegionExprNode::to_string(const World* world, const bool for_datamodel) c
   out << left->to_string(world, for_datamodel);
 
   switch(op) {
-    case RegionExprOperator::Union:
+    case RegionExprOperator::UNION:
       out << " + ";
       break;
-    case RegionExprOperator::Intersect:
+    case RegionExprOperator::INTERSECT:
       out << " * ";
       break;
-    case RegionExprOperator::Difference:
+    case RegionExprOperator::DIFFERENCE:
       out << " - ";
       break;
     default:
@@ -178,7 +178,7 @@ bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
 
 RegionExprNode* ReleaseEvent::create_new_region_expr_node_leaf(const region_id_t region_id) {
   RegionExprNode* res = new RegionExprNode;
-  res->op = RegionExprOperator::Leaf;
+  res->op = RegionExprOperator::LEAF;
   res->region_id = region_id;
   all_region_expr_nodes.push_back(res);
   return res;
@@ -213,12 +213,12 @@ static const char* release_shape_to_str(const ReleaseShape s) {
 
 static const char* release_number_method_to_str(const ReleaseNumberMethod m) {
   switch (m) {
-    CASE_TO_STR(ReleaseNumberMethod::Invalid);
-    CASE_TO_STR(ReleaseNumberMethod::ConstNum);
-    CASE_TO_STR(ReleaseNumberMethod::GaussNum);
-    CASE_TO_STR(ReleaseNumberMethod::VolNum);
-    CASE_TO_STR(ReleaseNumberMethod::ConcentrationNum);
-    CASE_TO_STR(ReleaseNumberMethod::DensityNum);
+    CASE_TO_STR(ReleaseNumberMethod::INVALID);
+    CASE_TO_STR(ReleaseNumberMethod::CONST_NUM);
+    CASE_TO_STR(ReleaseNumberMethod::GAUSS_NUM);
+    CASE_TO_STR(ReleaseNumberMethod::VOL_NUM);
+    CASE_TO_STR(ReleaseNumberMethod::CONCENTRATION_NUM);
+    CASE_TO_STR(ReleaseNumberMethod::DENSITY_NUM);
     default: return "invalid_release_number_method";
   }
 }
@@ -333,7 +333,7 @@ void ReleaseEvent::to_data_model_as_one_release_site(
 
   // how many to release
   switch (release_number_method) {
-    case ReleaseNumberMethod::ConstNum:
+    case ReleaseNumberMethod::CONST_NUM:
       release_site[KEY_QUANTITY_TYPE] = VALUE_NUMBER_TO_RELEASE;
       if (release_shape != ReleaseShape::LIST) {
         release_site[KEY_QUANTITY] = to_string(release_number);
@@ -342,15 +342,15 @@ void ReleaseEvent::to_data_model_as_one_release_site(
         release_site[KEY_QUANTITY] = ""; // number for release of LIST is given by the number of points
       }
       break;
-    case ReleaseNumberMethod::GaussNum:
+    case ReleaseNumberMethod::GAUSS_NUM:
       release_site[KEY_QUANTITY_TYPE] = VALUE_GAUSSIAN_RELEASE_NUMBER;
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has unsupported release_number_method GaussNum.");
       break;
-    case ReleaseNumberMethod::VolNum:
+    case ReleaseNumberMethod::VOL_NUM:
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has unsupported release_number_method VolNum.");
       break;
-    case ReleaseNumberMethod::ConcentrationNum:
-    case ReleaseNumberMethod::DensityNum:
+    case ReleaseNumberMethod::CONCENTRATION_NUM:
+    case ReleaseNumberMethod::DENSITY_NUM:
       release_site[KEY_QUANTITY_TYPE] = VALUE_DENSITY;
       release_site[KEY_QUANTITY] = f_to_str(concentration);
       break;
@@ -472,14 +472,14 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 
 bool ReleaseEvent::initialize_walls_for_release() {
   assert(region_expr_root != nullptr);
-  assert(release_number_method != ReleaseNumberMethod::Invalid);
+  assert(release_number_method != ReleaseNumberMethod::INVALID);
   cumm_area_and_pwall_index_pairs.clear();
 
   // no need to initialize
   const BNG::Species& species = world->get_all_species().get(species_id);
   if (species.is_vol() &&
-      (release_number_method == ReleaseNumberMethod::ConstNum ||
-       release_number_method == ReleaseNumberMethod::ConcentrationNum
+      (release_number_method == ReleaseNumberMethod::CONST_NUM ||
+       release_number_method == ReleaseNumberMethod::CONCENTRATION_NUM
       )
   ) {
     // no need to initialize walls for this case
@@ -487,7 +487,7 @@ bool ReleaseEvent::initialize_walls_for_release() {
   }
 
   // only a single region for now
-  if (region_expr_root->op != RegionExprOperator::Leaf) {
+  if (region_expr_root->op != RegionExprOperator::LEAF) {
     return false;
   }
 
@@ -527,10 +527,10 @@ static void check_max_release_count(double num_to_release, const std::string& na
 uint ReleaseEvent::calculate_number_to_release() {
 
   switch (release_number_method) {
-    case ReleaseNumberMethod::ConstNum:
+    case ReleaseNumberMethod::CONST_NUM:
       return release_number;
 
-    case ReleaseNumberMethod::ConcentrationNum:
+    case ReleaseNumberMethod::CONCENTRATION_NUM:
       if (diameter == Vec3(LENGTH_INVALID)) {
         // set for instance for ReleaseShape::SPHERICAL
         return 0;
@@ -572,7 +572,7 @@ uint ReleaseEvent::calculate_number_to_release() {
       }
       break;
 
-    case ReleaseNumberMethod::DensityNum: {
+    case ReleaseNumberMethod::DENSITY_NUM: {
         // computed in release_onto_regions in MCell3
         assert(!cumm_area_and_pwall_index_pairs.empty());
         double max_A = cumm_area_and_pwall_index_pairs.back().first;
@@ -735,7 +735,8 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
         free_tiles += w.grid.get_num_free_tiles();
       }
 
-      // TODO: MCell3 handles these cases better
+      // TODO_LATER: MCell3 handles these cases better, however we were able to fill the whole
+      // region even with this implementation
       const BNG::Species& species = world->get_all_species().get(species_id);
       mcell_error("Could not release %d of %s at %s, too many failed attempts to place surface molecules. "
           "The surface regions has total of %d tiles and %d were left empty after release attempts.",
@@ -747,9 +748,9 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
 
 
 bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node) {
-  assert(region_expr_node->op != RegionExprOperator::Invalid);
+  assert(region_expr_node->op != RegionExprOperator::INVALID);
 
-  if (region_expr_node->op == RegionExprOperator::Leaf) {
+  if (region_expr_node->op == RegionExprOperator::LEAF) {
     Region& reg = p.get_region_by_id(region_expr_node->region_id);
     return reg.is_point_inside(p, pos);
   }
@@ -758,11 +759,11 @@ bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const V
   bool satisfies_r = is_point_inside_region_expr_recursively(p, pos, region_expr_node->right);
 
   switch (region_expr_node->op) {
-    case RegionExprOperator::Union:
+    case RegionExprOperator::UNION:
       return satisfies_l || satisfies_r;
-    case RegionExprOperator::Intersect:
+    case RegionExprOperator::INTERSECT:
       return satisfies_l && satisfies_r;
-    case RegionExprOperator::Difference:
+    case RegionExprOperator::DIFFERENCE:
       return satisfies_l && !satisfies_r;
     default:
       assert(false);
@@ -785,7 +786,7 @@ bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const V
 uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   double vol = 0.0;
-  if (region_expr_root->op == RegionExprOperator::Leaf) {
+  if (region_expr_root->op == RegionExprOperator::LEAF) {
     Region& r = p.get_region_by_id(region_expr_root->region_id);
     r.initialize_volume_info_if_needed(p);
     release_assert(r.is_manifold() && "Trying to release into a regions that is not a manifold and has no volume");
@@ -862,7 +863,7 @@ void ReleaseEvent::release_inside_regions(int& computed_release_number) {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
   bool exact_number = false;
-  if (release_number_method == ReleaseNumberMethod::ConcentrationNum) {
+  if (release_number_method == ReleaseNumberMethod::CONCENTRATION_NUM) {
     computed_release_number = num_vol_mols_from_conc(exact_number);
   }
 
@@ -880,14 +881,13 @@ void ReleaseEvent::release_inside_regions(int& computed_release_number) {
     pos.z = region_llf.z + (region_urb.z - region_llf.z) * rng_dbl(&world->rng);
 
     if (!is_point_inside_region_expr_recursively(p, pos, region_expr_root)) {
-      if (release_number_method == ReleaseNumberMethod::ConcentrationNum && !exact_number) {
+      if (release_number_method == ReleaseNumberMethod::CONCENTRATION_NUM && !exact_number) {
         computed_release_number--;
         n--;
       }
       continue;
     }
 
-    // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
         Molecule(MOLECULE_ID_INVALID, species_id, pos, event_time), get_release_delay_time()
     );
@@ -939,15 +939,11 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(int computed_release_number) 
     base_location[0][2] = pos.z * diameter.z + location.z;
     base_location[0][3] = 1;
 
-    // TODO_LATER: t_matrix can be only identity matrix for now, also use glm matrix mult.
-    // mult_matrix(location, req->t_matrix, location, 1, 4, 4);
-
     Vec3 molecule_location;
     molecule_location.x = base_location[0][0];
     molecule_location.y = base_location[0][1];
     molecule_location.z = base_location[0][2];
 
-    // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
         Molecule(MOLECULE_ID_INVALID, species_id, molecule_location, event_time), get_release_delay_time()
     );
@@ -1010,7 +1006,6 @@ void ReleaseEvent::release_list() {
       }
       else {
         // TODO: unify logging, have some C++ streams,,,
-        // TODO: copy message from MCell3
         mcell_error("Could not release %s from %s, possibly the release diameter is too short.",
             species.name.c_str(), release_site_name.c_str()
         );

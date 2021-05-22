@@ -37,7 +37,7 @@ namespace MCell {
 class Partition;
 
 // WARNING: do not change these values, checkpointed models use them
-// TODO: probably print this out in some reasonable form into checkpoints
+// TODO: probably print this out in some reasonable form into checkpoints, it is printed as a number now
 enum molecule_flag_t {
   // volume/surface information is only cached from BNG CplxInstance
   MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
@@ -60,8 +60,6 @@ enum molecule_flag_t {
 /**
  * Base class for all molecules.
  */
-// BNG: do we need more information from BNG or species suffices?
-// TODO: remove orientation -> get this info from species
 class Molecule {
 public:
   // Warning: ctors do not reset surf or vol data

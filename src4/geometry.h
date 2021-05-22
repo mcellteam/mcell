@@ -306,8 +306,7 @@ public:
   bool is_point_inside(Partition& p, const Vec3& pos);
 
   // covers whole region
-  // TODO: better name?
-  bool name_has_all_suffix() const {
+  bool name_has_suffix_ALL() const {
     std::string all(REGION_ALL_SUFFIX_W_COMMA);
     if (name.size() > all.size()) {
       return name.substr(name.size() - all.size()) == all;
@@ -777,7 +776,7 @@ public:
 
   void set_reac_type(const GridPosType t) {
     assert(is_initialized() && !is_assigned());
-    // TODO: check for allowed value of t
+    assert(t >= GridPosType::REACA_UV && t <= GridPosType::RANDOM);
     type = t;
   }
 

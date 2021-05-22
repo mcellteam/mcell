@@ -421,7 +421,7 @@ void Partition::dump(const bool with_geometry) {
 }
 
 
-// methods get_num_crossed_region_walls and get_num_crossed_walls_per_object (TODO)
+// methods get_num_crossed_region_walls and get_num_crossed_walls_per_object
 // may fail with WALL_REDO, this means that a point is on a wall and
 // therefore it cannot be safely determined where it belongs
 // waypoints are used as an optimization so we can place them anywhere we like

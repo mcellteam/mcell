@@ -59,24 +59,23 @@ enum class ReleaseShape {
   INITIAL_SURF_REGION,
 };
 
-// TODO: rename to uppercase
+
 enum class ReleaseNumberMethod {
-  Invalid,
-  ConstNum, // used also for ReleaseShape::LIST
-  GaussNum,
-  VolNum,
-  ConcentrationNum,
-  DensityNum
+  INVALID,
+  CONST_NUM, // used also for ReleaseShape::LIST
+  GAUSS_NUM, // not supported yet
+  VOL_NUM,
+  CONCENTRATION_NUM,
+  DENSITY_NUM
 };
 
 
-// TODO: unify with API::RegionNodeType?
 enum class RegionExprOperator {
-  Invalid,
-  Union,
-  Intersect,
-  Difference,
-  Leaf
+  INVALID,
+  UNION,
+  INTERSECT,
+  DIFFERENCE,
+  LEAF
 };
 
 const int NUMBER_OF_TRAINS_UNLIMITED = -1;
@@ -84,7 +83,7 @@ const int NUMBER_OF_TRAINS_UNLIMITED = -1;
 class RegionExprNode {
 public:
   RegionExprNode()
-    : op(RegionExprOperator::Invalid),
+    : op(RegionExprOperator::INVALID),
       region_id(REGION_INDEX_INVALID),
       left(nullptr), right(nullptr) {
   }
@@ -129,7 +128,7 @@ public:
     BaseEvent(EVENT_TYPE_INDEX_RELEASE),
     release_site_name(NAME_INVALID),
     species_id(SPECIES_ID_INVALID),
-    release_number_method(ReleaseNumberMethod::Invalid),
+    release_number_method(ReleaseNumberMethod::INVALID),
     release_number(UINT_INVALID),
     concentration(FLT_INVALID),
     orientation(ORIENTATION_NONE),
