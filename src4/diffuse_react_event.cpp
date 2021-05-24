@@ -1178,7 +1178,9 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
         double time_until_unimol = sm.unimol_rx_time - t_steps - sm.diffusion_time;
         time_until_unimol = (time_until_unimol < 0) ? 0 : time_until_unimol;
 
-        if (species.has_flag(SPECIES_FLAG_CAN_SURFWALL) &&
+        // for MCell3 compatibility, we must reschedule even if the molecule can just diffuse,
+        // not only when it can react with walls
+        if ((species.has_flag(SPECIES_FLAG_CAN_SURFWALL) || species.can_diffuse()) &&
             (sm.unimol_rx_time == TIME_INVALID ||
              // using this overly complex condition because of MCell3 compatibility
              (time_until_unimol > EPS || time_until_unimol > EPS * (sm.diffusion_time + t_steps))
