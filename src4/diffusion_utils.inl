@@ -247,7 +247,7 @@ static inline double get_safe_diffusion_step(
 
 
 #ifdef MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
-  return 1.5;
+  return 1.0;
 #else
   if (d2min < d2_nearmax) {
     steps = 1.0;

@@ -2372,7 +2372,7 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
     d2min = d2;
 
 #ifdef MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
-  return 1.5;
+  return 1;
 #else
   if (d2min < d2_nearmax)
     steps = 1.0;

@@ -63,7 +63,7 @@
 // enabling this macro unifies it
 #define MCELL3_REVERSE_INITIAL_SURF_MOL_PLACEMENT_BY_NUM
 
-//#define MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
+#define MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
 
 
 // in MCell3 the newly created particles that have long time steps gradually increase
@@ -102,9 +102,12 @@
 
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
-//#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
 
 #define MCELL3_UNIMOL_RX_ABSORB_NO_RNG
+
+// do not reuse molecule IDs
+#define MCELL3_DO_NOT_REUSE_MOL_ID_UNIMOL_RXN
 #endif
 
 // ^^^^ MCell4 macros to match MCell3R ^^^^
@@ -173,7 +176,7 @@
 
 
 #define FROM_ITERATION 0
-#define TO_ITERATION 2
+#define TO_ITERATION 1
 
 #define DUMP_NONDIFFUSING_VMS
 
