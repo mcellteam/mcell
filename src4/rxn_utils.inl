@@ -199,9 +199,6 @@ static void find_mol_reactions_with_surf_classes(
     const bool allow_rx_transp_reflec_absorb_reg_border,
     BNG::RxnClassesVector& matching_rxns
 ) {
-
-  assert(reacA.is_vol());
-
   // for all reactions applicable to reacA and and wall
   const BNG::SpeciesRxnClassesMap* species_rxns =
       p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
