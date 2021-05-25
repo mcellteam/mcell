@@ -741,6 +741,25 @@ void Partition::remove_reactant_class_usage(const BNG::reactant_class_id_t react
 }
 
 
+void Partition::shuffle_schedulable_molecule_ids() {
+
+  size_t n = schedulable_molecule_ids.size();
+  release_assert(n < (size_t)UINT32_MAX);
+  for (molecule_index_t i = n-1; i > 0; --i) {
+
+    double rand = rng_dbl(&aux_rng);
+    release_assert(rand >= 0 && rand <= 1);
+    // scale rand to 0..n-1
+    uint rand_index = (double)(n-1) * rand;
+    release_assert(rand_index < n); // TODO: change to a normal assert
+    molecule_id_t tmp = schedulable_molecule_ids[i];
+    schedulable_molecule_ids[i] = schedulable_molecule_ids[rand_index];
+    schedulable_molecule_ids[rand_index] = tmp;
+  }
+}
+
+
+
 void Partition::to_data_model(Json::Value& mcell, std::set<rgba_t>& used_colors) const {
 
   // there are two places in data model where geometry objects are

@@ -153,6 +153,11 @@ Config:
        needed again, it must be recomputed.
     examples: tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check/model.py
 
+  #- name: random_shuffle_molecules_periodicity
+  #  type: int
+  #  default: 0
+  #  doc: Randomly shuffle the order in which molecules are simulated. 
+  
   - name: sort_molecules
     type: bool
     default: False

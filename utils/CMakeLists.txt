@@ -12,6 +12,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bngl/generate_bngl_function.py ${BUIL
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mcell4_runner/bng_runner.py ${BUILD_UTILS_DIR}/bng_runner.py COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mcell4_runner/mcell4_runner.py ${BUILD_UTILS_DIR}/mcell4_runner.py COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mcell4_runner/mcell3_runner.py ${BUILD_UTILS_DIR}/mcell3_runner.py COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mcell4_runner/run_remotely.sh ${BUILD_UTILS_DIR}/run_remotely.sh COPYONLY)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/plotting/plot_averages_into_images.py ${BUILD_UTILS_DIR}/plot_averages_into_images.py COPYONLY)

@@ -250,6 +250,18 @@ public:
     ready_vector.clear();
     double time_it_end = stats.get_current_iteration() + 1;
 
+    // TODO: see if this helps
+    for (molecule_id_t id: schedulable_molecule_ids) {
+      const Molecule& m = get_m(id);
+      assert(!m.has_flag(MOLECULE_FLAG_NO_NEED_TO_SCHEDULE));
+      // new products may have been scheduled for the previous iteration
+      if (!m.is_defunct() &&
+          cmp_lt(m.diffusion_time, time_it_end, EPS)) {
+        ready_vector.push_back(m.id);
+      }
+    }
+
+#if 0
     if (schedulable_molecule_ids.size() != molecules.size()) {
       // more efficient variant when there is less molecules in schedulable_molecule_ids
       for (molecule_id_t id: schedulable_molecule_ids) {
@@ -272,6 +284,7 @@ public:
         }
       }
     }
+#endif
   }
 
   bool in_this_partition(const Vec3& pos) const {
@@ -1064,6 +1077,8 @@ public:
 
   void remove_from_known_vol_species(const species_id_t species_id);
   void remove_reactant_class_usage(const BNG::reactant_class_id_t reactant_class_id);
+
+  void shuffle_schedulable_molecule_ids();
 
   void print_periodic_stats() const;
 

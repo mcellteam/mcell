@@ -49,6 +49,7 @@
 #include "diffuse_react_event.h"
 #include "run_n_iterations_end_event.h"
 #include "custom_function_call_event.h"
+#include "mol_order_shuffle_event.h"
 #include "vtk_utils.h"
 
 #include "api/mol_wall_hit_info.h"
@@ -306,6 +307,12 @@ void World::init_simulation(const double start_time) {
   species_cleanup_event->event_time = get_event_start_time(start_time, config.species_cleanup_periodicity);
   species_cleanup_event->periodicity_interval = config.species_cleanup_periodicity;
   scheduler.schedule_event(species_cleanup_event);
+
+  // TODO: config
+  MolOrderShuffleEvent* mol_order_shuffle_event = new MolOrderShuffleEvent(this);
+  mol_order_shuffle_event->event_time = get_event_start_time(start_time, 10000);
+  mol_order_shuffle_event->periodicity_interval = 10000;
+  scheduler.schedule_event(mol_order_shuffle_event);
 
   // create subpart sorting events
   if (config.sort_mols_by_subpart) {

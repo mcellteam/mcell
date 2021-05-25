@@ -34,6 +34,7 @@ set(SRC4_SOURCE_FILES
     sort_mols_by_subpart_event.cpp
     rxn_class_cleanup_event.cpp
     species_cleanup_event.cpp
+    mol_order_shuffle_event.cpp
     wall_overlap.cpp
     grid_position.cpp
     geometry.cpp
