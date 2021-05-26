@@ -50,6 +50,7 @@ public:
     check_overlapped_walls(true),
     rxn_class_cleanup_periodicity(0),
     species_cleanup_periodicity(0),
+    molecules_order_random_shuffle_periodicity(DEFAULT_MOL_ORDER_SHUFFLE_PERIODICITY),
     sort_mols_by_subpart(false),
     memory_limit_gb(-1),
     simulation_stats_every_n_iterations(0),
@@ -89,6 +90,7 @@ public:
 
   uint rxn_class_cleanup_periodicity;
   uint species_cleanup_periodicity;
+  uint molecules_order_random_shuffle_periodicity;
 
   bool sort_mols_by_subpart;
 

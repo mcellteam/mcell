@@ -110,6 +110,13 @@ Attributes:
   | Example: `2701_concentration_based_rxn_rate_cleanup_check/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2701_concentration_based_rxn_rate_cleanup_check/model.py>`_ 
 
 
+* | **molecules_order_random_shuffle_periodicity**: int = 10000
+  | Randomly shuffle the order in which molecules are simulated.
+  | This helps to overcome potential biases that may occur when 
+  | molecules are ordered e.g. by their species when simulation starts. 
+  | The first shuffling occurs at this iteration, i.e. no shuffle is done at iteration 0.
+  | Setting this parameter to 0 disables the shuffling.
+
 * | **sort_molecules**: bool = False
   | Enables sorting of molecules for diffusion, this may improve cache locality and provide 
   | slightly better performance. 

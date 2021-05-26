@@ -49,6 +49,7 @@ class PythonExportContext;
         const bool check_overlapped_walls_ = true, \
         const int reaction_class_cleanup_periodicity_ = 500, \
         const int species_cleanup_periodicity_ = 10000, \
+        const int molecules_order_random_shuffle_periodicity_ = 10000, \
         const bool sort_molecules_ = false, \
         const int memory_limit_gb_ = -1, \
         const uint64_t initial_iteration_ = 0, \
@@ -72,6 +73,7 @@ class PythonExportContext;
       check_overlapped_walls = check_overlapped_walls_; \
       reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity_; \
       species_cleanup_periodicity = species_cleanup_periodicity_; \
+      molecules_order_random_shuffle_periodicity = molecules_order_random_shuffle_periodicity_; \
       sort_molecules = sort_molecules_; \
       memory_limit_gb = memory_limit_gb_; \
       initial_iteration = initial_iteration_; \
@@ -295,6 +297,20 @@ public:
   virtual int get_species_cleanup_periodicity() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return species_cleanup_periodicity;
+  }
+
+  int molecules_order_random_shuffle_periodicity;
+  virtual void set_molecules_order_random_shuffle_periodicity(const int new_molecules_order_random_shuffle_periodicity_) {
+    if (initialized) {
+      throw RuntimeError("Value 'molecules_order_random_shuffle_periodicity' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    molecules_order_random_shuffle_periodicity = new_molecules_order_random_shuffle_periodicity_;
+  }
+  virtual int get_molecules_order_random_shuffle_periodicity() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return molecules_order_random_shuffle_periodicity;
   }
 
   bool sort_molecules;

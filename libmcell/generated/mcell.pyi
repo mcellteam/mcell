@@ -357,6 +357,7 @@ class Config():
             check_overlapped_walls : bool = True,
             reaction_class_cleanup_periodicity : int = 500,
             species_cleanup_periodicity : int = 10000,
+            molecules_order_random_shuffle_periodicity : int = 10000,
             sort_molecules : bool = False,
             memory_limit_gb : int = -1,
             initial_iteration : int = 0,
@@ -379,6 +380,7 @@ class Config():
         self.check_overlapped_walls = check_overlapped_walls
         self.reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity
         self.species_cleanup_periodicity = species_cleanup_periodicity
+        self.molecules_order_random_shuffle_periodicity = molecules_order_random_shuffle_periodicity
         self.sort_molecules = sort_molecules
         self.memory_limit_gb = memory_limit_gb
         self.initial_iteration = initial_iteration

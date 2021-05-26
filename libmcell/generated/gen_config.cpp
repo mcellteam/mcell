@@ -56,6 +56,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   check_overlapped_walls = true;
   reaction_class_cleanup_periodicity = 500;
   species_cleanup_periodicity = 10000;
+  molecules_order_random_shuffle_periodicity = 10000;
   sort_molecules = false;
   memory_limit_gb = -1;
   initial_iteration = 0;
@@ -81,6 +82,7 @@ bool GenConfig::__eq__(const Config& other) const {
     check_overlapped_walls == other.check_overlapped_walls &&
     reaction_class_cleanup_periodicity == other.reaction_class_cleanup_periodicity &&
     species_cleanup_periodicity == other.species_cleanup_periodicity &&
+    molecules_order_random_shuffle_periodicity == other.molecules_order_random_shuffle_periodicity &&
     sort_molecules == other.sort_molecules &&
     memory_limit_gb == other.memory_limit_gb &&
     initial_iteration == other.initial_iteration &&
@@ -116,6 +118,7 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     check_overlapped_walls == other.check_overlapped_walls &&
     reaction_class_cleanup_periodicity == other.reaction_class_cleanup_periodicity &&
     species_cleanup_periodicity == other.species_cleanup_periodicity &&
+    molecules_order_random_shuffle_periodicity == other.molecules_order_random_shuffle_periodicity &&
     sort_molecules == other.sort_molecules &&
     memory_limit_gb == other.memory_limit_gb &&
     initial_iteration == other.initial_iteration &&
@@ -152,6 +155,7 @@ std::string GenConfig::to_str(const std::string ind) const {
       "check_overlapped_walls=" << check_overlapped_walls << ", " <<
       "reaction_class_cleanup_periodicity=" << reaction_class_cleanup_periodicity << ", " <<
       "species_cleanup_periodicity=" << species_cleanup_periodicity << ", " <<
+      "molecules_order_random_shuffle_periodicity=" << molecules_order_random_shuffle_periodicity << ", " <<
       "sort_molecules=" << sort_molecules << ", " <<
       "memory_limit_gb=" << memory_limit_gb << ", " <<
       "initial_iteration=" << initial_iteration << ", " <<
@@ -180,6 +184,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const bool,
             const int,
             const int,
+            const int,
             const bool,
             const int,
             const uint64_t,
@@ -202,6 +207,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("check_overlapped_walls") = true,
           py::arg("reaction_class_cleanup_periodicity") = 500,
           py::arg("species_cleanup_periodicity") = 10000,
+          py::arg("molecules_order_random_shuffle_periodicity") = 10000,
           py::arg("sort_molecules") = false,
           py::arg("memory_limit_gb") = -1,
           py::arg("initial_iteration") = 0,
@@ -228,6 +234,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls, "Enables check for overlapped walls. Overlapping walls can cause issues during \nsimulation such as a molecule escaping closed geometry when it hits two walls \nthat overlap. \n")
       .def_property("reaction_class_cleanup_periodicity", &Config::get_reaction_class_cleanup_periodicity, &Config::set_reaction_class_cleanup_periodicity, "Reaction class cleanup removes computed reaction classes for inactive species from memory.\nThis provides faster reaction lookup faster but when the same reaction class is \nneeded again, it must be recomputed.\n")
       .def_property("species_cleanup_periodicity", &Config::get_species_cleanup_periodicity, &Config::set_species_cleanup_periodicity, "Species cleanup removes inactive species from memory. It removes also all reaction classes \nthat reference it.\nThis provides faster addition of new species lookup faster but when the species is \nneeded again, it must be recomputed.\n")
+      .def_property("molecules_order_random_shuffle_periodicity", &Config::get_molecules_order_random_shuffle_periodicity, &Config::set_molecules_order_random_shuffle_periodicity, "Randomly shuffle the order in which molecules are simulated.\nThis helps to overcome potential biases that may occur when \nmolecules are ordered e.g. by their species when simulation starts. \nThe first shuffling occurs at this iteration, i.e. no shuffle is done at iteration 0.\nSetting this parameter to 0 disables the shuffling.  \n")
       .def_property("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules, "Enables sorting of molecules for diffusion, this may improve cache locality and provide \nslightly better performance. \nProduces different results for the same seed when enabled because molecules are simulated \nin a different order. \n")
       .def_property("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb, "Sets memory limit in GB for simulation run. \nWhen this limit is hit, all buffers are flushed and simulation is terminated with an error.\n")
       .def_property("initial_iteration", &Config::get_initial_iteration, &Config::set_initial_iteration, "Initial iteration, used when resuming a checkpoint.")
@@ -298,6 +305,9 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   }
   if (species_cleanup_periodicity != 10000) {
     ss << ind << "species_cleanup_periodicity = " << species_cleanup_periodicity << "," << nl;
+  }
+  if (molecules_order_random_shuffle_periodicity != 10000) {
+    ss << ind << "molecules_order_random_shuffle_periodicity = " << molecules_order_random_shuffle_periodicity << "," << nl;
   }
   if (sort_molecules != false) {
     ss << ind << "sort_molecules = " << sort_molecules << "," << nl;

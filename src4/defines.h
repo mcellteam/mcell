@@ -177,6 +177,9 @@ const uint COUNT_BUFFER_FLUSH_PERIODICITY = 100000;
 // require too much memory (related to maximal distance of simulation barrier)
 const uint64_t ITERATIONS_BEFORE_RUN_N_ITERATIONS_END_EVENT = 10000;
 
+
+const uint64_t DEFAULT_MOL_ORDER_SHUFFLE_PERIODICITY = 10000;
+
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const pos_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 const pos_t LENGTH_INVALID = FLT_MAX;

@@ -298,21 +298,26 @@ void World::init_simulation(const double start_time) {
   scheduler.schedule_event(defragmentation_event);
 
   // create rxn class cleanup events
-  RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
-  rxn_class_cleanup_event->event_time = get_event_start_time(start_time, config.rxn_class_cleanup_periodicity);
-  rxn_class_cleanup_event->periodicity_interval = config.rxn_class_cleanup_periodicity;
-  scheduler.schedule_event(rxn_class_cleanup_event);
+  if (config.rxn_class_cleanup_periodicity >= 1) {
+    RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
+    rxn_class_cleanup_event->event_time = get_event_start_time(start_time, config.rxn_class_cleanup_periodicity);
+    rxn_class_cleanup_event->periodicity_interval = config.rxn_class_cleanup_periodicity;
+    scheduler.schedule_event(rxn_class_cleanup_event);
+  }
 
-  SpeciesCleanupEvent* species_cleanup_event = new SpeciesCleanupEvent(this);
-  species_cleanup_event->event_time = get_event_start_time(start_time, config.species_cleanup_periodicity);
-  species_cleanup_event->periodicity_interval = config.species_cleanup_periodicity;
-  scheduler.schedule_event(species_cleanup_event);
+  if (config.species_cleanup_periodicity >= 1) {
+    SpeciesCleanupEvent* species_cleanup_event = new SpeciesCleanupEvent(this);
+    species_cleanup_event->event_time = get_event_start_time(start_time, config.species_cleanup_periodicity);
+    species_cleanup_event->periodicity_interval = config.species_cleanup_periodicity;
+    scheduler.schedule_event(species_cleanup_event);
+  }
 
-  // TODO: config
-  MolOrderShuffleEvent* mol_order_shuffle_event = new MolOrderShuffleEvent(this);
-  mol_order_shuffle_event->event_time = get_event_start_time(start_time, 10000);
-  mol_order_shuffle_event->periodicity_interval = 10000;
-  scheduler.schedule_event(mol_order_shuffle_event);
+  if (config.molecules_order_random_shuffle_periodicity >= 1) {
+    MolOrderShuffleEvent* mol_order_shuffle_event = new MolOrderShuffleEvent(this);
+    mol_order_shuffle_event->event_time = get_event_start_time(start_time, config.molecules_order_random_shuffle_periodicity);
+    mol_order_shuffle_event->periodicity_interval = config.molecules_order_random_shuffle_periodicity;
+    scheduler.schedule_event(mol_order_shuffle_event);
+  }
 
   // create subpart sorting events
   if (config.sort_mols_by_subpart) {

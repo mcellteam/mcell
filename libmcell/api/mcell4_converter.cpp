@@ -402,6 +402,7 @@ void MCell4Converter::convert_simulation_setup() {
   // TODO: check that the values are higher than 1
   world->config.rxn_class_cleanup_periodicity = config.reaction_class_cleanup_periodicity;
   world->config.species_cleanup_periodicity = config.species_cleanup_periodicity;
+  world->config.molecules_order_random_shuffle_periodicity = config.molecules_order_random_shuffle_periodicity;
 
   world->config.memory_limit_gb = config.memory_limit_gb;
 
