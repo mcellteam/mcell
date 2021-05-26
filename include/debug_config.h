@@ -63,8 +63,6 @@
 // enabling this macro unifies it
 #define MCELL3_REVERSE_INITIAL_SURF_MOL_PLACEMENT_BY_NUM
 
-#define MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
-
 
 // in MCell3 the newly created particles that have long time steps gradually increase
 // their timestep to the full value
@@ -122,6 +120,8 @@
 // however changes ordering for mcell4
 #define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
 #endif
+
+//#define MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
 
 //#define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
 
