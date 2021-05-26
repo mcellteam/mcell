@@ -22,18 +22,6 @@ if(MSVC)
   add_definitions(-DYY_NO_UNISTD_H)
 endif(MSVC)
 
-# set default locations of libraries and executables
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin )
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib )
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/archives )
-# Second, for multi-config builds (e.g. msvc)
-foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
-  string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/bin )
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/lib )
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/archives  )
-endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
-
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Using default gcc 8.3.0 provided in Debian 10
@@ -242,13 +230,26 @@ if (WIN32)
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
-add_subdirectory(${CMAKE_SOURCE_DIR}/../libbng/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../libbng/ ${CMAKE_CURRENT_BINARY_DIR}/libs/libbng)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/libmcell ${CMAKE_CURRENT_BINARY_DIR}/libmcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src4 ${CMAKE_CURRENT_BINARY_DIR}/src4)
+
+# set default locations of libraries and executables, must be done after add_subdirectory setups
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin )
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib )
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/archives )
+# Second, for multi-config builds (e.g. msvc)
+foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
+  string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/bin )
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/lib )
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_CURRENT_BINARY_DIR}/archives  )
+endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
+
 
 set(SOURCE_FILES
     src/argparse.c
