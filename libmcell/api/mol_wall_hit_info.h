@@ -31,6 +31,11 @@ namespace API {
 
 class MolWallHitInfo: public GenMolWallHitInfo {
 public:
+  MolWallHitInfo() {
+  }
+  MolWallHitInfo(DefaultCtorArgType) {
+  }
+
   void dump() {
     std::cout << to_str();
   }

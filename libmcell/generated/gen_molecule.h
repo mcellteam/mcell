@@ -45,17 +45,26 @@ class PythonExportContext;
       pos2d = VEC2_UNSET; \
       geometry_object = nullptr; \
       wall_index = -1; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Molecule(DefaultCtorArgType) : \
+      GenMolecule(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenMolecule: public BaseIntrospectionClass {
 public:
+  GenMolecule() {
+  }
+  GenMolecule(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Molecule copy_molecule() const;
   virtual bool __eq__(const Molecule& other) const;
   virtual bool eq_nonarray_attributes(const Molecule& other, const bool ignore_name = false) const;
   bool operator == (const Molecule& other) const { return __eq__(other);}

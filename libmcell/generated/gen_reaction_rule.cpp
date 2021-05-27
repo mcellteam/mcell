@@ -51,6 +51,24 @@ void GenReactionRule::set_all_attributes_as_default_or_unset() {
   is_intermembrane_surface_reaction = false;
 }
 
+ReactionRule GenReactionRule::copy_reaction_rule() const {
+  if (initialized) {
+    throw RuntimeError("Object of class ReactionRule cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  ReactionRule res = ReactionRule(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.reactants = reactants;
+  res.products = products;
+  res.fwd_rate = fwd_rate;
+  res.rev_name = rev_name;
+  res.rev_rate = rev_rate;
+  res.variable_rate = variable_rate;
+  res.is_intermembrane_surface_reaction = is_intermembrane_surface_reaction;
+
+  return res;
+}
+
 bool GenReactionRule::__eq__(const ReactionRule& other) const {
   return
     name == other.name &&
@@ -112,6 +130,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
           py::arg("is_intermembrane_surface_reaction") = false
       )
       .def("check_semantics", &ReactionRule::check_semantics)
+      .def("__copy__", &ReactionRule::copy_reaction_rule)
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionRule::__eq__, py::arg("other"))
       .def("to_bngl_str", &ReactionRule::to_bngl_str, "Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.")

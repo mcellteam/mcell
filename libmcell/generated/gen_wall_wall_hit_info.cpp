@@ -55,6 +55,18 @@ void GenWallWallHitInfo::set_all_attributes_as_default_or_unset() {
   wall2 = nullptr;
 }
 
+WallWallHitInfo GenWallWallHitInfo::copy_wall_wall_hit_info() const {
+  if (initialized) {
+    throw RuntimeError("Object of class WallWallHitInfo cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  WallWallHitInfo res = WallWallHitInfo(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.wall1 = wall1;
+  res.wall2 = wall2;
+
+  return res;
+}
+
 bool GenWallWallHitInfo::__eq__(const WallWallHitInfo& other) const {
   return
     (
@@ -122,6 +134,7 @@ py::class_<WallWallHitInfo> define_pybinding_WallWallHitInfo(py::module& m) {
           >()
       )
       .def("check_semantics", &WallWallHitInfo::check_semantics)
+      .def("__copy__", &WallWallHitInfo::copy_wall_wall_hit_info)
       .def("__str__", &WallWallHitInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &WallWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &WallWallHitInfo::dump)

@@ -49,17 +49,26 @@ class PythonExportContext;
       birthday = birthday_; \
       flags = flags_; \
       unimol_rx_time = unimol_rx_time_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    BaseChkptMol(DefaultCtorArgType) : \
+      GenBaseChkptMol(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenBaseChkptMol: public BaseDataClass {
 public:
+  GenBaseChkptMol() {
+  }
+  GenBaseChkptMol(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  BaseChkptMol copy_base_chkpt_mol() const;
   virtual bool __eq__(const BaseChkptMol& other) const;
   virtual bool eq_nonarray_attributes(const BaseChkptMol& other, const bool ignore_name = false) const;
   bool operator == (const BaseChkptMol& other) const { return __eq__(other);}

@@ -66,8 +66,12 @@ class PythonExportContext;
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    GeometryObject(DefaultCtorArgType) : \
+      GenGeometryObject(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenGeometryObject: public Region {
@@ -78,11 +82,14 @@ public:
       std::shared_ptr<Region> right_node_ = nullptr 
   )  : Region(node_type_,left_node_,right_node_)  {
   }
+  GenGeometryObject(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  GeometryObject copy_geometry_object() const;
   virtual bool __eq__(const GeometryObject& other) const;
   virtual bool eq_nonarray_attributes(const GeometryObject& other, const bool ignore_name = false) const;
   bool operator == (const GeometryObject& other) const { return __eq__(other);}

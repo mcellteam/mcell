@@ -35,7 +35,12 @@ class PythonExportContext;
 
 class GenReactionInfo {
 public:
+  GenReactionInfo() {
+  }
+  GenReactionInfo(DefaultCtorArgType) {
+  }
   virtual ~GenReactionInfo() {}
+  ReactionInfo copy_reaction_info() const;
   virtual bool __eq__(const ReactionInfo& other) const;
   virtual bool eq_nonarray_attributes(const ReactionInfo& other, const bool ignore_name = false) const;
   bool operator == (const ReactionInfo& other) const { return __eq__(other);}

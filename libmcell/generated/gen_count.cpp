@@ -78,6 +78,29 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   initial_reactions_count = 0;
 }
 
+Count GenCount::copy_count() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Count cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Count res = Count(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.file_name = file_name;
+  res.count_expression = count_expression;
+  res.multiplier = multiplier;
+  res.every_n_timesteps = every_n_timesteps;
+  res.species_pattern = species_pattern;
+  res.molecules_pattern = molecules_pattern;
+  res.reaction_rule = reaction_rule;
+  res.region = region;
+  res.node_type = node_type;
+  res.left_node = left_node;
+  res.right_node = right_node;
+  res.initial_reactions_count = initial_reactions_count;
+
+  return res;
+}
+
 bool GenCount::__eq__(const Count& other) const {
   return
     name == other.name &&
@@ -304,6 +327,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
           py::arg("initial_reactions_count") = 0
       )
       .def("check_semantics", &Count::check_semantics)
+      .def("__copy__", &Count::copy_count)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Count::__eq__, py::arg("other"))
       .def("get_current_value", &Count::get_current_value, "Returns the current value for this count. Cannot be used to count reactions.\nThe model must be initialized with this Count present as one of the observables.\n")

@@ -41,6 +41,17 @@ void GenWarnings::set_all_attributes_as_default_or_unset() {
   high_reaction_probability = WarningLevel::IGNORE;
 }
 
+Warnings GenWarnings::copy_warnings() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Warnings cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Warnings res = Warnings(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.high_reaction_probability = high_reaction_probability;
+
+  return res;
+}
+
 bool GenWarnings::__eq__(const Warnings& other) const {
   return
     high_reaction_probability == other.high_reaction_probability;
@@ -67,6 +78,7 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
           py::arg("high_reaction_probability") = WarningLevel::IGNORE
       )
       .def("check_semantics", &Warnings::check_semantics)
+      .def("__copy__", &Warnings::copy_warnings)
       .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Warnings::__eq__, py::arg("other"))
       .def("dump", &Warnings::dump)

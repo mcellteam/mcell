@@ -44,8 +44,7 @@ public:
       const IdSpeciesMap& id_species_map, const double time_unit,
       const double length_unit,
       const MCell::Partition& p,
-      const IdGeometryObjectMap& id_geometry_object_map
-  );
+      const IdGeometryObjectMap& id_geometry_object_map);
 
   void postprocess_in_ctor() override {
     type = MoleculeType::SURFACE;

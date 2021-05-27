@@ -395,7 +395,7 @@ std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
       auto obj2 = get_geometry_object_with_id(wall_pair.geometry_object_id2);
       int obj_wall_index2 = obj2->get_object_wall_index(wall_pair.wall_index2);
 
-      auto pair = make_shared<WallWallHitInfo>();
+      auto pair = make_shared<WallWallHitInfo>(DefaultCtorArgType());
       pair->wall1 = get_wall(obj1, obj_wall_index1);
       pair->wall2 = get_wall(obj2, obj_wall_index2);
 

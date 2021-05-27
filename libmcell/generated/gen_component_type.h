@@ -41,17 +41,26 @@ class PythonExportContext;
       class_name = "ComponentType"; \
       name = name_; \
       states = states_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    ComponentType(DefaultCtorArgType) : \
+      GenComponentType(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenComponentType: public BaseDataClass {
 public:
+  GenComponentType() {
+  }
+  GenComponentType(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  ComponentType copy_component_type() const;
   virtual bool __eq__(const ComponentType& other) const;
   virtual bool eq_nonarray_attributes(const ComponentType& other, const bool ignore_name = false) const;
   bool operator == (const ComponentType& other) const { return __eq__(other);}

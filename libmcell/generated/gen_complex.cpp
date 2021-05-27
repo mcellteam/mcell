@@ -47,6 +47,20 @@ void GenComplex::set_all_attributes_as_default_or_unset() {
   compartment_name = STR_UNSET;
 }
 
+Complex GenComplex::copy_complex() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Complex cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Complex res = Complex(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.elementary_molecules = elementary_molecules;
+  res.orientation = orientation;
+  res.compartment_name = compartment_name;
+
+  return res;
+}
+
 bool GenComplex::__eq__(const Complex& other) const {
   return
     name == other.name &&
@@ -88,6 +102,7 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
           py::arg("compartment_name") = STR_UNSET
       )
       .def("check_semantics", &Complex::check_semantics)
+      .def("__copy__", &Complex::copy_complex)
       .def("__str__", &Complex::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Complex::__eq__, py::arg("other"))
       .def("to_bngl_str", &Complex::to_bngl_str, "Creates a string that corresponds to its BNGL representation including compartments.")

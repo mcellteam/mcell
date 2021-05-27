@@ -61,8 +61,12 @@ class PythonExportContext;
       birthday = birthday_; \
       flags = flags_; \
       unimol_rx_time = unimol_rx_time_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    ChkptSurfMol(DefaultCtorArgType) : \
+      GenChkptSurfMol(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenChkptSurfMol: public BaseChkptMol {
@@ -76,11 +80,16 @@ public:
       const double unimol_rx_time_ = FLT_UNSET 
   )  : BaseChkptMol(id_,species_,diffusion_time_,birthday_,flags_,unimol_rx_time_)  {
   }
+  GenChkptSurfMol() : BaseChkptMol(DefaultCtorArgType()) {
+  }
+  GenChkptSurfMol(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  ChkptSurfMol copy_chkpt_surf_mol() const;
   virtual bool __eq__(const ChkptSurfMol& other) const;
   virtual bool eq_nonarray_attributes(const ChkptSurfMol& other, const bool ignore_name = false) const;
   bool operator == (const ChkptSurfMol& other) const { return __eq__(other);}

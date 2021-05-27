@@ -146,7 +146,7 @@ void Instantiation::convert_single_seed_species_to_release_site(
     const BNG::SeedSpecies& bng_ss,
     std::shared_ptr<Region> default_release_region) {
 
-  auto rel_site = make_shared<API::ReleaseSite>();
+  auto rel_site = make_shared<API::ReleaseSite>(DefaultCtorArgType());
 
   // we need to create API representation for the cplx instance we got
   rel_site->complex =

@@ -45,11 +45,18 @@ class PythonExportContext;
       release_sites = release_sites_; \
       geometry_objects = geometry_objects_; \
       checkpointed_molecules = checkpointed_molecules_; \
+    } \
+    Instantiation(DefaultCtorArgType){ \
     }
 
 class GenInstantiation: public BaseExportClass {
 public:
+  GenInstantiation() {
+  }
+  GenInstantiation(DefaultCtorArgType) {
+  }
   virtual ~GenInstantiation() {}
+  Instantiation copy_instantiation() const;
   virtual bool __eq__(const Instantiation& other) const;
   virtual bool eq_nonarray_attributes(const Instantiation& other, const bool ignore_name = false) const;
   bool operator == (const Instantiation& other) const { return __eq__(other);}

@@ -50,6 +50,19 @@ void GenInitialSurfaceRelease::set_all_attributes_as_default_or_unset() {
   density = FLT_UNSET;
 }
 
+InitialSurfaceRelease GenInitialSurfaceRelease::copy_initial_surface_release() const {
+  if (initialized) {
+    throw RuntimeError("Object of class InitialSurfaceRelease cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  InitialSurfaceRelease res = InitialSurfaceRelease(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.complex = complex;
+  res.number_to_release = number_to_release;
+  res.density = density;
+
+  return res;
+}
+
 bool GenInitialSurfaceRelease::__eq__(const InitialSurfaceRelease& other) const {
   return
     (
@@ -106,6 +119,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
           py::arg("density") = FLT_UNSET
       )
       .def("check_semantics", &InitialSurfaceRelease::check_semantics)
+      .def("__copy__", &InitialSurfaceRelease::copy_initial_surface_release)
       .def("__str__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &InitialSurfaceRelease::__eq__, py::arg("other"))
       .def("dump", &InitialSurfaceRelease::dump)

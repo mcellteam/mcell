@@ -31,7 +31,7 @@ namespace API {
 
 class Wall: public GenWall {
 public:
-  // using default ctor
+  WALL_CTOR_NOARGS()
 
   // -- overrides ---
   void set_is_movable(const bool new_is_movable_) override;

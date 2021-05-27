@@ -52,8 +52,12 @@ class PythonExportContext;
       birthday = birthday_; \
       flags = flags_; \
       unimol_rx_time = unimol_rx_time_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    ChkptVolMol(DefaultCtorArgType) : \
+      GenChkptVolMol(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenChkptVolMol: public BaseChkptMol {
@@ -67,11 +71,16 @@ public:
       const double unimol_rx_time_ = FLT_UNSET 
   )  : BaseChkptMol(id_,species_,diffusion_time_,birthday_,flags_,unimol_rx_time_)  {
   }
+  GenChkptVolMol() : BaseChkptMol(DefaultCtorArgType()) {
+  }
+  GenChkptVolMol(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  ChkptVolMol copy_chkpt_vol_mol() const;
   virtual bool __eq__(const ChkptVolMol& other) const;
   virtual bool eq_nonarray_attributes(const ChkptVolMol& other, const bool ignore_name = false) const;
   bool operator == (const ChkptVolMol& other) const { return __eq__(other);}

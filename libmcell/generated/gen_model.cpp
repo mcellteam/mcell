@@ -52,6 +52,24 @@
 namespace MCell {
 namespace API {
 
+Model GenModel::copy_model() const {
+  Model res = Model(DefaultCtorArgType());
+  res.config = config;
+  res.warnings = warnings;
+  res.notifications = notifications;
+  res.species = species;
+  res.reaction_rules = reaction_rules;
+  res.surface_classes = surface_classes;
+  res.elementary_molecule_types = elementary_molecule_types;
+  res.release_sites = release_sites;
+  res.geometry_objects = geometry_objects;
+  res.checkpointed_molecules = checkpointed_molecules;
+  res.viz_outputs = viz_outputs;
+  res.counts = counts;
+
+  return res;
+}
+
 bool GenModel::__eq__(const Model& other) const {
   return
     config == other.config &&
@@ -112,6 +130,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
           py::init<
           >()
       )
+      .def("__copy__", &Model::copy_model)
       .def("__str__", &Model::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Model::__eq__, py::arg("other"))
       .def("initialize", &Model::initialize, py::arg("print_copyright") = true, "Initializes model, initialization blocks most of changes to \ncontained components. \n\n- print_copyright: Prints information about MCell.\n\n")

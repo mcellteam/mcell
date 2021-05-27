@@ -71,6 +71,24 @@ void GenSurfaceRegion::set_all_attributes_as_default_or_unset() {
   right_node = nullptr;
 }
 
+SurfaceRegion GenSurfaceRegion::copy_surface_region() const {
+  if (initialized) {
+    throw RuntimeError("Object of class SurfaceRegion cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  SurfaceRegion res = SurfaceRegion(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.wall_indices = wall_indices;
+  res.surface_class = surface_class;
+  res.initial_surface_releases = initial_surface_releases;
+  res.initial_color = initial_color;
+  res.node_type = node_type;
+  res.left_node = left_node;
+  res.right_node = right_node;
+
+  return res;
+}
+
 bool GenSurfaceRegion::__eq__(const SurfaceRegion& other) const {
   return
     name == other.name &&
@@ -212,6 +230,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
           py::arg("right_node") = nullptr
       )
       .def("check_semantics", &SurfaceRegion::check_semantics)
+      .def("__copy__", &SurfaceRegion::copy_surface_region)
       .def("__str__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
       .def("dump", &SurfaceRegion::dump)

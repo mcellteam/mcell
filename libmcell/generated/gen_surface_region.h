@@ -57,8 +57,12 @@ class PythonExportContext;
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    SurfaceRegion(DefaultCtorArgType) : \
+      GenSurfaceRegion(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenSurfaceRegion: public Region {
@@ -69,11 +73,14 @@ public:
       std::shared_ptr<Region> right_node_ = nullptr 
   )  : Region(node_type_,left_node_,right_node_)  {
   }
+  GenSurfaceRegion(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  SurfaceRegion copy_surface_region() const;
   virtual bool __eq__(const SurfaceRegion& other) const;
   virtual bool eq_nonarray_attributes(const SurfaceRegion& other, const bool ignore_name = false) const;
   bool operator == (const SurfaceRegion& other) const { return __eq__(other);}

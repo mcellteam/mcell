@@ -31,6 +31,14 @@
 namespace MCell {
 namespace API {
 
+Observables GenObservables::copy_observables() const {
+  Observables res = Observables(DefaultCtorArgType());
+  res.viz_outputs = viz_outputs;
+  res.counts = counts;
+
+  return res;
+}
+
 bool GenObservables::__eq__(const Observables& other) const {
   return
     vec_ptr_eq(viz_outputs, other.viz_outputs) &&
@@ -61,6 +69,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
           py::arg("viz_outputs") = std::vector<std::shared_ptr<VizOutput>>(),
           py::arg("counts") = std::vector<std::shared_ptr<Count>>()
       )
+      .def("__copy__", &Observables::copy_observables)
       .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Observables::__eq__, py::arg("other"))
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"), "Adds a reference to the viz_output object to the list of visualization output specifications.\n- viz_output\n")

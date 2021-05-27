@@ -42,6 +42,11 @@ public:
     world(nullptr) {
   }
 
+  Introspection(DefaultCtorArgType) :
+    model_inst(nullptr),
+    world(nullptr) {
+  }
+
   void initialize_introspection(Model* model_);
 
   std::vector<int> get_molecule_ids(std::shared_ptr<Complex> pattern = nullptr) override;

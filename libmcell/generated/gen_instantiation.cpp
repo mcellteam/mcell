@@ -33,6 +33,15 @@
 namespace MCell {
 namespace API {
 
+Instantiation GenInstantiation::copy_instantiation() const {
+  Instantiation res = Instantiation(DefaultCtorArgType());
+  res.release_sites = release_sites;
+  res.geometry_objects = geometry_objects;
+  res.checkpointed_molecules = checkpointed_molecules;
+
+  return res;
+}
+
 bool GenInstantiation::__eq__(const Instantiation& other) const {
   return
     vec_ptr_eq(release_sites, other.release_sites) &&
@@ -68,6 +77,7 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
           py::arg("geometry_objects") = std::vector<std::shared_ptr<GeometryObject>>(),
           py::arg("checkpointed_molecules") = std::vector<std::shared_ptr<BaseChkptMol>>()
       )
+      .def("__copy__", &Instantiation::copy_instantiation)
       .def("__str__", &Instantiation::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Instantiation::__eq__, py::arg("other"))
       .def("add_release_site", &Instantiation::add_release_site, py::arg("s"), "Adds a reference to the release site s to the list of release sites.\n- s\n")

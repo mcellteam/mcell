@@ -42,17 +42,26 @@ class PythonExportContext;
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Region(DefaultCtorArgType) : \
+      GenRegion(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenRegion: public BaseDataClass {
 public:
+  GenRegion() {
+  }
+  GenRegion(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Region copy_region() const;
   virtual bool __eq__(const Region& other) const;
   virtual bool eq_nonarray_attributes(const Region& other, const bool ignore_name = false) const;
   bool operator == (const Region& other) const { return __eq__(other);}

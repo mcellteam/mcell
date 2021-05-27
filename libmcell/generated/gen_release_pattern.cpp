@@ -45,6 +45,21 @@ void GenReleasePattern::set_all_attributes_as_default_or_unset() {
   number_of_trains = 1;
 }
 
+ReleasePattern GenReleasePattern::copy_release_pattern() const {
+  if (initialized) {
+    throw RuntimeError("Object of class ReleasePattern cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  ReleasePattern res = ReleasePattern(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.release_interval = release_interval;
+  res.train_duration = train_duration;
+  res.train_interval = train_interval;
+  res.number_of_trains = number_of_trains;
+
+  return res;
+}
+
 bool GenReleasePattern::__eq__(const ReleasePattern& other) const {
   return
     name == other.name &&
@@ -91,6 +106,7 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
           py::arg("number_of_trains") = 1
       )
       .def("check_semantics", &ReleasePattern::check_semantics)
+      .def("__copy__", &ReleasePattern::copy_release_pattern)
       .def("__str__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleasePattern::__eq__, py::arg("other"))
       .def("dump", &ReleasePattern::dump)

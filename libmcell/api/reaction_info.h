@@ -51,6 +51,10 @@ public:
     pos2d = POS_INVALID;
   }
 
+  ReactionInfo(DefaultCtorArgType) {
+    // TODO: generate and call set_all_attributes_as_default_or_unset
+  }
+
   // extra information to be converted in Callbacks
   BNG::rxn_rule_id_t rxn_rule_id;
 

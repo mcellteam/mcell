@@ -54,6 +54,21 @@ void GenSurfaceClass::set_all_attributes_as_default_or_unset() {
   concentration = FLT_UNSET;
 }
 
+SurfaceClass GenSurfaceClass::copy_surface_class() const {
+  if (initialized) {
+    throw RuntimeError("Object of class SurfaceClass cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  SurfaceClass res = SurfaceClass(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.properties = properties;
+  res.type = type;
+  res.affected_complex_pattern = affected_complex_pattern;
+  res.concentration = concentration;
+
+  return res;
+}
+
 bool GenSurfaceClass::__eq__(const SurfaceClass& other) const {
   return
     name == other.name &&
@@ -120,6 +135,7 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
           py::arg("concentration") = FLT_UNSET
       )
       .def("check_semantics", &SurfaceClass::check_semantics)
+      .def("__copy__", &SurfaceClass::copy_surface_class)
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceClass::__eq__, py::arg("other"))
       .def("dump", &SurfaceClass::dump)

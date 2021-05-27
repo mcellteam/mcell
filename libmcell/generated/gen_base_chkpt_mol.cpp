@@ -65,6 +65,22 @@ void GenBaseChkptMol::set_all_attributes_as_default_or_unset() {
   unimol_rx_time = FLT_UNSET;
 }
 
+BaseChkptMol GenBaseChkptMol::copy_base_chkpt_mol() const {
+  if (initialized) {
+    throw RuntimeError("Object of class BaseChkptMol cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  BaseChkptMol res = BaseChkptMol(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.id = id;
+  res.species = species;
+  res.diffusion_time = diffusion_time;
+  res.birthday = birthday;
+  res.flags = flags;
+  res.unimol_rx_time = unimol_rx_time;
+
+  return res;
+}
+
 bool GenBaseChkptMol::__eq__(const BaseChkptMol& other) const {
   return
     id == other.id &&
@@ -136,6 +152,7 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
           py::arg("unimol_rx_time") = FLT_UNSET
       )
       .def("check_semantics", &BaseChkptMol::check_semantics)
+      .def("__copy__", &BaseChkptMol::copy_base_chkpt_mol)
       .def("__str__", &BaseChkptMol::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &BaseChkptMol::__eq__, py::arg("other"))
       .def("dump", &BaseChkptMol::dump)

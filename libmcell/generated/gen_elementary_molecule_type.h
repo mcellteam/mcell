@@ -53,17 +53,26 @@ class PythonExportContext;
       custom_time_step = custom_time_step_; \
       custom_space_step = custom_space_step_; \
       target_only = target_only_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    ElementaryMoleculeType(DefaultCtorArgType) : \
+      GenElementaryMoleculeType(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenElementaryMoleculeType: public BaseDataClass {
 public:
+  GenElementaryMoleculeType() {
+  }
+  GenElementaryMoleculeType(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  ElementaryMoleculeType copy_elementary_molecule_type() const;
   virtual bool __eq__(const ElementaryMoleculeType& other) const;
   virtual bool eq_nonarray_attributes(const ElementaryMoleculeType& other, const bool ignore_name = false) const;
   bool operator == (const ElementaryMoleculeType& other) const { return __eq__(other);}

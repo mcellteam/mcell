@@ -164,6 +164,8 @@ CLASS_NAME_OBSERVABLES = 'Observables'
 CTOR_POSTPROCESS = 'postprocess_in_ctor'
 RET_CTOR_POSTPROCESS = 'void' 
 
+DEFAULT_CTOR_ARG_TYPE = 'DefaultCtorArgType'
+
 RET_TYPE_CHECK_SEMANTICS = 'void'
 CHECK_SEMANTICS = 'check_semantics'
 DECL_CHECK_SEMANTICS = CHECK_SEMANTICS + '() const'

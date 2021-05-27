@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_BASE_CHKPT_MOL_H
-#define API_BASE_CHKPT_MOL_H
+#ifndef LIBMCELL_API_BASE_CHKPT_MOL_H
+#define LIBMCELL_API_BASE_CHKPT_MOL_H
 
 #include "generated/gen_base_chkpt_mol.h"
 #include "api/api_common.h"
@@ -46,6 +46,8 @@ namespace API {
 class BaseChkptMol: public GenBaseChkptMol {
 public:
   BASE_CHKPT_MOL_CTOR()
+  BaseChkptMol() {
+  }
 
   void postprocess_in_ctor() override {
     type = MoleculeType::UNSET;
@@ -66,4 +68,4 @@ public:
 } // namespace API
 } // namespace MCell
 
-#endif // API_BASE_CHKPT_MOL_H
+#endif // LIBMCELL_API_BASE_CHKPT_MOL_H

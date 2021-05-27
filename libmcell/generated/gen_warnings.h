@@ -38,17 +38,26 @@ class PythonExportContext;
     ) { \
       class_name = "Warnings"; \
       high_reaction_probability = high_reaction_probability_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Warnings(DefaultCtorArgType) : \
+      GenWarnings(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenWarnings: public BaseDataClass {
 public:
+  GenWarnings() {
+  }
+  GenWarnings(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Warnings copy_warnings() const;
   virtual bool __eq__(const Warnings& other) const;
   virtual bool eq_nonarray_attributes(const Warnings& other, const bool ignore_name = false) const;
   bool operator == (const Warnings& other) const { return __eq__(other);}

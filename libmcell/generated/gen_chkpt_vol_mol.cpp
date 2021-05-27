@@ -69,6 +69,23 @@ void GenChkptVolMol::set_all_attributes_as_default_or_unset() {
   unimol_rx_time = FLT_UNSET;
 }
 
+ChkptVolMol GenChkptVolMol::copy_chkpt_vol_mol() const {
+  if (initialized) {
+    throw RuntimeError("Object of class ChkptVolMol cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  ChkptVolMol res = ChkptVolMol(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.pos = pos;
+  res.id = id;
+  res.species = species;
+  res.diffusion_time = diffusion_time;
+  res.birthday = birthday;
+  res.flags = flags;
+  res.unimol_rx_time = unimol_rx_time;
+
+  return res;
+}
+
 bool GenChkptVolMol::__eq__(const ChkptVolMol& other) const {
   return
     pos == other.pos &&
@@ -145,6 +162,7 @@ py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
           py::arg("unimol_rx_time") = FLT_UNSET
       )
       .def("check_semantics", &ChkptVolMol::check_semantics)
+      .def("__copy__", &ChkptVolMol::copy_chkpt_vol_mol)
       .def("__str__", &ChkptVolMol::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ChkptVolMol::__eq__, py::arg("other"))
       .def("dump", &ChkptVolMol::dump)

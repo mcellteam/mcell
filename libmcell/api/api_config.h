@@ -24,8 +24,8 @@
 // an include collision and pybind11 includes it instead of some other file
 
 
-#ifndef API_CONFIG_H
-#define API_CONFIG_H
+#ifndef LIBMCELL_API_CONFIG_H
+#define LIBMCELL_API_CONFIG_H
 
 #include "generated/gen_config.h"
 #include "api/api_common.h"
@@ -55,4 +55,4 @@ public:
 } // namespace API
 } // namespace MCell
 
-#endif // API_CONFIG_H
+#endif // LIBMCELL_API_CONFIG_H

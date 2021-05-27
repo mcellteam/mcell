@@ -54,6 +54,26 @@ void GenSpecies::set_all_attributes_as_default_or_unset() {
   compartment_name = STR_UNSET;
 }
 
+Species GenSpecies::copy_species() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Species cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Species res = Species(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.diffusion_constant_2d = diffusion_constant_2d;
+  res.diffusion_constant_3d = diffusion_constant_3d;
+  res.custom_time_step = custom_time_step;
+  res.custom_space_step = custom_space_step;
+  res.target_only = target_only;
+  res.name = name;
+  res.elementary_molecules = elementary_molecules;
+  res.orientation = orientation;
+  res.compartment_name = compartment_name;
+
+  return res;
+}
+
 bool GenSpecies::__eq__(const Species& other) const {
   return
     name == other.name &&
@@ -123,6 +143,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::arg("compartment_name") = STR_UNSET
       )
       .def("check_semantics", &Species::check_semantics)
+      .def("__copy__", &Species::copy_species)
       .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Species::__eq__, py::arg("other"))
       .def("inst", &Species::inst, py::arg("orientation") = Orientation::DEFAULT, py::arg("compartment_name") = STR_UNSET, "Creates a copy of a Complex from this Species with specified orientation and compartment name. \n\n- orientation: Maximum one of orientation or compartment_name can be set, not both.\n\n- compartment_name: Maximum one of orientation or compartment_name can be set, not both.\n\n")

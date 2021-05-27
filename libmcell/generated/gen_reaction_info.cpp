@@ -31,6 +31,21 @@
 namespace MCell {
 namespace API {
 
+ReactionInfo GenReactionInfo::copy_reaction_info() const {
+  ReactionInfo res = ReactionInfo(DefaultCtorArgType());
+  res.type = type;
+  res.reactant_ids = reactant_ids;
+  res.product_ids = product_ids;
+  res.reaction_rule = reaction_rule;
+  res.time = time;
+  res.pos3d = pos3d;
+  res.geometry_object = geometry_object;
+  res.wall_index = wall_index;
+  res.pos2d = pos2d;
+
+  return res;
+}
+
 bool GenReactionInfo::__eq__(const ReactionInfo& other) const {
   return
     type == other.type &&
@@ -118,6 +133,7 @@ py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
           py::init<
           >()
       )
+      .def("__copy__", &ReactionInfo::copy_reaction_info)
       .def("__str__", &ReactionInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionInfo::__eq__, py::arg("other"))
       .def("dump", &ReactionInfo::dump)

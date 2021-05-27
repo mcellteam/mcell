@@ -39,17 +39,26 @@ class PythonExportContext;
       class_name = "WallWallHitInfo"; \
       wall1 = nullptr; \
       wall2 = nullptr; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    WallWallHitInfo(DefaultCtorArgType) : \
+      GenWallWallHitInfo(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenWallWallHitInfo: public BaseIntrospectionClass {
 public:
+  GenWallWallHitInfo() {
+  }
+  GenWallWallHitInfo(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  WallWallHitInfo copy_wall_wall_hit_info() const;
   virtual bool __eq__(const WallWallHitInfo& other) const;
   virtual bool eq_nonarray_attributes(const WallWallHitInfo& other, const bool ignore_name = false) const;
   bool operator == (const WallWallHitInfo& other) const { return __eq__(other);}

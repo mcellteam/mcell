@@ -38,14 +38,14 @@ class ChkptVolMol: public GenChkptVolMol {
 public:
   CHKPT_VOL_MOL_CTOR()
 
+  ChkptVolMol(
+    const MCell::Molecule& vm,
+    const IdSpeciesMap& id_species_map, const double time_unit,
+    const double length_unit);
+
   void postprocess_in_ctor() override {
     type = MoleculeType::VOLUME;
   }
-
-  ChkptVolMol(
-      const MCell::Molecule& vm,
-      const IdSpeciesMap& id_species_map, const double time_unit,
-      const double length_unit);
 
   virtual ~ChkptVolMol() {
   };

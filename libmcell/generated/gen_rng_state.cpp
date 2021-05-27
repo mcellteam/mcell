@@ -68,6 +68,23 @@ void GenRngState::set_all_attributes_as_default_or_unset() {
   rngblocks = 0;
 }
 
+RngState GenRngState::copy_rng_state() const {
+  if (initialized) {
+    throw RuntimeError("Object of class RngState cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  RngState res = RngState(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.randcnt = randcnt;
+  res.aa = aa;
+  res.bb = bb;
+  res.cc = cc;
+  res.randslr = randslr;
+  res.mm = mm;
+  res.rngblocks = rngblocks;
+
+  return res;
+}
+
 bool GenRngState::__eq__(const RngState& other) const {
   return
     randcnt == other.randcnt &&
@@ -124,6 +141,7 @@ py::class_<RngState> define_pybinding_RngState(py::module& m) {
           py::arg("rngblocks")
       )
       .def("check_semantics", &RngState::check_semantics)
+      .def("__copy__", &RngState::copy_rng_state)
       .def("__str__", &RngState::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &RngState::__eq__, py::arg("other"))
       .def("dump", &RngState::dump)

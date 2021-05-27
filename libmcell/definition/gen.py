@@ -77,6 +77,9 @@ def get_api_class_file_name_w_dir(class_name, extension):
 def get_api_class_file_name_w_work_dir(class_name, extension):
     return WORK_DIRECTORY + '/' + get_api_class_file_name(class_name, extension)
 
+def get_copy_function_name(class_name):
+    return 'copy_' + get_underscored(class_name)
+
 def is_yaml_list_type(t):
     return t.startswith(YAML_TYPE_LIST)
 
@@ -405,6 +408,26 @@ def write_ctor_decl(f, class_def, class_name, append_backslash, indent_and_fix_r
         f.write(') ')
     
 
+def needs_default_ctor(class_def, only_inherited):
+    
+    if KEY_ITEMS not in class_def:
+        return False
+    
+    items = class_def[KEY_ITEMS]
+    if only_inherited:
+        items = [ attr for attr in items if is_inherited(attr) ]
+        
+    if items:
+        all_attrs_initialized = True
+        for item in items:
+            if not KEY_DEFAULT in item:
+                 all_attrs_initialized = False
+                 
+        return not all_attrs_initialized
+    else:
+        return False
+        
+
 def write_ctor_define(f, class_def, class_name):
     with_args = True
     if KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] == BASE_INTROSPECTION_CLASS:
@@ -434,16 +457,30 @@ def write_ctor_define(f, class_def, class_name):
             f.write('      ' + attr_name + ' = ' + get_default_or_unset_value(items[i]) + '; \\\n')
             
     if not is_container_class_no_model(class_name):
-        f.write('      ' + CTOR_POSTPROCESS + '();\\\n')    
-        f.write('      ' + CHECK_SEMANTICS + '();\\\n')
-    f.write('    }\n\n')    
+        f.write('      ' + CTOR_POSTPROCESS + '(); \\\n')    
+        f.write('      ' + CHECK_SEMANTICS + '(); \\\n')
+    f.write('    } \\\n')
+    
+    # also generate empty ctor if needed
+    f.write('    ' + class_name + '(' + DEFAULT_CTOR_ARG_TYPE + ')')
+    
+    if has_single_superclass(class_def):
+        f.write(' : \\\n' 
+                '      ' + GEN_CLASS_PREFIX + class_name + '(' + DEFAULT_CTOR_ARG_TYPE + '()) ')
+        
+    f.write('{ \\\n')
+    
+    if has_single_superclass(class_def):
+        f.write('      ' + SET_ALL_DEFAULT_OR_UNSET_DECL + '; \\\n')
+    
+    f.write('    }\n\n');
     
     
 def write_ctor_for_superclass(f, class_def, class_name):
     write_ctor_decl(f, class_def, GEN_CLASS_PREFIX + class_name, append_backslash=False, indent_and_fix_rst_chars='  ', only_inherited=True)
     f.write(' {\n')
     f.write('  }\n')
-    
+
 
 def write_attr_with_get_set(f, class_def, attr):
     assert KEY_NAME in attr, KEY_NAME + " is not set in " + str(attr) 
@@ -598,9 +635,29 @@ def write_gen_class(f, class_def, class_name, decls):
     f.write( ' {\n')
     f.write('public:\n')
     
+    initialization_ctor_generated = False
     if has_superclass_other_than_base(class_def):
         write_ctor_for_superclass(f, class_def, class_name)
+        initialization_ctor_generated = True
     
+    # we need a 'default' ctor (with custom arg type) all the time,
+    # however, there may not be a default ctor with no argument so we must define it 
+    # as well
+    if needs_default_ctor(class_def, only_inherited=True) or not initialization_ctor_generated:
+        
+        f.write('  ' + GEN_CLASS_PREFIX + class_name + '() ')
+        
+        if has_superclass_other_than_base(class_def):
+            superclass_name = class_def[KEY_SUPERCLASS]
+            f.write(': ' + superclass_name + '(' + DEFAULT_CTOR_ARG_TYPE + '()) {\n')
+        else:
+            f.write('{\n')
+        f.write('  }\n')
+    
+    f.write('  ' + GEN_CLASS_PREFIX + class_name + '(' + DEFAULT_CTOR_ARG_TYPE + ') {\n')
+    f.write('  }\n')
+
+
     if not has_single_superclass(class_def):
         # generate virtual destructor
         f.write('  virtual ~' + gen_class_name + '() {}\n')
@@ -611,6 +668,7 @@ def write_gen_class(f, class_def, class_name, decls):
         f.write('  void ' + DECL_SET_INITIALIZED + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  ' +  RET_TYPE_SET_ALL_DEFAULT_OR_UNSET + ' ' + SET_ALL_DEFAULT_OR_UNSET_DECL + ' ' + KEYWORD_OVERRIDE + ';\n\n')
 
+    f.write('  ' + class_name + ' ' + get_copy_function_name(class_name) + '() const;\n')
     f.write('  virtual bool __eq__(const ' + class_name + '& other) const;\n')
     f.write('  virtual bool eq_nonarray_attributes(const ' + class_name + '& other, const bool ignore_name = false) const;\n')
     f.write('  bool operator == (const ' + class_name + '& other) const { return __eq__(other);}\n')
@@ -1187,6 +1245,32 @@ def write_operator_equal_body(f, class_name, class_def, skip_arrays_and_name=Fal
         else: 
             f.write(';')
         f.write('\n')
+       
+       
+def write_copy_implementation(f, class_name, class_def):
+    f.write(class_name + ' ' + GEN_CLASS_PREFIX + class_name + '::' + get_copy_function_name(class_name) + '() const {\n')
+    
+    if has_single_superclass(class_def):
+        f.write('  if (initialized) {\n')
+        f.write('    throw RuntimeError("Object of class ' + class_name + 
+                ' cannot be cloned with \'copy\' after this object was used in model initialization.");\n');
+        f.write('  }\n')
+        
+    # for some reason res(DefaultCtorArgType()) is not accepted by gcc...
+    f.write('  ' + class_name + ' res = ' + class_name + '(' + DEFAULT_CTOR_ARG_TYPE + '());\n')
+
+    items = class_def[KEY_ITEMS]
+
+    if has_single_superclass(class_def):
+        f.write('  res.' + CLASS_NAME_ATTR + ' = ' + CLASS_NAME_ATTR + ';\n')
+    
+    for item in items:
+        name = item[KEY_NAME]
+        f.write('  res.' + name + ' = ' + name + ';\n')
+
+    f.write('\n')
+    f.write('  return res;\n')
+    f.write('}\n\n')
         
         
 def write_operator_equal_implementation(f, class_name, class_def):
@@ -1378,6 +1462,7 @@ def write_pybind11_bindings(f, class_name, class_def):
         if has_single_superclass(class_def):
             f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')
         
+        f.write('      .def("__copy__", &' + class_name + '::' + get_copy_function_name(class_name) + ')\n')
         f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         # keeping the default __repr__ implementation for better error messages 
         #f.write('      .def("__repr__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
@@ -1468,6 +1553,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
                 write_set_initialized_implemetation(f, class_name, items)
                 write_set_all_default_or_unset(f, class_name, class_def)
     
+            write_copy_implementation(f, class_name, class_def)
             write_operator_equal_implementation(f, class_name, class_def)
             write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         

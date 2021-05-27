@@ -45,6 +45,21 @@ void GenColor::set_all_attributes_as_default_or_unset() {
   rgba = 0;
 }
 
+Color GenColor::copy_color() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Color cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Color res = Color(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.red = red;
+  res.green = green;
+  res.blue = blue;
+  res.alpha = alpha;
+  res.rgba = rgba;
+
+  return res;
+}
+
 bool GenColor::__eq__(const Color& other) const {
   return
     red == other.red &&
@@ -91,6 +106,7 @@ py::class_<Color> define_pybinding_Color(py::module& m) {
           py::arg("rgba") = 0
       )
       .def("check_semantics", &Color::check_semantics)
+      .def("__copy__", &Color::copy_color)
       .def("__str__", &Color::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Color::__eq__, py::arg("other"))
       .def("dump", &Color::dump)

@@ -44,17 +44,26 @@ class PythonExportContext;
       rxn_and_species_report = rxn_and_species_report_; \
       simulation_stats_every_n_iterations = simulation_stats_every_n_iterations_; \
       rxn_probability_changed = rxn_probability_changed_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Notifications(DefaultCtorArgType) : \
+      GenNotifications(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenNotifications: public BaseDataClass {
 public:
+  GenNotifications() {
+  }
+  GenNotifications(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Notifications copy_notifications() const;
   virtual bool __eq__(const Notifications& other) const;
   virtual bool eq_nonarray_attributes(const Notifications& other, const bool ignore_name = false) const;
   bool operator == (const Notifications& other) const { return __eq__(other);}

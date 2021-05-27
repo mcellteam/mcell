@@ -41,17 +41,26 @@ class PythonExportContext;
       class_name = "MoleculeReleaseInfo"; \
       complex = complex_; \
       location = location_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    MoleculeReleaseInfo(DefaultCtorArgType) : \
+      GenMoleculeReleaseInfo(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenMoleculeReleaseInfo: public BaseDataClass {
 public:
+  GenMoleculeReleaseInfo() {
+  }
+  GenMoleculeReleaseInfo(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  MoleculeReleaseInfo copy_molecule_release_info() const;
   virtual bool __eq__(const MoleculeReleaseInfo& other) const;
   virtual bool eq_nonarray_attributes(const MoleculeReleaseInfo& other, const bool ignore_name = false) const;
   bool operator == (const MoleculeReleaseInfo& other) const { return __eq__(other);}

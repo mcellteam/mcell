@@ -67,8 +67,12 @@ class PythonExportContext;
       left_node = left_node_; \
       right_node = right_node_; \
       initial_reactions_count = initial_reactions_count_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Count(DefaultCtorArgType) : \
+      GenCount(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenCount: public CountTerm {
@@ -84,11 +88,14 @@ public:
       const uint64_t initial_reactions_count_ = 0 
   )  : CountTerm(species_pattern_,molecules_pattern_,reaction_rule_,region_,node_type_,left_node_,right_node_,initial_reactions_count_)  {
   }
+  GenCount(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Count copy_count() const;
   virtual bool __eq__(const Count& other) const;
   virtual bool eq_nonarray_attributes(const Count& other, const bool ignore_name = false) const;
   bool operator == (const Count& other) const { return __eq__(other);}

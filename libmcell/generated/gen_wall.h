@@ -43,17 +43,26 @@ class PythonExportContext;
       area = FLT_UNSET; \
       unit_normal = VEC3_UNSET; \
       is_movable = true; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Wall(DefaultCtorArgType) : \
+      GenWall(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenWall: public BaseIntrospectionClass {
 public:
+  GenWall() {
+  }
+  GenWall(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Wall copy_wall() const;
   virtual bool __eq__(const Wall& other) const;
   virtual bool eq_nonarray_attributes(const Wall& other, const bool ignore_name = false) const;
   bool operator == (const Wall& other) const { return __eq__(other);}

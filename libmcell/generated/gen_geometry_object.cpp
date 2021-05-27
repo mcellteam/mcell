@@ -80,6 +80,28 @@ void GenGeometryObject::set_all_attributes_as_default_or_unset() {
   right_node = nullptr;
 }
 
+GeometryObject GenGeometryObject::copy_geometry_object() const {
+  if (initialized) {
+    throw RuntimeError("Object of class GeometryObject cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  GeometryObject res = GeometryObject(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.vertex_list = vertex_list;
+  res.wall_list = wall_list;
+  res.is_bngl_compartment = is_bngl_compartment;
+  res.surface_compartment_name = surface_compartment_name;
+  res.surface_regions = surface_regions;
+  res.surface_class = surface_class;
+  res.initial_surface_releases = initial_surface_releases;
+  res.initial_color = initial_color;
+  res.node_type = node_type;
+  res.left_node = left_node;
+  res.right_node = right_node;
+
+  return res;
+}
+
 bool GenGeometryObject::__eq__(const GeometryObject& other) const {
   return
     name == other.name &&
@@ -241,6 +263,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
           py::arg("right_node") = nullptr
       )
       .def("check_semantics", &GeometryObject::check_semantics)
+      .def("__copy__", &GeometryObject::copy_geometry_object)
       .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &GeometryObject::__eq__, py::arg("other"))
       .def("translate", &GeometryObject::translate, py::arg("move"), "Move object by a specified vector. \nCannot be called after model was initialized.\n\n- move: 3D vector [x, y, z] that will be added to each vertex of this object.\n\n")

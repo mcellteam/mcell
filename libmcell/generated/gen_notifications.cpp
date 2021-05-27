@@ -44,6 +44,20 @@ void GenNotifications::set_all_attributes_as_default_or_unset() {
   rxn_probability_changed = true;
 }
 
+Notifications GenNotifications::copy_notifications() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Notifications cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Notifications res = Notifications(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.bng_verbosity_level = bng_verbosity_level;
+  res.rxn_and_species_report = rxn_and_species_report;
+  res.simulation_stats_every_n_iterations = simulation_stats_every_n_iterations;
+  res.rxn_probability_changed = rxn_probability_changed;
+
+  return res;
+}
+
 bool GenNotifications::__eq__(const Notifications& other) const {
   return
     bng_verbosity_level == other.bng_verbosity_level &&
@@ -85,6 +99,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
           py::arg("rxn_probability_changed") = true
       )
       .def("check_semantics", &Notifications::check_semantics)
+      .def("__copy__", &Notifications::copy_notifications)
       .def("__str__", &Notifications::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Notifications::__eq__, py::arg("other"))
       .def("dump", &Notifications::dump)

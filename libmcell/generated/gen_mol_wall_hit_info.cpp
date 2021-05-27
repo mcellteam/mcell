@@ -30,6 +30,19 @@
 namespace MCell {
 namespace API {
 
+MolWallHitInfo GenMolWallHitInfo::copy_mol_wall_hit_info() const {
+  MolWallHitInfo res = MolWallHitInfo(DefaultCtorArgType());
+  res.molecule_id = molecule_id;
+  res.geometry_object = geometry_object;
+  res.wall_index = wall_index;
+  res.time = time;
+  res.pos3d = pos3d;
+  res.time_before_hit = time_before_hit;
+  res.pos3d_before_hit = pos3d_before_hit;
+
+  return res;
+}
+
 bool GenMolWallHitInfo::__eq__(const MolWallHitInfo& other) const {
   return
     molecule_id == other.molecule_id &&
@@ -91,6 +104,7 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
           py::init<
           >()
       )
+      .def("__copy__", &MolWallHitInfo::copy_mol_wall_hit_info)
       .def("__str__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &MolWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &MolWallHitInfo::dump)

@@ -264,6 +264,16 @@ static inline std::shared_ptr<T> vec_find_by_name(
 }
 
 
+// we need to distinguish generated ctors that have all default arguments
+// such as Count(...) from internal default ctors required e.g. for object copy,
+// for this reason we introduce this special type
+struct DefaultCtorArgType {
+  DefaultCtorArgType() :
+    unused(0) {
+  }
+  int unused;
+};
+
 } // namespace API
 } // namespace MCell
 

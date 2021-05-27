@@ -70,6 +70,24 @@ void GenCountTerm::set_all_attributes_as_default_or_unset() {
   initial_reactions_count = 0;
 }
 
+CountTerm GenCountTerm::copy_count_term() const {
+  if (initialized) {
+    throw RuntimeError("Object of class CountTerm cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  CountTerm res = CountTerm(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.species_pattern = species_pattern;
+  res.molecules_pattern = molecules_pattern;
+  res.reaction_rule = reaction_rule;
+  res.region = region;
+  res.node_type = node_type;
+  res.left_node = left_node;
+  res.right_node = right_node;
+  res.initial_reactions_count = initial_reactions_count;
+
+  return res;
+}
+
 bool GenCountTerm::__eq__(const CountTerm& other) const {
   return
     (
@@ -251,6 +269,7 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
           py::arg("initial_reactions_count") = 0
       )
       .def("check_semantics", &CountTerm::check_semantics)
+      .def("__copy__", &CountTerm::copy_count_term)
       .def("__str__", &CountTerm::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &CountTerm::__eq__, py::arg("other"))
       .def("__add__", &CountTerm::__add__, py::arg("op2"), "Create a new CountTerm that represents addition of two count terms.\nUsually used through operator '+' such as in ct1 + ct2.  \n\n- op2\n")

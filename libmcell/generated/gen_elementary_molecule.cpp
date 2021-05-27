@@ -52,6 +52,19 @@ void GenElementaryMolecule::set_all_attributes_as_default_or_unset() {
   compartment_name = STR_UNSET;
 }
 
+ElementaryMolecule GenElementaryMolecule::copy_elementary_molecule() const {
+  if (initialized) {
+    throw RuntimeError("Object of class ElementaryMolecule cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  ElementaryMolecule res = ElementaryMolecule(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.elementary_molecule_type = elementary_molecule_type;
+  res.components = components;
+  res.compartment_name = compartment_name;
+
+  return res;
+}
+
 bool GenElementaryMolecule::__eq__(const ElementaryMolecule& other) const {
   return
     (
@@ -108,6 +121,7 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
           py::arg("compartment_name") = STR_UNSET
       )
       .def("check_semantics", &ElementaryMolecule::check_semantics)
+      .def("__copy__", &ElementaryMolecule::copy_elementary_molecule)
       .def("__str__", &ElementaryMolecule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMolecule::__eq__, py::arg("other"))
       .def("to_bngl_str", &ElementaryMolecule::to_bngl_str, py::arg("with_compartment") = true, "Creates a string that corresponds to its BNGL representation\n- with_compartment: Include compartment name in the returned BNGL string.\n\n")

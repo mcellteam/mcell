@@ -66,17 +66,26 @@ class PythonExportContext;
       number_to_release = number_to_release_; \
       density = density_; \
       concentration = concentration_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    ReleaseSite(DefaultCtorArgType) : \
+      GenReleaseSite(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenReleaseSite: public BaseDataClass {
 public:
+  GenReleaseSite() {
+  }
+  GenReleaseSite(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  ReleaseSite copy_release_site() const;
   virtual bool __eq__(const ReleaseSite& other) const;
   virtual bool eq_nonarray_attributes(const ReleaseSite& other, const bool ignore_name = false) const;
   bool operator == (const ReleaseSite& other) const { return __eq__(other);}

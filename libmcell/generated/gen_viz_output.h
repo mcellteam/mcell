@@ -45,17 +45,26 @@ class PythonExportContext;
       species_list = species_list_; \
       mode = mode_; \
       every_n_timesteps = every_n_timesteps_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    VizOutput(DefaultCtorArgType) : \
+      GenVizOutput(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenVizOutput: public BaseDataClass {
 public:
+  GenVizOutput() {
+  }
+  GenVizOutput(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  VizOutput copy_viz_output() const;
   virtual bool __eq__(const VizOutput& other) const;
   virtual bool eq_nonarray_attributes(const VizOutput& other, const bool ignore_name = false) const;
   bool operator == (const VizOutput& other) const { return __eq__(other);}

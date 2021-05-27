@@ -170,7 +170,7 @@ std::shared_ptr<Wall> Introspection::get_wall(std::shared_ptr<GeometryObject> ob
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   const MCell::Wall& w = p.get_wall(object->get_partition_wall_index(wall_index));
 
-  auto res = make_shared<Wall>();
+  auto res = make_shared<Wall>(DefaultCtorArgType());
   res->geometry_object = object;
   res->wall_index = wall_index;
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {

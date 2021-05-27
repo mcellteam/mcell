@@ -34,6 +34,12 @@
 namespace MCell {
 namespace API {
 
+Introspection GenIntrospection::copy_introspection() const {
+  Introspection res = Introspection(DefaultCtorArgType());
+
+  return res;
+}
+
 bool GenIntrospection::__eq__(const Introspection& other) const {
   return
 true ;
@@ -56,6 +62,7 @@ py::class_<Introspection> define_pybinding_Introspection(py::module& m) {
           py::init<
           >()
       )
+      .def("__copy__", &Introspection::copy_introspection)
       .def("__str__", &Introspection::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Introspection::__eq__, py::arg("other"))
       .def("get_molecule_ids", &Introspection::get_molecule_ids, py::arg("pattern") = nullptr, "Returns a list of ids of molecules.\nIf the arguments pattern is not set, the list of all molecule ids is returned.  \nIf the argument pattern is set, the list of all molecule ids whose species match \nthe pattern is returned. \n\n- pattern: BNGL pattern to select molecules based on their species, might use compartments.\n\n")

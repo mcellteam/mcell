@@ -81,17 +81,26 @@ class PythonExportContext;
       initial_rng_state = initial_rng_state_; \
       append_to_count_output_data = append_to_count_output_data_; \
       continue_after_sigalrm = continue_after_sigalrm_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Config(DefaultCtorArgType) : \
+      GenConfig(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenConfig: public BaseDataClass {
 public:
+  GenConfig() {
+  }
+  GenConfig(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Config copy_config() const;
   virtual bool __eq__(const Config& other) const;
   virtual bool eq_nonarray_attributes(const Config& other, const bool ignore_name = false) const;
   bool operator == (const Config& other) const { return __eq__(other);}

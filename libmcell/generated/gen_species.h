@@ -57,8 +57,12 @@ class PythonExportContext;
       elementary_molecules = elementary_molecules_; \
       orientation = orientation_; \
       compartment_name = compartment_name_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Species(DefaultCtorArgType) : \
+      GenSpecies(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenSpecies: public Complex {
@@ -70,11 +74,14 @@ public:
       const std::string& compartment_name_ = STR_UNSET 
   )  : Complex(name_,elementary_molecules_,orientation_,compartment_name_)  {
   }
+  GenSpecies(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Species copy_species() const;
   virtual bool __eq__(const Species& other) const;
   virtual bool eq_nonarray_attributes(const Species& other, const bool ignore_name = false) const;
   bool operator == (const Species& other) const { return __eq__(other);}

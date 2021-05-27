@@ -41,11 +41,18 @@ class PythonExportContext;
     ) { \
       viz_outputs = viz_outputs_; \
       counts = counts_; \
+    } \
+    Observables(DefaultCtorArgType){ \
     }
 
 class GenObservables: public BaseExportClass {
 public:
+  GenObservables() {
+  }
+  GenObservables(DefaultCtorArgType) {
+  }
   virtual ~GenObservables() {}
+  Observables copy_observables() const;
   virtual bool __eq__(const Observables& other) const;
   virtual bool eq_nonarray_attributes(const Observables& other, const bool ignore_name = false) const;
   bool operator == (const Observables& other) const { return __eq__(other);}

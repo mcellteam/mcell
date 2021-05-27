@@ -66,6 +66,38 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   continue_after_sigalrm = false;
 }
 
+Config GenConfig::copy_config() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Config cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Config res = Config(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.seed = seed;
+  res.time_step = time_step;
+  res.surface_grid_density = surface_grid_density;
+  res.interaction_radius = interaction_radius;
+  res.intermembrane_interaction_radius = intermembrane_interaction_radius;
+  res.vacancy_search_distance = vacancy_search_distance;
+  res.center_molecules_on_grid = center_molecules_on_grid;
+  res.partition_dimension = partition_dimension;
+  res.initial_partition_origin = initial_partition_origin;
+  res.subpartition_dimension = subpartition_dimension;
+  res.total_iterations = total_iterations;
+  res.check_overlapped_walls = check_overlapped_walls;
+  res.reaction_class_cleanup_periodicity = reaction_class_cleanup_periodicity;
+  res.species_cleanup_periodicity = species_cleanup_periodicity;
+  res.molecules_order_random_shuffle_periodicity = molecules_order_random_shuffle_periodicity;
+  res.sort_molecules = sort_molecules;
+  res.memory_limit_gb = memory_limit_gb;
+  res.initial_iteration = initial_iteration;
+  res.initial_time = initial_time;
+  res.initial_rng_state = initial_rng_state;
+  res.append_to_count_output_data = append_to_count_output_data;
+  res.continue_after_sigalrm = continue_after_sigalrm;
+
+  return res;
+}
+
 bool GenConfig::__eq__(const Config& other) const {
   return
     seed == other.seed &&
@@ -217,6 +249,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("continue_after_sigalrm") = false
       )
       .def("check_semantics", &Config::check_semantics)
+      .def("__copy__", &Config::copy_config)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Config::__eq__, py::arg("other"))
       .def("dump", &Config::dump)

@@ -50,17 +50,26 @@ class PythonExportContext;
       randslr = randslr_; \
       mm = mm_; \
       rngblocks = rngblocks_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    RngState(DefaultCtorArgType) : \
+      GenRngState(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenRngState: public BaseDataClass {
 public:
+  GenRngState() {
+  }
+  GenRngState(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  RngState copy_rng_state() const;
   virtual bool __eq__(const RngState& other) const;
   virtual bool eq_nonarray_attributes(const RngState& other, const bool ignore_name = false) const;
   bool operator == (const RngState& other) const { return __eq__(other);}

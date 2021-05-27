@@ -50,6 +50,19 @@ void GenRegion::set_all_attributes_as_default_or_unset() {
   right_node = nullptr;
 }
 
+Region GenRegion::copy_region() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Region cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Region res = Region(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.node_type = node_type;
+  res.left_node = left_node;
+  res.right_node = right_node;
+
+  return res;
+}
+
 bool GenRegion::__eq__(const Region& other) const {
   return
     node_type == other.node_type &&
@@ -126,6 +139,7 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
           py::arg("right_node") = nullptr
       )
       .def("check_semantics", &Region::check_semantics)
+      .def("__copy__", &Region::copy_region)
       .def("__str__", &Region::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Region::__eq__, py::arg("other"))
       .def("__add__", &Region::__add__, py::arg("other"), "Computes union of two regions, use with Python operator '+'.\n- other\n")

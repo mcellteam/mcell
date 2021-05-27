@@ -70,6 +70,29 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   concentration = FLT_UNSET;
 }
 
+ReleaseSite GenReleaseSite::copy_release_site() const {
+  if (initialized) {
+    throw RuntimeError("Object of class ReleaseSite cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  ReleaseSite res = ReleaseSite(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.name = name;
+  res.complex = complex;
+  res.molecule_list = molecule_list;
+  res.release_time = release_time;
+  res.release_pattern = release_pattern;
+  res.shape = shape;
+  res.region = region;
+  res.location = location;
+  res.site_diameter = site_diameter;
+  res.site_radius = site_radius;
+  res.number_to_release = number_to_release;
+  res.density = density;
+  res.concentration = concentration;
+
+  return res;
+}
+
 bool GenReleaseSite::__eq__(const ReleaseSite& other) const {
   return
     name == other.name &&
@@ -216,6 +239,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("concentration") = FLT_UNSET
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
+      .def("__copy__", &ReleaseSite::copy_release_site)
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleaseSite::__eq__, py::arg("other"))
       .def("dump", &ReleaseSite::dump)

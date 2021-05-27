@@ -47,11 +47,18 @@ class PythonExportContext;
       reaction_rules = reaction_rules_; \
       surface_classes = surface_classes_; \
       elementary_molecule_types = elementary_molecule_types_; \
+    } \
+    Subsystem(DefaultCtorArgType){ \
     }
 
 class GenSubsystem: public BaseExportClass {
 public:
+  GenSubsystem() {
+  }
+  GenSubsystem(DefaultCtorArgType) {
+  }
   virtual ~GenSubsystem() {}
+  Subsystem copy_subsystem() const;
   virtual bool __eq__(const Subsystem& other) const;
   virtual bool eq_nonarray_attributes(const Subsystem& other, const bool ignore_name = false) const;
   bool operator == (const Subsystem& other) const { return __eq__(other);}

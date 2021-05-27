@@ -46,17 +46,26 @@ class PythonExportContext;
       elementary_molecules = elementary_molecules_; \
       orientation = orientation_; \
       compartment_name = compartment_name_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    Complex(DefaultCtorArgType) : \
+      GenComplex(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenComplex: public BaseDataClass {
 public:
+  GenComplex() {
+  }
+  GenComplex(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  Complex copy_complex() const;
   virtual bool __eq__(const Complex& other) const;
   virtual bool eq_nonarray_attributes(const Complex& other, const bool ignore_name = false) const;
   bool operator == (const Complex& other) const { return __eq__(other);}

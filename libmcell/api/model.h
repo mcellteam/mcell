@@ -51,6 +51,8 @@ public:
 
   Model() : initialized(false), world(nullptr), callbacks(this) {
   }
+  Model(DefaultCtorArgType) : initialized(false), world(nullptr), callbacks(this) {
+  }
   virtual ~Model();
 
   // from generated template

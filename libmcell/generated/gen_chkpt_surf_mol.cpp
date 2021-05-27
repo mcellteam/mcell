@@ -89,6 +89,27 @@ void GenChkptSurfMol::set_all_attributes_as_default_or_unset() {
   unimol_rx_time = FLT_UNSET;
 }
 
+ChkptSurfMol GenChkptSurfMol::copy_chkpt_surf_mol() const {
+  if (initialized) {
+    throw RuntimeError("Object of class ChkptSurfMol cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  ChkptSurfMol res = ChkptSurfMol(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.pos = pos;
+  res.orientation = orientation;
+  res.geometry_object = geometry_object;
+  res.wall_index = wall_index;
+  res.grid_tile_index = grid_tile_index;
+  res.id = id;
+  res.species = species;
+  res.diffusion_time = diffusion_time;
+  res.birthday = birthday;
+  res.flags = flags;
+  res.unimol_rx_time = unimol_rx_time;
+
+  return res;
+}
+
 bool GenChkptSurfMol::__eq__(const ChkptSurfMol& other) const {
   return
     pos == other.pos &&
@@ -205,6 +226,7 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
           py::arg("unimol_rx_time") = FLT_UNSET
       )
       .def("check_semantics", &ChkptSurfMol::check_semantics)
+      .def("__copy__", &ChkptSurfMol::copy_chkpt_surf_mol)
       .def("__str__", &ChkptSurfMol::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ChkptSurfMol::__eq__, py::arg("other"))
       .def("dump", &ChkptSurfMol::dump)

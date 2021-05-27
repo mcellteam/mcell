@@ -50,6 +50,19 @@ void GenComponent::set_all_attributes_as_default_or_unset() {
   bond = BOND_UNBOUND;
 }
 
+Component GenComponent::copy_component() const {
+  if (initialized) {
+    throw RuntimeError("Object of class Component cannot be cloned with 'copy' after this object was used in model initialization.");
+  }
+  Component res = Component(DefaultCtorArgType());
+  res.class_name = class_name;
+  res.component_type = component_type;
+  res.state = state;
+  res.bond = bond;
+
+  return res;
+}
+
 bool GenComponent::__eq__(const Component& other) const {
   return
     (
@@ -106,6 +119,7 @@ py::class_<Component> define_pybinding_Component(py::module& m) {
           py::arg("bond") = BOND_UNBOUND
       )
       .def("check_semantics", &Component::check_semantics)
+      .def("__copy__", &Component::copy_component)
       .def("__str__", &Component::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Component::__eq__, py::arg("other"))
       .def("to_bngl_str", &Component::to_bngl_str, "Creates a string that corresponds to this component's BNGL representation.")

@@ -46,17 +46,26 @@ class PythonExportContext;
       train_duration = train_duration_; \
       train_interval = train_interval_; \
       number_of_trains = number_of_trains_; \
-      postprocess_in_ctor();\
-      check_semantics();\
+      postprocess_in_ctor(); \
+      check_semantics(); \
+    } \
+    ReleasePattern(DefaultCtorArgType) : \
+      GenReleasePattern(DefaultCtorArgType()) { \
+      set_all_attributes_as_default_or_unset(); \
     }
 
 class GenReleasePattern: public BaseDataClass {
 public:
+  GenReleasePattern() {
+  }
+  GenReleasePattern(DefaultCtorArgType) {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
+  ReleasePattern copy_release_pattern() const;
   virtual bool __eq__(const ReleasePattern& other) const;
   virtual bool eq_nonarray_attributes(const ReleasePattern& other, const bool ignore_name = false) const;
   bool operator == (const ReleasePattern& other) const { return __eq__(other);}
