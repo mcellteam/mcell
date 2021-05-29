@@ -139,12 +139,11 @@ bool GenModel::eq_nonarray_attributes(const Model& other, const bool ignore_name
 }
 
 std::string GenModel::to_str(const bool all_details, const std::string ind) const {
-  #if 0 // not generated correctly yet
   std::stringstream ss;
   ss << "Model" << ": " <<
-      "\n" << ind + "  " << "config=" << "(" << ((config != nullptr) ? config->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "config=" << "(" << config.to_str(all_details, ind + "  ") << ")" << ", " << "\n" << ind + "  " <<
+      "warnings=" << "(" << warnings.to_str(all_details, ind + "  ") << ")" << ", " << "\n" << ind + "  " <<
+      "notifications=" << "(" << notifications.to_str(all_details, ind + "  ") << ")" << ", " << "\n" << ind + "  " <<
       "species=" << vec_ptr_to_str(species, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "reaction_rules=" << vec_ptr_to_str(reaction_rules, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "surface_classes=" << vec_ptr_to_str(surface_classes, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
@@ -155,9 +154,6 @@ std::string GenModel::to_str(const bool all_details, const std::string ind) cons
       "viz_outputs=" << vec_ptr_to_str(viz_outputs, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "counts=" << vec_ptr_to_str(counts, all_details, ind + "  ");
   return ss.str();
-  #else
-  return "";
-  #endif
 }
 
 py::class_<Model> define_pybinding_Model(py::module& m) {

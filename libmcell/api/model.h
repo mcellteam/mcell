@@ -129,10 +129,6 @@ public:
   void add_viz_output(std::shared_ptr<VizOutput> viz_output) override;
   void add_count(std::shared_ptr<Count> count) override;
 
-  // added manually
-  // shadows all inherited non-virtual to_str methods
-  std::string to_str(const bool all_details=false, const std::string ind="") const;
-
   // TODO: this belongs to Instantiation
   std::shared_ptr<GeometryObject> get_geometry_object_with_id(const geometry_object_id_t id);
 

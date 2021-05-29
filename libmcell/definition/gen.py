@@ -893,10 +893,6 @@ def write_check_semantics_implemetation(f, class_name, items):
 def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + ' {\n')
 
-    # TODO: config etc from Model
-    if class_name == CLASS_NAME_MODEL:
-        f.write('  #if 0 // not generated correctly yet\n')
-
     f.write('  std::stringstream ss;\n')
     if based_on_base_superclass:
         f.write('  ss << get_object_name()')
@@ -911,21 +907,25 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     num_attrs = len(items) 
     for i in range(num_attrs):
         name = items[i][KEY_NAME]
-        type = items[i][KEY_TYPE]
+        t = items[i][KEY_TYPE]
         
         print_nl = False
         starting_nl = '"' if last_print_nl else '"\\n" << ind + "  " << "'
        
-        if is_yaml_list_type(type):
-            underlying_type = get_first_inner_type(type)
+        if is_yaml_list_type(t):
+            underlying_type = get_first_inner_type(t)
             if is_yaml_ptr_type(underlying_type):
                 f.write('      ' + starting_nl + name + '=" << ' + VEC_PTR_TO_STR + '(' + name + ', all_details, ind + "  ")')
                 print_nl = True
             else:
                 f.write('      "' + name + '=" << ')
                 f.write(VEC_NONPTR_TO_STR + '(' + name + ', all_details, ind + "  ")')
-        elif not is_base_yaml_type(type) and type not in g_enums:
-            f.write('      ' + starting_nl + name + '=" << "(" << ((' + name + ' != nullptr) ? ' + name + '->to_str(all_details, ind + "  ") : "null" ) << ")"')
+        elif not is_base_yaml_type(t) and t not in g_enums:
+            if is_yaml_ptr_type(t):
+                f.write('      ' + starting_nl + name + '=" << "(" << ((' + name + ' != nullptr) ? ' + name + '->to_str(all_details, ind + "  ") : "null" ) << ")"')
+            else:
+                f.write('      ' + starting_nl + name + '=" << "(" << ' + name + '.to_str(all_details, ind + "  ") << ")"')
+                
             print_nl = True
         else:
             f.write('      "' + name + '=" << ')
@@ -943,11 +943,6 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write(';\n')
     
     f.write('  return ss.str();\n')
-    
-    if class_name == "Model":
-        f.write('  #else\n')
-        f.write('  return "";\n')
-        f.write('  #endif\n')
     
     f.write('}\n\n')                
 
