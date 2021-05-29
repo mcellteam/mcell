@@ -25,7 +25,7 @@ Methods:
 
   | Load parameters section from a BNGL file and return it as a dictionary name->value.
 
-  | Example: `2010_bng_parameter_override/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/2010_bng_parameter_override/model.py>`_ 
+  | Example: `2010_bng_parameter_override/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/2010_bng_parameter_override/model.py>`_ 
 
 
 
@@ -55,7 +55,7 @@ Methods:
 
   | Creates a GeometryObject in the shape of a cube whose center is at (0, 0, 0).
 
-  | Examples: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1400_rel_site_for_each_it/model.py>`_ `1105_point_release_w_create_box_not_cube/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1105_point_release_w_create_box_not_cube/model.py>`_ 
+  | Examples: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1400_rel_site_for_each_it/model.py>`_ `1105_point_release_w_create_box_not_cube/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1105_point_release_w_create_box_not_cube/model.py>`_ 
 
 
 * | **create_icosphere**
@@ -76,7 +76,7 @@ Methods:
 
   | Creates a GeometryObject in the shape of an icosphere whose center is at (0, 0, 0).
 
-  | Example: `1110_point_release_w_create_icosphere/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1110_point_release_w_create_icosphere/model.py>`_ 
+  | Example: `1110_point_release_w_create_icosphere/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1110_point_release_w_create_icosphere/model.py>`_ 
 
 
 

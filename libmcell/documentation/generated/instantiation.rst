@@ -28,7 +28,7 @@ Container used to hold instantiation-related model data.
 Instantiation is usually specific for each model, defines 
 the geometry and initial setup of molecule releases.
 
-Example: `1600_organelle_move/instantiation.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1600_organelle_move/instantiation.py>`_ 
+Example: `1600_organelle_move/instantiation.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1600_organelle_move/instantiation.py>`_ 
 
 Attributes:
 ***********
@@ -121,7 +121,7 @@ Methods:
   | the argument default_region must be set and the molecules are then released into or onto the 
   | default_region.
 
-  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/pymcell4/2100_gradual_bngl_load/model.py>`_ 
+  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
 
 
 
@@ -178,7 +178,7 @@ ReleaseSite
 
 Defines a release site that specifies where, when and how should molecules be released.
 
-Example: `1100_point_release/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1100_point_release/model.py>`_ 
+Example: `1100_point_release/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1100_point_release/model.py>`_ 
 
 Attributes:
 ***********

@@ -291,7 +291,7 @@ Instantiation:
        the argument default_region must be set and the molecules are then released into or onto the 
        default_region. 
       
-    examples: pymcell4/2100_gradual_bngl_load/model.py
+    examples: tests/pymcell4/2100_gradual_bngl_load/model.py
     params:
     - name: file_name
       type: str

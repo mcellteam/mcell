@@ -10,7 +10,7 @@ This is the main class that is used to assemble all simulation input
 and configuration. It also provides methods to do initialization,
 run simulation, and introspect the running simulation.
 
-Example: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1400_rel_site_for_each_it/model.py>`_ 
+Example: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1400_rel_site_for_each_it/model.py>`_ 
 
 Attributes:
 ***********
@@ -145,7 +145,7 @@ Methods:
   | compatibility issues. 
   | Must be called after model initialization.
 
-  | Example: `1520_sphere_collision/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1520_sphere_collision/model.py>`_ 
+  | Example: `1520_sphere_collision/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1520_sphere_collision/model.py>`_ 
 
 
 * | **export_geometry**
@@ -172,7 +172,7 @@ Methods:
   | The ReleaseEvent must not use a release_pattern because this is an immediate release and it is not 
   | scheduled into the global scheduler.
 
-  | Example: `2300_immediate_release/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2300_immediate_release/model.py>`_ 
+  | Example: `2300_immediate_release/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/2300_immediate_release/model.py>`_ 
 
 
 * | **run_reaction**
@@ -195,7 +195,7 @@ Methods:
   | Returns a list of product IDs.
   | Note\: only unimolecular reactions are currently supported.
 
-  | Example: `1850_run_unimol_rxn_in_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py>`_ 
+  | Example: `1850_run_unimol_rxn_in_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py>`_ 
 
 
 * | **add_vertex_move**
@@ -216,7 +216,7 @@ Methods:
   | The reason why we first need to collect all changes and then apply them all at the same time is for performance
   | reasons.
 
-  | Example: `1500_tetrahedron_box_collision/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py>`_ 
+  | Example: `1500_tetrahedron_box_collision/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py>`_ 
 
 
 * | **apply_vertex_moves**
@@ -236,7 +236,7 @@ Methods:
   | When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
   | when collect_wall_wall_hits is False, and empty list is returned.
 
-  | Example: `1500_tetrahedron_box_collision/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py>`_ 
+  | Example: `1500_tetrahedron_box_collision/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py>`_ 
 
 
 * | **register_mol_wall_hit_callback**
@@ -260,7 +260,7 @@ Methods:
   | Register a callback for event when a molecule hits a wall. 
   | Note\: There can be currently only a single wall hit callback registered.
 
-  | Example: `1300_wall_hit_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1300_wall_hit_callback/model.py>`_ 
+  | Example: `1300_wall_hit_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1300_wall_hit_callback/model.py>`_ 
 
 
 * | **register_reaction_callback**
@@ -286,7 +286,7 @@ Methods:
   | they will be removed automatically after return from this callback. 
   | Unlimited number of reaction callbacks is allowed.
 
-  | Example: `1800_vol_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1800_vol_rxn_callback/model.py>`_ 
+  | Example: `1800_vol_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1800_vol_rxn_callback/model.py>`_ 
 
 
 * | **load_bngl**
@@ -341,7 +341,7 @@ Methods:
   | If used during an iteration such as in a callback, an event is scheduled for the  
   | beginning of the next iteration. This scheduled event saves the checkpoint.
 
-  | Example: `2700_save_checkpoint_rxn_in_box/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/2700_save_checkpoint_rxn_in_box/model.py>`_ 
+  | Example: `2700_save_checkpoint_rxn_in_box/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/2700_save_checkpoint_rxn_in_box/model.py>`_ 
 
 
 * | **schedule_checkpoint**
@@ -372,7 +372,7 @@ Methods:
   | the given iteration are executed.
   | Can be called asynchronously at any time after initialization.
 
-  | Example: `2760_schedule_checkpoint_async_w_timer/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/nutmeg4_pymcell4/2760_schedule_checkpoint_async_w_timer/model.py>`_ 
+  | Example: `2760_schedule_checkpoint_async_w_timer/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/nutmeg4_pymcell4/2760_schedule_checkpoint_async_w_timer/model.py>`_ 
 
 
 * | **add_species**
@@ -460,7 +460,7 @@ Methods:
   | to geometry objects and the subsystem is independent on specific geometry.
   | However, the compartments and their objects must be defined before initialization.
 
-  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
+  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
 
 
 * | **add_release_site**
@@ -540,7 +540,7 @@ Methods:
   | the argument default_region must be set and the molecules are then released into or onto the 
   | default_region.
 
-  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/pymcell4/2100_gradual_bngl_load/model.py>`_ 
+  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
 
 
 * | **add_viz_output**
@@ -583,7 +583,7 @@ Methods:
   | Loads section observables from a BNGL file and creates Count objects according to it.
   | All elementary molecule types used in the seed species section must be defined in subsystem.
 
-  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
+  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
 
 
 * | **get_molecule_ids**
@@ -599,7 +599,7 @@ Methods:
   | If the argument pattern is set, the list of all molecule ids whose species match 
   | the pattern is returned.
 
-  | Example: `1910_get_molecule_ids_w_pattern/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1910_get_molecule_ids_w_pattern/model.py>`_ 
+  | Example: `1910_get_molecule_ids_w_pattern/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1910_get_molecule_ids_w_pattern/model.py>`_ 
 
 
 * | **get_molecule**
@@ -613,7 +613,7 @@ Methods:
   | Returns a information on a molecule from the simulated environment, 
   | None if the molecule does not exist.
 
-  | Example: `1900_molecule_introspection/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1900_molecule_introspection/model.py>`_ 
+  | Example: `1900_molecule_introspection/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1900_molecule_introspection/model.py>`_ 
 
 
 * | **get_species_name**
@@ -626,7 +626,7 @@ Methods:
 
   | Returns a string representing canonical species name in the BNGL format.
 
-  | Example: `1850_run_unimol_rxn_in_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py>`_ 
+  | Example: `1850_run_unimol_rxn_in_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py>`_ 
 
 
 * | **get_vertex**
@@ -640,7 +640,7 @@ Methods:
 
   | Returns coordinates of a vertex.
 
-  | Example: `1340_get_vertex/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1340_get_vertex/model.py>`_ 
+  | Example: `1340_get_vertex/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1340_get_vertex/model.py>`_ 
 
 
 * | **get_wall**
@@ -656,7 +656,7 @@ Methods:
 
   | Returns information about a wall belonging to a given object.
 
-  | Example: `1330_get_wall/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1330_get_wall/model.py>`_ 
+  | Example: `1330_get_wall/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1330_get_wall/model.py>`_ 
 
 
 * | **get_vertex_unit_normal**
@@ -673,7 +673,7 @@ Methods:
   | Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
   | This represents the unit vector pointing outwards from the vertex.
 
-  | Example: `1320_get_vertex_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1320_get_vertex_unit_normal/model.py>`_ 
+  | Example: `1320_get_vertex_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1320_get_vertex_unit_normal/model.py>`_ 
 
 
 * | **get_wall_unit_normal**
@@ -689,7 +689,7 @@ Methods:
 
   | Returns wall normal converted to a unit vector of length 1um.
 
-  | Example: `1310_get_wall_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/pymcell4_positive/1310_get_wall_unit_normal/model.py>`_ 
+  | Example: `1310_get_wall_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1310_get_wall_unit_normal/model.py>`_ 
 
 
 * | **get_wall_color**

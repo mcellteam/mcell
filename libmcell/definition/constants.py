@@ -58,7 +58,7 @@ COPYRIGHT = \
 ******************************************************************************/\n
 """
 
-EXAMPLES_BASE_URL = 'https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/'
+EXAMPLES_BASE_URL = 'https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/'
 
 TARGET_DIRECTORY = '..' + '/' + 'generated'
 DOC_DIRECTORY = '..'  + '/' + 'documentation'  + '/' + 'generated'

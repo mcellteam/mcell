@@ -211,7 +211,7 @@ Introspection:
 
   - name: get_wall_unit_normal
     doc: Returns wall normal converted to a unit vector of length 1um.
-    examples: pymcell4_positive/1310_get_wall_unit_normal/model.py
+    examples: tests/pymcell4_positive/1310_get_wall_unit_normal/model.py
     return_type: Vec3
     params:
     - name: object

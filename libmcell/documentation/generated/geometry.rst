@@ -39,7 +39,7 @@ GeometryObject
 
 Class represents geometry objects defined by triangular surface elements.
 
-Example: `1330_get_wall/geometry.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1330_get_wall/geometry.py>`_ 
+Example: `1330_get_wall/geometry.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1330_get_wall/geometry.py>`_ 
 
 Attributes:
 ***********
@@ -98,7 +98,7 @@ Methods:
   | Move object by a specified vector. 
   | Cannot be called after model was initialized.
 
-  | Example: `1400_object_translate/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1400_object_translate/model.py>`_ 
+  | Example: `1400_object_translate/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1400_object_translate/model.py>`_ 
 
 
 * | **__add__**
@@ -188,7 +188,7 @@ multiple regions inherit all parent regions’ surface properties. Users
 have to make sure that in case of overlapped regions their surface properties
 are compatible.
 
-Example: `1700_linear_conc_gradient_w_conc_clamp/geometry.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1700_linear_conc_gradient_w_conc_clamp/geometry.py>`_ 
+Example: `1700_linear_conc_gradient_w_conc_clamp/geometry.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1700_linear_conc_gradient_w_conc_clamp/geometry.py>`_ 
 
 Attributes:
 ***********

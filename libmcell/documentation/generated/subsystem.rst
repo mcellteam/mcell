@@ -14,7 +14,7 @@ fully qualified instance (such as for molecule releases) or a pattern (in observ
 Comparison operator __eq__ first converts complexes to their canonical representation and 
 then does comparison so for instance m.Complex('A(b!1).B(a!1)') == m.Complex('B(a!2).A(b!2)').
 
-Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -80,7 +80,7 @@ Instance of a component type belonging to a molecule instance.
 A component instance must have its state set if there is at least one allowed state.
 It is also used to connect molecule instance in a complex instance through bonds.
 
-Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -113,7 +113,7 @@ ComponentType
 
 Multiple functional attributes for each molecule type are described using components. And this class defines a type of a component. For example, proteins have multiple functional substructures such as domains, motifs, and binding sites. These components can be unchanging (called stateless) or exist in one of many different internal states For example, certain binding motifs may have different behaviors depending on whether they are unphosphorylated or phosphorylated.
 
-Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -168,7 +168,7 @@ ElementaryMolecule
 
 Instance of an elementary molecule type. A BNGL complex is composed of elementary molecules.
 
-Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -205,7 +205,7 @@ a molecule type in BNGL entered in section molecule types.
 The 'elementary' prefix was added to distinguish it clearly from molecules in 
 simulation.
 
-Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -293,7 +293,7 @@ hitting a surface molecule from the inside or outside of the compartment,
 e.g. A(s)@IN + S(a) -> S(a!1).A(s!1) and/or to define the location of the 
 product, e.g. S(a!1).A(s!1) -> S(a) + A(s)@OUT.
 
-Examples: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ `1840_vol_plus_surf_class_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback/model.py>`_ 
+Examples: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ `1840_vol_plus_surf_class_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback/model.py>`_ 
 
 Attributes:
 ***********
@@ -351,7 +351,7 @@ Attributes:
   | Note\: This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
   | where all reactants and products must be surface molecules and their orientation must be 'any' (default).
 
-  | Example: `3000_intermembrane_rxns/customization.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/3000_intermembrane_rxns/customization.py>`_ 
+  | Example: `3000_intermembrane_rxns/customization.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/3000_intermembrane_rxns/customization.py>`_ 
 
 
 
@@ -396,7 +396,7 @@ Such declaration does no need to be added to subsystem or model.
 This form is used as argument in cases where a fully qualified instance  
 must be provided such as in molecule releases.
 
-Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
+Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/0040_to_bngl_str/model.py>`_ 
 
 Attributes:
 ***********
@@ -512,7 +512,7 @@ only contains reactions. This way, one can define independent reusable subsystem
 and possibly merge them together when creating a model that includes multiple reaction 
 networks.
 
-Example: `2550_variable_rate_unimol_w_rxn_class_cleanup/sybsystem.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2550_variable_rate_unimol_w_rxn_class_cleanup/sybsystem.py>`_ 
+Example: `2550_variable_rate_unimol_w_rxn_class_cleanup/sybsystem.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/2550_variable_rate_unimol_w_rxn_class_cleanup/sybsystem.py>`_ 
 
 Attributes:
 ***********
@@ -619,7 +619,7 @@ Methods:
   | to geometry objects and the subsystem is independent on specific geometry.
   | However, the compartments and their objects must be defined before initialization.
 
-  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
+  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
 
 
 
@@ -631,7 +631,7 @@ to specify that a surface does not block the diffusion of molecules. Each type o
 by name, and each surface name must be unique in the simulation and should not match any molecule names.
 To define a reaction with a surface class, use constructor call m.Complex(name) as one of the reactants.
 
-Examples: `1600_crossing_transparent_compartment_wall/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4/1600_crossing_transparent_compartment_wall/model.py>`_ `1840_vol_plus_surf_class_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback/model.py>`_ 
+Examples: `1600_crossing_transparent_compartment_wall/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1600_crossing_transparent_compartment_wall/model.py>`_ `1840_vol_plus_surf_class_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1840_vol_plus_surf_class_rxn_callback/model.py>`_ 
 
 Attributes:
 ***********
