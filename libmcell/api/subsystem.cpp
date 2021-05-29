@@ -161,7 +161,7 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
     throw RuntimeError("Unexpected type of reaction from BNGL file for reaction " +  bng_rr.name + ".");
   }
 
-  auto res_rr = make_shared<API::ReactionRule>();
+  auto res_rr = make_shared<API::ReactionRule>(DefaultCtorArgType());
   if (bng_rr.name != "") {
     res_rr->name = bng_rr.name;
   }

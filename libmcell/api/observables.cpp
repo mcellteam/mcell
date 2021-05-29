@@ -117,7 +117,7 @@ void Observables::convert_observable(
     const BNG::BNGData& bng_data,
     const std::string& output_files_prefix) {
 
-  shared_ptr<API::Count> count = make_shared<Count>(true);
+  shared_ptr<API::Count> count = make_shared<Count>(DefaultCtorArgType());
 
   count->name = o.name;
   count->file_name = output_files_prefix + o.name + ".dat";
@@ -129,7 +129,7 @@ void Observables::convert_observable(
   else {
     shared_ptr<API::CountTerm> top_level_term = nullptr;
     for (const auto& pat: o.patterns) {
-      shared_ptr<API::CountTerm> term = make_shared<CountTerm>();
+      shared_ptr<API::CountTerm> term = make_shared<CountTerm>(DefaultCtorArgType());
 
       set_count_molecules_or_species_pattern(o.type, pat, bng_data, *term);
 

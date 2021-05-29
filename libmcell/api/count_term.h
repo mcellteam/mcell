@@ -88,7 +88,7 @@ public:
   }
 
   std::shared_ptr<CountTerm> create_expr_term(ExprNodeType op, std::shared_ptr<CountTerm> op2) {
-    std::shared_ptr<CountTerm> res = std::make_shared<CountTerm>();
+    std::shared_ptr<CountTerm> res = std::make_shared<CountTerm>(DefaultCtorArgType());
     res->node_type = op;
     res->left_node = shared_from_this();
     res->right_node = op2;

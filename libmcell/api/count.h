@@ -36,12 +36,6 @@ namespace API {
 
 class Count: public GenCount {
 public:
-  // ctor used when converting observables from BNGL, must not call check_semantics
-  Count(bool /*argument just to distinguish it from the generated variant*/) {
-    set_all_attributes_as_default_or_unset();
-    count_event = nullptr;
-  }
-
   COUNT_CTOR()
 
   void postprocess_in_ctor() override {

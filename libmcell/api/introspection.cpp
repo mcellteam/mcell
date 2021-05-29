@@ -120,7 +120,7 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
   MCell::Molecule& m = p.get_m(id);
   assert(!m.is_defunct() && "is_defunct is checked already by does_molecule_exist()");
 
-  res = make_shared<API::Molecule>();
+  res = make_shared<API::Molecule>(DefaultCtorArgType());
   res->id = m.id;
   res->species_id = m.species_id;
   if (m.is_surf()) {
@@ -227,7 +227,7 @@ std::shared_ptr<Color> Introspection::get_wall_color(std::shared_ptr<GeometryObj
   const MCell::GeometryObject& obj = world->get_geometry_object(object->geometry_object_id);
 
   rgba_t color = obj.get_wall_color(wi);
-  std::shared_ptr<Color> res = make_shared<Color>();
+  std::shared_ptr<Color> res = make_shared<Color>(DefaultCtorArgType());
   res->set_rgba(color); // must use setter - initializes also other attributes
   return res;
 }
