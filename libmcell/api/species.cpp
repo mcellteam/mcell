@@ -31,6 +31,16 @@ using namespace std;
 namespace MCell {
 namespace API {
 
+std::string Species::to_str(const bool all_details, const std::string ind) const {
+  if (!all_details) {
+    return ind + to_bngl_str();
+  }
+  else {
+    return GenComplex::to_str(true, ind);
+  }
+}
+
+
 // TODO: how to make this consistent with API definition?
 bool Species::__eq__(const Species& other) const {
   return

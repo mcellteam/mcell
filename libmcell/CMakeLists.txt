@@ -40,6 +40,8 @@ set(SOURCE_FILES
     api/reaction_rule.cpp
     api/surface_class.cpp
     
+    api/geometry_object.cpp
+    
     api/count.cpp
     
     api/color.cpp

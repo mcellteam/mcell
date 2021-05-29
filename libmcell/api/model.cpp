@@ -610,19 +610,19 @@ void Model::add_count(std::shared_ptr<Count> count) {
   Observables::add_count(count);
 };
 
-std::string Model::to_str(const std::string ind) const {
+std::string Model::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << "Model" << ": " <<
       "\n" << ind + "  " <<
       //"config=" << "(" << ((config != nullptr) ? config->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       //"warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       //"notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
+      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "species=" << vec_ptr_to_str(species, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "surface_classes=" << vec_ptr_to_str(surface_classes, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "reaction_rules=" << vec_ptr_to_str(reaction_rules, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "release_sites=" << vec_ptr_to_str(release_sites, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, all_details, ind + "  ");
   return ss.str();
 }
 

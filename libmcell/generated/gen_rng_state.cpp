@@ -126,15 +126,15 @@ bool GenRngState::eq_nonarray_attributes(const RngState& other, const bool ignor
     rngblocks == other.rngblocks;
 }
 
-std::string GenRngState::to_str(const std::string ind) const {
+std::string GenRngState::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "randcnt=" << randcnt << ", " <<
       "aa=" << aa << ", " <<
       "bb=" << bb << ", " <<
       "cc=" << cc << ", " <<
-      "randslr=" << vec_nonptr_to_str(randslr, ind + "  ") << ", " <<
-      "mm=" << vec_nonptr_to_str(mm, ind + "  ") << ", " <<
+      "randslr=" << vec_nonptr_to_str(randslr, all_details, ind + "  ") << ", " <<
+      "mm=" << vec_nonptr_to_str(mm, all_details, ind + "  ") << ", " <<
       "rngblocks=" << rngblocks;
   return ss.str();
 }
@@ -162,7 +162,7 @@ py::class_<RngState> define_pybinding_RngState(py::module& m) {
       .def("check_semantics", &RngState::check_semantics)
       .def("__copy__", &RngState::copy_rng_state)
       .def("__deepcopy__", &RngState::deepcopy_rng_state, py::arg("memo"))
-      .def("__str__", &RngState::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &RngState::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &RngState::__eq__, py::arg("other"))
       .def("dump", &RngState::dump)
       .def_property("randcnt", &RngState::get_randcnt, &RngState::set_randcnt)

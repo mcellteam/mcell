@@ -186,8 +186,8 @@ SET_ALL_DEFAULT_OR_UNSET_DECL = 'set_all_attributes_as_default_or_unset()'
 RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'
 MAKE_SHARED = 'std::make_shared'
-DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
-DECL_TO_STR = 'to_str(const std::string ind) const'
+DECL_TO_STR_W_DEFAULT = 'to_str(const bool all_details=false, const std::string ind="") const'
+DECL_TO_STR = 'to_str(const bool all_details, const std::string ind) const'
 
 RET_TYPE_EXPORT_TO_PYTHON = 'std::string' 
 

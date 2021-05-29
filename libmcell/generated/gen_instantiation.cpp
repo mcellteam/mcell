@@ -71,12 +71,12 @@ bool GenInstantiation::eq_nonarray_attributes(const Instantiation& other, const 
     true /*checkpointed_molecules*/;
 }
 
-std::string GenInstantiation::to_str(const std::string ind) const {
+std::string GenInstantiation::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << "Instantiation" << ": " <<
-      "\n" << ind + "  " << "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "checkpointed_molecules=" << vec_ptr_to_str(checkpointed_molecules, ind + "  ");
+      "\n" << ind + "  " << "release_sites=" << vec_ptr_to_str(release_sites, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "checkpointed_molecules=" << vec_ptr_to_str(checkpointed_molecules, all_details, ind + "  ");
   return ss.str();
 }
 
@@ -94,7 +94,7 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
       )
       .def("__copy__", &Instantiation::copy_instantiation)
       .def("__deepcopy__", &Instantiation::deepcopy_instantiation, py::arg("memo"))
-      .def("__str__", &Instantiation::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Instantiation::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Instantiation::__eq__, py::arg("other"))
       .def("add_release_site", &Instantiation::add_release_site, py::arg("s"), "Adds a reference to the release site s to the list of release sites.\n- s\n")
       .def("find_release_site", &Instantiation::find_release_site, py::arg("name"), "Finds a release site by its name, returns None if no such release site is present.\n- name\n")

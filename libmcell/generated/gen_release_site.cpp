@@ -214,17 +214,17 @@ bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other, const bool
     concentration == other.concentration;
 }
 
-std::string GenReleaseSite::to_str(const std::string ind) const {
+std::string GenReleaseSite::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "molecule_list=" << vec_ptr_to_str(molecule_list, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "molecule_list=" << vec_ptr_to_str(molecule_list, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_time=" << release_time << ", " <<
-      "\n" << ind + "  " << "release_pattern=" << "(" << ((release_pattern != nullptr) ? release_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "release_pattern=" << "(" << ((release_pattern != nullptr) ? release_pattern->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "shape=" << shape << ", " <<
-      "\n" << ind + "  " << "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "location=" << vec_nonptr_to_str(location, ind + "  ") << ", " <<
+      "\n" << ind + "  " << "region=" << "(" << ((region != nullptr) ? region->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "location=" << vec_nonptr_to_str(location, all_details, ind + "  ") << ", " <<
       "site_diameter=" << site_diameter << ", " <<
       "site_radius=" << site_radius << ", " <<
       "number_to_release=" << number_to_release << ", " <<
@@ -268,7 +268,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__copy__", &ReleaseSite::copy_release_site)
       .def("__deepcopy__", &ReleaseSite::deepcopy_release_site, py::arg("memo"))
-      .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ReleaseSite::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleaseSite::__eq__, py::arg("other"))
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name, "Name of the release site")

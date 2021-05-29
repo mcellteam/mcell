@@ -919,13 +919,13 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
         if is_yaml_list_type(type):
             underlying_type = get_first_inner_type(type)
             if is_yaml_ptr_type(underlying_type):
-                f.write('      ' + starting_nl + name + '=" << ' + VEC_PTR_TO_STR + '(' + name + ', ind + "  ")')
+                f.write('      ' + starting_nl + name + '=" << ' + VEC_PTR_TO_STR + '(' + name + ', all_details, ind + "  ")')
                 print_nl = True
             else:
                 f.write('      "' + name + '=" << ')
-                f.write(VEC_NONPTR_TO_STR + '(' + name + ', ind + "  ")')
+                f.write(VEC_NONPTR_TO_STR + '(' + name + ', all_details, ind + "  ")')
         elif not is_base_yaml_type(type) and type not in g_enums:
-            f.write('      ' + starting_nl + name + '=" << "(" << ((' + name + ' != nullptr) ? ' + name + '->to_str(ind + "  ") : "null" ) << ")"')
+            f.write('      ' + starting_nl + name + '=" << "(" << ((' + name + ' != nullptr) ? ' + name + '->to_str(all_details, ind + "  ") : "null" ) << ")"')
             print_nl = True
         else:
             f.write('      "' + name + '=" << ')
@@ -1516,7 +1516,7 @@ def write_pybind11_bindings(f, class_name, class_def):
         
         f.write('      .def("__copy__", &' + class_name + '::' + get_copy_function_name(class_name) + ')\n')
         f.write('      .def("__deepcopy__", &' + class_name + '::' + get_deepcopy_function_name(class_name) + ', py::arg("memo"))\n')
-        f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
+        f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))\n')
         # keeping the default __repr__ implementation for better error messages 
         #f.write('      .def("__repr__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         f.write('      .def("__eq__", &' + class_name + '::__eq__, py::arg("other"))\n')

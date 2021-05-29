@@ -86,7 +86,7 @@ public:
   virtual bool eq_nonarray_attributes(const ChkptVolMol& other, const bool ignore_name = false) const;
   bool operator == (const ChkptVolMol& other) const { return __eq__(other);}
   bool operator != (const ChkptVolMol& other) const { return !__eq__(other);}
-  std::string to_str(const std::string ind="") const override;
+  std::string to_str(const bool all_details=false, const std::string ind="") const override;
 
   virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
 

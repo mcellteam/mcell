@@ -95,7 +95,7 @@ bool GenReleasePattern::eq_nonarray_attributes(const ReleasePattern& other, cons
     number_of_trains == other.number_of_trains;
 }
 
-std::string GenReleasePattern::to_str(const std::string ind) const {
+std::string GenReleasePattern::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
@@ -125,7 +125,7 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
       .def("check_semantics", &ReleasePattern::check_semantics)
       .def("__copy__", &ReleasePattern::copy_release_pattern)
       .def("__deepcopy__", &ReleasePattern::deepcopy_release_pattern, py::arg("memo"))
-      .def("__str__", &ReleasePattern::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ReleasePattern::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleasePattern::__eq__, py::arg("other"))
       .def("dump", &ReleasePattern::dump)
       .def_property("name", &ReleasePattern::get_name, &ReleasePattern::set_name, "Name of the release pattern.")

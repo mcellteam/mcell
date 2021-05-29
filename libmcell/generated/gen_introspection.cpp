@@ -56,7 +56,7 @@ bool GenIntrospection::eq_nonarray_attributes(const Introspection& other, const 
 true ;
 }
 
-std::string GenIntrospection::to_str(const std::string ind) const {
+std::string GenIntrospection::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << "Introspection";
   return ss.str();
@@ -70,7 +70,7 @@ py::class_<Introspection> define_pybinding_Introspection(py::module& m) {
       )
       .def("__copy__", &Introspection::copy_introspection)
       .def("__deepcopy__", &Introspection::deepcopy_introspection, py::arg("memo"))
-      .def("__str__", &Introspection::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Introspection::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Introspection::__eq__, py::arg("other"))
       .def("get_molecule_ids", &Introspection::get_molecule_ids, py::arg("pattern") = nullptr, "Returns a list of ids of molecules.\nIf the arguments pattern is not set, the list of all molecule ids is returned.  \nIf the argument pattern is set, the list of all molecule ids whose species match \nthe pattern is returned. \n\n- pattern: BNGL pattern to select molecules based on their species, might use compartments.\n\n")
       .def("get_molecule", &Introspection::get_molecule, py::arg("id"), "Returns a information on a molecule from the simulated environment, \nNone if the molecule does not exist.\n\n- id: Unique id of the molecule to be retrieved.\n\n")

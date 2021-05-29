@@ -300,21 +300,21 @@ bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name
     initial_reactions_count == other.initial_reactions_count;
 }
 
-std::string GenCount::to_str(const std::string ind) const {
+std::string GenCount::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
       "file_name=" << file_name << ", " <<
-      "\n" << ind + "  " << "count_expression=" << "(" << ((count_expression != nullptr) ? count_expression->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "count_expression=" << "(" << ((count_expression != nullptr) ? count_expression->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "multiplier=" << multiplier << ", " <<
       "every_n_timesteps=" << every_n_timesteps << ", " <<
-      "\n" << ind + "  " << "species_pattern=" << "(" << ((species_pattern != nullptr) ? species_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "molecules_pattern=" << "(" << ((molecules_pattern != nullptr) ? molecules_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "species_pattern=" << "(" << ((species_pattern != nullptr) ? species_pattern->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "molecules_pattern=" << "(" << ((molecules_pattern != nullptr) ? molecules_pattern->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "region=" << "(" << ((region != nullptr) ? region->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
-      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "initial_reactions_count=" << initial_reactions_count;
   return ss.str();
 }
@@ -354,7 +354,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def("check_semantics", &Count::check_semantics)
       .def("__copy__", &Count::copy_count)
       .def("__deepcopy__", &Count::deepcopy_count, py::arg("memo"))
-      .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Count::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Count::__eq__, py::arg("other"))
       .def("get_current_value", &Count::get_current_value, "Returns the current value for this count. Cannot be used to count reactions.\nThe model must be initialized with this Count present as one of the observables.\n")
       .def("dump", &Count::dump)

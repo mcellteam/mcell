@@ -147,12 +147,12 @@ bool GenChkptVolMol::eq_nonarray_attributes(const ChkptVolMol& other, const bool
     unimol_rx_time == other.unimol_rx_time;
 }
 
-std::string GenChkptVolMol::to_str(const std::string ind) const {
+std::string GenChkptVolMol::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "pos=" << pos << ", " <<
       "id=" << id << ", " <<
-      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "diffusion_time=" << diffusion_time << ", " <<
       "birthday=" << birthday << ", " <<
       "flags=" << flags << ", " <<
@@ -183,7 +183,7 @@ py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
       .def("check_semantics", &ChkptVolMol::check_semantics)
       .def("__copy__", &ChkptVolMol::copy_chkpt_vol_mol)
       .def("__deepcopy__", &ChkptVolMol::deepcopy_chkpt_vol_mol, py::arg("memo"))
-      .def("__str__", &ChkptVolMol::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ChkptVolMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ChkptVolMol::__eq__, py::arg("other"))
       .def("dump", &ChkptVolMol::dump)
       .def_property("pos", &ChkptVolMol::get_pos, &ChkptVolMol::set_pos)

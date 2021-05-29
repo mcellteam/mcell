@@ -109,11 +109,11 @@ bool GenSurfaceProperty::eq_nonarray_attributes(const SurfaceProperty& other, co
     concentration == other.concentration;
 }
 
-std::string GenSurfaceProperty::to_str(const std::string ind) const {
+std::string GenSurfaceProperty::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "type=" << type << ", " <<
-      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "concentration=" << concentration;
   return ss.str();
 }
@@ -133,7 +133,7 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       .def("check_semantics", &SurfaceProperty::check_semantics)
       .def("__copy__", &SurfaceProperty::copy_surface_property)
       .def("__deepcopy__", &SurfaceProperty::deepcopy_surface_property, py::arg("memo"))
-      .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &SurfaceProperty::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceProperty::__eq__, py::arg("other"))
       .def("dump", &SurfaceProperty::dump)
       .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type, "Must be set. See SurfacePropertyType for options.\n")

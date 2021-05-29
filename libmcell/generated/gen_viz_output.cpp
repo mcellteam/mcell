@@ -97,11 +97,11 @@ bool GenVizOutput::eq_nonarray_attributes(const VizOutput& other, const bool ign
     every_n_timesteps == other.every_n_timesteps;
 }
 
-std::string GenVizOutput::to_str(const std::string ind) const {
+std::string GenVizOutput::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "output_files_prefix=" << output_files_prefix << ", " <<
-      "\n" << ind + "  " << "species_list=" << vec_ptr_to_str(species_list, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "species_list=" << vec_ptr_to_str(species_list, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "mode=" << mode << ", " <<
       "every_n_timesteps=" << every_n_timesteps;
   return ss.str();
@@ -124,7 +124,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def("check_semantics", &VizOutput::check_semantics)
       .def("__copy__", &VizOutput::copy_viz_output)
       .def("__deepcopy__", &VizOutput::deepcopy_viz_output, py::arg("memo"))
-      .def("__str__", &VizOutput::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &VizOutput::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &VizOutput::__eq__, py::arg("other"))
       .def("dump", &VizOutput::dump)
       .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix, "Prefix for the viz output files, the prefix value is computed from the simulation seed: \noutput_files_prefix = './viz_data/seed_' + str(SEED).zfill(5) + '/Scene'.\n")

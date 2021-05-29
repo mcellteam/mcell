@@ -112,10 +112,10 @@ bool GenComponent::eq_nonarray_attributes(const Component& other, const bool ign
     bond == other.bond;
 }
 
-std::string GenComponent::to_str(const std::string ind) const {
+std::string GenComponent::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "component_type=" << "(" << ((component_type != nullptr) ? component_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "component_type=" << "(" << ((component_type != nullptr) ? component_type->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "state=" << state << ", " <<
       "bond=" << bond;
   return ss.str();
@@ -136,7 +136,7 @@ py::class_<Component> define_pybinding_Component(py::module& m) {
       .def("check_semantics", &Component::check_semantics)
       .def("__copy__", &Component::copy_component)
       .def("__deepcopy__", &Component::deepcopy_component, py::arg("memo"))
-      .def("__str__", &Component::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Component::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Component::__eq__, py::arg("other"))
       .def("to_bngl_str", &Component::to_bngl_str, "Creates a string that corresponds to this component's BNGL representation.")
       .def("dump", &Component::dump)

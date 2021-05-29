@@ -252,16 +252,16 @@ bool GenCountTerm::eq_nonarray_attributes(const CountTerm& other, const bool ign
     initial_reactions_count == other.initial_reactions_count;
 }
 
-std::string GenCountTerm::to_str(const std::string ind) const {
+std::string GenCountTerm::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "species_pattern=" << "(" << ((species_pattern != nullptr) ? species_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "molecules_pattern=" << "(" << ((molecules_pattern != nullptr) ? molecules_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "species_pattern=" << "(" << ((species_pattern != nullptr) ? species_pattern->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "molecules_pattern=" << "(" << ((molecules_pattern != nullptr) ? molecules_pattern->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "region=" << "(" << ((region != nullptr) ? region->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
-      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "initial_reactions_count=" << initial_reactions_count;
   return ss.str();
 }
@@ -291,7 +291,7 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
       .def("check_semantics", &CountTerm::check_semantics)
       .def("__copy__", &CountTerm::copy_count_term)
       .def("__deepcopy__", &CountTerm::deepcopy_count_term, py::arg("memo"))
-      .def("__str__", &CountTerm::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &CountTerm::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &CountTerm::__eq__, py::arg("other"))
       .def("__add__", &CountTerm::__add__, py::arg("op2"), "Create a new CountTerm that represents addition of two count terms.\nUsually used through operator '+' such as in ct1 + ct2.  \n\n- op2\n")
       .def("__sub__", &CountTerm::__sub__, py::arg("op2"), "Create a new CountTerm that represents subtraction of two count terms.\nUsually used through operator '-' such as in ct1 - ct2.  \n\n- op2\n")

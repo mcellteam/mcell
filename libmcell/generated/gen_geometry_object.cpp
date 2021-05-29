@@ -242,21 +242,21 @@ bool GenGeometryObject::eq_nonarray_attributes(const GeometryObject& other, cons
      ) ;
 }
 
-std::string GenGeometryObject::to_str(const std::string ind) const {
+std::string GenGeometryObject::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
-      "wall_list=" << vec_nonptr_to_str(wall_list, ind + "  ") << ", " <<
+      "vertex_list=" << vec_nonptr_to_str(vertex_list, all_details, ind + "  ") << ", " <<
+      "wall_list=" << vec_nonptr_to_str(wall_list, all_details, ind + "  ") << ", " <<
       "is_bngl_compartment=" << is_bngl_compartment << ", " <<
       "surface_compartment_name=" << surface_compartment_name << ", " <<
-      "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "initial_surface_releases=" << vec_ptr_to_str(initial_surface_releases, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "initial_color=" << "(" << ((initial_color != nullptr) ? initial_color->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "initial_surface_releases=" << vec_ptr_to_str(initial_surface_releases, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "initial_color=" << "(" << ((initial_color != nullptr) ? initial_color->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
-      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
+      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(all_details, ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -293,7 +293,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def("check_semantics", &GeometryObject::check_semantics)
       .def("__copy__", &GeometryObject::copy_geometry_object)
       .def("__deepcopy__", &GeometryObject::deepcopy_geometry_object, py::arg("memo"))
-      .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &GeometryObject::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &GeometryObject::__eq__, py::arg("other"))
       .def("translate", &GeometryObject::translate, py::arg("move"), "Move object by a specified vector. \nCannot be called after model was initialized.\n\n- move: 3D vector [x, y, z] that will be added to each vertex of this object.\n\n")
       .def("dump", &GeometryObject::dump)

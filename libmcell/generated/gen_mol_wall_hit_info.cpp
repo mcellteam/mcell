@@ -98,11 +98,11 @@ bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other, cons
     pos3d_before_hit == other.pos3d_before_hit;
 }
 
-std::string GenMolWallHitInfo::to_str(const std::string ind) const {
+std::string GenMolWallHitInfo::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << "MolWallHitInfo" << ": " <<
       "molecule_id=" << molecule_id << ", " <<
-      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index << ", " <<
       "time=" << time << ", " <<
       "pos3d=" << pos3d << ", " <<
@@ -119,7 +119,7 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
       )
       .def("__copy__", &MolWallHitInfo::copy_mol_wall_hit_info)
       .def("__deepcopy__", &MolWallHitInfo::deepcopy_mol_wall_hit_info, py::arg("memo"))
-      .def("__str__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &MolWallHitInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &MolWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &MolWallHitInfo::dump)
       .def_property("molecule_id", &MolWallHitInfo::get_molecule_id, &MolWallHitInfo::set_molecule_id, "Id of molecule that hit the wall.")

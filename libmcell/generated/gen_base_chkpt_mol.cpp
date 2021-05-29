@@ -139,11 +139,11 @@ bool GenBaseChkptMol::eq_nonarray_attributes(const BaseChkptMol& other, const bo
     unimol_rx_time == other.unimol_rx_time;
 }
 
-std::string GenBaseChkptMol::to_str(const std::string ind) const {
+std::string GenBaseChkptMol::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "id=" << id << ", " <<
-      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "diffusion_time=" << diffusion_time << ", " <<
       "birthday=" << birthday << ", " <<
       "flags=" << flags << ", " <<
@@ -172,7 +172,7 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
       .def("check_semantics", &BaseChkptMol::check_semantics)
       .def("__copy__", &BaseChkptMol::copy_base_chkpt_mol)
       .def("__deepcopy__", &BaseChkptMol::deepcopy_base_chkpt_mol, py::arg("memo"))
-      .def("__str__", &BaseChkptMol::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &BaseChkptMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &BaseChkptMol::__eq__, py::arg("other"))
       .def("dump", &BaseChkptMol::dump)
       .def_property("id", &BaseChkptMol::get_id, &BaseChkptMol::set_id)

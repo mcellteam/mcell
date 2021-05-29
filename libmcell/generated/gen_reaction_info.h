@@ -46,7 +46,7 @@ public:
   virtual bool eq_nonarray_attributes(const ReactionInfo& other, const bool ignore_name = false) const;
   bool operator == (const ReactionInfo& other) const { return __eq__(other);}
   bool operator != (const ReactionInfo& other) const { return !__eq__(other);}
-  std::string to_str(const std::string ind="") const ;
+  std::string to_str(const bool all_details=false, const std::string ind="") const ;
 
   // --- attributes ---
   ReactionType type;

@@ -84,6 +84,9 @@ public:
 
   }
 
+  // using shorter printout when all_details is false
+  std::string to_str(const bool all_details=false, const std::string ind="") const override;
+
   bool __eq__(const Complex& other) const override;
 
   std::string to_bngl_str() const override {

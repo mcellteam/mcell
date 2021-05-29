@@ -145,6 +145,9 @@ public:
     }
   }
 
+  // using shorter printout when all_details is false
+  std::string to_str(const bool all_details=false, const std::string ind="") const override;
+
   bool __eq__(const Species& other) const override;
 
   std::shared_ptr<Complex> inst(const Orientation orientation = Orientation::DEFAULT, const std::string& compartment_name = "") override {

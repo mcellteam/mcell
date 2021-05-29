@@ -110,11 +110,11 @@ bool GenMoleculeReleaseInfo::eq_nonarray_attributes(const MoleculeReleaseInfo& o
     true /*location*/;
 }
 
-std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {
+std::string GenMoleculeReleaseInfo::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "location=" << vec_nonptr_to_str(location, ind + "  ");
+      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "location=" << vec_nonptr_to_str(location, all_details, ind + "  ");
   return ss.str();
 }
 
@@ -131,7 +131,7 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def("check_semantics", &MoleculeReleaseInfo::check_semantics)
       .def("__copy__", &MoleculeReleaseInfo::copy_molecule_release_info)
       .def("__deepcopy__", &MoleculeReleaseInfo::deepcopy_molecule_release_info, py::arg("memo"))
-      .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &MoleculeReleaseInfo::__eq__, py::arg("other"))
       .def("dump", &MoleculeReleaseInfo::dump)
       .def_property("complex", &MoleculeReleaseInfo::get_complex, &MoleculeReleaseInfo::set_complex, "Complex instance defining the molecule that will be released.\nOrientation of the complex instance is used to define orientation of the released molecule,\nwhen Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and\nsurface molecules are released with Orientation.UP.\nCompartment must not be set because this specific release definition states the location.  \n")

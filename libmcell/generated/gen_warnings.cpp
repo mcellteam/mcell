@@ -75,7 +75,7 @@ bool GenWarnings::eq_nonarray_attributes(const Warnings& other, const bool ignor
     high_reaction_probability == other.high_reaction_probability;
 }
 
-std::string GenWarnings::to_str(const std::string ind) const {
+std::string GenWarnings::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "high_reaction_probability=" << high_reaction_probability;
@@ -93,7 +93,7 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
       .def("check_semantics", &Warnings::check_semantics)
       .def("__copy__", &Warnings::copy_warnings)
       .def("__deepcopy__", &Warnings::deepcopy_warnings, py::arg("memo"))
-      .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Warnings::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Warnings::__eq__, py::arg("other"))
       .def("dump", &Warnings::dump)
       .def_property("high_reaction_probability", &Warnings::get_high_reaction_probability, &Warnings::set_high_reaction_probability, "Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.\nWarning when probability is greater than 1 is always printed.\nCannot be set to WarningLevel.ERROR.\n")

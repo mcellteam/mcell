@@ -204,7 +204,7 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
     continue_after_sigalrm == other.continue_after_sigalrm;
 }
 
-std::string GenConfig::to_str(const std::string ind) const {
+std::string GenConfig::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "seed=" << seed << ", " <<
@@ -215,7 +215,7 @@ std::string GenConfig::to_str(const std::string ind) const {
       "vacancy_search_distance=" << vacancy_search_distance << ", " <<
       "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
       "partition_dimension=" << partition_dimension << ", " <<
-      "initial_partition_origin=" << vec_nonptr_to_str(initial_partition_origin, ind + "  ") << ", " <<
+      "initial_partition_origin=" << vec_nonptr_to_str(initial_partition_origin, all_details, ind + "  ") << ", " <<
       "subpartition_dimension=" << subpartition_dimension << ", " <<
       "total_iterations=" << total_iterations << ", " <<
       "check_overlapped_walls=" << check_overlapped_walls << ", " <<
@@ -226,7 +226,7 @@ std::string GenConfig::to_str(const std::string ind) const {
       "memory_limit_gb=" << memory_limit_gb << ", " <<
       "initial_iteration=" << initial_iteration << ", " <<
       "initial_time=" << initial_time << ", " <<
-      "\n" << ind + "  " << "initial_rng_state=" << "(" << ((initial_rng_state != nullptr) ? initial_rng_state->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "initial_rng_state=" << "(" << ((initial_rng_state != nullptr) ? initial_rng_state->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "append_to_count_output_data=" << append_to_count_output_data << ", " <<
       "continue_after_sigalrm=" << continue_after_sigalrm;
   return ss.str();
@@ -285,7 +285,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def("check_semantics", &Config::check_semantics)
       .def("__copy__", &Config::copy_config)
       .def("__deepcopy__", &Config::deepcopy_config, py::arg("memo"))
-      .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Config::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Config::__eq__, py::arg("other"))
       .def("dump", &Config::dump)
       .def_property("seed", &Config::get_seed, &Config::set_seed, "Random generator seed value.")

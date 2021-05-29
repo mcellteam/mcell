@@ -144,3 +144,24 @@ with C++ std::vector. This behavior is shown in the following code snippet:
    assert ct_copy.states == ['X', '1']  
 
 For *copy.deepcopy(x[, memo])*, the optional *memo* argument is ignored.
+
+Object Debug Printouts
+######################
+
+Each of the API objects provides method *__str__* to convert it to 
+a string representation that shows the contents of this object. 
+This method is used when a method *print* or cast *str(...)* is used. 
+By default, not all details are shown for all objects because that would make the 
+output too lengthy (especially for the *GeometryObject* and *Complex* classes). 
+
+The method *__str__* has two arguments *all_details* (default False) and 
+*ind* (indent, default ""). To obtain access to all details, set *all_details* 
+to True.
+
+.. code-block:: python
+
+   cplx = m.Complex('A(x~0)')
+   
+   print(cplx) # prints only 'A(x~0)'
+   
+   print(cplx.__str__(True)) # prints a detailed representation 

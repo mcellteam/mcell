@@ -132,12 +132,12 @@ bool GenRegion::eq_nonarray_attributes(const Region& other, const bool ignore_na
      ) ;
 }
 
-std::string GenRegion::to_str(const std::string ind) const {
+std::string GenRegion::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "node_type=" << node_type << ", " <<
-      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
+      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(all_details, ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -156,7 +156,7 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
       .def("check_semantics", &Region::check_semantics)
       .def("__copy__", &Region::copy_region)
       .def("__deepcopy__", &Region::deepcopy_region, py::arg("memo"))
-      .def("__str__", &Region::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Region::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Region::__eq__, py::arg("other"))
       .def("__add__", &Region::__add__, py::arg("other"), "Computes union of two regions, use with Python operator '+'.\n- other\n")
       .def("__sub__", &Region::__sub__, py::arg("other"), "Computes difference of two regions, use with Python operator '-'.\n- other\n")

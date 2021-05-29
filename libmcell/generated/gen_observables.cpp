@@ -63,11 +63,11 @@ bool GenObservables::eq_nonarray_attributes(const Observables& other, const bool
     true /*counts*/;
 }
 
-std::string GenObservables::to_str(const std::string ind) const {
+std::string GenObservables::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << "Observables" << ": " <<
-      "\n" << ind + "  " << "viz_outputs=" << vec_ptr_to_str(viz_outputs, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "counts=" << vec_ptr_to_str(counts, ind + "  ");
+      "\n" << ind + "  " << "viz_outputs=" << vec_ptr_to_str(viz_outputs, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "counts=" << vec_ptr_to_str(counts, all_details, ind + "  ");
   return ss.str();
 }
 
@@ -83,7 +83,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       )
       .def("__copy__", &Observables::copy_observables)
       .def("__deepcopy__", &Observables::deepcopy_observables, py::arg("memo"))
-      .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Observables::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Observables::__eq__, py::arg("other"))
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"), "Adds a reference to the viz_output object to the list of visualization output specifications.\n- viz_output\n")
       .def("add_count", &Observables::add_count, py::arg("count"), "Adds a reference to the count object to the list of count specifications.\n- count\n")

@@ -95,7 +95,7 @@ bool GenColor::eq_nonarray_attributes(const Color& other, const bool ignore_name
     rgba == other.rgba;
 }
 
-std::string GenColor::to_str(const std::string ind) const {
+std::string GenColor::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "red=" << red << ", " <<
@@ -125,7 +125,7 @@ py::class_<Color> define_pybinding_Color(py::module& m) {
       .def("check_semantics", &Color::check_semantics)
       .def("__copy__", &Color::copy_color)
       .def("__deepcopy__", &Color::deepcopy_color, py::arg("memo"))
-      .def("__str__", &Color::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Color::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Color::__eq__, py::arg("other"))
       .def("dump", &Color::dump)
       .def_property("red", &Color::get_red, &Color::set_red, "Red component in range 0-1.")

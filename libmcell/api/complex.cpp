@@ -247,6 +247,16 @@ const std::string& Complex::get_canonical_name() const {
 }
 
 
+std::string Complex::to_str(const bool all_details, const std::string ind) const {
+  if (!all_details) {
+    return ind + to_bngl_str();
+  }
+  else {
+    return GenComplex::to_str(true, ind);
+  }
+}
+
+
 bool Complex::__eq__(const Complex& other) const {
 
   // cannot use eq_nonarray_attributes here because we don't care about name

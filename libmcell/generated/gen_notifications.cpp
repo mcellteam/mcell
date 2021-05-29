@@ -90,7 +90,7 @@ bool GenNotifications::eq_nonarray_attributes(const Notifications& other, const 
     rxn_probability_changed == other.rxn_probability_changed;
 }
 
-std::string GenNotifications::to_str(const std::string ind) const {
+std::string GenNotifications::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "bng_verbosity_level=" << bng_verbosity_level << ", " <<
@@ -117,7 +117,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def("check_semantics", &Notifications::check_semantics)
       .def("__copy__", &Notifications::copy_notifications)
       .def("__deepcopy__", &Notifications::deepcopy_notifications, py::arg("memo"))
-      .def("__str__", &Notifications::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Notifications::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Notifications::__eq__, py::arg("other"))
       .def("dump", &Notifications::dump)
       .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level, "Sets verbosity level that enables printouts of extra information on BioNetGen \nspecies and rules created and used during simulation.\n")

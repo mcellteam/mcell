@@ -116,11 +116,11 @@ bool GenElementaryMolecule::eq_nonarray_attributes(const ElementaryMolecule& oth
     compartment_name == other.compartment_name;
 }
 
-std::string GenElementaryMolecule::to_str(const std::string ind) const {
+std::string GenElementaryMolecule::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "elementary_molecule_type=" << "(" << ((elementary_molecule_type != nullptr) ? elementary_molecule_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "components=" << vec_ptr_to_str(components, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "elementary_molecule_type=" << "(" << ((elementary_molecule_type != nullptr) ? elementary_molecule_type->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "components=" << vec_ptr_to_str(components, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "compartment_name=" << compartment_name;
   return ss.str();
 }
@@ -140,7 +140,7 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
       .def("check_semantics", &ElementaryMolecule::check_semantics)
       .def("__copy__", &ElementaryMolecule::copy_elementary_molecule)
       .def("__deepcopy__", &ElementaryMolecule::deepcopy_elementary_molecule, py::arg("memo"))
-      .def("__str__", &ElementaryMolecule::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ElementaryMolecule::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMolecule::__eq__, py::arg("other"))
       .def("to_bngl_str", &ElementaryMolecule::to_bngl_str, py::arg("with_compartment") = true, "Creates a string that corresponds to its BNGL representation\n- with_compartment: Include compartment name in the returned BNGL string.\n\n")
       .def("dump", &ElementaryMolecule::dump)

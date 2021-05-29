@@ -78,7 +78,7 @@ public:
   virtual void check_semantics() const { };
 
   // empty implementation, to be overridden in actual derived classes
-  virtual std::string to_str(const std::string ind="") const {
+  virtual std::string to_str(const bool all_details=false, const std::string ind="") const {
     assert(false);
     return "String dump for a derived class is not implemented.";
   }

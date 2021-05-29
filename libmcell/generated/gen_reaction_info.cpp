@@ -127,16 +127,16 @@ bool GenReactionInfo::eq_nonarray_attributes(const ReactionInfo& other, const bo
     pos2d == other.pos2d;
 }
 
-std::string GenReactionInfo::to_str(const std::string ind) const {
+std::string GenReactionInfo::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << "ReactionInfo" << ": " <<
       "type=" << type << ", " <<
-      "reactant_ids=" << vec_nonptr_to_str(reactant_ids, ind + "  ") << ", " <<
-      "product_ids=" << vec_nonptr_to_str(product_ids, ind + "  ") << ", " <<
-      "\n" << ind + "  " << "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "reactant_ids=" << vec_nonptr_to_str(reactant_ids, all_details, ind + "  ") << ", " <<
+      "product_ids=" << vec_nonptr_to_str(product_ids, all_details, ind + "  ") << ", " <<
+      "\n" << ind + "  " << "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "time=" << time << ", " <<
       "pos3d=" << pos3d << ", " <<
-      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index << ", " <<
       "pos2d=" << pos2d;
   return ss.str();
@@ -150,7 +150,7 @@ py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
       )
       .def("__copy__", &ReactionInfo::copy_reaction_info)
       .def("__deepcopy__", &ReactionInfo::deepcopy_reaction_info, py::arg("memo"))
-      .def("__str__", &ReactionInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ReactionInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionInfo::__eq__, py::arg("other"))
       .def("dump", &ReactionInfo::dump)
       .def_property("type", &ReactionInfo::get_type, &ReactionInfo::set_type, "Specifies whether the reaction is unimolecular or bimolecular and\nalso provides information on reactant types. \n")

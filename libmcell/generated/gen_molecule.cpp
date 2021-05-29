@@ -134,7 +134,7 @@ bool GenMolecule::eq_nonarray_attributes(const Molecule& other, const bool ignor
     wall_index == other.wall_index;
 }
 
-std::string GenMolecule::to_str(const std::string ind) const {
+std::string GenMolecule::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "id=" << id << ", " <<
@@ -143,7 +143,7 @@ std::string GenMolecule::to_str(const std::string ind) const {
       "pos3d=" << pos3d << ", " <<
       "orientation=" << orientation << ", " <<
       "pos2d=" << pos2d << ", " <<
-      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index;
   return ss.str();
 }
@@ -157,7 +157,7 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       .def("check_semantics", &Molecule::check_semantics)
       .def("__copy__", &Molecule::copy_molecule)
       .def("__deepcopy__", &Molecule::deepcopy_molecule, py::arg("memo"))
-      .def("__str__", &Molecule::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Molecule::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Molecule::__eq__, py::arg("other"))
       .def("remove", &Molecule::remove, "Removes this molecule from simulation. Any subsequent modifications\nof this molecules won't have any effect.\n")
       .def("dump", &Molecule::dump)

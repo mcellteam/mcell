@@ -184,11 +184,12 @@ static inline std::ostream & operator<<(std::ostream &out, const IVec3& a) {
 
 
 template<typename T>
-static inline std::string vec_ptr_to_str(const std::vector<T>& arr, const std::string ind="") {
+static inline std::string vec_ptr_to_str(
+    const std::vector<T>& arr, const bool all_details=false, const std::string ind="") {
   std::stringstream ss;
   ss << "[\n";
   for (size_t i = 0; i < arr.size(); i++) {
-    ss << ind << " " << i << ":(" << arr[i]->to_str(ind) << ")";
+    ss << ind << " " << i << ":(" << arr[i]->to_str(all_details, ind) << ")";
     if (i + 1 != arr.size()) {
       ss << ", ";
     }
@@ -200,7 +201,8 @@ static inline std::string vec_ptr_to_str(const std::vector<T>& arr, const std::s
 
 
 template<typename T>
-static inline std::string vec_nonptr_to_str(const std::vector<T>& arr, const std::string ind="") {
+static inline std::string vec_nonptr_to_str(
+    const std::vector<T>& arr, const bool all_details=false, const std::string ind="") {
   std::stringstream ss;
   ss << "[";
   for (size_t i = 0; i < arr.size(); i++) {
@@ -214,11 +216,12 @@ static inline std::string vec_nonptr_to_str(const std::vector<T>& arr, const std
 }
 
 template<typename T>
-static inline std::string vec_nonptr_to_str(const std::vector<std::vector<T>>& arr, const std::string ind="") {
+static inline std::string vec_nonptr_to_str(
+    const std::vector<std::vector<T>>& arr, const bool all_details=false, const std::string ind="") {
   std::stringstream ss;
   ss << "[";
   for (size_t i = 0; i < arr.size(); i++) {
-    ss << i << ":" << vec_nonptr_to_str(arr[i], ind + "  ");
+    ss << i << ":" << vec_nonptr_to_str(arr[i], all_details, ind + "  ");
     if (i + 1 != arr.size()) {
       ss << ", ";
     }

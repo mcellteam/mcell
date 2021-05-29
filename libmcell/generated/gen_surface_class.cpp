@@ -126,13 +126,13 @@ bool GenSurfaceClass::eq_nonarray_attributes(const SurfaceClass& other, const bo
     concentration == other.concentration;
 }
 
-std::string GenSurfaceClass::to_str(const std::string ind) const {
+std::string GenSurfaceClass::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "properties=" << vec_ptr_to_str(properties, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "properties=" << vec_ptr_to_str(properties, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "type=" << type << ", " <<
-      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "affected_complex_pattern=" << "(" << ((affected_complex_pattern != nullptr) ? affected_complex_pattern->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "concentration=" << concentration;
   return ss.str();
 }
@@ -156,7 +156,7 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
       .def("check_semantics", &SurfaceClass::check_semantics)
       .def("__copy__", &SurfaceClass::copy_surface_class)
       .def("__deepcopy__", &SurfaceClass::deepcopy_surface_class, py::arg("memo"))
-      .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &SurfaceClass::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceClass::__eq__, py::arg("other"))
       .def("dump", &SurfaceClass::dump)
       .def_property("name", &SurfaceClass::get_name, &SurfaceClass::set_name, "Name of the surface class.")

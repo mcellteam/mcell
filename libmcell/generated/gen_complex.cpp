@@ -95,11 +95,11 @@ bool GenComplex::eq_nonarray_attributes(const Complex& other, const bool ignore_
     compartment_name == other.compartment_name;
 }
 
-std::string GenComplex::to_str(const std::string ind) const {
+std::string GenComplex::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "elementary_molecules=" << vec_ptr_to_str(elementary_molecules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "elementary_molecules=" << vec_ptr_to_str(elementary_molecules, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
       "compartment_name=" << compartment_name;
   return ss.str();
@@ -122,7 +122,7 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       .def("check_semantics", &Complex::check_semantics)
       .def("__copy__", &Complex::copy_complex)
       .def("__deepcopy__", &Complex::deepcopy_complex, py::arg("memo"))
-      .def("__str__", &Complex::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Complex::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Complex::__eq__, py::arg("other"))
       .def("to_bngl_str", &Complex::to_bngl_str, "Creates a string that corresponds to its BNGL representation including compartments.")
       .def("as_species", &Complex::as_species, "Returns a Species object based on this Complex. All species-specific \nattributes are set to their default values and 'name' is set to value returned by \n'to_bngl_str()'.\n")

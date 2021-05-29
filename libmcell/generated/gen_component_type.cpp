@@ -84,11 +84,11 @@ bool GenComponentType::eq_nonarray_attributes(const ComponentType& other, const 
     true /*states*/;
 }
 
-std::string GenComponentType::to_str(const std::string ind) const {
+std::string GenComponentType::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "states=" << vec_nonptr_to_str(states, ind + "  ");
+      "states=" << vec_nonptr_to_str(states, all_details, ind + "  ");
   return ss.str();
 }
 
@@ -105,7 +105,7 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
       .def("check_semantics", &ComponentType::check_semantics)
       .def("__copy__", &ComponentType::copy_component_type)
       .def("__deepcopy__", &ComponentType::deepcopy_component_type, py::arg("memo"))
-      .def("__str__", &ComponentType::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ComponentType::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ComponentType::__eq__, py::arg("other"))
       .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET", py::arg("bond") = BOND_UNBOUND, "Instantiate a component from this component type.\n- state: Selected state, must be from the list of the allowed states.\n\n- bond: Bond information for the created component instance.\n\n")
       .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET_INT, py::arg("bond") = BOND_UNBOUND, "Instantiate a component from this component type.\n- state: Selected state, must be from the list of the allowed, converted to string.\n\n- bond: Bond information for the created component instance.\n\n")

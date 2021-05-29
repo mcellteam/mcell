@@ -126,7 +126,7 @@ bool GenSpecies::eq_nonarray_attributes(const Species& other, const bool ignore_
     compartment_name == other.compartment_name;
 }
 
-std::string GenSpecies::to_str(const std::string ind) const {
+std::string GenSpecies::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
@@ -136,7 +136,7 @@ std::string GenSpecies::to_str(const std::string ind) const {
       "custom_space_step=" << custom_space_step << ", " <<
       "target_only=" << target_only << ", " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "elementary_molecules=" << vec_ptr_to_str(elementary_molecules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "elementary_molecules=" << vec_ptr_to_str(elementary_molecules, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
       "compartment_name=" << compartment_name;
   return ss.str();
@@ -169,7 +169,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       .def("check_semantics", &Species::check_semantics)
       .def("__copy__", &Species::copy_species)
       .def("__deepcopy__", &Species::deepcopy_species, py::arg("memo"))
-      .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Species::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Species::__eq__, py::arg("other"))
       .def("inst", &Species::inst, py::arg("orientation") = Orientation::DEFAULT, py::arg("compartment_name") = STR_UNSET, "Creates a copy of a Complex from this Species with specified orientation and compartment name. \n\n- orientation: Maximum one of orientation or compartment_name can be set, not both.\n\n- compartment_name: Maximum one of orientation or compartment_name can be set, not both.\n\n")
       .def("dump", &Species::dump)

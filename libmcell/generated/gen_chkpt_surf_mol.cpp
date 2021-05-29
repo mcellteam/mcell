@@ -203,16 +203,16 @@ bool GenChkptSurfMol::eq_nonarray_attributes(const ChkptSurfMol& other, const bo
     unimol_rx_time == other.unimol_rx_time;
 }
 
-std::string GenChkptSurfMol::to_str(const std::string ind) const {
+std::string GenChkptSurfMol::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "pos=" << pos << ", " <<
       "orientation=" << orientation << ", " <<
-      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index << ", " <<
       "grid_tile_index=" << grid_tile_index << ", " <<
       "id=" << id << ", " <<
-      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "diffusion_time=" << diffusion_time << ", " <<
       "birthday=" << birthday << ", " <<
       "flags=" << flags << ", " <<
@@ -251,7 +251,7 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
       .def("check_semantics", &ChkptSurfMol::check_semantics)
       .def("__copy__", &ChkptSurfMol::copy_chkpt_surf_mol)
       .def("__deepcopy__", &ChkptSurfMol::deepcopy_chkpt_surf_mol, py::arg("memo"))
-      .def("__str__", &ChkptSurfMol::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ChkptSurfMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ChkptSurfMol::__eq__, py::arg("other"))
       .def("dump", &ChkptSurfMol::dump)
       .def_property("pos", &ChkptSurfMol::get_pos, &ChkptSurfMol::set_pos)

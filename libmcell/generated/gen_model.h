@@ -76,7 +76,7 @@ public:
   virtual bool eq_nonarray_attributes(const Model& other, const bool ignore_name = false) const;
   bool operator == (const Model& other) const { return __eq__(other);}
   bool operator != (const Model& other) const { return !__eq__(other);}
-  std::string to_str(const std::string ind="") const ;
+  std::string to_str(const bool all_details=false, const std::string ind="") const ;
 
   virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
   virtual std::string export_vec_species(std::ostream& out, PythonExportContext& ctx, const std::string& parent_name);

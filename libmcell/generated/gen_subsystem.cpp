@@ -77,13 +77,13 @@ bool GenSubsystem::eq_nonarray_attributes(const Subsystem& other, const bool ign
     true /*elementary_molecule_types*/;
 }
 
-std::string GenSubsystem::to_str(const std::string ind) const {
+std::string GenSubsystem::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << "Subsystem" << ": " <<
-      "\n" << ind + "  " << "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ");
+      "\n" << ind + "  " << "species=" << vec_ptr_to_str(species, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "reaction_rules=" << vec_ptr_to_str(reaction_rules, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "surface_classes=" << vec_ptr_to_str(surface_classes, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, all_details, ind + "  ");
   return ss.str();
 }
 
@@ -103,7 +103,7 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       )
       .def("__copy__", &Subsystem::copy_subsystem)
       .def("__deepcopy__", &Subsystem::deepcopy_subsystem, py::arg("memo"))
-      .def("__str__", &Subsystem::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Subsystem::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Subsystem::__eq__, py::arg("other"))
       .def("add_species", &Subsystem::add_species, py::arg("s"), "Add a reference to a Species object to the species list.\n- s\n")
       .def("find_species", &Subsystem::find_species, py::arg("name"), "Find a Species object using name in the species list. \nReturns None if no such species is found.\n\n- name\n")

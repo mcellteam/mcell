@@ -53,7 +53,8 @@ void append_to_vec(
           throw ValueError(
               "Adding object of " + item->class_name + " with name '" + item->name +
               "' caused an error, object with the same name is already present but it is different, " +
-              "\nexisting:\n" + existing->to_str() + "\nvs. new\n:" + item->to_str() + "."
+              "\nexisting:\n" + existing->to_str() + "\nvs. new\n:" + item->to_str() + ".\n"
+              "-- end of error message reporting existence of two objects with identical names --"
           );
         }
         else {
@@ -87,7 +88,8 @@ void append_to_vec_canonical_name(
       if (!are_equal) {
         throw ValueError(
             "Adding " + name_in_msg + " caused an error, object with the same canonical name is already present but it is different, "
-            "\nexisting:\n" + existing->to_str() + "\nvs. new:\n " + item->to_str() + "."
+            "\nexisting:\n" + existing->to_str() + "\nvs. new:\n " + item->to_str() + ".\n"
+            "-- end of error message reporting existence of two objects with identical names --"
         );
       }
       else {

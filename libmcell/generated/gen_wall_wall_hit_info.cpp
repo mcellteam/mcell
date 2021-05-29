@@ -133,11 +133,11 @@ bool GenWallWallHitInfo::eq_nonarray_attributes(const WallWallHitInfo& other, co
      ) ;
 }
 
-std::string GenWallWallHitInfo::to_str(const std::string ind) const {
+std::string GenWallWallHitInfo::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "wall1=" << "(" << ((wall1 != nullptr) ? wall1->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "wall2=" << "(" << ((wall2 != nullptr) ? wall2->to_str(ind + "  ") : "null" ) << ")";
+      "\n" << ind + "  " << "wall1=" << "(" << ((wall1 != nullptr) ? wall1->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "wall2=" << "(" << ((wall2 != nullptr) ? wall2->to_str(all_details, ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -150,7 +150,7 @@ py::class_<WallWallHitInfo> define_pybinding_WallWallHitInfo(py::module& m) {
       .def("check_semantics", &WallWallHitInfo::check_semantics)
       .def("__copy__", &WallWallHitInfo::copy_wall_wall_hit_info)
       .def("__deepcopy__", &WallWallHitInfo::deepcopy_wall_wall_hit_info, py::arg("memo"))
-      .def("__str__", &WallWallHitInfo::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &WallWallHitInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &WallWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &WallWallHitInfo::dump)
       .def_property("wall1", &WallWallHitInfo::get_wall1, &WallWallHitInfo::set_wall1, "First colliding wall.")

@@ -112,10 +112,10 @@ bool GenInitialSurfaceRelease::eq_nonarray_attributes(const InitialSurfaceReleas
     density == other.density;
 }
 
-std::string GenInitialSurfaceRelease::to_str(const std::string ind) const {
+std::string GenInitialSurfaceRelease::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "complex=" << "(" << ((complex != nullptr) ? complex->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "number_to_release=" << number_to_release << ", " <<
       "density=" << density;
   return ss.str();
@@ -136,7 +136,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def("check_semantics", &InitialSurfaceRelease::check_semantics)
       .def("__copy__", &InitialSurfaceRelease::copy_initial_surface_release)
       .def("__deepcopy__", &InitialSurfaceRelease::deepcopy_initial_surface_release, py::arg("memo"))
-      .def("__str__", &InitialSurfaceRelease::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &InitialSurfaceRelease::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &InitialSurfaceRelease::__eq__, py::arg("other"))
       .def("dump", &InitialSurfaceRelease::dump)
       .def_property("complex", &InitialSurfaceRelease::get_complex, &InitialSurfaceRelease::set_complex, "Defines the species of the molecule that will be released.\n")

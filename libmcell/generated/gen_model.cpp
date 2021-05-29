@@ -138,22 +138,22 @@ bool GenModel::eq_nonarray_attributes(const Model& other, const bool ignore_name
     true /*counts*/;
 }
 
-std::string GenModel::to_str(const std::string ind) const {
+std::string GenModel::to_str(const bool all_details, const std::string ind) const {
   #if 0 // not generated correctly yet
   std::stringstream ss;
   ss << "Model" << ": " <<
-      "\n" << ind + "  " << "config=" << "(" << ((config != nullptr) ? config->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "checkpointed_molecules=" << vec_ptr_to_str(checkpointed_molecules, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "viz_outputs=" << vec_ptr_to_str(viz_outputs, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "counts=" << vec_ptr_to_str(counts, ind + "  ");
+      "\n" << ind + "  " << "config=" << "(" << ((config != nullptr) ? config->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "species=" << vec_ptr_to_str(species, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "reaction_rules=" << vec_ptr_to_str(reaction_rules, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "surface_classes=" << vec_ptr_to_str(surface_classes, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "release_sites=" << vec_ptr_to_str(release_sites, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "checkpointed_molecules=" << vec_ptr_to_str(checkpointed_molecules, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "viz_outputs=" << vec_ptr_to_str(viz_outputs, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "counts=" << vec_ptr_to_str(counts, all_details, ind + "  ");
   return ss.str();
   #else
   return "";
@@ -168,7 +168,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       )
       .def("__copy__", &Model::copy_model)
       .def("__deepcopy__", &Model::deepcopy_model, py::arg("memo"))
-      .def("__str__", &Model::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Model::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Model::__eq__, py::arg("other"))
       .def("initialize", &Model::initialize, py::arg("print_copyright") = true, "Initializes model, initialization blocks most of changes to \ncontained components. \n\n- print_copyright: Prints information about MCell.\n\n")
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"), "Runs specified number of iterations. Returns the number of iterations\nexecuted (it might be less than the requested number of iterations when \na checkpoint was scheduled). \n\n- iterations: Number of iterations to run. Value is truncated to an integer.\n\n")

@@ -139,12 +139,12 @@ bool GenWall::eq_nonarray_attributes(const Wall& other, const bool ignore_name) 
     is_movable == other.is_movable;
 }
 
-std::string GenWall::to_str(const std::string ind) const {
+std::string GenWall::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index << ", " <<
-      "vertices=" << vec_nonptr_to_str(vertices, ind + "  ") << ", " <<
+      "vertices=" << vec_nonptr_to_str(vertices, all_details, ind + "  ") << ", " <<
       "area=" << area << ", " <<
       "unit_normal=" << unit_normal << ", " <<
       "is_movable=" << is_movable;
@@ -160,7 +160,7 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       .def("check_semantics", &Wall::check_semantics)
       .def("__copy__", &Wall::copy_wall)
       .def("__deepcopy__", &Wall::deepcopy_wall, py::arg("memo"))
-      .def("__str__", &Wall::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &Wall::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Wall::__eq__, py::arg("other"))
       .def("dump", &Wall::dump)
       .def_property("geometry_object", &Wall::get_geometry_object, &Wall::set_geometry_object, "Object to which this wall belongs.")

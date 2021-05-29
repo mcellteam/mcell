@@ -117,16 +117,16 @@ bool GenReactionRule::eq_nonarray_attributes(const ReactionRule& other, const bo
     is_intermembrane_surface_reaction == other.is_intermembrane_surface_reaction;
 }
 
-std::string GenReactionRule::to_str(const std::string ind) const {
+std::string GenReactionRule::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "reactants=" << vec_ptr_to_str(reactants, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "products=" << vec_ptr_to_str(products, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "reactants=" << vec_ptr_to_str(reactants, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "products=" << vec_ptr_to_str(products, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "fwd_rate=" << fwd_rate << ", " <<
       "rev_name=" << rev_name << ", " <<
       "rev_rate=" << rev_rate << ", " <<
-      "variable_rate=" << vec_nonptr_to_str(variable_rate, ind + "  ") << ", " <<
+      "variable_rate=" << vec_nonptr_to_str(variable_rate, all_details, ind + "  ") << ", " <<
       "is_intermembrane_surface_reaction=" << is_intermembrane_surface_reaction;
   return ss.str();
 }
@@ -156,7 +156,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       .def("check_semantics", &ReactionRule::check_semantics)
       .def("__copy__", &ReactionRule::copy_reaction_rule)
       .def("__deepcopy__", &ReactionRule::deepcopy_reaction_rule, py::arg("memo"))
-      .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ReactionRule::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionRule::__eq__, py::arg("other"))
       .def("to_bngl_str", &ReactionRule::to_bngl_str, "Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.")
       .def("dump", &ReactionRule::dump)

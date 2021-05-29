@@ -114,11 +114,11 @@ bool GenElementaryMoleculeType::eq_nonarray_attributes(const ElementaryMoleculeT
     target_only == other.target_only;
 }
 
-std::string GenElementaryMoleculeType::to_str(const std::string ind) const {
+std::string GenElementaryMoleculeType::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "\n" << ind + "  " << "components=" << vec_ptr_to_str(components, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "components=" << vec_ptr_to_str(components, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
       "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
       "diffusion_constant_3d=" << diffusion_constant_3d << ", " <<
       "custom_time_step=" << custom_time_step << ", " <<
@@ -150,7 +150,7 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def("check_semantics", &ElementaryMoleculeType::check_semantics)
       .def("__copy__", &ElementaryMoleculeType::copy_elementary_molecule_type)
       .def("__deepcopy__", &ElementaryMoleculeType::deepcopy_elementary_molecule_type, py::arg("memo"))
-      .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &ElementaryMoleculeType::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMoleculeType::__eq__, py::arg("other"))
       .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<Component>>(), py::arg("compartment_name") = STR_UNSET, "Create an elementary molecule based on this elementary molecule type.\n- components: Instances of components for the the created elementary molecule.\nNot all components need to be specified in case when the elementary \nmolecule is used in a pattern.\n \n\n\n- compartment_name: Optional specification of compartment name for the created elementary molecule. \n\n\n")
       .def("to_bngl_str", &ElementaryMoleculeType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")

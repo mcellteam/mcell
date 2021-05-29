@@ -215,17 +215,17 @@ bool GenSurfaceRegion::eq_nonarray_attributes(const SurfaceRegion& other, const 
      ) ;
 }
 
-std::string GenSurfaceRegion::to_str(const std::string ind) const {
+std::string GenSurfaceRegion::to_str(const bool all_details, const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "wall_indices=" << vec_nonptr_to_str(wall_indices, ind + "  ") << ", " <<
-      "\n" << ind + "  " << "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "initial_surface_releases=" << vec_ptr_to_str(initial_surface_releases, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "initial_color=" << "(" << ((initial_color != nullptr) ? initial_color->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "wall_indices=" << vec_nonptr_to_str(wall_indices, all_details, ind + "  ") << ", " <<
+      "\n" << ind + "  " << "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "initial_surface_releases=" << vec_ptr_to_str(initial_surface_releases, all_details, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "initial_color=" << "(" << ((initial_color != nullptr) ? initial_color->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
-      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
+      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(all_details, ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -254,7 +254,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       .def("check_semantics", &SurfaceRegion::check_semantics)
       .def("__copy__", &SurfaceRegion::copy_surface_region)
       .def("__deepcopy__", &SurfaceRegion::deepcopy_surface_region, py::arg("memo"))
-      .def("__str__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
+      .def("__str__", &SurfaceRegion::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
       .def("dump", &SurfaceRegion::dump)
       .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name, "Name of this region.")
