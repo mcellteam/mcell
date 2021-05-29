@@ -74,7 +74,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  CountTerm copy_count_term() const;
+  std::shared_ptr<CountTerm> copy_count_term() const;
+  std::shared_ptr<CountTerm> deepcopy_count_term(py::dict = py::dict()) const;
   virtual bool __eq__(const CountTerm& other) const;
   virtual bool eq_nonarray_attributes(const CountTerm& other, const bool ignore_name = false) const;
   bool operator == (const CountTerm& other) const { return __eq__(other);}

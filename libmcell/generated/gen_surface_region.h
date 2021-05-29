@@ -80,7 +80,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  SurfaceRegion copy_surface_region() const;
+  std::shared_ptr<SurfaceRegion> copy_surface_region() const;
+  std::shared_ptr<SurfaceRegion> deepcopy_surface_region(py::dict = py::dict()) const;
   virtual bool __eq__(const SurfaceRegion& other) const;
   virtual bool eq_nonarray_attributes(const SurfaceRegion& other, const bool ignore_name = false) const;
   bool operator == (const SurfaceRegion& other) const { return __eq__(other);}

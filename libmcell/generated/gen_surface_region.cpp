@@ -71,20 +71,42 @@ void GenSurfaceRegion::set_all_attributes_as_default_or_unset() {
   right_node = nullptr;
 }
 
-SurfaceRegion GenSurfaceRegion::copy_surface_region() const {
+std::shared_ptr<SurfaceRegion> GenSurfaceRegion::copy_surface_region() const {
   if (initialized) {
     throw RuntimeError("Object of class SurfaceRegion cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  SurfaceRegion res = SurfaceRegion(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.name = name;
-  res.wall_indices = wall_indices;
-  res.surface_class = surface_class;
-  res.initial_surface_releases = initial_surface_releases;
-  res.initial_color = initial_color;
-  res.node_type = node_type;
-  res.left_node = left_node;
-  res.right_node = right_node;
+
+  std::shared_ptr<SurfaceRegion> res = std::make_shared<SurfaceRegion>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->wall_indices = wall_indices;
+  res->surface_class = surface_class;
+  res->initial_surface_releases = initial_surface_releases;
+  res->initial_color = initial_color;
+  res->node_type = node_type;
+  res->left_node = left_node;
+  res->right_node = right_node;
+
+  return res;
+}
+
+std::shared_ptr<SurfaceRegion> GenSurfaceRegion::deepcopy_surface_region(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class SurfaceRegion cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<SurfaceRegion> res = std::make_shared<SurfaceRegion>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->wall_indices = wall_indices;
+  res->surface_class = is_set(surface_class) ? surface_class->deepcopy_surface_class() : nullptr;
+  for (const auto& item: initial_surface_releases) {
+    res->initial_surface_releases.push_back((is_set(item)) ? item->deepcopy_initial_surface_release() : nullptr);
+  }
+  res->initial_color = is_set(initial_color) ? initial_color->deepcopy_color() : nullptr;
+  res->node_type = node_type;
+  res->left_node = is_set(left_node) ? left_node->deepcopy_region() : nullptr;
+  res->right_node = is_set(right_node) ? right_node->deepcopy_region() : nullptr;
 
   return res;
 }
@@ -231,6 +253,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       )
       .def("check_semantics", &SurfaceRegion::check_semantics)
       .def("__copy__", &SurfaceRegion::copy_surface_region)
+      .def("__deepcopy__", &SurfaceRegion::deepcopy_surface_region, py::arg("memo"))
       .def("__str__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
       .def("dump", &SurfaceRegion::dump)

@@ -52,20 +52,40 @@ void GenMolecule::set_all_attributes_as_default_or_unset() {
   wall_index = -1;
 }
 
-Molecule GenMolecule::copy_molecule() const {
+std::shared_ptr<Molecule> GenMolecule::copy_molecule() const {
   if (initialized) {
     throw RuntimeError("Object of class Molecule cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  Molecule res = Molecule(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.id = id;
-  res.type = type;
-  res.species_id = species_id;
-  res.pos3d = pos3d;
-  res.orientation = orientation;
-  res.pos2d = pos2d;
-  res.geometry_object = geometry_object;
-  res.wall_index = wall_index;
+
+  std::shared_ptr<Molecule> res = std::make_shared<Molecule>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->id = id;
+  res->type = type;
+  res->species_id = species_id;
+  res->pos3d = pos3d;
+  res->orientation = orientation;
+  res->pos2d = pos2d;
+  res->geometry_object = geometry_object;
+  res->wall_index = wall_index;
+
+  return res;
+}
+
+std::shared_ptr<Molecule> GenMolecule::deepcopy_molecule(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class Molecule cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<Molecule> res = std::make_shared<Molecule>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->id = id;
+  res->type = type;
+  res->species_id = species_id;
+  res->pos3d = pos3d;
+  res->orientation = orientation;
+  res->pos2d = pos2d;
+  res->geometry_object = is_set(geometry_object) ? geometry_object->deepcopy_geometry_object() : nullptr;
+  res->wall_index = wall_index;
 
   return res;
 }
@@ -136,6 +156,7 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       )
       .def("check_semantics", &Molecule::check_semantics)
       .def("__copy__", &Molecule::copy_molecule)
+      .def("__deepcopy__", &Molecule::deepcopy_molecule, py::arg("memo"))
       .def("__str__", &Molecule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Molecule::__eq__, py::arg("other"))
       .def("remove", &Molecule::remove, "Removes this molecule from simulation. Any subsequent modifications\nof this molecules won't have any effect.\n")

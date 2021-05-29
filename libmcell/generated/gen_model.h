@@ -70,7 +70,8 @@ public:
   GenModel(DefaultCtorArgType) {
   }
   virtual ~GenModel() {}
-  Model copy_model() const;
+  std::shared_ptr<Model> copy_model() const;
+  std::shared_ptr<Model> deepcopy_model(py::dict = py::dict()) const;
   virtual bool __eq__(const Model& other) const;
   virtual bool eq_nonarray_attributes(const Model& other, const bool ignore_name = false) const;
   bool operator == (const Model& other) const { return __eq__(other);}

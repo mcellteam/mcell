@@ -62,7 +62,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  InitialSurfaceRelease copy_initial_surface_release() const;
+  std::shared_ptr<InitialSurfaceRelease> copy_initial_surface_release() const;
+  std::shared_ptr<InitialSurfaceRelease> deepcopy_initial_surface_release(py::dict = py::dict()) const;
   virtual bool __eq__(const InitialSurfaceRelease& other) const;
   virtual bool eq_nonarray_attributes(const InitialSurfaceRelease& other, const bool ignore_name = false) const;
   bool operator == (const InitialSurfaceRelease& other) const { return __eq__(other);}

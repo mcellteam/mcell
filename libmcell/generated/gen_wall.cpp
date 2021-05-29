@@ -65,18 +65,36 @@ void GenWall::set_all_attributes_as_default_or_unset() {
   is_movable = true;
 }
 
-Wall GenWall::copy_wall() const {
+std::shared_ptr<Wall> GenWall::copy_wall() const {
   if (initialized) {
     throw RuntimeError("Object of class Wall cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  Wall res = Wall(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.geometry_object = geometry_object;
-  res.wall_index = wall_index;
-  res.vertices = vertices;
-  res.area = area;
-  res.unit_normal = unit_normal;
-  res.is_movable = is_movable;
+
+  std::shared_ptr<Wall> res = std::make_shared<Wall>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->geometry_object = geometry_object;
+  res->wall_index = wall_index;
+  res->vertices = vertices;
+  res->area = area;
+  res->unit_normal = unit_normal;
+  res->is_movable = is_movable;
+
+  return res;
+}
+
+std::shared_ptr<Wall> GenWall::deepcopy_wall(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class Wall cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<Wall> res = std::make_shared<Wall>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->geometry_object = is_set(geometry_object) ? geometry_object->deepcopy_geometry_object() : nullptr;
+  res->wall_index = wall_index;
+  res->vertices = vertices;
+  res->area = area;
+  res->unit_normal = unit_normal;
+  res->is_movable = is_movable;
 
   return res;
 }
@@ -141,6 +159,7 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       )
       .def("check_semantics", &Wall::check_semantics)
       .def("__copy__", &Wall::copy_wall)
+      .def("__deepcopy__", &Wall::deepcopy_wall, py::arg("memo"))
       .def("__str__", &Wall::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Wall::__eq__, py::arg("other"))
       .def("dump", &Wall::dump)

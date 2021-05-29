@@ -54,19 +54,40 @@ void GenElementaryMoleculeType::set_all_attributes_as_default_or_unset() {
   target_only = false;
 }
 
-ElementaryMoleculeType GenElementaryMoleculeType::copy_elementary_molecule_type() const {
+std::shared_ptr<ElementaryMoleculeType> GenElementaryMoleculeType::copy_elementary_molecule_type() const {
   if (initialized) {
     throw RuntimeError("Object of class ElementaryMoleculeType cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  ElementaryMoleculeType res = ElementaryMoleculeType(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.name = name;
-  res.components = components;
-  res.diffusion_constant_2d = diffusion_constant_2d;
-  res.diffusion_constant_3d = diffusion_constant_3d;
-  res.custom_time_step = custom_time_step;
-  res.custom_space_step = custom_space_step;
-  res.target_only = target_only;
+
+  std::shared_ptr<ElementaryMoleculeType> res = std::make_shared<ElementaryMoleculeType>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->components = components;
+  res->diffusion_constant_2d = diffusion_constant_2d;
+  res->diffusion_constant_3d = diffusion_constant_3d;
+  res->custom_time_step = custom_time_step;
+  res->custom_space_step = custom_space_step;
+  res->target_only = target_only;
+
+  return res;
+}
+
+std::shared_ptr<ElementaryMoleculeType> GenElementaryMoleculeType::deepcopy_elementary_molecule_type(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class ElementaryMoleculeType cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<ElementaryMoleculeType> res = std::make_shared<ElementaryMoleculeType>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  for (const auto& item: components) {
+    res->components.push_back((is_set(item)) ? item->deepcopy_component_type() : nullptr);
+  }
+  res->diffusion_constant_2d = diffusion_constant_2d;
+  res->diffusion_constant_3d = diffusion_constant_3d;
+  res->custom_time_step = custom_time_step;
+  res->custom_space_step = custom_space_step;
+  res->target_only = target_only;
 
   return res;
 }
@@ -128,6 +149,7 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       )
       .def("check_semantics", &ElementaryMoleculeType::check_semantics)
       .def("__copy__", &ElementaryMoleculeType::copy_elementary_molecule_type)
+      .def("__deepcopy__", &ElementaryMoleculeType::deepcopy_elementary_molecule_type, py::arg("memo"))
       .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMoleculeType::__eq__, py::arg("other"))
       .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<Component>>(), py::arg("compartment_name") = STR_UNSET, "Create an elementary molecule based on this elementary molecule type.\n- components: Instances of components for the the created elementary molecule.\nNot all components need to be specified in case when the elementary \nmolecule is used in a pattern.\n \n\n\n- compartment_name: Optional specification of compartment name for the created elementary molecule. \n\n\n")

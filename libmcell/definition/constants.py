@@ -164,6 +164,13 @@ CLASS_NAME_OBSERVABLES = 'Observables'
 CTOR_POSTPROCESS = 'postprocess_in_ctor'
 RET_CTOR_POSTPROCESS = 'void' 
 
+COPY_NAME = 'copy'
+DEEPCOPY_NAME = 'deepcopy'
+DEEPCOPY_VEC = 'deepcopy_vec'
+DEEPCOPY_VEC_VEC = 'deepcopy_vec_vec'
+
+IS_SET = 'is_set'
+
 DEFAULT_CTOR_ARG_TYPE = 'DefaultCtorArgType'
 
 RET_TYPE_CHECK_SEMANTICS = 'void'
@@ -178,6 +185,7 @@ SET_ALL_DEFAULT_OR_UNSET_DECL = 'set_all_attributes_as_default_or_unset()'
 
 RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'
+MAKE_SHARED = 'std::make_shared'
 DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
 DECL_TO_STR = 'to_str(const std::string ind) const'
 

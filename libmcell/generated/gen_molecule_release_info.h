@@ -60,7 +60,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  MoleculeReleaseInfo copy_molecule_release_info() const;
+  std::shared_ptr<MoleculeReleaseInfo> copy_molecule_release_info() const;
+  std::shared_ptr<MoleculeReleaseInfo> deepcopy_molecule_release_info(py::dict = py::dict()) const;
   virtual bool __eq__(const MoleculeReleaseInfo& other) const;
   virtual bool eq_nonarray_attributes(const MoleculeReleaseInfo& other, const bool ignore_name = false) const;
   bool operator == (const MoleculeReleaseInfo& other) const { return __eq__(other);}

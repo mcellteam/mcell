@@ -30,15 +30,28 @@
 namespace MCell {
 namespace API {
 
-MolWallHitInfo GenMolWallHitInfo::copy_mol_wall_hit_info() const {
-  MolWallHitInfo res = MolWallHitInfo(DefaultCtorArgType());
-  res.molecule_id = molecule_id;
-  res.geometry_object = geometry_object;
-  res.wall_index = wall_index;
-  res.time = time;
-  res.pos3d = pos3d;
-  res.time_before_hit = time_before_hit;
-  res.pos3d_before_hit = pos3d_before_hit;
+std::shared_ptr<MolWallHitInfo> GenMolWallHitInfo::copy_mol_wall_hit_info() const {
+  std::shared_ptr<MolWallHitInfo> res = std::make_shared<MolWallHitInfo>(DefaultCtorArgType());
+  res->molecule_id = molecule_id;
+  res->geometry_object = geometry_object;
+  res->wall_index = wall_index;
+  res->time = time;
+  res->pos3d = pos3d;
+  res->time_before_hit = time_before_hit;
+  res->pos3d_before_hit = pos3d_before_hit;
+
+  return res;
+}
+
+std::shared_ptr<MolWallHitInfo> GenMolWallHitInfo::deepcopy_mol_wall_hit_info(py::dict) const {
+  std::shared_ptr<MolWallHitInfo> res = std::make_shared<MolWallHitInfo>(DefaultCtorArgType());
+  res->molecule_id = molecule_id;
+  res->geometry_object = is_set(geometry_object) ? geometry_object->deepcopy_geometry_object() : nullptr;
+  res->wall_index = wall_index;
+  res->time = time;
+  res->pos3d = pos3d;
+  res->time_before_hit = time_before_hit;
+  res->pos3d_before_hit = pos3d_before_hit;
 
   return res;
 }
@@ -105,6 +118,7 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
           >()
       )
       .def("__copy__", &MolWallHitInfo::copy_mol_wall_hit_info)
+      .def("__deepcopy__", &MolWallHitInfo::deepcopy_mol_wall_hit_info, py::arg("memo"))
       .def("__str__", &MolWallHitInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &MolWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &MolWallHitInfo::dump)

@@ -52,20 +52,56 @@
 namespace MCell {
 namespace API {
 
-Model GenModel::copy_model() const {
-  Model res = Model(DefaultCtorArgType());
-  res.config = config;
-  res.warnings = warnings;
-  res.notifications = notifications;
-  res.species = species;
-  res.reaction_rules = reaction_rules;
-  res.surface_classes = surface_classes;
-  res.elementary_molecule_types = elementary_molecule_types;
-  res.release_sites = release_sites;
-  res.geometry_objects = geometry_objects;
-  res.checkpointed_molecules = checkpointed_molecules;
-  res.viz_outputs = viz_outputs;
-  res.counts = counts;
+std::shared_ptr<Model> GenModel::copy_model() const {
+  std::shared_ptr<Model> res = std::make_shared<Model>(DefaultCtorArgType());
+  res->config = config;
+  res->warnings = warnings;
+  res->notifications = notifications;
+  res->species = species;
+  res->reaction_rules = reaction_rules;
+  res->surface_classes = surface_classes;
+  res->elementary_molecule_types = elementary_molecule_types;
+  res->release_sites = release_sites;
+  res->geometry_objects = geometry_objects;
+  res->checkpointed_molecules = checkpointed_molecules;
+  res->viz_outputs = viz_outputs;
+  res->counts = counts;
+
+  return res;
+}
+
+std::shared_ptr<Model> GenModel::deepcopy_model(py::dict) const {
+  std::shared_ptr<Model> res = std::make_shared<Model>(DefaultCtorArgType());
+  res->config = config;
+  res->warnings = warnings;
+  res->notifications = notifications;
+  for (const auto& item: species) {
+    res->species.push_back((is_set(item)) ? item->deepcopy_species() : nullptr);
+  }
+  for (const auto& item: reaction_rules) {
+    res->reaction_rules.push_back((is_set(item)) ? item->deepcopy_reaction_rule() : nullptr);
+  }
+  for (const auto& item: surface_classes) {
+    res->surface_classes.push_back((is_set(item)) ? item->deepcopy_surface_class() : nullptr);
+  }
+  for (const auto& item: elementary_molecule_types) {
+    res->elementary_molecule_types.push_back((is_set(item)) ? item->deepcopy_elementary_molecule_type() : nullptr);
+  }
+  for (const auto& item: release_sites) {
+    res->release_sites.push_back((is_set(item)) ? item->deepcopy_release_site() : nullptr);
+  }
+  for (const auto& item: geometry_objects) {
+    res->geometry_objects.push_back((is_set(item)) ? item->deepcopy_geometry_object() : nullptr);
+  }
+  for (const auto& item: checkpointed_molecules) {
+    res->checkpointed_molecules.push_back((is_set(item)) ? item->deepcopy_base_chkpt_mol() : nullptr);
+  }
+  for (const auto& item: viz_outputs) {
+    res->viz_outputs.push_back((is_set(item)) ? item->deepcopy_viz_output() : nullptr);
+  }
+  for (const auto& item: counts) {
+    res->counts.push_back((is_set(item)) ? item->deepcopy_count() : nullptr);
+  }
 
   return res;
 }
@@ -131,6 +167,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
           >()
       )
       .def("__copy__", &Model::copy_model)
+      .def("__deepcopy__", &Model::deepcopy_model, py::arg("memo"))
       .def("__str__", &Model::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Model::__eq__, py::arg("other"))
       .def("initialize", &Model::initialize, py::arg("print_copyright") = true, "Initializes model, initialization blocks most of changes to \ncontained components. \n\n- print_copyright: Prints information about MCell.\n\n")

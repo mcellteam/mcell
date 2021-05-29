@@ -62,7 +62,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  Component copy_component() const;
+  std::shared_ptr<Component> copy_component() const;
+  std::shared_ptr<Component> deepcopy_component(py::dict = py::dict()) const;
   virtual bool __eq__(const Component& other) const;
   virtual bool eq_nonarray_attributes(const Component& other, const bool ignore_name = false) const;
   bool operator == (const Component& other) const { return __eq__(other);}

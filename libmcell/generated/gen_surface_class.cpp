@@ -54,17 +54,36 @@ void GenSurfaceClass::set_all_attributes_as_default_or_unset() {
   concentration = FLT_UNSET;
 }
 
-SurfaceClass GenSurfaceClass::copy_surface_class() const {
+std::shared_ptr<SurfaceClass> GenSurfaceClass::copy_surface_class() const {
   if (initialized) {
     throw RuntimeError("Object of class SurfaceClass cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  SurfaceClass res = SurfaceClass(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.name = name;
-  res.properties = properties;
-  res.type = type;
-  res.affected_complex_pattern = affected_complex_pattern;
-  res.concentration = concentration;
+
+  std::shared_ptr<SurfaceClass> res = std::make_shared<SurfaceClass>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->properties = properties;
+  res->type = type;
+  res->affected_complex_pattern = affected_complex_pattern;
+  res->concentration = concentration;
+
+  return res;
+}
+
+std::shared_ptr<SurfaceClass> GenSurfaceClass::deepcopy_surface_class(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class SurfaceClass cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<SurfaceClass> res = std::make_shared<SurfaceClass>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  for (const auto& item: properties) {
+    res->properties.push_back((is_set(item)) ? item->deepcopy_surface_property() : nullptr);
+  }
+  res->type = type;
+  res->affected_complex_pattern = is_set(affected_complex_pattern) ? affected_complex_pattern->deepcopy_complex() : nullptr;
+  res->concentration = concentration;
 
   return res;
 }
@@ -136,6 +155,7 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
       )
       .def("check_semantics", &SurfaceClass::check_semantics)
       .def("__copy__", &SurfaceClass::copy_surface_class)
+      .def("__deepcopy__", &SurfaceClass::deepcopy_surface_class, py::arg("memo"))
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceClass::__eq__, py::arg("other"))
       .def("dump", &SurfaceClass::dump)

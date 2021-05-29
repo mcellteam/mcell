@@ -78,25 +78,50 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   initial_reactions_count = 0;
 }
 
-Count GenCount::copy_count() const {
+std::shared_ptr<Count> GenCount::copy_count() const {
   if (initialized) {
     throw RuntimeError("Object of class Count cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  Count res = Count(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.name = name;
-  res.file_name = file_name;
-  res.count_expression = count_expression;
-  res.multiplier = multiplier;
-  res.every_n_timesteps = every_n_timesteps;
-  res.species_pattern = species_pattern;
-  res.molecules_pattern = molecules_pattern;
-  res.reaction_rule = reaction_rule;
-  res.region = region;
-  res.node_type = node_type;
-  res.left_node = left_node;
-  res.right_node = right_node;
-  res.initial_reactions_count = initial_reactions_count;
+
+  std::shared_ptr<Count> res = std::make_shared<Count>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->file_name = file_name;
+  res->count_expression = count_expression;
+  res->multiplier = multiplier;
+  res->every_n_timesteps = every_n_timesteps;
+  res->species_pattern = species_pattern;
+  res->molecules_pattern = molecules_pattern;
+  res->reaction_rule = reaction_rule;
+  res->region = region;
+  res->node_type = node_type;
+  res->left_node = left_node;
+  res->right_node = right_node;
+  res->initial_reactions_count = initial_reactions_count;
+
+  return res;
+}
+
+std::shared_ptr<Count> GenCount::deepcopy_count(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class Count cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<Count> res = std::make_shared<Count>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->file_name = file_name;
+  res->count_expression = is_set(count_expression) ? count_expression->deepcopy_count_term() : nullptr;
+  res->multiplier = multiplier;
+  res->every_n_timesteps = every_n_timesteps;
+  res->species_pattern = is_set(species_pattern) ? species_pattern->deepcopy_complex() : nullptr;
+  res->molecules_pattern = is_set(molecules_pattern) ? molecules_pattern->deepcopy_complex() : nullptr;
+  res->reaction_rule = is_set(reaction_rule) ? reaction_rule->deepcopy_reaction_rule() : nullptr;
+  res->region = is_set(region) ? region->deepcopy_region() : nullptr;
+  res->node_type = node_type;
+  res->left_node = is_set(left_node) ? left_node->deepcopy_count_term() : nullptr;
+  res->right_node = is_set(right_node) ? right_node->deepcopy_count_term() : nullptr;
+  res->initial_reactions_count = initial_reactions_count;
 
   return res;
 }
@@ -328,6 +353,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       )
       .def("check_semantics", &Count::check_semantics)
       .def("__copy__", &Count::copy_count)
+      .def("__deepcopy__", &Count::deepcopy_count, py::arg("memo"))
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Count::__eq__, py::arg("other"))
       .def("get_current_value", &Count::get_current_value, "Returns the current value for this count. Cannot be used to count reactions.\nThe model must be initialized with this Count present as one of the observables.\n")

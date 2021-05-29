@@ -31,10 +31,22 @@
 namespace MCell {
 namespace API {
 
-Observables GenObservables::copy_observables() const {
-  Observables res = Observables(DefaultCtorArgType());
-  res.viz_outputs = viz_outputs;
-  res.counts = counts;
+std::shared_ptr<Observables> GenObservables::copy_observables() const {
+  std::shared_ptr<Observables> res = std::make_shared<Observables>(DefaultCtorArgType());
+  res->viz_outputs = viz_outputs;
+  res->counts = counts;
+
+  return res;
+}
+
+std::shared_ptr<Observables> GenObservables::deepcopy_observables(py::dict) const {
+  std::shared_ptr<Observables> res = std::make_shared<Observables>(DefaultCtorArgType());
+  for (const auto& item: viz_outputs) {
+    res->viz_outputs.push_back((is_set(item)) ? item->deepcopy_viz_output() : nullptr);
+  }
+  for (const auto& item: counts) {
+    res->counts.push_back((is_set(item)) ? item->deepcopy_count() : nullptr);
+  }
 
   return res;
 }
@@ -70,6 +82,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
           py::arg("counts") = std::vector<std::shared_ptr<Count>>()
       )
       .def("__copy__", &Observables::copy_observables)
+      .def("__deepcopy__", &Observables::deepcopy_observables, py::arg("memo"))
       .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Observables::__eq__, py::arg("other"))
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"), "Adds a reference to the viz_output object to the list of visualization output specifications.\n- viz_output\n")

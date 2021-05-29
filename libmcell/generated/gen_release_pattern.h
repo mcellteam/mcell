@@ -65,7 +65,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  ReleasePattern copy_release_pattern() const;
+  std::shared_ptr<ReleasePattern> copy_release_pattern() const;
+  std::shared_ptr<ReleasePattern> deepcopy_release_pattern(py::dict = py::dict()) const;
   virtual bool __eq__(const ReleasePattern& other) const;
   virtual bool eq_nonarray_attributes(const ReleasePattern& other, const bool ignore_name = false) const;
   bool operator == (const ReleasePattern& other) const { return __eq__(other);}

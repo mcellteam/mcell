@@ -72,7 +72,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  ElementaryMoleculeType copy_elementary_molecule_type() const;
+  std::shared_ptr<ElementaryMoleculeType> copy_elementary_molecule_type() const;
+  std::shared_ptr<ElementaryMoleculeType> deepcopy_elementary_molecule_type(py::dict = py::dict()) const;
   virtual bool __eq__(const ElementaryMoleculeType& other) const;
   virtual bool eq_nonarray_attributes(const ElementaryMoleculeType& other, const bool ignore_name = false) const;
   bool operator == (const ElementaryMoleculeType& other) const { return __eq__(other);}

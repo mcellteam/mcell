@@ -52,15 +52,32 @@ void GenElementaryMolecule::set_all_attributes_as_default_or_unset() {
   compartment_name = STR_UNSET;
 }
 
-ElementaryMolecule GenElementaryMolecule::copy_elementary_molecule() const {
+std::shared_ptr<ElementaryMolecule> GenElementaryMolecule::copy_elementary_molecule() const {
   if (initialized) {
     throw RuntimeError("Object of class ElementaryMolecule cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  ElementaryMolecule res = ElementaryMolecule(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.elementary_molecule_type = elementary_molecule_type;
-  res.components = components;
-  res.compartment_name = compartment_name;
+
+  std::shared_ptr<ElementaryMolecule> res = std::make_shared<ElementaryMolecule>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->elementary_molecule_type = elementary_molecule_type;
+  res->components = components;
+  res->compartment_name = compartment_name;
+
+  return res;
+}
+
+std::shared_ptr<ElementaryMolecule> GenElementaryMolecule::deepcopy_elementary_molecule(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class ElementaryMolecule cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<ElementaryMolecule> res = std::make_shared<ElementaryMolecule>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->elementary_molecule_type = is_set(elementary_molecule_type) ? elementary_molecule_type->deepcopy_elementary_molecule_type() : nullptr;
+  for (const auto& item: components) {
+    res->components.push_back((is_set(item)) ? item->deepcopy_component() : nullptr);
+  }
+  res->compartment_name = compartment_name;
 
   return res;
 }
@@ -122,6 +139,7 @@ py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m
       )
       .def("check_semantics", &ElementaryMolecule::check_semantics)
       .def("__copy__", &ElementaryMolecule::copy_elementary_molecule)
+      .def("__deepcopy__", &ElementaryMolecule::deepcopy_elementary_molecule, py::arg("memo"))
       .def("__str__", &ElementaryMolecule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMolecule::__eq__, py::arg("other"))
       .def("to_bngl_str", &ElementaryMolecule::to_bngl_str, py::arg("with_compartment") = true, "Creates a string that corresponds to its BNGL representation\n- with_compartment: Include compartment name in the returned BNGL string.\n\n")

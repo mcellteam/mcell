@@ -33,11 +33,26 @@
 namespace MCell {
 namespace API {
 
-Instantiation GenInstantiation::copy_instantiation() const {
-  Instantiation res = Instantiation(DefaultCtorArgType());
-  res.release_sites = release_sites;
-  res.geometry_objects = geometry_objects;
-  res.checkpointed_molecules = checkpointed_molecules;
+std::shared_ptr<Instantiation> GenInstantiation::copy_instantiation() const {
+  std::shared_ptr<Instantiation> res = std::make_shared<Instantiation>(DefaultCtorArgType());
+  res->release_sites = release_sites;
+  res->geometry_objects = geometry_objects;
+  res->checkpointed_molecules = checkpointed_molecules;
+
+  return res;
+}
+
+std::shared_ptr<Instantiation> GenInstantiation::deepcopy_instantiation(py::dict) const {
+  std::shared_ptr<Instantiation> res = std::make_shared<Instantiation>(DefaultCtorArgType());
+  for (const auto& item: release_sites) {
+    res->release_sites.push_back((is_set(item)) ? item->deepcopy_release_site() : nullptr);
+  }
+  for (const auto& item: geometry_objects) {
+    res->geometry_objects.push_back((is_set(item)) ? item->deepcopy_geometry_object() : nullptr);
+  }
+  for (const auto& item: checkpointed_molecules) {
+    res->checkpointed_molecules.push_back((is_set(item)) ? item->deepcopy_base_chkpt_mol() : nullptr);
+  }
 
   return res;
 }
@@ -78,6 +93,7 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
           py::arg("checkpointed_molecules") = std::vector<std::shared_ptr<BaseChkptMol>>()
       )
       .def("__copy__", &Instantiation::copy_instantiation)
+      .def("__deepcopy__", &Instantiation::deepcopy_instantiation, py::arg("memo"))
       .def("__str__", &Instantiation::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Instantiation::__eq__, py::arg("other"))
       .def("add_release_site", &Instantiation::add_release_site, py::arg("s"), "Adds a reference to the release site s to the list of release sites.\n- s\n")

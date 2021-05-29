@@ -41,13 +41,26 @@ void GenWarnings::set_all_attributes_as_default_or_unset() {
   high_reaction_probability = WarningLevel::IGNORE;
 }
 
-Warnings GenWarnings::copy_warnings() const {
+std::shared_ptr<Warnings> GenWarnings::copy_warnings() const {
   if (initialized) {
     throw RuntimeError("Object of class Warnings cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  Warnings res = Warnings(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.high_reaction_probability = high_reaction_probability;
+
+  std::shared_ptr<Warnings> res = std::make_shared<Warnings>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->high_reaction_probability = high_reaction_probability;
+
+  return res;
+}
+
+std::shared_ptr<Warnings> GenWarnings::deepcopy_warnings(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class Warnings cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<Warnings> res = std::make_shared<Warnings>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->high_reaction_probability = high_reaction_probability;
 
   return res;
 }
@@ -79,6 +92,7 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
       )
       .def("check_semantics", &Warnings::check_semantics)
       .def("__copy__", &Warnings::copy_warnings)
+      .def("__deepcopy__", &Warnings::deepcopy_warnings, py::arg("memo"))
       .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Warnings::__eq__, py::arg("other"))
       .def("dump", &Warnings::dump)

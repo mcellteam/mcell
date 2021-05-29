@@ -64,7 +64,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  Molecule copy_molecule() const;
+  std::shared_ptr<Molecule> copy_molecule() const;
+  std::shared_ptr<Molecule> deepcopy_molecule(py::dict = py::dict()) const;
   virtual bool __eq__(const Molecule& other) const;
   virtual bool eq_nonarray_attributes(const Molecule& other, const bool ignore_name = false) const;
   bool operator == (const Molecule& other) const { return __eq__(other);}

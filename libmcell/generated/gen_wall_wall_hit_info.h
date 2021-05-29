@@ -58,7 +58,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  WallWallHitInfo copy_wall_wall_hit_info() const;
+  std::shared_ptr<WallWallHitInfo> copy_wall_wall_hit_info() const;
+  std::shared_ptr<WallWallHitInfo> deepcopy_wall_wall_hit_info(py::dict = py::dict()) const;
   virtual bool __eq__(const WallWallHitInfo& other) const;
   virtual bool eq_nonarray_attributes(const WallWallHitInfo& other, const bool ignore_name = false) const;
   bool operator == (const WallWallHitInfo& other) const { return __eq__(other);}

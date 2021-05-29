@@ -52,7 +52,8 @@ public:
   GenObservables(DefaultCtorArgType) {
   }
   virtual ~GenObservables() {}
-  Observables copy_observables() const;
+  std::shared_ptr<Observables> copy_observables() const;
+  std::shared_ptr<Observables> deepcopy_observables(py::dict = py::dict()) const;
   virtual bool __eq__(const Observables& other) const;
   virtual bool eq_nonarray_attributes(const Observables& other, const bool ignore_name = false) const;
   bool operator == (const Observables& other) const { return __eq__(other);}

@@ -121,3 +121,26 @@ and no error is reported.
 When writing to a vector attribute, the original vector is replaced by the new one. 
 This is allowed in the build phase and when attempting to replace the whole vector in the
 simulation phase, an error is reported.  
+
+Object Cloning Support
+######################
+
+API objects support shallow and deep copy operations provided through Python methods
+*copy.copy(x)* and *copy.deepcopy(x[, memo])*.
+
+Due to MCell4 being implemented primarily in C++, there is one significant difference 
+in *copy* from Python semantics. All lists are copied 
+by value, not by reference as Python's lists since they are internally implemented 
+with C++ std::vector. This behavior is shown in the following code snippet:
+
+.. code-block:: python
+
+   ct = m.ComponentType('u', states = ['0', '1'])
+   
+   ct_copy = copy.copy(ct3)
+   ct_copy.states[0] = 'X' # change item in a copied list
+   
+   assert ct.states == ['0', '1']
+   assert ct_copy.states == ['X', '1']  
+
+For *copy.deepcopy(x[, memo])*, the optional *memo* argument is ignored.

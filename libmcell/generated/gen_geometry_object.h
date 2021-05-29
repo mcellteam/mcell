@@ -89,7 +89,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  GeometryObject copy_geometry_object() const;
+  std::shared_ptr<GeometryObject> copy_geometry_object() const;
+  std::shared_ptr<GeometryObject> deepcopy_geometry_object(py::dict = py::dict()) const;
   virtual bool __eq__(const GeometryObject& other) const;
   virtual bool eq_nonarray_attributes(const GeometryObject& other, const bool ignore_name = false) const;
   bool operator == (const GeometryObject& other) const { return __eq__(other);}

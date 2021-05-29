@@ -47,15 +47,30 @@ void GenSurfaceProperty::set_all_attributes_as_default_or_unset() {
   concentration = FLT_UNSET;
 }
 
-SurfaceProperty GenSurfaceProperty::copy_surface_property() const {
+std::shared_ptr<SurfaceProperty> GenSurfaceProperty::copy_surface_property() const {
   if (initialized) {
     throw RuntimeError("Object of class SurfaceProperty cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  SurfaceProperty res = SurfaceProperty(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.type = type;
-  res.affected_complex_pattern = affected_complex_pattern;
-  res.concentration = concentration;
+
+  std::shared_ptr<SurfaceProperty> res = std::make_shared<SurfaceProperty>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->type = type;
+  res->affected_complex_pattern = affected_complex_pattern;
+  res->concentration = concentration;
+
+  return res;
+}
+
+std::shared_ptr<SurfaceProperty> GenSurfaceProperty::deepcopy_surface_property(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class SurfaceProperty cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<SurfaceProperty> res = std::make_shared<SurfaceProperty>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->type = type;
+  res->affected_complex_pattern = is_set(affected_complex_pattern) ? affected_complex_pattern->deepcopy_complex() : nullptr;
+  res->concentration = concentration;
 
   return res;
 }
@@ -117,6 +132,7 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       )
       .def("check_semantics", &SurfaceProperty::check_semantics)
       .def("__copy__", &SurfaceProperty::copy_surface_property)
+      .def("__deepcopy__", &SurfaceProperty::deepcopy_surface_property, py::arg("memo"))
       .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceProperty::__eq__, py::arg("other"))
       .def("dump", &SurfaceProperty::dump)

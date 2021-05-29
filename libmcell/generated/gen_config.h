@@ -100,7 +100,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  Config copy_config() const;
+  std::shared_ptr<Config> copy_config() const;
+  std::shared_ptr<Config> deepcopy_config(py::dict = py::dict()) const;
   virtual bool __eq__(const Config& other) const;
   virtual bool eq_nonarray_attributes(const Config& other, const bool ignore_name = false) const;
   bool operator == (const Config& other) const { return __eq__(other);}

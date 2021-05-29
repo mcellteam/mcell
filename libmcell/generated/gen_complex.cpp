@@ -47,16 +47,34 @@ void GenComplex::set_all_attributes_as_default_or_unset() {
   compartment_name = STR_UNSET;
 }
 
-Complex GenComplex::copy_complex() const {
+std::shared_ptr<Complex> GenComplex::copy_complex() const {
   if (initialized) {
     throw RuntimeError("Object of class Complex cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  Complex res = Complex(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.name = name;
-  res.elementary_molecules = elementary_molecules;
-  res.orientation = orientation;
-  res.compartment_name = compartment_name;
+
+  std::shared_ptr<Complex> res = std::make_shared<Complex>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->elementary_molecules = elementary_molecules;
+  res->orientation = orientation;
+  res->compartment_name = compartment_name;
+
+  return res;
+}
+
+std::shared_ptr<Complex> GenComplex::deepcopy_complex(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class Complex cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<Complex> res = std::make_shared<Complex>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  for (const auto& item: elementary_molecules) {
+    res->elementary_molecules.push_back((is_set(item)) ? item->deepcopy_elementary_molecule() : nullptr);
+  }
+  res->orientation = orientation;
+  res->compartment_name = compartment_name;
 
   return res;
 }
@@ -103,6 +121,7 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       )
       .def("check_semantics", &Complex::check_semantics)
       .def("__copy__", &Complex::copy_complex)
+      .def("__deepcopy__", &Complex::deepcopy_complex, py::arg("memo"))
       .def("__str__", &Complex::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Complex::__eq__, py::arg("other"))
       .def("to_bngl_str", &Complex::to_bngl_str, "Creates a string that corresponds to its BNGL representation including compartments.")

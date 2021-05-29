@@ -33,12 +33,30 @@
 namespace MCell {
 namespace API {
 
-Subsystem GenSubsystem::copy_subsystem() const {
-  Subsystem res = Subsystem(DefaultCtorArgType());
-  res.species = species;
-  res.reaction_rules = reaction_rules;
-  res.surface_classes = surface_classes;
-  res.elementary_molecule_types = elementary_molecule_types;
+std::shared_ptr<Subsystem> GenSubsystem::copy_subsystem() const {
+  std::shared_ptr<Subsystem> res = std::make_shared<Subsystem>(DefaultCtorArgType());
+  res->species = species;
+  res->reaction_rules = reaction_rules;
+  res->surface_classes = surface_classes;
+  res->elementary_molecule_types = elementary_molecule_types;
+
+  return res;
+}
+
+std::shared_ptr<Subsystem> GenSubsystem::deepcopy_subsystem(py::dict) const {
+  std::shared_ptr<Subsystem> res = std::make_shared<Subsystem>(DefaultCtorArgType());
+  for (const auto& item: species) {
+    res->species.push_back((is_set(item)) ? item->deepcopy_species() : nullptr);
+  }
+  for (const auto& item: reaction_rules) {
+    res->reaction_rules.push_back((is_set(item)) ? item->deepcopy_reaction_rule() : nullptr);
+  }
+  for (const auto& item: surface_classes) {
+    res->surface_classes.push_back((is_set(item)) ? item->deepcopy_surface_class() : nullptr);
+  }
+  for (const auto& item: elementary_molecule_types) {
+    res->elementary_molecule_types.push_back((is_set(item)) ? item->deepcopy_elementary_molecule_type() : nullptr);
+  }
 
   return res;
 }
@@ -84,6 +102,7 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
           py::arg("elementary_molecule_types") = std::vector<std::shared_ptr<ElementaryMoleculeType>>()
       )
       .def("__copy__", &Subsystem::copy_subsystem)
+      .def("__deepcopy__", &Subsystem::deepcopy_subsystem, py::arg("memo"))
       .def("__str__", &Subsystem::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Subsystem::__eq__, py::arg("other"))
       .def("add_species", &Subsystem::add_species, py::arg("s"), "Add a reference to a Species object to the species list.\n- s\n")

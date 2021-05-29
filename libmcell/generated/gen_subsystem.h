@@ -58,7 +58,8 @@ public:
   GenSubsystem(DefaultCtorArgType) {
   }
   virtual ~GenSubsystem() {}
-  Subsystem copy_subsystem() const;
+  std::shared_ptr<Subsystem> copy_subsystem() const;
+  std::shared_ptr<Subsystem> deepcopy_subsystem(py::dict = py::dict()) const;
   virtual bool __eq__(const Subsystem& other) const;
   virtual bool eq_nonarray_attributes(const Subsystem& other, const bool ignore_name = false) const;
   bool operator == (const Subsystem& other) const { return __eq__(other);}

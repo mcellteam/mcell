@@ -89,7 +89,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  ChkptSurfMol copy_chkpt_surf_mol() const;
+  std::shared_ptr<ChkptSurfMol> copy_chkpt_surf_mol() const;
+  std::shared_ptr<ChkptSurfMol> deepcopy_chkpt_surf_mol(py::dict = py::dict()) const;
   virtual bool __eq__(const ChkptSurfMol& other) const;
   virtual bool eq_nonarray_attributes(const ChkptSurfMol& other, const bool ignore_name = false) const;
   bool operator == (const ChkptSurfMol& other) const { return __eq__(other);}

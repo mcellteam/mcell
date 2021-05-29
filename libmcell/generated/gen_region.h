@@ -61,7 +61,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  Region copy_region() const;
+  std::shared_ptr<Region> copy_region() const;
+  std::shared_ptr<Region> deepcopy_region(py::dict = py::dict()) const;
   virtual bool __eq__(const Region& other) const;
   virtual bool eq_nonarray_attributes(const Region& other, const bool ignore_name = false) const;
   bool operator == (const Region& other) const { return __eq__(other);}

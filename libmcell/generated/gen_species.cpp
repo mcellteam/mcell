@@ -54,22 +54,46 @@ void GenSpecies::set_all_attributes_as_default_or_unset() {
   compartment_name = STR_UNSET;
 }
 
-Species GenSpecies::copy_species() const {
+std::shared_ptr<Species> GenSpecies::copy_species() const {
   if (initialized) {
     throw RuntimeError("Object of class Species cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  Species res = Species(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.name = name;
-  res.diffusion_constant_2d = diffusion_constant_2d;
-  res.diffusion_constant_3d = diffusion_constant_3d;
-  res.custom_time_step = custom_time_step;
-  res.custom_space_step = custom_space_step;
-  res.target_only = target_only;
-  res.name = name;
-  res.elementary_molecules = elementary_molecules;
-  res.orientation = orientation;
-  res.compartment_name = compartment_name;
+
+  std::shared_ptr<Species> res = std::make_shared<Species>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->diffusion_constant_2d = diffusion_constant_2d;
+  res->diffusion_constant_3d = diffusion_constant_3d;
+  res->custom_time_step = custom_time_step;
+  res->custom_space_step = custom_space_step;
+  res->target_only = target_only;
+  res->name = name;
+  res->elementary_molecules = elementary_molecules;
+  res->orientation = orientation;
+  res->compartment_name = compartment_name;
+
+  return res;
+}
+
+std::shared_ptr<Species> GenSpecies::deepcopy_species(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class Species cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<Species> res = std::make_shared<Species>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->diffusion_constant_2d = diffusion_constant_2d;
+  res->diffusion_constant_3d = diffusion_constant_3d;
+  res->custom_time_step = custom_time_step;
+  res->custom_space_step = custom_space_step;
+  res->target_only = target_only;
+  res->name = name;
+  for (const auto& item: elementary_molecules) {
+    res->elementary_molecules.push_back((is_set(item)) ? item->deepcopy_elementary_molecule() : nullptr);
+  }
+  res->orientation = orientation;
+  res->compartment_name = compartment_name;
 
   return res;
 }
@@ -144,6 +168,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       )
       .def("check_semantics", &Species::check_semantics)
       .def("__copy__", &Species::copy_species)
+      .def("__deepcopy__", &Species::deepcopy_species, py::arg("memo"))
       .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Species::__eq__, py::arg("other"))
       .def("inst", &Species::inst, py::arg("orientation") = Orientation::DEFAULT, py::arg("compartment_name") = STR_UNSET, "Creates a copy of a Complex from this Species with specified orientation and compartment name. \n\n- orientation: Maximum one of orientation or compartment_name can be set, not both.\n\n- compartment_name: Maximum one of orientation or compartment_name can be set, not both.\n\n")

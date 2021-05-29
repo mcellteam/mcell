@@ -43,7 +43,8 @@ public:
   GenIntrospection(DefaultCtorArgType) {
   }
   virtual ~GenIntrospection() {}
-  Introspection copy_introspection() const;
+  std::shared_ptr<Introspection> copy_introspection() const;
+  std::shared_ptr<Introspection> deepcopy_introspection(py::dict = py::dict()) const;
   virtual bool __eq__(const Introspection& other) const;
   virtual bool eq_nonarray_attributes(const Introspection& other, const bool ignore_name = false) const;
   bool operator == (const Introspection& other) const { return __eq__(other);}

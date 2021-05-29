@@ -70,25 +70,52 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   concentration = FLT_UNSET;
 }
 
-ReleaseSite GenReleaseSite::copy_release_site() const {
+std::shared_ptr<ReleaseSite> GenReleaseSite::copy_release_site() const {
   if (initialized) {
     throw RuntimeError("Object of class ReleaseSite cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  ReleaseSite res = ReleaseSite(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.name = name;
-  res.complex = complex;
-  res.molecule_list = molecule_list;
-  res.release_time = release_time;
-  res.release_pattern = release_pattern;
-  res.shape = shape;
-  res.region = region;
-  res.location = location;
-  res.site_diameter = site_diameter;
-  res.site_radius = site_radius;
-  res.number_to_release = number_to_release;
-  res.density = density;
-  res.concentration = concentration;
+
+  std::shared_ptr<ReleaseSite> res = std::make_shared<ReleaseSite>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->complex = complex;
+  res->molecule_list = molecule_list;
+  res->release_time = release_time;
+  res->release_pattern = release_pattern;
+  res->shape = shape;
+  res->region = region;
+  res->location = location;
+  res->site_diameter = site_diameter;
+  res->site_radius = site_radius;
+  res->number_to_release = number_to_release;
+  res->density = density;
+  res->concentration = concentration;
+
+  return res;
+}
+
+std::shared_ptr<ReleaseSite> GenReleaseSite::deepcopy_release_site(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class ReleaseSite cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<ReleaseSite> res = std::make_shared<ReleaseSite>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->complex = is_set(complex) ? complex->deepcopy_complex() : nullptr;
+  for (const auto& item: molecule_list) {
+    res->molecule_list.push_back((is_set(item)) ? item->deepcopy_molecule_release_info() : nullptr);
+  }
+  res->release_time = release_time;
+  res->release_pattern = is_set(release_pattern) ? release_pattern->deepcopy_release_pattern() : nullptr;
+  res->shape = shape;
+  res->region = is_set(region) ? region->deepcopy_region() : nullptr;
+  res->location = location;
+  res->site_diameter = site_diameter;
+  res->site_radius = site_radius;
+  res->number_to_release = number_to_release;
+  res->density = density;
+  res->concentration = concentration;
 
   return res;
 }
@@ -240,6 +267,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__copy__", &ReleaseSite::copy_release_site)
+      .def("__deepcopy__", &ReleaseSite::deepcopy_release_site, py::arg("memo"))
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleaseSite::__eq__, py::arg("other"))
       .def("dump", &ReleaseSite::dump)

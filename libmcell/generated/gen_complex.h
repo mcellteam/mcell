@@ -65,7 +65,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  Complex copy_complex() const;
+  std::shared_ptr<Complex> copy_complex() const;
+  std::shared_ptr<Complex> deepcopy_complex(py::dict = py::dict()) const;
   virtual bool __eq__(const Complex& other) const;
   virtual bool eq_nonarray_attributes(const Complex& other, const bool ignore_name = false) const;
   bool operator == (const Complex& other) const { return __eq__(other);}

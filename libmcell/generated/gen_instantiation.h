@@ -56,7 +56,8 @@ public:
   GenInstantiation(DefaultCtorArgType) {
   }
   virtual ~GenInstantiation() {}
-  Instantiation copy_instantiation() const;
+  std::shared_ptr<Instantiation> copy_instantiation() const;
+  std::shared_ptr<Instantiation> deepcopy_instantiation(py::dict = py::dict()) const;
   virtual bool __eq__(const Instantiation& other) const;
   virtual bool eq_nonarray_attributes(const Instantiation& other, const bool ignore_name = false) const;
   bool operator == (const Instantiation& other) const { return __eq__(other);}

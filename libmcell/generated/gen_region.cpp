@@ -50,15 +50,30 @@ void GenRegion::set_all_attributes_as_default_or_unset() {
   right_node = nullptr;
 }
 
-Region GenRegion::copy_region() const {
+std::shared_ptr<Region> GenRegion::copy_region() const {
   if (initialized) {
     throw RuntimeError("Object of class Region cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  Region res = Region(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.node_type = node_type;
-  res.left_node = left_node;
-  res.right_node = right_node;
+
+  std::shared_ptr<Region> res = std::make_shared<Region>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->node_type = node_type;
+  res->left_node = left_node;
+  res->right_node = right_node;
+
+  return res;
+}
+
+std::shared_ptr<Region> GenRegion::deepcopy_region(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class Region cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<Region> res = std::make_shared<Region>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->node_type = node_type;
+  res->left_node = is_set(left_node) ? left_node->deepcopy_region() : nullptr;
+  res->right_node = is_set(right_node) ? right_node->deepcopy_region() : nullptr;
 
   return res;
 }
@@ -140,6 +155,7 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
       )
       .def("check_semantics", &Region::check_semantics)
       .def("__copy__", &Region::copy_region)
+      .def("__deepcopy__", &Region::deepcopy_region, py::arg("memo"))
       .def("__str__", &Region::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Region::__eq__, py::arg("other"))
       .def("__add__", &Region::__add__, py::arg("other"), "Computes union of two regions, use with Python operator '+'.\n- other\n")

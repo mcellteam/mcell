@@ -72,7 +72,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  SurfaceClass copy_surface_class() const;
+  std::shared_ptr<SurfaceClass> copy_surface_class() const;
+  std::shared_ptr<SurfaceClass> deepcopy_surface_class(py::dict = py::dict()) const;
   virtual bool __eq__(const SurfaceClass& other) const;
   virtual bool eq_nonarray_attributes(const SurfaceClass& other, const bool ignore_name = false) const;
   bool operator == (const SurfaceClass& other) const { return __eq__(other);}

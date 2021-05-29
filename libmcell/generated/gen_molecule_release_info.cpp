@@ -52,14 +52,28 @@ void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
   location = std::vector<double>();
 }
 
-MoleculeReleaseInfo GenMoleculeReleaseInfo::copy_molecule_release_info() const {
+std::shared_ptr<MoleculeReleaseInfo> GenMoleculeReleaseInfo::copy_molecule_release_info() const {
   if (initialized) {
     throw RuntimeError("Object of class MoleculeReleaseInfo cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  MoleculeReleaseInfo res = MoleculeReleaseInfo(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.complex = complex;
-  res.location = location;
+
+  std::shared_ptr<MoleculeReleaseInfo> res = std::make_shared<MoleculeReleaseInfo>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->complex = complex;
+  res->location = location;
+
+  return res;
+}
+
+std::shared_ptr<MoleculeReleaseInfo> GenMoleculeReleaseInfo::deepcopy_molecule_release_info(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class MoleculeReleaseInfo cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<MoleculeReleaseInfo> res = std::make_shared<MoleculeReleaseInfo>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->complex = is_set(complex) ? complex->deepcopy_complex() : nullptr;
+  res->location = location;
 
   return res;
 }
@@ -116,6 +130,7 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       )
       .def("check_semantics", &MoleculeReleaseInfo::check_semantics)
       .def("__copy__", &MoleculeReleaseInfo::copy_molecule_release_info)
+      .def("__deepcopy__", &MoleculeReleaseInfo::deepcopy_molecule_release_info, py::arg("memo"))
       .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &MoleculeReleaseInfo::__eq__, py::arg("other"))
       .def("dump", &MoleculeReleaseInfo::dump)

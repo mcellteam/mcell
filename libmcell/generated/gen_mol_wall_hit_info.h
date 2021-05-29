@@ -39,7 +39,8 @@ public:
   GenMolWallHitInfo(DefaultCtorArgType) {
   }
   virtual ~GenMolWallHitInfo() {}
-  MolWallHitInfo copy_mol_wall_hit_info() const;
+  std::shared_ptr<MolWallHitInfo> copy_mol_wall_hit_info() const;
+  std::shared_ptr<MolWallHitInfo> deepcopy_mol_wall_hit_info(py::dict = py::dict()) const;
   virtual bool __eq__(const MolWallHitInfo& other) const;
   virtual bool eq_nonarray_attributes(const MolWallHitInfo& other, const bool ignore_name = false) const;
   bool operator == (const MolWallHitInfo& other) const { return __eq__(other);}

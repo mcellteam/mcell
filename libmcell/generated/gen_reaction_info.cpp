@@ -31,17 +31,32 @@
 namespace MCell {
 namespace API {
 
-ReactionInfo GenReactionInfo::copy_reaction_info() const {
-  ReactionInfo res = ReactionInfo(DefaultCtorArgType());
-  res.type = type;
-  res.reactant_ids = reactant_ids;
-  res.product_ids = product_ids;
-  res.reaction_rule = reaction_rule;
-  res.time = time;
-  res.pos3d = pos3d;
-  res.geometry_object = geometry_object;
-  res.wall_index = wall_index;
-  res.pos2d = pos2d;
+std::shared_ptr<ReactionInfo> GenReactionInfo::copy_reaction_info() const {
+  std::shared_ptr<ReactionInfo> res = std::make_shared<ReactionInfo>(DefaultCtorArgType());
+  res->type = type;
+  res->reactant_ids = reactant_ids;
+  res->product_ids = product_ids;
+  res->reaction_rule = reaction_rule;
+  res->time = time;
+  res->pos3d = pos3d;
+  res->geometry_object = geometry_object;
+  res->wall_index = wall_index;
+  res->pos2d = pos2d;
+
+  return res;
+}
+
+std::shared_ptr<ReactionInfo> GenReactionInfo::deepcopy_reaction_info(py::dict) const {
+  std::shared_ptr<ReactionInfo> res = std::make_shared<ReactionInfo>(DefaultCtorArgType());
+  res->type = type;
+  res->reactant_ids = reactant_ids;
+  res->product_ids = product_ids;
+  res->reaction_rule = is_set(reaction_rule) ? reaction_rule->deepcopy_reaction_rule() : nullptr;
+  res->time = time;
+  res->pos3d = pos3d;
+  res->geometry_object = is_set(geometry_object) ? geometry_object->deepcopy_geometry_object() : nullptr;
+  res->wall_index = wall_index;
+  res->pos2d = pos2d;
 
   return res;
 }
@@ -134,6 +149,7 @@ py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
           >()
       )
       .def("__copy__", &ReactionInfo::copy_reaction_info)
+      .def("__deepcopy__", &ReactionInfo::deepcopy_reaction_info, py::arg("memo"))
       .def("__str__", &ReactionInfo::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionInfo::__eq__, py::arg("other"))
       .def("dump", &ReactionInfo::dump)

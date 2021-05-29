@@ -40,7 +40,8 @@ public:
   GenReactionInfo(DefaultCtorArgType) {
   }
   virtual ~GenReactionInfo() {}
-  ReactionInfo copy_reaction_info() const;
+  std::shared_ptr<ReactionInfo> copy_reaction_info() const;
+  std::shared_ptr<ReactionInfo> deepcopy_reaction_info(py::dict = py::dict()) const;
   virtual bool __eq__(const ReactionInfo& other) const;
   virtual bool eq_nonarray_attributes(const ReactionInfo& other, const bool ignore_name = false) const;
   bool operator == (const ReactionInfo& other) const { return __eq__(other);}

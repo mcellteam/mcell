@@ -50,15 +50,30 @@ void GenComponent::set_all_attributes_as_default_or_unset() {
   bond = BOND_UNBOUND;
 }
 
-Component GenComponent::copy_component() const {
+std::shared_ptr<Component> GenComponent::copy_component() const {
   if (initialized) {
     throw RuntimeError("Object of class Component cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  Component res = Component(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.component_type = component_type;
-  res.state = state;
-  res.bond = bond;
+
+  std::shared_ptr<Component> res = std::make_shared<Component>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->component_type = component_type;
+  res->state = state;
+  res->bond = bond;
+
+  return res;
+}
+
+std::shared_ptr<Component> GenComponent::deepcopy_component(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class Component cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<Component> res = std::make_shared<Component>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->component_type = is_set(component_type) ? component_type->deepcopy_component_type() : nullptr;
+  res->state = state;
+  res->bond = bond;
 
   return res;
 }
@@ -120,6 +135,7 @@ py::class_<Component> define_pybinding_Component(py::module& m) {
       )
       .def("check_semantics", &Component::check_semantics)
       .def("__copy__", &Component::copy_component)
+      .def("__deepcopy__", &Component::deepcopy_component, py::arg("memo"))
       .def("__str__", &Component::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &Component::__eq__, py::arg("other"))
       .def("to_bngl_str", &Component::to_bngl_str, "Creates a string that corresponds to this component's BNGL representation.")

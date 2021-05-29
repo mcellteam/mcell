@@ -49,16 +49,34 @@ void GenVizOutput::set_all_attributes_as_default_or_unset() {
   every_n_timesteps = 1;
 }
 
-VizOutput GenVizOutput::copy_viz_output() const {
+std::shared_ptr<VizOutput> GenVizOutput::copy_viz_output() const {
   if (initialized) {
     throw RuntimeError("Object of class VizOutput cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  VizOutput res = VizOutput(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.output_files_prefix = output_files_prefix;
-  res.species_list = species_list;
-  res.mode = mode;
-  res.every_n_timesteps = every_n_timesteps;
+
+  std::shared_ptr<VizOutput> res = std::make_shared<VizOutput>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->output_files_prefix = output_files_prefix;
+  res->species_list = species_list;
+  res->mode = mode;
+  res->every_n_timesteps = every_n_timesteps;
+
+  return res;
+}
+
+std::shared_ptr<VizOutput> GenVizOutput::deepcopy_viz_output(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class VizOutput cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<VizOutput> res = std::make_shared<VizOutput>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->output_files_prefix = output_files_prefix;
+  for (const auto& item: species_list) {
+    res->species_list.push_back((is_set(item)) ? item->deepcopy_species() : nullptr);
+  }
+  res->mode = mode;
+  res->every_n_timesteps = every_n_timesteps;
 
   return res;
 }
@@ -105,6 +123,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       )
       .def("check_semantics", &VizOutput::check_semantics)
       .def("__copy__", &VizOutput::copy_viz_output)
+      .def("__deepcopy__", &VizOutput::deepcopy_viz_output, py::arg("memo"))
       .def("__str__", &VizOutput::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &VizOutput::__eq__, py::arg("other"))
       .def("dump", &VizOutput::dump)

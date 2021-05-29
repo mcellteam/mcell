@@ -51,20 +51,44 @@ void GenReactionRule::set_all_attributes_as_default_or_unset() {
   is_intermembrane_surface_reaction = false;
 }
 
-ReactionRule GenReactionRule::copy_reaction_rule() const {
+std::shared_ptr<ReactionRule> GenReactionRule::copy_reaction_rule() const {
   if (initialized) {
     throw RuntimeError("Object of class ReactionRule cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  ReactionRule res = ReactionRule(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.name = name;
-  res.reactants = reactants;
-  res.products = products;
-  res.fwd_rate = fwd_rate;
-  res.rev_name = rev_name;
-  res.rev_rate = rev_rate;
-  res.variable_rate = variable_rate;
-  res.is_intermembrane_surface_reaction = is_intermembrane_surface_reaction;
+
+  std::shared_ptr<ReactionRule> res = std::make_shared<ReactionRule>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  res->reactants = reactants;
+  res->products = products;
+  res->fwd_rate = fwd_rate;
+  res->rev_name = rev_name;
+  res->rev_rate = rev_rate;
+  res->variable_rate = variable_rate;
+  res->is_intermembrane_surface_reaction = is_intermembrane_surface_reaction;
+
+  return res;
+}
+
+std::shared_ptr<ReactionRule> GenReactionRule::deepcopy_reaction_rule(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class ReactionRule cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<ReactionRule> res = std::make_shared<ReactionRule>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->name = name;
+  for (const auto& item: reactants) {
+    res->reactants.push_back((is_set(item)) ? item->deepcopy_complex() : nullptr);
+  }
+  for (const auto& item: products) {
+    res->products.push_back((is_set(item)) ? item->deepcopy_complex() : nullptr);
+  }
+  res->fwd_rate = fwd_rate;
+  res->rev_name = rev_name;
+  res->rev_rate = rev_rate;
+  res->variable_rate = variable_rate;
+  res->is_intermembrane_surface_reaction = is_intermembrane_surface_reaction;
 
   return res;
 }
@@ -131,6 +155,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       )
       .def("check_semantics", &ReactionRule::check_semantics)
       .def("__copy__", &ReactionRule::copy_reaction_rule)
+      .def("__deepcopy__", &ReactionRule::deepcopy_reaction_rule, py::arg("memo"))
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionRule::__eq__, py::arg("other"))
       .def("to_bngl_str", &ReactionRule::to_bngl_str, "Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.")

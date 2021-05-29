@@ -65,7 +65,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  Color copy_color() const;
+  std::shared_ptr<Color> copy_color() const;
+  std::shared_ptr<Color> deepcopy_color(py::dict = py::dict()) const;
   virtual bool __eq__(const Color& other) const;
   virtual bool eq_nonarray_attributes(const Color& other, const bool ignore_name = false) const;
   bool operator == (const Color& other) const { return __eq__(other);}

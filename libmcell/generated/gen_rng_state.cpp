@@ -68,19 +68,38 @@ void GenRngState::set_all_attributes_as_default_or_unset() {
   rngblocks = 0;
 }
 
-RngState GenRngState::copy_rng_state() const {
+std::shared_ptr<RngState> GenRngState::copy_rng_state() const {
   if (initialized) {
     throw RuntimeError("Object of class RngState cannot be cloned with 'copy' after this object was used in model initialization.");
   }
-  RngState res = RngState(DefaultCtorArgType());
-  res.class_name = class_name;
-  res.randcnt = randcnt;
-  res.aa = aa;
-  res.bb = bb;
-  res.cc = cc;
-  res.randslr = randslr;
-  res.mm = mm;
-  res.rngblocks = rngblocks;
+
+  std::shared_ptr<RngState> res = std::make_shared<RngState>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->randcnt = randcnt;
+  res->aa = aa;
+  res->bb = bb;
+  res->cc = cc;
+  res->randslr = randslr;
+  res->mm = mm;
+  res->rngblocks = rngblocks;
+
+  return res;
+}
+
+std::shared_ptr<RngState> GenRngState::deepcopy_rng_state(py::dict) const {
+  if (initialized) {
+    throw RuntimeError("Object of class RngState cannot be cloned with 'deepcopy' after this object was used in model initialization.");
+  }
+
+  std::shared_ptr<RngState> res = std::make_shared<RngState>(DefaultCtorArgType());
+  res->class_name = class_name;
+  res->randcnt = randcnt;
+  res->aa = aa;
+  res->bb = bb;
+  res->cc = cc;
+  res->randslr = randslr;
+  res->mm = mm;
+  res->rngblocks = rngblocks;
 
   return res;
 }
@@ -142,6 +161,7 @@ py::class_<RngState> define_pybinding_RngState(py::module& m) {
       )
       .def("check_semantics", &RngState::check_semantics)
       .def("__copy__", &RngState::copy_rng_state)
+      .def("__deepcopy__", &RngState::deepcopy_rng_state, py::arg("memo"))
       .def("__str__", &RngState::to_str, py::arg("ind") = std::string(""))
       .def("__eq__", &RngState::__eq__, py::arg("other"))
       .def("dump", &RngState::dump)

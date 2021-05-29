@@ -77,8 +77,14 @@ def get_api_class_file_name_w_dir(class_name, extension):
 def get_api_class_file_name_w_work_dir(class_name, extension):
     return WORK_DIRECTORY + '/' + get_api_class_file_name(class_name, extension)
 
+def get_as_shared_ptr(class_name):
+    return SHARED_PTR + '<' + class_name + '>'
+
 def get_copy_function_name(class_name):
-    return 'copy_' + get_underscored(class_name)
+    return COPY_NAME + '_' + get_underscored(class_name)
+
+def get_deepcopy_function_name(class_name):
+    return DEEPCOPY_NAME + '_' + get_underscored(class_name)
 
 def is_yaml_list_type(t):
     return t.startswith(YAML_TYPE_LIST)
@@ -668,7 +674,8 @@ def write_gen_class(f, class_def, class_name, decls):
         f.write('  void ' + DECL_SET_INITIALIZED + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  ' +  RET_TYPE_SET_ALL_DEFAULT_OR_UNSET + ' ' + SET_ALL_DEFAULT_OR_UNSET_DECL + ' ' + KEYWORD_OVERRIDE + ';\n\n')
 
-    f.write('  ' + class_name + ' ' + get_copy_function_name(class_name) + '() const;\n')
+    f.write('  ' + get_as_shared_ptr(class_name) + ' ' + get_copy_function_name(class_name) + '() const;\n')
+    f.write('  ' + get_as_shared_ptr(class_name) + ' ' + get_deepcopy_function_name(class_name) + '(py::dict = py::dict()) const;\n')
     f.write('  virtual bool __eq__(const ' + class_name + '& other) const;\n')
     f.write('  virtual bool eq_nonarray_attributes(const ' + class_name + '& other, const bool ignore_name = false) const;\n')
     f.write('  bool operator == (const ' + class_name + '& other) const { return __eq__(other);}\n')
@@ -1247,26 +1254,71 @@ def write_operator_equal_body(f, class_name, class_def, skip_arrays_and_name=Fal
         f.write('\n')
        
        
-def write_copy_implementation(f, class_name, class_def):
-    f.write(class_name + ' ' + GEN_CLASS_PREFIX + class_name + '::' + get_copy_function_name(class_name) + '() const {\n')
+def write_copy_implementation(f, class_name, class_def, deepcopy):
+
+    if deepcopy:
+        func_name = get_deepcopy_function_name(class_name)
+        func_args = 'py::dict'
+    else:
+        func_name = get_copy_function_name(class_name)
+        func_args = ''
+    
+    f.write(get_as_shared_ptr(class_name) + ' ' + GEN_CLASS_PREFIX + class_name + '::' + func_name + '(' + func_args + ') const {\n')
     
     if has_single_superclass(class_def):
         f.write('  if (initialized) {\n')
         f.write('    throw RuntimeError("Object of class ' + class_name + 
-                ' cannot be cloned with \'copy\' after this object was used in model initialization.");\n');
-        f.write('  }\n')
+                ' cannot be cloned with \'' + (DEEPCOPY_NAME if deepcopy else COPY_NAME) + '\' after this object was used in model initialization.");\n');
+        f.write('  }\n\n')
         
     # for some reason res(DefaultCtorArgType()) is not accepted by gcc...
-    f.write('  ' + class_name + ' res = ' + class_name + '(' + DEFAULT_CTOR_ARG_TYPE + '());\n')
+    f.write('  ' + SHARED_PTR + '<' + class_name + '> res = ' + MAKE_SHARED + '<' + class_name + '>(' + DEFAULT_CTOR_ARG_TYPE +'());\n')
 
     items = class_def[KEY_ITEMS]
 
     if has_single_superclass(class_def):
-        f.write('  res.' + CLASS_NAME_ATTR + ' = ' + CLASS_NAME_ATTR + ';\n')
+        f.write('  res->' + CLASS_NAME_ATTR + ' = ' + CLASS_NAME_ATTR + ';\n')
     
+    # TODO - deepcopy - for 
     for item in items:
         name = item[KEY_NAME]
-        f.write('  res.' + name + ' = ' + name + ';\n')
+        
+        if not deepcopy:
+            # simply use assign operator
+            f.write('  res->' + name + ' = ' + name + ';\n')
+        else:
+            # pointers must be deepcopied
+            # also vectors containing pointers, cannot use aux functions for copying vectors 
+            # because name of the deepcpy function is different for each class
+            t = item[KEY_TYPE]
+            
+            # check for 2D lists
+            innermost_list_ptr_type = None
+            if is_yaml_list_type(t):
+                inner = get_inner_list_type(t)
+                if is_yaml_ptr_type(inner):
+                    innermost_list_ptr_type = inner
+                elif is_yaml_list_type(inner):
+                    inner2 = get_inner_list_type(inner)
+                    if is_yaml_ptr_type(inner2):
+                        assert False, "2D lists containing pointers are not supported for deepcopy yet"
+            
+            if innermost_list_ptr_type:
+                base_t = remove_ptr_mark(innermost_list_ptr_type)
+                f.write('  for (const auto& item: ' + name + ') {\n')
+                f.write('    res->' + name + '.push_back((' + IS_SET + '(item)) ? ' + 
+                             'item->' + get_deepcopy_function_name(base_t) + '() : '
+                             'nullptr);\n')
+                f.write('  }\n')
+            elif is_yaml_dict_type(t):
+                assert False, "Dict type is not supported for deepcopy yet"
+            elif is_yaml_ptr_type(t):
+                base_t = remove_ptr_mark(t)
+                f.write('  res->' + name + ' = ' + IS_SET + '(' + name + ') ? ' + 
+                             name + '->' + get_deepcopy_function_name(base_t) + '() : '
+                             'nullptr;\n')
+            else:
+                f.write('  res->' + name + ' = ' + name + ';\n')
 
     f.write('\n')
     f.write('  return res;\n')
@@ -1463,6 +1515,7 @@ def write_pybind11_bindings(f, class_name, class_def):
             f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')
         
         f.write('      .def("__copy__", &' + class_name + '::' + get_copy_function_name(class_name) + ')\n')
+        f.write('      .def("__deepcopy__", &' + class_name + '::' + get_deepcopy_function_name(class_name) + ', py::arg("memo"))\n')
         f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         # keeping the default __repr__ implementation for better error messages 
         #f.write('      .def("__repr__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
@@ -1553,7 +1606,8 @@ def generate_class_implementation_and_bindings(class_name, class_def):
                 write_set_initialized_implemetation(f, class_name, items)
                 write_set_all_default_or_unset(f, class_name, class_def)
     
-            write_copy_implementation(f, class_name, class_def)
+            write_copy_implementation(f, class_name, class_def, False)
+            write_copy_implementation(f, class_name, class_def, True)
             write_operator_equal_implementation(f, class_name, class_def)
             write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         

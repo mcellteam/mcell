@@ -80,7 +80,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  ChkptVolMol copy_chkpt_vol_mol() const;
+  std::shared_ptr<ChkptVolMol> copy_chkpt_vol_mol() const;
+  std::shared_ptr<ChkptVolMol> deepcopy_chkpt_vol_mol(py::dict = py::dict()) const;
   virtual bool __eq__(const ChkptVolMol& other) const;
   virtual bool eq_nonarray_attributes(const ChkptVolMol& other, const bool ignore_name = false) const;
   bool operator == (const ChkptVolMol& other) const { return __eq__(other);}

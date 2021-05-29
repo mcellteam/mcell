@@ -69,7 +69,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  RngState copy_rng_state() const;
+  std::shared_ptr<RngState> copy_rng_state() const;
+  std::shared_ptr<RngState> deepcopy_rng_state(py::dict = py::dict()) const;
   virtual bool __eq__(const RngState& other) const;
   virtual bool eq_nonarray_attributes(const RngState& other, const bool ignore_name = false) const;
   bool operator == (const RngState& other) const { return __eq__(other);}

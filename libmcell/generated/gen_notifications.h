@@ -63,7 +63,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  Notifications copy_notifications() const;
+  std::shared_ptr<Notifications> copy_notifications() const;
+  std::shared_ptr<Notifications> deepcopy_notifications(py::dict = py::dict()) const;
   virtual bool __eq__(const Notifications& other) const;
   virtual bool eq_nonarray_attributes(const Notifications& other, const bool ignore_name = false) const;
   bool operator == (const Notifications& other) const { return __eq__(other);}

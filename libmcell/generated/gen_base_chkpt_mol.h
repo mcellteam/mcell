@@ -68,7 +68,8 @@ public:
   void set_initialized() override;
   void set_all_attributes_as_default_or_unset() override;
 
-  BaseChkptMol copy_base_chkpt_mol() const;
+  std::shared_ptr<BaseChkptMol> copy_base_chkpt_mol() const;
+  std::shared_ptr<BaseChkptMol> deepcopy_base_chkpt_mol(py::dict = py::dict()) const;
   virtual bool __eq__(const BaseChkptMol& other) const;
   virtual bool eq_nonarray_attributes(const BaseChkptMol& other, const bool ignore_name = false) const;
   bool operator == (const BaseChkptMol& other) const { return __eq__(other);}
