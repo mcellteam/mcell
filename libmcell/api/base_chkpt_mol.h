@@ -50,6 +50,10 @@ public:
   }
 
   void postprocess_in_ctor() override {
+    set_all_custom_attributes_to_default();
+  }
+
+  void set_all_custom_attributes_to_default() override {
     type = MoleculeType::UNSET;
   }
 

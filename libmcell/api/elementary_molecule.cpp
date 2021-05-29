@@ -82,22 +82,6 @@ std::string ElementaryMolecule::to_bngl_str(const bool with_compartment) const {
 }
 
 
-// make a deep copy
-std::shared_ptr<ElementaryMolecule> ElementaryMolecule::clone() const {
-  std::shared_ptr<ElementaryMolecule> res =
-      make_shared<ElementaryMolecule>(elementary_molecule_type);
-
-  res->compartment_name = compartment_name;
-
-  for (const auto& comp: components) {
-    res->components.push_back(comp->clone());
-  }
-
-  return res;
-}
-
-
-
 bool ElementaryMolecule::is_surf() const {
   assert(is_set(elementary_molecule_type));
   return is_set(elementary_molecule_type->diffusion_constant_2d);

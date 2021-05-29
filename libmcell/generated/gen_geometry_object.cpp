@@ -81,10 +81,6 @@ void GenGeometryObject::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<GeometryObject> GenGeometryObject::copy_geometry_object() const {
-  if (initialized) {
-    throw RuntimeError("Object of class GeometryObject cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<GeometryObject> res = std::make_shared<GeometryObject>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;
@@ -104,10 +100,6 @@ std::shared_ptr<GeometryObject> GenGeometryObject::copy_geometry_object() const 
 }
 
 std::shared_ptr<GeometryObject> GenGeometryObject::deepcopy_geometry_object(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class GeometryObject cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<GeometryObject> res = std::make_shared<GeometryObject>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;

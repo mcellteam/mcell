@@ -50,10 +50,6 @@ void GenVizOutput::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<VizOutput> GenVizOutput::copy_viz_output() const {
-  if (initialized) {
-    throw RuntimeError("Object of class VizOutput cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<VizOutput> res = std::make_shared<VizOutput>(DefaultCtorArgType());
   res->class_name = class_name;
   res->output_files_prefix = output_files_prefix;
@@ -65,10 +61,6 @@ std::shared_ptr<VizOutput> GenVizOutput::copy_viz_output() const {
 }
 
 std::shared_ptr<VizOutput> GenVizOutput::deepcopy_viz_output(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class VizOutput cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<VizOutput> res = std::make_shared<VizOutput>(DefaultCtorArgType());
   res->class_name = class_name;
   res->output_files_prefix = output_files_prefix;

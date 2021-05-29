@@ -71,10 +71,6 @@ void GenCountTerm::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<CountTerm> GenCountTerm::copy_count_term() const {
-  if (initialized) {
-    throw RuntimeError("Object of class CountTerm cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<CountTerm> res = std::make_shared<CountTerm>(DefaultCtorArgType());
   res->class_name = class_name;
   res->species_pattern = species_pattern;
@@ -90,10 +86,6 @@ std::shared_ptr<CountTerm> GenCountTerm::copy_count_term() const {
 }
 
 std::shared_ptr<CountTerm> GenCountTerm::deepcopy_count_term(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class CountTerm cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<CountTerm> res = std::make_shared<CountTerm>(DefaultCtorArgType());
   res->class_name = class_name;
   res->species_pattern = is_set(species_pattern) ? species_pattern->deepcopy_complex() : nullptr;

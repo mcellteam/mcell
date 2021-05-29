@@ -128,6 +128,11 @@ Object Cloning Support
 API objects support shallow and deep copy operations provided through Python methods
 *copy.copy(x)* and *copy.deepcopy(x[, memo])*.
 
+Cloning is allowed even if the model was already initialized.
+However, all links in the cloned object to the initialized model are lost. E.g. it is not possible 
+to clone a *Count* object and then call the clone's method *get_current_value* because the new object 
+will be uninitialized and won't know which model's internal count it is referencing.
+
 Due to MCell4 being implemented primarily in C++, there is one significant difference 
 in *copy* from Python semantics. All lists are copied 
 by value, not by reference as Python's lists since they are internally implemented 

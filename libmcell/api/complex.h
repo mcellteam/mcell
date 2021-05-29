@@ -105,9 +105,6 @@ public:
     return true;
   }
 
-  // make a deep copy, used from Species::inst
-  std::shared_ptr<Complex> clone() const;
-
   std::string export_to_python(std::ostream& out, PythonExportContext& ctx) {
     // we must set name for export if it was not set
     if (!is_set(name)) {

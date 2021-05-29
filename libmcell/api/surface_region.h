@@ -37,6 +37,12 @@ public:
   SURFACE_REGION_CTOR()
 
   void postprocess_in_ctor() {
+    set_all_custom_attributes_to_default();
+  }
+
+  void set_all_custom_attributes_to_default() override {
+    Region::set_all_custom_attributes_to_default();
+
     region_id = REGION_ID_INVALID;
     node_type = RegionNodeType::LEAF_SURFACE_REGION;
     parent = nullptr;

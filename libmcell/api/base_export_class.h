@@ -36,6 +36,10 @@ public:
   virtual ~BaseExportClass() {
   }
 
+  // may be overridden by the final class if needed
+  virtual void set_all_custom_attributes_to_default() {
+  }
+
   // used in generated export_to_python to optionally skip export of some objects
   virtual bool skip_python_export() const {
     return false;

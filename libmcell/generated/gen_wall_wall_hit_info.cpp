@@ -56,10 +56,6 @@ void GenWallWallHitInfo::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<WallWallHitInfo> GenWallWallHitInfo::copy_wall_wall_hit_info() const {
-  if (initialized) {
-    throw RuntimeError("Object of class WallWallHitInfo cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<WallWallHitInfo> res = std::make_shared<WallWallHitInfo>(DefaultCtorArgType());
   res->class_name = class_name;
   res->wall1 = wall1;
@@ -69,10 +65,6 @@ std::shared_ptr<WallWallHitInfo> GenWallWallHitInfo::copy_wall_wall_hit_info() c
 }
 
 std::shared_ptr<WallWallHitInfo> GenWallWallHitInfo::deepcopy_wall_wall_hit_info(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class WallWallHitInfo cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<WallWallHitInfo> res = std::make_shared<WallWallHitInfo>(DefaultCtorArgType());
   res->class_name = class_name;
   res->wall1 = is_set(wall1) ? wall1->deepcopy_wall() : nullptr;

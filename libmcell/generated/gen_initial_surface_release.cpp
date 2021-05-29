@@ -51,10 +51,6 @@ void GenInitialSurfaceRelease::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<InitialSurfaceRelease> GenInitialSurfaceRelease::copy_initial_surface_release() const {
-  if (initialized) {
-    throw RuntimeError("Object of class InitialSurfaceRelease cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<InitialSurfaceRelease> res = std::make_shared<InitialSurfaceRelease>(DefaultCtorArgType());
   res->class_name = class_name;
   res->complex = complex;
@@ -65,10 +61,6 @@ std::shared_ptr<InitialSurfaceRelease> GenInitialSurfaceRelease::copy_initial_su
 }
 
 std::shared_ptr<InitialSurfaceRelease> GenInitialSurfaceRelease::deepcopy_initial_surface_release(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class InitialSurfaceRelease cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<InitialSurfaceRelease> res = std::make_shared<InitialSurfaceRelease>(DefaultCtorArgType());
   res->class_name = class_name;
   res->complex = is_set(complex) ? complex->deepcopy_complex() : nullptr;

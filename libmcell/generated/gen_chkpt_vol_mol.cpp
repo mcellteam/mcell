@@ -70,10 +70,6 @@ void GenChkptVolMol::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<ChkptVolMol> GenChkptVolMol::copy_chkpt_vol_mol() const {
-  if (initialized) {
-    throw RuntimeError("Object of class ChkptVolMol cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<ChkptVolMol> res = std::make_shared<ChkptVolMol>(DefaultCtorArgType());
   res->class_name = class_name;
   res->pos = pos;
@@ -88,10 +84,6 @@ std::shared_ptr<ChkptVolMol> GenChkptVolMol::copy_chkpt_vol_mol() const {
 }
 
 std::shared_ptr<ChkptVolMol> GenChkptVolMol::deepcopy_chkpt_vol_mol(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class ChkptVolMol cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<ChkptVolMol> res = std::make_shared<ChkptVolMol>(DefaultCtorArgType());
   res->class_name = class_name;
   res->pos = pos;

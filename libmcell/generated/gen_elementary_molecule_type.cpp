@@ -55,10 +55,6 @@ void GenElementaryMoleculeType::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<ElementaryMoleculeType> GenElementaryMoleculeType::copy_elementary_molecule_type() const {
-  if (initialized) {
-    throw RuntimeError("Object of class ElementaryMoleculeType cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<ElementaryMoleculeType> res = std::make_shared<ElementaryMoleculeType>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;
@@ -73,10 +69,6 @@ std::shared_ptr<ElementaryMoleculeType> GenElementaryMoleculeType::copy_elementa
 }
 
 std::shared_ptr<ElementaryMoleculeType> GenElementaryMoleculeType::deepcopy_elementary_molecule_type(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class ElementaryMoleculeType cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<ElementaryMoleculeType> res = std::make_shared<ElementaryMoleculeType>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;

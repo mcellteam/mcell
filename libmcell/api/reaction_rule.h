@@ -38,6 +38,10 @@ public:
   REACTION_RULE_CTOR()
 
   void postprocess_in_ctor() override {
+    set_all_custom_attributes_to_default();
+  }
+
+  void set_all_custom_attributes_to_default() override {
     fwd_rxn_rule_id = BNG::RXN_RULE_ID_INVALID;
     rev_rxn_rule_id = BNG::RXN_RULE_ID_INVALID;
   }

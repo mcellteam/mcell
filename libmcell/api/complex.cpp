@@ -55,22 +55,6 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 }
 
 
-// make a deep copy, used from Species::inst
-std::shared_ptr<Complex> Complex::clone() const {
-  std::shared_ptr<Complex> res = make_shared<Complex>();
-
-  res->name = name;
-  res->orientation = orientation;
-  res->compartment_name = compartment_name;
-
-  for (const auto& em: elementary_molecules) {
-    res->elementary_molecules.push_back(em->clone());
-  }
-
-  return res;
-}
-
-
 std::shared_ptr<API::Complex> Complex::construct_from_bng_cplx(
     const BNG::BNGData& bng_data,
     const BNG::Cplx& bng_cplx) {

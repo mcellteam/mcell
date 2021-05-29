@@ -35,7 +35,11 @@ public:
   SURFACE_CLASS_CTOR()
 
   void postprocess_in_ctor() override {
-    // initialization
+    set_all_custom_attributes_to_default();
+  }
+
+  void set_all_custom_attributes_to_default() override {
+    SurfaceProperty::set_all_custom_attributes_to_default();
     species_id = SPECIES_ID_INVALID;
   }
 

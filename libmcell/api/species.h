@@ -40,8 +40,9 @@ public:
   SPECIES_CTOR()
 
   Species(Complex& cplx_inst)
-    : GenSpecies(cplx_inst.to_bngl_str()),
-      species_id(SPECIES_ID_INVALID) {
+    : GenSpecies(cplx_inst.to_bngl_str()) {
+
+    set_all_custom_attributes_to_default();
     set_all_attributes_as_default_or_unset();
 
     // set copied value, cannot use GenSpecies ctor because we need to reset the attributes
@@ -82,7 +83,7 @@ public:
   // we are making changes, so semantic checks are here instead of in const check_semantics
   void postprocess_in_ctor() override {
     // initialization
-    species_id = SPECIES_ID_INVALID;
+    set_all_custom_attributes_to_default();
 
     // not calling derived check semantics
     if (get_num_set(name, elementary_molecules) != 1) {
@@ -145,6 +146,11 @@ public:
     }
   }
 
+  void set_all_custom_attributes_to_default() override {
+    Complex::set_all_custom_attributes_to_default();
+    species_id = SPECIES_ID_INVALID;
+  }
+
   // using shorter printout when all_details is false
   std::string to_str(const bool all_details=false, const std::string ind="") const override;
 
@@ -156,7 +162,7 @@ public:
     }
 
     // make a deep copy and set extra attributes
-    std::shared_ptr<Complex> res = clone();
+    std::shared_ptr<Complex> res = deepcopy_complex();
     res->orientation = orientation;
     res->set_compartment_name(compartment_name);
     return res;

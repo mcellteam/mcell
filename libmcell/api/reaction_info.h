@@ -36,10 +36,20 @@ public:
     std::cout << to_str();
   }
 
-  ReactionInfo() :
-    rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
-    geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
-    partition_wall_index(WALL_INDEX_INVALID) {
+  ReactionInfo() {
+    set_all_custom_attributes_to_default();
+  }
+
+  ReactionInfo(DefaultCtorArgType) {
+    set_all_custom_attributes_to_default();
+  }
+
+  void set_all_custom_attributes_to_default() {
+    // setting all (also inherited) attributes
+
+    rxn_rule_id = BNG::RXN_RULE_ID_INVALID;
+    geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;
+    partition_wall_index = WALL_INDEX_INVALID;
 
     // inherited attributes
     type = ReactionType::UNSET;
@@ -49,10 +59,6 @@ public:
     geometry_object = nullptr;
     wall_index = -1;
     pos2d = POS_INVALID;
-  }
-
-  ReactionInfo(DefaultCtorArgType) {
-    // TODO: generate and call set_all_attributes_as_default_or_unset
   }
 
   // extra information to be converted in Callbacks

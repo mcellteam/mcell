@@ -34,6 +34,10 @@ public:
   REGION_CTOR()
 
   void postprocess_in_ctor() {
+    set_all_custom_attributes_to_default();
+  }
+
+  void set_all_custom_attributes_to_default() override {
     is_geometry_object = false;
   }
 

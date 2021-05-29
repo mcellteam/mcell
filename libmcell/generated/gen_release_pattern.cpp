@@ -46,10 +46,6 @@ void GenReleasePattern::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<ReleasePattern> GenReleasePattern::copy_release_pattern() const {
-  if (initialized) {
-    throw RuntimeError("Object of class ReleasePattern cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<ReleasePattern> res = std::make_shared<ReleasePattern>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;
@@ -62,10 +58,6 @@ std::shared_ptr<ReleasePattern> GenReleasePattern::copy_release_pattern() const 
 }
 
 std::shared_ptr<ReleasePattern> GenReleasePattern::deepcopy_release_pattern(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class ReleasePattern cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<ReleasePattern> res = std::make_shared<ReleasePattern>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;

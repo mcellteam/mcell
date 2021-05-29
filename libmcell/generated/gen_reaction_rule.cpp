@@ -52,10 +52,6 @@ void GenReactionRule::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<ReactionRule> GenReactionRule::copy_reaction_rule() const {
-  if (initialized) {
-    throw RuntimeError("Object of class ReactionRule cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<ReactionRule> res = std::make_shared<ReactionRule>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;
@@ -71,10 +67,6 @@ std::shared_ptr<ReactionRule> GenReactionRule::copy_reaction_rule() const {
 }
 
 std::shared_ptr<ReactionRule> GenReactionRule::deepcopy_reaction_rule(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class ReactionRule cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<ReactionRule> res = std::make_shared<ReactionRule>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;

@@ -182,6 +182,7 @@ DECL_SET_INITIALIZED = 'set_initialized()'
 
 RET_TYPE_SET_ALL_DEFAULT_OR_UNSET = 'void'
 SET_ALL_DEFAULT_OR_UNSET_DECL = 'set_all_attributes_as_default_or_unset()'
+SET_ALL_CUSTOM_TO_DEFAULT_DECL = 'set_all_custom_attributes_to_default()'
 
 RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'

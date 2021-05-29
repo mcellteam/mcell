@@ -478,6 +478,7 @@ def write_ctor_define(f, class_def, class_name):
     
     if has_single_superclass(class_def):
         f.write('      ' + SET_ALL_DEFAULT_OR_UNSET_DECL + '; \\\n')
+        f.write('      ' + SET_ALL_CUSTOM_TO_DEFAULT_DECL + '; \\\n')
     
     f.write('    }\n\n');
     
@@ -1260,12 +1261,6 @@ def write_copy_implementation(f, class_name, class_def, deepcopy):
     
     f.write(get_as_shared_ptr(class_name) + ' ' + GEN_CLASS_PREFIX + class_name + '::' + func_name + '(' + func_args + ') const {\n')
     
-    if has_single_superclass(class_def):
-        f.write('  if (initialized) {\n')
-        f.write('    throw RuntimeError("Object of class ' + class_name + 
-                ' cannot be cloned with \'' + (DEEPCOPY_NAME if deepcopy else COPY_NAME) + '\' after this object was used in model initialization.");\n');
-        f.write('  }\n\n')
-        
     # for some reason res(DefaultCtorArgType()) is not accepted by gcc...
     f.write('  ' + SHARED_PTR + '<' + class_name + '> res = ' + MAKE_SHARED + '<' + class_name + '>(' + DEFAULT_CTOR_ARG_TYPE +'());\n')
 

@@ -30,6 +30,19 @@ namespace MCell {
 namespace API {
 
 void GeometryObject::postprocess_in_ctor() {
+  set_all_custom_attributes_to_default();
+
+  for (auto& sr: surface_regions) {
+    // not using shared pointers here, any attempt so far resulted in bad_weak_ptr exception
+    // this is safe because the geometry object (parent) has a reference to the surface region
+    sr->parent = this;
+  }
+}
+
+
+void GeometryObject::set_all_custom_attributes_to_default() {
+  Region::set_all_custom_attributes_to_default();
+
   // overwrite value in Region construction
   is_geometry_object = true;
 
@@ -40,12 +53,6 @@ void GeometryObject::postprocess_in_ctor() {
   parent_compartment = nullptr;
   vol_compartment_id = BNG::COMPARTMENT_ID_INVALID;
   surf_compartment_id = BNG::COMPARTMENT_ID_INVALID;
-
-  for (auto& sr: surface_regions) {
-    // not using shared pointers here, any attempt so far resulted in bad_weak_ptr exception
-    // this is safe because the geometry object (parent) has a reference to the surface region
-    sr->parent = this;
-  }
 }
 
 

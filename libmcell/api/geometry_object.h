@@ -42,6 +42,7 @@ public:
 
 public:
   void postprocess_in_ctor() override;
+  void set_all_custom_attributes_to_default() override;
   void check_semantics() const override;
 
   void translate(const std::vector<double> move) override;

@@ -59,6 +59,7 @@ class PythonExportContext;
     ReactionRule(DefaultCtorArgType) : \
       GenReactionRule(DefaultCtorArgType()) { \
       set_all_attributes_as_default_or_unset(); \
+      set_all_custom_attributes_to_default(); \
     }
 
 class GenReactionRule: public BaseDataClass {

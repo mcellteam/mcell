@@ -79,10 +79,6 @@ void GenCount::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<Count> GenCount::copy_count() const {
-  if (initialized) {
-    throw RuntimeError("Object of class Count cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Count> res = std::make_shared<Count>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;
@@ -103,10 +99,6 @@ std::shared_ptr<Count> GenCount::copy_count() const {
 }
 
 std::shared_ptr<Count> GenCount::deepcopy_count(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class Count cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Count> res = std::make_shared<Count>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;

@@ -51,10 +51,6 @@ void GenComponent::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<Component> GenComponent::copy_component() const {
-  if (initialized) {
-    throw RuntimeError("Object of class Component cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Component> res = std::make_shared<Component>(DefaultCtorArgType());
   res->class_name = class_name;
   res->component_type = component_type;
@@ -65,10 +61,6 @@ std::shared_ptr<Component> GenComponent::copy_component() const {
 }
 
 std::shared_ptr<Component> GenComponent::deepcopy_component(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class Component cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Component> res = std::make_shared<Component>(DefaultCtorArgType());
   res->class_name = class_name;
   res->component_type = is_set(component_type) ? component_type->deepcopy_component_type() : nullptr;

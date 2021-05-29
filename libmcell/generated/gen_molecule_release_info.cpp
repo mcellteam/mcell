@@ -53,10 +53,6 @@ void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<MoleculeReleaseInfo> GenMoleculeReleaseInfo::copy_molecule_release_info() const {
-  if (initialized) {
-    throw RuntimeError("Object of class MoleculeReleaseInfo cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<MoleculeReleaseInfo> res = std::make_shared<MoleculeReleaseInfo>(DefaultCtorArgType());
   res->class_name = class_name;
   res->complex = complex;
@@ -66,10 +62,6 @@ std::shared_ptr<MoleculeReleaseInfo> GenMoleculeReleaseInfo::copy_molecule_relea
 }
 
 std::shared_ptr<MoleculeReleaseInfo> GenMoleculeReleaseInfo::deepcopy_molecule_release_info(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class MoleculeReleaseInfo cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<MoleculeReleaseInfo> res = std::make_shared<MoleculeReleaseInfo>(DefaultCtorArgType());
   res->class_name = class_name;
   res->complex = is_set(complex) ? complex->deepcopy_complex() : nullptr;

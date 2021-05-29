@@ -39,9 +39,6 @@ public:
   bool operator < (const Component& other) const;
 
   std::string to_bngl_str() const override;
-
-  // make a deep copy, used from ElementaryMolecule::clone
-  std::shared_ptr<Component> clone() const;
 };
 
 } // namespace API

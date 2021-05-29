@@ -47,6 +47,10 @@ public:
     const BNG::ElemMolType& bng_mt);
 
   void postprocess_in_ctor() override {
+    set_all_custom_attributes_to_default();
+  }
+
+  void set_all_custom_attributes_to_default() override {
     mol_type_id = BNG::ELEM_MOL_TYPE_ID_INVALID;
   }
 

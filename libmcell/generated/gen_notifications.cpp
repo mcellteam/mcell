@@ -45,10 +45,6 @@ void GenNotifications::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<Notifications> GenNotifications::copy_notifications() const {
-  if (initialized) {
-    throw RuntimeError("Object of class Notifications cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Notifications> res = std::make_shared<Notifications>(DefaultCtorArgType());
   res->class_name = class_name;
   res->bng_verbosity_level = bng_verbosity_level;
@@ -60,10 +56,6 @@ std::shared_ptr<Notifications> GenNotifications::copy_notifications() const {
 }
 
 std::shared_ptr<Notifications> GenNotifications::deepcopy_notifications(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class Notifications cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Notifications> res = std::make_shared<Notifications>(DefaultCtorArgType());
   res->class_name = class_name;
   res->bng_verbosity_level = bng_verbosity_level;

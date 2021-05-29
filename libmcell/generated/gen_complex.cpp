@@ -48,10 +48,6 @@ void GenComplex::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<Complex> GenComplex::copy_complex() const {
-  if (initialized) {
-    throw RuntimeError("Object of class Complex cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Complex> res = std::make_shared<Complex>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;
@@ -63,10 +59,6 @@ std::shared_ptr<Complex> GenComplex::copy_complex() const {
 }
 
 std::shared_ptr<Complex> GenComplex::deepcopy_complex(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class Complex cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Complex> res = std::make_shared<Complex>(DefaultCtorArgType());
   res->class_name = class_name;
   res->name = name;

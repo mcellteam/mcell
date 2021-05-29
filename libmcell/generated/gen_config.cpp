@@ -67,10 +67,6 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<Config> GenConfig::copy_config() const {
-  if (initialized) {
-    throw RuntimeError("Object of class Config cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Config> res = std::make_shared<Config>(DefaultCtorArgType());
   res->class_name = class_name;
   res->seed = seed;
@@ -100,10 +96,6 @@ std::shared_ptr<Config> GenConfig::copy_config() const {
 }
 
 std::shared_ptr<Config> GenConfig::deepcopy_config(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class Config cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Config> res = std::make_shared<Config>(DefaultCtorArgType());
   res->class_name = class_name;
   res->seed = seed;

@@ -51,10 +51,6 @@ void GenRegion::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<Region> GenRegion::copy_region() const {
-  if (initialized) {
-    throw RuntimeError("Object of class Region cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Region> res = std::make_shared<Region>(DefaultCtorArgType());
   res->class_name = class_name;
   res->node_type = node_type;
@@ -65,10 +61,6 @@ std::shared_ptr<Region> GenRegion::copy_region() const {
 }
 
 std::shared_ptr<Region> GenRegion::deepcopy_region(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class Region cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<Region> res = std::make_shared<Region>(DefaultCtorArgType());
   res->class_name = class_name;
   res->node_type = node_type;

@@ -37,6 +37,10 @@ public:
   COUNT_TERM_CTOR()
 
   void postprocess_in_ctor() override {
+    set_all_custom_attributes_to_default();
+  }
+
+  void set_all_custom_attributes_to_default() override {
     initial_reactions_count_export_override = 0;
   }
 

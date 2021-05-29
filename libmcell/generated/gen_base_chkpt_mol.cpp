@@ -66,10 +66,6 @@ void GenBaseChkptMol::set_all_attributes_as_default_or_unset() {
 }
 
 std::shared_ptr<BaseChkptMol> GenBaseChkptMol::copy_base_chkpt_mol() const {
-  if (initialized) {
-    throw RuntimeError("Object of class BaseChkptMol cannot be cloned with 'copy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<BaseChkptMol> res = std::make_shared<BaseChkptMol>(DefaultCtorArgType());
   res->class_name = class_name;
   res->id = id;
@@ -83,10 +79,6 @@ std::shared_ptr<BaseChkptMol> GenBaseChkptMol::copy_base_chkpt_mol() const {
 }
 
 std::shared_ptr<BaseChkptMol> GenBaseChkptMol::deepcopy_base_chkpt_mol(py::dict) const {
-  if (initialized) {
-    throw RuntimeError("Object of class BaseChkptMol cannot be cloned with 'deepcopy' after this object was used in model initialization.");
-  }
-
   std::shared_ptr<BaseChkptMol> res = std::make_shared<BaseChkptMol>(DefaultCtorArgType());
   res->class_name = class_name;
   res->id = id;
