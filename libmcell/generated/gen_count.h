@@ -24,49 +24,29 @@
 #define API_GEN_COUNT_H
 
 #include "api/api_common.h"
-#include "api/count_term.h"
-
+#include "api/base_data_class.h"
 
 namespace MCell {
 namespace API {
 
 class Count;
-class Complex;
 class CountTerm;
-class ReactionRule;
-class Region;
 class PythonExportContext;
 
 #define COUNT_CTOR() \
     Count( \
         const std::string& name_ = STR_UNSET, \
         const std::string& file_name_ = STR_UNSET, \
-        std::shared_ptr<CountTerm> count_expression_ = nullptr, \
+        std::shared_ptr<CountTerm> expression_ = nullptr, \
         const double multiplier_ = 1, \
-        const double every_n_timesteps_ = 1, \
-        std::shared_ptr<Complex> species_pattern_ = nullptr, \
-        std::shared_ptr<Complex> molecules_pattern_ = nullptr, \
-        std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
-        std::shared_ptr<Region> region_ = nullptr, \
-        const ExprNodeType node_type_ = ExprNodeType::LEAF, \
-        std::shared_ptr<CountTerm> left_node_ = nullptr, \
-        std::shared_ptr<CountTerm> right_node_ = nullptr, \
-        const uint64_t initial_reactions_count_ = 0 \
-    )  : GenCount(species_pattern_,molecules_pattern_,reaction_rule_,region_,node_type_,left_node_,right_node_,initial_reactions_count_) { \
+        const double every_n_timesteps_ = 1 \
+    ) { \
       class_name = "Count"; \
       name = name_; \
       file_name = file_name_; \
-      count_expression = count_expression_; \
+      expression = expression_; \
       multiplier = multiplier_; \
       every_n_timesteps = every_n_timesteps_; \
-      species_pattern = species_pattern_; \
-      molecules_pattern = molecules_pattern_; \
-      reaction_rule = reaction_rule_; \
-      region = region_; \
-      node_type = node_type_; \
-      left_node = left_node_; \
-      right_node = right_node_; \
-      initial_reactions_count = initial_reactions_count_; \
       postprocess_in_ctor(); \
       check_semantics(); \
     } \
@@ -76,18 +56,9 @@ class PythonExportContext;
       set_all_custom_attributes_to_default(); \
     }
 
-class GenCount: public CountTerm {
+class GenCount: public BaseDataClass {
 public:
-  GenCount( 
-      std::shared_ptr<Complex> species_pattern_ = nullptr, 
-      std::shared_ptr<Complex> molecules_pattern_ = nullptr, 
-      std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, 
-      std::shared_ptr<Region> region_ = nullptr, 
-      const ExprNodeType node_type_ = ExprNodeType::LEAF, 
-      std::shared_ptr<CountTerm> left_node_ = nullptr, 
-      std::shared_ptr<CountTerm> right_node_ = nullptr, 
-      const uint64_t initial_reactions_count_ = 0 
-  )  : CountTerm(species_pattern_,molecules_pattern_,reaction_rule_,region_,node_type_,left_node_,right_node_,initial_reactions_count_)  {
+  GenCount() {
   }
   GenCount(DefaultCtorArgType) {
   }
@@ -104,7 +75,7 @@ public:
   bool operator != (const Count& other) const { return !__eq__(other);}
   std::string to_str(const bool all_details=false, const std::string ind="") const override;
 
-  virtual std::string export_to_python(std::ostream& out, PythonExportContext& ctx);
+  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override;
 
 
   // --- attributes ---
@@ -122,18 +93,18 @@ public:
     return file_name;
   }
 
-  std::shared_ptr<CountTerm> count_expression;
-  virtual void set_count_expression(std::shared_ptr<CountTerm> new_count_expression_) {
+  std::shared_ptr<CountTerm> expression;
+  virtual void set_expression(std::shared_ptr<CountTerm> new_expression_) {
     if (initialized) {
-      throw RuntimeError("Value 'count_expression' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'expression' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     cached_data_are_uptodate = false;
-    count_expression = new_count_expression_;
+    expression = new_expression_;
   }
-  virtual std::shared_ptr<CountTerm> get_count_expression() const {
+  virtual std::shared_ptr<CountTerm> get_expression() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return count_expression;
+    return expression;
   }
 
   double multiplier;

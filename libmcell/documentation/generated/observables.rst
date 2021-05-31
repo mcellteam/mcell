@@ -6,11 +6,10 @@ Observables
 Count
 =====
 
-Represents a molecule or reaction count observable. 
-Inherits all members from class CountTerm. 
-Usually just one observable is counted and a member of this class count_expression 
-is not set. If an expression is needed, it is stored in the count_expression
-attribute.
+Represents a molecule or reaction count observable.
+What is counted is defined through a CounTerm tree and a reference to 
+the root of this tree is stored into attribute expression. 
+This tree usually contains just one node.
 
 Example: `1500_region_release_must_set_compartment/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1500_region_release_must_set_compartment/model.py>`_ 
 
@@ -32,15 +31,16 @@ Attributes:
   | The usual file_name, while using this count's name is\:
   | file_name = './react_data/seed_' + str(SEED).zfill(5) + '/' + name + '.dat'.
 
-* | **count_expression**: CountTerm = None
-  | If this count uses more than one count term one must define a count term expression 
-  | and set a reference to it to this attribute.  
-  | The count expression must be composed only from CountTerm objects that are added or 
-  | subtracted.
+* | **expression**: CountTerm = None
+  | The expression must be set to a root of an expression tree composed of CountTerms. 
+  | In the usual cases, there is just one CountTerm in this expression tree and its 
+  | node_type is ExprNodeType.LEAF.
+  | The count expression tree defines CountTerm objects that are added or subtracted
+  | from each other.
 
 * | **multiplier**: float = 1
   | In some cases it might be useful to multiply the whole count by a constant to get 
-  | for instance concentration. The count_expression allows only addition and subtraction 
+  | for instance concentration. The expression tree allows only addition and subtraction 
   | of count terms so such multiplication can be done through this attribute.
   | It can be also used to divide the resulting count by passing an inverse of the divisor (1/d).
 
@@ -49,49 +49,6 @@ Attributes:
   | Value is truncated (floored) to an integer.
   | If value is set to 0, this Count is used only on-demand through calls to its
   | get_current_value method.
-
-* | **species_pattern**: Complex = None
-  | Count the number of molecules that match the given complex instance pattern.
-  | This corresponds to the BNGL 'Species' specifier in the BNGL seed species section.
-  | Counts each molecule exactly once. 
-  | If the pattern has a compartment set, this specifies the counted region.
-  | Exactly one of species_pattern, molecules_pattern, and reaction_rule must be set.
-
-* | **molecules_pattern**: Complex = None
-  | Count the number of matches of the given pattern on molecules.
-  | This corresponds to the BNGL 'Molecules' specifier in the BNGL seed species section.
-  | The observable will increment the count every time the pattern matches the molecule.
-  | For instance, pattern A will match a complex A(a!1).B(a!1,a!2).A(b!2) twice. 
-  | When the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a 
-  | molecule A(b.a!1).A(a!1,b!2).B(a!2) will be counted twice because the 
-  | pattern may match in two different ways. 
-  | If the pattern has a compartment set, the compartment is used to filter out the molecules.   
-  | Exactly one of species_pattern, molecules_pattern, and reaction_rule must be set.
-
-* | **reaction_rule**: ReactionRule = None
-  | Count the number of applications of this specific reactions that occurred since the
-  | start of the simulation.
-  | Exactly one of species_pattern, molecules_pattern, and reaction_rule must be set.
-
-* | **region**: Region = None
-  | Only a GeometryObject or SurfaceRegion can be passed as the region argument, 
-  | compound regions (created with +, -, \*) are not supproted yet.   
-  | Can be combined with a compartment specified in the species_pattern or molecules_pattern.
-  | If compartment in species_pattern or molecules_pattern is not specified and 
-  | region is left unset, counting is done in the whole world.
-
-* | **node_type**: ExprNodeType = ExprNodeType.LEAF
-  | Internal, used to specify what type of count expression node this object represents.
-
-* | **left_node**: CountTerm = None
-  | Internal, when node_type is not Leaf, this is the left operand.
-
-* | **right_node**: CountTerm = None
-  | Internal, when node_type is not Leaf, this is the right operand.
-
-* | **initial_reactions_count**: int = 0
-  | Used for checkpointing, allows to set initial count of reactions that occurred.
-  | Ignored when molecules are counted.
 
 
 Methods:
@@ -105,26 +62,6 @@ Methods:
   | The model must be initialized with this Count present as one of the observables.
 
   | Example: `2600_get_current_mol_count/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/2600_get_current_mol_count/model.py>`_ 
-
-
-* | **__add__**
-
-   * | op2: CountTerm
-   * | return type: CountTerm
-
-
-  | Create a new CountTerm that represents addition of two count terms.
-  | Usually used through operator '+' such as in ct1 + ct2.
-
-
-* | **__sub__**
-
-   * | op2: CountTerm
-   * | return type: CountTerm
-
-
-  | Create a new CountTerm that represents subtraction of two count terms.
-  | Usually used through operator '-' such as in ct1 - ct2.
 
 
 

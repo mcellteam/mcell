@@ -63,16 +63,17 @@ public:
       std::ostream& out,
       const std::string& count_name,
       const std::string& observable_name,
-      const std::string& what_to_count,
-      const std::string& where_to_count, // empty for WORLD
-      const std::string& orientation,
-      const std::string& multiplier_str,
-      const std::string& rxn_step,
-      const bool rxn_not_mol,
-      const bool molecules_not_species,
-      const bool single_term
-  );
-  std::string generate_count_terms_for_expression(std::ostream& out, const std::string& mdl_string);
+      const std::string& count_term_name,
+      const std::string& mul_div_str,
+      const std::string& rxn_step);
+
+  std::string generate_count_terms_for_expression(
+        ostream& out,
+        const string& mdl_string, // may be empty, in that case we use what_to_count and where_to_count
+        const std::string& what_to_count,
+        const std::string& where_to_count,
+        const std::string& orientation,
+        const bool rxn_not_mol);
 
   std::string generate_single_molecule_release_info_array(
       std::ostream& out,
@@ -95,6 +96,15 @@ private:
 
   SpeciesOrMolType generate_single_species_or_mol_type_w_components(
       std::ostream& out, Json::Value& molecule_list_item);
+
+
+  std::string generate_single_count_term(
+      ostream& out,
+      const std::string& what_to_count,
+      const std::string& where_to_count,
+      const std::string& orientation,
+      const bool molecules_not_species,
+      const bool rxn_not_mol);
 
   void generate_rxn_rule_side(std::ostream& out, Json::Value& substances_node);
 

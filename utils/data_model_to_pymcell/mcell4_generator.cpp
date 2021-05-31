@@ -873,8 +873,6 @@ void MCell4Generator::generate_counts(
       else {
         must_be_in_python = true;
         single_term = false;
-        what_to_count = python_gen->generate_count_terms_for_expression(out, mdl_string);
-        where_to_count = "";
       }
 
       mul_div_str = check_mdlstring_count_and_get_mult_or_div(mdl_string);
@@ -947,18 +945,21 @@ void MCell4Generator::generate_counts(
     }
     else {
       string name = fix_id(COUNT_PREFIX + observable_name);
+
+      // prepare count terms
+      string mdl_string = reaction_output_item[KEY_MDL_STRING].asString();
+      string count_term_name =
+          python_gen->generate_count_terms_for_expression(
+              out, mdl_string, what_to_count, where_to_count, orientation, rxn_not_mol);
+      where_to_count = "";
+
       python_gen->generate_single_count(
           out,
           name,
           observable_name,
-          what_to_count,
-          where_to_count, // empty for WORLD
-          orientation,
+          count_term_name,
           mul_div_str,
-          rxn_step,
-          rxn_not_mol,
-          molecules_not_species,
-          single_term
+          rxn_step
       );
       python_counts.push_back(name);
     }

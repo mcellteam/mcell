@@ -1179,71 +1179,105 @@ void PythonGenerator::generate_viz_outputs(
 }
 
 
+
+std::string PythonGenerator::generate_single_count_term(
+    ostream& out,
+    const std::string& what_to_count,
+    const std::string& where_to_count,
+    const std::string& orientation,
+    const bool molecules_not_species,
+    const bool rxn_not_mol
+) {
+  string name = COUNT_TERM_PREFIX +
+      create_count_name(what_to_count, where_to_count, molecules_not_species);
+
+  // generate the count term object definition if we don't already have it
+  // TODO: move this into a function
+  if (find(data.all_count_term_names.begin(), data.all_count_term_names.end(), name) == data.all_count_term_names.end()) {
+    data.all_count_term_names.push_back(name);
+
+    data.check_if_already_defined_and_add(name, NAME_CLASS_COUNT_TERM);
+
+    gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
+
+    if (rxn_not_mol) {
+      gen_param_expr(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
+    }
+    else {
+      bool comma_after_cplx = orientation == "" && where_to_count != "";
+      gen_param_expr(
+          out, molecules_not_species ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN,
+          make_species_or_cplx(data, what_to_count, orientation, ""), comma_after_cplx);
+    }
+
+    if (where_to_count != "") {
+      gen_param_expr(out, NAME_REGION, where_to_count, false);
+    }
+
+    out << CTOR_END;
+  }
+
+  return name;
+}
+
+
 // stores multiplier value into the multiplier argument as a string
 // if present, the expected form is mult*(<counts>)
 string PythonGenerator::generate_count_terms_for_expression(
-    ostream& out, const string& mdl_string) {
+    ostream& out,
+    const string& mdl_string, // may be empty, in that case we use what_to_count and where_to_count
+    const std::string& what_to_count,
+    const std::string& where_to_count,
+    const std::string& orientation,
+    const bool rxn_not_mol
+) {
   string res_expr;
 
-  size_t last_end = 0;
-  uint num_counts = get_num_counts_in_mdl_string(mdl_string);
+  if (mdl_string != "") {
+    size_t last_end = 0;
+    uint num_counts = get_num_counts_in_mdl_string(mdl_string);
 
-  // the first count term item must be positive
-  for (uint i = 0; i < num_counts; i++) {
-    size_t start = mdl_string.find(COUNT, last_end);
+    // the first count term item must be positive
+    for (uint i = 0; i < num_counts; i++) {
+      size_t start = mdl_string.find(COUNT, last_end);
 
-    size_t end = mdl_string.find(']', start);
-    if (end == string::npos) {
-      end = mdl_string.size();
-    }
-
-    bool rxn_not_mol;
-    bool molecules_not_species;
-    string what_to_count;
-    string compartment;
-    string where_to_count;
-    string orientation;
-
-    process_single_count_term(
-        data, mdl_string.substr(start, end - start + 1),
-        rxn_not_mol, molecules_not_species, what_to_count, where_to_count, orientation
-    );
-
-    string name = COUNT_TERM_PREFIX + create_count_name(what_to_count, where_to_count, molecules_not_species);
-
-    // generate the count term object definition if we don't already have it
-    if (find(data.all_count_term_names.begin(), data.all_count_term_names.end(), name) == data.all_count_term_names.end()) {
-      data.all_count_term_names.push_back(name);
-
-      data.check_if_already_defined_and_add(name, NAME_CLASS_COUNT_TERM);
-      gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
-
-      if (rxn_not_mol) {
-        gen_param_expr(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
+      size_t end = mdl_string.find(']', start);
+      if (end == string::npos) {
+        end = mdl_string.size();
       }
+
+      bool rxn_not_mol;
+      bool molecules_not_species;
+      string what_to_count;
+      string where_to_count;
+      string orientation;
+
+      process_single_count_term(
+          data, mdl_string.substr(start, end - start + 1),
+          rxn_not_mol, molecules_not_species, what_to_count, where_to_count, orientation
+      );
+
+      string name = generate_single_count_term(
+          out, what_to_count, where_to_count, orientation, molecules_not_species, rxn_not_mol);
+
+      // for the res_expr, we cut all the COUNT[..] and replace them with
+      // the ids of the CountTerm objects
+      if (last_end != 0)
+        res_expr += " " + mdl_string.substr(last_end + 1, start - (last_end + 1)) + " " + name;
       else {
-        bool comma_after_cplx = orientation == "" && where_to_count != "";
-        gen_param_expr(
-            out, NAME_SPECIES_PATTERN,
-            make_species_or_cplx(data, what_to_count, orientation, compartment), comma_after_cplx);
+        res_expr += name;
       }
 
-      if (where_to_count != "") {
-        gen_param_expr(out, NAME_REGION, where_to_count, false);
-      }
-
-      out << CTOR_END;
+      last_end = end;
     }
+  }
+  else {
+    bool molecules_not_species = false; // MCell base counting always uses molecules
+    string name = COUNT_TERM_PREFIX +
+        create_count_name(what_to_count, where_to_count, molecules_not_species);
 
-    // for the res_expr, we cut all the COUNT[..] and replace them with
-    // the ids of the CountTerm objects
-    if (last_end != 0)
-      res_expr += " " + mdl_string.substr(last_end + 1, start - (last_end + 1)) + " " + name;
-    else {
-      res_expr += name;
-    }
-
-    last_end = end;
+    res_expr = generate_single_count_term(
+        out, what_to_count, where_to_count, orientation, molecules_not_species, rxn_not_mol);
   }
 
   return res_expr;
@@ -1254,37 +1288,15 @@ void PythonGenerator::generate_single_count(
     std::ostream& out,
     const std::string& count_name,
     const std::string& observable_name,
-    const std::string& what_to_count,
-    const std::string& where_to_count, // empty for WORLD
-    const std::string& orientation,
+    const std::string& count_term_name,
     const std::string& mul_div_str,
-    const std::string& rxn_step,
-    const bool rxn_not_mol,
-    const bool molecules_not_species,
-    const bool single_term
+    const std::string& rxn_step
 ) {
 
   data.check_if_already_defined_and_add(count_name, NAME_CLASS_COUNT);
   gen_ctor_call(out, count_name, NAME_CLASS_COUNT);
 
-  if (single_term) {
-    if (rxn_not_mol) {
-      gen_param_expr(out, NAME_REACTION_RULE, what_to_count, true);
-    }
-    else {
-      const char* count_type =
-          (molecules_not_species) ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN;
-
-      gen_param_expr(out, count_type, make_species_or_cplx(data, what_to_count, orientation), true);
-    }
-  }
-  else {
-    gen_param_expr(out, NAME_COUNT_EXPRESSION, what_to_count, true);
-  }
-
-  if (where_to_count != "") {
-    gen_param_expr(out, NAME_REGION, where_to_count, true);
-  }
+  gen_param_expr(out, NAME_EXPRESSION, count_term_name, true);
 
   gen_param(out, NAME_FILE_NAME,
       DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + observable_name + ".dat", mul_div_str != "" || rxn_step != "");

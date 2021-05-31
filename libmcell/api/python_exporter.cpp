@@ -155,22 +155,29 @@ std::string PythonExporter::export_observables(PythonExportContext& ctx) {
   out << "\n";
 
   // we need to set the initial_reactions_count of reaction counts here
-  for (auto& count: model->Observables::counts) {
-    if (is_set(count->count_expression)) {
-      assert(count->count_event != nullptr);
-      assert(count->count_event->mol_rxn_count_items.size() == 1);
+  // reaction counts are counted from the beginning of the simulation
+  for (auto& count: model->counts) {
+    assert(is_set(count->expression));
+    assert(count->count_event != nullptr);
+    assert(count->count_event->mol_rxn_count_items.size() == 1);
 
-      for (const auto& count_term: count->count_event->mol_rxn_count_items[0].terms) {
-        if (count_term.is_rxn_count()) {
-          throw RuntimeError(
-            "Checkpointing of Count objects that use expressions containing reaction counts is not supported yet.");
+    auto& mol_rxn_count_items = count->count_event->mol_rxn_count_items;
+    for (size_t i = 0; i < mol_rxn_count_items.size(); i++) {
+      if (mol_rxn_count_items[i].terms.size() == 1) {
+        if (count->expression->node_type == ExprNodeType::LEAF) {
+          count->expression->initial_reactions_count_export_override = count->get_current_value();
+        }
+        else {
+          assert(false && "There is just one term so there must be just one leaf node");
         }
       }
-    }
-    else {
-      if (is_set(count->reaction_rule)) {
-        // set value that will be exported
-        count->initial_reactions_count_export_override = count->get_current_value();
+      else {
+        for (const auto& count_term: mol_rxn_count_items[i].terms) {
+          if (count_term.is_rxn_count()) {
+            throw RuntimeError(
+              "Checkpointing of Count objects that use expressions containing reaction counts is not supported yet.");
+          }
+        }
       }
     }
   }

@@ -48,19 +48,13 @@ public:
 
   void check_semantics() const override {
     GenCount::check_semantics(); // calls also CountTerm::check_semantics
-    uint num_set = get_num_set(count_expression, species_pattern, molecules_pattern, reaction_rule);
-    if (num_set != 1) {
-      throw ValueError(
-          S("Exactly one of ") + NAME_COUNT_EXPRESSION + ", " + NAME_SPECIES_PATTERN + ", " +
-          NAME_MOLECULES_PATTERN + " or " + NAME_REACTION_RULE + " must be set for " + NAME_CLASS_COUNT + ".");
+    if (!is_set(expression)) {
+      throw ValueError(S("Attribute ") + NAME_EXPRESSION + " must be set.");
     }
+    expression->check_that_species_or_reaction_rule_is_set();
 
     if (!is_set(file_name)) {
       throw ValueError(S("Attribute ") + NAME_FILE_NAME + " must be set.");
-    }
-
-    if (is_set(count_expression)) {
-      count_expression->check_that_species_or_reaction_rule_is_set();
     }
 
     if (every_n_timesteps < 0) {
@@ -70,16 +64,6 @@ public:
   }
 
   double get_current_value() override;
-
-  std::string export_to_python(std::ostream& out, PythonExportContext& ctx) override {
-    // we need to overwrite the current value for export however we do not want to change it
-    // permanently
-    uint64_t initial_reactions_count_orig = initial_reactions_count;
-    initial_reactions_count = initial_reactions_count_export_override;
-    std::string res = GenCount::export_to_python(out, ctx);
-    initial_reactions_count = initial_reactions_count_orig;
-    return res;
-  }
 
   // count event, owned by Scheduler if every_n_timesteps > 0,
   // owned by World if every_n_timesteps == 0

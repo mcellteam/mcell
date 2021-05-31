@@ -1539,12 +1539,7 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
     MCell::MolOrRxnCountItem info(buffer_id);
 
     // process count terms
-    if (is_set(c->count_expression)) {
-      convert_count_terms_recursively(c->count_expression, +1, info);
-    }
-    else {
-      convert_count_terms_recursively(dynamic_pointer_cast<API::CountTerm>(c), +1, info);
-    }
+    convert_count_terms_recursively(c->expression, +1, info);
 
     info.multiplier = c->multiplier;
 

@@ -118,13 +118,14 @@ void Observables::convert_observable(
     const std::string& output_files_prefix) {
 
   shared_ptr<API::Count> count = make_shared<Count>(DefaultCtorArgType());
+  count->expression = make_shared<CountTerm>(DefaultCtorArgType());
 
   count->name = o.name;
   count->file_name = output_files_prefix + o.name + ".dat";
 
   release_assert(!o.patterns.empty() && "Observable has no pattern");
   if (o.patterns.size() == 1) {
-    set_count_molecules_or_species_pattern(o.type, o.patterns[0], bng_data, *count);
+    set_count_molecules_or_species_pattern(o.type, o.patterns[0], bng_data, *count->expression);
   }
   else {
     shared_ptr<API::CountTerm> top_level_term = nullptr;
@@ -140,7 +141,7 @@ void Observables::convert_observable(
         top_level_term = term;
       }
     }
-    count->count_expression = top_level_term;
+    count->expression = top_level_term;
   }
 
   // remember for conversion in mcell4 coverter

@@ -395,48 +395,20 @@ class Count():
             self,
             name : str = None,
             file_name : str = None,
-            count_expression : CountTerm = None,
+            expression : CountTerm = None,
             multiplier : float = 1,
-            every_n_timesteps : float = 1,
-            species_pattern : Complex = None,
-            molecules_pattern : Complex = None,
-            reaction_rule : ReactionRule = None,
-            region : Region = None,
-            node_type : ExprNodeType = ExprNodeType.LEAF,
-            left_node : CountTerm = None,
-            right_node : CountTerm = None,
-            initial_reactions_count : int = 0
+            every_n_timesteps : float = 1
         ):
         self.name = name
         self.file_name = file_name
-        self.count_expression = count_expression
+        self.expression = expression
         self.multiplier = multiplier
         self.every_n_timesteps = every_n_timesteps
-        self.species_pattern = species_pattern
-        self.molecules_pattern = molecules_pattern
-        self.reaction_rule = reaction_rule
-        self.region = region
-        self.node_type = node_type
-        self.left_node = left_node
-        self.right_node = right_node
-        self.initial_reactions_count = initial_reactions_count
 
 
     def get_current_value(
             self,
         ) -> 'float':
-        pass
-
-    def __add__(
-            self,
-            op2 : CountTerm
-        ) -> 'CountTerm':
-        pass
-
-    def __sub__(
-            self,
-            op2 : CountTerm
-        ) -> 'CountTerm':
         pass
 
 class CountTerm():
