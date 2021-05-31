@@ -1369,11 +1369,23 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   if (is_set(ct->region)) {
     if (ct->region->node_type == API::RegionNodeType::LEAF_GEOMETRY_OBJECT) {
       is_obj_not_surf_reg = true;
-      obj_id = dynamic_pointer_cast<GeometryObject>(ct->region)->geometry_object_id;
+      const auto& go = dynamic_pointer_cast<GeometryObject>(ct->region);
+      obj_id = go->geometry_object_id;
+      if (obj_id == GEOMETRY_OBJECT_ID_INVALID) {
+        throw RuntimeError(S(NAME_CLASS_GEOMETRY_OBJECT) + " '" + go->name +
+            "' referenced in a count expression was not added to the model."
+        );
+      }
     }
     else if (ct->region->node_type == API::RegionNodeType::LEAF_SURFACE_REGION) {
       is_obj_not_surf_reg = false;
-      reg_id = dynamic_pointer_cast<SurfaceRegion>(ct->region)->region_id;
+      const auto& sr = dynamic_pointer_cast<SurfaceRegion>(ct->region);
+      reg_id = sr->region_id;
+      if (reg_id == REGION_ID_INVALID) {
+        throw RuntimeError(S(NAME_CLASS_SURFACE_REGION) + " '" + sr->name +
+            "' referenced in a count expression was not added to the model."
+        );
+      }
     }
     else {
       // already checked in check_semantics
@@ -1495,6 +1507,7 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
 
 
 void MCell4Converter::convert_count_terms_recursively(
+    const std::shared_ptr<API::Count> count, // only for warning printouts
     const std::shared_ptr<API::CountTerm> ct,
     const int sign,
     MCell::MolOrRxnCountItem& info
@@ -1505,7 +1518,17 @@ void MCell4Converter::convert_count_terms_recursively(
     convert_count_term_leaf_and_init_counting_flags(ct, sign, info.terms);
   }
   else if (ct->node_type == API::ExprNodeType::ADD || ct->node_type == API::ExprNodeType::SUB) {
-    convert_count_terms_recursively(ct->left_node, sign, info);
+    if (is_set(ct->region)) {
+      warns() << "Object " << NAME_CLASS_COUNT << " with " << NAME_NAME << " '" << count->name <<
+          "' and " << NAME_FILE_NAME << " '" << count->file_name << "' uses a " << NAME_CLASS_COUNT_TERM <<
+          " that has a " << NAME_REGION << " set. This region will be ignored because regions are allowed" <<
+          " only for leaf " << NAME_CLASS_COUNT_TERM << " objects.\n" <<
+          "This is the problematic " << NAME_CLASS_COUNT << "object:\n" <<
+          count->to_str() << "\n" <<
+          "-- end of warning message reporting ignored region --\n";
+    }
+
+    convert_count_terms_recursively(count, ct->left_node, sign, info);
 
     int next_sign;
     if (ct->node_type == API::ExprNodeType::SUB) {
@@ -1515,7 +1538,7 @@ void MCell4Converter::convert_count_terms_recursively(
       next_sign = sign;
     }
 
-    convert_count_terms_recursively(ct->right_node, next_sign, info);
+    convert_count_terms_recursively(count, ct->right_node, next_sign, info);
   }
   else {
     // cannot really happen
@@ -1539,7 +1562,7 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
     MCell::MolOrRxnCountItem info(buffer_id);
 
     // process count terms
-    convert_count_terms_recursively(c->expression, +1, info);
+    convert_count_terms_recursively(c, c->expression, +1, info);
 
     info.multiplier = c->multiplier;
 

@@ -65,6 +65,7 @@ class SurfaceRegion;
 class GeometryObject;
 class MoleculeReleaseInfo;
 class ReleaseSite;
+class Count;
 class CountTerm;
 class Species;
 class SurfaceClass;
@@ -145,6 +146,7 @@ private:
       MolOrRxnCountTermVector& terms
   );
   void convert_count_terms_recursively(
+      const std::shared_ptr<API::Count> count, // only for warning printouts
       const std::shared_ptr<API::CountTerm> ct,
       const int sign,
       MCell::MolOrRxnCountItem& info
