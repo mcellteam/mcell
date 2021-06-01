@@ -91,55 +91,6 @@ size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, do
 }
 
 
-string RegionExprNode::to_string(const World* world, const bool for_datamodel) const {
-  stringstream out;
-  assert(op != RegionExprOperator::INVALID);
-
-  if (op == RegionExprOperator::LEAF) {
-    const string& region_name = world->get_region(region_id).name;
-    if (for_datamodel) {
-      return DMUtils::get_object_w_region_name(region_name);
-    }
-    else {
-      return region_name;
-    }
-  }
-
-  assert(left != nullptr);
-  out << "(";
-  out << left->to_string(world, for_datamodel);
-
-  switch(op) {
-    case RegionExprOperator::UNION:
-      out << " + ";
-      break;
-    case RegionExprOperator::INTERSECT:
-      out << " * ";
-      break;
-    case RegionExprOperator::DIFFERENCE:
-      out << " - ";
-      break;
-    default:
-      assert(false);
-  }
-  out << right->to_string(world, for_datamodel);
-  out << ")";
-  return out.str();
-}
-
-
-void RegionExprNode::dump(const World* world) const {
-  cout << to_string(world);
-}
-
-
-ReleaseEvent::~ReleaseEvent() {
-  for (RegionExprNode* expr_node: all_region_expr_nodes) {
-    delete expr_node;
-  }
-}
-
-
 bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
   // see https://mcell.org/tutorials/_images/plot.png
 
@@ -175,26 +126,6 @@ bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
   return true;
 }
 
-
-RegionExprNode* ReleaseEvent::create_new_region_expr_node_leaf(const region_id_t region_id) {
-  RegionExprNode* res = new RegionExprNode;
-  res->op = RegionExprOperator::LEAF;
-  res->region_id = region_id;
-  all_region_expr_nodes.push_back(res);
-  return res;
-}
-
-
-RegionExprNode* ReleaseEvent::create_new_region_expr_node_op(
-    const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right) {
-
-  RegionExprNode* res = new RegionExprNode;
-  res->op = op;
-  res->left = left;
-  res->right = right;
-  all_region_expr_nodes.push_back(res);
-  return res;
-}
 
 #define CASE_TO_STR(name) case name: return #name
 
@@ -244,8 +175,8 @@ void ReleaseEvent::dump(const string ind) const {
   cout << ind2 << "region_llf: \t\t" << region_llf << " [Vec3]\n";
   cout << ind2 << "region_urb: \t\t" << region_urb << " [Vec3]\n";
 
-  if (region_expr_root != nullptr) {
-    region_expr_root->dump(world);
+  if (region_expr.root != nullptr) {
+    region_expr.root->dump(world);
   }
 
   cout << ind2 << "delay: \t\t" << delay << " [double]\n";
@@ -376,7 +307,7 @@ void ReleaseEvent::to_data_model_as_one_release_site(
       break;
     case ReleaseShape::REGION:
       release_site[KEY_SHAPE] = VALUE_OBJECT;
-      release_site[KEY_OBJECT_EXPR] = region_expr_root->to_string(world, true);
+      release_site[KEY_OBJECT_EXPR] = region_expr.root->to_string(world, true);
       break;
     case ReleaseShape::LIST:
       release_site[KEY_SHAPE] = VALUE_LIST;
@@ -471,7 +402,7 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 
 
 bool ReleaseEvent::initialize_walls_for_release() {
-  assert(region_expr_root != nullptr);
+  assert(region_expr.root != nullptr);
   assert(release_number_method != ReleaseNumberMethod::INVALID);
   cumm_area_and_pwall_index_pairs.clear();
 
@@ -487,11 +418,11 @@ bool ReleaseEvent::initialize_walls_for_release() {
   }
 
   // only a single region for now
-  if (region_expr_root->op != RegionExprOperator::LEAF) {
+  if (region_expr.root->op != RegionExprOperator::LEAF) {
     return false;
   }
 
-  const Region& reg = world->get_region(region_expr_root->region_id);
+  const Region& reg = world->get_region(region_expr.root->region_id);
 
   for (auto& it: reg.walls_and_edges) {
     wall_index_t wi = it.first;
@@ -786,8 +717,8 @@ bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const V
 uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   double vol = 0.0;
-  if (region_expr_root->op == RegionExprOperator::LEAF) {
-    Region& r = p.get_region_by_id(region_expr_root->region_id);
+  if (region_expr.root->op == RegionExprOperator::LEAF) {
+    Region& r = p.get_region_by_id(region_expr.root->region_id);
     r.initialize_volume_info_if_needed(p);
     release_assert(r.is_manifold() && "Trying to release into a regions that is not a manifold and has no volume");
     vol = r.get_volume();
@@ -840,7 +771,7 @@ int ReleaseEvent::vacuum_inside_regions(int number_to_remove) {
       continue;
     }
     // then precisely by region
-    if (!is_point_inside_region_expr_recursively(p, m.v.pos, region_expr_root)) {
+    if (!is_point_inside_region_expr_recursively(p, m.v.pos, region_expr.root)) {
       continue;
     }
 
@@ -858,7 +789,7 @@ release_inside_regions:
 *************************************************************************/
 void ReleaseEvent::release_inside_regions(int& computed_release_number) {
 
-  assert(region_expr_root != nullptr);
+  assert(region_expr.root != nullptr);
 
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
@@ -880,7 +811,7 @@ void ReleaseEvent::release_inside_regions(int& computed_release_number) {
     pos.y = region_llf.y + (region_urb.y - region_llf.y) * rng_dbl(&world->rng);
     pos.z = region_llf.z + (region_urb.z - region_llf.z) * rng_dbl(&world->rng);
 
-    if (!is_point_inside_region_expr_recursively(p, pos, region_expr_root)) {
+    if (!is_point_inside_region_expr_recursively(p, pos, region_expr.root)) {
       if (release_number_method == ReleaseNumberMethod::CONCENTRATION_NUM && !exact_number) {
         computed_release_number--;
         n--;

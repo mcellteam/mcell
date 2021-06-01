@@ -1278,7 +1278,7 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
     // left node is a region
     const Region* reg = world->find_region_by_name(get_sym_name(((region*)expr->left)->sym));
     release_assert(reg != nullptr);
-    new_left = event_data.create_new_region_expr_node_leaf(reg->id);
+    new_left = event_data.region_expr.create_new_region_expr_node_leaf(reg->id);
   }
   else if (new_op != RegionExprOperator::INVALID){
     // there is an operator so we assume that the left node is a subexpr
@@ -1291,7 +1291,7 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
   if ((expr->op & REXP_RIGHT_REGION) != 0) {
     const Region* reg = world->find_region_by_name(get_sym_name(((region*)expr->right)->sym));
     release_assert(reg != nullptr);
-    new_right = event_data.create_new_region_expr_node_leaf(reg->id);
+    new_right = event_data.region_expr.create_new_region_expr_node_leaf(reg->id);
   }
   else if (new_op != RegionExprOperator::INVALID) {
     new_right = create_release_region_terms_recursively((release_evaluator*)expr->right, event_data);
@@ -1302,7 +1302,7 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
 
   if (new_left != nullptr && new_right != nullptr) {
     assert(new_op != RegionExprOperator::INVALID);
-    return event_data.create_new_region_expr_node_op(new_op, new_left, new_right);
+    return event_data.region_expr.create_new_region_expr_node_op(new_op, new_left, new_right);
   }
   else if (new_left != nullptr) {
     return new_left;
@@ -1375,7 +1375,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
             // also remember the expression, although the cum_area_and_pwall_index_pairs is what is currently used
             CHECK_PROPERTY(region_data->expression != nullptr);
-            rel_event->region_expr_root = create_release_region_terms_recursively(region_data->expression, *rel_event);
+            rel_event->region_expr.root = create_release_region_terms_recursively(region_data->expression, *rel_event);
           }
           else {
             // volume or surface molecules release into region
@@ -1391,7 +1391,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             rel_event->region_urb = region_data->urb;
 
             CHECK_PROPERTY(region_data->expression != nullptr);
-            rel_event->region_expr_root = create_release_region_terms_recursively(region_data->expression, *rel_event);
+            rel_event->region_expr.root = create_release_region_terms_recursively(region_data->expression, *rel_event);
           }
         }
         else if (rel_site->release_shape == SHAPE_LIST) {

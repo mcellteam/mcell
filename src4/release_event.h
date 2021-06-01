@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "base_event.h"
+#include "region_expr.h"
 
 namespace Json {
 class Value;
@@ -69,41 +70,7 @@ enum class ReleaseNumberMethod {
   DENSITY_NUM
 };
 
-
-enum class RegionExprOperator {
-  INVALID,
-  UNION,
-  INTERSECT,
-  DIFFERENCE,
-  LEAF
-};
-
 const int NUMBER_OF_TRAINS_UNLIMITED = -1;
-
-class RegionExprNode {
-public:
-  RegionExprNode()
-    : op(RegionExprOperator::INVALID),
-      region_id(REGION_INDEX_INVALID),
-      left(nullptr), right(nullptr) {
-  }
-
-  ~RegionExprNode() {
-    // children are contained in ReleaseEvent::all_region_expr_nodes,
-    // and are deleted when ReleaseEvent is destroyed
-  }
-
-  RegionExprOperator op;
-
-  region_id_t region_id;
-
-  RegionExprNode* left;
-  RegionExprNode* right;
-
-  void dump(const World* world) const; // does not print any newlines
-  std::string to_string(const World* world, const bool for_datamodel = false) const;
-};
-
 
 // Data structure used to store LIST releases
 class SingleMoleculeReleaseInfo {
@@ -135,7 +102,6 @@ public:
     release_shape(ReleaseShape::UNDEFINED),
     location(FLT_INVALID),
     diameter(FLT_INVALID),
-    region_expr_root(nullptr),
     region_llf(FLT_INVALID),
     region_urb(FLT_INVALID),
     // the default values for release pattern are such that there is
@@ -152,7 +118,6 @@ public:
     world(world_),
     running_diffuse_event_to_update(nullptr) {
   }
-  virtual ~ReleaseEvent();
 
   void step() override;
 
@@ -221,14 +186,7 @@ public:
   // TODO: replace with some a better structure
   std::vector<CummAreaPWallIndexPair> cumm_area_and_pwall_index_pairs;
 
-
-  // constructor and container for all region expr nodes
-  RegionExprNode* create_new_region_expr_node_leaf(const region_id_t region_id);
-  RegionExprNode* create_new_region_expr_node_op(const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right);
-  std::vector<RegionExprNode*> all_region_expr_nodes;
-
-  // used when release_shape is ReleaseShape::Region
-  RegionExprNode* region_expr_root;
+  RegionExpr region_expr;
 
   // for volume molecule releases into a region
   Vec3 region_llf; // note: this is fully specified by the region above, maybe remove in the future

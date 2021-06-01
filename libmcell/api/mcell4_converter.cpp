@@ -1132,7 +1132,7 @@ RegionExprNode* MCell4Converter::convert_region_expr_recursively(
     if (reg == nullptr) {
       throw RuntimeError("Could not find region representing object with name " + geometry_object->name + ", it might not have been added to the model.");
     }
-    return rel_event->create_new_region_expr_node_leaf(reg->id);
+    return rel_event->region_expr.create_new_region_expr_node_leaf(reg->id);
   }
   else if (region->node_type == RegionNodeType::LEAF_SURFACE_REGION) {
     shared_ptr<API::SurfaceRegion> surface_region = dynamic_pointer_cast<API::SurfaceRegion>(region);
@@ -1141,10 +1141,10 @@ RegionExprNode* MCell4Converter::convert_region_expr_recursively(
     if (reg == nullptr) {
       throw RuntimeError("Could not find region with name " + surface_region->parent->name + ", it might not have been added to the model.");
     }
-    return rel_event->create_new_region_expr_node_leaf(reg->id);
+    return rel_event->region_expr.create_new_region_expr_node_leaf(reg->id);
   }
   else {
-    return rel_event->create_new_region_expr_node_op(
+    return rel_event->region_expr.create_new_region_expr_node_op(
         convert_region_node_type(region->node_type),
         convert_region_expr_recursively(region->left_node, rel_event),
         convert_region_expr_recursively(region->right_node, rel_event)
@@ -1164,7 +1164,7 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
     if (!is_set(rel_site.region)) {
       throw RuntimeError("Region for release site " + rel_site.name + " was not set.");
     }
-    rel_event->region_expr_root = convert_region_expr_recursively(rel_site.region, rel_event);
+    rel_event->region_expr.root = convert_region_expr_recursively(rel_site.region, rel_event);
 
     // add intersection with compartment if this is a volume compartment
     if (is_set(rel_site.complex->compartment_name)) {
@@ -1176,9 +1176,9 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
         RegionExprNode* compartment_region = convert_region_expr_recursively(region, rel_event);
 
         // overwrite region expr with intersection with compartment
-        rel_event->region_expr_root = rel_event->create_new_region_expr_node_op(
+        rel_event->region_expr.root = rel_event->region_expr.create_new_region_expr_node_op(
             RegionExprOperator::INTERSECT,
-            rel_event->region_expr_root,
+            rel_event->region_expr.root,
             compartment_region
         );
       }
@@ -1195,15 +1195,15 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
       throw RuntimeError("Compartment " + rel_site.complex->compartment_name + " for " + rel_site.name + " was not found.");
     }
 
-    rel_event->region_expr_root = convert_region_expr_recursively(region, rel_event);
+    rel_event->region_expr.root = convert_region_expr_recursively(region, rel_event);
   }
 
 
   // also set llf and urb
   // TODO: this does not check anything yet
-  bool ok = Geometry::compute_region_expr_bounding_box(world, rel_event->region_expr_root, rel_event->region_llf, rel_event->region_urb);
+  bool ok = Geometry::compute_region_expr_bounding_box(world, rel_event->region_expr.root, rel_event->region_llf, rel_event->region_urb);
   if (!ok) {
-    throw RuntimeError("Region for releases specified by " + rel_event->region_expr_root->to_string(world) + " is not closed.");
+    throw RuntimeError("Region for releases specified by " + rel_event->region_expr.root->to_string(world) + " is not closed.");
   }
 }
 
@@ -1348,6 +1348,12 @@ void MCell4Converter::convert_release_events() {
     world->scheduler.schedule_event(rel_event);
   }
 }
+
+/*
+void MCell4Converter::convert_count_term_region() {
+
+}
+*/
 
 
 // appends new term to the vector terms, does not clear it

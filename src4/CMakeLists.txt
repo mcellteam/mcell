@@ -37,6 +37,7 @@ set(SRC4_SOURCE_FILES
     mol_order_shuffle_event.cpp
     wall_overlap.cpp
     grid_position.cpp
+    region_expr.cpp
     geometry.cpp
     memory_limit_checker.cpp
     world.cpp

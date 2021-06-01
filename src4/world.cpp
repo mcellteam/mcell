@@ -716,7 +716,7 @@ std::string World::export_releases_to_bngl_seed_species(
     if (re->release_number_method != ReleaseNumberMethod::CONST_NUM) {
       return "Only constant release number releases are currently supported for BNGL export" + err_suffix;
     }
-    if (re->region_expr_root->op != RegionExprOperator::LEAF) {
+    if (re->region_expr.root->op != RegionExprOperator::LEAF) {
       return "Only simple release regions are currently supported for BNGL export" + err_suffix;
     }
     if (re->event_time != 0) {
@@ -734,7 +734,7 @@ std::string World::export_releases_to_bngl_seed_species(
     parameters << BNG::IND << seed_count_name << " " << to_string(re->release_number) << "\n";
 
     // and line in seed species, for now whole objects are representing compartments
-    const Region& region = get_region(re->region_expr_root->region_id);
+    const Region& region = get_region(re->region_expr.root->region_id);
     if (DMUtils::get_region_name(region.name) != "ALL") {
       return "Compartments that do not span the whole object are not supported yet" + err_suffix;
     }
