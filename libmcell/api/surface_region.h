@@ -43,6 +43,8 @@ public:
   void set_all_custom_attributes_to_default() override {
     Region::set_all_custom_attributes_to_default();
 
+    region_type = RegionType::SURFACE;
+
     region_id = REGION_ID_INVALID;
     node_type = RegionNodeType::LEAF_SURFACE_REGION;
     parent = nullptr;

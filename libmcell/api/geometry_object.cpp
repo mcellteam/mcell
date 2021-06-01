@@ -44,7 +44,7 @@ void GeometryObject::set_all_custom_attributes_to_default() {
   Region::set_all_custom_attributes_to_default();
 
   // overwrite value in Region construction
-  is_geometry_object = true;
+  region_type = RegionType::VOLUME;
 
   node_type = RegionNodeType::LEAF_GEOMETRY_OBJECT;
   partition_id = PARTITION_ID_INVALID;
