@@ -24,6 +24,7 @@
 #include "region_expr.h"
 #include "datamodel_defines.h"
 #include "world.h"
+#include "api/python_export_constants.h"
 
 using namespace std;
 
@@ -33,13 +34,22 @@ string RegionExprNode::to_string(const World* world, const bool for_datamodel) c
   stringstream out;
   assert(op != RegionExprOperator::INVALID);
 
-  if (op == RegionExprOperator::LEAF) {
+  if (op == RegionExprOperator::LEAF_SURFACE_REGION) {
     const string& region_name = world->get_region(region_id).name;
     if (for_datamodel) {
       return DMUtils::get_object_w_region_name(region_name);
     }
     else {
       return region_name;
+    }
+  }
+  else if (op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    const string& go_name = world->get_geometry_object(geometry_object_id).name;
+    if (for_datamodel) {
+      return DMUtils::remove_obj_name_prefix(go_name) + API::REGION_ALL_SUFFIX;
+    }
+    else {
+      return go_name;
     }
   }
 
@@ -71,10 +81,21 @@ void RegionExprNode::dump(const World* world) const {
 }
 
 
-RegionExprNode* RegionExpr::create_new_region_expr_node_leaf(const region_id_t region_id) {
+RegionExprNode* RegionExpr::create_new_expr_node_leaf_surface_region(const region_id_t id) {
+  assert(id != REGION_ID_INVALID);
   RegionExprNode* res = new RegionExprNode;
-  res->op = RegionExprOperator::LEAF;
-  res->region_id = region_id;
+  res->op = RegionExprOperator::LEAF_SURFACE_REGION;
+  res->region_id = id;
+  all_region_expr_nodes.push_back(res);
+  return res;
+}
+
+
+RegionExprNode* RegionExpr::create_new_expr_node_leaf_geometry_object(const geometry_object_id_t id) {
+  assert(id != GEOMETRY_OBJECT_ID_INVALID);
+  RegionExprNode* res = new RegionExprNode;
+  res->op = RegionExprOperator::LEAF_GEOMETRY_OBJECT;
+  res->geometry_object_id = id;
   all_region_expr_nodes.push_back(res);
   return res;
 }

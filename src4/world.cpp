@@ -716,7 +716,7 @@ std::string World::export_releases_to_bngl_seed_species(
     if (re->release_number_method != ReleaseNumberMethod::CONST_NUM) {
       return "Only constant release number releases are currently supported for BNGL export" + err_suffix;
     }
-    if (re->region_expr.root->op != RegionExprOperator::LEAF) {
+    if (re->region_expr.root->op != RegionExprOperator::LEAF_SURFACE_REGION && re->region_expr.root->op != RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
       return "Only simple release regions are currently supported for BNGL export" + err_suffix;
     }
     if (re->event_time != 0) {
@@ -734,16 +734,25 @@ std::string World::export_releases_to_bngl_seed_species(
     parameters << BNG::IND << seed_count_name << " " << to_string(re->release_number) << "\n";
 
     // and line in seed species, for now whole objects are representing compartments
-    const Region& region = get_region(re->region_expr.root->region_id);
-    if (DMUtils::get_region_name(region.name) != "ALL") {
-      return "Compartments that do not span the whole object are not supported yet" + err_suffix;
+    const GeometryObject* obj = nullptr;
+    if (re->region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+      const Region& region = get_region(re->region_expr.root->region_id);
+      if (DMUtils::get_region_name(region.name) != "ALL") {
+        return "Compartments that do not span the whole object are not supported yet" + err_suffix;
+      }
+      obj = &get_geometry_object(region.geometry_object_id);
     }
-    const GeometryObject& obj = get_geometry_object(region.geometry_object_id);
+    else if (re->region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+      obj = &get_geometry_object(re->region_expr.root->geometry_object_id);
+    }
+    else {
+      release_assert(false && "Compartment must be a simple surface or geometry object.");
+    }
     const BNG::Species& species = bng_engine.get_all_species().get(re->species_id);
 
     seed_species << BNG::IND;
-    if (obj.name != BNG::DEFAULT_COMPARTMENT_NAME) {
-      seed_species << "@" <<  obj.name << ":";
+    if (obj->name != BNG::DEFAULT_COMPARTMENT_NAME) {
+      seed_species << "@" <<  obj->name << ":";
     }
     seed_species << species.name << " " << seed_count_name << "\n";
   }

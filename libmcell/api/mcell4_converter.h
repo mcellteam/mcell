@@ -132,6 +132,7 @@ private:
 
   MCell::RegionExprNode* convert_region_expr_recursively(
       const std::shared_ptr<API::Region>& region,
+      const bool is_vol,
       MCell::ReleaseEvent* rel_event
   );
   void convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);

@@ -623,7 +623,7 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   return true;
 }
 
-// result is not used anywhere
+
 bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_index_t& region_index) {
 
   assert(r != nullptr);
@@ -764,6 +764,20 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   for (ReleaseEvent* re: region_releases_to_be_initialized) {
     re->initialize_walls_for_release();
   }
+
+
+  // set encompassing region id - the region that has all the walls
+  for (region_index_t index: obj.regions) {
+    const Region& reg = p.get_region(index);
+    string reg_suffix = reg.name.substr(obj.name.size(), reg.name.size() - obj.name.size());
+    if (reg.walls_and_edges.size() == obj.wall_indices.size() &&
+        DMUtils::get_region_name(reg.name) == "ALL") {
+      assert(obj.encompassing_region_id == REGION_ID_INVALID);
+      obj.encompassing_region_id = reg.id;
+    }
+  }
+  release_assert(obj.encompassing_region_id != REGION_ID_INVALID);
+
 
   // --- back to object ---
 
@@ -1245,7 +1259,7 @@ bool MCell3WorldConverter::convert_rxns(volume* s) {
 
 // returns nullptr if conversion failed
 RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
-    release_evaluator* expr, ReleaseEvent& event_data
+    release_evaluator* expr, ReleaseEvent& event_data, const bool is_vol_release
 ) {
   assert(expr != nullptr);
   RegionExprOperator new_op = RegionExprOperator::INVALID;
@@ -1278,11 +1292,17 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
     // left node is a region
     const Region* reg = world->find_region_by_name(get_sym_name(((region*)expr->left)->sym));
     release_assert(reg != nullptr);
-    new_left = event_data.region_expr.create_new_region_expr_node_leaf(reg->id);
+    if (is_vol_release) {
+      // volume regions always cover the whole object
+      new_left = event_data.region_expr.create_new_expr_node_leaf_geometry_object(reg->geometry_object_id);
+    }
+    else {
+      new_left = event_data.region_expr.create_new_expr_node_leaf_surface_region(reg->id);
+    }
   }
   else if (new_op != RegionExprOperator::INVALID){
     // there is an operator so we assume that the left node is a subexpr
-    new_left = create_release_region_terms_recursively((release_evaluator*)expr->left, event_data);
+    new_left = create_release_region_terms_recursively((release_evaluator*)expr->left, event_data, is_vol_release);
   }
   else {
     new_left = nullptr;
@@ -1291,10 +1311,16 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
   if ((expr->op & REXP_RIGHT_REGION) != 0) {
     const Region* reg = world->find_region_by_name(get_sym_name(((region*)expr->right)->sym));
     release_assert(reg != nullptr);
-    new_right = event_data.region_expr.create_new_region_expr_node_leaf(reg->id);
+    if (is_vol_release) {
+      // volume regions always cover the whole object
+      new_right = event_data.region_expr.create_new_expr_node_leaf_geometry_object(reg->geometry_object_id);
+    }
+    else {
+      new_right = event_data.region_expr.create_new_expr_node_leaf_surface_region(reg->id);
+    }
   }
   else if (new_op != RegionExprOperator::INVALID) {
-    new_right = create_release_region_terms_recursively((release_evaluator*)expr->right, event_data);
+    new_right = create_release_region_terms_recursively((release_evaluator*)expr->right, event_data, is_vol_release);
   }
   else {
     new_right = nullptr;
@@ -1356,6 +1382,9 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           release_region_data* region_data = rel_site->region_data;
           rel_event->location = Vec3(POS_INVALID);
 
+          species_id_t species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+          const Species& species = world->get_all_species().get(species_id);
+
           // CHECK_PROPERTY(region_data->in_release == nullptr); // ignored
 
           if (rel_site->region_data->cum_area_list != nullptr) {
@@ -1375,7 +1404,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
             // also remember the expression, although the cum_area_and_pwall_index_pairs is what is currently used
             CHECK_PROPERTY(region_data->expression != nullptr);
-            rel_event->region_expr.root = create_release_region_terms_recursively(region_data->expression, *rel_event);
+            rel_event->region_expr.root = create_release_region_terms_recursively(region_data->expression, *rel_event, species.is_vol());
           }
           else {
             // volume or surface molecules release into region
@@ -1391,7 +1420,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             rel_event->region_urb = region_data->urb;
 
             CHECK_PROPERTY(region_data->expression != nullptr);
-            rel_event->region_expr.root = create_release_region_terms_recursively(region_data->expression, *rel_event);
+            rel_event->region_expr.root = create_release_region_terms_recursively(region_data->expression, *rel_event, species.is_vol());
           }
         }
         else if (rel_site->release_shape == SHAPE_LIST) {

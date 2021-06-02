@@ -206,7 +206,7 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
       bool surf_compartment_used = false;
       const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
       for (const auto& geom_obj: p.get_geometry_objects()) {
-        if (geom_obj.encompassing_region_index == region_id && \
+        if (geom_obj.encompassing_region_id == region_id && \
             geom_obj.surf_compartment_id != BNG::COMPARTMENT_ID_NONE) {
 
           const BNG::Compartment& comp = world->bng_engine.get_data().get_compartment(geom_obj.surf_compartment_id);

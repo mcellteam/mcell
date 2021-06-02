@@ -1408,8 +1408,14 @@ bool compute_region_expr_bounding_box(
   int count_regions_flag = 1;
   Partition& p = world->get_partition(0);
 
-  if (expr->op == RegionExprOperator::LEAF) {
+  if (expr->op == RegionExprOperator::LEAF_SURFACE_REGION) {
     Region& reg = p.get_region_by_id(expr->region_id);
+    reg.compute_bounding_box(p, llf, urb);
+    return true;
+  }
+  else if (expr->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    GeometryObject& go = p.get_geometry_object(expr->geometry_object_id);
+    Region& reg = p.get_region_by_id(go.encompassing_region_id);
     reg.compute_bounding_box(p, llf, urb);
     return true;
   }

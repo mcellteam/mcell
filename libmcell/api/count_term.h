@@ -46,12 +46,6 @@ public:
 
   void check_semantics() const override {
     GenCountTerm::check_semantics();
-    if (is_set(region)) {
-      if (region->node_type != RegionNodeType::LEAF_GEOMETRY_OBJECT && region->node_type != RegionNodeType::LEAF_SURFACE_REGION) {
-        throw ValueError(S("Only simple regions of type ") + NAME_CLASS_GEOMETRY_OBJECT + " and " + NAME_CLASS_REGION +
-            " are supported now. Error for " + NAME_CLASS_COUNT_TERM + " " + name);
-      }
-    }
 
     if (is_set(reaction_rule) && is_set(reaction_rule->rev_rate)) {
       throw ValueError(S("Reversible reactions cannot counted because it is not clear which direction should be counted.") +

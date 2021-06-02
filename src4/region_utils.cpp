@@ -105,12 +105,13 @@ static void find_restricted_regions_by_object(
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];
 
   for (region_index_t ri: obj.regions) {
-    if (ri == obj.encompassing_region_index) {
+    const Region& reg = p.get_region(ri);
+
+    if (reg.id == obj.encompassing_region_id) {
       continue;
     }
 
     // find any wall that belongs to this region
-    const Region& reg = p.get_region(ri);
     if (reg.walls_and_edges.empty()) {
       continue;
     }

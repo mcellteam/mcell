@@ -955,8 +955,8 @@ void MCell4Converter::convert_geometry_objects() {
     region_index_t ri_all = p.add_region_and_set_its_index(reg_all);
     region_indices.push_back(ri_all);
 
-    // we must remember that this region belongs to our object
-    obj.encompassing_region_index = ri_all;
+    // we must remember that this region represents the whole object
+    obj.encompassing_region_id = reg_all.id;
 
     // regions from surface areas
     // mcell3 stores the regions in reverse, so we can too...
@@ -1101,18 +1101,15 @@ void MCell4Converter::convert_compartments() {
 static MCell::RegionExprOperator convert_region_node_type(API::RegionNodeType t) {
   switch (t) {
     case API::RegionNodeType::LEAF_GEOMETRY_OBJECT:
+      return MCell::RegionExprOperator::LEAF_GEOMETRY_OBJECT;
     case API::RegionNodeType::LEAF_SURFACE_REGION:
-      return MCell::RegionExprOperator::LEAF;
-
+      return MCell::RegionExprOperator::LEAF_SURFACE_REGION;
     case API::RegionNodeType::UNION:
       return MCell::RegionExprOperator::UNION;
-
     case API::RegionNodeType::DIFFERENCE:
       return MCell::RegionExprOperator::DIFFERENCE;
-
     case API::RegionNodeType::INTERSECT:
       return MCell::RegionExprOperator::INTERSECT;
-
     default:
       assert(false);
       return MCell::RegionExprOperator::INVALID;
@@ -1122,38 +1119,52 @@ static MCell::RegionExprOperator convert_region_node_type(API::RegionNodeType t)
 
 RegionExprNode* MCell4Converter::convert_region_expr_recursively(
     const shared_ptr<API::Region>& region,
+    const bool is_vol,
     MCell::ReleaseEvent* rel_event
 ) {
   assert(is_set(region));
   if (region->node_type == RegionNodeType::LEAF_GEOMETRY_OBJECT) {
     shared_ptr<API::GeometryObject> geometry_object = dynamic_pointer_cast<API::GeometryObject>(region);
     assert(is_set(geometry_object));
-    const MCell::Region* reg = world->find_region_by_name(geometry_object->name + MCell::REGION_ALL_SUFFIX_W_COMMA);
-    if (reg == nullptr) {
-      throw RuntimeError("Could not find region representing object with name " + geometry_object->name + ", it might not have been added to the model.");
+    if (is_vol) {
+      return rel_event->region_expr.create_new_expr_node_leaf_geometry_object(geometry_object->geometry_object_id);
     }
-    return rel_event->region_expr.create_new_region_expr_node_leaf(reg->id);
+    else {
+      const MCell::Region* reg = world->find_region_by_name(geometry_object->name + MCell::REGION_ALL_SUFFIX_W_COMMA);
+      if (reg == nullptr) {
+        throw RuntimeError("Could not find region representing object with name " + geometry_object->name + ", it might not have been added to the model.");
+      }
+      return rel_event->region_expr.create_new_expr_node_leaf_surface_region(reg->id);
+    }
   }
   else if (region->node_type == RegionNodeType::LEAF_SURFACE_REGION) {
+    if (is_vol) {
+      // TODO: message needs more details
+      throw RuntimeError("Cannot release volume molecule onto a surface region, the problematic region is:\n" +
+          region->to_str());
+    }
+
     shared_ptr<API::SurfaceRegion> surface_region = dynamic_pointer_cast<API::SurfaceRegion>(region);
     assert(is_set(surface_region));
     const MCell::Region* reg = world->find_region_by_name(surface_region->parent->name + "," + surface_region->name);
     if (reg == nullptr) {
       throw RuntimeError("Could not find region with name " + surface_region->parent->name + ", it might not have been added to the model.");
     }
-    return rel_event->region_expr.create_new_region_expr_node_leaf(reg->id);
+    return rel_event->region_expr.create_new_expr_node_leaf_surface_region(reg->id);
   }
   else {
     return rel_event->region_expr.create_new_region_expr_node_op(
         convert_region_node_type(region->node_type),
-        convert_region_expr_recursively(region->left_node, rel_event),
-        convert_region_expr_recursively(region->right_node, rel_event)
+        convert_region_expr_recursively(region->left_node, is_vol, rel_event),
+        convert_region_expr_recursively(region->right_node, is_vol, rel_event)
     );
   }
 }
 
 
 void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event) {
+
+  const BNG::Species& species = world->get_all_species().get(rel_event->species_id);
 
   if (rel_site.shape == Shape::COMPARTMENT && !is_set(rel_site.complex->compartment_name)) {
     // this should not happen
@@ -1164,7 +1175,7 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
     if (!is_set(rel_site.region)) {
       throw RuntimeError("Region for release site " + rel_site.name + " was not set.");
     }
-    rel_event->region_expr.root = convert_region_expr_recursively(rel_site.region, rel_event);
+    rel_event->region_expr.root = convert_region_expr_recursively(rel_site.region, species.is_vol(), rel_event);
 
     // add intersection with compartment if this is a volume compartment
     if (is_set(rel_site.complex->compartment_name)) {
@@ -1173,7 +1184,7 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
       const auto& obj = model->find_volume_compartment_object(rel_site.complex->compartment_name);
       if (is_set(obj)) {
         auto region = model->get_compartment_region(rel_site.complex->compartment_name);
-        RegionExprNode* compartment_region = convert_region_expr_recursively(region, rel_event);
+        RegionExprNode* compartment_region = convert_region_expr_recursively(region, species.is_vol(), rel_event);
 
         // overwrite region expr with intersection with compartment
         rel_event->region_expr.root = rel_event->region_expr.create_new_region_expr_node_op(
@@ -1195,7 +1206,7 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
       throw RuntimeError("Compartment " + rel_site.complex->compartment_name + " for " + rel_site.name + " was not found.");
     }
 
-    rel_event->region_expr.root = convert_region_expr_recursively(region, rel_event);
+    rel_event->region_expr.root = convert_region_expr_recursively(region, species.is_vol(), rel_event);
   }
 
 
@@ -1442,8 +1453,8 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
         if (is_obj_not_surf_reg) {
           // need to get the region of this object
           MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
-          assert(obj.encompassing_region_index != MCell::REGION_ID_INVALID);
-          reg_id = obj.encompassing_region_index;
+          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
+          reg_id = obj.encompassing_region_id;
         }
 
         res.type = MCell::CountType::PresentOnSurfaceRegion;
@@ -1487,8 +1498,8 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
         if (is_obj_not_surf_reg) {
           // need to get the region of this object
           MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
-          assert(obj.encompassing_region_index != MCell::REGION_ID_INVALID);
-          reg_id = obj.encompassing_region_index;
+          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
+          reg_id = obj.encompassing_region_id;
         }
 
         res.region_id = reg_id;

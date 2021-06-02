@@ -418,7 +418,7 @@ bool ReleaseEvent::initialize_walls_for_release() {
   }
 
   // only a single region for now
-  if (region_expr.root->op != RegionExprOperator::LEAF) {
+  if (region_expr.root->op != RegionExprOperator::LEAF_SURFACE_REGION) {
     return false;
   }
 
@@ -681,9 +681,13 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
 bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node) {
   assert(region_expr_node->op != RegionExprOperator::INVALID);
 
-  if (region_expr_node->op == RegionExprOperator::LEAF) {
-    Region& reg = p.get_region_by_id(region_expr_node->region_id);
+  if (region_expr_node->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    const GeometryObject& go = p.get_geometry_object(region_expr_node->geometry_object_id);
+    Region& reg = p.get_region_by_id(go.encompassing_region_id);
     return reg.is_point_inside(p, pos);
+  }
+  else if (region_expr_node->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+    release_assert(false && "This method may be called only for volume regions.");
   }
 
   bool satisfies_l = is_point_inside_region_expr_recursively(p, pos, region_expr_node->left);
@@ -717,12 +721,16 @@ bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const V
 uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   double vol = 0.0;
-  if (region_expr.root->op == RegionExprOperator::LEAF) {
-    Region& r = p.get_region_by_id(region_expr.root->region_id);
+  if (region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    const GeometryObject& go = p.get_geometry_object_by_id(region_expr.root->geometry_object_id);
+    Region& r = p.get_region_by_id(go.encompassing_region_id);
     r.initialize_volume_info_if_needed(p);
     release_assert(r.is_manifold() && "Trying to release into a regions that is not a manifold and has no volume");
     vol = r.get_volume();
     exact_number = true;
+  }
+  else if (region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+    release_assert(false);
   }
   else {
     // estimate the volume

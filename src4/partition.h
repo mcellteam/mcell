@@ -823,12 +823,14 @@ public:
   }
 
   const Region& get_region_by_id(const region_id_t id) const {
+    assert(id != REGION_ID_INVALID);
     const Region& res = get_region((region_index_t)id);
     assert(res.id == res.index && "With a single partition, region id == index");
     return res;
   }
 
   Region& get_region_by_id(const region_id_t id) {
+    assert(id != REGION_ID_INVALID);
     Region& res = get_region((region_index_t)id);
     assert(res.id == res.index && "With a single partition, region id == index");
     return res;

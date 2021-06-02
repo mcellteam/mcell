@@ -80,7 +80,7 @@ private:
   bool convert_rxns(volume* s);
 
   RegionExprNode* create_release_region_terms_recursively(
-      release_evaluator* expr, ReleaseEvent& event_data
+      release_evaluator* expr, ReleaseEvent& event_data, const bool is_vol_release
   );
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);

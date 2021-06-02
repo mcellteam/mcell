@@ -29,13 +29,15 @@
 namespace MCell {
 
 class World;
+class Region;
 
 enum class RegionExprOperator {
   INVALID,
   UNION,
   INTERSECT,
   DIFFERENCE,
-  LEAF
+  LEAF_SURFACE_REGION,
+  LEAF_GEOMETRY_OBJECT
 };
 
 
@@ -44,6 +46,7 @@ public:
   RegionExprNode()
     : op(RegionExprOperator::INVALID),
       region_id(REGION_INDEX_INVALID),
+      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
       left(nullptr), right(nullptr) {
   }
 
@@ -55,6 +58,7 @@ public:
   RegionExprOperator op;
 
   region_id_t region_id;
+  geometry_object_id_t geometry_object_id;
 
   RegionExprNode* left;
   RegionExprNode* right;
@@ -64,6 +68,7 @@ public:
 };
 
 
+// constructor and container for all region expr nodes
 class RegionExpr {
 public:
   RegionExpr() :
@@ -71,8 +76,9 @@ public:
   }
   ~RegionExpr();
 
-  // constructor and container for all region expr nodes
-  RegionExprNode* create_new_region_expr_node_leaf(const region_id_t region_id);
+  RegionExprNode* create_new_expr_node_leaf_surface_region(const region_id_t id);
+  RegionExprNode* create_new_expr_node_leaf_geometry_object(const geometry_object_id_t id);
+
   RegionExprNode* create_new_region_expr_node_op(const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right);
 
   // used when release_shape is ReleaseShape::Region
