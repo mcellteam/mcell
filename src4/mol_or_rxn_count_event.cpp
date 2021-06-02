@@ -416,6 +416,38 @@ static bool wall_is_part_of_region(
 }
 
 
+static bool counted_volume_matches_region_expr_recursively(
+    const CountedVolume& enclosing_volumes,
+    const RegionExprNode* node
+) {
+  assert(node != nullptr);
+
+  if (node->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    // returns true if the current geometry object is one of the enclosing volumes
+    return enclosing_volumes.contained_in_objects.count(node->geometry_object_id) != 0;
+  }
+  else if (node->has_binary_op()) {
+    bool left = counted_volume_matches_region_expr_recursively(enclosing_volumes, node->left);
+    bool right = counted_volume_matches_region_expr_recursively(enclosing_volumes, node->right);
+    switch (node->op) {
+      case RegionExprOperator::DIFFERENCE:
+        return left && !right;
+      case RegionExprOperator::INTERSECT:
+        return left && right;
+      case RegionExprOperator::UNION:
+        return left || right;
+      default:
+        assert(false);
+        return false;
+    }
+  }
+  else {
+    assert(false);
+    return false;
+  }
+}
+
+
 void MolOrRxnCountEvent::compute_mol_count_item(
     const Partition& p,
     const MolOrRxnCountItem& item,
@@ -443,15 +475,9 @@ void MolOrRxnCountEvent::compute_mol_count_item(
       }
       else if (m.is_vol() && term.type == CountType::EnclosedInVolumeRegion) {
 
-        // TODO_COUNTS
-        release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT);
-        geometry_object_id_t geometry_object_id = term.region_expr.root->geometry_object_id;
-        assert(geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
-
-        // is the molecule inside of the object that we are checking?
+        // is the molecule inside of the object/volume region expression that we are checking?
         const CountedVolume& enclosing_volumes = p.get_counted_volume(m.v.counted_volume_index);
-        if (enclosing_volumes.contained_in_objects.count(geometry_object_id)) {
-
+        if (counted_volume_matches_region_expr_recursively(enclosing_volumes, term.region_expr.root)) {
           count_items[item.index].inc_or_dec(term.sign_in_expression, num_matches);
         }
       }
