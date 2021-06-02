@@ -35,21 +35,31 @@ string RegionExprNode::to_string(const World* world, const bool for_datamodel) c
   assert(op != RegionExprOperator::INVALID);
 
   if (op == RegionExprOperator::LEAF_SURFACE_REGION) {
-    const string& region_name = world->get_region(region_id).name;
-    if (for_datamodel) {
-      return DMUtils::get_object_w_region_name(region_name);
+    if (world != nullptr) {
+      const string& region_name = world->get_region(region_id).name;
+      if (for_datamodel) {
+        return DMUtils::get_object_w_region_name(region_name);
+      }
+      else {
+        return region_name;
+      }
     }
     else {
-      return region_name;
+      return "region id: " + std::to_string(region_id);
     }
   }
   else if (op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
-    const string& go_name = world->get_geometry_object(geometry_object_id).name;
-    if (for_datamodel) {
-      return DMUtils::remove_obj_name_prefix(go_name) + API::REGION_ALL_SUFFIX;
+    if (world != nullptr) {
+      const string& go_name = world->get_geometry_object(geometry_object_id).name;
+      if (for_datamodel) {
+        return DMUtils::remove_obj_name_prefix(go_name) + API::REGION_ALL_SUFFIX;
+      }
+      else {
+        return go_name;
+      }
     }
     else {
-      return go_name;
+      return "geometry object id: " + std::to_string(geometry_object_id);
     }
   }
 
@@ -110,6 +120,41 @@ RegionExprNode* RegionExpr::create_new_region_expr_node_op(
   res->right = right;
   all_region_expr_nodes.push_back(res);
   return res;
+}
+
+
+static RegionExprNode* clone_region_expr_recursively(
+    RegionExpr* re,
+    const RegionExprNode* src_node) {
+  assert(src_node != nullptr);
+
+  if (src_node->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    return re->create_new_expr_node_leaf_geometry_object(src_node->geometry_object_id);
+  }
+  else if (src_node->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+    return re->create_new_expr_node_leaf_surface_region(src_node->region_id);
+  }
+  else if (src_node->has_binary_op()) {
+    return re->create_new_region_expr_node_op(
+        src_node->op,
+        clone_region_expr_recursively(re, src_node->left),
+        clone_region_expr_recursively(re, src_node->right));
+  }
+  else {
+    assert(false);
+    return nullptr;
+  }
+}
+
+
+RegionExpr& RegionExpr::operator=(const RegionExpr& other) {
+  if (other.root == nullptr) {
+    root = nullptr;
+  }
+  else {
+    root = clone_region_expr_recursively(this, other.root);
+  }
+  return *this;
 }
 
 

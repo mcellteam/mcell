@@ -784,7 +784,7 @@ std::string World::export_counts_to_bngl_observables(std::ostream& observables) 
       const string& err_suffix = ", error for " + name + ".";
 
       if (item.multiplier != 1.0) {
-        return "Observable expressions with a multiplier are not yet supported by BNGL export" + err_suffix;
+        return "Observable expressions with a multiplier are not supported by BNGL export yet" + err_suffix;
       }
 
       string pattern;
@@ -797,14 +797,19 @@ std::string World::export_counts_to_bngl_observables(std::ostream& observables) 
           return "Reaction counts are not supported by BNGL export" + err_suffix;
         }
         if (term.type == CountType::PresentOnSurfaceRegion) {
-          return "Surface molecule counts are yet not supported by BNGL export" + err_suffix;
+          return "Surface molecule counts are not supported by BNGL export yet" + err_suffix;
+        }
+        if (term.region_expr.root != nullptr && term.region_expr.root->has_binary_op()) {
+          return "Counts that use region expressions with union, difference, or intersection are "
+              "not supported by BNGL export yet" + err_suffix;
         }
 
         string compartment_prefix = "";
         if (term.type == CountType::EnclosedInVolumeRegion) {
-          const string& compartment_name = get_geometry_object(term.geometry_object_id).name;
+          release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT);
+          const string& compartment_name = get_geometry_object(term.region_expr.root->geometry_object_id).name;
           if (compartment_name != BNG::DEFAULT_COMPARTMENT_NAME) {
-            compartment_prefix = "@" + get_geometry_object(term.geometry_object_id).name + ":";
+            compartment_prefix = "@" + get_geometry_object(term.region_expr.root->geometry_object_id).name + ":";
           }
         }
 

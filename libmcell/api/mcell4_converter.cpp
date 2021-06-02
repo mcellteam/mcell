@@ -1120,49 +1120,72 @@ static MCell::RegionExprOperator convert_region_node_type(API::RegionNodeType t)
 RegionExprNode* MCell4Converter::convert_region_expr_recursively(
     const shared_ptr<API::Region>& region,
     const bool is_vol,
-    MCell::ReleaseEvent* rel_event
+    const bool release_not_count, // for error message purposes
+    MCell::RegionExpr& region_expr
 ) {
+  string msg_detail;
+  if (release_not_count) {
+    msg_detail = S(" referenced by a ") + NAME_CLASS_RELEASE_SITE + " object";
+  }
+  else {
+    msg_detail = S(" referenced by a ") + NAME_CLASS_COUNT + " object";
+  }
+
   assert(is_set(region));
   if (region->node_type == RegionNodeType::LEAF_GEOMETRY_OBJECT) {
     shared_ptr<API::GeometryObject> geometry_object = dynamic_pointer_cast<API::GeometryObject>(region);
     assert(is_set(geometry_object));
     if (is_vol) {
-      return rel_event->region_expr.create_new_expr_node_leaf_geometry_object(geometry_object->geometry_object_id);
+      if (geometry_object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
+        throw RuntimeError("Could not find geometry object with name " + geometry_object->name + msg_detail +
+            ", it might not have been added to the model.");
+      }
+
+      return region_expr.create_new_expr_node_leaf_geometry_object(geometry_object->geometry_object_id);
     }
     else {
       const MCell::Region* reg = world->find_region_by_name(geometry_object->name + MCell::REGION_ALL_SUFFIX_W_COMMA);
       if (reg == nullptr) {
-        throw RuntimeError("Could not find region representing object with name " + geometry_object->name + ", it might not have been added to the model.");
+        throw RuntimeError("Could not find region representing object with name " + geometry_object->name + msg_detail +
+            ", it might not have been added to the model.");
       }
-      return rel_event->region_expr.create_new_expr_node_leaf_surface_region(reg->id);
+      return region_expr.create_new_expr_node_leaf_surface_region(reg->id);
     }
   }
   else if (region->node_type == RegionNodeType::LEAF_SURFACE_REGION) {
     if (is_vol) {
       // TODO: message needs more details
-      throw RuntimeError("Cannot release volume molecule onto a surface region, the problematic region is:\n" +
-          region->to_str());
+      string msg;
+      if (release_not_count) {
+        msg = "Cannot release volume molecule onto a surface region .";
+      }
+      else {
+        msg = "Cannot count volume molecules or reactions on a surface region .";
+      }
+
+      throw RuntimeError(msg + "The problematic region is:\n" + region->to_str());
     }
 
     shared_ptr<API::SurfaceRegion> surface_region = dynamic_pointer_cast<API::SurfaceRegion>(region);
     assert(is_set(surface_region));
     const MCell::Region* reg = world->find_region_by_name(surface_region->parent->name + "," + surface_region->name);
     if (reg == nullptr) {
-      throw RuntimeError("Could not find region with name " + surface_region->parent->name + ", it might not have been added to the model.");
+      throw RuntimeError("Could not find region with name " + surface_region->parent->name + msg_detail +
+          ", it might not have been added to the model.");
     }
-    return rel_event->region_expr.create_new_expr_node_leaf_surface_region(reg->id);
+    return region_expr.create_new_expr_node_leaf_surface_region(reg->id);
   }
   else {
-    return rel_event->region_expr.create_new_region_expr_node_op(
+    return region_expr.create_new_region_expr_node_op(
         convert_region_node_type(region->node_type),
-        convert_region_expr_recursively(region->left_node, is_vol, rel_event),
-        convert_region_expr_recursively(region->right_node, is_vol, rel_event)
+        convert_region_expr_recursively(region->left_node, is_vol, release_not_count, region_expr),
+        convert_region_expr_recursively(region->right_node, is_vol, release_not_count, region_expr)
     );
   }
 }
 
 
-void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event) {
+void MCell4Converter::convert_rel_site_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event) {
 
   const BNG::Species& species = world->get_all_species().get(rel_event->species_id);
 
@@ -1175,7 +1198,8 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
     if (!is_set(rel_site.region)) {
       throw RuntimeError("Region for release site " + rel_site.name + " was not set.");
     }
-    rel_event->region_expr.root = convert_region_expr_recursively(rel_site.region, species.is_vol(), rel_event);
+    rel_event->region_expr.root = convert_region_expr_recursively(
+        rel_site.region, species.is_vol(), true, rel_event->region_expr);
 
     // add intersection with compartment if this is a volume compartment
     if (is_set(rel_site.complex->compartment_name)) {
@@ -1184,7 +1208,8 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
       const auto& obj = model->find_volume_compartment_object(rel_site.complex->compartment_name);
       if (is_set(obj)) {
         auto region = model->get_compartment_region(rel_site.complex->compartment_name);
-        RegionExprNode* compartment_region = convert_region_expr_recursively(region, species.is_vol(), rel_event);
+        RegionExprNode* compartment_region = convert_region_expr_recursively(
+            region, species.is_vol(), true, rel_event->region_expr);
 
         // overwrite region expr with intersection with compartment
         rel_event->region_expr.root = rel_event->region_expr.create_new_region_expr_node_op(
@@ -1206,7 +1231,8 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
       throw RuntimeError("Compartment " + rel_site.complex->compartment_name + " for " + rel_site.name + " was not found.");
     }
 
-    rel_event->region_expr.root = convert_region_expr_recursively(region, species.is_vol(), rel_event);
+    rel_event->region_expr.root = convert_region_expr_recursively(
+        region, species.is_vol(), true, rel_event->region_expr);
   }
 
 
@@ -1326,7 +1352,7 @@ MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
     case Shape::REGION_EXPR:
     case Shape::COMPARTMENT: {
         rel_event->release_shape = ReleaseShape::REGION;
-        convert_region_expr(*r, rel_event);
+        convert_rel_site_region_expr(*r, rel_event);
         bool ok = rel_event->initialize_walls_for_release();
         if (!ok) {
           throw RuntimeError("Only simple surface regions are supported for surface releases currently, error for " + r->name + ".");
@@ -1360,11 +1386,21 @@ void MCell4Converter::convert_release_events() {
   }
 }
 
-/*
-void MCell4Converter::convert_count_term_region() {
 
+static void set_geometry_objects_are_used_in_mol_rxn_counts_recursively(
+    World* world, MCell::RegionExprNode* node) {
+
+  if (node->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    world->get_geometry_object(node->geometry_object_id).set_is_used_in_mol_rxn_counts();
+  }
+  else if (node->has_binary_op()) {
+    set_geometry_objects_are_used_in_mol_rxn_counts_recursively(world, node->left);
+    set_geometry_objects_are_used_in_mol_rxn_counts_recursively(world, node->right);
+  }
+  else {
+    release_assert(false && "Surface regions cannot be used here");
+  }
 }
-*/
 
 
 // appends new term to the vector terms, does not clear it
@@ -1379,38 +1415,6 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
   assert(is_set(ct));
   assert(ct->node_type == API::ExprNodeType::LEAF);
 
-  // check region to determine where to count
-  bool is_obj_not_surf_reg = false; // to silence compiler warning
-  geometry_object_id_t obj_id = GEOMETRY_OBJECT_ID_INVALID;
-  region_id_t reg_id = REGION_ID_INVALID;
-  if (is_set(ct->region)) {
-    if (ct->region->node_type == API::RegionNodeType::LEAF_GEOMETRY_OBJECT) {
-      is_obj_not_surf_reg = true;
-      const auto& go = dynamic_pointer_cast<GeometryObject>(ct->region);
-      obj_id = go->geometry_object_id;
-      if (obj_id == GEOMETRY_OBJECT_ID_INVALID) {
-        throw RuntimeError(S(NAME_CLASS_GEOMETRY_OBJECT) + " '" + go->name +
-            "' referenced in a count expression was not added to the model."
-        );
-      }
-    }
-    else if (ct->region->node_type == API::RegionNodeType::LEAF_SURFACE_REGION) {
-      is_obj_not_surf_reg = false;
-      const auto& sr = dynamic_pointer_cast<SurfaceRegion>(ct->region);
-      reg_id = sr->region_id;
-      if (reg_id == REGION_ID_INVALID) {
-        throw RuntimeError(S(NAME_CLASS_SURFACE_REGION) + " '" + sr->name +
-            "' referenced in a count expression was not added to the model."
-        );
-      }
-    }
-    else {
-      // already checked in check_semantics
-      assert(false && "Invalid region node type.");
-    }
-  }
-
-  // what
   if (is_set(ct->species_pattern) || is_set(ct->molecules_pattern)) {
 
     if (is_set(ct->species_pattern)) {
@@ -1429,36 +1433,23 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
     res.primary_compartment_id = res.species_molecules_pattern.get_primary_compartment_id();
     res.species_molecules_pattern.remove_compartment_from_elem_mols(res.primary_compartment_id);
 
-
     bool is_vol = res.species_molecules_pattern.is_vol();
     string name = res.species_molecules_pattern.to_str();
-
 
     res.orientation = res.species_molecules_pattern.get_orientation();
 
     if (is_set(ct->region)) {
       if (is_vol) {
-        if (!is_obj_not_surf_reg) {
-          throw ValueError("Counting volume molecules " + name + " on a surface is not allowed.");
-        }
-
         res.type = MCell::CountType::EnclosedInVolumeRegion;
-        res.geometry_object_id = obj_id;
+        res.region_expr.root = convert_region_expr_recursively(ct->region, is_vol, false, res.region_expr);
 
-        // and also mark the object that we are counting molecules inside
-        world->get_geometry_object(res.geometry_object_id).set_is_used_in_mol_rxn_counts();
+        // and also mark the objects that we are counting molecules inside
+        set_geometry_objects_are_used_in_mol_rxn_counts_recursively(world, res.region_expr.root);
       }
       else {
         // surf mols
-        if (is_obj_not_surf_reg) {
-          // need to get the region of this object
-          MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
-          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
-          reg_id = obj.encompassing_region_id;
-        }
-
         res.type = MCell::CountType::PresentOnSurfaceRegion;
-        res.region_id = reg_id;
+        res.region_expr.root = convert_region_expr_recursively(ct->region, is_vol, false, res.region_expr);
 
         // these are only surface regions and there is no need to set that they are counted
       }
@@ -1476,33 +1467,24 @@ void MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
     BNG::RxnRule* rxn = world->get_all_rxns().get(res.rxn_rule_id);
 
     if (is_set(ct->region)) {
-      if (!rxn->is_surf_rxn()) {
-        // volume reaction
-        if (is_obj_not_surf_reg) {
-          res.type = MCell::CountType::RxnCountInVolumeRegion;
-          rxn->set_is_counted_in_volume_regions();
 
-          res.geometry_object_id = obj_id;
-          world->get_geometry_object(res.geometry_object_id).set_is_used_in_mol_rxn_counts();
-        }
-        else {
-          throw RuntimeError("Cannot count volume reaction " + rxn->name + " on surface " +
-              ct->region->name + ".");
-        }
+      // TODO: what about counting reactions with surface classes?
+      bool is_vol = !rxn->is_surf_rxn();
+
+      if (is_vol) {
+        // volume reaction
+        res.type = MCell::CountType::RxnCountInVolumeRegion;
+        rxn->set_is_counted_in_volume_regions();
+
+        res.region_expr.root = convert_region_expr_recursively(ct->region, is_vol, false, res.region_expr);
+        set_geometry_objects_are_used_in_mol_rxn_counts_recursively(world, res.region_expr.root);
       }
       else {
         // surface reaction
         res.type = MCell::CountType::RxnCountOnSurfaceRegion;
         rxn->set_is_counted_on_surface_regions();
 
-        if (is_obj_not_surf_reg) {
-          // need to get the region of this object
-          MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
-          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
-          reg_id = obj.encompassing_region_id;
-        }
-
-        res.region_id = reg_id;
+        res.region_expr.root = convert_region_expr_recursively(ct->region, is_vol, false, res.region_expr);
 
         // these are only surface regions and there is no need to set that they are counted
       }
@@ -1540,7 +1522,7 @@ void MCell4Converter::convert_count_terms_recursively(
           "' and " << NAME_FILE_NAME << " '" << count->file_name << "' uses a " << NAME_CLASS_COUNT_TERM <<
           " that has a " << NAME_REGION << " set. This region will be ignored because regions are allowed" <<
           " only for leaf " << NAME_CLASS_COUNT_TERM << " objects.\n" <<
-          "This is the problematic " << NAME_CLASS_COUNT << "object:\n" <<
+          "This is the problematic " << NAME_CLASS_COUNT << " object:\n" <<
           count->to_str() << "\n" <<
           "-- end of warning message reporting ignored region --\n";
     }

@@ -1842,11 +1842,13 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
             mcell_error("Could not find a counted region with name %s.", reg_name.c_str());
           }
           assert(reg->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
-          term.geometry_object_id = reg->geometry_object_id;
+          geometry_object_id_t geometry_object_id = reg->geometry_object_id;
 
-          GeometryObject& obj = world->get_partition(0).get_geometry_object(term.geometry_object_id);
+          // MDL version does not support region expressions
+          term.region_expr.root = term.region_expr.create_new_expr_node_leaf_geometry_object(geometry_object_id);
 
           // set flag that we should include this object in counted volumes
+          GeometryObject& obj = world->get_partition(0).get_geometry_object(geometry_object_id);
           obj.set_is_used_in_mol_rxn_counts();
         }
         else {
@@ -1858,7 +1860,9 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
 
             string reg_name = get_sym_name(req->count_location);
             const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
-            term.region_id = reg->id;
+
+            // MDL version does not support region expressions
+            term.region_expr.root = term.region_expr.create_new_expr_node_leaf_surface_region(reg->id);
 
             term.type = count_mols_not_rxns ? CountType::PresentOnSurfaceRegion : CountType::RxnCountOnSurfaceRegion;
           }

@@ -28,6 +28,7 @@
 
 #include "base_event.h"
 #include "count_buffer.h"
+#include "region_expr.h"
 
 namespace BNG {
 class SpeciesContainer;
@@ -69,8 +70,6 @@ public:
       species_molecules_pattern(nullptr),
       primary_compartment_id(BNG::COMPARTMENT_ID_NONE),
       rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
-      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
-      region_id(REGION_ID_INVALID),
       initial_reactions_count(0)
      {
   }
@@ -127,11 +126,10 @@ public:
   // valid when type is RxnCountInWorld, RxnCountInObject or RxnOnSurfaceRegion
   BNG::rxn_rule_id_t rxn_rule_id;
 
-  // valid when type is EnclosedInObject or RxnCountInObject
-  geometry_object_id_t geometry_object_id;
-
-  // valid when type is PresentOnSurfaceRegion or RxnOnSurfaceRegion
-  region_id_t region_id;
+  // valid when type is EnclosedInObject or RxnCountInObject or
+  // PresentOnSurfaceRegion or RxnOnSurfaceRegion
+  // region_expr.root is nullptr otherwise
+  RegionExpr region_expr;
 
   // holds initial value when resumed from a checkpoint,
   // ignored for molecule counts

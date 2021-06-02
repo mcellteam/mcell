@@ -29,6 +29,8 @@
 #include "partition.h"
 #include "datamodel_defines.h"
 
+#include "generated/gen_names.h"
+
 using namespace std;
 
 namespace MCell {
@@ -135,7 +137,12 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
 
   cout << ind << "primary_compartment_id: " << primary_compartment_id << " [compartment_id_t]\n";
   cout << ind << "rxn_rule_id: " << rxn_rule_id << " [rxn_rule_id_t]\n";
-  cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t]\n";
+  if (region_expr.root != nullptr) {
+    cout << ind << "region_expr: " << region_expr.root->to_string(nullptr, false) << " [geometry_object_id_t]\n";
+  }
+  else {
+    cout << ind << "region_expr: " << "none\n";
+  }
 }
 
 
@@ -193,20 +200,39 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
       break;
     case CountType::EnclosedInVolumeRegion:
     case CountType::RxnCountInVolumeRegion: {
-        string obj_name = world->get_geometry_object(geometry_object_id).name;
+        if (region_expr.root->op != RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+          errs() << "Data model export with region expressions is not supported yet, use " <<
+              API::NAME_CLASS_MODEL << "." << API::NAME_EXPORT_VIZ_DATA_MODEL << " instead, error for " <<
+              API::NAME_CLASS_COUNT << " for " <<
+              ((type == CountType::EnclosedInVolumeRegion) ?
+                  species_molecules_pattern.to_str() :
+                  world->get_all_rxns().get(rxn_rule_id)->name) << ".\n";
+          exit(1);
+        }
+        string obj_name = world->get_geometry_object(region_expr.root->geometry_object_id).name;
         CONVERSION_CHECK(obj_name != "", "Counted object has no name");
         where = obj_name;
       }
       break;
     case CountType::PresentOnSurfaceRegion:
     case CountType::RxnCountOnSurfaceRegion:{
+      if (region_expr.root->op != RegionExprOperator::LEAF_SURFACE_REGION) {
+        errs() << "Data model export with region expressions is not supported yet, use " <<
+            API::NAME_CLASS_MODEL << "." << API::NAME_EXPORT_VIZ_DATA_MODEL << " instead, error for " <<
+            API::NAME_CLASS_COUNT << " for " <<
+            ((type == CountType::PresentOnSurfaceRegion) ?
+                species_molecules_pattern.to_str() :
+                world->get_all_rxns().get(rxn_rule_id)->name) << ".\n";
+        exit(1);
+      }
+      region_id_t region_id = region_expr.root->region_id;
       // if possible, we should use 2d compartment name because in MCell
       // the encompassing region name is the same as the name of the object,
       // this would lead to the same name for A@CP and A@PM
       bool surf_compartment_used = false;
       const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
       for (const auto& geom_obj: p.get_geometry_objects()) {
-        if (geom_obj.encompassing_region_id == region_id && \
+        if (geom_obj.encompassing_region_id == region_id &&
             geom_obj.surf_compartment_id != BNG::COMPARTMENT_ID_NONE) {
 
           const BNG::Compartment& comp = world->bng_engine.get_data().get_compartment(geom_obj.surf_compartment_id);
@@ -416,19 +442,26 @@ void MolOrRxnCountEvent::compute_mol_count_item(
         count_items[item.index].inc_or_dec(term.sign_in_expression, num_matches);
       }
       else if (m.is_vol() && term.type == CountType::EnclosedInVolumeRegion) {
-        assert(term.geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+
+        // TODO_COUNTS
+        release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT);
+        geometry_object_id_t geometry_object_id = term.region_expr.root->geometry_object_id;
+        assert(geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
 
         // is the molecule inside of the object that we are checking?
         const CountedVolume& enclosing_volumes = p.get_counted_volume(m.v.counted_volume_index);
-        if (enclosing_volumes.contained_in_objects.count(term.geometry_object_id)) {
+        if (enclosing_volumes.contained_in_objects.count(geometry_object_id)) {
 
           count_items[item.index].inc_or_dec(term.sign_in_expression, num_matches);
         }
       }
       else if (m.is_surf() && term.type == CountType::PresentOnSurfaceRegion) {
-        assert(term.region_id != REGION_ID_INVALID);
+        // TODO_COUNTS
+        release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION);
+        region_id_t region_id = term.region_expr.root->region_id;
+        assert(region_id != REGION_ID_INVALID);
 
-        if (wall_is_part_of_region(p, m.s.wall_index, term.region_id)) {
+        if (wall_is_part_of_region(p, m.s.wall_index, region_id)) {
           count_items[item.index].inc_or_dec(term.sign_in_expression, num_matches);
         }
       }
@@ -469,7 +502,11 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
         );
       }
       else if (term.type == CountType::RxnCountInVolumeRegion) {
-        assert(term.geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+
+        // TODO_COUNTS
+        release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT);
+        geometry_object_id_t geometry_object_id = term.region_expr.root->geometry_object_id;
+        assert(geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
 
         for (const auto it: counts_in_objects) {
           if (it.second != 0) {
@@ -480,21 +517,24 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
             const CountedVolume& enclosing_volumes = p.get_counted_volume(counted_volume_index_for_this_count);
 
             // did the reaction occur in the object that we are checking?
-            if (enclosing_volumes.contained_in_objects.count(term.geometry_object_id) != 0) {
+            if (enclosing_volumes.contained_in_objects.count(geometry_object_id) != 0) {
               count_items[item.index].inc_or_dec(term.sign_in_expression, it.second);
             }
           }
         }
       }
       else if (term.type == CountType::RxnCountOnSurfaceRegion) {
-        assert(term.region_id != REGION_ID_INVALID);
+        // TODO_COUNTS
+        release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION);
+        region_id_t region_id = term.region_expr.root->region_id;
+        assert(region_id != REGION_ID_INVALID);
 
         for (const auto it: counts_on_walls) {
           if (it.second != 0) {
             wall_index_t wall_index_for_this_count = it.first;
 
             // did the reaction occur on the surface region that we are checking?
-            if (wall_is_part_of_region(p, wall_index_for_this_count, term.region_id)) {
+            if (wall_is_part_of_region(p, wall_index_for_this_count, region_id)) {
               count_items[item.index].inc_or_dec(term.sign_in_expression, it.second);
             }
           }

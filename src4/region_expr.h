@@ -51,8 +51,15 @@ public:
   }
 
   ~RegionExprNode() {
-    // children are contained in ReleaseEvent::all_region_expr_nodes,
+    // children are contained in RegionExpr::all_region_expr_nodes,
     // and are deleted when ReleaseEvent is destroyed
+  }
+
+  bool has_binary_op() const {
+    return
+        op == RegionExprOperator::UNION ||
+        op == RegionExprOperator::INTERSECT ||
+        op == RegionExprOperator::DIFFERENCE;
   }
 
   RegionExprOperator op;
@@ -63,8 +70,8 @@ public:
   RegionExprNode* left;
   RegionExprNode* right;
 
-  void dump(const World* world) const; // does not print any newlines
-  std::string to_string(const World* world, const bool for_datamodel = false) const;
+  void dump(const World* world = nullptr) const; // does not print any newlines
+  std::string to_string(const World* world = nullptr, const bool for_datamodel = false) const;
 };
 
 
@@ -74,6 +81,12 @@ public:
   RegionExpr() :
     root(nullptr) {
   }
+  RegionExpr(const RegionExpr& other) {
+    *this = other;
+  }
+
+  RegionExpr& operator=(const RegionExpr& other);
+
   ~RegionExpr();
 
   RegionExprNode* create_new_expr_node_leaf_surface_region(const region_id_t id);

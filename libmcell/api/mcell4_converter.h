@@ -133,9 +133,10 @@ private:
   MCell::RegionExprNode* convert_region_expr_recursively(
       const std::shared_ptr<API::Region>& region,
       const bool is_vol,
-      MCell::ReleaseEvent* rel_event
+      const bool release_not_count,
+      MCell::RegionExpr& region_expr
   );
-  void convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);
+  void convert_rel_site_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);
   void convert_molecule_list(
       const std::vector<std::shared_ptr<MoleculeReleaseInfo>>& molecule_list,
       const std::string& rel_site_name,
