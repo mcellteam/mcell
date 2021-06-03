@@ -204,7 +204,9 @@ Model:
   - name: register_mol_wall_hit_callback
     doc: |
        Register a callback for event when a molecule hits a wall. 
-       Note\: There can be currently only a single wall hit callback registered.
+       May be called only after model initialization because it internally uses geometry object
+       and species ids that are set during the initialization. 
+       
     examples: tests/pymcell4_positive/1300_wall_hit_callback/model.py
            
     params:
@@ -213,6 +215,11 @@ Model:
       doc: | 
          Callback function to be called. 
          The function must have two arguments MolWallHitInfo and context.
+         Do not modify the received MolWallHitInfo object since it may be reused for other 
+         wall hit callbacks (e.g. when the first callback is for a specific geometry object and 
+         the second callback is for any geometry object). 
+         The context object (py::object type argument) is on the other hand provided 
+         to be modified and one can for instance use it to count the number of hits.. 
 
     - name: context
       type: py::object
@@ -230,8 +237,11 @@ Model:
     - name: species
       type: Species*
       default: unset
-      doc: Only hits of molecules of this species will be reported, any species hit is reported when not set.
-      
+      doc: | 
+         Only hits of molecules of this species will be reported, any hit of volume molecules of 
+         any species is reported when this argument is not set.
+         Sets an internal flag for this species to make sure that the species id does not change 
+         during simulation.           
       
   - name: register_reaction_callback
     doc: | 
@@ -239,6 +249,9 @@ Model:
        It is allowed to do state modifications except for removing reacting molecules, 
        they will be removed automatically after return from this callback. 
        Unlimited number of reaction callbacks is allowed. 
+       May be called only after model initialization because it internally uses 
+       reaction rule ids that are set during the initialization. 
+       
     examples: tests/pymcell4_positive/1800_vol_rxn_callback/model.py    
     params: 
     - name: function

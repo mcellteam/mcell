@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2020 by
+ * Copyright (C) 2020-2021 by
  * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
@@ -48,7 +48,7 @@ class MolWallHitInfo;
 class ReactionInfo;
 
 typedef std::function<void(std::shared_ptr<API::MolWallHitInfo>, pybind11::object)>
-  wall_hit_callback_function_t;
+  mol_wall_hit_callback_function_t;
 
 typedef std::function<void(std::shared_ptr<API::ReactionInfo>, pybind11::object)>
   rxn_callback_function_t;
@@ -56,26 +56,51 @@ typedef std::function<void(std::shared_ptr<API::ReactionInfo>, pybind11::object)
 
 struct RxnCallbackInfo {
   RxnCallbackInfo() :
-    rxn_callback_function(nullptr),
+    callback_function(nullptr),
     rxn_rule_id(BNG::RXN_RULE_ID_INVALID) {
   }
 
   RxnCallbackInfo(
-      const rxn_callback_function_t rxn_callback_function_,
-      const py::object rxn_context_,
+      const rxn_callback_function_t callback_function_,
+      const py::object context_,
       const BNG::rxn_rule_id_t rxn_rule_id_) :
-    rxn_callback_function(rxn_callback_function_),
-    rxn_context(rxn_context_),
+    callback_function(callback_function_),
+    context(context_),
     rxn_rule_id(rxn_rule_id_) {
   }
 
-  rxn_callback_function_t rxn_callback_function;
-  py::object rxn_context;
+  rxn_callback_function_t callback_function;
+  py::object context;
   BNG::rxn_rule_id_t rxn_rule_id;
 };
 
+
+struct MolWallHitCallbackInfo {
+  MolWallHitCallbackInfo() :
+    callback_function(nullptr),
+    geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
+    species_id(BNG::SPECIES_ID_INVALID) {
+  }
+
+  MolWallHitCallbackInfo(
+      const mol_wall_hit_callback_function_t callback_function_,
+      const py::object context_,
+      const geometry_object_id_t geometry_object_id_,
+      const BNG::species_id_t species_id_) :
+    callback_function(callback_function_),
+    context(context_),
+    geometry_object_id(geometry_object_id_),
+    species_id(species_id_) {
+  }
+
+  mol_wall_hit_callback_function_t callback_function;
+  py::object context;
+  geometry_object_id_t geometry_object_id; // GEOMETRY_OBJECT_ID_INVALID - any object may be hit
+  species_id_t species_id; // SPECIES_ID_INVALID - any species may be hit
+};
+
+
 // not generated
-// TODO: allow multiple callbacks for wall hits
 class Callbacks {
 public:
   // model_ is nullptr in MDL mode
@@ -85,34 +110,36 @@ public:
 
   // -------------------- mol-wall hit callbacks --------------------
   void register_mol_wall_hit_callback(
-      const wall_hit_callback_function_t func,
+      const mol_wall_hit_callback_function_t func,
       py::object context,
       const geometry_object_id_t geometry_object_id,
-      const species_id_t species_id
-  ) {
-    assert(model != nullptr);
-    mol_wall_hit_callback_function = func;
-    mol_wall_hit_context = context;
-    mol_wall_hit_object_id = geometry_object_id;
-    mol_wall_hit_species_id = species_id;
-  }
+      const species_id_t species_id);
 
   bool needs_callback_for_mol_wall_hit(
       const geometry_object_id_t geometry_object_id,
-      const species_id_t species_id) {
-    // model may be nullptr
-    return mol_wall_hit_callback_function != nullptr &&
-        (mol_wall_hit_object_id == GEOMETRY_OBJECT_ID_INVALID || mol_wall_hit_object_id == geometry_object_id) &&
-        (mol_wall_hit_species_id == SPECIES_ID_INVALID || mol_wall_hit_species_id == species_id);
+      const species_id_t species_id) const {
+
+    if (mol_wall_hit_callbacks.empty()) {
+      return false;
+    }
+
+    auto it_specific_geom_obj = mol_wall_hit_callbacks.find(geometry_object_id);
+    if (it_specific_geom_obj != mol_wall_hit_callbacks.end() &&
+        needs_callback_for_mol_wall_hit(it_specific_geom_obj->second, species_id)) {
+      return true;
+    }
+
+    auto it_any_geom_obj = mol_wall_hit_callbacks.find(GEOMETRY_OBJECT_ID_INVALID);
+    if (it_any_geom_obj != mol_wall_hit_callbacks.end() &&
+        needs_callback_for_mol_wall_hit(it_any_geom_obj->second, species_id)) {
+      return true;
+    }
+
+    // no match
+    return false;
   }
 
-  void do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo> info);
-
-  wall_hit_callback_function_t mol_wall_hit_callback_function;
-  py::object mol_wall_hit_context;
-  geometry_object_id_t mol_wall_hit_object_id; // GEOMETRY_OBJECT_ID_INVALID - any object may be hit
-  species_id_t mol_wall_hit_species_id; // SPECIES_ID_INVALID - any species may be hit
-
+  void do_mol_wall_hit_callbacks(std::shared_ptr<MolWallHitInfo> info);
 
   // -------------------- reaction callbacks --------------------
   void register_rxn_callback(
@@ -122,14 +149,44 @@ public:
   );
 
   bool needs_rxn_callback(
-      const BNG::rxn_rule_id_t rxn_rule_id) {
-    return rxn_callbacks.count(rxn_rule_id);
+      const BNG::rxn_rule_id_t rxn_rule_id) const {
+    if (rxn_callbacks.empty()) {
+      return false;
+    }
+    else {
+      return rxn_callbacks.count(rxn_rule_id) != 0;
+    }
   }
 
   void do_rxn_callback(std::shared_ptr<ReactionInfo> info);
 
 private:
+
   std::map<BNG::rxn_rule_id_t, RxnCallbackInfo> rxn_callbacks;
+
+  typedef std::map<BNG::species_id_t, MolWallHitCallbackInfo> SpeciesMolWallHitCallbackInfoMap;
+  std::map<geometry_object_id_t, SpeciesMolWallHitCallbackInfoMap> mol_wall_hit_callbacks;
+
+  bool needs_callback_for_mol_wall_hit(
+      const SpeciesMolWallHitCallbackInfoMap& species_info_map,
+      const BNG::species_id_t species_id) const {
+
+    if (species_info_map.count(species_id) != 0) {
+      return true;
+    }
+    if (species_info_map.count(BNG::SPECIES_ID_INVALID) != 0) {
+      return true;
+    }
+    return false;
+  }
+
+  void do_mol_wall_hit_callback_for_specific_and_any_species(
+      std::shared_ptr<MolWallHitInfo> info,
+      const BNG::species_id_t specific_species_id,
+      const SpeciesMolWallHitCallbackInfoMap& species_map);
+
+  void do_individual_mol_wall_hit_callback(
+      std::shared_ptr<MolWallHitInfo> info, MolWallHitCallbackInfo callback_function_and_context);
 };
 
 } /* namespace API */

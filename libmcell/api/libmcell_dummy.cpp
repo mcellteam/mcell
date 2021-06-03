@@ -40,7 +40,7 @@ Callbacks::Callbacks(Model*) {
   // empty
 }
 
-void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo>) {
+void Callbacks::do_mol_wall_hit_callbacks(std::shared_ptr<MolWallHitInfo>) {
   release_assert("must not be called");
 }
 

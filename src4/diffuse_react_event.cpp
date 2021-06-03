@@ -503,7 +503,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           info->time_before_hit = elapsed_molecule_time;
           info->pos3d_before_hit = vm_new_ref.v.pos;
 
-          world->get_callbacks().do_mol_wall_hit_callback(info);
+          world->get_callbacks().do_mol_wall_hit_callbacks(info);
         }
 
 #ifdef DEBUG_WALL_COLLISIONS

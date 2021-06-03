@@ -244,6 +244,11 @@ Methods:
    * | function: Callable, # std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>
      | Callback function to be called. 
      | The function must have two arguments MolWallHitInfo and context.
+     | Do not modify the received MolWallHitInfo object since it may be reused for other 
+     | wall hit callbacks (e.g. when the first callback is for a specific geometry object and 
+     | the second callback is for any geometry object). 
+     | The context object (py::object type argument) is on the other hand provided 
+     | to be modified and one can for instance use it to count the number of hits..
 
    * | context: Any, # py::object
      | Context passed to the callback function, the callback function can store
@@ -254,11 +259,15 @@ Methods:
      | Only hits of this object will be reported, any object hit is reported when not set.
 
    * | species: Species = None
-     | Only hits of molecules of this species will be reported, any species hit is reported when not set.
+     | Only hits of molecules of this species will be reported, any hit of volume molecules of 
+     | any species is reported when this argument is not set.
+     | Sets an internal flag for this species to make sure that the species id does not change 
+     | during simulation.
 
 
   | Register a callback for event when a molecule hits a wall. 
-  | Note\: There can be currently only a single wall hit callback registered.
+  | May be called only after model initialization because it internally uses geometry object
+  | and species ids that are set during the initialization.
 
   | Example: `1300_wall_hit_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1300_wall_hit_callback/model.py>`_ 
 
@@ -284,7 +293,9 @@ Methods:
   | Defines a function to be called when a reaction was processed.
   | It is allowed to do state modifications except for removing reacting molecules, 
   | they will be removed automatically after return from this callback. 
-  | Unlimited number of reaction callbacks is allowed.
+  | Unlimited number of reaction callbacks is allowed. 
+  | May be called only after model initialization because it internally uses 
+  | reaction rule ids that are set during the initialization.
 
   | Example: `1800_vol_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1800_vol_rxn_callback/model.py>`_ 
 

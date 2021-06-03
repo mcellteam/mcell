@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2020 by
+ * Copyright (C) 2020-2021 by
  * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
@@ -26,20 +26,60 @@
 #include "api/geometry_object.h"
 
 #include "world.h"
+#include "molecule.h"
+
+using namespace std;
 
 namespace MCell {
 namespace API {
 
 Callbacks::Callbacks(Model* model_)
-  : model(model_),
-    mol_wall_hit_callback_function(nullptr),
-    mol_wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID),
-    mol_wall_hit_species_id(SPECIES_ID_INVALID) {
+  : model(model_) {
   assert(model != nullptr);
 }
 
 
-void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo> info) {
+void Callbacks::register_mol_wall_hit_callback(
+    const mol_wall_hit_callback_function_t func,
+    py::object context,
+    const geometry_object_id_t geometry_object_id,
+    const BNG::species_id_t species_id
+) {
+  assert(model != nullptr);
+
+  auto it_geom_obj = mol_wall_hit_callbacks.find(geometry_object_id);
+  if (it_geom_obj != mol_wall_hit_callbacks.end() && it_geom_obj->second.count(species_id) != 0) {
+
+    string geom_name;
+    if (geometry_object_id != GEOMETRY_OBJECT_ID_INVALID) {
+      geom_name = model->get_world()->get_geometry_object(geometry_object_id).name;
+    }
+    else {
+      geom_name = "any";
+    }
+
+    string species_name;
+    if (species_id != BNG::SPECIES_ID_INVALID) {
+      species_name = model->get_world()->get_all_species().get(species_id).name;
+    }
+    else {
+      species_name = "any";
+    }
+
+    throw RuntimeError(S("Cannot register two callbacks for an identical pair or geometry object and species id, ") +
+        " error while trying to register second callback for geometry object '" + geom_name + "' and species '" + species_name +"'.");
+  }
+
+  mol_wall_hit_callbacks[geometry_object_id][species_id] = MolWallHitCallbackInfo(func, context, geometry_object_id, species_id);
+
+  // make sure that the species_id won't change in the future
+  if (species_id != BNG::SPECIES_ID_INVALID) {
+    model->get_world()->get_all_species().get(species_id).clear_flag(BNG::SPECIES_FLAG_IS_REMOVABLE);
+  }
+}
+
+
+void Callbacks::do_mol_wall_hit_callbacks(std::shared_ptr<MolWallHitInfo> info) {
 
   // set geometry data
   info->geometry_object = model->get_geometry_object_with_id(info->geometry_object_id);
@@ -54,11 +94,52 @@ void Callbacks::do_mol_wall_hit_callback(std::shared_ptr<MolWallHitInfo> info) {
   info->time_before_hit = info->time_before_hit * model->get_world()->config.time_unit;
   info->pos3d_before_hit = info->pos3d_before_hit * Vec3(model->get_world()->config.length_unit);
 
+  geometry_object_id_t geometry_object_id = info->geometry_object->geometry_object_id;
+
+  // only one partition for now
+  const MCell::Molecule& m = model->get_world()->get_partition(PARTITION_ID_INITIAL).get_m(info->molecule_id);
+
+  // call callback for all matching registered callbacks
+  auto it_specific_geom_obj = mol_wall_hit_callbacks.find(geometry_object_id);
+  if (it_specific_geom_obj != mol_wall_hit_callbacks.end()) {
+    do_mol_wall_hit_callback_for_specific_and_any_species(
+        info, m.species_id, it_specific_geom_obj->second);
+  }
+
+  auto it_any_geom_obj = mol_wall_hit_callbacks.find(GEOMETRY_OBJECT_ID_INVALID);
+  if (it_any_geom_obj != mol_wall_hit_callbacks.end()) {
+    do_mol_wall_hit_callback_for_specific_and_any_species(
+        info, m.species_id, it_any_geom_obj->second);
+  }
+}
+
+
+void Callbacks::do_mol_wall_hit_callback_for_specific_and_any_species(
+    std::shared_ptr<MolWallHitInfo> info,
+    const BNG::species_id_t specific_species_id,
+    const SpeciesMolWallHitCallbackInfoMap& species_map) {
+
+  auto it_specific_species = species_map.find(specific_species_id);
+  if (it_specific_species != species_map.end()) {
+    do_individual_mol_wall_hit_callback(info, it_specific_species->second);
+  }
+
+  auto it_any_species = species_map.find(BNG::SPECIES_ID_INVALID);
+  if (it_any_species != species_map.end()) {
+    do_individual_mol_wall_hit_callback(info, it_any_species->second);
+  }
+}
+
+
+void Callbacks::do_individual_mol_wall_hit_callback(
+    std::shared_ptr<MolWallHitInfo> info,
+    MolWallHitCallbackInfo callback_function_and_context) {
+
   // acquire GIL before calling Python code
   py::gil_scoped_acquire acquire;
 
   // call the actual callback
-  mol_wall_hit_callback_function(info, mol_wall_hit_context);
+  callback_function_and_context.callback_function(info, callback_function_and_context.context);
 }
 
 
@@ -108,7 +189,7 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
   py::gil_scoped_acquire acquire;
 
   // call the actual callback
-  specific_callback.rxn_callback_function(info, specific_callback.rxn_context);
+  specific_callback.callback_function(info, specific_callback.context);
 }
 
 } /* namespace API */
