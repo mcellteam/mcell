@@ -56,7 +56,7 @@ def run_mcell3(args_str_w_opts):
     print("Running " + cmd_str)
     
     args_log = args_str.replace(' ', '_').replace('-', '_')
-    log_name = os.path.splitext(opts.main_model_file)[0] + '_' + args_log + '.mcell3.log'
+    log_name = os.path.join(LOGS_DIR, os.path.splitext(opts.main_model_file)[0] + '_' + args_log + '.mcell3.log')
     
     exit_code = 1
     with open(log_name, "w") as f:
@@ -84,9 +84,12 @@ def run_mcell3_parallel(opts, args):
     else:
         cpu_count = multiprocessing.cpu_count()
      
-    pool = multiprocessing.Pool(processes=cpu_count)
-    
+    # create logs directory
+    if not os.path.exists(LOGS_DIR):
+        os.mkdir(LOGS_DIR)
+        
     # run the jobs
+    pool = multiprocessing.Pool(processes=cpu_count)
     args_str_w_opts = zip(args, itertools.repeat(opts))
     res_codes = pool.map(run_mcell3, args_str_w_opts, 1)
 
