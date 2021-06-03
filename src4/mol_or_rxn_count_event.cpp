@@ -556,11 +556,6 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
       }
       else if (term.type == CountType::RxnCountInVolumeRegion) {
 
-        // TODO_COUNTS
-        release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT);
-        geometry_object_id_t geometry_object_id = term.region_expr.root->geometry_object_id;
-        assert(geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
-
         for (const auto it: counts_in_objects) {
           if (it.second != 0) {
             counted_volume_index_t counted_volume_index_for_this_count = it.first;
@@ -568,26 +563,20 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
             // volumes that enclose the location where reaction occurred
             // might be nullptr if not found
             const CountedVolume& enclosing_volumes = p.get_counted_volume(counted_volume_index_for_this_count);
-
-            // did the reaction occur in the object that we are checking?
-            if (enclosing_volumes.contained_in_objects.count(geometry_object_id) != 0) {
+            if (counted_volume_matches_region_expr_recursively(enclosing_volumes, term.region_expr.root)) {
               count_items[item.index].inc_or_dec(term.sign_in_expression, it.second);
             }
           }
         }
       }
       else if (term.type == CountType::RxnCountOnSurfaceRegion) {
-        // TODO_COUNTS
-        release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION);
-        region_id_t region_id = term.region_expr.root->region_id;
-        assert(region_id != REGION_ID_INVALID);
 
         for (const auto it: counts_on_walls) {
           if (it.second != 0) {
             wall_index_t wall_index_for_this_count = it.first;
 
-            // did the reaction occur on the surface region that we are checking?
-            if (wall_is_part_of_region(p, wall_index_for_this_count, region_id)) {
+            // does the reaction's wall match the region expression?
+            if (wall_matches_region_expr_recursively(p, wall_index_for_this_count, term.region_expr.root)) {
               count_items[item.index].inc_or_dec(term.sign_in_expression, it.second);
             }
           }
