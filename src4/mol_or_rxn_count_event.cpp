@@ -416,6 +416,23 @@ static bool wall_is_part_of_region(
 }
 
 
+static bool get_binary_region_expr_result(
+    const RegionExprOperator op, const bool left, const bool right) {
+
+  switch (op) {
+    case RegionExprOperator::DIFFERENCE:
+      return left && !right;
+    case RegionExprOperator::INTERSECT:
+      return left && right;
+    case RegionExprOperator::UNION:
+      return left || right;
+    default:
+      assert(false);
+      return false;
+  }
+}
+
+
 static bool counted_volume_matches_region_expr_recursively(
     const CountedVolume& enclosing_volumes,
     const RegionExprNode* node
@@ -429,17 +446,30 @@ static bool counted_volume_matches_region_expr_recursively(
   else if (node->has_binary_op()) {
     bool left = counted_volume_matches_region_expr_recursively(enclosing_volumes, node->left);
     bool right = counted_volume_matches_region_expr_recursively(enclosing_volumes, node->right);
-    switch (node->op) {
-      case RegionExprOperator::DIFFERENCE:
-        return left && !right;
-      case RegionExprOperator::INTERSECT:
-        return left && right;
-      case RegionExprOperator::UNION:
-        return left || right;
-      default:
-        assert(false);
-        return false;
-    }
+    return get_binary_region_expr_result(node->op, left, right);
+  }
+  else {
+    assert(false);
+    return false;
+  }
+}
+
+
+static bool wall_matches_region_expr_recursively(
+    const Partition& p,
+    const wall_index_t wall_index,
+    const RegionExprNode* node
+) {
+  assert(node != nullptr);
+
+  if (node->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+    // returns true if the current geometry object is one of the enclosing volumes
+    return wall_is_part_of_region(p, wall_index, node->region_id);
+  }
+  else if (node->has_binary_op()) {
+    bool left = wall_matches_region_expr_recursively(p, wall_index, node->left);
+    bool right = wall_matches_region_expr_recursively(p, wall_index, node->right);
+    return get_binary_region_expr_result(node->op, left, right);
   }
   else {
     assert(false);
@@ -482,12 +512,9 @@ void MolOrRxnCountEvent::compute_mol_count_item(
         }
       }
       else if (m.is_surf() && term.type == CountType::PresentOnSurfaceRegion) {
-        // TODO_COUNTS
-        release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION);
-        region_id_t region_id = term.region_expr.root->region_id;
-        assert(region_id != REGION_ID_INVALID);
 
-        if (wall_is_part_of_region(p, m.s.wall_index, region_id)) {
+        // does the molecule's wall match the region expression?
+        if (wall_matches_region_expr_recursively(p, m.s.wall_index, term.region_expr.root)) {
           count_items[item.index].inc_or_dec(term.sign_in_expression, num_matches);
         }
       }
