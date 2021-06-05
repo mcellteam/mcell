@@ -80,6 +80,7 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
 void Molecule::dump(const string ind) const {
   if (is_vol()) {
     cout << ind << "pos: \t\t" << v.pos << " [vec3_t]\n";
+    cout << ind << "reactant_subpart_index: \t\t" << v.reactant_subpart_index << " [uint]\n";
     cout << ind << "subpartition_index: \t\t" << v.subpart_index << " [uint]\n";
   }
   else if (is_surf()) {

@@ -251,7 +251,7 @@ public:
     }
   }
 
-  void dump(const std::string ind) const;
+  void dump(const std::string ind="") const;
   void dump(
       const Partition& p,
       const std::string extra_comment,

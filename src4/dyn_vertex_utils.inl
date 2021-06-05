@@ -291,10 +291,12 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
     }
   }
 
-  // NOTE: optimize only for molecules in relevant subpartitions
+  // TODO DYN GEOM: optimize only for molecules in relevant subpartitions
   std::vector<Molecule>& molecules = p.get_molecules();
   for (Molecule& m: molecules) {
-
+    if (m.is_defunct()) {
+      continue;
+    }
     if (m.is_surf()) {
       continue;
     }
@@ -389,6 +391,7 @@ void collect_surface_molecules_moved_due_to_moving_wall(
   for (molecule_id_t id: molecule_ids) {
     const Molecule& sm = p.get_m(id);
     assert(sm.is_surf());
+    assert(!sm.is_defunct());
     Vec3 pos3d = GeometryUtils::uv2xyz(sm.s.pos, w, vert0);
 
     molecule_moves.push_back(
