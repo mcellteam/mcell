@@ -392,7 +392,7 @@ public:
   //   it might have moved to subpart_index in the meantime
   // - might invalidate Species references
   void change_vol_reactants_map_from_orig_to_current(Molecule& vm, bool adding, bool removing) {
-    assert(!vm.is_defunct());
+    assert(!(adding && vm.is_defunct()));
     assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
     assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
