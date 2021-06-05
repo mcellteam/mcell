@@ -62,6 +62,12 @@ public:
     return first_vertex_index + vertex_index;
   }
 
+  int get_object_vertex_index(const vertex_index_t vertex_index) const {
+    int res = vertex_index - first_vertex_index;
+    assert(res >= 0 && res < (int)vertex_list.size());
+    return res;
+  }
+
   wall_index_t get_partition_wall_index(const int wall_index) const {
     check_wall_index(wall_index);
     return first_wall_index + wall_index;

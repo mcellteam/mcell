@@ -382,8 +382,8 @@ std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
 
   // run the actual vertex update
   std::set<GeometryObjectWallUnorderedPair> colliding_walls;
-  world->get_partition(PARTITION_ID_INITIAL).apply_vertex_moves(vertex_moves, colliding_walls);
-  vertex_moves.clear();
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  p.apply_vertex_moves(vertex_moves, colliding_walls);
 
   std::vector<std::shared_ptr<WallWallHitInfo>> res;
 
@@ -403,7 +403,27 @@ std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
     }
   }
 
-  // TODO: also update the API copy of the geometry
+  // also update the API copy of the geometry
+  for (const VertexMoveInfo& move_info: vertex_moves) {
+    // get the new vertex coordinates
+    assert(move_info.partition_id == PARTITION_ID_INITIAL);
+    const Vec3& pos = p.get_geometry_vertex(move_info.vertex_index);
+
+    // API object whose vertex we need to update
+    std::shared_ptr<API::GeometryObject> obj =
+        get_geometry_object_with_id(move_info.geometry_object_id);
+
+    // API object's vertex index
+    int obj_vertex_index = obj->get_object_vertex_index(move_info.vertex_index);
+
+    Vec3 pos_um = pos * Vec3(world->config.length_unit);
+    auto& pos_to_update = obj->vertex_list[obj_vertex_index];
+    pos_to_update[0] = pos_um.x;
+    pos_to_update[1] = pos_um.y;
+    pos_to_update[2] = pos_um.z;
+  }
+
+  vertex_moves.clear();
 
   return res;
 }
@@ -608,9 +628,16 @@ void Model::add_count(std::shared_ptr<Count> count) {
 
 
 std::shared_ptr<GeometryObject> Model::get_geometry_object_with_id(const geometry_object_id_t id) {
-  // not very efficient, we may need some caching/map later
+
+  // map for caching
+  auto it = geometry_object_id_to_obj_cache.find(id);
+  if (it != geometry_object_id_to_obj_cache.end()) {
+    return it->second;
+  }
+
   for (auto o: geometry_objects) {
     if (o->geometry_object_id == id) {
+      geometry_object_id_to_obj_cache[o->geometry_object_id] = o;
       return o;
     }
   }

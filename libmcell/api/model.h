@@ -163,6 +163,9 @@ private:
   Callbacks callbacks;
 
   std::vector<VertexMoveInfo> vertex_moves;
+
+  // used in get_geometry_object_with_id
+  std::map<geometry_object_id_t, std::shared_ptr<API::GeometryObject>> geometry_object_id_to_obj_cache;
 };
 
 } // namespace API
