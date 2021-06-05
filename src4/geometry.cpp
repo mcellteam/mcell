@@ -1073,6 +1073,16 @@ void Grid::dump() const {
 }
 
 
+static void report_malformed_geom_object_and_exit(const Partition& p, const Wall& wf, const Wall& wb) {
+  const GeometryObject& o = p.get_geometry_object(wb.object_index);
+  errs() << "Detected malformed geometry object '" << o.name << "'. " <<
+      "A possible cause is that two vertices share the same location.\n" <<
+      "Error detected for walls with side indices " << wf.side << " and " << wb.side << ".\n" <<
+      "Terminating because this issue would lead to simulation errors.\n";
+  exit(1);
+}
+
+
 /***************************************************************************
 init_edge_transform
   In: e: pointer to an edge
@@ -1121,7 +1131,10 @@ void Edge::reinit_edge_constants(const Partition& p) {
   temp_ff.u = dot(diff_j_0, wf.unit_u) - O_f.u;
   temp_ff.v = dot(diff_j_0, wf.unit_v) - O_f.v; /* Far side of e */
 
-  assert(!cmp_eq(len2_squared(temp_ff), (pos_t)0, POS_EPS));
+  if (cmp_eq(len2_squared(temp_ff), (pos_t)0, POS_EPS)) {
+    report_malformed_geom_object_and_exit(p, wf, wb);
+  }
+
   pos_t d_f = 1 / len2(temp_ff);
 
   Vec2 ehat_f, fhat_f;
@@ -1140,7 +1153,10 @@ void Edge::reinit_edge_constants(const Partition& p) {
   temp_fb.u = dot(diff_j_b0, wb.unit_u) - O_b.u;
   temp_fb.v = dot(diff_j_b0, wb.unit_v) - O_b.v; /* Far side of e */
 
-  assert(!cmp_eq(len2_squared(temp_fb), (pos_t)0, POS_EPS));
+  if (cmp_eq(len2_squared(temp_fb), (pos_t)0, POS_EPS)) {
+    report_malformed_geom_object_and_exit(p, wf, wb);
+  }
+
   pos_t d_b = 1 / len2(temp_fb);
 
   Vec2 ehat_b, fhat_b;
