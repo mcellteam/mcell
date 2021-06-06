@@ -107,6 +107,8 @@ if (NOT WIN32)
     # using script build_gperftools.sh
     # then to run profiling 
     # CPUPROFILE=./prof.out mcell
+    # or
+    # LD_PRELOAD='/mnt/code/src4/mcell/build/install_gperftools/lib/libprofiler.so' CPUPROFILE=./prof.out python model.py
     # pprof --text <app> ./prof.out # text output
     # pprof --gv <app> ./prof.out # graphical output, requires gv installed
     # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
