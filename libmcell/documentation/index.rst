@@ -11,14 +11,18 @@ MCell4 Reference Manual
    :hidden:
    :caption: Contents
    
+   installation
    overview
    generated/api
    tutorial/tutorial
    bngl
+   model_conversions
    file_formats
 
 This documentation contains overview of the MCell4 API 
 with explanations and a complete definition of the interface.  
+
+:ref:`installation:MCell4 Installation`
 
 :ref:`overview:API Overview`
 
@@ -27,6 +31,8 @@ with explanations and a complete definition of the interface.
 :ref:`generated/api:API Documentation`
 
 :ref:`bngl:BioNetGen Language Support`
+
+:ref:`model_conversions:Model Conversions`
 
 :ref:`file_formats:File Formats`
 
