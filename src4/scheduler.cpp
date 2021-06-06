@@ -78,6 +78,12 @@ void Bucket::dump() const {
 
 // insert a new item with time event->event_time, create bucket if needed
 void Calendar::insert(BaseEvent* event) {
+
+  // update barrier cache if needed
+  if (event->is_barrier() && event->event_time < cached_next_barrier_time) {
+    cached_next_barrier_time = event->event_time;
+  }
+
   // align time to multiple of one if the value is close to it
   // required for example for custom time step where 0.1 * 10 must be equal to 1
   double rounded_time = round_f(event->event_time);
@@ -198,29 +204,40 @@ void Calendar::get_all_events_with_type_index(
   }
 }
 
+
 // returns max_time_step if no barrier is scheduled for interval
 // current_time .. current_time+max_time_step
 // if such a barrier exists, returns barrier time - current_time
 double Calendar::get_time_up_to_next_barrier(
-    const double current_time, const double max_time_step) const {
+    const double current_time, const double max_time_step) {
 
-  double max_time = current_time + max_time_step;
+  if (cached_next_barrier_time != TIME_INVALID &&
+      current_time < cached_next_barrier_time
+  ) {
+    return std::min(cached_next_barrier_time - current_time, max_time_step);
+  }
+
+  // go through the whole schedule and find the first barrier
+  cached_next_barrier_time = TIME_FOREVER;
 
   // expecting that there are only events that are scheduled
   // for the future
+  bool found = false;
   for (const Bucket& bucket: queue) {
     for (const BaseEvent* event: bucket.events) {
-      if (event->event_time > max_time) {
-        return max_time_step;
-      }
-      else if (event->is_barrier()) {
+      if (event->is_barrier()) {
         assert(event->event_time >= current_time);
-        return event->event_time - current_time;
+        cached_next_barrier_time = event->event_time;
+        found = true;
+        break;
       }
     }
+    if (found) {
+      break;
+    }
   }
-  // there are no more events scheduled right now
-  return max_time_step;
+
+  return std::min(cached_next_barrier_time - current_time, max_time_step);
 }
 
 

@@ -60,7 +60,8 @@ typedef std::deque<Bucket> BucketDeque;
 
 class Calendar {
 public:
-  Calendar() {
+  Calendar() :
+    cached_next_barrier_time(TIME_INVALID) {
     // create at least one item?
     queue.push_back(Bucket(TIME_SIMULATION_START));
   }
@@ -82,7 +83,7 @@ public:
   void get_all_events_with_type_index(
       const event_type_index_t event_type_index, std::vector<const BaseEvent*>& events) const;
 
-  double get_time_up_to_next_barrier(const double current_time, const double max_time_step) const;
+  double get_time_up_to_next_barrier(const double current_time, const double max_time_step);
 
   void print_periodic_stats() const {
     std::cout << "Calendar: queue.size() = " << queue.size() << "\n";
@@ -107,6 +108,9 @@ private:
 
   // queue might be empty
   BucketDeque queue;
+
+  // used in get_time_up_to_next_barrier
+  double cached_next_barrier_time;
 };
 
 // Structure used to return information about the event that was just handled
