@@ -255,8 +255,6 @@ void DiffuseReactEvent::diffuse_single_molecule(
     }
   }
 
-  double unimol_rx_time = m.unimol_rx_time; // copy for a minor compiler optimization
-
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_species(m.species_id);
   DUMP_CONDITION4(
@@ -393,7 +391,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   p.stats.inc_diffuse_3d_calls();
 
   // diffuse each molecule - get information on position change
-  Vec3 displacement;
+  Vec3 remaining_displacement;
 
   double steps = 1.0;
   double t_steps = 1.0;
@@ -401,7 +399,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   double r_rate_factor = 1.0;
   DiffusionUtils::compute_vol_displacement(
       p, species, vm, max_time, world->rng,
-      displacement, rate_factor, r_rate_factor, steps, t_steps
+      remaining_displacement, rate_factor, r_rate_factor, steps, t_steps
   );
 
 #ifdef DEBUG_TIMING
@@ -417,18 +415,11 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION4(
       if (species.can_diffuse()) {
-        displacement.dump("  displacement:", "");
+        remaining_displacement.dump("  displacement:", "");
         cout << "t_steps: " << t_steps << "\n";
       }
   );
 #endif
-  // note: we are ignoring use_expanded_list setting compared to mcell3
-
-  // cut the displacement so that it does not cross partition?
-  // or how to simplify this case when we know that we will definitely
-  // be stopped by a wall (we need to fail if not anyway)
-
-  Vec3 remaining_displacement = displacement;
 
   RayTraceState state;
   CollisionsVector molecule_collisions;
