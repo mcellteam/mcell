@@ -177,7 +177,7 @@ static inline subpart_index_t __attribute__((always_inline)) collect_crossed_sub
   pos_t rx_radius_for_neighbors = rx_radius * POS_SQRT2;
 
   // first check what's around the starting point
-  if (p.config.use_expanded_list) {
+  if (collect_for_molecules && p.config.use_expanded_list) {
     collect_neighboring_subparts(
         p, vm.v.pos, src_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
         crossed_subparts_for_molecules
@@ -217,77 +217,46 @@ static inline subpart_index_t __attribute__((always_inline)) collect_crossed_sub
       Vec3 diff = sp_edges - curr_pos;
 
 #if POS_T_BYTES == 4
-	  pos_t dist = POS_SQRT_EPS;
+      pos_t dist = POS_SQRT_EPS;
 #else
-	  pos_t dist = POS_EPS;
+      pos_t dist = POS_EPS;
 #endif	  
-      bool touching_x = fabs_p(diff.x) < POS_SQRT_EPS;
-      bool touching_y = fabs_p(diff.y) < POS_SQRT_EPS;
-      bool touching_z = fabs_p(diff.z) < POS_SQRT_EPS;
 
-      // first check whether we are not in fact touching one of the boundaries
-      if (touching_x) {
-        // only update the xyz subpartition index
+      // compute time for the next subpartition collision, let's assume that displacemnt
+      // is our speed vector and the total time to travel is 1
+      //
+      // pos(time) = pos + displacement * time, therefore
+      // time = (pos(time) - vm.v.pos) / displacement
+      // =>
+      // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
+      Vec3 coll_times = diff * displacement_rcp;
+      //note: one of coll_times may be negative due to float imprecisions
+
+      // which of the times is the smallest? - i.e. which boundary we hit first (values may be negative due to flt32 imprecisions)
+      if (coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
+        // new position on the edge of the subpartition
+        curr_pos += displacement * coll_times.x;
+        // and also update the xyz subpartition index
         curr_subpart_indices.x += dir_urb_addend.x;
-        // in some cases, we can run out of partition
-        // this means that we missed the destination partition which is fine since collection of subparts
-        // is only an optimization, but still we must terminate
         if (!p.is_subpart_index_in_range(curr_subpart_indices.x)) {
           break;
         }
       }
-      else if (touching_y) {
+      else if (coll_times.y <= coll_times.z) {
+        curr_pos += displacement * coll_times.y;
         curr_subpart_indices.y += dir_urb_addend.y;
         if (!p.is_subpart_index_in_range(curr_subpart_indices.y)) {
           break;
         }
       }
-      else if (touching_z) {
+      else  {
+        curr_pos += displacement * coll_times.z;
         curr_subpart_indices.z += dir_urb_addend.z;
         if (!p.is_subpart_index_in_range(curr_subpart_indices.z)) {
           break;
         }
       }
-      else {
-        // compute time for the next subpartition collision, let's assume that displacemnt
-        // is our speed vector and the total time to travel is 1
-        //
-        // pos(time) = pos + displacement * time, therefore
-        // time = (pos(time) - vm.v.pos) / displacement
-        // =>
-        // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
-        Vec3 coll_times = diff * displacement_rcp;
-        assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
-            && "Subpartition 'edges' must be computed from direction, we cannot hit a subpart boundary that is behind us");
 
-        // which of the times is the smallest? - i.e. which boundary we hit first (values may be negative due to flt32 imprecisions)
-        if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
-          // new position on the edge of the subpartition
-          curr_pos += displacement * coll_times.x;
-          // and also update the xyz subpartition index
-          curr_subpart_indices.x += dir_urb_addend.x;
-          if (!p.is_subpart_index_in_range(curr_subpart_indices.x)) {
-            break;
-          }
-        }
-        else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
-          curr_pos += displacement * coll_times.y;
-          curr_subpart_indices.y += dir_urb_addend.y;
-          if (!p.is_subpart_index_in_range(curr_subpart_indices.y)) {
-            break;
-          }
-        }
-        else if (coll_times.z >= 0) {
-          curr_pos += displacement * coll_times.z;
-          curr_subpart_indices.z += dir_urb_addend.z;
-          if (!p.is_subpart_index_in_range(curr_subpart_indices.z)) {
-            break;
-          }
-        }
-        else {
-          break;
-        }
-      }
 
       curr_subpart_index = p.get_subpart_index_from_3d_indices(curr_subpart_indices);
       if (collect_for_walls) {
@@ -298,7 +267,7 @@ static inline subpart_index_t __attribute__((always_inline)) collect_crossed_sub
       }
 
       // also neighbors
-      if (p.config.use_expanded_list) {
+      if (collect_for_molecules && p.config.use_expanded_list) {
         collect_neighboring_subparts(
             p, curr_pos, curr_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
             crossed_subparts_for_molecules
@@ -309,7 +278,7 @@ static inline subpart_index_t __attribute__((always_inline)) collect_crossed_sub
   }
 
   // finally check also neighbors in destination
-  if (p.config.use_expanded_list) {
+  if (collect_for_molecules && p.config.use_expanded_list) {
     collect_neighboring_subparts(
         p, dest_pos, dest_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
         crossed_subparts_for_molecules
