@@ -113,7 +113,7 @@ static inline void __attribute__((always_inline)) collect_neighboring_subparts(
 
 // collect subpartition indices that we are crossing and that are within radius
 // of vm that moves by displacement
-static inline void __attribute__((always_inline)) collect_crossed_subparts(
+static inline subpart_index_t __attribute__((always_inline)) collect_crossed_subparts(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
   const Vec3& displacement,
@@ -187,9 +187,8 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   // collect subpartitions on the way by always finding the point where a subpartition boundary is hit
   // we must do it even when we are crossing just one subpartition because we might hit others while
   // moving along them
-  if ( !glm::all( glm::equal(dest_subpart_indices, src_subpart_indices) ) ) {
-
-    subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices_allow_outside(dest_subpart_indices);
+  subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices_allow_outside(dest_subpart_indices);
+  if ( current_subpart_index != dest_subpart_index) {
 
     IVec3 dir_urb_addend(
         (dir_urb_direction.x == 0) ? -1 : 1,
@@ -316,6 +315,8 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
         crossed_subparts_for_molecules
     );
   }
+
+  return dest_subpart_index;
 }
 
 } // namespace CollisionUtil

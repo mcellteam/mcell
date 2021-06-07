@@ -658,7 +658,7 @@ RayTraceState ray_trace_vol(
   crossed_subparts_for_molecules.resize(16);
 #endif
 
-  CollisionUtils::collect_crossed_subparts(
+  subpart_index_t last_subpart_index = CollisionUtils::collect_crossed_subparts(
       p, vm, partition_displacement,
       radius, p.config.subpart_edge_length,
       can_vol_react, true,
@@ -688,7 +688,8 @@ RayTraceState ray_trace_vol(
   // changed when wall was hit
   Vec3 displacement_up_to_wall_collision = remaining_displacement;
 
-  // check wall collisions in the crossed subparitions,
+  // check wall collisions in the crossed subparitions
+  bool wall_hit_in_last_subpart = false;
   if (!crossed_subparts_for_walls.empty()) {
     Collision closest_collision;
 #if POS_T_BYTES == 4
@@ -717,6 +718,7 @@ RayTraceState ray_trace_vol(
       if (collision_found) {
         collisions.push_back(closest_collision);
         res_state = RayTraceState::RAY_TRACE_HIT_WALL;
+        wall_hit_in_last_subpart = last_subpart_index == subpart_w_walls_index;
         break;
       }
     }
@@ -732,8 +734,9 @@ RayTraceState ray_trace_vol(
   }
 
   if (can_vol_react) {
-    if (res_state == RayTraceState::RAY_TRACE_HIT_WALL) {
+    if (res_state == RayTraceState::RAY_TRACE_HIT_WALL && !wall_hit_in_last_subpart) {
       // recompute collect_crossed_subparts if there was a wall collision
+      // however, do not recompute if we would get practically the same result because we hit a wall in the last subpart
       // NOTE: this can be in theory done more efficiently if we knew the order of subpartitions that we hit in the previous call
 #ifdef NDEBUG
       crossed_subparts_for_molecules.clear_no_resize();
