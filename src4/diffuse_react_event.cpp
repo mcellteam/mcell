@@ -654,6 +654,9 @@ RayTraceState ray_trace_vol(
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
   SubpartIndicesSet crossed_subparts_for_molecules;
+#ifdef NDEBUG
+  crossed_subparts_for_molecules.resize(16);
+#endif
 
   CollisionUtils::collect_crossed_subparts(
       p, vm, partition_displacement,
@@ -732,7 +735,11 @@ RayTraceState ray_trace_vol(
     if (res_state == RayTraceState::RAY_TRACE_HIT_WALL) {
       // recompute collect_crossed_subparts if there was a wall collision
       // NOTE: this can be in theory done more efficiently if we knew the order of subpartitions that we hit in the previous call
+#ifdef NDEBUG
+      crossed_subparts_for_molecules.clear_no_resize();
+#else
       crossed_subparts_for_molecules.clear();
+#endif
       crossed_subparts_for_walls.clear();
       CollisionUtils::collect_crossed_subparts(
           p, vm, displacement_up_to_wall_collision,
