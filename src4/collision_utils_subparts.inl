@@ -24,7 +24,7 @@ namespace CollisionUtils {
 
 // This function checks if any of the neighboring subpartitions are within radius
 // from pos and inserts them into crossed_subparition_indices
-static void collect_neighboring_subparts(
+static inline void __attribute__((always_inline)) collect_neighboring_subparts(
     const Partition& p,
     const Vec3& pos,
     const IVec3& subpart_indices,
