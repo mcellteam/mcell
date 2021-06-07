@@ -358,14 +358,15 @@ public:
       const species_id_t new_species_id, const molecule_id_t current_molecule_id
   ) {
     // can the new species initiate a reaction?
-    const BNG::Species& initiator_reactant_species = get_species(new_species_id);
+    BNG::Species& initiator_reactant_species = get_species(new_species_id);
     if (initiator_reactant_species.is_target_only()) {
       // nothing to do
       return;
     }
     assert(initiator_reactant_species.is_vol());
 
-    const BNG::ReactantClassIdSet& reacting_classes = get_all_rxns().get_reacting_classes(new_species_id);
+    const BNG::ReactantClassIdSet& reacting_classes =
+        get_all_rxns().get_reacting_classes(initiator_reactant_species);
 
     SubpartReactantsSet& reactant_sets_per_subpart =
         volume_molecule_reactants_per_reactant_class.get_subparts_reactants_for_reactant_class(
@@ -397,12 +398,12 @@ public:
     assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
-    const BNG::Species& vm_species = get_species(vm.species_id);
+    BNG::Species& vm_species = get_species(vm.species_id);
     if (!vm_species.has_bimol_vol_rxn()) {
       return;
     }
 
-    const BNG::ReactantClassIdSet& reacting_classes = get_all_rxns().get_reacting_classes(vm.species_id);
+    const BNG::ReactantClassIdSet& reacting_classes = get_all_rxns().get_reacting_classes(vm_species);
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const BNG::reactant_class_id_t reacting_class_id: reacting_classes) {
