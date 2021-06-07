@@ -203,7 +203,7 @@ private:
   // internal event's schedule of molecules newly created in reactions that must be diffused
   std::vector<DiffuseAction> new_diffuse_actions;
 
-  double get_max_time(Partition& p, const molecule_id_t m_id);
+  double get_max_time(Partition& p, Molecule& m);
 
   void diffuse_molecules(Partition& p, const MoleculeIdsVector& indices);
 
@@ -216,7 +216,7 @@ private:
   // ---------------------------------- volume molecules ----------------------------------
   void diffuse_vol_molecule(
       Partition& p,
-      const molecule_id_t vm_id,
+      Molecule& vm,
       double& max_time,
       const double diffusion_start_time,
       WallTileIndexPair& where_created_this_iteration
@@ -254,7 +254,7 @@ private:
 
   void diffuse_surf_molecule(
       Partition& p,
-      const molecule_id_t sm_id,
+      Molecule& sm,
       double& max_time,
       const double diffusion_start_time
   );

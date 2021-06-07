@@ -172,8 +172,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
 }
 
 
-inline double DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t m_id) {
-  Molecule& m = p.get_m(m_id);
+inline double DiffuseReactEvent::get_max_time(Partition& p, Molecule& m) {
   const Species& species = p.get_species(m.species_id);
 
   double diffusion_time = m.diffusion_time;
@@ -274,11 +273,11 @@ void DiffuseReactEvent::diffuse_single_molecule(
 #endif
 
   // max_time is the time for which we should simulate the diffusion
-  double max_time = get_max_time(p, m_id);
+  double max_time = get_max_time(p, m);
   
   if (m.is_vol()) {
     diffuse_vol_molecule(
-        p, m_id,
+        p, m,
         max_time,
         diffusion_start_time,
         wall_tile_pair_where_created_this_iteration
@@ -286,7 +285,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
   }
   else {
     diffuse_surf_molecule(
-        p, m_id, max_time, diffusion_start_time
+        p, m, max_time, diffusion_start_time
     );
   }
 
@@ -373,14 +372,15 @@ void sort_collisions_by_time(CollisionsVector& molecule_collisions) {
   );
 }
 
+
 void DiffuseReactEvent::diffuse_vol_molecule(
     Partition& p,
-    const molecule_id_t vm_id,
+    Molecule& vm,
     double& max_time,
     const double diffusion_start_time,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
-  Molecule& vm = p.get_m(vm_id);
+  molecule_id_t vm_id = vm.id;
   const BNG::Species& species = p.get_species(vm.species_id);
 
   if (!species.can_diffuse()) {
@@ -1066,11 +1066,11 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 // ---------------------------------- surface diffusion ----------------------------------
 inline void DiffuseReactEvent::diffuse_surf_molecule(
     Partition& p,
-    const molecule_id_t sm_id,
+    Molecule& sm,
     double& max_time,
     const double diffusion_start_time
 ) {
-  Molecule& sm = p.get_m(sm_id);
+  const molecule_id_t sm_id = sm.id;
   const BNG::Species& species = p.get_species(sm.species_id);
 
   double steps = 0.0;
