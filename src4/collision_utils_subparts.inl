@@ -33,12 +33,12 @@ static inline void __attribute__((always_inline)) collect_neighboring_subparts(
     SubpartIndicesSet& crossed_subpart_indices
 ) {
   const pos_t part_len = p.config.partition_edge_length;
-  const Vec3& origin = p.get_origin_corner();
 
   Vec3 rel_pos = pos - p.get_origin_corner();
 
-  Vec3 rel_pos_plus_radius = rel_pos + Vec3(rx_radius);
-  Vec3 rel_pos_minus_radius = rel_pos - Vec3(rx_radius);
+  Vec3 rx_radius3(rx_radius);
+  Vec3 rel_pos_plus_radius = rel_pos + rx_radius3;
+  Vec3 rel_pos_minus_radius = rel_pos - rx_radius3;
 
   Vec3 boundary = Vec3(subpart_indices) * Vec3(subpart_edge_len);
 
