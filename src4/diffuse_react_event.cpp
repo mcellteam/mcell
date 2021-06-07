@@ -239,17 +239,20 @@ void DiffuseReactEvent::diffuse_single_molecule(
       !(m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) && m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) &&
       "Only one of these flags may be set"
   );
-  if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)) {
-    m.clear_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
-    pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
-  }
 
-  // we might need to change the reaction rate right now
-  if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE) && cmp_eq(m.unimol_rx_time, diffusion_start_time)) {
-    assert(m.unimol_rx_time != TIME_INVALID);
+  if ((m.flags & (MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN | MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) != 0) {
+    if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)) {
+      m.clear_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+      pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
+    }
 
-    m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
-    pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
+    // we might need to change the reaction rate right now
+    if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE) && cmp_eq(m.unimol_rx_time, diffusion_start_time)) {
+      assert(m.unimol_rx_time != TIME_INVALID);
+
+      m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
+      pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
+    }
   }
 
   double unimol_rx_time = m.unimol_rx_time; // copy for a minor compiler optimization
