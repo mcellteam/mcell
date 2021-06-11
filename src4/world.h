@@ -319,6 +319,8 @@ private:
   bool it1_start_time_set;
   rusage it1_start_time; // time when 1st iteration started
 
+  std::chrono::time_point<std::chrono::steady_clock> previous_buffer_flush_time;
+
   // and to nicely report simulation progress
   uint64_t previous_iteration;
 

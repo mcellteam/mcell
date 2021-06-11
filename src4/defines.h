@@ -171,7 +171,8 @@ const uint MAX_SUBPARTS_PER_PARTITION = 300;
 // with low sampling rate, the buffers take long to flush and
 // the user may want to see the results earlier, so the buffers are
 // periodically flushed, not only when they are full
-const uint COUNT_BUFFER_FLUSH_PERIODICITY = 100000;
+// this time is checked with output frequency (when the iterations report is printed)
+const double COUNT_BUFFER_FLUSH_SECONDS = 60;
 
 // ideally we would need this event to be scheduled right away but this may
 // require too much memory (related to maximal distance of simulation barrier)

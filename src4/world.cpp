@@ -343,6 +343,7 @@ void World::init_simulation(const double start_time) {
 
   // initialize timing
   previous_progress_report_time = chrono::steady_clock::now();
+  previous_buffer_flush_time = previous_progress_report_time;
   reset_rusage(&sim_start_time);
   getrusage(RUSAGE_SELF, &sim_start_time);
 
@@ -466,6 +467,13 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
 
         cout << "\n";
         cout.flush(); // flush is required so that CellBlender can display progress
+
+        // should we also flush count buffers?
+        double time_diff = chrono::duration_cast<chrono::seconds>(current_time - previous_buffer_flush_time).count();
+        if (time_diff >= COUNT_BUFFER_FLUSH_SECONDS) {
+          flush_buffers();
+          previous_buffer_flush_time = current_time;
+        }
       }
 
       previous_iteration = current_iteration;
@@ -492,11 +500,6 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
       }
 
       break;
-    }
-
-    // periodical buffer flush
-    if (current_iteration % COUNT_BUFFER_FLUSH_PERIODICITY == 0) {
-      flush_buffers();
     }
 
   } while (true); // terminated when the nr. of iterations is reached
