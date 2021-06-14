@@ -194,6 +194,29 @@ BNGSimulationMethod
 * | **PLA** = 3
 * | **NF** = 4
 
+CountOutputFormat
+=================
+
+* | **UNSET** = 0
+  | Invalid value.
+
+* | **AUTOMATIC_FROM_EXTENSION** = 1
+  | Output format is determined fom extension - .dat selects DAT file format 
+  | and .gdat selects GDAT file format.
+
+* | **DAT** = 2
+  | A two-column file with columns time and observable value is created. 
+  | Each count must have its own unique file name.
+
+* | **GDAT** = 3
+  | A multi-column file with time and observable values is created.
+  | The first line of the file is a header that starts with a comment 
+  | character followed by time and then by the observable names. 
+  | The order of observables is given by the order in which they were added 
+  | to the model.
+  | Can specify the same output file name for multiple observables.
+
+
 
 
 Constants

@@ -516,6 +516,17 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
 }
 
 
+count_buffer_id_t World::create_dat_count_buffer(
+    const std::string file_name, const size_t buffer_size, const bool open_for_append) {
+  count_buffer_id_t id = count_buffers.size();
+  std::vector<std::string> column_names = { file_name }; // name is not used when .dat format is used
+  count_buffers.push_back(
+      CountBuffer(CountOutputFormat::DAT, file_name, column_names, buffer_size, open_for_append));
+  count_buffers.back().open();
+  return id;
+}
+
+
 void World::flush_buffers() {
   // only flush count buffers
   for (CountBuffer& b: count_buffers) {

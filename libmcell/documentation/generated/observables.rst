@@ -28,8 +28,19 @@ Attributes:
 
 * | **file_name**: str = None
   | File name where this observable values will be stored.
-  | The usual file_name, while using this count's name is\:
-  | file_name = './react_data/seed_' + str(SEED).zfill(5) + '/' + name + '.dat'.
+  | File extension or setting explicit output_format determines the output format.
+  | A) When the file_name extension is .dat such as here:
+  | file_name = './react_data/seed_' + str(SEED).zfill(5) + '/' + name + '.dat'
+  | the output format is set to CountOutputFormat.DAT in the constructor.
+  | File names for individual Counts must be different.
+  | B) When the file_name extension is .gdat such as here:
+  | file_name = './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat'
+  | the output format is set to CountOutputFormat.GDAT in the constructor.
+  | The file name is usually the same for all counts but one can 
+  | create multiple gdat files with different observables.
+  | All observables that are stored into a single .gdat file must have the same 
+  | periodicity specified by attribute every_n_timesteps.
+  | Must be set.
 
 * | **expression**: CountTerm = None
   | The expression must be set to a root of an expression tree composed of CountTerms. 
@@ -49,6 +60,14 @@ Attributes:
   | Value is truncated (floored) to an integer.
   | If value is set to 0, this Count is used only on-demand through calls to its
   | get_current_value method.
+
+* | **output_format**: CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
+  | Listed as the last attribute because the automatic default value
+  | is sufficient in most cases. 
+  | Selection of output format. Default setting uses file extension  
+  | from attribute file_name. 
+  | When set to CountOutputFormat.AUTOMATIC_FROM_EXTENSION, 
+  | this output_format is set automatically only in the Count's constructor.
 
 
 Methods:
@@ -190,13 +209,23 @@ Methods:
    * | file_name: str
      | Path to the BNGL file.
 
-   * | output_files_prefix: str = ''
-     | Prefix to be used when creating files with observable values.
-     | The usual value is './react_data/seed_' + str(SEED).zfill(5) + '/'.
+   * | observables_path_or_file: str = ''
+     | Directory prefix or file name where observable values will be stored.
+     | If a directory such as './react_data/seed_' + str(SEED).zfill(5) + '/' or an empty 
+     | string is used, each observable gets its own file and the output file format for created Count 
+     | objects is CountOutputFormat.DAT.
+     | If a file has a .gdat extension such as 
+     | './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat', all observable are stored in this 
+     | file and the output file format for created Count objects is CountOutputFormat.GDAT.
+     | Must not be empty when observables_output_format is explicitly set to CountOutputFormat.GDAT.
 
    * | parameter_overrides: Dict[str, float] = None
      | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
      | its value is ignored and instead value parameter_overrides[k] is used.
+
+   * | observables_output_format: CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
+     | Selection of output format. Default setting uses automatic detection
+     | based on contents of the 'observables_path_or_file' attribute.
 
 
   | Loads section observables from a BNGL file and creates Count objects according to it.

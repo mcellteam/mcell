@@ -171,6 +171,12 @@ class BNGSimulationMethod(Enum):
     PLA = 3
     NF = 4
 
+class CountOutputFormat(Enum):
+    UNSET = 0
+    AUTOMATIC_FROM_EXTENSION = 1
+    DAT = 2
+    GDAT = 3
+
 
 
 STATE_UNSET = 'STATE_UNSET'
@@ -397,13 +403,15 @@ class Count():
             file_name : str = None,
             expression : CountTerm = None,
             multiplier : float = 1,
-            every_n_timesteps : float = 1
+            every_n_timesteps : float = 1,
+            output_format : CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
         ):
         self.name = name
         self.file_name = file_name
         self.expression = expression
         self.multiplier = multiplier
         self.every_n_timesteps = every_n_timesteps
+        self.output_format = output_format
 
 
     def get_current_value(
@@ -821,9 +829,10 @@ class Model():
     def load_bngl(
             self,
             file_name : str,
-            observables_files_prefix : str = '',
+            observables_path_or_file : str = '',
             default_release_region : Region = None,
-            parameter_overrides : Dict[str, float] = None
+            parameter_overrides : Dict[str, float] = None,
+            observables_output_format : CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
         ) -> None:
         pass
 
@@ -968,8 +977,9 @@ class Model():
     def load_bngl_observables(
             self,
             file_name : str,
-            output_files_prefix : str = '',
-            parameter_overrides : Dict[str, float] = None
+            observables_path_or_file : str = '',
+            parameter_overrides : Dict[str, float] = None,
+            observables_output_format : CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
         ) -> None:
         pass
 
@@ -1136,8 +1146,9 @@ class Observables():
     def load_bngl_observables(
             self,
             file_name : str,
-            output_files_prefix : str = '',
-            parameter_overrides : Dict[str, float] = None
+            observables_path_or_file : str = '',
+            parameter_overrides : Dict[str, float] = None,
+            observables_output_format : CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
         ) -> None:
         pass
 

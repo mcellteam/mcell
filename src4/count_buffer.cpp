@@ -30,7 +30,7 @@
 
 namespace MCell {
 
-void CountItem::write(std::ostream& out) const {
+void CountItem::write_as_dat(std::ostream& out) const {
   out << time << " " << value << "\n";
 }
 
@@ -39,8 +39,12 @@ void CountBuffer::flush() {
     open(true);
   }
 
-  for (const auto& item: data) {
-    item.write(fout);
+  if (output_format == CountOutputFormat::DAT) {
+    assert(data.size() == 1);
+    for (const auto& item: data[0]) {
+      assert(item.column_index == 0);
+      item.write_as_dat(fout);
+    }
   }
   fout.flush(); // flush the data so the user can see them
   data.clear();

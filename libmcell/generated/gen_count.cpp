@@ -47,6 +47,7 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   expression = nullptr;
   multiplier = 1;
   every_n_timesteps = 1;
+  output_format = CountOutputFormat::AUTOMATIC_FROM_EXTENSION;
 }
 
 std::shared_ptr<Count> GenCount::copy_count() const {
@@ -57,6 +58,7 @@ std::shared_ptr<Count> GenCount::copy_count() const {
   res->expression = expression;
   res->multiplier = multiplier;
   res->every_n_timesteps = every_n_timesteps;
+  res->output_format = output_format;
 
   return res;
 }
@@ -69,6 +71,7 @@ std::shared_ptr<Count> GenCount::deepcopy_count(py::dict) const {
   res->expression = is_set(expression) ? expression->deepcopy_count_term() : nullptr;
   res->multiplier = multiplier;
   res->every_n_timesteps = every_n_timesteps;
+  res->output_format = output_format;
 
   return res;
 }
@@ -89,7 +92,8 @@ bool GenCount::__eq__(const Count& other) const {
         )
      )  &&
     multiplier == other.multiplier &&
-    every_n_timesteps == other.every_n_timesteps;
+    every_n_timesteps == other.every_n_timesteps &&
+    output_format == other.output_format;
 }
 
 bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name) const {
@@ -108,7 +112,8 @@ bool GenCount::eq_nonarray_attributes(const Count& other, const bool ignore_name
         )
      )  &&
     multiplier == other.multiplier &&
-    every_n_timesteps == other.every_n_timesteps;
+    every_n_timesteps == other.every_n_timesteps &&
+    output_format == other.output_format;
 }
 
 std::string GenCount::to_str(const bool all_details, const std::string ind) const {
@@ -118,7 +123,8 @@ std::string GenCount::to_str(const bool all_details, const std::string ind) cons
       "file_name=" << file_name << ", " <<
       "\n" << ind + "  " << "expression=" << "(" << ((expression != nullptr) ? expression->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "multiplier=" << multiplier << ", " <<
-      "every_n_timesteps=" << every_n_timesteps;
+      "every_n_timesteps=" << every_n_timesteps << ", " <<
+      "output_format=" << output_format;
   return ss.str();
 }
 
@@ -130,13 +136,15 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             const std::string&,
             std::shared_ptr<CountTerm>,
             const double,
-            const double
+            const double,
+            const CountOutputFormat
           >(),
           py::arg("name") = STR_UNSET,
           py::arg("file_name") = STR_UNSET,
           py::arg("expression") = nullptr,
           py::arg("multiplier") = 1,
-          py::arg("every_n_timesteps") = 1
+          py::arg("every_n_timesteps") = 1,
+          py::arg("output_format") = CountOutputFormat::AUTOMATIC_FROM_EXTENSION
       )
       .def("check_semantics", &Count::check_semantics)
       .def("__copy__", &Count::copy_count)
@@ -146,10 +154,11 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def("get_current_value", &Count::get_current_value, "Returns the current value for this count. Cannot be used to count reactions.\nThe model must be initialized with this Count present as one of the observables.\n")
       .def("dump", &Count::dump)
       .def_property("name", &Count::get_name, &Count::set_name, "Name of a count may be specified when one needs to search for them later. \nWhen the count is created when a BNGL file is loaded, its name is set, for instance\nwhen the following BNGL code is loaded:\n\nbegin observables\n   Molecules Acount A\nend observables\n\nthe name is set to Acount.\n")
-      .def_property("file_name", &Count::get_file_name, &Count::set_file_name, "File name where this observable values will be stored.\nThe usual file_name, while using this count's name is:\nfile_name = './react_data/seed_' + str(SEED).zfill(5) + '/' + name + '.dat'.\n")
+      .def_property("file_name", &Count::get_file_name, &Count::set_file_name, "File name where this observable values will be stored.\nFile extension or setting explicit output_format determines the output format.\nA) When the file_name extension is .dat such as here:\nfile_name = './react_data/seed_' + str(SEED).zfill(5) + '/' + name + '.dat'\nthe output format is set to CountOutputFormat.DAT in the constructor.\nFile names for individual Counts must be different.\nB) When the file_name extension is .gdat such as here:\nfile_name = './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat'\nthe output format is set to CountOutputFormat.GDAT in the constructor.\nThe file name is usually the same for all counts but one can \ncreate multiple gdat files with different observables.\nAll observables that are stored into a single .gdat file must have the same \nperiodicity specified by attribute every_n_timesteps.\nMust be set.\n")
       .def_property("expression", &Count::get_expression, &Count::set_expression, "The expression must be set to a root of an expression tree composed of CountTerms. \nIn the usual cases, there is just one CountTerm in this expression tree and its \nnode_type is ExprNodeType.LEAF.\nThe count expression tree defines CountTerm objects that are added or subtracted\nfrom each other.\n")
       .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier, "In some cases it might be useful to multiply the whole count by a constant to get \nfor instance concentration. The expression tree allows only addition and subtraction \nof count terms so such multiplication can be done through this attribute.\nIt can be also used to divide the resulting count by passing an inverse of the divisor (1/d).   \n")
       .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps, "Specifies periodicity of this count's output.\nValue is truncated (floored) to an integer.\nIf value is set to 0, this Count is used only on-demand through calls to its\nget_current_value method.  \n")
+      .def_property("output_format", &Count::get_output_format, &Count::set_output_format, "Listed as the last attribute because the automatic default value\nis sufficient in most cases. \nSelection of output format. Default setting uses file extension  \nfrom attribute file_name. \nWhen set to CountOutputFormat.AUTOMATIC_FROM_EXTENSION, \nthis output_format is set automatically only in the Count's constructor. \n")
     ;
 }
 
@@ -186,6 +195,9 @@ std::string GenCount::export_to_python(std::ostream& out, PythonExportContext& c
   }
   if (every_n_timesteps != 1) {
     ss << ind << "every_n_timesteps = " << f_to_str(every_n_timesteps) << "," << nl;
+  }
+  if (output_format != CountOutputFormat::AUTOMATIC_FROM_EXTENSION) {
+    ss << ind << "output_format = " << output_format << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

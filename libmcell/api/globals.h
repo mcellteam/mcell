@@ -29,6 +29,8 @@
 #define API_GLOBALS_H
 
 #include <memory>
+#include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
+namespace py = pybind11;
 
 namespace MCell {
 namespace API {

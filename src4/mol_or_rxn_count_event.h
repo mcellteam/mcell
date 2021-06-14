@@ -141,9 +141,11 @@ typedef small_vector<MolOrRxnCountTerm> MolOrRxnCountTermVector;
 
 class MolOrRxnCountItem {
 public:
-  MolOrRxnCountItem(const count_buffer_id_t buffer_id_)
-    : index(UINT_INVALID), buffer_id(buffer_id_), multiplier(1) {
+  MolOrRxnCountItem(
+      const count_buffer_id_t buffer_id_, const uint buffer_column_index_)
+    : index(UINT_INVALID), buffer_id(buffer_id_), buffer_column_index(buffer_column_index_), multiplier(1) {
     assert(buffer_id != COUNT_BUFFER_ID_INVALID);
+    assert(buffer_column_index != UINT_INVALID);
   }
 
   bool is_world_mol_count() const;
@@ -159,6 +161,10 @@ public:
 
   // count buffer objects are owned by World
   count_buffer_id_t buffer_id;
+
+  // index of column in buffer where this value will be stored
+  // always 0 when the output format is DAT
+  uint buffer_column_index;
 
   // note: items are shared in MCell3 but so far it seems that
   // we can just count them separately

@@ -1553,12 +1553,22 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
     count_event->event_time = 0;
     count_event->periodicity_interval = round_f(c->every_n_timesteps + EPS);
 
+    if (c->output_format == CountOutputFormat::AUTOMATIC_FROM_EXTENSION) {
+      throw RuntimeError(S(NAME_CLASS_COUNT) + "'s " + NAME_OUTPUT_FORMAT + " must not be " +
+          NAME_ENUM_COUNT_OUTPUT_FORMAT + "." + NAME_EV_AUTOMATIC_FROM_EXTENSION + " when the model is initialized. "
+          "The automatic detection should have already happened.");
+    }
+
+    // will need to merge GDAT outputs and check that all have the same sampling interval
+    release_assert(c->output_format == CountOutputFormat::DAT && "TODO_COUNTS");
+
     // create buffer
+    vector<string> column_names = {c->name};
     count_buffer_id_t buffer_id =
-        world->create_count_buffer(
+        world->create_dat_count_buffer(
             c->file_name, API::DEFAULT_COUNT_BUFFER_SIZE, model->config.append_to_count_output_data);
 
-    MCell::MolOrRxnCountItem info(buffer_id);
+    MCell::MolOrRxnCountItem info(buffer_id, 0);
 
     // process count terms
     convert_count_terms_recursively(c, c->expression, +1, info);

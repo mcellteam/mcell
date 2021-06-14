@@ -1754,14 +1754,14 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
     size_t buffer_size = output_blocks->buffersize;
 
     // we can check that the time_array contains expected values
-
     for (
         output_set* data_set = output_blocks->data_set_head;
         data_set != nullptr;
         data_set = data_set->next) {
 
       CHECK_PROPERTY(data_set->outfile_name != nullptr);
-      count_buffer_id_t buffer_id = world->create_count_buffer(data_set->outfile_name, buffer_size);
+      count_buffer_id_t buffer_id =
+          world->create_dat_count_buffer(data_set->outfile_name, buffer_size);
 
       // NOTE: FILE_SUBSTITUTE is interpreted in the same way as FILE_OVERWRITE
       CHECK_PROPERTY(data_set->file_flags == FILE_OVERWRITE || data_set->file_flags == FILE_SUBSTITUTE);
@@ -1785,7 +1785,7 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
       double multiplier = 1;
       CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, true, requests_with_sign, multiplier));
 
-      MolOrRxnCountItem info(buffer_id);
+      MolOrRxnCountItem info(buffer_id, 0); // always DAT format
       info.multiplier = multiplier;
 
       for (pair<const output_request*, int>& req_w_sign: requests_with_sign) {

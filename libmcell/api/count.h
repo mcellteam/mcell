@@ -38,36 +38,21 @@ class Count: public GenCount {
 public:
   COUNT_CTOR()
 
-  void postprocess_in_ctor() override {
-    set_all_custom_attributes_to_default();
-  }
-
   void set_all_custom_attributes_to_default() override {
     count_event = nullptr;
   }
 
-  void check_semantics() const override {
-    GenCount::check_semantics(); // calls also CountTerm::check_semantics
-    if (!is_set(expression)) {
-      throw ValueError(S("Attribute ") + NAME_EXPRESSION + " must be set.");
-    }
-    expression->check_that_species_or_reaction_rule_is_set();
-
-    if (!is_set(file_name)) {
-      throw ValueError(S("Attribute ") + NAME_FILE_NAME + " must be set.");
-    }
-
-    if (every_n_timesteps < 0) {
-      throw ValueError(
-          S("The value of ") + NAME_EVERY_N_TIMESTEPS + " must be higher or equal to 0.");
-    }
-  }
+  void postprocess_in_ctor() override;
+  void check_semantics() const override;
 
   double get_current_value() override;
 
   // count event, owned by Scheduler if every_n_timesteps > 0,
   // owned by World if every_n_timesteps == 0
   MolOrRxnCountEvent* count_event;
+
+private:
+  void set_automatically_output_format_if_needed();
 };
 
 } // namespace API

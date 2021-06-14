@@ -26,17 +26,20 @@
 
 #include <fstream>
 #include "defines.h"
+#include "generated/gen_constants.h"
 
 namespace MCell {
+
+using API::CountOutputFormat;
 
 class CountItem {
 public:
   CountItem()
-    : time(TIME_INVALID), value(0) {
+    : column_index(UINT_INVALID), time(TIME_INVALID), value(0) {
   }
 
   CountItem(const double time_, const double value_)
-    : time(time_), value(value_) {
+    : column_index(UINT_INVALID), time(time_), value(value_) {
   }
 
   void inc_or_dec(const int sign, const int count = 1) {
@@ -44,10 +47,11 @@ public:
     value += (sign * count);
   }
 
+  uint column_index; // index in CountBuffer
   double time; // time is in outside units, was already precomputed for printing
   double value; // e.g. count
 
-  void write(std::ostream& out) const;
+  void write_as_dat(std::ostream& out) const;
 };
 
 typedef small_vector<CountItem> CountItemVector;
@@ -58,19 +62,28 @@ class CountBuffer {
 public:
 
   CountBuffer(
+      const CountOutputFormat output_format_,
       const std::string filename_,
+      const std::vector<std::string> column_names_,
       const size_t buffer_size_,
       const bool open_for_append_) :
+      output_format(output_format_),
       filename(filename_),
+      column_names(column_names_),
       buffer_size(buffer_size_),
       open_for_append(open_for_append_) {
+    assert(output_format != CountOutputFormat::UNSET);
+    assert(!column_names.empty());
+    // there is a single column
+    data.resize(column_names.size());
   }
 
   void add(const CountItem& item) {
+    assert(item.column_index < data.size());
     if (data.size() >= buffer_size) {
       flush();
     }
-    data.push_back(item);
+    data[item.column_index].push_back(item);
   }
 
   // close, create an empty file
@@ -87,17 +100,23 @@ public:
   void flush();
 
 private:
+  CountOutputFormat output_format;
+
   // name of the output file with the full path
   std::string filename;
 
-  // number of items to be stored, automatically flushes afterwards
+  // does not include 'time' column
+  // unused when output_format is CountOutputFormat::DAT
+  std::vector<std::string> column_names;
+
+  // number of rows to be stored, automatically flushes afterwards
   size_t buffer_size;
 
   // output stream
   std::ofstream fout;
 
-  // buffer
-  CountItemVector data;
+  // buffer, size of this vector is the same as columns size
+  std::vector<CountItemVector> data;
 
   bool open_for_append;
 };

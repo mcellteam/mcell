@@ -126,6 +126,12 @@ void define_pybinding_enums(py::module& m) {
     .value("PLA", BNGSimulationMethod::PLA)
     .value("NF", BNGSimulationMethod::NF)
     .export_values();
+  py::enum_<CountOutputFormat>(m, "CountOutputFormat", py::arithmetic(), "- UNSET: Invalid value.\n- AUTOMATIC_FROM_EXTENSION: Output format is determined fom extension - .dat selects DAT file format \nand .gdat selects GDAT file format. \n\n- DAT: A two-column file with columns time and observable value is created. \nEach count must have its own unique file name.\n\n- GDAT: A multi-column file with time and observable values is created.\nThe first line of the file is a header that starts with a comment \ncharacter followed by time and then by the observable names. \nThe order of observables is given by the order in which they were added \nto the model.\nCan specify the same output file name for multiple observables.  \n\n \n")
+    .value("UNSET", CountOutputFormat::UNSET)
+    .value("AUTOMATIC_FROM_EXTENSION", CountOutputFormat::AUTOMATIC_FROM_EXTENSION)
+    .value("DAT", CountOutputFormat::DAT)
+    .value("GDAT", CountOutputFormat::GDAT)
+    .export_values();
 }
 
 } // namespace API

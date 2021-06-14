@@ -305,8 +305,16 @@ Methods:
    * | file_name: str
      | Path to the BNGL file to be loaded.
 
-   * | observables_files_prefix: str = ''
-     | Prefix to be used when creating files where observable values are stored during simulation.
+   * | observables_path_or_file: str = ''
+     | Directory prefix or file name where observable values will be stored.
+     | If a directory such as './react_data/seed_' + str(SEED).zfill(5) + '/' or an empty 
+     | string is used,
+     | each observable gets its own file and the output file format for created Count 
+     | objects is CountOutputFormat.DAT.
+     | If a file has a .gdat extension such as 
+     | './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat', all observable are stored in this 
+     | file and the output file format for created Count objects is CountOutputFormat.GDAT.
+     | Must not be empty when observables_output_format is explicitly set to CountOutputFormat.GDAT.
 
    * | default_release_region: Region = None
      | Used as region for releases for seed species that have no compartments specified.
@@ -315,6 +323,10 @@ Methods:
      | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
      | its value is ignored and instead value parameter_overrides[k] is used.
 
+   * | observables_output_format: CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
+     | Selection of output format. Default setting uses automatic detection
+     | based on contents of the 'observables_path_or_file' attribute.
+
 
   | Loads sections\: molecule types, reaction rules, seed species, and observables from a BNGL file
   | and creates objects in the current model according to it.
@@ -322,6 +334,8 @@ Methods:
   | If an item in the seed species section does not have its compartment set,
   | the argument default_region must be set and the molecules are released into or onto the 
   | default_region.
+
+  | Example: `1400_rel_site_for_each_it/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/pymcell4/1400_rel_site_for_each_it/model.py>`_ 
 
 
 * | **export_to_bngl**
@@ -582,13 +596,23 @@ Methods:
    * | file_name: str
      | Path to the BNGL file.
 
-   * | output_files_prefix: str = ''
-     | Prefix to be used when creating files with observable values.
-     | The usual value is './react_data/seed_' + str(SEED).zfill(5) + '/'.
+   * | observables_path_or_file: str = ''
+     | Directory prefix or file name where observable values will be stored.
+     | If a directory such as './react_data/seed_' + str(SEED).zfill(5) + '/' or an empty 
+     | string is used, each observable gets its own file and the output file format for created Count 
+     | objects is CountOutputFormat.DAT.
+     | If a file has a .gdat extension such as 
+     | './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat', all observable are stored in this 
+     | file and the output file format for created Count objects is CountOutputFormat.GDAT.
+     | Must not be empty when observables_output_format is explicitly set to CountOutputFormat.GDAT.
 
    * | parameter_overrides: Dict[str, float] = None
      | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
      | its value is ignored and instead value parameter_overrides[k] is used.
+
+   * | observables_output_format: CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
+     | Selection of output format. Default setting uses automatic detection
+     | based on contents of the 'observables_path_or_file' attribute.
 
 
   | Loads section observables from a BNGL file and creates Count objects according to it.

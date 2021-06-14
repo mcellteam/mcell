@@ -275,6 +275,25 @@ static inline std::ostream& operator << (std::ostream& out, const BNGSimulationM
 };
 
 
+enum class CountOutputFormat {
+  UNSET = 0,
+  AUTOMATIC_FROM_EXTENSION = 1,
+  DAT = 2,
+  GDAT = 3
+};
+
+
+static inline std::ostream& operator << (std::ostream& out, const CountOutputFormat v) {
+  switch (v) {
+    case CountOutputFormat::UNSET: out << "m.CountOutputFormat.UNSET"; break;
+    case CountOutputFormat::AUTOMATIC_FROM_EXTENSION: out << "m.CountOutputFormat.AUTOMATIC_FROM_EXTENSION"; break;
+    case CountOutputFormat::DAT: out << "m.CountOutputFormat.DAT"; break;
+    case CountOutputFormat::GDAT: out << "m.CountOutputFormat.GDAT"; break;
+  }
+  return out;
+};
+
+
 void define_pybinding_constants(py::module& m);
 void define_pybinding_enums(py::module& m);
 

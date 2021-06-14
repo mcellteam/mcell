@@ -595,6 +595,7 @@ void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
 
   // initialize new count items
   for (uint i = 0; i < mol_rxn_count_items.size(); i++) {
+    count_items[i].column_index = mol_rxn_count_items[i].buffer_column_index;
     count_items[i].time = event_time * world->config.time_unit;
     count_items[i].value = 0;
   }

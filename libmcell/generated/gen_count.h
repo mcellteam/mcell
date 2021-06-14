@@ -39,7 +39,8 @@ class PythonExportContext;
         const std::string& file_name_ = STR_UNSET, \
         std::shared_ptr<CountTerm> expression_ = nullptr, \
         const double multiplier_ = 1, \
-        const double every_n_timesteps_ = 1 \
+        const double every_n_timesteps_ = 1, \
+        const CountOutputFormat output_format_ = CountOutputFormat::AUTOMATIC_FROM_EXTENSION \
     ) { \
       class_name = "Count"; \
       name = name_; \
@@ -47,6 +48,7 @@ class PythonExportContext;
       expression = expression_; \
       multiplier = multiplier_; \
       every_n_timesteps = every_n_timesteps_; \
+      output_format = output_format_; \
       postprocess_in_ctor(); \
       check_semantics(); \
     } \
@@ -133,6 +135,20 @@ public:
   virtual double get_every_n_timesteps() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return every_n_timesteps;
+  }
+
+  CountOutputFormat output_format;
+  virtual void set_output_format(const CountOutputFormat new_output_format_) {
+    if (initialized) {
+      throw RuntimeError("Value 'output_format' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    output_format = new_output_format_;
+  }
+  virtual CountOutputFormat get_output_format() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return output_format;
   }
 
   // --- methods ---

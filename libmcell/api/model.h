@@ -102,9 +102,10 @@ public:
 
   void load_bngl(
       const std::string& file_name,
-      const std::string& observables_files_prefix = "",
+      const std::string& observables_path_or_file = "",
       std::shared_ptr<Region> default_release_region = nullptr,
-      const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()
+      const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>(),
+      const CountOutputFormat observables_output_format = CountOutputFormat::AUTOMATIC_FROM_EXTENSION
   ) override;
 
   void export_to_bngl(

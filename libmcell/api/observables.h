@@ -61,8 +61,9 @@ public:
 
   void load_bngl_observables(
       const std::string& file_name,
-      const std::string& output_files_prefix = "",
-      const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>()
+      const std::string& observables_path_or_file = "",
+      const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>(),
+      const CountOutputFormat observables_output_format = CountOutputFormat::AUTOMATIC_FROM_EXTENSION
   ) override;
 
   // added manually
@@ -71,15 +72,23 @@ public:
 protected:
   void convert_bng_data_to_observables_data(
       const BNG::BNGData& bng_data,
+      const CountOutputFormat observables_output_format,
       const std::string& output_files_prefix
   );
 
+  CountOutputFormat get_count_output_format(
+      const CountOutputFormat observables_output_format,
+      const std::string& observables_path_or_file
+  );
 private:
   void convert_observable(
       const BNG::Observable& o,
       const BNG::BNGData& bng_data,
-      const std::string& output_files_prefix
+      const std::string& output_files_prefix,
+      const CountOutputFormat observables_output_format
   );
+
+  CountOutputFormat count_output_format_from_path_or_file(const std::string& path_or_file);
 };
 
 } // namespace API

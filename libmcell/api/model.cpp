@@ -486,9 +486,10 @@ void Model::register_reaction_callback(
 
 void Model::load_bngl(
     const std::string& file_name,
-    const std::string& observables_files_prefix,
+    const std::string& observables_path_or_file,
     std::shared_ptr<Region> default_release_region,
-    const std::map<std::string, double>& parameter_overrides) {
+    const std::map<std::string, double>& parameter_overrides,
+    const CountOutputFormat observables_output_format) {
 
   BNG::BNGData bng_data;
 
@@ -504,7 +505,10 @@ void Model::load_bngl(
   // needs subsystem data created in the last step
   convert_bng_data_to_instantiation(bng_data, default_release_region);
 
-  convert_bng_data_to_observables_data(bng_data, observables_files_prefix);
+  convert_bng_data_to_observables_data(
+      bng_data,
+      get_count_output_format(observables_output_format, observables_path_or_file),
+      observables_path_or_file);
 }
 
 

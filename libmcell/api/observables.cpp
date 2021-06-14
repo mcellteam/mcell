@@ -63,10 +63,45 @@ std::string Observables::get_first_viz_output_files_prefix(const char* method_na
 }
 
 
+CountOutputFormat Observables::count_output_format_from_path_or_file(const std::string& path_or_file) {
+  const string gdat = ".gdat";
+  size_t gdat_sz = gdat.size();
+  size_t sz = path_or_file.size();
+  if (sz > gdat.size() && path_or_file.substr(sz - gdat_sz) == gdat) {
+    return CountOutputFormat::GDAT;
+  }
+  else {
+    return CountOutputFormat::DAT;
+  }
+}
+
+
+CountOutputFormat Observables::get_count_output_format(
+    const CountOutputFormat observables_output_format,
+    const std::string& observables_path_or_file
+) {
+
+  CountOutputFormat fmt;
+  if (observables_output_format == CountOutputFormat::AUTOMATIC_FROM_EXTENSION) {
+    return count_output_format_from_path_or_file(observables_path_or_file);
+  }
+  else {
+    if (observables_path_or_file == "" &&
+        observables_output_format == CountOutputFormat::GDAT) {
+      throw RuntimeError(S("Attribute ") + NAME_OBSERVABLES_PATH_OR_FILE + " must not be empty " +
+          "when " + NAME_OBSERVABLES_OUTPUT_FORMAT + " is " + NAME_ENUM_COUNT_OUTPUT_FORMAT + "." +
+          NAME_EV_GDAT + ".");
+    }
+    return observables_output_format;
+  }
+}
+
+
 void Observables::load_bngl_observables(
     const std::string& file_name,
-    const std::string& output_files_prefix,
-    const std::map<std::string, double>& parameter_overrides) {
+    const std::string& observables_path_or_file,
+    const std::map<std::string, double>& parameter_overrides,
+    const CountOutputFormat observables_output_format) {
   BNG::BNGData bng_data;
 
   int num_errors = BNG::parse_bngl_file(file_name, bng_data, parameter_overrides);
@@ -74,18 +109,25 @@ void Observables::load_bngl_observables(
     throw RuntimeError("Could not parse BNGL file " + file_name + ".");
   }
 
+
   // now convert everything we parsed into the API classes so that the user can
   // inspect or manipulate it if needed
-  convert_bng_data_to_observables_data(bng_data, output_files_prefix);
+  convert_bng_data_to_observables_data(
+      bng_data,
+      get_count_output_format(observables_output_format, observables_path_or_file),
+      observables_path_or_file);
 }
 
 
 void Observables::convert_bng_data_to_observables_data(
     const BNG::BNGData& bng_data,
+    const CountOutputFormat observables_output_format,
     const std::string& output_files_prefix) {
 
+  release_assert(observables_output_format == CountOutputFormat::DAT && "TODO_COUNTS");
+
   for (const Observable& o: bng_data.get_observables()) {
-    convert_observable(o, bng_data, output_files_prefix);
+    convert_observable(o, bng_data, output_files_prefix, observables_output_format);
   }
 }
 
@@ -115,13 +157,18 @@ static void set_count_molecules_or_species_pattern(
 void Observables::convert_observable(
     const BNG::Observable& o,
     const BNG::BNGData& bng_data,
-    const std::string& output_files_prefix) {
+    const std::string& output_files_prefix,
+    const CountOutputFormat observables_output_format) {
+
+  release_assert(observables_output_format != CountOutputFormat::AUTOMATIC_FROM_EXTENSION &&
+      observables_output_format != CountOutputFormat::UNSET);
 
   shared_ptr<API::Count> count = make_shared<Count>(DefaultCtorArgType());
   count->expression = make_shared<CountTerm>(DefaultCtorArgType());
 
   count->name = o.name;
   count->file_name = output_files_prefix + o.name + ".dat";
+  count->output_format = observables_output_format;
 
   release_assert(!o.patterns.empty() && "Observable has no pattern");
   if (o.patterns.size() == 1) {

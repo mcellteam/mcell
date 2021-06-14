@@ -196,13 +196,8 @@ public:
   BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
-  count_buffer_id_t create_count_buffer(
-      const std::string file_name, const size_t buffer_size, const bool open_for_append = false) {
-    count_buffer_id_t id = count_buffers.size();
-    count_buffers.push_back(CountBuffer(file_name, buffer_size, open_for_append));
-    count_buffers.back().open();
-    return id;
-  }
+  count_buffer_id_t create_dat_count_buffer(
+      const std::string file_name, const size_t buffer_size, const bool open_for_append = false);
 
   CountBuffer& get_count_buffer(const count_buffer_id_t id) {
     assert(id < count_buffers.size());
