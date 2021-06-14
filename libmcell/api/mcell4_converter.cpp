@@ -1547,28 +1547,89 @@ void MCell4Converter::convert_count_terms_recursively(
 
 
 void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() {
-  for (const std::shared_ptr<API::Count>& c: model->counts) {
-    MCell::MolOrRxnCountEvent* count_event = new MCell::MolOrRxnCountEvent(world);
 
-    count_event->event_time = 0;
-    count_event->periodicity_interval = round_f(c->every_n_timesteps + EPS);
-
+  // collect counts with gdat format outputting to the same file
+  std::map<std::string, vector<uint>> gdat_filename_to_count_indices;
+  for (uint i = 0 ; i < model->counts.size(); i++) {
+    std::shared_ptr<API::Count>& c = model->counts[i];
     if (c->output_format == CountOutputFormat::AUTOMATIC_FROM_EXTENSION) {
       throw RuntimeError(S(NAME_CLASS_COUNT) + "'s " + NAME_OUTPUT_FORMAT + " must not be " +
           NAME_ENUM_COUNT_OUTPUT_FORMAT + "." + NAME_EV_AUTOMATIC_FROM_EXTENSION + " when the model is initialized. "
           "The automatic detection should have already happened.");
     }
 
-    // will need to merge GDAT outputs and check that all have the same sampling interval
-    release_assert(c->output_format == CountOutputFormat::DAT && "TODO_COUNTS");
+    if (c->output_format != CountOutputFormat::GDAT) {
+      continue;
+    }
+
+    auto it = gdat_filename_to_count_indices.find(c->file_name);
+    if (it == gdat_filename_to_count_indices.end()) {
+      gdat_filename_to_count_indices[c->file_name].push_back(i);
+    }
+    else {
+      it->second.push_back(i);
+    }
+  }
+
+  // create GDAT output buffers
+  std::map<std::string, pair<count_buffer_id_t, uint>> gdat_count_name_to_buffer_id_and_column_index;
+  for (const auto& pair_fname_indices: gdat_filename_to_count_indices) {
+    // prepare names for this single gdat buffer
+    // also check that the sampling interval is the same
+    assert(pair_fname_indices.second.size() >= 1);
+    double every_n_timesteps = model->counts[pair_fname_indices.second[0]]->every_n_timesteps;
+
+    vector<string> names;
+    for (uint i: pair_fname_indices.second){
+      std::shared_ptr<API::Count>& c = model->counts[i];
+
+      if (c->every_n_timesteps != every_n_timesteps) {
+        throw RuntimeError(S("When multiple ") + NAME_CLASS_COUNT + " objects output to the same .gdat file, " +
+            "their sampling intervals set by " + NAME_EVERY_N_TIMESTEPS + " must be identical, error for " +
+            c->name + ".");
+      }
+
+      names.push_back(c->name);
+    }
+
+    count_buffer_id_t buffer_id =
+        world->create_gdat_count_buffer(
+            pair_fname_indices.first, names,
+            API::DEFAULT_COUNT_BUFFER_SIZE, model->config.append_to_count_output_data);
+
+    // these are local column indices and must start from 0
+    for (uint i = 0; i < pair_fname_indices.second.size(); i++){
+      // however tpo get the count we must use the global index
+      std::shared_ptr<API::Count>& c = model->counts[pair_fname_indices.second[i]];
+      gdat_count_name_to_buffer_id_and_column_index[c->name] = make_pair(buffer_id, i);
+    }
+  }
+
+  // and convert the count objects
+  for (const std::shared_ptr<API::Count>& c: model->counts) {
+    MCell::MolOrRxnCountEvent* count_event = new MCell::MolOrRxnCountEvent(world);
+
+    count_event->event_time = 0;
+    count_event->periodicity_interval = round_f(c->every_n_timesteps + EPS);
 
     // create buffer
     vector<string> column_names = {c->name};
-    count_buffer_id_t buffer_id =
-        world->create_dat_count_buffer(
-            c->file_name, API::DEFAULT_COUNT_BUFFER_SIZE, model->config.append_to_count_output_data);
+    count_buffer_id_t buffer_id;
+    uint column_index;
 
-    MCell::MolOrRxnCountItem info(buffer_id, 0);
+    if (c->output_format == CountOutputFormat::DAT) {
+      buffer_id = world->create_dat_count_buffer(
+            c->file_name, API::DEFAULT_COUNT_BUFFER_SIZE, model->config.append_to_count_output_data);
+      column_index = 0;
+    }
+    else {
+      auto it = gdat_count_name_to_buffer_id_and_column_index.find(c->name);
+      assert(it != gdat_count_name_to_buffer_id_and_column_index.end());
+      buffer_id = it->second.first;
+      column_index = it->second.second;
+    }
+
+    MCell::MolOrRxnCountItem info(buffer_id, column_index);
 
     // process count terms
     convert_count_terms_recursively(c, c->expression, +1, info);

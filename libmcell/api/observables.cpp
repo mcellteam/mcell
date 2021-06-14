@@ -122,12 +122,10 @@ void Observables::load_bngl_observables(
 void Observables::convert_bng_data_to_observables_data(
     const BNG::BNGData& bng_data,
     const CountOutputFormat observables_output_format,
-    const std::string& output_files_prefix) {
-
-  release_assert(observables_output_format == CountOutputFormat::DAT && "TODO_COUNTS");
+    const std::string& observables_path_or_file) {
 
   for (const Observable& o: bng_data.get_observables()) {
-    convert_observable(o, bng_data, output_files_prefix, observables_output_format);
+    convert_observable(o, bng_data, observables_path_or_file, observables_output_format);
   }
 }
 
@@ -157,17 +155,23 @@ static void set_count_molecules_or_species_pattern(
 void Observables::convert_observable(
     const BNG::Observable& o,
     const BNG::BNGData& bng_data,
-    const std::string& output_files_prefix,
+    const std::string& observables_path_or_file,
     const CountOutputFormat observables_output_format) {
-
-  release_assert(observables_output_format != CountOutputFormat::AUTOMATIC_FROM_EXTENSION &&
-      observables_output_format != CountOutputFormat::UNSET);
 
   shared_ptr<API::Count> count = make_shared<Count>(DefaultCtorArgType());
   count->expression = make_shared<CountTerm>(DefaultCtorArgType());
 
   count->name = o.name;
-  count->file_name = output_files_prefix + o.name + ".dat";
+  if (observables_output_format == CountOutputFormat::DAT) {
+    count->file_name = observables_path_or_file + o.name + ".dat";
+  }
+  else if (observables_output_format == CountOutputFormat::GDAT) {
+    count->file_name = observables_path_or_file;
+  }
+  else {
+    release_assert(false && "Invalid count output format.");
+  }
+
   count->output_format = observables_output_format;
 
   release_assert(!o.patterns.empty() && "Observable has no pattern");

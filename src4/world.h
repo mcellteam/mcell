@@ -198,6 +198,9 @@ public:
 
   count_buffer_id_t create_dat_count_buffer(
       const std::string file_name, const size_t buffer_size, const bool open_for_append = false);
+  count_buffer_id_t create_gdat_count_buffer(
+      const std::string file_name, const std::vector<std::string>& column_names,
+      const size_t buffer_size, const bool open_for_append);
 
   CountBuffer& get_count_buffer(const count_buffer_id_t id) {
     assert(id < count_buffers.size());

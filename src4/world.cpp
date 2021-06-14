@@ -527,6 +527,17 @@ count_buffer_id_t World::create_dat_count_buffer(
 }
 
 
+count_buffer_id_t World::create_gdat_count_buffer(
+    const std::string file_name, const std::vector<std::string>& column_names,
+    const size_t buffer_size, const bool open_for_append) {
+  count_buffer_id_t id = count_buffers.size();
+  count_buffers.push_back(
+      CountBuffer(CountOutputFormat::GDAT, file_name, column_names, buffer_size, open_for_append));
+  count_buffers.back().open();
+  return id;
+}
+
+
 void World::flush_buffers() {
   // only flush count buffers
   for (CountBuffer& b: count_buffers) {

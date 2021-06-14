@@ -50,6 +50,10 @@ void Count::check_semantics() const {
     throw ValueError(
         S("The value of ") + NAME_EVERY_N_TIMESTEPS + " must be higher or equal to 0.");
   }
+
+  if (output_format == CountOutputFormat::UNSET) {
+    throw ValueError(S("Attribute ") + NAME_OUTPUT_FORMAT + " must be set.");
+  }
 }
 
 

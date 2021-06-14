@@ -84,7 +84,7 @@ private:
   void convert_observable(
       const BNG::Observable& o,
       const BNG::BNGData& bng_data,
-      const std::string& output_files_prefix,
+      const std::string& observables_path_or_file,
       const CountOutputFormat observables_output_format
   );
 

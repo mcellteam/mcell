@@ -100,6 +100,8 @@ public:
   void flush();
 
 private:
+  void write_gdat_header();
+
   CountOutputFormat output_format;
 
   // name of the output file with the full path
@@ -115,7 +117,8 @@ private:
   // output stream
   std::ofstream fout;
 
-  // buffer, size of this vector is the same as columns size
+  // buffer columns, size of this vector is the
+  // same as column_names size
   std::vector<CountItemVector> data;
 
   bool open_for_append;
