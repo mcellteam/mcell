@@ -63,6 +63,7 @@ public:
       std::ostream& out,
       const std::string& count_name,
       const std::string& observable_name,
+      const std::string& file_name,
       const std::string& count_term_name,
       const std::string& mul_div_str,
       const std::string& rxn_step);

@@ -336,7 +336,14 @@ void MolOrRxnCountItem::to_data_model(const World* world, Json::Value& reaction_
   string prefix;
   string filename = basename(buff.get_filename());
   prefix = noext(filename);
-  reaction_output[KEY_MDL_FILE_PREFIX] = prefix;
+
+  if (buff.get_output_format() == CountOutputFormat::DAT) {
+    reaction_output[KEY_MDL_FILE_PREFIX] = prefix;
+  }
+  else if (buff.get_output_format() == CountOutputFormat::GDAT) {
+    reaction_output[KEY_MDL_FILE_PREFIX] = buff.get_column_name(buffer_column_index);
+    reaction_output[KEY_OUTPUT_FILE_OVERRIDE] = filename;
+  }
 
   // species or rxn name & location is in mdl_string
   reaction_output[KEY_NAME] = "";

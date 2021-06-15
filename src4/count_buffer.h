@@ -93,6 +93,15 @@ public:
     return filename;
   }
 
+  CountOutputFormat get_output_format() const {
+    return output_format;
+  }
+
+  const std::string& get_column_name(const uint column_index) const {
+    assert(column_index < column_names.size());
+    return column_names[column_index];
+  }
+
   // open file, return false if file could not be opened and error_is_fatal is false
   bool open(bool error_is_fatal = true);
 

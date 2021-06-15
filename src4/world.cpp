@@ -798,13 +798,24 @@ std::string World::export_counts_to_bngl_observables(std::ostream& observables) 
     assert(ce != nullptr);
 
     for (const MolOrRxnCountItem& item: ce->mol_rxn_count_items) {
-      // get observable name from filename
-      const string& path = get_count_buffer(item.buffer_id).get_filename();
-      size_t slash_pos = path.find_last_of("/\\");
-      release_assert(slash_pos != string::npos);
-      size_t dot_pos = path.rfind('.');
-      release_assert(dot_pos != string::npos);
-      string name = path.substr(slash_pos + 1, dot_pos - slash_pos - 1);
+
+      const CountBuffer& buff = get_count_buffer(item.buffer_id);
+      string name;
+
+      // TODO: unify - we should use just column name
+      if (buff.get_output_format() == CountOutputFormat::DAT) {
+        // get observable name from filename
+        const string& path = get_count_buffer(item.buffer_id).get_filename();
+        size_t slash_pos = path.find_last_of("/\\");
+        release_assert(slash_pos != string::npos);
+        size_t dot_pos = path.rfind('.');
+        release_assert(dot_pos != string::npos);
+        name = path.substr(slash_pos + 1, dot_pos - slash_pos - 1);
+      }
+      else {
+        // use column name
+        name = buff.get_column_name(item.buffer_column_index);
+      }
 
       const string& err_suffix = ", error for " + name + ".";
 

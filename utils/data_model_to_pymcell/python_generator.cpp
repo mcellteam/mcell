@@ -1288,6 +1288,7 @@ void PythonGenerator::generate_single_count(
     std::ostream& out,
     const std::string& count_name,
     const std::string& observable_name,
+    const std::string& file_name,
     const std::string& count_term_name,
     const std::string& mul_div_str,
     const std::string& rxn_step
@@ -1296,10 +1297,12 @@ void PythonGenerator::generate_single_count(
   data.check_if_already_defined_and_add(count_name, NAME_CLASS_COUNT);
   gen_ctor_call(out, count_name, NAME_CLASS_COUNT);
 
+  gen_param(out, NAME_NAME, observable_name, true);
+
   gen_param_expr(out, NAME_EXPRESSION, count_term_name, true);
 
   gen_param(out, NAME_FILE_NAME,
-      DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + observable_name + ".dat", mul_div_str != "" || rxn_step != "");
+      DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + file_name, mul_div_str != "" || rxn_step != "");
 
   if (mul_div_str != "") {
     if (mul_div_str[0] == '*') {

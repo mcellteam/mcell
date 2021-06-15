@@ -821,6 +821,32 @@ static string check_mdlstring_count_and_get_mult_or_div(const string& mdl_string
 }
 
 
+// sets is_gdat, may return empty string meaning that the name must be determined automatically
+static string get_count_file_name(Value& reaction_output_item, bool& is_gdat) {
+  if (reaction_output_item.isMember(KEY_OUTPUT_FILE_OVERRIDE)) {
+
+    string res = reaction_output_item[KEY_OUTPUT_FILE_OVERRIDE].asString();
+    string gdat = "gdat";
+    is_gdat = res.size() > gdat.size() && res.substr(res.size() - gdat.size()) == gdat;
+    return res;
+  }
+  else {
+    // default
+    string mdl_file_prefix = reaction_output_item[KEY_MDL_FILE_PREFIX].asString();
+
+    is_gdat = false;
+
+    if (mdl_file_prefix == "") {
+      // not set
+      return "";
+    }
+    else {
+      return mdl_file_prefix + ".dat";
+    }
+  }
+}
+
+
 void MCell4Generator::generate_counts(
     std::ostream& out, std::vector<std::string>& python_counts, bool& has_bng_observables) {
 
@@ -843,6 +869,8 @@ void MCell4Generator::generate_counts(
     Value& reaction_output_item = reaction_output_list[i];
 
     string observable_name = reaction_output_item[KEY_MDL_FILE_PREFIX].asString();
+    bool is_gdat = false;
+    string file_name = get_count_file_name(reaction_output_item, is_gdat);
 
     bool must_be_in_python = false;
 
@@ -914,6 +942,8 @@ void MCell4Generator::generate_counts(
     }
 
     if (observable_name == "") {
+      // this is a case where mdl_string is empty
+
       string where = where_to_count;
       if (where == "") {
         where = WORLD_FIRST_UPPER;
@@ -927,6 +957,10 @@ void MCell4Generator::generate_counts(
       // TODO: this might need further checks
       if (observable_name.find_first_of(" ,+*/\\") != string::npos) {
         cout << "Warning: count file prefix '" + observable_name + "' is probably invalid.\n";
+      }
+
+      if (file_name == "") {
+        file_name = observable_name + ".dat";
       }
     }
 
@@ -942,6 +976,15 @@ void MCell4Generator::generate_counts(
           what_to_count,
           molecules_not_species);
       has_bng_observables = true;
+
+      if (is_gdat) {
+        if (data.bng_observables_output_gdat_file == "") {
+          data.bng_observables_output_gdat_file = file_name;
+        }
+        else if (file_name != data.bng_observables_output_gdat_file) {
+          ERROR("Cannot use multiple GDAT output files with BNGL mode, error for " + file_name);
+        }
+      }
     }
     else {
       string name = fix_id(COUNT_PREFIX + observable_name);
@@ -957,6 +1000,7 @@ void MCell4Generator::generate_counts(
           out,
           name,
           observable_name,
+          file_name,
           count_term_name,
           mul_div_str,
           rxn_step
@@ -1015,7 +1059,7 @@ void MCell4Generator::generate_observables() {
         out, OBSERVABLES,
         NAME_LOAD_BNGL_OBSERVABLES,
         get_abs_path(get_filename(data.output_files_prefix, MODEL, BNGL_EXT)) + ", " +
-        "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + "'",
+        "'" + DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + data.bng_observables_output_gdat_file + "'",
         S(SHARED) + "." + PARAMETER_OVERRIDES
     );
 

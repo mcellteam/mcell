@@ -116,6 +116,10 @@ struct SharedGenData {
   // key is surface compartment name, value is volume compartment name
   std::map<std::string, std::string> surface_to_volume_compartments_map;
 
+  // output file name to be used when loading observables from BNGL,
+  // empty for DAT format
+  std::string bng_observables_output_gdat_file;
+
   const SpeciesOrMolType* find_species_or_mol_type_info(const std::string& name) const {
     auto it = std::find(
         all_species_and_mol_type_names.begin(), all_species_and_mol_type_names.end(),
