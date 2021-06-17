@@ -46,6 +46,7 @@ LOGS_DIR = 'logs'
 class Options:
     def __init__(self):
         self.seeds_str = None
+        self.extra_arg = None
         self.args_file = None
         self.max_cores = None
         self.main_model_file = None
@@ -57,7 +58,11 @@ def create_argparse(name):
         '-s', '--seeds', type=str, 
         help='seeds in the form first:last:step, e.g. 1:100:2 will use seeds 1 through 100 in steps of 2, '
              'model must accept "-seed N" argument, '
-             'model must make sure that the output directories are different for different seeds')
+             'model must make sure that the output directories are different for different seeds, '
+             'can be used with argument -x')
+    parser.add_argument(
+        '-x', '--extra-arg', type=str, 
+        help='optional extra argument to be passed when -s is used')
     parser.add_argument(
         '-a', '--args-file', type=str, 
         help='arguments file where each line contains arguments passed to the main model file, '
@@ -75,22 +80,25 @@ def process_opts(name = 'MCell4'):
     opts = Options()
     
     if args.seeds and args.args_file:
-        print("Error: only one argument -s/--seeds or -a/--args-file must be specified, not both.")
-        sys.exit(1)
+        sys.exit("Error: only one argument -s/--seeds or -a/--args-file must be specified, not both.")
 
     if not args.seeds and not args.args_file:
-        print("Error: one of arguments -s/--seeds or -a/--args-file must be specified.")
-        sys.exit(1)
+        sys.exit("Error: one of arguments -s/--seeds or -a/--args-file must be specified.")
          
     if args.seeds:
         opts.seeds_str = args.seeds
+    
+    if args.extra_arg:
+        opts.extra_arg = args.extra_arg
     
     if args.args_file:
         if os.path.exists(args.args_file): 
             opts.args_file = args.args_file
         else:
-            print("Error: file " + args.args_file + " does not exist.")
-            sys.exit(1)
+            sys.exit("Error: file " + args.args_file + " does not exist.")
+            
+        if args.extra_arg:
+            sys.exit("Error: argument -x/-extra-args cannot be used with -a/--args-file.")
          
     if args.max_cores:
         opts.max_cores = args.max_cores
@@ -99,11 +107,9 @@ def process_opts(name = 'MCell4'):
         if os.path.exists(args.main_model_file): 
             opts.main_model_file = args.main_model_file
         else:
-            print("Error: file " + args.main_model_file + " does not exist.")
-            sys.exit(1)
+            sys.exit("Error: file " + args.main_model_file + " does not exist.")
     else:
-        print("Error: main model file must be specified as a positional argument.")
-        sys.exit(1) 
+        sys.exit("Error: main model file must be specified as a positional argument.")
         
     return opts
         
@@ -114,8 +120,7 @@ def check_prerequisites():
     if MCELL_PATH:
         sys.path.append(os.path.join(MCELL_PATH, 'lib'))
     else:
-        print("Error: system variable MCELL_PATH that is used to find the mcell library was not set.")
-        sys.exit(1)
+        sys.exit("Error: system variable MCELL_PATH that is used to find the mcell library was not set.")
     
     if os.name == 'nt':
         ext = '.pyd'
@@ -126,8 +131,7 @@ def check_prerequisites():
     
     
     if not os.path.exists(mcell_so_path):
-        print("Could not find library '" + mcell_so_path + ".")
-        sys.exit(1)
+        sys.exit("Could not find library '" + mcell_so_path + ".")
     
             
 def generate_seeds(seeds_str):
@@ -136,8 +140,7 @@ def generate_seeds(seeds_str):
         not seeds_info[0].isdigit() or \
         not seeds_info[1].isdigit() or \
         not seeds_info[2].isdigit():
-        print("Error: invalid seed string, must be in for form min:max:step, given '" + seeds_str + "'.")
-        sys.exit(1)
+        sys.exit("Error: invalid seed string, must be in for form min:max:step, given '" + seeds_str + "'.")
     
     res  = []
     for i in range(int(seeds_info[0]), int(seeds_info[1]) + 1, int(seeds_info[2])):
@@ -149,7 +152,7 @@ def generate_seeds(seeds_str):
 def prepare_args(opts):
     if opts.seeds_str:
         seeds = generate_seeds(opts.seeds_str)
-        return ['-seed ' + str(i) for i in seeds ]
+        return ['-seed ' + str(i) + ' ' + opts.extra_arg for i in seeds ]
     elif opts.args_file:
         res = []
         with open(opts.args_file, 'r') as f:
