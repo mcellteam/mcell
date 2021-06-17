@@ -111,7 +111,9 @@ void CountBuffer::flush() {
   }
 
   fout.flush(); // flush the data so the user can see them
-  data.clear();
+  for (auto& column: data) {
+    column.clear();
+  }
 }
 
 

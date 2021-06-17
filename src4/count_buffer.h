@@ -80,7 +80,7 @@ public:
 
   void add(const CountItem& item) {
     assert(item.column_index < data.size());
-    if (data.size() >= buffer_size) {
+    if (data[item.column_index].size() >= buffer_size) {
       flush();
     }
     data[item.column_index].push_back(item);
