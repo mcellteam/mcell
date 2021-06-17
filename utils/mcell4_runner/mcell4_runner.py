@@ -46,7 +46,7 @@ LOGS_DIR = 'logs'
 class Options:
     def __init__(self):
         self.seeds_str = None
-        self.extra_arg = None
+        self.extra_arg = ''
         self.args_file = None
         self.max_cores = None
         self.main_model_file = None
@@ -175,18 +175,20 @@ def run_mcell4(args_str_w_opts):
     print("Running " + cmd_str)
     
     args_log = args_str.replace(' ', '_').replace('-', '_')
-    log_name = os.path.join(LOGS_DIR, os.path.splitext(opts.main_model_file)[0] + '_' + args_log + '.mcell4.log')
+    log_name = os.path.join(
+        LOGS_DIR, 
+        os.path.splitext(os.path.basename(opts.main_model_file))[0] + '_' + args_log + '.mcell4.log')
+
+    with open(log_name, "w") as f:
+        f.write("DIR:" + os.getcwd() + "\n")
+        f.write("CMD:" + cmd_str + "\n")
     
     exit_code = 1
-    with open(log_name, "w") as f:
+    with open(log_name, "a") as f:
         proc = subprocess.Popen(cmd_str, shell=True, cwd=os.getcwd(), stdout=f, stderr=subprocess.STDOUT)
         proc.communicate()
         exit_code = proc.returncode
 
-    with open(log_name, "a") as f:
-        f.write("DIR:" + os.getcwd() + "\n")
-        f.write("CMD:" + cmd_str + "\n")
-    
     if exit_code != 0:
         print("MCell4 failed, see '" + os.path.join(os.getcwd(), log_name) + "'.")
         return exit_code
