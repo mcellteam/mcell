@@ -1263,10 +1263,6 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
     out << "\n";
   }
 
-  out << get_user_defined_configuration(customization_module);
-
-  out << "\n";
-
   out << make_section_comment("add components");
   out << get_import(get_module_name(SUBSYSTEM));
   out << get_import(get_module_name(INSTANTIATION));
@@ -1280,6 +1276,10 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
   if (observables_generated) {
     gen_method_call(out, MODEL, NAME_ADD_OBSERVABLES, get_module_name(OBSERVABLES) + "." + OBSERVABLES);
   }
+  out << "\n";
+
+  out << get_user_defined_configuration(customization_module);
+
   out << "\n";
 
   out << make_section_comment("initialization and execution");
