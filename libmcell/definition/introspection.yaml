@@ -27,8 +27,9 @@ Molecule:
     default: ID_INVALID
     doc: | 
        Species id of this molecule.
-       The species id value is only temporary and can be invalidated by simulating an 
-       iteration.
+       The species_id value is only temporary. Species ids are created and removed as needed
+       automatically and if this species is removed, this particular species_id value 
+       won't be valid. This can happen when a following iteration is simulated.
      
   - name: pos3d
     type: Vec3
@@ -55,7 +56,7 @@ Molecule:
     default: unset
     doc: |
        Set only for surface molecules.
-       Object on whose surface is the molecule located.
+       Is set to a reference to the geometry object on whose surface is the molecule located.
      
   - name: wall_index
     type: int
@@ -69,7 +70,7 @@ Molecule:
   - name: remove
     doc: | 
        Removes this molecule from simulation. Any subsequent modifications
-       of this molecules won't have any effect.
+       of this molecule won't have any effect.
     examples: tests/pymcell4_positive/1920_molecule_remove/model.py  
 
 Wall:
@@ -197,7 +198,8 @@ Introspection:
       
   - name: get_vertex_unit_normal
     doc: | 
-       Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
+       Returns sum of all wall normals that use this vertex converted to a unit vector of 
+       length 1 um (micrometer).
        This represents the unit vector pointing outwards from the vertex.
     examples: tests/pymcell4_positive/1320_get_vertex_unit_normal/model.py
     return_type: Vec3
@@ -246,6 +248,3 @@ Introspection:
     - name: color
       type: Color*
       doc: Color to be set.
-  
-          
-                     

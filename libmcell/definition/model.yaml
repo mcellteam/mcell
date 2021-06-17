@@ -96,8 +96,8 @@ Model:
   - name: export_viz_data_model
     doc: |
        Same as export_data_model, only the created data model will contain only information required for visualization
-       in CellBlender. This makes the loading of themodel by CellBlender faster and also allows to avoid potential
-       compatibility issues. 
+       in CellBlender. This makes the loading of the model by CellBlender faster and also allows to avoid potential
+       compatibility issues.
        Must be called after model initialization.
     examples: tests/pymcell4_positive/1520_sphere_collision/model.py
     params: 
@@ -400,4 +400,3 @@ Model:
       doc: |
          Sets custom directory where the checkpoint will be stored. 
          The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'. 
-               
