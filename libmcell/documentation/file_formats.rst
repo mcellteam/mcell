@@ -60,10 +60,10 @@ Binary Visualization Data V2
 ****************************
 
 The binary format has two versions with v2 being the most recent. 
-All floating point values (float) are encoded as 32-bit 
+All floating point-values (float) are encoded as 32-bit 
 IEEE 745 single-precision floating-point format and the 
 location uses the um (micrometer) unit. Values of indented addresses
-represent offset from start of each block.  
+represent offset from the start of each block.  
 It uses the following structure:
 
 
@@ -102,7 +102,7 @@ Example:
 
 
 This hex dump shows a binary representation of molecule positions equivalent to
-ascii output shown here:  
+ASCII output shown here:  
 
 .. code-block:: text
 
@@ -111,7 +111,7 @@ ascii output shown here:
    sb@PM 2 0.5 -0.0639481536 0.170722492 1 0 0
    sb@PM 3 0.307013747 0.5 -0.174133457 -0 1 0 
 
-In a more detail, this is how the data is encoded:
+In more detail, this is how the data is encoded:
 
 .. code-block:: text
 
@@ -129,7 +129,7 @@ In a more detail, this is how the data is encoded:
 Binary Visualization Data V1
 ****************************
 
-The version 1 of the binary visualization data uses the following structure:
+Version 1 of the binary visualization data uses the following structure:
 
 
 .. code-block:: text
@@ -149,6 +149,8 @@ The version 1 of the binary visualization data uses the following structure:
             0x4: ny (4 bytes, float)
             0x8: nz (4 bytes, float)
   
-This v1 format was changed to v2 by: the first 4 bytes have value 2, name_len is 4 bytes, num_float_positions was changed to num_mols 
+The V1 format was changed to V2 by: 
+1) the first 4 bytes have value 2, 2) name_len is 4 bytes, and 3) num_float_positions was changed to num_mols 
 having 3x lower value.
+
  

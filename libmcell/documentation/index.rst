@@ -19,7 +19,7 @@ MCell4 Reference Manual
    model_conversions
    file_formats
 
-This documentation contains overview of the MCell4 API 
+This documentation contains an overview of the MCell4 API 
 with explanations and a complete definition of the interface.  
 
 :ref:`installation:MCell4 Installation`
