@@ -744,6 +744,10 @@ void Partition::remove_reactant_class_usage(const BNG::reactant_class_id_t react
 void Partition::shuffle_schedulable_molecule_ids() {
 
   size_t n = schedulable_molecule_ids.size();
+  if (n == 0) {
+    return;
+  }
+
   release_assert(n < (size_t)UINT32_MAX);
   for (molecule_index_t i = n-1; i > 0; --i) {
 
@@ -751,7 +755,7 @@ void Partition::shuffle_schedulable_molecule_ids() {
     release_assert(rand >= 0 && rand <= 1);
     // scale rand to 0..n-1
     uint rand_index = (double)(n-1) * rand;
-    release_assert(rand_index < n); // TODO: change to a normal assert
+    assert(rand_index < n);
     molecule_id_t tmp = schedulable_molecule_ids[i];
     schedulable_molecule_ids[i] = schedulable_molecule_ids[rand_index];
     schedulable_molecule_ids[rand_index] = tmp;
