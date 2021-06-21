@@ -774,6 +774,7 @@ MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
   return wall.index;
 }
 
+
 void MCell4Converter::convert_initial_surface_releases(
     const std::vector<std::shared_ptr<API::InitialSurfaceRelease>>& api_releases,
     std::vector<MCell::InitialSurfaceReleases>& mcell_releases
@@ -785,6 +786,11 @@ void MCell4Converter::convert_initial_surface_releases(
     orientation_t orientation = convert_api_orientation(api_rel->complex->orientation);
 
     if (is_set(api_rel->number_to_release)) {
+      if (api_rel->number_to_release > (double)UINT32_MAX) {
+        throw ValueError(S("Value for ") + NAME_NUMBER_TO_RELEASE + " of a " +
+            NAME_CLASS_INITIAL_SURFACE_RELEASE + " " + to_string(api_rel->number_to_release) +
+            " is too high, the maximum allowed is " + to_string(UINT32_MAX) + ".");
+      }
       mcell_releases.push_back(
           InitialSurfaceReleases(species_id, orientation, true, (uint)api_rel->number_to_release)
       );
@@ -1320,6 +1326,12 @@ MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
 
   // release_number_method
   if (is_set(r->number_to_release)) {
+    if (r->number_to_release > (double)UINT32_MAX) {
+      throw ValueError(S("Value ") + to_string(r->number_to_release) + " for " +
+          NAME_NUMBER_TO_RELEASE + " of a " + NAME_CLASS_RELEASE_SITE + " '" + r->name +
+          "' is too high, the maximum allowed is " + to_string(UINT32_MAX) + ".");
+    }
+
     rel_event->release_number_method = ReleaseNumberMethod::CONST_NUM;
     rel_event->release_number = r->number_to_release;
   }

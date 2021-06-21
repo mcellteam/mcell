@@ -184,6 +184,11 @@ void Instantiation::convert_single_seed_species_to_release_site(
           " at " + rel_site->region->name;
   }
 
+  if (bng_ss.count > (double)UINT32_MAX) {
+    throw ValueError(S("Value ") + to_string(bng_ss.count) + " for " +
+        NAME_NUMBER_TO_RELEASE + " of a " + NAME_CLASS_RELEASE_SITE + " '" + rel_site->name +
+        "' created from 'seed species' BNGL section is too high, the maximum allowed is " + to_string(UINT32_MAX) + ".");
+  }
 
   uint truncated_count = BNG::floor_f(bng_ss.count);
   if (bng_ss.count != truncated_count) {
