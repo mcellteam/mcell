@@ -156,8 +156,8 @@ def run_bng_parallel(opts, seeds):
     line = find_in_file(opts.main_model_file, 'method=>"nf"')
     if not line:
         # ODE
-        dir = 'ode'
-        os.mkdir(dir)
+        dir = os.path.join('bng', 'ode')
+        os.makedirs(dir)
         shutil.copy(TEST_BNGL, dir)
                  
         self.run_bng(dir, opts)
@@ -167,9 +167,9 @@ def run_bng_parallel(opts, seeds):
         cwd = os.getcwd()
         dirs = []
         for s in seeds:
-            dir = 'nf_' + str(s).zfill(5)
+            dir = os.path.join('bng', 'nf_' + str(s).zfill(5))
             if not os.path.exists(dir):
-                os.mkdir(dir)
+                os.makedirs(dir)
             shutil.copy(opts.main_model_file, os.path.join(dir, TEST_BNGL))
             
             # copy also all other .bngl files from the main file's directory
