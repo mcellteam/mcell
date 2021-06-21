@@ -46,7 +46,9 @@ RxnCountStats& SimulationStats::get_rxn_stats(
   assert(rxn->is_bimol());
 
   const string& n1 = rxn->reactants[0].name;
+  assert(n1 != "");
   const string& n2 = rxn->reactants[1].name;
+  assert(n2 != "");
 
   // increment or add a new item if the pair we are searching for does not exist
   auto it1 = bimol_rxn_stats.find(n1);
