@@ -47,6 +47,7 @@
 #include "molecule.h"
 #include "viz_output_event.h"
 #include "custom_function_call_event.h"
+#include "bngl_exporter.h"
 
 #include "bng/rxn_class.h"
 
@@ -526,8 +527,9 @@ void Model::export_to_bngl(const std::string& file_name,
     throw ValueError(S("Invalid ") + NAME_SIMULATION_METHOD + " argument value.");
   }
 
+  MCell::BNGLExporter bngl_exporter;
+  string err_msg = bngl_exporter.export_to_bngl(world, file_name, simulation_method);
 
-  string err_msg = world->export_to_bngl(file_name, simulation_method);
   if (err_msg != "") {
     throw RuntimeError("BNGL export failed: " + err_msg);
   }

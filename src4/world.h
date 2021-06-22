@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2019-2021 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -176,10 +176,6 @@ public:
 
   void dump(const bool with_geometry = false);
 
-  // returns empty string if everything went well, nonempty string with error message
-  std::string export_to_bngl(
-      const std::string& file_name, const API::BNGSimulationMethod simulation_method) const;
-
   // exports model geometry to Wavefront OBJ format
   void export_geometry_to_obj(const std::string& files_prefix) const;
 
@@ -260,10 +256,6 @@ private:
 
   void export_data_layout() const;
 
-  std::string export_releases_to_bngl_seed_species(
-      std::ostream& parameters, std::ostream& seed_species) const;
-
-  std::string export_counts_to_bngl_observables(std::ostream& observables) const;
 public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation
