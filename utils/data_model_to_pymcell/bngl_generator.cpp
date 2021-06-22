@@ -308,6 +308,7 @@ static bool has_in_out_compartments(const vector<string>& substances) {
 static void check_that_only_allowed_orientations_are_set(
     const vector<string>& orientations, const bool has_in_out_compartments) {
 
+  // causes weird behavior on macos
   // if IN/OUT is not used, volume molecules must not have orientation and
   // surface molecules must be UP
   // NOTE: this check can be improed with detection of what type of complex it is surface or volume
@@ -438,8 +439,17 @@ void BNGLGenerator::generate_single_count(
     const std::string& what_to_count,
     const bool molecules_not_species) {
 
-  bng_out << IND <<
-      ((molecules_not_species) ? BNG::OBSERVABLE_MOLECULES : BNG::OBSERVABLE_SPECIES) << " " <<
+  bng_out << IND;
+  // there is some issue with macos Apple LLVM version 10.0.0 (clang-1000.10.44.4)
+  // this gets miscompiled with optimizations enabled: ((molecules_not_species) ? BNG::OBSERVABLE_MOLECULES : BNG::OBSERVABLE_SPECIES)
+  if (molecules_not_species) {
+    bng_out << BNG::OBSERVABLE_MOLECULES;
+  }
+  else {
+    bng_out << BNG::OBSERVABLE_SPECIES;
+  }
+
+  bng_out << " " <<
       fix_id(observable_name) << " " <<
       what_to_count << "\n";
 }
