@@ -29,6 +29,10 @@
 #define API_GLOBALS_H
 
 #include <memory>
+#ifdef _MSC_VER
+#undef HAVE_UNISTD_H
+#undef HAVE_SYS_TIME_H
+#endif
 #include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
 namespace py = pybind11;
 
