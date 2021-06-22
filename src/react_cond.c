@@ -68,6 +68,11 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a,
 
   int max = rx->n_pathways - 1;
   double match = rng_dbl(rng);
+  if (rx->n_pathways < 0) {
+    // related to MCELL3_UNIMOL_RX_ABSORB_NO_RNG
+    // calling RNG to maintain compatibility but we must avoid invalid memory access
+    return 0;
+  }
   match = match * rx->cum_probs[max];
   return binary_search_double(rx->cum_probs, match, max, 1);
 }
