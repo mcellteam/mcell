@@ -24,6 +24,7 @@
 #include "bngl_exporter.h"
 
 #include <iostream>
+#include <sstream>
 
 #include "world.h"
 #include "partition.h"
@@ -45,7 +46,7 @@ void BNGLExporter::clear_temporaries() {
 
 // returns empty string if everything went well, nonempty string with error message
 std::string BNGLExporter::export_to_bngl(
-    const World* world_,
+    World* world_,
     const std::string& file_name,
     const API::BNGSimulationMethod simulation_method) {
 
@@ -89,6 +90,7 @@ std::string BNGLExporter::export_to_bngl(
   stringstream parameters;
   stringstream molecule_types;
   stringstream reaction_rules;
+  stringstream compartments;
   parameters << BNG::BEGIN_PARAMETERS << "\n";
 
   parameters << BNG::IND << "# general parameters\n";
@@ -99,8 +101,10 @@ std::string BNGLExporter::export_to_bngl(
     parameters << BNG::IND << BNG::MCELL_DEFAULT_COMPARTMENT_VOLUME << " " << f_to_str(single_object_volume) << "\n";
   }
 
+  err_msg += set_compartment_volumes_and_areas();
+
   err_msg += world->bng_engine.export_to_bngl(
-          parameters, molecule_types, reaction_rules,
+          parameters, molecule_types, compartments, reaction_rules,
           simulation_method == API::BNGSimulationMethod::NF, single_object_volume, single_object_area);
 
   // seed species
@@ -109,16 +113,6 @@ std::string BNGLExporter::export_to_bngl(
 
   stringstream observables;
   err_msg += export_counts_to_bngl_observables(observables);
-
-  // TODO: compartments
-  // compartments, only one for now
-  stringstream compartments;
-  if (single_object_name != BNG::DEFAULT_COMPARTMENT_NAME) {
-    compartments << BNG::BEGIN_COMPARTMENTS << "\n";
-    parameters << BNG::IND << BNG::PREFIX_VOL << single_object_name << " " << f_to_str(single_object_volume) << " * 1e-15 # compartment volume in litres\n";
-    compartments << BNG::IND << single_object_name << " 3 " << BNG::PREFIX_VOL << single_object_name << " * 1e15 # volume in fL (um^3)\n";
-    compartments << BNG::END_COMPARTMENTS << "\n\n";
-  }
 
   parameters << BNG::END_PARAMETERS << "\n";
 
@@ -134,6 +128,44 @@ std::string BNGLExporter::export_to_bngl(
 
   out.close();
   return "";
+}
+
+
+std::string BNGLExporter::set_compartment_volumes_and_areas() {
+
+  std::string err_msg;
+
+  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  BNG::BNGData& bng_data = world->bng_engine.get_data();
+
+  for (const GeometryObject& obj: p.get_geometry_objects()) {
+    // get compartment information
+    BNG::Compartment* compartment = bng_data.find_compartment(obj.name);
+    if (compartment == nullptr) {
+      err_msg += "Error: geometry object " + obj.name + " is not a BNGL compartment and cannot be exported.";
+      continue;
+    }
+    release_assert(compartment->is_3d);
+
+    // set volume
+    double volume_internal_units = VtkUtils::get_geometry_object_volume(world, obj);
+    if (volume_internal_units == FLT_INVALID) {
+      return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
+    }
+    double volume = volume_internal_units * pow(world->config.length_unit, 3);
+    compartment->set_volume_or_area(volume);
+
+    // set area for parent
+    if (compartment->parent_compartment_id != BNG::COMPARTMENT_ID_INVALID) {
+      BNG::Compartment& parent_compartment = bng_data.get_compartment(compartment->parent_compartment_id);
+      if (!parent_compartment.is_3d) {
+        double area = Geometry::compute_geometry_object_area(p, obj) * pow(world->config.length_unit, 2);
+        parent_compartment.set_volume_or_area(area);
+      }
+    }
+  }
+
+  return err_msg;
 }
 
 

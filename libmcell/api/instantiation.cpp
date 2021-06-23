@@ -121,7 +121,7 @@ void Instantiation::convert_compartments(const BNG::BNGData& bng_data) {
         continue;
       }
 
-      double side = pow_f(bng_comp.get_volume(), 1.0/3.0);
+      double side = pow_f(bng_comp.get_volume_or_area(), 1.0/3.0);
 
       // create box for the given compartment
       shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
