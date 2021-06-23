@@ -23,7 +23,7 @@
 
 #include "bngl_exporter.h"
 
-#include <fstream>
+#include <iostream>
 
 #include "world.h"
 #include "partition.h"
@@ -37,11 +37,24 @@ using namespace std;
 
 namespace MCell {
 
+void BNGLExporter::clear_temporaries() {
+  nfsim_export = false;
+  world = nullptr;
+}
+
+
 // returns empty string if everything went well, nonempty string with error message
 std::string BNGLExporter::export_to_bngl(
-    const World* world,
+    const World* world_,
     const std::string& file_name,
-    const API::BNGSimulationMethod simulation_method) const {
+    const API::BNGSimulationMethod simulation_method) {
+
+  clear_temporaries();
+  nfsim_export = simulation_method == API::BNGSimulationMethod::NF;
+  world = world_;
+
+  // contains all error messages, best effort approach is used where all parts are attempted to be generated
+  string err_msg;
 
   ofstream out;
   out.open(file_name);
@@ -49,19 +62,29 @@ std::string BNGLExporter::export_to_bngl(
     return "Could not open output file " + file_name + ".";
   }
 
-
   const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  if (p.get_geometry_objects().size() > 2) {
-    return "BNGL export is not supported for models having more than 2 geometry objects.";
-  }
-  const GeometryObject& obj = p.get_geometry_objects()[0];
 
-  double volume_internal_units = VtkUtils::get_geometry_object_volume(world, obj);
-  if (volume_internal_units == FLT_INVALID) {
-    return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
+  if (p.get_geometry_objects().size() > 1 && nfsim_export) {
+    // fail immediately
+    return "BNGL export with NFSim is not supported only for models having 1 geometry object.";
   }
 
-  double volume = volume_internal_units * pow(world->config.length_unit, 3);
+  // check if there is a single object
+  string single_object_name;
+  double single_object_volume = 0;
+  double single_object_area = 0;
+  if (p.get_geometry_objects().size() == 1) {
+    const GeometryObject& obj = p.get_geometry_objects()[0];
+    single_object_name = obj.name;
+
+    double volume_internal_units = VtkUtils::get_geometry_object_volume(world, obj);
+    if (volume_internal_units == FLT_INVALID) {
+      return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
+    }
+
+    single_object_volume = volume_internal_units * pow(world->config.length_unit, 3);
+    single_object_area = Geometry::compute_geometry_object_area(p, obj) * pow(world->config.length_unit, 2);
+  }
 
   stringstream parameters;
   stringstream molecule_types;
@@ -72,97 +95,42 @@ std::string BNGLExporter::export_to_bngl(
   parameters << BNG::IND << BNG::ITERATIONS << " " << world->total_iterations << "\n";
   parameters << BNG::IND << BNG::MCELL_TIME_STEP << " " << f_to_str(world->config.time_unit) << "\n";
 
-  if (obj.name == BNG::DEFAULT_COMPARTMENT_NAME) {
-    parameters << BNG::IND << BNG::MCELL_DEFAULT_COMPARTMENT_VOLUME << " " << f_to_str(volume) << "\n";
+  if (single_object_name == BNG::DEFAULT_COMPARTMENT_NAME) {
+    parameters << BNG::IND << BNG::MCELL_DEFAULT_COMPARTMENT_VOLUME << " " << f_to_str(single_object_volume) << "\n";
   }
 
-  string err_msg = world->bng_engine.export_to_bngl(
-      parameters, molecule_types, reaction_rules, volume);
-  if (err_msg != "") {
-    out.close();
-    return err_msg;
-  }
+  err_msg += world->bng_engine.export_to_bngl(
+          parameters, molecule_types, reaction_rules,
+          simulation_method == API::BNGSimulationMethod::NF, single_object_volume, single_object_area);
 
   // seed species
   stringstream seed_species;
-  err_msg = export_releases_to_bngl_seed_species(world, parameters, seed_species);
-  if (err_msg != "") {
-    out.close();
-    return err_msg;
-  }
+  err_msg += export_releases_to_bngl_seed_species(parameters, seed_species);
 
   stringstream observables;
-  err_msg = export_counts_to_bngl_observables(world, observables);
-  if (err_msg != "") {
-    out.close();
-    return err_msg;
+  err_msg += export_counts_to_bngl_observables(observables);
+
+  // TODO: compartments
+  // compartments, only one for now
+  stringstream compartments;
+  if (single_object_name != BNG::DEFAULT_COMPARTMENT_NAME) {
+    compartments << BNG::BEGIN_COMPARTMENTS << "\n";
+    parameters << BNG::IND << BNG::PREFIX_VOL << single_object_name << " " << f_to_str(single_object_volume) << " * 1e-15 # compartment volume in litres\n";
+    compartments << BNG::IND << single_object_name << " 3 " << BNG::PREFIX_VOL << single_object_name << " * 1e15 # volume in fL (um^3)\n";
+    compartments << BNG::END_COMPARTMENTS << "\n\n";
   }
 
   parameters << BNG::END_PARAMETERS << "\n";
 
   out << parameters.str() << "\n";
   out << molecule_types.str() << "\n";
-
-  // compartments, only one for now
-  if (obj.name != BNG::DEFAULT_COMPARTMENT_NAME) {
-    out << BNG::BEGIN_COMPARTMENTS << "\n";
-    out << BNG::IND << obj.name << " 3 " << BNG::PARAM_V << " * 1e15 # volume in fL (um^3)\n";
-    out << BNG::END_COMPARTMENTS << "\n\n";
-  }
-
+  out << compartments.str() << "\n";
   out << seed_species.str() << "\n";
   out << observables.str() << "\n";
 
   out << reaction_rules.str() << "\n";
 
-
-  string method;
-  switch (simulation_method) {
-    case API::BNGSimulationMethod::NONE:
-      // nothing to do
-      break;
-    case API::BNGSimulationMethod::ODE:
-      method = "ode";
-      break;
-    case API::BNGSimulationMethod::PLA:
-      method = "pla";
-      break;
-    case API::BNGSimulationMethod::SSA:
-      method = "ssa";
-      break;
-    case API::BNGSimulationMethod::NF:
-      method = "nf";
-      break;
-    default:
-      release_assert(false && "Invalid BNG simulation method.");
-  }
-
-  if (simulation_method != API::BNGSimulationMethod::NONE) {
-    // get sampling frequency from observables
-    std::vector<BaseEvent*> count_events;
-    world->scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
-    double min_periodicity = DBL_MAX;
-    for (const BaseEvent* e: count_events) {
-      if (e->periodicity_interval != 0 && e->periodicity_interval < min_periodicity) {
-        min_periodicity = e->periodicity_interval;
-      }
-    }
-    if (min_periodicity == DBL_MAX) {
-      min_periodicity = 1;
-    }
-
-    out <<
-        "simulate({method=>\"" << method << "\"," <<
-        "seed=>1," <<
-        "t_end=>" << world->total_iterations * world->config.time_unit << ","
-        "n_steps=>" << world->total_iterations / min_periodicity;
-
-    if (simulation_method == API::BNGSimulationMethod::NF) {
-      out << ",glm=>1000000"; // just some default max. molecule count
-    }
-
-    out << "})\n";
-  }
+  generate_simulation_action(out, simulation_method);
 
   out.close();
   return "";
@@ -170,7 +138,7 @@ std::string BNGLExporter::export_to_bngl(
 
 
 std::string BNGLExporter::export_releases_to_bngl_seed_species(
-    const World* world, std::ostream& parameters, std::ostream& seed_species) const {
+    std::ostream& parameters, std::ostream& seed_species) const {
   seed_species << BNG::BEGIN_SEED_SPECIES << "\n";
 
   parameters << "\n" << BNG::IND << "# seed species counts\n";
@@ -240,8 +208,8 @@ std::string BNGLExporter::export_releases_to_bngl_seed_species(
 }
 
 
-std::string BNGLExporter::export_counts_to_bngl_observables(
-    const World* world, std::ostream& observables) const {
+std::string BNGLExporter::export_counts_to_bngl_observables(std::ostream& observables) const {
+
   observables << BNG::BEGIN_OBSERVABLES << "\n";
 
   vector<BaseEvent*> count_events;
@@ -331,6 +299,59 @@ std::string BNGLExporter::export_counts_to_bngl_observables(
 
   observables << BNG::END_OBSERVABLES << "\n";
   return "";
+}
+
+
+void BNGLExporter::generate_simulation_action(
+    std::ostream& out, const API::BNGSimulationMethod simulation_method) const {
+
+  string method;
+  switch (simulation_method) {
+    case API::BNGSimulationMethod::NONE:
+      // nothing to do
+      break;
+    case API::BNGSimulationMethod::ODE:
+      method = "ode";
+      break;
+    case API::BNGSimulationMethod::PLA:
+      method = "pla";
+      break;
+    case API::BNGSimulationMethod::SSA:
+      method = "ssa";
+      break;
+    case API::BNGSimulationMethod::NF:
+      method = "nf";
+      break;
+    default:
+      release_assert(false && "Invalid BNG simulation method.");
+  }
+
+  if (simulation_method != API::BNGSimulationMethod::NONE) {
+    // get sampling frequency from observables
+    std::vector<BaseEvent*> count_events;
+    world->scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT, count_events);
+    double min_periodicity = FLT_INVALID;
+    for (const BaseEvent* e: count_events) {
+      if (e->periodicity_interval != 0 && e->periodicity_interval < min_periodicity) {
+        min_periodicity = e->periodicity_interval;
+      }
+    }
+    if (min_periodicity == FLT_INVALID) {
+      min_periodicity = 1;
+    }
+
+    out <<
+        "simulate({method=>\"" << method << "\"," <<
+        "seed=>1," <<
+        "t_end=>" << world->total_iterations * world->config.time_unit << ","
+        "n_steps=>" << world->total_iterations / min_periodicity;
+
+    if (simulation_method == API::BNGSimulationMethod::NF) {
+      out << ",glm=>1000000"; // just some default max. molecule count
+    }
+
+    out << "})\n";
+  }
 }
 
 } // namespace MCell

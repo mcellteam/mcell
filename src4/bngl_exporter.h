@@ -39,20 +39,25 @@ public:
   // returns empty string if everything went well,
   // nonempty string with error message
   std::string export_to_bngl(
-      const World* world,
+      const World* world_,
       const std::string& file_name,
-      const API::BNGSimulationMethod simulation_method) const;
+      const API::BNGSimulationMethod simulation_method);
 
 private:
+  void clear_temporaries();
+
   std::string export_releases_to_bngl_seed_species(
-      const World* world,
       std::ostream& parameters,
       std::ostream& seed_species) const;
 
   std::string export_counts_to_bngl_observables(
-      const World* world,
       std::ostream& observables) const;
 
+  void generate_simulation_action(
+      std::ostream& out, const API::BNGSimulationMethod simulation_method) const;
+
+  const World* world;
+  bool nfsim_export;
 };
 
 
