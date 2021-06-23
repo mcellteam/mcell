@@ -337,6 +337,10 @@ std::string BNGLExporter::export_counts_to_bngl_observables(std::ostream& observ
 void BNGLExporter::generate_simulation_action(
     std::ostream& out, const API::BNGSimulationMethod simulation_method) const {
 
+  if (simulation_method != API::BNGSimulationMethod::NF) {
+    out << "generate_network({overwrite=>1})\n";
+  }
+
   string method;
   switch (simulation_method) {
     case API::BNGSimulationMethod::NONE:
