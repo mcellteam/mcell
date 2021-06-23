@@ -151,15 +151,15 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       .def("__deepcopy__", &Molecule::deepcopy_molecule, py::arg("memo"))
       .def("__str__", &Molecule::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Molecule::__eq__, py::arg("other"))
-      .def("remove", &Molecule::remove, "Removes this molecule from simulation. Any subsequent modifications\nof this molecules won't have any effect.\n")
+      .def("remove", &Molecule::remove, "Removes this molecule from simulation. Any subsequent modifications\nof this molecule won't have any effect.\n")
       .def("dump", &Molecule::dump)
       .def_property("id", &Molecule::get_id, &Molecule::set_id, "Unique id of this molecule. MCell assigns this unique id to each created \nmolecule. All reactions change ID of molecules even in reactions such as \nA@CP -> A@EC.\n")
       .def_property("type", &Molecule::get_type, &Molecule::set_type, "Type of this molecule, either volume or surface. \n")
-      .def_property("species_id", &Molecule::get_species_id, &Molecule::set_species_id, "Species id of this molecule.\nThe species id value is only temporary and can be invalidated by simulating an \niteration.\n")
+      .def_property("species_id", &Molecule::get_species_id, &Molecule::set_species_id, "Species id of this molecule.\nThe species_id value is only temporary. Species ids are created and removed as needed\nautomatically and if this species is removed, this particular species_id value \nwon't be valid. This can happen when a following iteration is simulated.\n")
       .def_property("pos3d", &Molecule::get_pos3d, &Molecule::set_pos3d, "Contains position of a molecule in 3D space.        \n")
       .def_property("orientation", &Molecule::get_orientation, &Molecule::set_orientation, "Contains orientation for surface molecule. Volume molecules \nhave always orientation set to Orientation.NONE.\n")
       .def_property("pos2d", &Molecule::get_pos2d, &Molecule::set_pos2d, "Set only for surface molecules. Position on a wall in UV coordinates \nrelative to the triangle of the wall.\n        \n")
-      .def_property("geometry_object", &Molecule::get_geometry_object, &Molecule::set_geometry_object, "Set only for surface molecules.\nObject on whose surface is the molecule located.\n")
+      .def_property("geometry_object", &Molecule::get_geometry_object, &Molecule::set_geometry_object, "Set only for surface molecules.\nIs set to a reference to the geometry object on whose surface is the molecule located.\n")
       .def_property("wall_index", &Molecule::get_wall_index, &Molecule::set_wall_index, "Set only for surface molecules.\nIndex of wall belonging to the geometry_object where is the \nmolecule located. \n   \n")
     ;
 }

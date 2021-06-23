@@ -176,8 +176,8 @@ void Model::end_simulation(const bool print_final_report) {
 }
 
 
-void Model::dump_internal_state() {
-  world->dump();
+void Model::dump_internal_state(const bool with_geometry) {
+  world->dump(with_geometry);
 }
 
 

@@ -64,7 +64,7 @@ public:
   void add_instantiation(std::shared_ptr<Instantiation> instantiation) override;
   void add_observables(std::shared_ptr<Observables> observables) override;
 
-  void dump_internal_state() override;
+  void dump_internal_state(const bool with_geometry = false) override;
 
   void export_data_model(const std::string& file = STR_UNSET) override {
     export_data_model_viz_or_full(file, false, NAME_EXPORT_DATA_MODEL);

@@ -74,9 +74,13 @@ Model:
       type: Observables*
       
   - name: dump_internal_state
-    todo: all 'with' geometry option 
-    doc: Prints out the simulation engine's internal state, mainly for debugging.      
-      
+    doc: Prints out the simulation engine's internal state, mainly for debugging.
+    params:      
+    - name: with_geometry
+      type: bool
+      default: false
+      doc: Include geometry in the dump.
+          
   - name: export_data_model
     doc: | 
        Exports the current state of the model into a data model JSON format.

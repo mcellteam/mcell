@@ -310,6 +310,7 @@ const char* const NAME_WALL_INDICES = "wall_indices";
 const char* const NAME_WALL_LIST = "wall_list";
 const char* const NAME_WARNINGS = "warnings";
 const char* const NAME_WITH_COMPARTMENT = "with_compartment";
+const char* const NAME_WITH_GEOMETRY = "with_geometry";
 const char* const NAME_XYZ_DIMENSIONS = "xyz_dimensions";
 
 const char* const NAME_ENUM_B_N_G_SIMULATION_METHOD = "BNGSimulationMethod";

@@ -95,7 +95,8 @@ Methods:
    * | return type: Vec3
 
 
-  | Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
+  | Returns sum of all wall normals that use this vertex converted to a unit vector of 
+  | length 1 um (micrometer).
   | This represents the unit vector pointing outwards from the vertex.
 
   | Example: `1320_get_vertex_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1320_get_vertex_unit_normal/model.py>`_ 
@@ -169,8 +170,9 @@ Attributes:
 
 * | **species_id**: int = ID_INVALID
   | Species id of this molecule.
-  | The species id value is only temporary and can be invalidated by simulating an 
-  | iteration.
+  | The species_id value is only temporary. Species ids are created and removed as needed
+  | automatically and if this species is removed, this particular species_id value 
+  | won't be valid. This can happen when a following iteration is simulated.
 
 * | **pos3d**: Vec3 = None
   | Contains position of a molecule in 3D space.
@@ -185,7 +187,7 @@ Attributes:
 
 * | **geometry_object**: GeometryObject = None
   | Set only for surface molecules.
-  | Object on whose surface is the molecule located.
+  | Is set to a reference to the geometry object on whose surface is the molecule located.
 
 * | **wall_index**: int = -1
   | Set only for surface molecules.
@@ -199,7 +201,7 @@ Methods:
 
 
   | Removes this molecule from simulation. Any subsequent modifications
-  | of this molecules won't have any effect.
+  | of this molecule won't have any effect.
 
   | Example: `1920_molecule_remove/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1920_molecule_remove/model.py>`_ 
 

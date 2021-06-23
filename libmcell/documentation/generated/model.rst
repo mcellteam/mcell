@@ -115,6 +115,9 @@ Methods:
 
 * | **dump_internal_state**
 
+   * | with_geometry: bool = False
+     | Include geometry in the dump.
+
 
   | Prints out the simulation engine's internal state, mainly for debugging.
 
@@ -141,8 +144,8 @@ Methods:
 
 
   | Same as export_data_model, only the created data model will contain only information required for visualization
-  | in CellBlender. This makes the loading of themodel by CellBlender faster and also allows to avoid potential
-  | compatibility issues. 
+  | in CellBlender. This makes the loading of the model by CellBlender faster and also allows to avoid potential
+  | compatibility issues.
   | Must be called after model initialization.
 
   | Example: `1520_sphere_collision/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1520_sphere_collision/model.py>`_ 
@@ -343,14 +346,21 @@ Methods:
    * | file_name: str
      | Output file name.
 
-   * | simulation_method: BNGSimulationMethod = BNGSimulationMethod.NONE
-     | When set, the exported file also contains action to run 
-     | BioNetGen with the selected simulation method.
+   * | simulation_method: BNGSimulationMethod = BNGSimulationMethod.ODE
+     | Selection of the BioNetGen simulation method. 
+     | Selects BioNetGen action to run with the selected simulation method.
+     | For BNGSimulationMethod.NF the export is limited to a single volume and
+     | a single surface and the enerated rates use volume and surface area so that 
+     | simulation with NFSim produces corect results.
 
 
   | Exports all defined species, reaction rules and applicable observables
   | as a BNGL file that can be then loaded by MCell4 or BioNetGen. 
-  | Note\: Limited currrently to exactly one volume compartment and volume reactions.
+  | The resulting file should be validated that it produces expected results. 
+  | Many MCell features cannot be exported into BNGL and when such a feature is 
+  | encountered the export fails with a RuntimeError exception.
+  | However, the export code tries to export as much as possible and one can catch
+  | the RuntimeError exception and use the possibly incomplete BNGL file anyway.
 
 
 * | **save_checkpoint**
@@ -705,7 +715,8 @@ Methods:
    * | return type: Vec3
 
 
-  | Returns sum of all wall normals that use this vertex converted to a unit vector of length 1um.
+  | Returns sum of all wall normals that use this vertex converted to a unit vector of 
+  | length 1 um (micrometer).
   | This represents the unit vector pointing outwards from the vertex.
 
   | Example: `1320_get_vertex_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1320_get_vertex_unit_normal/model.py>`_ 

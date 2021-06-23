@@ -760,6 +760,7 @@ class Model():
 
     def dump_internal_state(
             self,
+            with_geometry : bool = False
         ) -> None:
         pass
 
@@ -839,7 +840,7 @@ class Model():
     def export_to_bngl(
             self,
             file_name : str,
-            simulation_method : BNGSimulationMethod = BNGSimulationMethod.NONE
+            simulation_method : BNGSimulationMethod = BNGSimulationMethod.ODE
         ) -> None:
         pass
 
