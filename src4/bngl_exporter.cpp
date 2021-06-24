@@ -127,7 +127,7 @@ std::string BNGLExporter::export_to_bngl(
   generate_simulation_action(out, simulation_method);
 
   out.close();
-  return "";
+  return err_msg;
 }
 
 
@@ -139,6 +139,11 @@ std::string BNGLExporter::set_compartment_volumes_and_areas() {
   BNG::BNGData& bng_data = world->bng_engine.get_data();
 
   for (const GeometryObject& obj: p.get_geometry_objects()) {
+    if (obj.name == BNG::DEFAULT_COMPARTMENT_NAME) {
+      // skip - not generated as compartment
+      continue;
+    }
+
     // get compartment information
     BNG::Compartment* compartment = bng_data.find_compartment(obj.name);
     if (compartment == nullptr) {
@@ -171,6 +176,9 @@ std::string BNGLExporter::set_compartment_volumes_and_areas() {
 
 std::string BNGLExporter::export_releases_to_bngl_seed_species(
     std::ostream& parameters, std::ostream& seed_species) const {
+
+  string err_msg;
+
   seed_species << BNG::BEGIN_SEED_SPECIES << "\n";
 
   parameters << "\n" << BNG::IND << "# seed species counts\n";
@@ -187,24 +195,31 @@ std::string BNGLExporter::export_releases_to_bngl_seed_species(
       continue;
     }
 
-    const string & err_suffix = ", error for " + re->release_site_name + ".";
+    const string & err_suffix = ", error for " + re->release_site_name + ".\n";
     if (re->release_shape != ReleaseShape::REGION) {
-      return "Only region release shapes are currently supported for BNGL export" + err_suffix;
+      err_msg += "Only region release shapes are currently supported for BNGL export" + err_suffix;
+      continue;
     }
     if (re->release_number_method != ReleaseNumberMethod::CONST_NUM) {
-      return "Only constant release number releases are currently supported for BNGL export" + err_suffix;
+      err_msg += "Only constant release number releases are currently supported for BNGL export" + err_suffix;
+      continue;
     }
     if (re->region_expr.root->op != RegionExprOperator::LEAF_SURFACE_REGION && re->region_expr.root->op != RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
-      return "Only simple release regions are currently supported for BNGL export" + err_suffix;
+      err_msg += "Only simple release regions are currently supported for BNGL export" + err_suffix;
+      continue;
     }
     if (re->event_time != 0) {
-      return "Only releases for time 0 are currently supported for BNGL export" + err_suffix;
+      err_msg += "Only releases for time 0 are currently supported for BNGL export" + err_suffix;
+      continue;
     }
-    if (re->orientation != ORIENTATION_NONE) {
-      return "Only releases for volume molecules are currently supported for BNGL export" + err_suffix;
+    if (re->orientation != ORIENTATION_NONE && re->orientation != ORIENTATION_UP) {
+      err_msg += "Only releases for volume molecules or surface molecules with orientation UP (') "
+          "are currently supported for BNGL export" + err_suffix;
+      continue;
     }
     if (re->needs_release_pattern()) {
-      return "Releases with release patterns are not currently supported for BNGL export" + err_suffix;
+      err_msg += "Releases with release patterns are not currently supported for BNGL export" + err_suffix;
+      continue;
     }
 
     // create parameter for the count
@@ -226,17 +241,59 @@ std::string BNGLExporter::export_releases_to_bngl_seed_species(
     else {
       release_assert(false && "Compartment must be a simple surface or geometry object.");
     }
-    const BNG::Species& species = world->bng_engine.get_all_species().get(re->species_id);
 
-    seed_species << BNG::IND;
-    if (obj->name != BNG::DEFAULT_COMPARTMENT_NAME) {
-      seed_species << "@" <<  obj->name << ":";
+    const BNG::Species& species = world->bng_engine.get_all_species().get(re->species_id);
+    BNG::compartment_id_t comp_id = species.get_primary_compartment_id();
+    const BNG::BNGData& bng_data = world->bng_engine.get_data();
+
+    // no compartment set?
+    if (comp_id == BNG::COMPARTMENT_ID_NONE) {
+      if (species.is_vol()) {
+        if (obj->name != BNG::DEFAULT_COMPARTMENT_NAME) {
+          seed_species << BNG::IND << "@" <<  obj->name << ":";
+        }
+      }
+      else {
+        if (obj->surf_compartment_id == BNG::COMPARTMENT_ID_NONE) {
+          err_msg += "Trying to convert a surface molecule release for BNGL export but the object's surface has "
+              "no compartment specified" + err_suffix;
+          continue;
+        }
+        seed_species << BNG::IND << "@" <<  bng_data.get_compartment(obj->surf_compartment_id).name << ":";
+      }
     }
+    else {
+      // check compartment ID
+      const BNG::Compartment& comp = world->bng_engine.get_data().get_compartment(comp_id);
+      if (species.is_vol()) {
+        // compartment must match
+        if (obj->name != comp.name) {
+          err_msg += "Volume molecule's compartment does not match the target object compartment" + err_suffix;
+          continue;
+        }
+        if (!comp.is_3d) {
+          err_msg += "Volume molecule's compartment is a surface/2D compartment" + err_suffix;
+          continue;
+        }
+      }
+      else {
+        if (obj->surf_compartment_id != comp_id) {
+          err_msg += "Surface molecule's compartment does not match the target object's surface compartment" + err_suffix;
+          continue;
+        }
+        if (comp.is_3d) {
+          err_msg += "Surface molecule's compartment is a volume/3D compartment" + err_suffix;
+          continue;
+        }
+      }
+      seed_species << BNG::IND;
+    }
+
     seed_species << species.name << " " << seed_count_name << "\n";
   }
 
   seed_species << BNG::END_SEED_SPECIES << "\n";
-  return "";
+  return err_msg;
 }
 
 
@@ -321,7 +378,7 @@ std::string BNGLExporter::export_counts_to_bngl_observables(std::ostream& observ
           type = term_type;
         }
 
-        pattern += compartment_prefix + term.species_molecules_pattern.to_str(false) + " ";
+        pattern += compartment_prefix + term.species_molecules_pattern.to_str(false, false) + " ";
       }
 
       observables << BNG::IND <<
