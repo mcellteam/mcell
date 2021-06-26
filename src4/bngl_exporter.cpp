@@ -133,6 +133,8 @@ std::string BNGLExporter::export_to_bngl(
 
 std::string BNGLExporter::set_compartment_volumes_and_areas() {
 
+  // FIXME: compute volume using children volumes
+
   std::string err_msg;
 
   const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
@@ -174,6 +176,98 @@ std::string BNGLExporter::set_compartment_volumes_and_areas() {
 }
 
 
+// returns true if check passed
+static std::string get_explicit_compartment_name(
+    const BNG::BNGData& bng_data,
+    const std::string& err_suffix,
+    const bool vol_release,
+    const BNG::compartment_id_t release_compartment_id,
+    const BNG::compartment_id_t species_compartment_id,
+    std::string& explicit_compartment_name
+) {
+  std::string err_msg;
+
+  const BNG::Compartment& comp = bng_data.get_compartment(release_compartment_id);
+  explicit_compartment_name = comp.name;
+
+  if (species_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+    // check match
+    if (explicit_compartment_name != bng_data.get_compartment(species_compartment_id).name) {
+      return string(vol_release ? "Volume" : "Surface") +
+          " molecule's compartment does not match the target object compartment" + err_suffix;
+    }
+    // no need to generate compartment - species has the correct compartment
+    explicit_compartment_name = "";
+  }
+
+  if (vol_release) {
+    if (!comp.is_3d) {
+      return "Volume molecule's compartment is a surface/2D compartment" + err_suffix;
+    }
+  }
+  else {
+    if (comp.is_3d) {
+      return "Surface molecule's compartment is a volume/3D compartment" + err_suffix;
+    }
+  }
+
+  return "";
+}
+
+
+// search for the leftmost volume compartment if in a tree composed only from differences and leaves
+static std::string get_leftmost_compartment_id_recursively(
+    const World* world, const std::string& err_suffix, const RegionExprNode* node, BNG::compartment_id_t& id) {
+
+  if (node->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    const GeometryObject& obj = world->get_geometry_object(node->geometry_object_id);
+    if (obj.vol_compartment_id == BNG::COMPARTMENT_ID_NONE) {
+      return "Trying to convert a volume molecule release for BNGL export but used object " + obj.name + " has "
+          "no volume compartment specified" + err_suffix;
+    }
+    id = obj.vol_compartment_id;
+    return "";
+  }
+  else if (node->op == RegionExprOperator::DIFFERENCE) {
+    return get_leftmost_compartment_id_recursively(world, err_suffix, node->left, id);
+  }
+  else {
+    return "Unsupported volume region operator encountered when converting release for BNGL export" + err_suffix;
+  }
+}
+
+// search for the all volume compartments if in a tree composed only from differences and leaves
+static std::string get_all_compartment_ids_recursively_right_is_leaf(
+    const World* world, const std::string& err_suffix, const RegionExprNode* node, std::vector<BNG::compartment_id_t>& ids) {
+
+  if (node->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    const GeometryObject& obj = world->get_geometry_object(node->geometry_object_id);
+    if (obj.vol_compartment_id == BNG::COMPARTMENT_ID_NONE) {
+      return "Trying to convert a volume molecule release for BNGL export but used object " + obj.name + " has "
+          "no volume compartment specified" + err_suffix;
+    }
+    ids.push_back(obj.vol_compartment_id);
+    return "";
+  }
+  else if (node->op == RegionExprOperator::DIFFERENCE) {
+    string msg;
+    msg = get_all_compartment_ids_recursively_right_is_leaf(world, err_suffix, node->left, ids);
+    if (msg != "") {
+      return msg;
+    }
+
+    if (node->right->op != RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+      return "Unsupported form of region operator expression encountered when converting release for BNGL export" + err_suffix;
+    }
+    msg = get_all_compartment_ids_recursively_right_is_leaf(world, err_suffix, node->right, ids);
+    return msg;
+  }
+  else {
+    return "Unsupported volume region operator encountered when converting release for BNGL export" + err_suffix;
+  }
+}
+
+
 std::string BNGLExporter::export_releases_to_bngl_seed_species(
     std::ostream& parameters, std::ostream& seed_species) const {
 
@@ -204,10 +298,6 @@ std::string BNGLExporter::export_releases_to_bngl_seed_species(
       err_msg += "Only constant release number releases are currently supported for BNGL export" + err_suffix;
       continue;
     }
-    if (re->region_expr.root->op != RegionExprOperator::LEAF_SURFACE_REGION && re->region_expr.root->op != RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
-      err_msg += "Only simple release regions are currently supported for BNGL export" + err_suffix;
-      continue;
-    }
     if (re->event_time != 0) {
       err_msg += "Only releases for time 0 are currently supported for BNGL export" + err_suffix;
       continue;
@@ -226,66 +316,119 @@ std::string BNGLExporter::export_releases_to_bngl_seed_species(
     string seed_count_name = "seed_count_" + to_string(i);
     parameters << BNG::IND << seed_count_name << " " << to_string(re->release_number) << "\n";
 
-    // and line in seed species, for now whole objects are representing compartments
-    const GeometryObject* obj = nullptr;
+    // determine compartment
+    const BNG::Species& species = world->bng_engine.get_all_species().get(re->species_id);
+    BNG::compartment_id_t species_compartment_id = species.get_primary_compartment_id();
+    const BNG::BNGData& bng_data = world->bng_engine.get_data();
+
+    string explicit_compartment_name = "";
+    const string err_mgs_only_compartments = "Only release regions that represent a compartment without its children "
+        "are supported for BNGL export" + err_suffix;
+
     if (re->region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+      // surface - must be a 2D release
+
       const Region& region = world->get_region(re->region_expr.root->region_id);
       if (DMUtils::get_region_name(region.name) != "ALL") {
         return "Compartments that do not span the whole object are not supported yet" + err_suffix;
       }
-      obj = &world->get_geometry_object(region.geometry_object_id);
+      const GeometryObject& obj = world->get_geometry_object(region.geometry_object_id);
+
+      if (obj.surf_compartment_id == BNG::COMPARTMENT_ID_NONE) {
+        err_msg += "Trying to convert a surface molecule release for BNGL export but the object's surface has "
+            "no compartment specified" + err_suffix;
+        continue;
+      }
+
+      string msg = get_explicit_compartment_name(
+          bng_data, err_suffix, false, obj.surf_compartment_id, species_compartment_id,
+          explicit_compartment_name);
+
+      if (msg != "") {
+        err_msg += msg;
+        continue;
+      }
     }
     else if (re->region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
-      obj = &world->get_geometry_object(re->region_expr.root->geometry_object_id);
-    }
-    else {
-      release_assert(false && "Compartment must be a simple surface or geometry object.");
-    }
+      const GeometryObject& obj = world->get_geometry_object(re->region_expr.root->geometry_object_id);
 
-    const BNG::Species& species = world->bng_engine.get_all_species().get(re->species_id);
-    BNG::compartment_id_t comp_id = species.get_primary_compartment_id();
-    const BNG::BNGData& bng_data = world->bng_engine.get_data();
-
-    // no compartment set?
-    if (comp_id == BNG::COMPARTMENT_ID_NONE) {
-      if (species.is_vol()) {
-        if (obj->name != BNG::DEFAULT_COMPARTMENT_NAME) {
-          seed_species << BNG::IND << "@" <<  obj->name << ":";
-        }
+      if (obj.name == BNG::DEFAULT_COMPARTMENT_NAME) {
+        explicit_compartment_name = "";
       }
       else {
-        if (obj->surf_compartment_id == BNG::COMPARTMENT_ID_NONE) {
-          err_msg += "Trying to convert a surface molecule release for BNGL export but the object's surface has "
-              "no compartment specified" + err_suffix;
+        if (obj.vol_compartment_id == BNG::COMPARTMENT_ID_NONE) {
+          err_msg += "Trying to convert a volume molecule release for BNGL export but the object has "
+              "no volume compartment specified" + err_suffix;
           continue;
         }
-        seed_species << BNG::IND << "@" <<  bng_data.get_compartment(obj->surf_compartment_id).name << ":";
+
+        string msg = get_explicit_compartment_name(
+            bng_data, err_suffix, true, obj.vol_compartment_id, species_compartment_id,
+            explicit_compartment_name);
+
+        if (msg != "") {
+          err_msg += msg;
+          continue;
+        }
+      }
+    }
+    else if (re->region_expr.root->op == RegionExprOperator::DIFFERENCE) {
+      // this may be a volume compartment that has children -> we must check that the
+      // release is exactly for this compartment
+      // example:
+      // EC with CP1 & CP2 -> the region expression must be in this form
+      // ((EC - CP1) - CP2)
+
+      BNG::compartment_id_t top_compartment_id;
+      string msg = get_leftmost_compartment_id_recursively(world, err_suffix, re->region_expr.root, top_compartment_id);
+      if (msg != "") {
+        err_msg += msg;
+        continue;
+      }
+
+      vector<BNG::compartment_id_t> all_compartments;
+      msg = get_all_compartment_ids_recursively_right_is_leaf(world, err_suffix, re->region_expr.root, all_compartments);
+      if (msg != "") {
+        err_msg += msg;
+        continue;
+      }
+
+      // now check that the compartment corresponds to
+      const BNG::Compartment& top_compartment = bng_data.get_compartment(top_compartment_id);
+
+      // number of children must match
+      if (all_compartments.size() != top_compartment.children_compartments.size() + 1) {
+        err_msg += err_mgs_only_compartments;
+        continue;
+      }
+
+      set<BNG::compartment_id_t> all_compartments_set(all_compartments.begin(), all_compartments.end());
+      // check that the same children are used
+      for (BNG::compartment_id_t id: top_compartment.children_compartments) {
+        if (all_compartments_set.count(id) != 0) {
+          err_msg += err_mgs_only_compartments;
+          continue;
+        }
+      }
+
+      msg = get_explicit_compartment_name(
+          bng_data, err_suffix, true, top_compartment_id, species_compartment_id,
+          explicit_compartment_name);
+
+      if (msg != "") {
+        err_msg += msg;
+        continue;
       }
     }
     else {
-      // check compartment ID
-      const BNG::Compartment& comp = world->bng_engine.get_data().get_compartment(comp_id);
-      if (species.is_vol()) {
-        // compartment must match
-        if (obj->name != comp.name) {
-          err_msg += "Volume molecule's compartment does not match the target object compartment" + err_suffix;
-          continue;
-        }
-        if (!comp.is_3d) {
-          err_msg += "Volume molecule's compartment is a surface/2D compartment" + err_suffix;
-          continue;
-        }
-      }
-      else {
-        if (obj->surf_compartment_id != comp_id) {
-          err_msg += "Surface molecule's compartment does not match the target object's surface compartment" + err_suffix;
-          continue;
-        }
-        if (comp.is_3d) {
-          err_msg += "Surface molecule's compartment is a volume/3D compartment" + err_suffix;
-          continue;
-        }
-      }
+      err_msg += err_mgs_only_compartments;
+      continue;
+    }
+
+    if (explicit_compartment_name != "") {
+      seed_species << BNG::IND << "@" << explicit_compartment_name << ":";
+    }
+    else {
       seed_species << BNG::IND;
     }
 
