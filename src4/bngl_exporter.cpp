@@ -468,6 +468,8 @@ std::string BNGLExporter::export_releases_to_bngl_seed_species(
 
 std::string BNGLExporter::export_counts_to_bngl_observables(std::ostream& observables) const {
 
+  string err_msg;
+
   observables << BNG::BEGIN_OBSERVABLES << "\n";
 
   vector<BaseEvent*> count_events;
@@ -497,36 +499,52 @@ std::string BNGLExporter::export_counts_to_bngl_observables(std::ostream& observ
         name = buff.get_column_name(item.buffer_column_index);
       }
 
-      const string& err_suffix = ", error for " + name + ".";
+      const string& err_suffix = ", error for " + name + ".\n";
 
       if (item.multiplier != 1.0) {
-        return "Observable expressions with a multiplier are not supported by BNGL export yet" + err_suffix;
+        err_msg += "Observable expressions with a multiplier are not supported by BNGL export" + err_suffix;
+        continue;
       }
 
       string pattern;
       string type;
       for (const MolOrRxnCountTerm& term: item.terms) {
         if (term.sign_in_expression != 1) {
-          return "Observable counts with negative value (subtracted) not supported by BNGL export" + err_suffix;
+          err_msg += "Observable counts with negative value (subtracted) not supported by BNGL export" + err_suffix;
+          continue;
         }
         if (term.is_rxn_count()) {
-          return "Reaction counts are not supported by BNGL export" + err_suffix;
+          err_msg += "Reaction counts are not supported by BNGL export" + err_suffix;
+          continue;
         }
         if (term.type == CountType::PresentOnSurfaceRegion) {
-          return "Surface molecule counts are not supported by BNGL export yet" + err_suffix;
+          err_msg += "Surface molecule counts on specified regions are not supported by BNGL export, "
+              "use compartments if needed" + err_suffix;
+          continue;
         }
         if (term.region_expr.root != nullptr && term.region_expr.root->has_binary_op()) {
-          return "Counts that use region expressions with union, difference, or intersection are "
-              "not supported by BNGL export yet" + err_suffix;
+          err_msg += "Counts that use region expressions with union, difference, or intersection are "
+              "not supported by BNGL export" + err_suffix;
+          continue;
         }
 
         string compartment_prefix = "";
         if (term.type == CountType::EnclosedInVolumeRegion) {
+          if (term.primary_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+            err_msg += "Counts that mix compartments and region are not supported by BNGL export"
+                "use only compartment if needed" + err_suffix;
+            continue;
+          }
+
           release_assert(term.region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT);
           const string& compartment_name = world->get_geometry_object(term.region_expr.root->geometry_object_id).name;
           if (compartment_name != BNG::DEFAULT_COMPARTMENT_NAME) {
+            // NOTE: may also use compartment ID
             compartment_prefix = "@" + world->get_geometry_object(term.region_expr.root->geometry_object_id).name + ":";
           }
+        }
+        else if (term.primary_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+          compartment_prefix = "@" + world->bng_engine.get_data().get_compartment(term.primary_compartment_id).name + ":";
         }
 
         // Species or Molecules
@@ -541,7 +559,8 @@ std::string BNGLExporter::export_counts_to_bngl_observables(std::ostream& observ
           release_assert("SpeciesId type should not be used here.");
         }
         if (type != "" && type != term_type) {
-          return "Combined Molecules and Species observables in one count are not supported by BNGL export" + err_suffix;
+          err_msg += "Combined Molecules and Species observables in one count are not supported by BNGL export" + err_suffix;
+          continue;
         }
         else {
           type = term_type;
@@ -551,12 +570,12 @@ std::string BNGLExporter::export_counts_to_bngl_observables(std::ostream& observ
       }
 
       observables << BNG::IND <<
-          type << " " << name << " " << pattern << " " << "\n";
+          type << " " << name << " " << pattern << "\n";
     }
   }
 
   observables << BNG::END_OBSERVABLES << "\n";
-  return "";
+  return err_msg;
 }
 
 
