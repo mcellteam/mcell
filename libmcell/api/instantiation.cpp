@@ -121,8 +121,11 @@ void Instantiation::convert_compartments(const BNG::BNGData& bng_data) {
         continue;
       }
 
-      // FIXME: compute volume using children volumes
-      double side = pow_f(bng_comp.get_volume_or_area(), 1.0/3.0);
+      // compute volume using children volumes - all volumes must have been provided
+      // for geometry object size - we won't include the volume of surface compartments
+      double volume = bng_comp.get_volume_including_children(bng_data, false);
+
+      double side = pow_f(volume, 1.0/3.0);
 
       // create box for the given compartment
       shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);

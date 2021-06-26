@@ -67,7 +67,7 @@ std::string BNGLExporter::export_to_bngl(
 
   if (p.get_geometry_objects().size() > 1 && nfsim_export) {
     // fail immediately
-    return "BNGL export with NFSim is not supported only for models having 1 geometry object.";
+    return "BNGL export with NFSim is not supported only for models having 1 geometry object.\n";
   }
 
   // check if there is a single object
@@ -80,7 +80,7 @@ std::string BNGLExporter::export_to_bngl(
 
     double volume_internal_units = VtkUtils::get_geometry_object_volume(world, obj);
     if (volume_internal_units == FLT_INVALID) {
-      return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
+      return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.\n";
     }
 
     single_object_volume = volume_internal_units * pow(world->config.length_unit, 3);
@@ -133,12 +133,13 @@ std::string BNGLExporter::export_to_bngl(
 
 std::string BNGLExporter::set_compartment_volumes_and_areas() {
 
-  // FIXME: compute volume using children volumes
-
   std::string err_msg;
 
   const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   BNG::BNGData& bng_data = world->bng_engine.get_data();
+
+  // first create a mapping of compartments -> geom. objects
+  map<BNG::compartment_id_t, const GeometryObject*> compartment_geom_obj_map;
 
   for (const GeometryObject& obj: p.get_geometry_objects()) {
     if (obj.name == BNG::DEFAULT_COMPARTMENT_NAME) {
@@ -149,29 +150,53 @@ std::string BNGLExporter::set_compartment_volumes_and_areas() {
     // get compartment information
     BNG::Compartment* compartment = bng_data.find_compartment(obj.name);
     if (compartment == nullptr) {
-      err_msg += "Error: geometry object " + obj.name + " is not a BNGL compartment and cannot be exported.";
+      err_msg += "Error: geometry object " + obj.name + " is not a BNGL compartment and cannot be exported.\n";
       continue;
     }
     release_assert(compartment->is_3d);
 
-    // set volume
-    double volume_internal_units = VtkUtils::get_geometry_object_volume(world, obj);
-    if (volume_internal_units == FLT_INVALID) {
-      return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.";
-    }
-    double volume = volume_internal_units * pow(world->config.length_unit, 3);
-    compartment->set_volume_or_area(volume);
+    compartment_geom_obj_map[compartment->id] = &obj;
 
-    // set area for parent
     if (compartment->parent_compartment_id != BNG::COMPARTMENT_ID_INVALID) {
       BNG::Compartment& parent_compartment = bng_data.get_compartment(compartment->parent_compartment_id);
       if (!parent_compartment.is_3d) {
-        double area = Geometry::compute_geometry_object_area(p, obj) * pow(world->config.length_unit, 2);
-        parent_compartment.set_volume_or_area(area);
+        // map also surface compartment
+        compartment_geom_obj_map[parent_compartment.id] = &obj;
       }
     }
   }
 
+  // now start from compartments that have no children and gradually compute volumes
+  std::vector<BNG::compartment_id_t> sorted_compartment_ids;
+  bng_data.get_compartments_sorted_by_parents_first(sorted_compartment_ids);
+
+  for (int i = sorted_compartment_ids.size() - 1; i >= 0; i--) {
+    BNG::compartment_id_t comp_id = sorted_compartment_ids[i];
+    auto it = compartment_geom_obj_map.find(comp_id);
+    release_assert(it != compartment_geom_obj_map.end() && "Internal error during compartment export");
+    const GeometryObject* obj = it->second;
+    BNG::Compartment& comp = bng_data.get_compartment(comp_id);
+
+    if (comp.is_3d) {
+      // get volume of all children - we start from compartments with no children so the
+      // values were already computed
+      comp.set_volume(0);
+      double children_volume = comp.get_volume_including_children(bng_data, true);
+
+      // compute total volume
+      double volume_internal_units = VtkUtils::get_geometry_object_volume(world, *obj);
+      if (volume_internal_units == FLT_INVALID) {
+        return "Compartment object " + obj->name + " is not watertight and its volume cannot be computed.\n";
+      }
+      // must subtract volume of children
+      double volume = volume_internal_units * pow(world->config.length_unit, 3) - children_volume;
+      comp.set_volume(volume);
+    }
+    else {
+      double area = Geometry::compute_geometry_object_area(p, *obj) * pow(world->config.length_unit, 2);
+      comp.set_area(area);
+    }
+  }
   return err_msg;
 }
 
@@ -235,6 +260,7 @@ static std::string get_leftmost_compartment_id_recursively(
     return "Unsupported volume region operator encountered when converting release for BNGL export" + err_suffix;
   }
 }
+
 
 // search for the all volume compartments if in a tree composed only from differences and leaves
 static std::string get_all_compartment_ids_recursively_right_is_leaf(
