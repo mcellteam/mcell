@@ -181,7 +181,7 @@ std::string BNGLExporter::set_compartment_volumes_and_areas() {
       // get volume of all children - we start from compartments with no children so the
       // values were already computed
       comp.set_volume(0);
-      double children_volume = comp.get_volume_including_children(bng_data, true);
+      double children_volume = comp.get_volume_including_children(bng_data, false);
 
       // compute total volume
       double volume_internal_units = VtkUtils::get_geometry_object_volume(world, *obj);
