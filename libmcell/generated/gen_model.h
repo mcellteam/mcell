@@ -122,7 +122,7 @@ public:
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
   virtual void add_instantiation(std::shared_ptr<Instantiation> instantiation) = 0;
   virtual void add_observables(std::shared_ptr<Observables> observables) = 0;
-  virtual void dump_internal_state() = 0;
+  virtual void dump_internal_state(const bool with_geometry = false) = 0;
   virtual void export_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void export_viz_data_model(const std::string& file = STR_UNSET) = 0;
   virtual void export_geometry(const std::string& output_files_prefix = STR_UNSET) = 0;
@@ -133,7 +133,7 @@ public:
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
   virtual void register_reaction_callback(const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function, py::object context, std::shared_ptr<ReactionRule> reaction_rule) = 0;
   virtual void load_bngl(const std::string& file_name, const std::string& observables_path_or_file = "", std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>(), const CountOutputFormat observables_output_format = CountOutputFormat::AUTOMATIC_FROM_EXTENSION) = 0;
-  virtual void export_to_bngl(const std::string& file_name, const BNGSimulationMethod simulation_method = BNGSimulationMethod::NONE) = 0;
+  virtual void export_to_bngl(const std::string& file_name, const BNGSimulationMethod simulation_method = BNGSimulationMethod::ODE) = 0;
   virtual void save_checkpoint(const std::string& custom_dir = STR_UNSET) = 0;
   virtual void schedule_checkpoint(const uint64_t iteration = 0, const bool continue_simulation = false, const std::string& custom_dir = STR_UNSET) = 0;
 }; // GenModel

@@ -801,6 +801,8 @@ typedef std::vector<GeometryObject> GeometryObjectVector;
 // several utility functions related to geometry
 namespace Geometry {
 
+double compute_geometry_object_area(const Partition& p, const GeometryObject& obj);
+
 // used when creating release event
 bool compute_region_expr_bounding_box(
     World* world, const RegionExprNode* region_expr,

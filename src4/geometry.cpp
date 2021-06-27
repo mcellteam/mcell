@@ -1407,6 +1407,16 @@ void Region::compute_bounding_box(const Partition& p, Vec3& llf, Vec3& urb) {
 
 namespace Geometry {
 
+double compute_geometry_object_area(const Partition& p, const GeometryObject& obj) {
+  double res = 0;
+  for (wall_index_t wi: obj.wall_indices) {
+    res += p.get_wall(wi).area;
+  }
+
+  return res;
+}
+
+
 /***************************************************************************
 eval_rel_region_bbox:
   In: release expression for a 3D region release

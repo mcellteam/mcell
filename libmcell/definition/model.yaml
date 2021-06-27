@@ -74,9 +74,13 @@ Model:
       type: Observables*
       
   - name: dump_internal_state
-    todo: all 'with' geometry option 
-    doc: Prints out the simulation engine's internal state, mainly for debugging.      
-      
+    doc: Prints out the simulation engine's internal state, mainly for debugging.
+    params:      
+    - name: with_geometry
+      type: bool
+      default: false
+      doc: Include geometry in the dump.
+          
   - name: export_data_model
     doc: | 
        Exports the current state of the model into a data model JSON format.
@@ -332,7 +336,12 @@ Model:
     doc: |
       Exports all defined species, reaction rules and applicable observables
       as a BNGL file that can be then loaded by MCell4 or BioNetGen. 
-      Note\: Limited currrently to exactly one volume compartment and volume reactions.
+      The resulting file should be validated that it produces expected results. 
+      Many MCell features cannot be exported into BNGL and when such a feature is 
+      encountered the export fails with a RuntimeError exception.
+      However, the export code tries to export as much as possible and one can catch
+      the RuntimeError exception and use the possibly incomplete BNGL file anyway.   
+      
     params:
     - name: file_name
       type: str
@@ -340,10 +349,13 @@ Model:
       
     - name: simulation_method
       type: BNGSimulationMethod
-      default: BNGSimulationMethod.NONE
+      default: BNGSimulationMethod.ODE
       doc: |
-         When set, the exported file also contains action to run 
-         BioNetGen with the selected simulation method.
+         Selection of the BioNetGen simulation method. 
+         Selects BioNetGen action to run with the selected simulation method.
+         For BNGSimulationMethod.NF the export is limited to a single volume and
+         a single surface and the enerated rates use volume and surface area so that 
+         simulation with NFSim produces corect results. 
       
   - name: save_checkpoint
     todo: provide more configurability for parameters

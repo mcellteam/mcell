@@ -46,6 +46,7 @@ set(SRC4_SOURCE_FILES
     vtk_utils.cpp
     region_utils.cpp
     bng_data_to_datamodel_converter.cpp
+    bngl_exporter.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC
