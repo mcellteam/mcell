@@ -37,13 +37,15 @@ class PythonExportContext;
         const int bng_verbosity_level_ = 0, \
         const bool rxn_and_species_report_ = false, \
         const int simulation_stats_every_n_iterations_ = 0, \
-        const bool rxn_probability_changed_ = true \
+        const bool rxn_probability_changed_ = true, \
+        const bool iteration_report_ = true \
     ) { \
       class_name = "Notifications"; \
       bng_verbosity_level = bng_verbosity_level_; \
       rxn_and_species_report = rxn_and_species_report_; \
       simulation_stats_every_n_iterations = simulation_stats_every_n_iterations_; \
       rxn_probability_changed = rxn_probability_changed_; \
+      iteration_report = iteration_report_; \
       postprocess_in_ctor(); \
       check_semantics(); \
     } \
@@ -130,6 +132,20 @@ public:
   virtual bool get_rxn_probability_changed() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return rxn_probability_changed;
+  }
+
+  bool iteration_report;
+  virtual void set_iteration_report(const bool new_iteration_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'iteration_report' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    iteration_report = new_iteration_report_;
+  }
+  virtual bool get_iteration_report() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return iteration_report;
   }
 
   // --- methods ---

@@ -96,6 +96,9 @@ public:
 
   int memory_limit_gb; // -1 means that limit is disabled
 
+  // similar to MCell3's ITERATION_REPORT
+  bool iteration_report;
+
   int simulation_stats_every_n_iterations;
 
   bool continue_after_sigalrm;

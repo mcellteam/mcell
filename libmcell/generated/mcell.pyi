@@ -1108,12 +1108,14 @@ class Notifications():
             bng_verbosity_level : int = 0,
             rxn_and_species_report : bool = False,
             simulation_stats_every_n_iterations : int = 0,
-            rxn_probability_changed : bool = True
+            rxn_probability_changed : bool = True,
+            iteration_report : bool = True
         ):
         self.bng_verbosity_level = bng_verbosity_level
         self.rxn_and_species_report = rxn_and_species_report
         self.simulation_stats_every_n_iterations = simulation_stats_every_n_iterations
         self.rxn_probability_changed = rxn_probability_changed
+        self.iteration_report = iteration_report
 
 
 class Observables():

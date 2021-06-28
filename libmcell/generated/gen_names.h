@@ -181,6 +181,7 @@ const char* const NAME_IS_BNGL_COMPARTMENT = "is_bngl_compartment";
 const char* const NAME_IS_INTERMEMBRANE_SURFACE_REACTION = "is_intermembrane_surface_reaction";
 const char* const NAME_IS_MOVABLE = "is_movable";
 const char* const NAME_ITERATION = "iteration";
+const char* const NAME_ITERATION_REPORT = "iteration_report";
 const char* const NAME_ITERATIONS = "iterations";
 const char* const NAME_LEFT_NODE = "left_node";
 const char* const NAME_LOAD_BNGL = "load_bngl";

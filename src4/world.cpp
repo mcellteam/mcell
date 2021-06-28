@@ -393,7 +393,7 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
   uint64_t this_run_first_iteration = stats.get_current_iteration();
   uint64_t& current_iteration = stats.get_current_iteration();
 
-  if (current_iteration == 0) {
+  if (current_iteration == 0 && config.iteration_report) {
     cout << "Iterations: " << current_iteration << " of " << total_iterations << "\n";
   }
 
@@ -452,21 +452,23 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
     if (current_iteration > previous_iteration) {
 
       if (current_iteration % output_frequency == 0) {
-        cout << "Iterations: " << current_iteration << " of " << total_iterations;
-
         auto current_time = std::chrono::steady_clock::now();
 
-        double iters_per_sec =
-			    1000000.0 /
-  		    ((chrono::duration_cast<chrono::microseconds>(current_time - previous_progress_report_time).count() /
-           (double)output_frequency));
-        cout << " (" << iters_per_sec << " iter/sec)";
-        previous_progress_report_time = current_time;
+        if (config.iteration_report) {
+          cout << "Iterations: " << current_iteration << " of " << total_iterations;
 
-        cout << " " << bng_engine.get_stats_report();
+          double iters_per_sec =
+            1000000.0 /
+            ((chrono::duration_cast<chrono::microseconds>(current_time - previous_progress_report_time).count() /
+             (double)output_frequency));
+          cout << " (" << iters_per_sec << " iter/sec)";
+          previous_progress_report_time = current_time;
 
-        cout << "\n";
-        cout.flush(); // flush is required so that CellBlender can display progress
+          cout << " " << bng_engine.get_stats_report();
+
+          cout << "\n";
+          cout.flush(); // flush is required so that CellBlender can display progress
+        }
 
         // should we also flush count buffers?
         double time_diff = chrono::duration_cast<chrono::seconds>(current_time - previous_buffer_flush_time).count();

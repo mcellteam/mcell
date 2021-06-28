@@ -42,6 +42,7 @@ void GenNotifications::set_all_attributes_as_default_or_unset() {
   rxn_and_species_report = false;
   simulation_stats_every_n_iterations = 0;
   rxn_probability_changed = true;
+  iteration_report = true;
 }
 
 std::shared_ptr<Notifications> GenNotifications::copy_notifications() const {
@@ -51,6 +52,7 @@ std::shared_ptr<Notifications> GenNotifications::copy_notifications() const {
   res->rxn_and_species_report = rxn_and_species_report;
   res->simulation_stats_every_n_iterations = simulation_stats_every_n_iterations;
   res->rxn_probability_changed = rxn_probability_changed;
+  res->iteration_report = iteration_report;
 
   return res;
 }
@@ -62,6 +64,7 @@ std::shared_ptr<Notifications> GenNotifications::deepcopy_notifications(py::dict
   res->rxn_and_species_report = rxn_and_species_report;
   res->simulation_stats_every_n_iterations = simulation_stats_every_n_iterations;
   res->rxn_probability_changed = rxn_probability_changed;
+  res->iteration_report = iteration_report;
 
   return res;
 }
@@ -71,7 +74,8 @@ bool GenNotifications::__eq__(const Notifications& other) const {
     bng_verbosity_level == other.bng_verbosity_level &&
     rxn_and_species_report == other.rxn_and_species_report &&
     simulation_stats_every_n_iterations == other.simulation_stats_every_n_iterations &&
-    rxn_probability_changed == other.rxn_probability_changed;
+    rxn_probability_changed == other.rxn_probability_changed &&
+    iteration_report == other.iteration_report;
 }
 
 bool GenNotifications::eq_nonarray_attributes(const Notifications& other, const bool ignore_name) const {
@@ -79,7 +83,8 @@ bool GenNotifications::eq_nonarray_attributes(const Notifications& other, const 
     bng_verbosity_level == other.bng_verbosity_level &&
     rxn_and_species_report == other.rxn_and_species_report &&
     simulation_stats_every_n_iterations == other.simulation_stats_every_n_iterations &&
-    rxn_probability_changed == other.rxn_probability_changed;
+    rxn_probability_changed == other.rxn_probability_changed &&
+    iteration_report == other.iteration_report;
 }
 
 std::string GenNotifications::to_str(const bool all_details, const std::string ind) const {
@@ -88,7 +93,8 @@ std::string GenNotifications::to_str(const bool all_details, const std::string i
       "bng_verbosity_level=" << bng_verbosity_level << ", " <<
       "rxn_and_species_report=" << rxn_and_species_report << ", " <<
       "simulation_stats_every_n_iterations=" << simulation_stats_every_n_iterations << ", " <<
-      "rxn_probability_changed=" << rxn_probability_changed;
+      "rxn_probability_changed=" << rxn_probability_changed << ", " <<
+      "iteration_report=" << iteration_report;
   return ss.str();
 }
 
@@ -99,12 +105,14 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
             const int,
             const bool,
             const int,
+            const bool,
             const bool
           >(),
           py::arg("bng_verbosity_level") = 0,
           py::arg("rxn_and_species_report") = false,
           py::arg("simulation_stats_every_n_iterations") = 0,
-          py::arg("rxn_probability_changed") = true
+          py::arg("rxn_probability_changed") = true,
+          py::arg("iteration_report") = true
       )
       .def("check_semantics", &Notifications::check_semantics)
       .def("__copy__", &Notifications::copy_notifications)
@@ -116,6 +124,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "When set to True, simulation generates files rxn_report_SEED.txt, and \nspecies_report_SEED.txt that contain details on reaction classes and species \nthat were created based on reaction rules.   \n")
       .def_property("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations, "When set to a value other than 0, internal simulation stats will be printed. \n")
       .def_property("rxn_probability_changed", &Notifications::get_rxn_probability_changed, &Notifications::set_rxn_probability_changed, "When True, information that a reaction's probability has changed is printed during simulation.    \n")
+      .def_property("iteration_report", &Notifications::get_iteration_report, &Notifications::set_iteration_report, "When True, a running report of how many iterations have completed, chosen based \non the total number of iterations, will be printed during simulation. \n")
     ;
 }
 
@@ -149,6 +158,9 @@ std::string GenNotifications::export_to_python(std::ostream& out, PythonExportCo
   }
   if (rxn_probability_changed != true) {
     ss << ind << "rxn_probability_changed = " << rxn_probability_changed << "," << nl;
+  }
+  if (iteration_report != true) {
+    ss << ind << "iteration_report = " << iteration_report << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

@@ -227,6 +227,7 @@ void MCell4Converter::convert_simulation_setup() {
 
   // notifications and reports
   const API::Notifications& notifications = model->notifications;
+  world->config.iteration_report = notifications.iteration_report;
   world->config.rxn_and_species_report = notifications.rxn_and_species_report;
   world->config.simulation_stats_every_n_iterations = notifications.simulation_stats_every_n_iterations;
 

@@ -176,6 +176,10 @@ Attributes:
 * | **rxn_probability_changed**: bool = True
   | When True, information that a reaction's probability has changed is printed during simulation.
 
+* | **iteration_report**: bool = True
+  | When True, a running report of how many iterations have completed, chosen based 
+  | on the total number of iterations, will be printed during simulation.
+
 Warnings
 ========
 

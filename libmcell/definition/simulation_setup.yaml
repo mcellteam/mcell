@@ -253,7 +253,14 @@ Notifications:
     doc: | 
        When True, information that a reaction's probability has changed is printed during simulation.    
 
-      
+  - name: iteration_report
+    type: bool
+    default: True
+    doc: |
+       When True, a running report of how many iterations have completed, chosen based 
+       on the total number of iterations, will be printed during simulation.
+    todo: add to cellblender and data model import/export 
+     
   # none of these notifications below are currrently interpreted by mcell
 #   - name: probability_report
 #     type: bool
@@ -269,9 +276,7 @@ Notifications:
 #     type: bool
 #     default: True
 #   
-#   - name: iteration_report
-#     type: bool
-#     default: True
+
 #   
 #  PARTITION_LOCATION_REPORT - maybe rename to something modere useful, used here: vol_util.cpp:1835
 #   
