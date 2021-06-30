@@ -322,6 +322,9 @@ SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES_ONLY_MCELL} PROPERTIES LANGUAGE CXX 
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
+# may be empty
+link_directories(${SYSTEM_PYTHON_LIB_DIR})
+
 if (UNIX)
   SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
@@ -388,21 +391,30 @@ set_target_properties(mcell PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}"
 )
 
-TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
-add_dependencies(mcell version_h mcell4)  
-target_link_libraries(mcell mcell4 libmcell_dummy libbng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES} python3.9)
-
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
-add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
-
 if (NOT WIN32 AND NOT APPLE)
     set(STDC_FS stdc++fs)
 endif()
 
+if(NOT APPLE)
+    # causes segfault on MacOS if linked
+    set(LINKED_PYTHON_LIB_MCELL_SO python3.9)
+endif()
+set(LINKED_PYTHON_LIB_MCELL_BIN python3.9)
+
+
+TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
+add_dependencies(mcell version_h mcell4)  
+target_link_libraries(mcell 
+    mcell4 libmcell_dummy libbng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES} ${LINKED_PYTHON_LIB_MCELL_BIN}
+)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
+
 add_dependencies(mcell4_so libmcell mcell4 libbng jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 libbng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS} ${WIN_PYTHON} python3.9
+    PRIVATE mcell4 libbng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS} ${WIN_PYTHON} ${LINKED_PYTHON_LIB_MCELL_SO}
     PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
 )
 
