@@ -1,6 +1,8 @@
-*******************
-MCell4 Installation
-*******************
+.. _installation_section:
+
+************
+Installation
+************
 
 Download
 ########

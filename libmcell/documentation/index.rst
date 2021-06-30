@@ -6,35 +6,41 @@
 MCell4 Reference Manual
 =======================
 
+This documentation contains an overview of the MCell4 API (Application Programming Interface)
+with a tutorial, examples, and a complete definition of the interface.  
+
 .. toctree::
-   :maxdepth: 2
-   :hidden:
+   :maxdepth: 1
    :caption: Contents
    
    installation
-   overview
-   generated/api
+   sim_env_overview
    tutorial/tutorial
+   examples/examples
+   overview
    bngl
+   generated/api
    model_conversions
    file_formats
 
-This documentation contains an overview of the MCell4 API 
-with explanations and a complete definition of the interface.  
-
-:ref:`installation:MCell4 Installation`
-
-:ref:`overview:API Overview`
-
-:ref:`tutorial/tutorial:MCell4 Python Tutorial`
-
-:ref:`generated/api:API Documentation`
-
-:ref:`bngl:BioNetGen Language Support`
-
-:ref:`model_conversions:Model Conversions`
-
-:ref:`file_formats:File Formats`
+..
+      :ref:`installation:Installation`
+      
+      :ref:`TODO: MCell4 Simulation Environment Overview` # cellblender, links to tutorials, short basic BNGL 
+      
+      :ref:`tutorial/tutorial:MCell4 Python Tutorial` # add links to all files used
+      
+      :ref:`TODO: MCell4 Python Examples` # reuse automatically text from CellBlender examples description 
+      
+      :ref:`overview:API Overview`  # add info from powerpoint slides
+      
+      :ref:`bngl:BioNetGen Language Overview`  
+      
+      :ref:`generated/api:API Documentation`
+      
+      :ref:`model_conversions:Model Conversions` # export
+      
+      :ref:`file_formats:File Formats`
 
 ..
    Indices and tables
