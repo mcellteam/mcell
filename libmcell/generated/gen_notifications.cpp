@@ -1,22 +1,11 @@
 /******************************************************************************
  *
- * Copyright (C) 2020 by
+ * Copyright (C) 2021 by
  * The Salk Institute for Biological Studies
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -124,7 +113,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "When set to True, simulation generates files rxn_report_SEED.txt, and \nspecies_report_SEED.txt that contain details on reaction classes and species \nthat were created based on reaction rules.   \n")
       .def_property("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations, "When set to a value other than 0, internal simulation stats will be printed. \n")
       .def_property("rxn_probability_changed", &Notifications::get_rxn_probability_changed, &Notifications::set_rxn_probability_changed, "When True, information that a reaction's probability has changed is printed during simulation.    \n")
-      .def_property("iteration_report", &Notifications::get_iteration_report, &Notifications::set_iteration_report, "When True, a running report of how many iterations have completed, chosen based \non the total number of iterations, will be printed during simulation. \n")
+      .def_property("iteration_report", &Notifications::get_iteration_report, &Notifications::set_iteration_report, "When True, a running report of how many iterations have completed, chosen based \non the total number of iterations, will be printed during simulation.\n")
     ;
 }
 

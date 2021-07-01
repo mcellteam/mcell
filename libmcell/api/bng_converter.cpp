@@ -1,9 +1,13 @@
-/*
- * bng_converter.cpp
+/******************************************************************************
  *
- *  Created on: Jan 28, 2021
- *      Author: ahusar
- */
+ * Copyright (C) 2020-2021 by
+ * The Salk Institute for Biological Studies
+ *
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
+ *
+******************************************************************************/
 
 #include "api/bng_converter.h"
 
