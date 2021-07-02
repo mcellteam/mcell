@@ -174,7 +174,7 @@ def run_mcell4(args_str_w_opts):
     
     print("Running " + cmd_str)
     
-    args_log = args_str.replace(' ', '_').replace('-', '_')
+    args_log = args_str.replace(' ', '_').replace('-', '_').replace('\\', '_').replace('/', '_')
     log_name = os.path.join(
         LOGS_DIR, 
         os.path.splitext(os.path.basename(opts.main_model_file))[0] + '_' + args_log + '.mcell4.log')
