@@ -39,7 +39,7 @@ fi
 
 if [ "$(uname)" == "Darwin" ]; then
   # path on MacOS
-  # /Applications/Blender-2.79-CellBlender/blender.app/Contents/Resources/2.79/scripts/addons/cellblender/extensions/mcell/
+  # /Applications/Blender-2.93-CellBlender/blender.app/Contents/Resources/2.93/scripts/addons/cellblender/extensions/mcell/
   REL_BLENDER_PATH=$MCELL_PATH/../../../../../../../../../
 else
   REL_BLENDER_PATH=$MCELL_PATH/../../../../../../
@@ -49,9 +49,9 @@ fi
 ABS_BLENDER_PATH=`cd $REL_BLENDER_PATH; pwd`
 
 if [ "$(uname)" == "Darwin" ]; then
-  VIZ_MCELL_SCRIPT=$ABS_BLENDER_PATH/blender.app/Contents/Resources/2.79/scripts/addons/cellblender/developer_utilities/mol_viz_scripts/viz_mcell_run.py
+  VIZ_MCELL_SCRIPT=$ABS_BLENDER_PATH/blender.app/Contents/Resources/2.93/scripts/addons/cellblender/developer_utilities/mol_viz_scripts/viz_mcell_run.py
 else
-  VIZ_MCELL_SCRIPT=$ABS_BLENDER_PATH/2.79/scripts/addons/cellblender//developer_utilities/mol_viz_scripts/viz_mcell_run.py
+  VIZ_MCELL_SCRIPT=$ABS_BLENDER_PATH/2.93/scripts/addons/cellblender/developer_utilities/mol_viz_scripts/viz_mcell_run.py
 fi
 
 
