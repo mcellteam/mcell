@@ -29,6 +29,7 @@ public:
     : bngl_filename(bngl_filename_), bng_out(bng_out_), data(data_) {
   }
 
+  void generate_units_information_header();
   void generate_parameters(std::ostream& python_out);
   void generate_mol_types(std::ostream& python_out);
 

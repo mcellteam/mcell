@@ -23,6 +23,27 @@ namespace MCell {
 using Json::Value;
 using namespace API;
 
+void BNGLGenerator::generate_units_information_header() {
+  bool use_bng_units = false;
+  if (data.mcell.isMember(KEY_USE_BNG_UNITS)) {
+    use_bng_units = data.mcell[KEY_USE_BNG_UNITS].asBool();
+  }
+
+  bng_out << "\n";
+  if (use_bng_units) {
+    bng_out << "# File uses BioNetGen ODE/SSA/PLA units for bimolecular reactions (um^3*N^-1*s^-1).\n";
+    bng_out << "# When used with MCell, global option Model.config.use_bng_units must be set to True.\n";
+    bng_out << "# WARNING: NFSim simulation won't produce correct result because NFSim uses different units than BioNetGen ODE.\n";
+  }
+  else {
+    bng_out << "# File uses standard MCell units for bimolecular reactions (M^-1*s^-1 and um^2*N^-1*s^-1).\n";
+    bng_out << "# When used with MCell, global option Model.config.use_bng_units must be set to False.\n";
+    bng_out << "# WARNING: Simulation with BioNetGen won't produce correct results because BioNetGen uses different units than MCell.\n";
+  }
+  bng_out << "\n";
+}
+
+
 void BNGLGenerator::generate_single_bngl_parameter(Value& parameter) {
   if (parameter[KEY_PAR_DESCRIPTION].asString() != "") {
     bng_out << IND << "# " << parameter[KEY_PAR_DESCRIPTION].asString() << "\n";

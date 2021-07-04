@@ -57,6 +57,7 @@ const char* const VALUE_CELLBLENDER_VERSION = "0.1.54";
 const char* const KEY_MODEL_LANGUAGE = "model_language";
 const char* const VALUE_MCELL3 = "mcell3";
 const char* const VALUE_MCELL4 = "mcell4";
+const char* const KEY_USE_BNG_UNITS = "use_bng_units";
 const char* const KEY_PARAMETER_SYSTEM = "parameter_system";
 
 const char* const KEY_BLENDER_VERSION = "blender_version";

@@ -78,6 +78,7 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
     bng_out << GENERATED_WARNING;
     bng_gen = new BNGLGenerator(
         get_filename(data.output_files_prefix, MODEL, BNGL_EXT), bng_out, data);
+    bng_gen->generate_units_information_header();
   }
   python_gen = new PythonGenerator(data);
 
@@ -1077,8 +1078,11 @@ static std::string convert_warning_level(const std::string& value) {
 void MCell4Generator::generate_config(ostream& out) {
   out << make_section_comment("configuration");
 
-  // using values from generated parameters.py
+  // using values from generated parameters.py where applicable
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, PARAM_TIME_STEP);
+  if (data.mcell.isMember(KEY_USE_BNG_UNITS) && data.mcell[KEY_USE_BNG_UNITS].asBool()) {
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_USE_BNG_UNITS, true);
+  }
   gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, PARAM_SEED);
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS, PARAM_ITERATIONS);
   out << "\n";

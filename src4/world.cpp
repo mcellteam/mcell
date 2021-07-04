@@ -891,6 +891,7 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   simulation_control[KEY_EXPORT_FORMAT] = VALUE_MCELL_MDL_MODULAR;
 
   mcell[KEY_MODEL_LANGUAGE] = VALUE_MCELL4;
+  mcell[KEY_USE_BNG_UNITS] = config.use_bng_units;
 
   Json::Value& blender_version = mcell[KEY_BLENDER_VERSION];
   blender_version.append(Json::Value(BLENDER_VERSION[0]));
