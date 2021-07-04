@@ -308,18 +308,21 @@ Attributes:
   | List of reactant patterns. May be empty.
 
 * | **fwd_rate**: float = None
-  | Rates have following units\: unimolecular [s^-1], volume bimolecular [M^-1\*s^-1], 
-  | The units of the reaction rate for uni- and bimolecular reactions are
+  | The units of the reaction rate for uni- and bimolecular reactions are\:
   |   \* [s^-1] for unimolecular reactions,
-  |   \* [M^-1\*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule 
-  |                 and a surface (molecule), 
-  |   \* [um^2\*N^-1\*s^-1] bimolecular reactions between two surface molecules on the same surface, and
   |   \* [N^-1\*s^-1] bimolecular reactions between two surface molecules on different objects 
   |     (this is a highly experimental feature and the unit will likely change in the future, 
   |      not sure if probability is computed correctly, it works the way that the surface molecule 
   |      is first diffused and then a potential collisions within the distance of Config.intermembrane_interaction_radius
   |      are evaluated). 
-  | Here, M is the molarity of the solution and N the number of reactants.
+  | Other bimolecular reaction units depend on Model.config.use_bng_units settings.
+  | When use_bng_units is False (default), traditional MCell units are used:  
+  |   \* [M^-1\*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule 
+  |                 and a surface (molecule), 
+  |   \* [um^2\*N^-1\*s^-1] bimolecular reactions between two surface molecules on the same surface, and
+  | When use_bng_units is True, units compatible with BioNetGen's ODE, SSA, and PLA solvers are used:
+  |   \* [um^3\*N^-1\*s^-1] for any bimolecular reactions, surface-surface reaction rate conversion assumes 10nm membrane thickness. 
+  | M is the molarity of the solution and N the number of reactants.
   | May be changed after model initialization. 
   | Setting of value is ignored if the rate does not change. 
   | If the new value differs from previous, updates all information related 
@@ -332,7 +335,8 @@ Attributes:
 * | **rev_rate**: float = None
   | Reverse reactions rate, reaction is unidirectional when not specified.
   | May be changed after model initialization, in the case behaves the same was as for 
-  | changing the 'fwd_rate'.
+  | changing the 'fwd_rate'. 
+  | Uses the same units as 'fwd_rate'.
 
 * | **variable_rate**: List[List[float]] = None
   | The array passed as this argument must have as its items a pair of floats (time in s, rate).

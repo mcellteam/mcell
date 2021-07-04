@@ -33,6 +33,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   class_name = "Config";
   seed = 1;
   time_step = 1e-6;
+  use_bng_units = false;
   surface_grid_density = 10000;
   interaction_radius = FLT_UNSET;
   intermembrane_interaction_radius = FLT_UNSET;
@@ -60,6 +61,7 @@ std::shared_ptr<Config> GenConfig::copy_config() const {
   res->class_name = class_name;
   res->seed = seed;
   res->time_step = time_step;
+  res->use_bng_units = use_bng_units;
   res->surface_grid_density = surface_grid_density;
   res->interaction_radius = interaction_radius;
   res->intermembrane_interaction_radius = intermembrane_interaction_radius;
@@ -89,6 +91,7 @@ std::shared_ptr<Config> GenConfig::deepcopy_config(py::dict) const {
   res->class_name = class_name;
   res->seed = seed;
   res->time_step = time_step;
+  res->use_bng_units = use_bng_units;
   res->surface_grid_density = surface_grid_density;
   res->interaction_radius = interaction_radius;
   res->intermembrane_interaction_radius = intermembrane_interaction_radius;
@@ -117,6 +120,7 @@ bool GenConfig::__eq__(const Config& other) const {
   return
     seed == other.seed &&
     time_step == other.time_step &&
+    use_bng_units == other.use_bng_units &&
     surface_grid_density == other.surface_grid_density &&
     interaction_radius == other.interaction_radius &&
     intermembrane_interaction_radius == other.intermembrane_interaction_radius &&
@@ -153,6 +157,7 @@ bool GenConfig::eq_nonarray_attributes(const Config& other, const bool ignore_na
   return
     seed == other.seed &&
     time_step == other.time_step &&
+    use_bng_units == other.use_bng_units &&
     surface_grid_density == other.surface_grid_density &&
     interaction_radius == other.interaction_radius &&
     intermembrane_interaction_radius == other.intermembrane_interaction_radius &&
@@ -190,6 +195,7 @@ std::string GenConfig::to_str(const bool all_details, const std::string ind) con
   ss << get_object_name() << ": " <<
       "seed=" << seed << ", " <<
       "time_step=" << time_step << ", " <<
+      "use_bng_units=" << use_bng_units << ", " <<
       "surface_grid_density=" << surface_grid_density << ", " <<
       "interaction_radius=" << interaction_radius << ", " <<
       "intermembrane_interaction_radius=" << intermembrane_interaction_radius << ", " <<
@@ -219,6 +225,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::init<
             const int,
             const double,
+            const bool,
             const double,
             const double,
             const double,
@@ -242,6 +249,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           >(),
           py::arg("seed") = 1,
           py::arg("time_step") = 1e-6,
+          py::arg("use_bng_units") = false,
           py::arg("surface_grid_density") = 10000,
           py::arg("interaction_radius") = FLT_UNSET,
           py::arg("intermembrane_interaction_radius") = FLT_UNSET,
@@ -271,6 +279,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def("dump", &Config::dump)
       .def_property("seed", &Config::get_seed, &Config::set_seed, "Random generator seed value.")
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step, "Set the simulation time step to time_step seconds. 1e-6 (1us) is a common value. \nOne can set the time steps taken by individual molecules, but this \ntime step is still used as a default.\n")
+      .def_property("use_bng_units", &Config::get_use_bng_units, &Config::set_use_bng_units, "When False (default), MCell uses traditional MCell units for bimolecular reaction rates are:\n * [M^-1*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule \n               and a surface (molecule), \n * [um^2*N^-1*s^-1] bimolecular reactions between two surface molecules on the same surface.\nWhen True, BioNetGen units for bimolecular reaction rates are:\n * [um^3*N^-1*s^-1] for any bimolecular reactions. Surface-surface reaction rate conversion assumes 10nm membrane thickness\nBioNetGen units are compatible with BioNetGen's ODE, SSA, and PLA solvers given that seed species \nis copy number (N), these units are not compatible with NFSim. \nNo other units are affected by this settings.\n")
       .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density, "Tile all surfaces so that they can hold molecules at N different positions per square micron.")
       .def_property("interaction_radius", &Config::get_interaction_radius, &Config::set_interaction_radius, "Diffusing volume molecules will interact with each other when\nthey get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified).\n")
       .def_property("intermembrane_interaction_radius", &Config::get_intermembrane_interaction_radius, &Config::set_intermembrane_interaction_radius, "Diffusing surface molecules will interact with surface molecules on other\nwalls when they get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified). \nWhen unset, the default value is computed as: \n1.0 / sqrt_f(MY_PI * surface_grid_density).\n")
@@ -318,6 +327,9 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
   }
   if (time_step != 1e-6) {
     ss << ind << "time_step = " << f_to_str(time_step) << "," << nl;
+  }
+  if (use_bng_units != false) {
+    ss << ind << "use_bng_units = " << use_bng_units << "," << nl;
   }
   if (surface_grid_density != 10000) {
     ss << ind << "surface_grid_density = " << f_to_str(surface_grid_density) << "," << nl;

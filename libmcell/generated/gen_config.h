@@ -26,6 +26,7 @@ class PythonExportContext;
     Config( \
         const int seed_ = 1, \
         const double time_step_ = 1e-6, \
+        const bool use_bng_units_ = false, \
         const double surface_grid_density_ = 10000, \
         const double interaction_radius_ = FLT_UNSET, \
         const double intermembrane_interaction_radius_ = FLT_UNSET, \
@@ -50,6 +51,7 @@ class PythonExportContext;
       class_name = "Config"; \
       seed = seed_; \
       time_step = time_step_; \
+      use_bng_units = use_bng_units_; \
       surface_grid_density = surface_grid_density_; \
       interaction_radius = interaction_radius_; \
       intermembrane_interaction_radius = intermembrane_interaction_radius_; \
@@ -129,6 +131,20 @@ public:
   virtual double get_time_step() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return time_step;
+  }
+
+  bool use_bng_units;
+  virtual void set_use_bng_units(const bool new_use_bng_units_) {
+    if (initialized) {
+      throw RuntimeError("Value 'use_bng_units' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    use_bng_units = new_use_bng_units_;
+  }
+  virtual bool get_use_bng_units() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return use_bng_units;
   }
 
   double surface_grid_density;

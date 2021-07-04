@@ -52,11 +52,40 @@ std::string BNGLExporter::export_to_bngl(
     return "Could not open output file " + file_name + ".";
   }
 
+  out << "# This file was an automatically exported from MCell\n";
+  out << "# Used units:\n";
+  if (world->config.use_bng_units) {
+    out << "# Seed species rxn rates: N (copy number)\n";
+    out << "# Compartment volume: um^3\n";
+    out << "# Unimolecular rxn rates: 1/s\n";
+    if (world->config.use_bng_units) {
+      out << "# Bimolecular rxn rates: um^3*N^-1*s^-1\n";
+    }
+    else {
+      out << "# MCell bimolecular vol-vol or vol-surf rxn rates: M^-1*s^-1\n";
+      out << "# MCell bimolecular surf-surf rxn rates: um^2*N^-1*s^-1\n";
+      if (nfsim_export) {
+        out << "# NFSim bimolecular rxn rates: N^-1*s^-1 (compartment volumes are ignored)\n";
+      }
+      else {
+        out << "# BioNetGen (ODE, SSA, PLA) bimolecular rxn rates: um^3*N^-1*s^-1\n";
+      }
+    }
+  }
+  out << "\n";
+
   const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
-  if (p.get_geometry_objects().size() > 1 && nfsim_export) {
-    // fail immediately
-    return "BNGL export with NFSim is not supported only for models having 1 geometry object.\n";
+  if (nfsim_export) {
+    if (world->config.use_bng_units) {
+      // fail immediately
+      return "BNGL export with NFSim using BNG units as a source is not supported yet.\n";
+    }
+
+    if (p.get_geometry_objects().size() > 1) {
+      // fail immediately
+      return "BNGL export with NFSim is not supported only for models having 1 geometry object.\n";
+    }
   }
 
   // check if there is a single object

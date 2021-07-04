@@ -234,6 +234,8 @@ void MCell4Converter::convert_simulation_setup() {
 
   world->total_iterations = config.total_iterations;
   world->config.time_unit = config.time_step;
+  world->config.use_bng_units = config.use_bng_units;
+
   world->config.initial_time = config.initial_time;
   world->config.initial_iteration = config.initial_iteration;
 

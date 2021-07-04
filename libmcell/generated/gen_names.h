@@ -286,6 +286,7 @@ const char* const NAME_TRANSLATE = "translate";
 const char* const NAME_TYPE = "type";
 const char* const NAME_UNIMOL_RX_TIME = "unimol_rx_time";
 const char* const NAME_UNIT_NORMAL = "unit_normal";
+const char* const NAME_USE_BNG_UNITS = "use_bng_units";
 const char* const NAME_VACANCY_SEARCH_DISTANCE = "vacancy_search_distance";
 const char* const NAME_VARIABLE_RATE = "variable_rate";
 const char* const NAME_VERTEX_INDEX = "vertex_index";

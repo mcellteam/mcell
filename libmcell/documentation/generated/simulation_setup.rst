@@ -18,6 +18,17 @@ Attributes:
   | One can set the time steps taken by individual molecules, but this 
   | time step is still used as a default.
 
+* | **use_bng_units**: bool = False
+  | When False (default), MCell uses traditional MCell units for bimolecular reaction rates are:
+  |  \* [M^-1\*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule 
+  |                and a surface (molecule), 
+  |  \* [um^2\*N^-1\*s^-1] bimolecular reactions between two surface molecules on the same surface.
+  | When True, BioNetGen units for bimolecular reaction rates are:
+  |  \* [um^3\*N^-1\*s^-1] for any bimolecular reactions. Surface-surface reaction rate conversion assumes 10nm membrane thickness
+  | BioNetGen units are compatible with BioNetGen's ODE, SSA, and PLA solvers given that seed species 
+  | is copy number (N), these units are not compatible with NFSim. 
+  | No other units are affected by this settings.
+
 * | **surface_grid_density**: float = 10000
   | Tile all surfaces so that they can hold molecules at N different positions per square micron.
 

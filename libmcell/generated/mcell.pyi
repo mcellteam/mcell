@@ -351,6 +351,7 @@ class Config():
             self,
             seed : int = 1,
             time_step : float = 1e-6,
+            use_bng_units : bool = False,
             surface_grid_density : float = 10000,
             interaction_radius : float = None,
             intermembrane_interaction_radius : float = None,
@@ -374,6 +375,7 @@ class Config():
         ):
         self.seed = seed
         self.time_step = time_step
+        self.use_bng_units = use_bng_units
         self.surface_grid_density = surface_grid_density
         self.interaction_radius = interaction_radius
         self.intermembrane_interaction_radius = intermembrane_interaction_radius

@@ -82,9 +82,11 @@ void SimulationStats::print_missed_rxns_warnings() {
         double perc =
             0.001 * round(1000 * stats.skipped * 100 / (stats.skipped + stats.occurred));
 
-        cerr <<
-            "  " << n1_map_pair.first << " + " << n2_stats_pair.first << "  --  " <<
-            perc << "% of reactions missed.\n";
+        if (perc >= SQRT_EPS) { // ignore really small values
+          cerr <<
+              "  " << n1_map_pair.first << " + " << n2_stats_pair.first << "  --  " <<
+              perc << "% of reactions missed.\n";
+        }
       }
     }
   }
