@@ -2161,6 +2161,8 @@ place_surface_molecule
         to simplify the logic when placing a surface macromolecule.
         (i.e. place all molecules, and once we're sure we've succeeded,
         schedule them all and count them all.)
+
+  Returns MOLECULE_ID_INVALID if no tile was found.
  *************************************************************************/
 static molecule_id_t place_surface_molecule_to_closest_pos(
     Partition& p,

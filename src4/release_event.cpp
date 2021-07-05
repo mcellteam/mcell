@@ -970,21 +970,18 @@ void ReleaseEvent::release_list() {
           event_time, get_release_delay_time()
       );
 
-      const Molecule& sm = p.get_m(sm_id);
-      schedule_for_immediate_diffusion_if_needed(sm_id, WallTileIndexPair(sm.s.wall_index, sm.s.grid_tile_index));
-
       if (sm_id != MOLECULE_ID_INVALID) {
+        const Molecule& sm = p.get_m(sm_id);
+        schedule_for_immediate_diffusion_if_needed(sm_id, WallTileIndexPair(sm.s.wall_index, sm.s.grid_tile_index));
+
         cout
           << "Released 1 " << species.name << " from \"" << release_site_name << "\""
           << " at iteration " << world->get_current_iteration() << ".\n";
       }
       else {
-        // TODO: unify logging, have some C++ streams,,,
-        mcell_error("Could not release %s from %s, possibly the release diameter is too short.",
-            species.name.c_str(), release_site_name.c_str()
-        );
+        warns() << "Could not release " << species.name << " from " << release_site_name <<
+            " possibly the release diameter is too short.";
       }
-
     }
   }
 }
