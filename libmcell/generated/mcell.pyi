@@ -1530,9 +1530,11 @@ class WallWallHitInfo():
 class Warnings():
     def __init__(
             self,
-            high_reaction_probability : WarningLevel = WarningLevel.IGNORE
+            high_reaction_probability : WarningLevel = WarningLevel.IGNORE,
+            molecule_placement_failure : WarningLevel = WarningLevel.ERROR
         ):
         self.high_reaction_probability = high_reaction_probability
+        self.molecule_placement_failure = molecule_placement_failure
 
 
 class bngl_utils():

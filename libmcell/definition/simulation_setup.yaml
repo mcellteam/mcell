@@ -327,6 +327,12 @@ Warnings:
        Cannot be set to WarningLevel.ERROR.
     examples: tests/nutmeg4_pymcell4/0615_bimol_rxn_prob_over_05_less_1_warning_disabled/model.py 
     
+  - name: molecule_placement_failure
+    type: WarningLevel
+    default: WarningLevel.ERROR
+    doc: | 
+       Print a warning or end with an error when a release of a molecule fails.
+    
 #   - name: molecule_collision_report
 #     type: WarningLevel
 #     default: WarningLevel.WARNING

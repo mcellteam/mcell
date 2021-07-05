@@ -208,6 +208,9 @@ private:
   DiffuseReactEvent* running_diffuse_event_to_update;
 
 private:
+  // may end with error
+  void report_release_failure(const std::string& msg);
+
   uint calculate_number_to_release();
 
   int randomly_remove_molecules(

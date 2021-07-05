@@ -18,6 +18,10 @@ const char* const RUN_REPORT_PREFIX = "run_report_";
 
 namespace MCell {
 
+namespace API {
+enum class WarningLevel;
+};
+
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world
  */
@@ -76,6 +80,8 @@ public:
   bool randomize_smol_pos; /* If set, always place surface molecule at random
                              location instead of center of grid */
   bool check_overlapped_walls; /* Check geometry for overlapped walls? */
+
+  API::WarningLevel molecule_placement_failure;
 
   uint rxn_class_cleanup_periodicity;
   uint species_cleanup_periodicity;

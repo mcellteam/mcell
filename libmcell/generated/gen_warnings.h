@@ -23,10 +23,12 @@ class PythonExportContext;
 
 #define WARNINGS_CTOR() \
     Warnings( \
-        const WarningLevel high_reaction_probability_ = WarningLevel::IGNORE \
+        const WarningLevel high_reaction_probability_ = WarningLevel::IGNORE, \
+        const WarningLevel molecule_placement_failure_ = WarningLevel::ERROR \
     ) { \
       class_name = "Warnings"; \
       high_reaction_probability = high_reaction_probability_; \
+      molecule_placement_failure = molecule_placement_failure_; \
       postprocess_in_ctor(); \
       check_semantics(); \
     } \
@@ -71,6 +73,20 @@ public:
   virtual WarningLevel get_high_reaction_probability() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return high_reaction_probability;
+  }
+
+  WarningLevel molecule_placement_failure;
+  virtual void set_molecule_placement_failure(const WarningLevel new_molecule_placement_failure_) {
+    if (initialized) {
+      throw RuntimeError("Value 'molecule_placement_failure' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    molecule_placement_failure = new_molecule_placement_failure_;
+  }
+  virtual WarningLevel get_molecule_placement_failure() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return molecule_placement_failure;
   }
 
   // --- methods ---

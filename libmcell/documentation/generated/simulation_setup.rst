@@ -27,7 +27,7 @@ Attributes:
   |  \* [um^3\*N^-1\*s^-1] for any bimolecular reactions. Surface-surface reaction rate conversion assumes 10nm membrane thickness
   | BioNetGen units are compatible with BioNetGen's ODE, SSA, and PLA solvers given that seed species 
   | is copy number (N), these units are not compatible with NFSim. 
-  | No other units are affected by this settings.
+  | No other units are affected by this setting.
 
 * | **surface_grid_density**: float = 10000
   | Tile all surfaces so that they can hold molecules at N different positions per square micron.
@@ -206,4 +206,7 @@ Attributes:
 
   | Example: `0615_bimol_rxn_prob_over_05_less_1_warning_disabled/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/nutmeg4_pymcell4/0615_bimol_rxn_prob_over_05_less_1_warning_disabled/model.py>`_ 
 
+
+* | **molecule_placement_failure**: WarningLevel = WarningLevel.ERROR
+  | Print a warning or end with an error when a release of a molecule fails.
 

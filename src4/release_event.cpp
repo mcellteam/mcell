@@ -81,6 +81,21 @@ size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, do
 }
 
 
+void ReleaseEvent::report_release_failure(const std::string& msg) {
+  switch (world->config.molecule_placement_failure) {
+    case API::WarningLevel::IGNORE:
+      break;
+    case API::WarningLevel::WARNING:
+      warns() << msg << "\n";
+      break;
+    case API::WarningLevel::ERROR:
+      errs() << msg << "\n";
+      exit(1);
+      break;
+  }
+}
+
+
 bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
   // see https://mcell.org/tutorials/_images/plot.png
 
@@ -704,10 +719,14 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
       // TODO_LATER: MCell3 handles these cases better, however we were able to fill the whole
       // region even with this implementation
       const BNG::Species& species = world->get_all_species().get(species_id);
-      mcell_error("Could not release %d of %s at %s, too many failed attempts to place surface molecules. "
-          "The surface regions has total of %d tiles and %d were left empty after release attempts.",
-          computed_release_number, species.name.c_str(), release_site_name.c_str(),
-          total_tiles, free_tiles);
+
+      stringstream msg;
+      msg << "Could not release " << n << " of total " << computed_release_number << " of " << species.name <<
+          " at " << release_site_name << ", too many failed attempts to place surface molecules. "
+          "The surface region has total of " << total_tiles << " tiles and " << free_tiles <<
+          " were left empty after release attempts.";
+      report_release_failure(msg.str());
+      break;
     }
   }
 }
@@ -979,8 +998,10 @@ void ReleaseEvent::release_list() {
           << " at iteration " << world->get_current_iteration() << ".\n";
       }
       else {
-        warns() << "Could not release " << species.name << " from " << release_site_name <<
-            " possibly the release diameter is too short.";
+        stringstream msg;
+        msg << "Could not release " << species.name << " from " << release_site_name <<
+            " possibly the release diameter is too short.\n";
+        report_release_failure(msg.str());
       }
     }
   }
@@ -1161,8 +1182,8 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
       init_surf_mols_by_number(p, reg, info);
 
       cout
-        << "Released " << info.release_num << " " << world->get_all_species().get(info.species_id).name << " on region \"" << reg.name << "\""
-        << " at iteration " << world->get_current_iteration() << " (specified with number).\n";
+          << "Released " << info.release_num << " " << world->get_all_species().get(info.species_id).name << " on region \"" << reg.name << "\""
+          << " at iteration " << world->get_current_iteration() << " (specified with number).\n";
     }
   }
 }

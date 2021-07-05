@@ -1063,10 +1063,13 @@ void MCell4Generator::generate_observables() {
 
 // returns true for "ON and false for "OFF, fails when a different value is used
 static std::string convert_warning_level(const std::string& value) {
-  if (value == "WARNING") {
+  if (value == VALUE_ERROR) {
+    return S(MDOT) + NAME_ENUM_WARNING_LEVEL + "." + NAME_EV_ERROR;
+  }
+  else if (value == VALUE_WARNING) {
     return S(MDOT) + NAME_ENUM_WARNING_LEVEL + "." + NAME_EV_WARNING;
   }
-  else if (value == "IGNORED") {
+  else if (value == VALUE_IGNORED) {
     return S(MDOT) + NAME_ENUM_WARNING_LEVEL + "." + NAME_EV_IGNORE;
   }
   else {
@@ -1094,6 +1097,11 @@ void MCell4Generator::generate_config(ostream& out) {
 
     if (warnings.isMember(KEY_HIGH_REACTION_PROBABILITY)) {
       gen_assign(out, MODEL, NAME_WARNINGS, NAME_HIGH_REACTION_PROBABILITY,
+          convert_warning_level(warnings[KEY_HIGH_REACTION_PROBABILITY].asString())
+      );
+    }
+    if (warnings.isMember(KEY_MOLECULE_PLACEMENT_FAILURE)) {
+      gen_assign(out, MODEL, NAME_WARNINGS, NAME_MOLECULE_PLACEMENT_FAILURE,
           convert_warning_level(warnings[KEY_HIGH_REACTION_PROBABILITY].asString())
       );
     }

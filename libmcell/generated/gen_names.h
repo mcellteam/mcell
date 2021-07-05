@@ -184,6 +184,7 @@ const char* const NAME_MM = "mm";
 const char* const NAME_MODE = "mode";
 const char* const NAME_MOLECULE_ID = "molecule_id";
 const char* const NAME_MOLECULE_LIST = "molecule_list";
+const char* const NAME_MOLECULE_PLACEMENT_FAILURE = "molecule_placement_failure";
 const char* const NAME_MOLECULES_ORDER_RANDOM_SHUFFLE_PERIODICITY = "molecules_order_random_shuffle_periodicity";
 const char* const NAME_MOLECULES_PATTERN = "molecules_pattern";
 const char* const NAME_MOVE = "move";

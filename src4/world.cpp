@@ -900,6 +900,31 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
 }
 
 
+static std::string bool_warning_level_to_str(const bool v) {
+  if (v) {
+    return VALUE_WARNING;
+  }
+  else {
+    return VALUE_IGNORED;
+  }
+}
+
+
+static std::string warning_level_to_str(const API::WarningLevel v) {
+  switch (v) {
+    case API::WarningLevel::ERROR:
+      return VALUE_ERROR;
+    case API::WarningLevel::WARNING:
+      return VALUE_WARNING;
+    case API::WarningLevel::IGNORE:
+      return VALUE_IGNORED;
+    default:
+      assert(false);
+      return "invalid";
+  }
+}
+
+
 void World::initialization_to_data_model(Json::Value& mcell_node) const {
   // only setting defaults for now, most of these values are not used in mcell4
 
@@ -949,7 +974,9 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   warnings[KEY_USELESS_VOLUME_ORIENTATION] = VALUE_WARNING;
 
   warnings[KEY_HIGH_REACTION_PROBABILITY] =
-      DMUtils::bool_to_warning_level(config.warnings.warn_on_bimol_rxn_probability_over_05_less_1);
+      bool_warning_level_to_str(config.warnings.warn_on_bimol_rxn_probability_over_05_less_1);
+
+  warnings[KEY_MOLECULE_PLACEMENT_FAILURE] = warning_level_to_str(config.molecule_placement_failure);
 
   warnings[KEY_LARGE_MOLECULAR_DISPLACEMENT] = VALUE_WARNING;
   warnings[KEY_MISSING_SURFACE_ORIENTATION] = VALUE_ERROR;

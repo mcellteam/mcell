@@ -324,6 +324,7 @@ const char* const KEY_HIGH_PROBABILITY_THRESHOLD = "high_probability_threshold";
 const char* const KEY_DEGENERATE_POLYGONS = "degenerate_polygons";
 const char* const KEY_USELESS_VOLUME_ORIENTATION = "useless_volume_orientation";
 const char* const KEY_HIGH_REACTION_PROBABILITY = "high_reaction_probability";
+const char* const KEY_MOLECULE_PLACEMENT_FAILURE = "molecule_placement_failure";
 const char* const KEY_LARGE_MOLECULAR_DISPLACEMENT = "large_molecular_displacement";
 const char* const KEY_MISSING_SURFACE_ORIENTATION = "missing_surface_orientation";
 
@@ -503,16 +504,6 @@ static inline std::string orientation_to_str(const BNG::orientation_t o) {
       return "ERROR";
   }
 }
-
-static inline std::string bool_to_warning_level(const bool v) {
-  if (v) {
-    return VALUE_WARNING;
-  }
-  else {
-    return VALUE_IGNORED;
-  }
-}
-
 
 static inline std::string color_to_mat_name(const uint color) {
   std::stringstream ss;
