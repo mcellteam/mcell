@@ -40,7 +40,7 @@ static std::string replace_id_with_function(const std::string& id, const bool us
 }
 
 // when use_python_functions is true, function calls are replaced with Python function names
-// when False, they are replaced with BNGL function names
+// when false, they are replaced with BNGL function names
 std::string replace_function_calls_in_expr(const std::string& data_model_expr, const bool use_python_functions) {
   std::string res;
 
@@ -53,7 +53,8 @@ std::string replace_function_calls_in_expr(const std::string& data_model_expr, c
   };
   state_t state = START;
   string curr_id;
-  for (char c: data_model_expr) {
+  for (size_t i = 0; i < data_model_expr.size(); i++) {
+    char c = data_model_expr[i];
     switch (state) {
       case START:
         if (isalpha(c) || c == '_') {
@@ -81,12 +82,19 @@ std::string replace_function_calls_in_expr(const std::string& data_model_expr, c
         break;
       case IN_NUM:
         if (isdigit(c) || c == '.' || c == 'e' || c == '+' || c == '-') {
-          // ok
+          // ok - but must not be exp
+          res += c;
         }
         else {
-          state = START;
+          if (isalpha(c) || c == '_') {
+            state = IN_ID;
+            curr_id += c;
+          }
+          else {
+            state = START;
+            res += c;
+          }
         }
-        res += c;
         break;
     }
   }

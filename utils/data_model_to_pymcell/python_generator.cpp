@@ -64,7 +64,8 @@ static void get_used_ids(const string& expr, vector<string>& used_ids) {
   };
   state_t state = START;
   string curr_id;
-  for (char c: expr) {
+  for (size_t i = 0; i < expr.size(); i++) {
+    char c = expr[i];
     switch (state) {
       case START:
         if (isalpha(c) || c == '_') {
@@ -93,7 +94,13 @@ static void get_used_ids(const string& expr, vector<string>& used_ids) {
           // ok
         }
         else {
-          state = START;
+          if (isalpha(c) || c == '_') {
+            state = IN_ID;
+            curr_id += c;
+          }
+          else {
+            state = START;
+          }
         }
         break;
     }
