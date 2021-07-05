@@ -371,7 +371,8 @@ public:
 
       const BNG::Species& reactant_species = get_species(m.species_id);
 
-      if (reacting_classes.count(reactant_species.get_reactant_class_id()) != 0) {
+      if (reactant_species.has_valid_reactant_class_id() &&
+          reacting_classes.count(reactant_species.get_reactant_class_id()) != 0) {
         reactant_sets_per_subpart.insert(m.v.reactant_subpart_index, m.id);
       }
     }
