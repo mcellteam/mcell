@@ -16,6 +16,7 @@
 #include "logging.h"
 
 #include <iostream>
+#include <algorithm>
 
 #include "defines.h"
 
@@ -390,6 +391,53 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 }
 
 
+static void get_walls_for_release_recursively(
+    const Partition& p, const RegionExprNode* node,
+    set<wall_index_t>& walls_for_release) {
+
+  walls_for_release.clear();
+
+  if (node->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+    // simply collect all walls of this region
+    const Region& reg = p.get_region_by_id(node->region_id);
+    for (auto& it: reg.walls_and_edges) {
+      walls_for_release.insert(it.first);
+    }
+  }
+  else if (node->has_binary_op()) {
+    set<wall_index_t> walls_left, walls_right;
+    get_walls_for_release_recursively(p, node->left, walls_left);
+    get_walls_for_release_recursively(p, node->right, walls_right);
+
+    switch (node->op) {
+      case RegionExprOperator::UNION:
+        std::set_union(
+            walls_left.begin(), walls_left.end(),
+            walls_right.begin(), walls_right.end(),
+            std::inserter(walls_for_release, walls_for_release.begin()));
+        break;
+      case RegionExprOperator::INTERSECT:
+        std::set_intersection(
+            walls_left.begin(), walls_left.end(),
+            walls_right.begin(), walls_right.end(),
+            std::inserter(walls_for_release, walls_for_release.begin()));
+        break;
+      case RegionExprOperator::DIFFERENCE:
+        std::set_difference(
+            walls_left.begin(), walls_left.end(),
+            walls_right.begin(), walls_right.end(),
+            std::inserter(walls_for_release, walls_for_release.begin()));
+        break;
+      default:
+        assert(false);
+    }
+  }
+  else {
+    assert(false && "Geometry objects are not allowed in surf region release");
+  }
+}
+
+
 bool ReleaseEvent::initialize_walls_for_release() {
   assert(region_expr.root != nullptr);
   assert(release_number_method != ReleaseNumberMethod::INVALID);
@@ -406,15 +454,13 @@ bool ReleaseEvent::initialize_walls_for_release() {
     return true;
   }
 
-  // only a single region for now
-  if (region_expr.root->op != RegionExprOperator::LEAF_SURFACE_REGION) {
-    return false;
-  }
+  // only a single partition for now
+  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  set<wall_index_t> wall_for_release;
+  get_walls_for_release_recursively(p, region_expr.root, wall_for_release);
 
-  const Region& reg = world->get_region(region_expr.root->region_id);
-
-  for (auto& it: reg.walls_and_edges) {
-    wall_index_t wi = it.first;
+  // assuming that iterating over std::set is ordered
+  for (wall_index_t wi: wall_for_release) {
     const Wall& w = world->get_partition(PARTITION_ID_INITIAL).get_wall(wi);
 
     CummAreaPWallIndexPair item;
