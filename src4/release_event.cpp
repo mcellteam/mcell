@@ -84,6 +84,7 @@ size_t cum_area_bisect_high(const std::vector<CummAreaPWallIndexPair>& array, do
 void ReleaseEvent::report_release_failure(const std::string& msg) {
   switch (world->config.molecule_placement_failure) {
     case API::WarningLevel::IGNORE:
+      notifys() << msg << "\n";
       break;
     case API::WarningLevel::WARNING:
       warns() << msg << "\n";
@@ -704,29 +705,80 @@ void ReleaseEvent::release_onto_regions(int& computed_release_number) {
       n--;
     }
     else {
-      // prepare detailed information for error message
-      uint total_tiles = 0;
-      uint free_tiles = 0;
-      for (const auto& area_index_pair: cumm_area_and_pwall_index_pairs) {
-        PartitionWallIndexPair pw = area_index_pair.second;
-        const Partition& p = world->get_partition(pw.first);
-        const Wall& w = p.get_wall(pw.second);
 
-        total_tiles += w.grid.num_tiles;
-        free_tiles += w.grid.get_num_free_tiles();
+      // simply choose the first empty tiles
+      // behaves correctly but not randomly (but it should not really matter)
+      // MCell3 uses a similar strategy
+      int placed = 0;
+      for (auto& pair_a_pindex: cumm_area_and_pwall_index_pairs) {
+        Partition& p = world->get_partition(pair_a_pindex.second.first);
+        wall_index_t wi = pair_a_pindex.second.second;
+
+        Wall& wall = p.get_wall(wi);
+        if (!wall.has_initialized_grid()) {
+          wall.initialize_grid(p);
+        }
+        const Grid& grid = wall.grid;
+        if (grid.get_num_free_tiles() == 0) {
+          continue;
+        }
+
+        for (tile_index_t ti = 0; ti < grid.get_molecules_per_tile().size(); ti++) {
+          if (grid.get_molecule_on_tile(ti) == MOLECULE_ID_INVALID) {
+            // place molecule onto this tile
+            molecule_id_t sm_id =
+                GridUtils::place_single_molecule_onto_grid(
+                    p, world->rng, wall, ti, false, Vec2(),
+                    species_id, orientation, event_time, get_release_delay_time()
+                );
+
+            schedule_for_immediate_diffusion_if_needed(sm_id, WallTileIndexPair(wi, ti));
+
+            #ifdef DEBUG_RELEASES
+              p.get_m(sm_id).dump(p, "Released sm:", "", p.stats.get_current_iteration(), actual_release_time, true);
+            #endif
+
+            success++;
+            n--;
+          }
+          if (n == 0) {
+            break;
+          }
+        }
+
+        if (n == 0) {
+          break;
+        }
       }
 
-      // TODO_LATER: MCell3 handles these cases better, however we were able to fill the whole
-      // region even with this implementation
-      const BNG::Species& species = world->get_all_species().get(species_id);
+      if (n > 0) {
+        // prepare detailed information for error message
+        uint total_tiles = 0;
+        uint free_tiles = 0;
+        for (const auto& area_index_pair: cumm_area_and_pwall_index_pairs) {
+          PartitionWallIndexPair pw = area_index_pair.second;
+          const Partition& p = world->get_partition(pw.first);
+          const Wall& w = p.get_wall(pw.second);
 
-      stringstream msg;
-      msg << "Could not release " << n << " of total " << computed_release_number << " of " << species.name <<
-          " at " << release_site_name << ", too many failed attempts to place surface molecules. "
-          "The surface region has total of " << total_tiles << " tiles and " << free_tiles <<
-          " were left empty after release attempts.";
-      report_release_failure(msg.str());
-      break;
+          total_tiles += w.grid.num_tiles;
+          free_tiles += w.grid.get_num_free_tiles();
+        }
+
+        // TODO_LATER: MCell3 handles these cases better, however we were able to fill the whole
+        // region even with this implementation
+        const BNG::Species& species = world->get_all_species().get(species_id);
+
+        stringstream msg;
+        msg << "Could not release " << n << " of total " << computed_release_number << " of " << species.name <<
+            " at " << release_site_name << ", too many failed attempts to place surface molecules. "
+            "The surface region has total of " << total_tiles << " tiles and " << free_tiles <<
+            " were left empty after release attempts.";
+        report_release_failure(msg.str());
+
+        // how many molecules did we place
+        computed_release_number = computed_release_number - n;
+        break;
+      }
     }
   }
 }
