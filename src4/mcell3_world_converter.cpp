@@ -169,6 +169,21 @@ static double get_partition_edge_length(const World* world, const double largest
 }
 
 
+static API::WarningLevel convert_warning_level(enum warn_level_t l) {
+  switch (l) {
+    case WARN_COPE:
+      return API::WarningLevel::IGNORE;
+    case WARN_WARN:
+      return API::WarningLevel::WARNING;
+    case WARN_ERROR:
+      return API::WarningLevel::ERROR;
+    default:
+      assert(false);
+      return API::WarningLevel::ERROR;
+  }
+}
+
+
 /**
  * Partition conversion greatly simplifies the variability in MCell3 where the partition can be an arbitrary box.
  * Here, it must be a cube and the first partition must be placed the way so that the coordinate origin
@@ -188,6 +203,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->config.rx_radius_3d = s->rx_radius_3d;
   world->config.vacancy_search_dist2 = s->vacancy_search_dist2; // unit was already recomputed
   world->config.initial_seed = s->seed_seq;
+  world->config.molecule_placement_failure = convert_warning_level(s->notify->mol_placement_failure);
   world->rng = *s->rng;
 
   pos_t sp_len;
