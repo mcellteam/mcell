@@ -16,7 +16,6 @@ with a tutorial, examples, and a complete definition of the interface.
    installation
    sim_env_overview
    tutorial/tutorial
-   examples/examples
    overview
    bngl
    generated/api
@@ -24,27 +23,5 @@ with a tutorial, examples, and a complete definition of the interface.
    file_formats
 
 ..
-      :ref:`installation:Installation`
-      
-      :ref:`TODO: MCell4 Simulation Environment Overview` # cellblender, links to tutorials, short basic BNGL 
-      
-      :ref:`tutorial/tutorial:MCell4 Python Tutorial` # add links to all files used
-      
-      :ref:`TODO: MCell4 Python Examples` # reuse automatically text from CellBlender examples description 
-      
-      :ref:`overview:API Overview`  # add info from powerpoint slides
-      
-      :ref:`bngl:BioNetGen Language Overview`  
-      
-      :ref:`generated/api:API Documentation`
-      
-      :ref:`model_conversions:Model Conversions` # export
-      
-      :ref:`file_formats:File Formats`
+   examples/examples
 
-..
-   Indices and tables
-   ==================
-   
-   * :ref:`genindex`
-   * :ref:`search`

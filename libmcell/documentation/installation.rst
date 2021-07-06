@@ -8,10 +8,9 @@ Overview
 ########
 
 This section describes the installation of the CellBlender bundle with MCell4.
-MCell4 requires Python version 3.9. This Python version is shipped with the bundle. 
 
 Additional installation steps are required to use MCell4 outside of Blender
-and they are described in section: :ref:`setting_system_variables`.     
+with Python 3.9 and they are described in section: :ref:`setting_system_variables`.     
 
 
 Download
