@@ -17,7 +17,7 @@ MacOS
 *****
 
 After downloading, the zip file will be automatically extracted to your downloads directory. 
-Move the Blender-2.79-CellBlender directory to Applications (i.e., to the directory /Applications). 
+Move the Blender-2.93-CellBlender directory to Applications (i.e., to the directory /Applications). 
 The CellBlender bundle won't work correctly in any other directory.
 
 MCell4 build is known to work also on the latest Apple MacBooks with ARM processor M1.
@@ -75,7 +75,7 @@ Run the following commands from the terminal:
 .. code-block:: text
 
       cd /
-      /Applications/Blender-2.79-CellBlender/my_blender
+      /Applications/Blender-2.93-CellBlender/my_blender
 
 By now, CellBlender should be up and running; however, if you get a message that the application 
 is damaged, please see section `Common Troubleshooting`_.
@@ -102,7 +102,7 @@ From a terminal, run the following command:
 
 .. code-block:: text
 
-      <target_directory>/Blender-2.79-CellBlender/my_blender
+      <target_directory>/Blender-2.93-CellBlender/my_blender
 
 
 
@@ -135,7 +135,7 @@ To install it, download file vc_redist_x64.exe from here and install it:
 Unpacking the CellBlender Archive
 ---------------------------------
 
-Find the file Blender-2.79-CellBlender-<version>-Windows-<date>.tar.gz in 
+Find the file Blender-2.93-CellBlender-<version>-Windows-<date>.tar.gz in 
 Explorer, right-click and select *Extract here*. 
 
 Running Blender on Windows
@@ -147,7 +147,7 @@ to which you unpacked CellBlender:
 
 .. code-block:: text
 
-      <target_directory>\Blender-2.79-CellBlender\blender.exe
+      <target_directory>\Blender-2.93-CellBlender\blender.exe
 
   
 Setting System Variable MCELL_PATH
@@ -181,7 +181,7 @@ and append the following line to the end of the file:
 
 .. code-block:: text
 
-   export MCELL_PATH=/Applications/Blender-2.79-CellBlender/blender.app/Contents/Resources/2.79/scripts/addons/cellblender/extensions/mcell/
+   export MCELL_PATH=/Applications/Blender-2.93-CellBlender/blender.app/Contents/Resources/2.93/scripts/addons/cellblender/extensions/mcell/
 
 You must open a new terminal for this change to take effect. 
 
@@ -194,7 +194,7 @@ and append the following line to the end of the file
 
 .. code-block:: text
 
-   export MCELL_PATH=<blender_dir>/2.79/scripts/addons/cellblender/extensions/mcell
+   export MCELL_PATH=<blender_dir>/2.93/scripts/addons/cellblender/extensions/mcell
 
 You must open a new terminal for this change to take effect. 
 
@@ -211,7 +211,7 @@ to make a new user variable. Give the variable name as MCELL_PATH and the value 
 
 .. code-block:: text
 
-   <blender_dir>/2.79/scripts/addons/cellblender/extensions/mcell
+   <blender_dir>/2.93/scripts/addons/cellblender/extensions/mcell
    
 Choose OK and OK again to save this variable.
 
@@ -244,7 +244,7 @@ i.e., by running this script:
 
 .. code-block:: text
 
-      /Applications/Blender-2.79-CellBlender/my_blender 
+      /Applications/Blender-2.93-CellBlender/my_blender 
 
 Then try to save the setting again. If that won't help, continue with setting permissions for 
 terminal to access all folders as shown `here <https://osxdaily.com/2018/10/09/fix-operation-not-permitted-terminal-error-macos/>`_.
@@ -259,13 +259,13 @@ This can, for instance, be an issue on MacOS Catalina where the checking is more
 
 .. code-block:: text
 
-      xattr -cr /Applications/Blender-2.79-CellBlender/blender.app
+      xattr -cr /Applications/Blender-2.93-CellBlender/blender.app
 
 Windows: Plotting does not work
 *******************************
 
 There might be a collision with a different installation of Python on your system. 
-To fix this, start the Windows terminal, navigate to the Blender-2.79-CellBlender directory, 
+To fix this, start the Windows terminal, navigate to the Blender-2.93-CellBlender directory, 
 and then run these commands to start CellBlender:
 
 .. code-block:: text
