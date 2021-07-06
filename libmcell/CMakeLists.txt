@@ -54,6 +54,7 @@ set(SOURCE_FILES
     api/bngl_utils.cpp
     api/geometry_utils.cpp
     api/run_utils.cpp
+    api/data_utils.cpp
 
     api/compartment_utils.cpp
     
@@ -124,6 +125,7 @@ set(SOURCE_FILES
     generated/gen_bngl_utils.cpp
     generated/gen_geometry_utils.cpp
     generated/gen_run_utils.cpp
+    generated/gen_data_utils.cpp
 )
 
 set(ALL_SOURCES

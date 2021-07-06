@@ -82,6 +82,8 @@ class Warnings():
     pass
 class bngl_utils():
     pass
+class data_utils():
+    pass
 class geometry_utils():
     pass
 class run_utils():
@@ -1548,6 +1550,18 @@ class bngl_utils():
             file_name : str,
             parameter_overrides : Dict[str, float] = None
         ) -> 'Dict[str, float]':
+        pass
+
+class data_utils():
+    def __init__(
+            self,
+        ):
+        pass
+
+    def load_dat_file(
+            self,
+            file_name : str
+        ) -> 'List[List[float]]':
         pass
 
 class geometry_utils():

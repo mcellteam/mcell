@@ -29,6 +29,28 @@ Methods:
 
 
 
+data_utils
+==========
+
+Submodule data_utils provides data loading and manipulation functions.
+
+
+Methods:
+*********
+* | **load_dat_file**
+
+   * | file_name: str
+     | Path to the .dat file to be loaded.
+
+   * | return type: List[List[float]]
+
+
+  | Loads a two-column file where the first column is usually time and the second is a 
+  | floating point value. Returns a two-column list. 
+  | Can be used to load a file with variable rate constants.
+
+
+
 geometry_utils
 ==============
 

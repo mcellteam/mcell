@@ -58,6 +58,7 @@
 #include "generated/gen_bngl_utils.h"
 #include "generated/gen_geometry_utils.h"
 #include "generated/gen_run_utils.h"
+#include "generated/gen_data_utils.h"
 
 
 #include "generated/gen_constants.h"
@@ -241,6 +242,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_bngl_utils(m);
   define_pybinding_geometry_utils(m);
   define_pybinding_run_utils(m);
+  define_pybinding_data_utils(m);
 }
 
 

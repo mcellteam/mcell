@@ -97,3 +97,19 @@ run_utils:
     - name: paths
       type: List[str]
     
+data_utils:
+   doc: |
+      Submodule data_utils provides data loading and manipulation functions.
+   type: submodule
+   methods:
+   - name: load_dat_file
+     doc: | 
+        Loads a two-column file where the first column is usually time and the second is a 
+        floating point value. Returns a two-column list. 
+        Can be used to load a file with variable rate constants. 
+     return_type: List[List[float]]
+     params:
+     - name: file_name
+       type: str      
+       doc: Path to the .dat file to be loaded.
+      
