@@ -250,6 +250,11 @@ When this rule is applied to reactants A\@EC and T\@CP, we know that the compart
 is EC, and inside is CP. So, we insert this information to the rule A\@OUT + T -> A\@IN + T and get A\@EC + T\@PM -> A\@CP + T\@PM 
 (same as the example rule we started with). 
 
+One more related case is the position of the reaction product. Let's have a reaction AT -> T + A. 
+AT is a surface molecule that represents A bound to T. When it dissociates, A must be placed to the 'inside' or 'outside'
+compartment. When no compartment or compartment class is specified for the product volume molecule, the target compartment 
+is selected randomly. A surface product molecule stays at the same surface compartment as the reactant.
+
 MCell3 used molecule orientations to limit which surface and volume reactions can occur. 
 A surface molecule S could be released or created as a product in two different states S' (UP) and S, (DOWN).
 This behavior was deprecated in MCell4 and all surface molecules are by default created with orientation UP.
