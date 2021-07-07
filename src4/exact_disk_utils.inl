@@ -846,6 +846,8 @@ static pos_t __attribute__((noinline)) exact_disk(
     Molecule& target, // molecule that we can potentionally hit
     bool use_expanded_list // option from world
 ) {
+  const BNG::Species& moving_species = p.get_all_species().get(moving.species_id);
+
   /* Initialize */
   exd_vertex_t* vertex_head = NULL;
   int n_verts = 0;
@@ -933,7 +935,7 @@ static pos_t __attribute__((noinline)) exact_disk(
       continue;
 
     /* Reject those that the moving particle can travel through */
-    if (moving.has_flag(BNG::SPECIES_FLAG_CAN_VOLWALL)) {
+    if (moving_species.has_flag(BNG::SPECIES_FLAG_CAN_VOLWALL)) {
       BNG::RxnClassesVector matching_rxn_classes;
       RxnUtils::trigger_intersect(p, moving, ORIENTATION_NONE, w, true, matching_rxn_classes);
 
@@ -942,8 +944,8 @@ static pos_t __attribute__((noinline)) exact_disk(
       }
       bool blocked = false;
       for (const BNG::RxnClass* rxn_class: matching_rxn_classes) {
-        // NOTE: same as in mcell3, but some explanation would be useful,
-        // not sure hot the code corresponds with the comment above
+        // TODO: this is the same behavior as in mcell3 but this does not really reject
+        // area that we can reach because the wall can be reactive, e.g. absorptive
         if (rxn_class->is_reflect_type()) {
           blocked = true;
         }

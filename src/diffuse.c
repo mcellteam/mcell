@@ -4250,7 +4250,8 @@ static int collide_and_react_with_vol_mol(struct volume* world,
     return 0;
   }
   if (loc_certain != NULL) {
-    ASSERT_FOR_MCELL4(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0);
+    // only for counting - handled correctly
+    // ASSERT_FOR_MCELL4(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0);
   }
   int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
     0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
