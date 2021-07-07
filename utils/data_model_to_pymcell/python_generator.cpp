@@ -1044,6 +1044,9 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
       gen_param_id(out, NAME_RELEASE_PATTERN, rel_pat_name, true);
     }
 
+    string prob = release_site_item[KEY_RELEASE_PROBABILITY].asString();
+    bool prob_not_1 = (prob != "1" && prob != "1.0");
+
     if (shape == VALUE_SPHERICAL) {
       if (compartment != "") {
         ERROR("Cannot use compartment " + compartment + " with spherical release.");
@@ -1065,7 +1068,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
       bool diam_is_zero = release_site_item[KEY_SITE_DIAMETER] == "0";
       gen_param_id(out, NAME_MOLECULE_LIST, molecule_list_name, !diam_is_zero);
       if (!diam_is_zero) {
-        gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], false);
+        gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], prob_not_1);
       }
     }
     else {
@@ -1075,20 +1078,24 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     if (shape != VALUE_LIST) {
       string quantity_type = release_site_item[KEY_QUANTITY_TYPE].asString();
       if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
-        gen_param_expr(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
+        gen_param_expr(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], prob_not_1);
       }
       else if (quantity_type == VALUE_DENSITY) {
         string species_name = release_site_item[KEY_MOLECULE].asString();
         if (is_volume_species(data.mcell, species_name)) {
-          gen_param_expr(out, NAME_CONCENTRATION, release_site_item[KEY_QUANTITY], false);
+          gen_param_expr(out, NAME_CONCENTRATION, release_site_item[KEY_QUANTITY], prob_not_1);
         }
         else {
-          gen_param_expr(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
+          gen_param_expr(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], prob_not_1);
         }
       }
       else {
         ERROR("Quantity type " + quantity_type + " is not supported yet");
       }
+    }
+
+    if (prob_not_1) {
+      gen_param_expr(out, NAME_RELEASE_PROBABILITY, prob, false);
     }
 
     out << CTOR_END;

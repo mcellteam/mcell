@@ -57,6 +57,7 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   number_to_release = FLT_UNSET;
   density = FLT_UNSET;
   concentration = FLT_UNSET;
+  release_probability = 1;
 }
 
 std::shared_ptr<ReleaseSite> GenReleaseSite::copy_release_site() const {
@@ -75,6 +76,7 @@ std::shared_ptr<ReleaseSite> GenReleaseSite::copy_release_site() const {
   res->number_to_release = number_to_release;
   res->density = density;
   res->concentration = concentration;
+  res->release_probability = release_probability;
 
   return res;
 }
@@ -97,6 +99,7 @@ std::shared_ptr<ReleaseSite> GenReleaseSite::deepcopy_release_site(py::dict) con
   res->number_to_release = number_to_release;
   res->density = density;
   res->concentration = concentration;
+  res->release_probability = release_probability;
 
   return res;
 }
@@ -145,7 +148,8 @@ bool GenReleaseSite::__eq__(const ReleaseSite& other) const {
     site_radius == other.site_radius &&
     number_to_release == other.number_to_release &&
     density == other.density &&
-    concentration == other.concentration;
+    concentration == other.concentration &&
+    release_probability == other.release_probability;
 }
 
 bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other, const bool ignore_name) const {
@@ -192,7 +196,8 @@ bool GenReleaseSite::eq_nonarray_attributes(const ReleaseSite& other, const bool
     site_radius == other.site_radius &&
     number_to_release == other.number_to_release &&
     density == other.density &&
-    concentration == other.concentration;
+    concentration == other.concentration &&
+    release_probability == other.release_probability;
 }
 
 std::string GenReleaseSite::to_str(const bool all_details, const std::string ind) const {
@@ -210,7 +215,8 @@ std::string GenReleaseSite::to_str(const bool all_details, const std::string ind
       "site_radius=" << site_radius << ", " <<
       "number_to_release=" << number_to_release << ", " <<
       "density=" << density << ", " <<
-      "concentration=" << concentration;
+      "concentration=" << concentration << ", " <<
+      "release_probability=" << release_probability;
   return ss.str();
 }
 
@@ -230,6 +236,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const double,
             const double,
             const double,
+            const double,
             const double
           >(),
           py::arg("name"),
@@ -244,7 +251,8 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("site_radius") = FLT_UNSET,
           py::arg("number_to_release") = FLT_UNSET,
           py::arg("density") = FLT_UNSET,
-          py::arg("concentration") = FLT_UNSET
+          py::arg("concentration") = FLT_UNSET,
+          py::arg("release_probability") = 1
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__copy__", &ReleaseSite::copy_release_site)
@@ -265,6 +273,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def_property("number_to_release", &ReleaseSite::get_number_to_release, &ReleaseSite::set_number_to_release, "Sets number of molecules to release. Cannot be set when shape is Shape.LIST. \nOnly one of number_to_release, density, concentration or molecule_list can be set.\nValue is truncated (floored) to an integer.\n")
       .def_property("density", &ReleaseSite::get_density, &ReleaseSite::set_density, "Unit is molecules per square micron (for surfaces). \nOnly one of number_to_release, density, concentration or molecule_list can be set.\nCannot be set when shape is Shape.LIST.\n")
       .def_property("concentration", &ReleaseSite::get_concentration, &ReleaseSite::set_concentration, "Unit is molar (moles per liter) for volumes.\nOnly one of number_to_release, density, concentration or molecule_list can be set.\nCannot be set when shape is Shape.LIST.\n")
+      .def_property("release_probability", &ReleaseSite::get_release_probability, &ReleaseSite::set_release_probability, "This release does not occur every time, but rather with probability p. \nEither the whole release occurs or none of it does; the probability does not \napply molecule-by-molecule. release_probability must be in the interval [0, 1].\n")
     ;
 }
 
@@ -323,6 +332,9 @@ std::string GenReleaseSite::export_to_python(std::ostream& out, PythonExportCont
   }
   if (concentration != FLT_UNSET) {
     ss << ind << "concentration = " << f_to_str(concentration) << "," << nl;
+  }
+  if (release_probability != 1) {
+    ss << ind << "release_probability = " << f_to_str(release_probability) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

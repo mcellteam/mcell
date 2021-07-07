@@ -301,7 +301,7 @@ void ReleaseEvent::to_data_model_as_one_release_site(
   release_site[KEY_PATTERN] = data_model_release_pattern_name;
 
   release_site[KEY_STDDEV] = "0"; // TODO
-  release_site[KEY_RELEASE_PROBABILITY] = f_to_str(1.0);  // only 1 for now
+  release_site[KEY_RELEASE_PROBABILITY] = f_to_str(release_probability);
 
   // where to release
   switch (release_shape) {
@@ -1240,8 +1240,24 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
   }
 }
 
-// TODO: cleanup the release number computation
+
+bool ReleaseEvent::skip_due_to_release_probability() {
+  if (release_probability < 1) {
+    double k = rng_dbl(&world->rng);
+    return release_probability < k;
+  }
+  else {
+    return false;
+  }
+}
+
+
 void ReleaseEvent::step() {
+
+  if (skip_due_to_release_probability()) {
+    // release patterns are handled automatically in update_event_time_for_next_scheduled_time
+    return;
+  }
 
   perf() << "Starting release from \"" << release_site_name << "\".\n";
 

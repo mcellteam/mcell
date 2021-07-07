@@ -59,6 +59,10 @@ public:
       }
       shape = Shape::SPHERICAL;
     }
+
+    if (release_probability < 0 || release_probability > 1) {
+      throw ValueError(S("Parameter ") + NAME_RELEASE_PROBABILITY + " must be >= 0 and <= 1.");
+    }
   }
 
   void check_semantics() const override {

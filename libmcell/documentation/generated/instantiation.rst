@@ -256,3 +256,8 @@ Attributes:
   | Only one of number_to_release, density, concentration or molecule_list can be set.
   | Cannot be set when shape is Shape.LIST.
 
+* | **release_probability**: float = 1
+  | This release does not occur every time, but rather with probability p. 
+  | Either the whole release occurs or none of it does; the probability does not 
+  | apply molecule-by-molecule. release_probability must be in the interval [0, 1].
+

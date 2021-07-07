@@ -1380,6 +1380,8 @@ MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
           NAME_EV_SPHERICAL + ", " + NAME_EV_REGION_EXPR + ", " + NAME_EV_COMPARTMENT + " and " + NAME_EV_LIST + ".");
   }
 
+  rel_event->release_probability = r->release_probability;
+
   return rel_event;
 }
 

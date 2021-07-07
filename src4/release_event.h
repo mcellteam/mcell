@@ -101,6 +101,8 @@ public:
     train_duration(EPS),
     release_interval(DBL_GIGANTIC),
 
+    release_probability(1),
+
     actual_release_time(TIME_INVALID),
     current_train_from_0(0),
     current_release_in_train_from_0(0),
@@ -193,6 +195,10 @@ public:
   double train_duration;
   double release_interval;
 
+  // This release does not occur every time, but rather with probability p.
+  // Either the whole release occurs or none of it does; the probability does not
+  // apply molecule-by-molecule. release_probability must be in the interval [0, 1].
+  double release_probability;
 
 private:
   double actual_release_time;
@@ -208,6 +214,8 @@ private:
   DiffuseReactEvent* running_diffuse_event_to_update;
 
 private:
+  bool skip_due_to_release_probability();
+
   // may end with error
   void report_release_failure(const std::string& msg);
 

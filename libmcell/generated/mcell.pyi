@@ -1271,7 +1271,8 @@ class ReleaseSite():
             site_radius : float = None,
             number_to_release : float = None,
             density : float = None,
-            concentration : float = None
+            concentration : float = None,
+            release_probability : float = 1
         ):
         self.name = name
         self.complex = complex
@@ -1286,6 +1287,7 @@ class ReleaseSite():
         self.number_to_release = number_to_release
         self.density = density
         self.concentration = concentration
+        self.release_probability = release_probability
 
 
 class RngState():

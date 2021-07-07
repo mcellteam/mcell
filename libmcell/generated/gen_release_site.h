@@ -39,7 +39,8 @@ class PythonExportContext;
         const double site_radius_ = FLT_UNSET, \
         const double number_to_release_ = FLT_UNSET, \
         const double density_ = FLT_UNSET, \
-        const double concentration_ = FLT_UNSET \
+        const double concentration_ = FLT_UNSET, \
+        const double release_probability_ = 1 \
     ) { \
       class_name = "ReleaseSite"; \
       name = name_; \
@@ -55,6 +56,7 @@ class PythonExportContext;
       number_to_release = number_to_release_; \
       density = density_; \
       concentration = concentration_; \
+      release_probability = release_probability_; \
       postprocess_in_ctor(); \
       check_semantics(); \
     } \
@@ -255,6 +257,20 @@ public:
   virtual double get_concentration() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return concentration;
+  }
+
+  double release_probability;
+  virtual void set_release_probability(const double new_release_probability_) {
+    if (initialized) {
+      throw RuntimeError("Value 'release_probability' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    release_probability = new_release_probability_;
+  }
+  virtual double get_release_probability() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return release_probability;
   }
 
   // --- methods ---

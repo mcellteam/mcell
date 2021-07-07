@@ -1487,7 +1487,8 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           rel_event->diameter = Vec3(0); // this is the default needed for example for list release
         }
 
-        CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
+        CHECK_PROPERTY(rel_site->release_prob >= 0 && rel_site->release_prob <= 1);
+        rel_event->release_probability = rel_site->release_prob;
         // rel_site->periodic_box - ignored
 
         rel_event->release_site_name = rel_site->name;
