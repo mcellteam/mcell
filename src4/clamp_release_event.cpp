@@ -95,6 +95,9 @@ void ClampReleaseEvent::update_cumm_areas_and_scaling() {
         cumm_area_and_pwall_index_pairs.back().first * pow_f(world->config.length_unit, 3)
         / 2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
   }
+  else {
+    scaling_factor = 0;
+  }
 }
 
 
@@ -158,11 +161,17 @@ run_concentration_clamp:
 *************************************************************************/
 void ClampReleaseEvent::step() {
 
+  if (cumm_area_and_pwall_index_pairs.empty()) {
+    // nothing to do - maybe not schedule at all?
+    return;
+  }
+
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
   const BNG::Species& species = world->bng_engine.get_all_species().get(species_id);
   assert(species.is_vol());
   double n_collisions = scaling_factor * species.space_step * concentration / species.time_step;
+  release_assert(n_collisions < (double)INT_MAX);
   if (orientation != ORIENTATION_NONE) {
     n_collisions *= 0.5;
   }
