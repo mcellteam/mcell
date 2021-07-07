@@ -1135,7 +1135,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         (current_pathway->orientation2 == 0 || current_pathway->orientation2 == 1 || current_pathway->orientation2 == -1)
     );
     CHECK_PROPERTY(
-        current_pathway->reactant2 == nullptr ||
+        current_pathway->reactant3 == nullptr ||
         (current_pathway->orientation3 == 0 || current_pathway->orientation3 == 1 || current_pathway->orientation3 == -1)
     );
 
