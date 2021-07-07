@@ -20,6 +20,8 @@
 
 namespace MCell {
 
+typedef std::map<std::string, std::set<std::string>> ParentToChildCompartmentsMap;
+
 class BNGLGenerator {
 public:
   BNGLGenerator(
@@ -72,11 +74,17 @@ private:
   void generate_bngl_mol_type(Json::Value& molecule_list_item);
   void generate_python_mol_type_info(std::ostream& python_out, Json::Value& molecule_list_item);
 
+  void get_compartment_volume_and_area(const std::string& name, double& volume, double& area);
+  Json::Value& find_geometry_object(const std::string& name);
   void generate_single_compartment(Json::Value& model_object);
 
   const std::string bngl_filename;
   std::ostream& bng_out;
   SharedGenData& data; // owned by MCell4Generator
+
+  std::map<std::string, std::pair<double, double>> compartment_name_to_volume_area_cache;
+
+  ParentToChildCompartmentsMap volume_compartment_children;
 };
 
 } /* namespace MCell */

@@ -9,9 +9,13 @@
  *
 ******************************************************************************/
 
+#include <stdexcept>
+
 #include "generator_utils.h"
 #include "generator_structs.h"
 #include "bngl_generator.h"
+#include "data_model_geometry.h"
+
 #include "libmcell/api/api_utils.h"
 #include "bng/bng_defines.h"
 #include "bng/bngl_names.h"
@@ -197,35 +201,95 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
 }
 
 
+
+Json::Value& BNGLGenerator::find_geometry_object(const std::string& name) {
+
+  Value& geometrical_objects = get_node(data.mcell, KEY_GEOMETRICAL_OBJECTS);
+  if (!geometrical_objects.isMember(KEY_OBJECT_LIST)) {
+    throw ConversionError("Could not find object for compartment " + name + ".");
+  }
+  Value& object_list = get_node(geometrical_objects, KEY_OBJECT_LIST);
+  for (Value::ArrayIndex i = 0; i < object_list.size(); i++) {
+    Value& object = object_list[i];
+    if (object[KEY_NAME].asString() == name) {
+      return object;
+    }
+  }
+  throw ConversionError("Could not find object for compartment " + name + ".");
+}
+
+
+void BNGLGenerator::get_compartment_volume_and_area(const std::string& name, double& volume, double& area) {
+  auto it = compartment_name_to_volume_area_cache.find(name);
+  if (it != compartment_name_to_volume_area_cache.end()) {
+    volume = it->second.first;
+    area = it->second.second;
+    return;
+  }
+
+  string msg;
+  try {
+    // find object with name under geometrical_objects/object_list
+    Json::Value& geometry_object = find_geometry_object(name);
+    compute_volume_and_area(geometry_object, volume, area);
+  }
+  catch (const std::exception& ex) {
+    cerr << "Warning: could not compute volume of a geometry object: " << ex.what() <<
+        " Compartment volume won't be correct.\n";
+    bng_out << "\n" << IND << "# Warning: compartment volume and area is not correct: " << ex.what() << "\n";
+    volume = 1;
+    area = 0;
+  }
+
+  // remember in cache even if computation failed
+  compartment_name_to_volume_area_cache[name] = make_pair(volume, area);
+}
+
+
 void BNGLGenerator::generate_single_compartment(Json::Value& model_object) {
   const string& name = model_object[KEY_NAME].asString();
   const string& membrane_name = model_object[KEY_MEMBRANE_NAME].asString();
   const string& parent_object = model_object[KEY_PARENT_OBJECT].asString();
 
-  // 3d compartment first
-  bng_out << IND <<
-      name << " " <<
-      "3" << " " <<
-      // volume does not have a correct value yet
-      "1" << " " <<
-      // parent is the membrane, may be unset
-      membrane_name << "\n";
+  double volume, area;
+  get_compartment_volume_and_area(name, volume, area);
 
-  // 2d compartment next
+  // subtract children from volume
+  auto it = volume_compartment_children.find(name);
+  if (it != volume_compartment_children.end()) {
+    for (const string& child: it->second) {
+      double child_volume, child_area;
+      get_compartment_volume_and_area(child, child_volume, child_area);
+      volume -= child_volume;
+      assert(volume > 0);
+    }
+  }
+
+  // 2d compartment first
   if (membrane_name != "") {
     bng_out << IND <<
         membrane_name << " " <<
         "2" << " " <<
-        // surface volume is ignored
-        "0" << " " <<
+        // surface volume is ignored by MCell
+        area << " * 0.01 " <<
         // parent object may be unset
-        parent_object << "\n";
+        parent_object << " # volume = area * 0.01 um thickness\n";
   }
+
+  // 3d compartment second
+  bng_out << IND <<
+      name << " " <<
+      "3" << " " <<
+      // volume is ignored by MCell
+      volume << " " <<
+      // parent is the membrane, may be unset
+      membrane_name << "\n";
 }
 
 
 static void add_parent_compartments_recursively(
-    SharedGenData& data, Value& model_object_list, Value& model_object) {
+    SharedGenData& data, Value& model_object_list, Value& model_object,
+    ParentToChildCompartmentsMap& volume_compartment_children) {
 
   // simply keep inserting until we reach the top compartment
 
@@ -240,11 +304,15 @@ static void add_parent_compartments_recursively(
 
   const std::string& parent_comp = model_object[KEY_PARENT_OBJECT].asString();
   if (parent_comp != "") {
+    // create a mapping so that one can find volume compartment children
+    volume_compartment_children[parent_comp].insert(vol_comp);
+
     // find corresponding parent
     for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
       Value& parent_object = model_object_list[i];
       if (parent_object[KEY_NAME].asString() == parent_comp) {
-        add_parent_compartments_recursively(data, model_object_list, parent_object);
+        add_parent_compartments_recursively(
+            data, model_object_list, parent_object, volume_compartment_children);
       }
     }
   }
@@ -267,7 +335,9 @@ void BNGLGenerator::generate_compartments() {
 
       // recursively add compartment parents to used compartments, we need to generate them as well
       // because their children reference them
-      add_parent_compartments_recursively(data, model_object_list, model_object);
+      // also compute mapping volume parent -> volume children
+      add_parent_compartments_recursively(
+          data, model_object_list, model_object, volume_compartment_children);
     }
   }
   // do not generate empty section
@@ -277,10 +347,8 @@ void BNGLGenerator::generate_compartments() {
 
   bng_out << BNG::BEGIN_COMPARTMENTS << "\n";
   bng_out <<
-      IND << "# - volumes of compartments do not have correct values \n" <<
-      IND << "# - this file is loaded through Subsystem.load_bngl_molecule_types_and_reaction_rules and\n" <<
-      IND << "#   so compartments here are declared only so that the BNGL file can be parsed\n" <<
-      IND << "# - compartments themselves are defined in the Python code using attributes of the GeometryObject\n";
+      IND << "# Note: Compartments are defined for MCell in Python using class GeometryObject,\n" <<
+      IND << "#       MCell ignores the volume/area set here\n";
 
   for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
     Value& model_object = model_object_list[i];
