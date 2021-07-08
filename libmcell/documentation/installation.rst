@@ -8,9 +8,58 @@ Overview
 ########
 
 This section describes the installation of the CellBlender bundle with MCell4.
+Please also follow the prerequisites.
 
 Additional installation steps are required to use MCell4 outside of Blender
 with Python 3.9 and they are described in section: :ref:`setting_system_variables`.     
+
+
+Prerequisites
+#############
+
+Installing Python 3.9.2
+***********************
+
+To run MCell on Linux, one must also currenly install Python 3.9 devel package.
+Although CellBlender already contains Python 3.9.2.,
+the current build searches for system libraries and they are not available. 
+This will be fixed in the following release but currently Linux installations 
+require system Python 3.9.2 all the time.
+
+Under MacOS and Windows, installing Python is required for MDL model usage 
+(this use case is not common and you can usually skip this prerequisite). 
+
+Linux
+*****
+
+Python does not have a binary installer for Linux so one option is to use 
+a system installer.
+
+Debian/Ubuntu:
+
+.. code-block:: text
+
+   sudo apt install python3.9-dev
+   
+   
+Red Hat/CentOS:
+
+.. code-block:: text
+
+   sudo yum install python3.9-devel
+
+If you have no administrator permissions, please contact us at
+`forum <https://mcell.freeforums.net/>`_ and we will resolve this issue.
+  
+
+MacOS & Windows
+***************
+
+MacOS & Windows require a system Python installation only when you need to run the *mcell* 
+executable from the commandline or to use MCell3 mode (not common).
+If needed, download `MacOS <https://www.python.org/ftp/python/3.9.2/python-3.9.2-macosx10.9.pkg>`_
+or `Windows <https://www.python.org/ftp/python/3.9.2/python-3.9.2-amd64.exe>`_
+package and follow the steps in the installer.  
 
 
 Download
@@ -88,6 +137,7 @@ Run the following commands from the terminal:
 
 By now, CellBlender should be up and running; however, if you get a message that the application 
 is damaged, please see section `Common Troubleshooting`_.
+
 
 Linux
 *****
@@ -251,6 +301,8 @@ Common Troubleshooting
 ######################
 
 
+
+
 Loading Factory Settings
 ************************
 
@@ -259,6 +311,33 @@ be loaded and cause various incompatibility issues.
 If you encounter any issues with CellBlender, the first recommended step is to reset settings. 
 It is done through Blender menu *File* -> *Load Factory Settings*.
 
+Enabling CellBlender Plugin
+***************************
+
+After factory setting are restored, one needs enable the CellBlender plugin by 
+selecting *Edit* -> *Preferences*, then select *Add-ons*, enter *cellblender* 
+into the search window and click on the CellBlender checkbox. 
+
+.. image:: images/plugin_cellblender_enable.png
+
+
+CellBlender Plugin Does not Load with "error cellblender_examples could not register"
+*************************************************************************************
+
+This was experienced on MacOS and one of the printed errors was: 
+
+.. code-block:: text
+   
+   ValueError: bpy_struct "MCellPropertyGroup" registration error: cellblender_examples could not register
+   
+  
+.. image:: images/troubleshooting_cannot_initialize_cellblender.png
+
+
+The solution is to follow steps in `Loading Factory Settings`_ or to remove file 
+*/Applications/Blender-2.93-Cellblender/blender.app/Contents/Resources/2.93/config/userpref.blend*
+(*<blender_dir>/Blender-2.93-CellBlender/2.93/config/userpref.blend* on other operating systems). 
+Then start Blender again and enable the CellBlender plugin. 
 
 MacOS: Error When Saving CellBlender Settings
 *********************************************
