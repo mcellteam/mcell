@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -277,7 +266,7 @@ void chkpt_signal_handler(int signo) {
     }
   }
 
-#ifndef _WIN32 /* fixme: Windows does not support USR signals */
+#ifndef _WIN64 /* fixme: Windows does not support USR signals */
   if (signo == SIGUSR1)
     *chkpt_checkpoint_requested = CHKPT_SIGNAL_CONT;
   else if (signo == SIGUSR2)
@@ -785,11 +774,12 @@ static int read_mcell_version(FILE *fs, struct chkpt_read_state *state) {
   DATACHECK(version_length >= 100000,
             "Length field for MCell version is too long (%u).", version_length);
 
-  char mcell_version[version_length + 1];
+  char* mcell_version = new char[version_length + 1];
   READSTRING(mcell_version, version_length);
 
   mcell_log("Checkpoint file was created with MCell Version %s.",
             mcell_version);
+  delete mcell_version;
 
   return 0;
 }
@@ -1095,7 +1085,7 @@ static int read_species_table(struct volume *world, FILE *fs) {
         species_name_length);
 
     /* Read species fields. */
-    char species_name[species_name_length + 1];
+    char* species_name = new char[species_name_length + 1];
     unsigned int external_species_id;
 
     READSTRING(species_name, species_name_length);
@@ -1113,6 +1103,8 @@ static int read_species_table(struct volume *world, FILE *fs) {
                                      "species '%s', which does not exist in "
                                      "this simulation.",
               species_name);
+
+    delete species_name;
   }
 
   return 0;
@@ -1324,10 +1316,8 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
               external_species_id);
 
     /* Create and add molecule to scheduler */
-    struct periodic_image periodic_box = { .x = 0,
-                                           .y = 0,
-                                           .z = 0
-                                         };
+    struct periodic_image periodic_box = {  0, 0, 0 };
+
     if ((properties->flags & NOT_FREE) == 0) { /* 3D molecule */
 
       /* set molecule characteristics */

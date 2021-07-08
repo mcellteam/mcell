@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -50,6 +39,9 @@
 #include "nfsim_func.h"
 #include "mcell_reactions.h"
 #include "diffuse.h"
+
+#include "debug_config.h"
+#include "dump_state.h"
 
 static int test_max_release(double num_to_release, char *name);
 
@@ -564,9 +556,11 @@ struct wall* find_closest_wall(
       if (d2 <= EPS_C * EPS_C) {
         return NULL;
       } else {
+        struct wall* orig_best_w = best_w;
         best_w = search_nbhd_for_free(
             state, best_w, best_uv, d2, grid_index, NULL, NULL, mesh_name,
             reg_names);
+        ASSERT_FOR_MCELL4(orig_best_w == best_w);
         if (best_w == NULL) {
           return NULL;
         }
@@ -714,6 +708,11 @@ insert_surface_molecule(struct volume *state, struct species *s,
   if (sm == NULL)
     return NULL;
 
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  dump_surface_molecule(sm, "", true, "Sm after being moved: ", state->current_iterations, /*vm->t*/0, true);
+#endif
+
+
   if (periodic_box != NULL) {
     sm->periodic_box->x = periodic_box->x;
     sm->periodic_box->y = periodic_box->y;
@@ -724,7 +723,7 @@ insert_surface_molecule(struct volume *state, struct species *s,
     count_region_from_scratch(state, (struct abstract_molecule *)sm, NULL, 1,
                               NULL, sm->grid->surface, sm->t, NULL);
 
-  if (schedule_add(sv->local_storage->timer, sm))
+  if (schedule_add_mol(sv->local_storage->timer, sm))
     mcell_allocfailed("Failed to add surface molecule to scheduler.");
 
   return sm;
@@ -757,13 +756,14 @@ struct volume_molecule *insert_volume_molecule(
   if (state->periodic_box_obj) {
     struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);
     struct subdivided_box *sb = p->sb;
-    llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
-    urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
-  }
-  if (state->periodic_box_obj && !point_in_box(&llf, &urb, &vm->pos)) {
-    mcell_error("cannot release '%s' outside of periodic boundaries.",
+    struct vector3 llf = {sb->x[0], sb->y[0], sb->z[0]};
+    struct vector3 urb = {sb->x[1], sb->y[1], sb->z[1]};
+
+    if (!point_in_box(&llf, &urb, &vm->pos)) {
+      mcell_error("cannot release '%s' outside of periodic boundaries.",
               vm->properties->sym->name);
-    return NULL;
+      return NULL;
+    }
   }
 
   struct volume_molecule *new_vm;
@@ -772,6 +772,9 @@ struct volume_molecule *insert_volume_molecule(
   new_vm->mesh_name = NULL;
   new_vm->birthplace = sv->local_storage->mol;
   new_vm->id = state->current_mol_id++;
+#ifdef DEBUG_RELEASES
+  vm->id = new_vm->id;
+#endif
   new_vm->prev_v = NULL;
   new_vm->next_v = NULL;
   new_vm->next = NULL;
@@ -796,7 +799,7 @@ struct volume_molecule *insert_volume_molecule(
                               new_vm->periodic_box);
   }
 
-  if (schedule_add(sv->local_storage->timer, new_vm))
+  if (schedule_add_mol(sv->local_storage->timer, new_vm))
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
   return new_vm;
 }
@@ -1301,9 +1304,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   vm.birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
       state->simulation_start_seconds, vm.t);
-  struct periodic_image periodic_box = { .x = rso->periodic_box->x,
-                                         .y = rso->periodic_box->y,
-                                         .z = rso->periodic_box->z
+  struct periodic_image periodic_box = {rso->periodic_box->x,
+                                        rso->periodic_box->y,
+                                        rso->periodic_box->z
                                        };
   vm.periodic_box = &periodic_box;
 
@@ -1511,6 +1514,10 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
     vm->periodic_box->y = rso->periodic_box->y;
     vm->periodic_box->z = rso->periodic_box->z;
     guess = insert_volume_molecule(state, vm, guess); 
+#ifdef DEBUG_RELEASES
+    dump_volume_molecule(vm, "", true, "Released vm:", state->current_iterations, vm->t, true);
+#endif
+
     if (guess == NULL)
       return 1;
   }
@@ -2076,33 +2083,33 @@ double *add_extra_outer_partitions(double *partitions, double bb_llf_val,
 void path_bounding_box(struct vector3 *loc, struct vector3 *displacement,
                        struct vector3 *llf, struct vector3 *urb,
                        double rx_radius_3d) {
-  struct vector3 final; /* final position of the molecule after random walk */
+  struct vector3 final_pos; /* final position of the molecule after random walk */
   double R;             /* molecule interaction radius */
 
   R = rx_radius_3d;
-  vect_sum(loc, displacement, &final);
+  vect_sum(loc, displacement, &final_pos);
 
   llf->x = urb->x = loc->x;
   llf->y = urb->y = loc->y;
   llf->z = urb->z = loc->z;
 
-  if (final.x < llf->x) {
-    llf->x = final.x;
+  if (final_pos.x < llf->x) {
+    llf->x = final_pos.x;
   }
-  if (final.x > urb->x) {
-    urb->x = final.x;
+  if (final_pos.x > urb->x) {
+    urb->x = final_pos.x;
   }
-  if (final.y < llf->y) {
-    llf->y = final.y;
+  if (final_pos.y < llf->y) {
+    llf->y = final_pos.y;
   }
-  if (final.y > urb->y) {
-    urb->y = final.y;
+  if (final_pos.y > urb->y) {
+    urb->y = final_pos.y;
   }
-  if (final.z < llf->z) {
-    llf->z = final.z;
+  if (final_pos.z < llf->z) {
+    llf->z = final_pos.z;
   }
-  if (final.z > urb->z) {
-    urb->z = final.z;
+  if (final_pos.z > urb->z) {
+    urb->z = final_pos.z;
   }
   /* Extend the bounding box at the distance R. */
   llf->x -= R;
@@ -2271,8 +2278,8 @@ void ht_remove(struct pointer_hash *h, struct per_species_list *psl) {
  Out: The number to release
 ***************************************************************************/
 static int test_max_release(double num_to_release, char *name) {
-  int num = (int)num_to_release;
-  if (num > INT_MAX)
+  long long num = (long long)num_to_release;
+  if (num > (long long)INT_MAX)
     mcell_error("Release site \"%s\" tries to release more than INT_MAX "
                 "(2147483647) molecules.",
                 name);
@@ -2523,7 +2530,7 @@ bool periodic_boxes_are_identical(const struct periodic_image *b1,
       coordinates were not or did not need to be converted.
 *************************************************************************/
 int convert_relative_to_abs_PBC_coords(
-    struct object *periodic_box_obj,
+    struct geom_object *periodic_box_obj,
     struct periodic_image *periodic_box,
     bool periodic_traditional,
     struct vector3 *pos,

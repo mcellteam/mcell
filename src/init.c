@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -28,14 +17,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <math.h>
 #include <float.h>
 #include <time.h>
+#ifndef _MSC_VER
+#include <unistd.h>
 #include <sys/types.h>
-#ifndef _WIN32
 #include <sys/resource.h>
 #endif
+
+#include <vector>
 
 #include "version_info.h"
 #include "logging.h"
@@ -57,6 +48,8 @@
 #include "dyngeom_parse_extras.h"
 #include "triangle_overlap.h"
 
+#include "debug_config.h"
+
 #define MESH_DISTINCTIVE EPS_C
 
 struct reschedule_helper {
@@ -67,18 +60,18 @@ struct reschedule_helper {
 /* Initialize the visualization output (frame_data_lists). */
 static int init_viz_output(struct volume *world);
 
-static int compute_bb(struct volume *world, struct object *objp,
+static int compute_bb(struct volume *world, struct geom_object *objp,
                       double (*im)[4]);
-static int compute_bb_release_site(struct volume *world, struct object *objp,
+static int compute_bb_release_site(struct volume *world, struct geom_object *objp,
                                    double (*im)[4]);
-static int compute_bb_polygon_object(struct volume *world, struct object *objp,
+static int compute_bb_polygon_object(struct volume *world, struct geom_object *objp,
                                      double (*im)[4]);
 
 static int init_species_defaults(struct volume *world);
 static int init_regions_helper(struct volume *world);
 
-static struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
-  struct object *obj);
+static struct clamp_data* find_clamped_object_in_list(struct clamp_data *cdp,
+  struct geom_object *obj);
 
 #define MICROSEC_PER_YEAR 365.25 * 86400.0 * 1e6
 
@@ -244,7 +237,7 @@ int init_variables(struct volume *world) {
   world->chkpt_seq_num = 0;
   world->keep_chkpts = 0;
 
-  world->last_timing_time = (struct timeval) { 0, 0 };
+  world->last_timing_time = { 0, 0 };
   world->last_timing_iteration = 0;
 
   world->chkpt_flag = 0;
@@ -262,6 +255,7 @@ int init_variables(struct volume *world) {
   world->vol_vol_surf_colls = 0;
   world->vol_surf_surf_colls = 0;
   world->surf_surf_surf_colls = 0;
+  world->diffuse_3d_calls = 0;
   world->chkpt_start_time_seconds = 0;
   world->chkpt_byte_order_mismatch = 0;
   world->diffusion_number = 0;
@@ -337,6 +331,9 @@ int init_variables(struct volume *world) {
   world->n_NFSimPReactions = 0;
 
   world->dynamic_geometry_filename = NULL;
+
+  // mcell4
+  world->partitions_initialized = false;
 
   return 0;
 }
@@ -465,7 +462,7 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  world->root_object = (struct object *)sym->value;
+  world->root_object = (struct geom_object *)sym->value;
   world->root_object->object_type = META_OBJ;
   if (!(world->root_object->last_name = CHECKED_STRDUP_NODIE("", NULL))) {
     return 1;
@@ -478,7 +475,7 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  world->root_instance = (struct object *)sym->value;
+  world->root_instance = (struct geom_object *)sym->value;
   world->root_instance->object_type = META_OBJ;
   if (!(world->root_instance->last_name = CHECKED_STRDUP("", NULL))) {
     return 1;
@@ -897,47 +894,49 @@ int init_reaction_data(struct volume *world) {
       }
     }
 
-    for (set = obp->data_set_head; set != NULL; set = set->next) {
-      if (set->file_flags == FILE_SUBSTITUTE) {
-        if (world->chkpt_seq_num == 1) {
-          FILE *file = fopen(set->outfile_name, "w");
-          if (file == NULL) {
-            mcell_perror_nodie(errno, "Failed to open reaction data output "
-                                      "file '%s' for writing",
-                               set->outfile_name);
-            return 1;
-          }
+    if (!world->use_mcell4) { // do not clean mcell3 output files in mcell4 mode
+      for (set = obp->data_set_head; set != NULL; set = set->next) {
+        if (set->file_flags == FILE_SUBSTITUTE) {
+          if (world->chkpt_seq_num == 1) {
+            FILE *file = fopen(set->outfile_name, "w");
+            if (file == NULL) {
+              mcell_perror_nodie(errno, "Failed to open reaction data output "
+                                        "file '%s' for writing",
+                                 set->outfile_name);
+              return 1;
+            }
 
-          fclose(file);
-        } else if (obp->timer_type == OUTPUT_BY_ITERATION_LIST) {
-          if (obp->time_now == NULL)
-            continue;
-          if (truncate_output_file(set->outfile_name, obp->t)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
-          }
-        } else if (obp->timer_type == OUTPUT_BY_TIME_LIST) {
-          if (obp->time_now == NULL)
-            continue;
-          if (truncate_output_file(set->outfile_name,
-                                   obp->t * world->time_unit)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
-          }
-        } else {
-          /* we need to truncate up until the start of the new checkpoint
-            * simulation plus a single TIMESTEP */
-          double startTime =
-              world->chkpt_start_time_seconds + world->time_unit;
-          if (truncate_output_file(set->outfile_name, startTime)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
+            fclose(file);
+          } else if (obp->timer_type == OUTPUT_BY_ITERATION_LIST) {
+            if (obp->time_now == NULL)
+              continue;
+            if (truncate_output_file(set->outfile_name, obp->t)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
+          } else if (obp->timer_type == OUTPUT_BY_TIME_LIST) {
+            if (obp->time_now == NULL)
+              continue;
+            if (truncate_output_file(set->outfile_name,
+                                     obp->t * world->time_unit)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
+          } else {
+            /* we need to truncate up until the start of the new checkpoint
+              * simulation plus a single TIMESTEP */
+            double startTime =
+                world->chkpt_start_time_seconds + world->time_unit;
+            if (truncate_output_file(set->outfile_name, startTime)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
           }
         }
       }
@@ -1402,6 +1401,8 @@ int init_partitions(struct volume *world) {
   world->n_waypoints = 1;
   world->waypoints = CHECKED_MALLOC_ARRAY(struct waypoint, world->n_waypoints,
                                           "dummy waypoint");
+  /* Waypoints are not used in all cases, need to clear them first */
+  memset(world->waypoints, 0, sizeof(*world->waypoints));
 
   /* Allocate the subvolumes */
   world->n_subvols =
@@ -1433,9 +1434,21 @@ int init_partitions(struct volume *world) {
         "Failed to create memory pool for exact disk calculation vertices.");
 
   /* How many storage subdivisions along each axis? */
+#ifdef MCELL3_ONLY_ONE_MEMPART
+  // multiple memparts make comparison against mcell4 difficult because 
+  // the order of simulation changes
+  world->mem_part_x = 1;
+  world->mem_part_y = 1;
+  world->mem_part_z = 1;
+  int nx = 1; 
+  int ny = 1; 
+  int nz = 1; 
+#else
   int nx = (world->nx_parts + (world->mem_part_x) - 2) / (world->mem_part_x);
   int ny = (world->ny_parts + (world->mem_part_y) - 2) / (world->mem_part_y);
   int nz = (world->nz_parts + (world->mem_part_z) - 2) / (world->mem_part_z);
+#endif
+
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("Creating %d memory partitions (%d,%d,%d per axis).",
               nx * ny * nz, nx, ny, nz);
@@ -1447,10 +1460,15 @@ int init_partitions(struct volume *world) {
     mcell_allocfailed("Failed to create memory pool for storage list.");
 
   /* Allocate the storages */
-  struct storage *shared_mem[nx * ny * nz];
+  std::vector<struct storage *> shared_mem(nx * ny * nz);
   int cx = 0, cy = 0, cz = 0;
   for (int i = 0; i < nx * ny * nz; ++i) {
     /* Determine the number of subvolumes included in this subdivision */
+#ifdef MCELL3_ONLY_ONE_MEMPART
+    int xd = world->nx_parts;
+    int yd = world->ny_parts;
+    int zd = world->nz_parts;
+#else
     int xd = world->mem_part_x, yd = world->mem_part_y, zd = world->mem_part_z;
     if (cx == nx - 1)
       xd = (world->nx_parts - 1) % world->mem_part_x;
@@ -1465,6 +1483,7 @@ int init_partitions(struct volume *world) {
         ++cz;
       }
     }
+#endif
 
     /* Allocate this storage */
     if ((shared_mem[i] = create_storage(world, xd * yd * zd)) == NULL)
@@ -1520,9 +1539,13 @@ int init_partitions(struct volume *world) {
           sv->world_edge |= Z_POS_BIT;
 
         /* Bind this subvolume to the appropriate storage */
+#ifdef MCELL3_ONLY_ONE_MEMPART  
+        int shidx = 0;
+#else
         int shidx =
             (i / (world->mem_part_x)) +
             nx * (j / (world->mem_part_y) + ny * (k / (world->mem_part_z)));
+#endif            
         sv->local_storage = shared_mem[shidx];
       }
   return 0;
@@ -1591,13 +1614,13 @@ int init_bounding_box(struct volume *world) {
  * instance_polygon_object() to handle the actual instantiation of
  * those objects.
  */
-int instance_obj(struct volume *world, struct object *objp, double (*im)[4]) {
+int instance_obj(struct volume *world, struct geom_object *objp, double (*im)[4]) {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
 
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (instance_obj(world, child_objp, tm))
         return 1;
@@ -1637,7 +1660,7 @@ accumulate_vertex_counts_per_storage:
              object vertex and recursively for object's children
 ************************************************************************/
 int accumulate_vertex_counts_per_storage(struct volume *world,
-                                         struct object *objp,
+                                         struct geom_object *objp,
                                          int *num_vertices_this_storage,
                                          double (*im)[4]) {
   double tm[4][4];
@@ -1645,7 +1668,7 @@ int accumulate_vertex_counts_per_storage(struct volume *world,
 
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (accumulate_vertex_counts_per_storage(world, child_objp,
                                                num_vertices_this_storage, tm))
@@ -1682,7 +1705,7 @@ accumulate_vertex_counts_per_storage_polygon_object:
              polygon object vertex
 **************************************************************************/
 int accumulate_vertex_counts_per_storage_polygon_object(
-    struct volume *world, struct object *objp, int *num_vertices_this_storage,
+    struct volume *world, struct geom_object *objp, int *num_vertices_this_storage,
     double (*im)[4]) {
   struct vertex_list *vl;
   struct vector3 v;
@@ -1752,14 +1775,14 @@ fill_world_vertices_array:
         Out: 0 if successful (the array "world->all_vertices" is filled),
              1 - on failure
 ************************************************************************/
-int fill_world_vertices_array(struct volume *world, struct object *objp,
+int fill_world_vertices_array(struct volume *world, struct geom_object *objp,
                               int *num_vertices_this_storage, double (*im)[4]) {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
 
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (fill_world_vertices_array(world, child_objp,
                                     num_vertices_this_storage, tm))
@@ -1797,7 +1820,7 @@ fill_world_vertices_array_polygon_object:
              1 - on failure
 ************************************************************************/
 int fill_world_vertices_array_polygon_object(struct volume *world,
-                                             struct object *objp,
+                                             struct geom_object *objp,
                                              int *num_vertices_this_storage,
                                              double (*im)[4]) {
 
@@ -1842,7 +1865,7 @@ int fill_world_vertices_array_polygon_object(struct volume *world,
  * Adds the rel
  */
 int instance_release_site(struct mem_helper *magic_mem,
-                          struct schedule_helper *releaser, struct object *objp,
+                          struct schedule_helper *releaser, struct geom_object *objp,
                           double (*im)[4]) {
 
   struct release_event_queue *reqp;
@@ -1900,14 +1923,14 @@ int instance_release_site(struct mem_helper *magic_mem,
  * Computes the bounding box for the entire simulation world.
  * Does things recursively in a manner similar to instance_obj().
  */
-static int compute_bb(struct volume *world, struct object *objp,
+static int compute_bb(struct volume *world, struct geom_object *objp,
                       double (*im)[4]) {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
 
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (compute_bb(world, child_objp, tm))
         return 1;
@@ -1938,7 +1961,7 @@ static int compute_bb(struct volume *world, struct object *objp,
  * and location of a release site.
  * Used by compute_bb().
  */
-static int compute_bb_release_site(struct volume *world, struct object *objp,
+static int compute_bb_release_site(struct volume *world, struct geom_object *objp,
                                    double (*im)[4]) {
 
   struct release_site_obj *rsop = (struct release_site_obj *)objp->contents;
@@ -1995,10 +2018,11 @@ static int compute_bb_release_site(struct volume *world, struct object *objp,
    "pop->parsed_vertices" array.
  * Used by compute_bb().
  */
-static int compute_bb_polygon_object(struct volume *world, struct object *objp,
+static int compute_bb_polygon_object(struct volume *world, struct geom_object *objp,
                                      double (*im)[4]) {
 
   struct polygon_object *pop = (struct polygon_object *)objp->contents;
+  assert(pop != NULL);
 
   for (struct vertex_list *vl = pop->parsed_vertices;
        vl != NULL;
@@ -2034,7 +2058,7 @@ static int compute_bb_polygon_object(struct volume *world, struct object *objp,
  * <br>
  */
 int instance_polygon_object(enum warn_level_t degenerate_polys,
-                            struct object *objp) {
+                            struct geom_object *objp) {
 
   int index_0, index_1, index_2;
   unsigned int degenerate_count;
@@ -2140,24 +2164,24 @@ static int init_regions_helper(struct volume *world) {
 /* First part of concentration clamp initialization. */
 /* After this, list is grouped by surface class. */
 /* Second part (list of objects) happens with regions. */
-void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
+void init_clamp_lists(struct clamp_data *clamp_list) {
 
   /* Sort by memory order of surface_class pointer--handy way to collect like
    * classes */
-  clamp_list = (struct ccn_clamp_data *)void_list_sort(
+  clamp_list = (struct clamp_data *)void_list_sort(
       (struct void_list *)clamp_list);
 
   /* Toss other molecules in same surface class into next_mol lists */
-  for (struct ccn_clamp_data *ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-    while (ccd->next != NULL && ccd->surf_class == ccd->next->surf_class) {
-      ccd->next->next_mol = ccd->next_mol;
-      ccd->next_mol = ccd->next;
-      ccd->next = ccd->next->next;
+  for (struct clamp_data *cdp = clamp_list; cdp != NULL; cdp = cdp->next) {
+    while (cdp->next != NULL && cdp->surf_class == cdp->next->surf_class) {
+      cdp->next->next_mol = cdp->next_mol;
+      cdp->next_mol = cdp->next;
+      cdp->next = cdp->next->next;
     }
-    for (struct ccn_clamp_data *temp = ccd->next_mol;
+    for (struct clamp_data *temp = cdp->next_mol;
          temp != NULL;
          temp = temp->next_mol) {
-      temp->next = ccd->next;
+      temp->next = cdp->next;
     }
   }
 }
@@ -2166,10 +2190,10 @@ void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
  * Traverse through metaobjects, placing regions on real objects as we find
  * them.
  */
-int instance_obj_regions(struct volume *world, struct object *objp) {
+int instance_obj_regions(struct volume *world, struct geom_object *objp) {
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (instance_obj_regions(world, child_objp))
         return 1;
@@ -2203,9 +2227,9 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
  * Populates surface molecule tiles by region.
  * Creates virtual regions on which to clamp concentration
  */
-int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
+int init_wall_regions(double length_unit, struct clamp_data *clamp_list,
                       struct species **species_list, int n_species,
-                      struct object *objp) {
+                      struct geom_object *objp) {
   struct wall *w;
   struct region *rp;
   struct region_list *rlp, *wrlp;
@@ -2399,8 +2423,8 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
   /* Check to see if we need to generate virtual regions for */
   /* concentration clamps on this object */
   if (clamp_list != NULL) {
-    struct ccn_clamp_data *ccd;
-    struct ccn_clamp_data *temp;
+    struct clamp_data *cdp;
+    struct clamp_data *temp;
     int j;
     int found_something = 0;
 
@@ -2411,37 +2435,37 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
 
         for (scl = objp->wall_p[n_wall]->surf_class_head; scl != NULL;
              scl = scl->next) {
-          for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-            if (scl->surf_class == ccd->surf_class) {
-              if (ccd->objp != objp) {
-                if (ccd->objp == NULL)
-                  ccd->objp = objp;
-                else if ((temp = find_clamped_object_in_list(ccd, objp)) != NULL)
+          for (cdp = clamp_list; cdp != NULL; cdp = cdp->next) {
+            if (scl->surf_class == cdp->surf_class) {
+              if (cdp->objp != objp) {
+                if (cdp->objp == NULL)
+                  cdp->objp = objp;
+                else if ((temp = find_clamped_object_in_list(cdp, objp)) != NULL)
                 {
-                  ccd = temp;
+                  cdp = temp;
                 }
                 else {
-                  temp = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data,
-                                               "concentration clamp data");
-                  memcpy(temp, ccd, sizeof(struct ccn_clamp_data));
+                  temp = CHECKED_MALLOC_STRUCT(struct clamp_data,
+                                               "clamp data");
+                  memcpy(temp, cdp, sizeof(struct clamp_data));
                   temp->objp = objp;
                   temp->sides = NULL;
                   temp->n_sides = 0;
                   temp->side_idx = NULL;
                   temp->cum_area = NULL;
-                  ccd->next_obj = temp;
-                  ccd = temp;
+                  cdp->next_obj = temp;
+                  cdp = temp;
                 }
               }
-              if (ccd->sides == NULL) {
-                ccd->sides = new_bit_array(n_walls);
-                if (ccd->sides == NULL)
+              if (cdp->sides == NULL) {
+                cdp->sides = new_bit_array(n_walls);
+                if (cdp->sides == NULL)
                   mcell_allocfailed("Failed to allocate membership bit array "
                                     "for concentration clamp data.");
-                set_all_bits(ccd->sides, 0);
+                set_all_bits(cdp->sides, 0);
               }
-              set_bit(ccd->sides, n_wall, 1);
-              ccd->n_sides++;
+              set_bit(cdp->sides, n_wall, 1);
+              cdp->n_sides++;
               found_something = 1;
             }
           }
@@ -2450,39 +2474,39 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
     }
 
     if (found_something) {
-      for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-        if (ccd->objp != objp) {
-          if (ccd->next_obj != NULL && ccd->next_obj->objp == objp)
-            ccd = ccd->next_obj;
+      for (cdp = clamp_list; cdp != NULL; cdp = cdp->next) {
+        if (cdp->objp != objp) {
+          if (cdp->next_obj != NULL && cdp->next_obj->objp == objp)
+            cdp = cdp->next_obj;
           else
             continue;
         }
 
-        ccd->side_idx = CHECKED_MALLOC_ARRAY(
-            int, ccd->n_sides, "concentration clamp polygon side index");
-        ccd->cum_area = CHECKED_MALLOC_ARRAY(
-            double, ccd->n_sides,
+        cdp->side_idx = CHECKED_MALLOC_ARRAY(
+            int, cdp->n_sides, "concentration clamp polygon side index");
+        cdp->cum_area = CHECKED_MALLOC_ARRAY(
+            double, cdp->n_sides,
             "concentration clamp polygon side cumulative area");
 
         j = 0;
         for (int n_wall = 0; n_wall < n_walls; n_wall++) {
-          if (get_bit(ccd->sides, n_wall)) {
-            ccd->side_idx[j] = n_wall;
-            ccd->cum_area[j] = objp->wall_p[n_wall]->area;
+          if (get_bit(cdp->sides, n_wall)) {
+            cdp->side_idx[j] = n_wall;
+            cdp->cum_area[j] = objp->wall_p[n_wall]->area;
             j++;
           }
         }
-        if (j != ccd->n_sides)
+        if (j != cdp->n_sides)
           mcell_internal_error("Miscounted the number of walls for "
                                "concentration clamp.  object=%s  surface "
                                "class=%s",
-                               objp->sym->name, ccd->surf_class->sym->name);
+                               objp->sym->name, cdp->surf_class->sym->name);
 
-        for (j = 1; j < ccd->n_sides; j++)
-          ccd->cum_area[j] += ccd->cum_area[j - 1];
+        for (j = 1; j < cdp->n_sides; j++)
+          cdp->cum_area[j] += cdp->cum_area[j - 1];
 
-        ccd->scaling_factor =
-            ccd->cum_area[ccd->n_sides - 1] * length_unit *
+        cdp->scaling_factor =
+            cdp->cum_area[cdp->n_sides - 1] * length_unit *
             length_unit * length_unit /
             2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
       }
@@ -2511,8 +2535,8 @@ int init_surf_mols(struct volume *world) {
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int instance_obj_surf_mols(struct volume *world, struct object *objp) {
-  struct object *child_objp;
+int instance_obj_surf_mols(struct volume *world, struct geom_object *objp) {
+  struct geom_object *child_objp;
 
   switch (objp->object_type) {
   case META_OBJ:
@@ -2546,7 +2570,7 @@ int instance_obj_surf_mols(struct volume *world, struct object *objp) {
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_wall_surf_mols(struct volume *world, struct object *objp) {
+int init_wall_surf_mols(struct volume *world, struct geom_object *objp) {
   struct sm_dat *smdp, *dup_smdp, **sm_prop;
   struct region_list *rlp, *rlp2, *reg_sm_num_head;
   /* byte all_region; */ /* flag that points to the region called ALL */
@@ -2696,7 +2720,7 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 
   if (create_grid(world, w, NULL))
     mcell_allocfailed("Failed to create grid for wall.");
-  struct object *objp = w->parent_object;
+  struct geom_object *objp = w->parent_object;
 
   int num_sm_dat = 0;
   for (struct sm_dat *smdp = smdp_head; smdp != NULL; smdp = smdp->next)
@@ -2765,8 +2789,8 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
       if (p_index == -1)
         continue;
 
-      struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-      struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+      struct periodic_image periodic_box = {0, 0, 0};
+      struct vector3 pos3d = {0, 0, 0};
       short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
       struct surface_molecule *new_sm = place_single_molecule(
           world, w, n_tile, sm[p_index], 0, flags, orientation[p_index], 0, 0, 0,
@@ -2809,7 +2833,7 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
          struct region_list *reg_sm_num_head - list of what to place
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_surf_mols_by_number(struct volume *world, struct object *objp,
+int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
                              struct region_list *reg_sm_num_head) {
   static struct surface_molecule DUMMY_MOLECULE;
   static struct surface_molecule *bread_crumb = &DUMMY_MOLECULE;
@@ -2817,6 +2841,7 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
   short flags = TYPE_SURF | ACT_NEWBIE | IN_SCHEDULE | IN_SURFACE;
   unsigned int n_free_sm;
   // struct subvolume *gsv = NULL;
+
 
   no_printf("Initializing surface molecules by number...\n");
   /* traverse region list and add surface molecule sites by number to whole
@@ -2877,12 +2902,27 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
         }
       }
 
+
+      // reverse - by default release by density are in correct order, but
+      // release by num in opposite,
+      // we do not want to introduce this into MCell3 so this is a permanent change
+      #ifdef MCELL3_REVERSE_INITIAL_SURF_MOL_PLACEMENT_BY_NUM
+        std::vector<sm_dat*> sm_dat_vec;
+        for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
+          sm_dat_vec.insert(sm_dat_vec.begin(), smdp);
+        }
+      #else
+        std::vector<sm_dat*> sm_dat_vec;
+        for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
+          sm_dat_vec.push_back(smdp);
+        }
+      #endif
+
       /* distribute desired number of surface molecule sites */
       /* for each surface molecule type to add */
       /* place molecules BY NUMBER when it is defined through
        * DEFINE_SURFACE_REGION */
-      for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL;
-           smdp = smdp->next) {
+      for (struct sm_dat *smdp: sm_dat_vec) {
         if (smdp->quantity_type == SURFMOLNUM) {
           struct species *sm = smdp->sm;
           short orientation;
@@ -2942,8 +2982,8 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
             no_printf("convert remaining bread_crumbs to actual molecules\n");
             for (unsigned int j = 0; j < n_free_sm; j++) {
               if (*tiles[j] == bread_crumb) {
-                struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-                struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+                struct periodic_image periodic_box = {0, 0, 0};
+                struct vector3 pos3d = {0, 0, 0};
                 struct surface_molecule *new_sm = place_single_molecule(
                     world, walls[j], idx[j], sm, 0, flags, orientation, 0, 0, 0,
                     &periodic_box, &pos3d);
@@ -2963,8 +3003,8 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               while (1) {
                 int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                 if (*tiles[slot_num] == NULL) {
-                  struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-                  struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+                  struct periodic_image periodic_box = {0, 0, 0};
+                  struct vector3 pos3d = {0, 0, 0};
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[slot_num], idx[slot_num], sm, 0, flags,
                       orientation, 0, 0, 0, &periodic_box, &pos3d);
@@ -3095,8 +3135,8 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
               no_printf("convert remaining bread_crumbs to actual molecules\n");
               for (unsigned int j = 0; j < n_free_sm; j++) {
                 if (*tiles[j] == bread_crumb) {
-                  struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-                  struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+                  struct periodic_image periodic_box = {0, 0, 0};
+                  struct vector3 pos3d = {0, 0, 0};
                   struct surface_molecule *new_sm = place_single_molecule(
                       world, walls[j], idx[j], sm, 0, flags, orientation, 0, 0, 0,
                       &periodic_box, &pos3d);
@@ -3116,8 +3156,8 @@ int init_surf_mols_by_number(struct volume *world, struct object *objp,
                 while (1) {
                   int slot_num = (int)(rng_dbl(world->rng) * n_free_sm);
                   if (*tiles[slot_num] == NULL) {
-                    struct periodic_image periodic_box = {.x = 0, .y = 0, .z = 0};
-                    struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+                    struct periodic_image periodic_box = {0, 0, 0};
+                    struct vector3 pos3d = {0, 0, 0};
                     struct surface_molecule *new_sm = place_single_molecule(
                         world, walls[slot_num], idx[slot_num], sm, 0, flags,
                         orientation, 0, 0, 0, &periodic_box, &pos3d);
@@ -3266,9 +3306,9 @@ find_unique_rev_objects:
        expression (no duplicates), or NULL if out of memory.  The
        second argument is set to the length of the array.
 ***************************************************************************/
-static struct object **find_unique_rev_objects(struct release_evaluator *root,
+static struct geom_object **find_unique_rev_objects(struct release_evaluator *root,
                                                int *n) {
-  struct object **o_array;
+  struct geom_object **o_array;
   struct void_list *vp, *vq;
   struct mem_helper *voidmem;
   int n_unique;
@@ -3296,11 +3336,11 @@ static struct object **find_unique_rev_objects(struct release_evaluator *root,
     n_unique--;
   *n = n_unique;
 
-  o_array = CHECKED_MALLOC_ARRAY(struct object *, n_unique,
+  o_array = CHECKED_MALLOC_ARRAY(struct geom_object *, n_unique,
                                  "object array for region release");
   vq = vp;
   for (unsigned int n_obj = 0; vq != NULL; vq = vq->next, ++n_obj)
-    o_array[n_obj] = (struct object *)vq->data;
+    o_array[n_obj] = (struct geom_object *)vq->data;
 
   delete_mem(voidmem);
 
@@ -3319,7 +3359,7 @@ eval_rel_region_expr:
        this release site.
 ***************************************************************************/
 static int eval_rel_region_expr(struct release_evaluator *expr, int n,
-                                struct object **objs,
+                                struct geom_object **objs,
                                 struct bit_array **result) {
   char bit_op;
 
@@ -3365,11 +3405,11 @@ static int eval_rel_region_expr(struct release_evaluator *expr, int n,
                       bit_op);
       }
     } else {
-      struct bit_array *res2[n];
+      std::vector<struct bit_array*> res2(n);
       for (int i = 0; i < n; i++)
         res2[i] = NULL;
 
-      if (eval_rel_region_expr((struct release_evaluator *)expr->right, n, objs, res2))
+      if (eval_rel_region_expr((struct release_evaluator *)expr->right, n, objs, &res2[0]))
         return 1;
 
       for (int i = 0; i < n; i++) {
@@ -3681,8 +3721,8 @@ static void output_relreg_eval_tree(FILE *f, const char *prefix, char cA, char c
   if (expr->op & REXP_NO_OP) {
     fprintf(f, "%s >%s\n", prefix, ((struct region *)(expr->left))->sym->name);
   } else {
-    char prefixA[l + 3];
-    char prefixB[l + 3];
+    char* prefixA = new char[l + 3];
+    char* prefixB = new char[l + 3];
     strncpy(prefixA, prefix, l);
     strncpy(prefixB, prefix, l);
     prefixA[l] = cA;
@@ -3713,6 +3753,9 @@ static void output_relreg_eval_tree(FILE *f, const char *prefix, char cA, char c
     } else {
       output_relreg_eval_tree(f, prefixA, '|', ' ', (struct release_evaluator *)expr->right);
     }
+
+    delete prefixA;
+    delete prefixB;
   }
 }
 
@@ -3740,22 +3783,28 @@ schedule_dynamic_geometry:
 ***************************************************************************/
 int schedule_dynamic_geometry(struct mdlparse_vars *parse_state) {
   struct volume *state = parse_state->vol;
-  char *dynamic_geometry_filename = state->dynamic_geometry_filename;
   // Process the DG text file (e.g. times and corresponding geometry) and store
   // it in state->dynamic_geometry_events_mem. Then preliminary parse each
   // geometry file (mainly to check for added or removed objects).
-  if ((dynamic_geometry_filename != NULL) && 
+  if ((state->dynamic_geometry_filename != NULL) &&
       (add_dynamic_geometry_events(
           parse_state,
-          dynamic_geometry_filename,
+          state->dynamic_geometry_filename,
           state->time_unit,
           state->dynamic_geometry_events_mem,
           &state->dynamic_geometry_head))) {
     mcell_error("Failed to load dynamic geometry from file '%s'.",
-                dynamic_geometry_filename);
-    free(dynamic_geometry_filename);
+        state->dynamic_geometry_filename);
+
+    free(state->dynamic_geometry_filename);
+    state->dynamic_geometry_filename = NULL;
+
     return 1;     
   }
+
+  // we can free up the
+  free(state->dynamic_geometry_filename);
+  state->dynamic_geometry_filename = NULL;
 
   // This is the actual scheduling.
   struct dg_time_filename *dg_time_fname, *dg_time_fname_next;
@@ -4666,11 +4715,11 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     }
   }
 
-  for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+  for (no = sp->clamp_mols; no != NULL; no = no->next) {
     if (absorb_mols_all_mol) {
       if ((all_mol_orient == no->orient) || (all_mol_orient == 0) ||
           (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and ABSORPTIVE properties are "
+        mcell_error("CLAMP and ABSORPTIVE properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_MOLECULES within the surface class '%s'.",
                     no->name, sp->sym->name);
@@ -4686,7 +4735,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
 
       if ((all_volume_mol_orient == no->orient) ||
           (all_volume_mol_orient == 0) || (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and ABSORPTIVE properties are "
+        mcell_error("CLAMP and ABSORPTIVE properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_VOLUME_MOLECULES within the surface class "
                     "'%s'.",
@@ -4697,7 +4746,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     if (transp_mols_all_mol) {
       if ((all_mol_orient == no->orient) || (all_mol_orient == 0) ||
           (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and TRANSPARENT properties "
+        mcell_error("CLAMP and TRANSPARENT properties "
                     "are simultaneously specified for molecule %s through "
                     "the use of ALL_MOLECULES within the surface class "
                     "'%s'.",
@@ -4714,7 +4763,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
 
       if ((all_volume_mol_orient == no->orient) ||
           (all_volume_mol_orient == 0) || (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and TRANSPARENT properties are "
+        mcell_error("CLAMP and TRANSPARENT properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_VOLUME_MOLECULES within the surface class "
                     "'%s'.",
@@ -4725,7 +4774,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     if (refl_mols_all_mol) {
       if ((all_mol_orient == no->orient) || (all_mol_orient == 0) ||
           (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and REFLECTIVE properties are "
+        mcell_error("CLAMP and REFLECTIVE properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_MOLECULES within the surface class '%s'.",
                     no->name, sp->sym->name);
@@ -4741,7 +4790,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
 
       if ((all_volume_mol_orient == no->orient) ||
           (all_volume_mol_orient == 0) || (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and REFLECTIVE properties are "
+        mcell_error("CLAMP and REFLECTIVE properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_VOLUME_MOLECULES within the surface class "
                     "'%s'.",
@@ -4773,11 +4822,11 @@ void check_for_conflicts_in_surface_class(struct volume *world,
         }
       }
     }
-    for (no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+    for (no2 = sp->clamp_mols; no2 != NULL; no2 = no2->next) {
       if (strcmp(no1->name, no2->name) == 0) {
         if ((no1->orient == no2->orient) || (no1->orient == 0) ||
             (no2->orient == 0)) {
-          mcell_error("TRANSPARENT and CLAMP_CONCENTRATION properties are "
+          mcell_error("TRANSPARENT and CLAMP properties are "
                       "simultaneously specified for the same molecule %s "
                       "within the surface class '%s'.",
                       no1->name, sp->sym->name);
@@ -4799,12 +4848,12 @@ void check_for_conflicts_in_surface_class(struct volume *world,
         }
       }
     }
-    for (no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+    for (no2 = sp->clamp_mols; no2 != NULL; no2 = no2->next) {
       if (strcmp(no1->name, no2->name) == 0) {
         if ((no1->orient == no2->orient) || (no1->orient == 0) ||
             (no2->orient == 0)) {
           mcell_error(
-              "REFLECTIVE and CLAMP_CONCENTRATION properties are "
+              "REFLECTIVE and CLAMP properties are "
               "simultaneously specified for the same molecule %s within the "
               "surface class '%s'.",
               no1->name, sp->sym->name);
@@ -4814,12 +4863,12 @@ void check_for_conflicts_in_surface_class(struct volume *world,
   }
 
   for (no1 = sp->absorb_mols; no1 != NULL; no1 = no1->next) {
-    for (no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+    for (no2 = sp->clamp_mols; no2 != NULL; no2 = no2->next) {
       if (strcmp(no1->name, no2->name) == 0) {
         if ((no1->orient == no2->orient) || (no1->orient == 0) ||
             (no2->orient == 0)) {
           mcell_error(
-              "ABSORPTIVE and CLAMP_CONCENTRATION properties are "
+              "ABSORPTIVE and CLAMP properties are "
               "simultaneously specified for the same molecule %s within the "
               "surface class '%s'.",
               no1->name, sp->sym->name);
@@ -5069,8 +5118,8 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     }
   }
 
-  /* Internally CLAMP_CONC reaction is implemented as regular reaction */
-  for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+  /* Internally CLAMP reaction is implemented as regular reaction */
+  for (no = sp->clamp_mols; no != NULL; no = no->next) {
     char *mol_name = no->name;
     if (strcmp(mol_name, "ALL_MOLECULES") == 0)
       continue;
@@ -5097,7 +5146,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     hashM = mol_sp->hashval;
     hash_value = (hashM + hashW) & (world->rx_hashsize - 1);
 
-    /* count similar oriented CLAMP_CONC and regular reactions */
+    /* count similar oriented CLAMP and regular reactions */
     count_sim_orient_rxns = 0;
     for (inter = world->reaction_hash[hash_value]; inter != NULL;
          inter = inter->next) {
@@ -5113,6 +5162,11 @@ void check_for_conflicts_in_surface_class(struct volume *world,
           if (((i1 - i0) == 2) && (inter->players[2] == NULL) &&
               (inter->players[3] == NULL)) {
             /* this is an original CLAMP_CONC reaction */
+            continue;
+          }
+          if (((i1 - i0) == 2) && (inter->players[0] == inter->players[2]) &&
+              (inter->players[3] == NULL)) {
+            /* this is an original CLAMP_FLUX reaction */
             continue;
           }
         }
@@ -5132,7 +5186,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
         }
       }
       if (count_sim_orient_rxns > 0) {
-        mcell_error("Combination of similarly oriented CLAMP_CONCENTRATION "
+        mcell_error("Combination of similarly oriented CLAMP "
                     "reaction and regular reaction for molecule '%s' on the "
                     "same surface class '%s' is not allowed.",
                     mol_name, sp->sym->name);
@@ -5215,11 +5269,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
             }
           }
         }
-        for (no2 = sp2->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+        for (no2 = sp2->clamp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+              mcell_error("Conflicting TRANSPARENT and CLAMP "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5254,11 +5308,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
             }
           }
         }
-        for (no2 = sp2->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+        for (no2 = sp2->clamp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+              mcell_error("Conflicting REFLECTIVE and CLAMP "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5293,11 +5347,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
             }
           }
         }
-        for (no2 = sp2->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+        for (no2 = sp2->clamp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+              mcell_error("Conflicting ABSORPTIVE and CLAMP "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5307,12 +5361,12 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
         }
       }
 
-      for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+      for (no = sp->clamp_mols; no != NULL; no = no->next) {
         for (no2 = sp2->transp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting CLAMP_CONCENTRATION and TRANSPARENT "
+              mcell_error("Conflicting CLAMP and TRANSPARENT "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5324,7 +5378,7 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting CLAMP_CONCENTRATION and REFLECTIVE "
+              mcell_error("Conflicting CLAMP and REFLECTIVE "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5336,7 +5390,7 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting CLAMP_CONCENTRATION and ABSORPTIVE "
+              mcell_error("Conflicting CLAMP and ABSORPTIVE "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5894,10 +5948,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_transp_all_mols_orient == no->orient) ||
               (sp_transp_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting TRANSPARENT and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -5941,10 +5995,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_transp_all_volume_mols_orient == no->orient) ||
               (sp_transp_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting TRANSPARENT and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6011,10 +6065,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_transp_all_mols_orient == no->orient) ||
               (sp2_transp_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting TRANSPARENT and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -6058,10 +6112,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_transp_all_volume_mols_orient == no->orient) ||
               (sp2_transp_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting TRANSPARENT and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6128,10 +6182,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_absorb_all_mols_orient == no->orient) ||
               (sp_absorb_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting ABSORPTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES through the surface classes '%s' "
                         "and '%s'.",
@@ -6175,10 +6229,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_absorb_all_volume_mols_orient == no->orient) ||
               (sp_absorb_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting ABSORPTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES through the surface classes "
                         "'%s' and '%s'.",
@@ -6245,10 +6299,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_absorb_all_mols_orient == no->orient) ||
               (sp2_absorb_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting ABSORPTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -6290,10 +6344,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_absorb_all_volume_mols_orient == no->orient) ||
               (sp2_absorb_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting ABSORPTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6358,10 +6412,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_refl_all_mols_orient == no->orient) ||
               (sp_refl_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting REFLECTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -6403,10 +6457,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_refl_all_volume_mols_orient == no->orient) ||
               (sp_refl_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting REFLECTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6471,10 +6525,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_refl_all_mols_orient == no->orient) ||
               (sp2_refl_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting REFLECTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -6516,10 +6570,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_refl_all_volume_mols_orient == no->orient) ||
               (sp2_refl_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting REFLECTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6736,9 +6790,9 @@ int check_for_overlapped_walls(
 
 /* this function checks if obj is contained in the linked list of objects
  * which have the passed-in concentration clamp */
-struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
-  struct object *obj) {
-  struct ccn_clamp_data *c = ccd;
+struct clamp_data* find_clamped_object_in_list(struct clamp_data *cdp,
+  struct geom_object *obj) {
+  struct clamp_data *c = cdp;
   while (c->next_obj != NULL) {
     if (c->next_obj->objp == obj) {
       return c->next_obj;

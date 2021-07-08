@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
  *****************************************************************************/
 
@@ -138,8 +127,8 @@ void destroy_mesh_transp_data(
 int destroy_everything(struct volume *state);
 void destroy_walls(struct volume *state);
 void destroy_partitions(struct volume *state);
-int destroy_objects(struct object *obj_ptr, int free_poly_flag);
-int destroy_poly_object(struct object *obj_ptr, int free_poly_flag);
+int destroy_objects(struct geom_object *obj_ptr, int free_poly_flag);
+int destroy_poly_object(struct geom_object *obj_ptr, int free_poly_flag);
 
 int reset_current_counts(struct sym_table_head *mol_sym_table,
                          int count_hashmask,
@@ -158,7 +147,7 @@ void reset_count_type(const char *name,
 
 int init_species_mesh_transp(struct volume *world);
 
-int find_sm_region_transp(struct object *obj_ptr,
+int find_sm_region_transp(struct geom_object *obj_ptr,
                           struct mesh_transparency **mesh_transp_head,
                           struct mesh_transparency **mesh_transp_tail,
                           const char *species_name);
@@ -167,12 +156,12 @@ void check_surf_class_properties(
     const char *species_name, struct mesh_transparency *mesh_transp,
   struct name_orient *surf_class_props);
 
-int find_vm_obj_region_transp(struct object *obj_ptr,
+int find_vm_obj_region_transp(struct geom_object *obj_ptr,
                               struct mesh_transparency **mesh_transp_head,
                               struct mesh_transparency **mesh_transp_tail,
                               const char *species_name);
 
-int find_all_obj_region_transp(struct object *obj_ptr,
+int find_all_obj_region_transp(struct geom_object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,
                                const char *species_name, int sm_flag);
@@ -184,7 +173,7 @@ int add_dynamic_geometry_events(
     struct mem_helper *dynamic_geometry_events_mem,
     struct dg_time_filename **dg_time_fname_head);
 
-const char *get_mesh_instantiation_names(struct object *obj_ptr,
+const char *get_mesh_instantiation_names(struct geom_object *obj_ptr,
                                    struct string_buffer *mesh_names);
 
 void diff_string_buffers(
@@ -199,10 +188,10 @@ void sym_diff_string_buffers(
     enum warn_level_t add_remove_mesh_warning);
 
 int get_reg_names_all_objects(
-    struct object *obj_ptr, struct string_buffer *regions_to_ignore);
+    struct geom_object *obj_ptr, struct string_buffer *regions_to_ignore);
 
 int get_reg_names_this_object(
-    struct object *obj_ptr, struct string_buffer *regions_to_ignore);
+    struct geom_object *obj_ptr, struct string_buffer *regions_to_ignore);
 
 void update_geometry(struct volume *state, struct dg_time_filename *dyn_geom);
 

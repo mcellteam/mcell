@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -66,13 +55,13 @@ int check_counter_geometry(int count_hashmask, struct counter **count_hash,
                            byte *place_waypoints_flag);
 
 int expand_object_output(struct output_request *request,
-                         struct object *obj,
+                         struct geom_object *obj,
                          struct sym_table_head *reg_sym_table);
-int object_has_geometry(struct object *obj);
+int object_has_geometry(struct geom_object *obj);
 
 /* hit data for region borders */
 void update_hit_data(struct hit_data **hd_head, struct wall *current,
                      struct wall *target, struct surface_molecule *sm,
                      struct vector2 boundary_pos, int direction, int crossed);
 int is_object_instantiated(struct sym_entry *entry,
-                           struct object *root_instance);
+                           struct geom_object *root_instance);

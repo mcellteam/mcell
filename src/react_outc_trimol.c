@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -27,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <vector>
 
 #include "logging.h"
 #include "rng.h"
@@ -95,14 +85,15 @@ static int outcome_products_trimol_reaction_random(
       rx->players + i0; /* Players array from the reaction. */
 
   int const n_players = iN - i0;                /* number of reaction players */
-  struct abstract_molecule *product[n_players]; /* array of products */
-  char product_type[n_players]; /* array that decodes the type of each product
-                                   */
-  short product_orient[n_players]; /* array of orientations for each product */
-  struct surface_grid *product_grid[n_players]; /* array of surface_grids for
-                                                   products */
-  int product_grid_idx[n_players]; /* array of grid indices for products */
-  byte product_flag[n_players];    /* array of placement flags for products */
+
+  std::vector<struct abstract_molecule *> product(n_players); /* array of products */
+  /* array that decodes the type of each product */
+  std::vector<char> product_type(n_players);
+  std::vector<short> product_orient(n_players); /* array of orientations for each product */
+  /* array of surface_grids for products */
+  std::vector<struct surface_grid *> product_grid(n_players);
+  std::vector<int> product_grid_idx(n_players); /* array of grid indices for products */
+  std::vector<byte> product_flag(n_players);    /* array of placement flags for products */
 
   struct tile_neighbor *tile_nbr_head = NULL; /* list of neighbor tiles */
   struct tile_neighbor *tile_nbr;             /* iterator */
@@ -594,7 +585,7 @@ static int outcome_products_trimol_reaction_random(
     }
   }
 
-  add_reactants_to_product_list(rx, reacA, reacB, reacC, product, product_type);
+  add_reactants_to_product_list(rx, reacA, reacB, reacC, &product[0], &product_type[0]);
 
   /* Determine whether any of the reactants can be replaced by a product. */
   if (product_type[0] == PLAYER_SURF_MOL) {

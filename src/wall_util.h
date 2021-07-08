@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -25,30 +14,8 @@
 
 #include "mcell_structs.h"
 
-/* Temporary data stored about an edge of a polygon */
-struct poly_edge {
-  struct poly_edge *next; /* Next edge in a hash table. */
+#include "edge_util.h"
 
-  double v1x; /* X coord of starting point */
-  double v1y; /* Y coord of starting point */
-  double v1z; /* Z coord of starting point */
-  double v2x; /* X coord of ending point */
-  double v2y; /* Y coord of ending point */
-  double v2z; /* Z coord of ending point */
-
-  int face[2]; /* wall indices on side of edge */
-  int edge[2]; /* which edge of wall1/2 are we? */
-  int n;     /* How many walls share this edge? */
-};
-
-/* Hash table for rapid order-invariant lookup of edges. */
-struct edge_hashtable {
-  struct poly_edge *data; /* Array of polygon edges */
-
-  int nkeys;    /* Length of array */
-  int stored;   /* How many things do we have in the table? */
-  int distinct; /* How many of those are distinct? */
-};
 
 /* This linked list node is used in walls overlap test */
 struct wall_aux_list {
@@ -64,16 +31,9 @@ struct plane {
                the plane */
 };
 
-int edge_equals(struct poly_edge *e1, struct poly_edge *e2);
-int edge_hash(struct poly_edge *pe, int nkeys);
-
-int ehtable_init(struct edge_hashtable *eht, int nkeys);
-int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe);
-void ehtable_kill(struct edge_hashtable *eht);
-
 int surface_net(struct wall **facelist, int nfaces);
 void init_edge_transform(struct edge *e, int edgenum);
-int sharpen_object(struct object *parent);
+int sharpen_object(struct geom_object *parent);
 
 int sharpen_world(struct volume *world);
 
@@ -101,14 +61,14 @@ int collide_mol(struct vector3 *point, struct vector3 *move,
 
 int intersect_box(struct vector3 *llf, struct vector3 *urb, struct wall *w);
 
-void init_tri_wall(struct object *objp, int side, struct vector3 *v0,
+void init_tri_wall(struct geom_object *objp, int side, struct vector3 *v0,
                    struct vector3 *v1, struct vector3 *v2);
 
 struct wall_list *wall_to_vol(struct wall *w, struct subvolume *sv);
 
 struct wall *localize_wall(struct wall *w, struct storage *stor);
 
-int distribute_object(struct volume *world, struct object *parent);
+int distribute_object(struct volume *world, struct geom_object *parent);
 
 int distribute_world(struct volume *world);
 
@@ -153,11 +113,11 @@ find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
                                 struct surface_molecule *sm);
 
 struct region_list *
-find_restricted_regions_by_object(struct volume *world, struct object *obj,
+find_restricted_regions_by_object(struct volume *world, struct geom_object *obj,
                                   struct surface_molecule *sm);
 
 int are_restricted_regions_for_species_on_object(struct volume *world,
-                                                 struct object *obj,
+                                                 struct geom_object *obj,
                                                  struct surface_molecule *sm);
 
 int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge);

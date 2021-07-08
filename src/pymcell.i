@@ -112,9 +112,9 @@ elif (sys.platform == 'darwin'):
     extension = "dylib"
 elif (sys.platform == 'win32'):
     extension = "dll"
-mcell_dir = os.environ.get('MCELL_DIR', '')
-if mcell_dir:
-    base_dir = os.path.join(mcell_dir, 'lib')
+mcell_path = os.environ.get('MCELL_PATH', '')
+if mcell_path:
+    base_dir = os.path.join(mcell_path, 'lib')
 else:
     base_dir = os.path.join('..', 'lib')
 lib1 = cdll.LoadLibrary(os.path.join(base_dir, 'libNFsim.{0}'.format(extension)))

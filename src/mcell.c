@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -25,10 +14,13 @@
 
 #include <stdlib.h>
 
+#include "../src4/mcell4_iface_for_mcell3.h"
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_run.h"
 #include "init.h"
+
+#include "dump_state.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -93,14 +85,35 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
 
-  CHECKED_CALL_EXIT(mcell_run_simulation(state),
-                    "Error running mcell simulation.");
-
-  if (state->notify->progress_report != NOTIFY_NONE) {
-    mcell_print("Done running.");
+  if (state->dump_mcell3) {
+    dump_volume(state, "initial", DUMP_EVERYTHING);
   }
+  
+  if (state->use_mcell4 || state->mdl2datamodel4) {
+    if (!mcell4_convert_mcell3_volume(state)) {
+      exit(EXIT_FAILURE);
+    }
 
-  mcell_print_stats();
+		if (state->mdl2datamodel4) {
+		  mcell4_convert_to_data_model(state->mdl2datamodel4_only_viz);
+      mcell4_delete_world();
+      return 0;
+		}
 
+    mcell4_run_simulation(
+        state->dump_mcell4 || state->dump_mcell4_with_geometry, state->dump_mcell4_with_geometry);
+
+    mcell4_delete_world();
+  }
+  else {
+    CHECKED_CALL_EXIT(mcell_run_simulation(state),
+                      "Error running mcell simulation.");
+
+    if (state->notify->progress_report != NOTIFY_NONE) {
+      mcell_print("Done running.");
+    }
+
+    mcell_print_stats();
+  }
   exit(0);
 }

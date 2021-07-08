@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -51,10 +40,10 @@ static int is_region_degenerate(struct region *reg_ptr);
 *************************************************************************/
 MCELL_STATUS
 mcell_create_instance_object(MCELL_STATE *state, const char *name,
-                             struct object **new_obj) {
+                             struct geom_object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(
+  struct geom_object *obj_ptr = make_new_object(
       state->dg_parse, // Need to test that dg_parse actually works here
       state->obj_sym_table,
       name,
@@ -82,13 +71,13 @@ MCELL_STATUS mcell_create_periodic_box(
     struct vector3 *urb) {
   
   double sf = 100.0; // scaling factor
-  struct vector3 llf_sm = { .x=llf->x/sf,
-                            .y=llf->y/sf,
-                            .z=llf->z/sf,
+  struct vector3 llf_sm = {llf->x/sf,
+                           llf->y/sf,
+                           llf->z/sf,
   };
-  struct vector3 urb_sm = { .x=urb->x/sf,
-                            .y=urb->y/sf,
-                            .z=urb->z/sf,
+  struct vector3 urb_sm = {urb->x/sf,
+                           urb->y/sf,
+                           urb->z/sf,
   };
 
   struct vertex_list *verts = mcell_add_to_vertex_list(
@@ -152,11 +141,11 @@ MCELL_STATUS mcell_create_periodic_box(
   b->z[0] = llf->z;
   b->z[1] = urb->z;
   
-  struct object *meta_box = NULL;
+  struct geom_object *meta_box = NULL;
   mcell_create_instance_object(state, "PERIODIC_META_BOX", &meta_box);
 
   struct poly_object polygon = { box_name, verts, 8, elems, 12 };
-  struct object *new_mesh = NULL;
+  struct geom_object *new_mesh = NULL;
   mcell_create_poly_object(state, meta_box, &polygon, &new_mesh);
   new_mesh->periodic_x = true;
   new_mesh->periodic_y = true;
@@ -180,16 +169,16 @@ MCELL_STATUS mcell_create_periodic_box(
       A mesh is created.
 *************************************************************************/
 MCELL_STATUS
-mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
+mcell_create_poly_object(MCELL_STATE *state, struct geom_object *parent,
                          struct poly_object *poly_obj,
-                         struct object **new_obj) {
+                         struct geom_object **new_obj) {
   // create qualified object name
   char *qualified_name =
       CHECKED_SPRINTF("%s.%s", parent->sym->name, poly_obj->obj_name);
 
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(
+  struct geom_object *obj_ptr = make_new_object(
       state->dg_parse, // Need to test that dg_parse actually works here
       state->obj_sym_table,
       qualified_name,
@@ -235,7 +224,7 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
  NOTE: This is similar to mdl_new_polygon_list
 **************************************************************************/
 struct polygon_object *
-new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
+new_polygon_list(MCELL_STATE *state, struct geom_object *obj_ptr, int n_vertices,
                  struct vertex_list *vertices, int n_connections,
                  struct element_connection_list *connections) {
 
@@ -342,7 +331,7 @@ failure:
       obj_name: fully qualified object name
  Out: the newly created object
 *************************************************************************/
-struct object *make_new_object(
+struct geom_object *make_new_object(
     struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
     const char *obj_name,
@@ -352,7 +341,7 @@ struct object *make_new_object(
   if (symbol != NULL) {
     if (symbol->count == 0) {
       symbol->count = 1;
-      return (struct object *)symbol->value;
+      return (struct geom_object *)symbol->value;
     }
     else {
       *error_code = 1;
@@ -366,7 +355,7 @@ struct object *make_new_object(
   }
 
   *error_code = 0;
-  return (struct object *)symbol->value;
+  return (struct geom_object *)symbol->value;
 }
 
 /*************************************************************************
@@ -479,8 +468,8 @@ void pop_object_name(struct object_creation *obj_creation) {
      child_tail: pointer to tail of child list
  Out: parent object is updated; child_tail->next pointer is set to NULL
 **************************************************************************/
-void add_child_objects(struct object *parent, struct object *child_head,
-                       struct object *child_tail) {
+void add_child_objects(struct geom_object *parent, struct geom_object *child_head,
+                       struct geom_object *child_tail) {
 
   if (parent->first_child == NULL) {
     parent->first_child = child_head;
@@ -507,8 +496,8 @@ void add_child_objects(struct object *parent, struct object *child_head,
  In: a, b: objects
  Out: their common ancestor in the object tree, or NULL if none exists
 *************************************************************************/
-struct object *common_ancestor(struct object *a, struct object *b) {
-  struct object *pa, *pb;
+struct geom_object *common_ancestor(struct geom_object *a, struct geom_object *b) {
+  struct geom_object *pa, *pb;
 
   for (pa = (a->object_type == META_OBJ) ? a : a->parent; pa != NULL;
        pa = pa->parent) {
@@ -531,7 +520,7 @@ struct object *common_ancestor(struct object *a, struct object *b) {
  Out: Any walls that have been removed from the object are removed from every
       region on that object.
 *************************************************************************/
-void remove_gaps_from_regions(struct object *obj_ptr) {
+void remove_gaps_from_regions(struct geom_object *obj_ptr) {
   if (obj_ptr->object_type != BOX_OBJ && obj_ptr->object_type != POLY_OBJ) {
     return;
   }
@@ -572,7 +561,7 @@ void remove_gaps_from_regions(struct object *obj_ptr) {
  In: obj_ptr: the object to validate
  Out: 0 if valid, 1 if invalid
 **************************************************************************/
-int check_degenerate_polygon_list(struct object *obj_ptr) {
+int check_degenerate_polygon_list(struct geom_object *obj_ptr) {
   // Check for a degenerate (empty) object and regions.
   struct region_list *reg_list;
   for (reg_list = obj_ptr->regions; reg_list != NULL;
@@ -1160,7 +1149,7 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
   return 0;
 }
 
-int mcell_check_for_region(char *region_name, struct object *obj_ptr) {
+int mcell_check_for_region(char *region_name, struct geom_object *obj_ptr) {
   struct region_list *reg_list;
   for (reg_list = obj_ptr->regions; reg_list != NULL;
        reg_list = reg_list->next) {
@@ -1182,7 +1171,7 @@ int mcell_check_for_region(char *region_name, struct object *obj_ptr) {
       allocation failed)
  NOTE: This is similar to mdl_create_region
 **************************************************************************/
-struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
+struct region *mcell_create_region(MCELL_STATE *state, struct geom_object *obj_ptr,
                                    const char *name) {
   struct region *reg_ptr;
   struct region_list *reg_list_ptr;
@@ -1402,7 +1391,7 @@ int is_region_degenerate(struct region *reg_ptr) {
 }
 
 struct sym_entry *
-mcell_get_obj_sym(struct object *obj) {
+mcell_get_obj_sym(struct geom_object *obj) {
   return obj->sym;
 }
 

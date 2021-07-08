@@ -4,24 +4,15 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
 #pragma once
+
+#include "debug_config.h"
 
 #define ONE_OVER_2_TO_THE_33RD 1.16415321826934814453125e-10
 
@@ -42,12 +33,22 @@
 #define rng_uses(x)                                                            \
   ((RANDMAX *((x)->rngblocks - 1)) + (long long)(RANDMAX - (x)->randcnt))
 #define rng_init(x, y) isaac64_init((x), (y))
+
+#if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
+// we need functions to be able to dump the random number gen. info
+static double rng_dbl(struct rng_state *rng);
+static unsigned int rng_uint(struct rng_state *rng);
+#else
 #define rng_dbl(x) isaac64_dbl32((x))
 #define rng_uint(x) isaac64_uint32((x))
+#endif
 /***********************************************/
 
 #endif
 
 #define rng_open_dbl(x) (rng_dbl(x) + ONE_OVER_2_TO_THE_33RD)
 
-double rng_gauss(struct rng_state *rng);
+static double rng_gauss(struct rng_state *rng);
+
+#include "rng.c"
+

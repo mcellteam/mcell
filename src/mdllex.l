@@ -3,10 +3,15 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
+  #ifndef _MSC_VER
   #include <unistd.h>
-
+  #else
+  #include <io.h>
+  #endif
+  
   #include "strfunc.h"
   #include "mdlparse_aux.h"
+  #include "mdlparse.hpp"
   #if __cplusplus
   #  include "mdlparse.hpp"
   #else
@@ -141,6 +146,7 @@ IDENT [A-Za-z][A-Za-z0-9\_\.]*
 "CLAMP" |
 "CLAMP_CONC" |
 "CLAMP_CONCENTRATION"	{return(CLAMP_CONCENTRATION);}
+"CLAMP_FLUX"	{return(CLAMP_FLUX);}
 "CLOSE_PARTITION_SPACING"     {return CLOSE_PARTITION_SPACING;}
 "CORNERS"		{return(CORNERS);}
 "COS"			{return(COS);}

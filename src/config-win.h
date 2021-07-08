@@ -1,23 +1,12 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
+ * Copyright (C) 2006-2017,2021 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -51,6 +40,11 @@ of sigaction
 #ifndef MCELL_CONFIG_WIN_H
 #define MCELL_CONFIG_WIN_H
 
+#ifdef _MSC_VER
+typedef unsigned int mode_t;
+#pragma warning( disable : 4996 )
+#endif
+
 #ifndef MINGW_HAS_SECURE_API
 #define MINGW_HAS_SECURE_API /* required for MinGW to expose _s functions */
 #endif
@@ -73,6 +67,7 @@ of sigaction
 #include <direct.h> /* many POSIX-like functions */
 #include <errno.h>
 #include <stdio.h> /* _snprintf */
+#include <stdint.h>
 #include <time.h>
 typedef unsigned short u_short;
 typedef unsigned int u_int;
@@ -88,7 +83,6 @@ typedef unsigned long u_long;
 #undef FILE_CREATE
 
 #ifdef _MSC_VER
-#define inline __inline
 #define getcwd _getcwd
 #define strdup _strdup
 #define va_copy(d, s) ((d) = (s))
@@ -404,6 +398,8 @@ __attribute__((__format__(
 }
 #define strftime _win_strftime
 
+#if 0
+
 /* gethostname wrapped function */
 #define WSADESCRIPTION_LEN 256
 #define WSASYS_STATUS_LEN 128
@@ -425,10 +421,13 @@ typedef struct WSAData {
   char *lpVendorInfo;
 #endif
 } WSADATA, *LPWSADATA;
-typedef int(WINAPI *FUNC_WSAStartup)(WORD wVersionRequested,
+#endif
+
+#if 0
+typedef long long int(WINAPI *FUNC_WSAStartup)(WORD wVersionRequested,
                                      LPWSADATA lpWSAData);
-typedef int(WINAPI *FUNC_WSAGetLastError)(void);
-typedef int(WINAPI *FUNC_gethostname)(char *name, int namelen);
+typedef long long int(WINAPI *FUNC_WSAGetLastError)(void);
+typedef long long int(WINAPI *FUNC_gethostname)(char *name, int namelen);
 static FUNC_WSAStartup WSAStartup = NULL;
 static FUNC_WSAGetLastError WSAGetLastError = NULL;
 static FUNC_gethostname win32gethostname = NULL;
@@ -474,9 +473,10 @@ inline static int gethostname(char *name, size_t len) {
   }
   return 0;
 }
+#endif
 
 /* getrusage emulated function, normally in <sys/resources.h> */
-#ifndef _TIMEVAL_DEFINED
+#if !defined(_TIMEVAL_DEFINED) // && !defined(_MSC_VER)
 #define _TIMEVAL_DEFINED
 struct timeval {
   long tv_sec;
@@ -522,10 +522,33 @@ inline static int getrusage(int who, struct rusage *usage) {
   return 0;
 }
 
+
+static int gettimeofday(struct timeval * tp, void*)
+{
+    // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+    // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+    // until 00:00:00 January 1, 1970
+    const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+
+    SYSTEMTIME  system_time;
+    FILETIME    file_time;
+    uint64_t    time;
+
+    GetSystemTime( &system_time );
+    SystemTimeToFileTime( &system_time, &file_time );
+    time =  ((uint64_t)file_time.dwLowDateTime )      ;
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    tp->tv_sec  = (long) ((time - EPOCH) / 10000000L);
+    tp->tv_usec = (long) (system_time.wMilliseconds * 1000);
+    return 0;
+}
+
+#if 0
 /* symlink emulated function, normally in <unistd.h> */
 #define SYMBOLIC_LINK_FLAG_FILE 0x0
 #define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
-typedef BOOLEAN(WINAPI *FUNC_CreateSymbolicLink)(LPCSTR lpSymlinkFileName,
+typedef long long int (WINAPI *FUNC_CreateSymbolicLink)(LPCSTR lpSymlinkFileName,
                                                  LPCSTR lpTargetFileName,
                                                  DWORD dwFlags);
 static FUNC_CreateSymbolicLink CreateSymbolicLink = NULL;
@@ -585,6 +608,7 @@ inline static int symlink(const char *oldpath, const char *newpath) {
   }
   return 0;
 }
+#endif
 
 /* stat and fstat wrapped function */
 /* adds S_IFLNK support to stat(path, &s) - necessary since Windows' stat does
@@ -694,23 +718,9 @@ inline static unsigned alarm(unsigned seconds) {
 /* atomic rename wrapped function */
 /* Windows rename is not atomic, but there is ReplaceFile (only when actually
  * replacing though) */
-inline static int _win_rename(const char *old, const char *new) {
-  DWORD dwAttrib = GetFileAttributes(new);
-  if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
-      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
-    /* new file exists */
-    if (ReplaceFile(new, old, NULL, REPLACEFILE_WRITE_THROUGH, NULL, NULL)) {
-      return 0;
-    }
-    /* fixme: set errno based on GetLastError() [possibly doing some filtering
-     * before] */
-    errno = EACCES;
-    return -1;
-  } else {
-    return rename(old, new);
-  }
-}
-#define rename _win_rename
+int _win_rename(const char *old, const char *new_name);
+
+//#define rename _win_rename
 
 /* mkdir wrapped function */
 inline static int _win_mkdir(const char *pathname, mode_t mode) {
@@ -719,5 +729,10 @@ inline static int _win_mkdir(const char *pathname, mode_t mode) {
   return mkdir(pathname);
 }
 #define mkdir _win_mkdir
+
+
+// some annoying macros from windows.h
+#undef IGNORE
+#undef DIFFERENCE
 
 #endif

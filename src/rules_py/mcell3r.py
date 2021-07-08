@@ -65,7 +65,7 @@ if __name__ == "__main__":
     if args.bond_angle:
        cmd_args = cmd_args + ' -b %s' % (args.bond_angle)
     if args.dump_level:
-       cmd_args = cmd_args + ' -d %s' % (args.dump_level)
+       cmd_args = cmd_args + ' -dump %s' % (args.dump_level)
     if args.quiet:
        cmd_args = cmd_args + ' -quiet'
     if args.with_checks:

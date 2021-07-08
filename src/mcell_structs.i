@@ -1,28 +1,28 @@
 #define ORIENT_NOT_SET -100
 
 /* Container data structure for all physical objects */
-struct object {
-  struct object *next;        /* Next sibling object */
-  struct object *parent;      /* Parent meta object */
-  struct object *first_child; /* First child object */
-  struct object *last_child;  /* Last child object */
-  struct sym_entry *sym;      /* Symbol hash table entry for this object */
-  char *last_name; /* Name of object without pre-pended parent object name */
+struct geom_object {
+  struct geom_object *next;        /* Next sibling geom_object */
+  struct geom_object *parent;      /* Parent meta geom_object */
+  struct geom_object *first_child; /* First child geom_object */
+  struct geom_object *last_child;  /* Last child geom_object */
+  struct sym_entry *sym;      /* Symbol hash table entry for this geom_object */
+  char *last_name; /* Name of geom_object without pre-pended parent geom_object name */
   enum object_type_t object_type; /* Object Type Flags */
-  void *contents;    /* Actual physical object, cast according to object_type */
-  u_int num_regions; /* Number of regions defined on object */
-  struct region_list *regions; /* List of regions for this object */
-  int n_walls;                 /* Total number of walls in object */
-  int n_walls_actual;          /* Number of non-null walls in object */
-  struct wall *walls;          /* Array of walls in object */
-  struct wall **wall_p; // Array of ptrs to walls in object (used at run-time)
-  int n_verts;               /* Total number of vertices in object */
+  void *contents;    /* Actual physical geom_object, cast according to object_type */
+  u_int num_regions; /* Number of regions defined on geom_object */
+  struct region_list *regions; /* List of regions for this geom_object */
+  int n_walls;                 /* Total number of walls in geom_object */
+  int n_walls_actual;          /* Number of non-null walls in geom_object */
+  struct wall *walls;          /* Array of walls in geom_object */
+  struct wall **wall_p; // Array of ptrs to walls in geom_object (used at run-time)
+  int n_verts;               /* Total number of vertices in geom_object */
   struct vector3 **vertices; /* Array of pointers to vertices
                                 (linked to "all_vertices" array) */
-  double total_area;      /* Area of object in length units */
-  u_int n_tiles;          /* Number of surface grid tiles on object */
-  u_int n_occupied_tiles; /* Number of occupied tiles on object */
-  double t_matrix[4][4];  /* Transformation matrix for object */
+  double total_area;      /* Area of geom_object in length units */
+  u_int n_tiles;          /* Number of surface grid tiles on geom_object */
+  u_int n_occupied_tiles; /* Number of occupied tiles on geom_object */
+  double t_matrix[4][4];  /* Transformation matrix for geom_object */
 
   bool periodic_x; // This flag only applies to box objects BOX_OBJ. If set
   bool periodic_y; // any volume molecules encountering the box surface in the x,
@@ -71,6 +71,22 @@ enum overwrite_policy_t {
 /* And finally we have some flags to say whether we're to count over */
 /* the entire world or the volume enclosed by a region (set only one) */
 #define REPORT_CONTENTS 1
+#define REPORT_RXNS 2
+#define REPORT_FRONT_HITS 3
+#define REPORT_BACK_HITS 4
+#define REPORT_FRONT_CROSSINGS 5
+#define REPORT_BACK_CROSSINGS 6
+/* Anything >= REPORT_MULTIPLE reports some combination of the above */
+#define REPORT_MULTIPLE 7
+#define REPORT_ALL_HITS 8
+#define REPORT_ALL_CROSSINGS 9
+/* Concentration is kind of special. */
+#define REPORT_CONCENTRATION 10
+#define REPORT_ELAPSED_TIME 11
+/* All basic report types can be masked with this value */
+#define REPORT_TYPE_MASK 0x0F
+/* And finally we have some flags to say whether we're to count over */
+/* the entire world or the volume enclosed by a region (set only one) */
 #define REPORT_WORLD 0x20
 #define REPORT_ENCLOSED 0x40
 #define REPORT_TRIGGER 0x80
@@ -92,7 +108,7 @@ struct release_pattern {
 struct release_evaluator {
   byte op;    /* Region Expression Flags: the operation used */
   void *left; /* The left side of the expression--another evaluator or a region
-                 object depending on bitmask of op */
+                 geom_object depending on bitmask of op */
   void *right; /* The right side--same thing */
 };
 

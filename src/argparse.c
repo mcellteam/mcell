@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -31,9 +20,14 @@
 
 #include <stdarg.h>       /* for va_start, va_end, va_list */
 #include <string.h>       /* for strdup */
-#include <getopt.h>       /* for getopt_long_only, struct option, ... */
 #include <stdio.h>        /* for *printf functions */
 #include <stdlib.h>       /* for strtol, strtoll, strtoul, free */
+
+#ifndef _MSC_VER
+#include <getopt.h>
+#else
+#include "win_getopt/win_getopt.h"
+#endif
 
 #include <nfsim_c.h> /* for the nfsim initialization stuff */
 
@@ -69,6 +63,12 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
                                         { "rules", 1, 0, 'r'},
+																				{ "mcell4", 0, 0, 'n'},
+																				{ "dump_mcell3", 0, 0, 't'},
+																				{ "dump_mcell4", 0, 0, 'o'},
+																				{ "dump_mcell4_with_geometry", 0, 0, 'g'},
+                                        { "mdl2datamodel4", 0, 0, 'u'},
+                                        { "mdl2datamodel4viz", 0, 0, 'a'},
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -97,6 +97,12 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-quiet]                 suppress all unrequested output except for errors\n"
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the geometry for coincident walls\n"
       "     [-rules rules_file_name] run in MCell-R mode\n"
+			"     [-mcell4]                run new experimental MCell 4 version\n"
+      "     [-dump_mcell3]           dump initial MCell 3 state for MCell 4 development\n"
+			"     [-dump_mcell4]           dump initial MCell 4 state without geometry\n"
+      "     [-dump_mcell4_with_geometry] dump initial MCell 4 state with geometry\n"
+      "     [-mdl2datamodel4]        convert MDL to datamodel using mcell 4 state, the resulting file will be called 'data_model.json'\n"
+      "     [-mdl2datamodel4viz]     convert MDL to datamodel using mcell 4 state, only for visualization purposes the resulting file will be called 'data_model_viz.json'\n"
       "\n");
 }
 
@@ -278,7 +284,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       break;
 
     case 'r': /* nfsim */
-      vol->nfsim_flag = 1;
+			vol->nfsim_flag = 1;
       rules_xml_file = strdup(optarg);
       break;
 
@@ -338,6 +344,32 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       }
       break;
 
+    case 'n':
+      vol->use_mcell4 = 1;
+      break;
+
+    case 't':
+      vol->dump_mcell3 = 1;
+      break;
+
+    case 'o':
+      vol->dump_mcell4 = 1;
+      break;
+
+    case 'g':
+      vol->dump_mcell4_with_geometry = 1;
+      break;
+
+    case 'u':
+      vol->mdl2datamodel4 = 1;
+      vol->mdl2datamodel4_only_viz = 0;
+      break;
+
+    case 'a':
+      vol->mdl2datamodel4 = 1;
+      vol->mdl2datamodel4_only_viz = 1;
+      break;
+
     default:
       argerror("Internal error: getopt returned character code 0x%02x",
                (unsigned int)c);
@@ -375,7 +407,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
   /* Initialize NFSim if requested */
   if (vol->nfsim_flag) {
-    int nfsimStatus = setupNFSim_c(rules_xml_file, vol->seed_seq, 0);
+    int nfsimStatus = setupNFSim_c(rules_xml_file, vol->seed_seq, vol->dump_level > 0);
     free(rules_xml_file);
     if (nfsimStatus != 0){
       argerror("nfsim model could not be properly initialized: %s", optarg);

@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -27,11 +16,14 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 
 #include "logging.h"
 #include "rng.h"
 #include "react.h"
 #include "vol_util.h"
+
+#include "debug_config.h"
 
 /*************************************************************************
 timeof_unimolecular:
@@ -55,12 +47,21 @@ which_unimolecular:
 *************************************************************************/
 int which_unimolecular(struct rxn *rx, struct abstract_molecule *a,
                        struct rng_state *rng) {
-  if (rx->n_pathways == 1) {
+  if (rx->n_pathways == 1
+#ifdef MCELL3_UNIMOL_RX_ABSORB_NO_RNG
+      || rx->n_pathways == RX_ABSORB_REGION_BORDER
+#endif
+  ) {
     return 0;
   }
 
   int max = rx->n_pathways - 1;
   double match = rng_dbl(rng);
+  if (rx->n_pathways < 0) {
+    // related to MCELL3_UNIMOL_RX_ABSORB_NO_RNG
+    // calling RNG to maintain compatibility but we must avoid invalid memory access
+    return 0;
+  }
   match = match * rx->cum_probs[max];
   return binary_search_double(rx->cum_probs, match, max, 1);
 }
@@ -156,6 +157,13 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
     }
   }
 
+#ifdef DEBUG_REACTION_PROBABILITIES
+  mcell_log(
+      "test_bimolecular: p = %.8f, scaling = %.8f, min_noreaction_p = %.8f, local_prob_factor = %.8f",
+      p, scaling, min_noreaction_p, local_prob_factor
+  );
+#endif
+
   /* If we have only fixed pathways... */
   int M = rx->n_pathways - 1;
   if (local_prob_factor > 0)
@@ -192,7 +200,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
                           double local_prob_factor, int n, int *chosen_pathway,
                           struct rng_state *rng,
                           int all_neighbors_flag) {
-  double rxp[2 * n]; /* array of cumulative rxn probabilities */
+  std::vector<double> rxp(2 * n); /* array of cumulative rxn probabilities */
   struct rxn *my_rx;
   int i; /* index in the array of reactions - return value */
   int m, M;
@@ -247,7 +255,7 @@ int test_many_bimolecular(struct rxn **rx, double *scaling,
   }
 
   /* Pick the reaction that happens */
-  i = binary_search_double(rxp, p, n - 1, 1);
+  i = binary_search_double(&rxp[0], p, n - 1, 1);
 
   my_rx = rx[i];
   if (i > 0)
@@ -327,7 +335,7 @@ int test_many_intersect(struct rxn **rx, double scaling, int n,
     return test_intersect(rx[0], scaling, rng);
 
   // array of cumulative rxn probabilities
-  double rxp[n];
+  std::vector<double> rxp(n);
   rxp[0] = rx[0]->max_fixed_p / scaling;
   int i; /* index in the array of reactions - return value */
   for (i = 1; i < n; i++) {
@@ -350,7 +358,7 @@ int test_many_intersect(struct rxn **rx, double scaling, int n,
   }
 
   /* Pick the reaction that happens */
-  i = binary_search_double(rxp, p, n - 1, 1);
+  i = binary_search_double(&rxp[0], p, n - 1, 1);
 
   struct rxn *my_rx = rx[i];
 
@@ -385,7 +393,7 @@ struct rxn *test_many_unimol(struct rxn **rx, int n,
     return rx[0];
   }
 
-  double rxp[n]; /* array of cumulative rxn probabilities */
+  std::vector<double> rxp(n); /* array of cumulative rxn probabilities */
   rxp[0] = rx[0]->max_fixed_p;
 
   int i; /* index in the array of reactions - return value */
@@ -396,7 +404,7 @@ struct rxn *test_many_unimol(struct rxn **rx, int n,
   double p = rng_dbl(rng) * rxp[n - 1];
 
   /* Pick the reaction that happens */
-  i = binary_search_double(rxp, p, n - 1, 1);
+  i = binary_search_double(&rxp[0], p, n - 1, 1);
 
   return rx[i];
 }
@@ -559,7 +567,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
   if (n == 1)
     return test_bimolecular(rx[0], scaling[0], local_prob_factor[0], NULL, NULL, rng);
 
-  double rxp[n]; /* array of cumulative rxn probabilities */
+  std::vector<double> rxp(n); /* array of cumulative rxn probabilities */
   if (local_prob_factor[0] > 0) {
     rxp[0] = (rx[0]->max_fixed_p) * local_prob_factor[0] / scaling[0];
   } else {
@@ -598,7 +606,7 @@ int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
   }
 
   /* Pick the reaction that happens */
-  int i = binary_search_double(rxp, p, n - 1, 1);
+  int i = binary_search_double(&rxp[0], p, n - 1, 1);
 
   struct rxn *my_rx = rx[i];
 

@@ -13,6 +13,9 @@ import write_bngxmle as writeBXe
 import sys
 
 
+# set by argument
+FAIL_ON_ERROR = False
+
 def define_console():
     parser = argparse.ArgumentParser(description='SBML to BNGL translator')
     parser.add_argument('-i', '--input',            type=str,            help='input MDLr file',              required=True)
@@ -21,6 +24,7 @@ def define_console():
     parser.add_argument('-b', '--bng-executable',   type=str,            help='file path pointing to the BNG2.pl file')
     parser.add_argument('-m', '--mcell-executable', type=str,            help='file path pointing to the MCell binary')
     parser.add_argument('-r', '--run', action='store_true',        help='run generated model with mcell')
+    parser.add_argument('-f', '--fail-on-error', action='store_true',        help='exit with exit code 1 on error')
     return parser
 
 
@@ -59,6 +63,14 @@ class MDLR2MDL(object):
         if not os.path.exists(libnfsim_c_path):
             # try the cygwin variant
             libnfsim_c_path = os.path.join(self.config['libpath'], '..', 'nfsimCInterface', '{0}nfsim_c.{1}'.format(prefix, extension))
+        
+        if not os.path.exists(libNFsim_path):
+            # default to system search using LD_LIBRARY_PATH on Unix or PATH on Windows 
+            libNFsim_path = '{0}NFsim.{1}'.format(prefix, extension)
+
+        if not os.path.exists(libnfsim_c_path):
+            # default to system search
+            libnfsim_c_path = '{0}nfsim_c.{1}'.format(prefix, extension)
         
         print("Loading libs from " + libNFsim_path + " and " + libnfsim_c_path + ".")
         
@@ -139,7 +151,12 @@ class MDLR2MDL(object):
             command.extend(['--outdir', output_dir])
         # get a bng-xml file
         print("\n====> Running BioNetGen with explicit \"perl\": " + " ".join(command) + "\n")
-        call(command)
+        returncode = call(command)
+        if returncode != 0:
+          print("BioNetGen failed with exit code " + str(returncode))
+          if FAIL_ON_ERROR:
+            sys.exit(1)
+            
         # extract seed species definition
         seed, rest = split_bngxml.extractSeedBNG(inputMDLRFile + '.xml')
 
@@ -186,6 +203,10 @@ if __name__ == "__main__":
 
     parser = define_console()
     namespace = parser.parse_args()
+    
+    if namespace.fail_on_error:
+        FAIL_ON_ERROR = True
+    
     bngl_path = namespace.input + '.bngl'
     final_name = namespace.output if namespace.output else namespace.input
     print("Running " + namespace.input)

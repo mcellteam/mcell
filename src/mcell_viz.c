@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -57,7 +46,7 @@ static struct frame_data_list *create_viz_frame(long long iterations,
 MCELL_STATUS
 mcell_create_viz_output(MCELL_STATE *state, const char *filename,
                         struct mcell_species *mol_viz_list, long long start,
-                        long long end, long long step) {
+                        long long end, long long step, bool ascii_output) {
 
   struct viz_output_block *vizblk = CHECKED_MALLOC_STRUCT(
       struct viz_output_block, "visualization data output parameters");
@@ -71,7 +60,7 @@ mcell_create_viz_output(MCELL_STATE *state, const char *filename,
   state->viz_blocks = vizblk;
 
   // Only CELLBLENDER mode is supported right now
-  vizblk->viz_mode = CELLBLENDER_MODE;
+  vizblk->viz_mode = ascii_output ? ASCII_MODE : CELLBLENDER_MODE_V1;
 
   // Set the viz output path and filename prefix
   vizblk->file_prefix_name = CHECKED_STRDUP(filename, "file_prefix_name");

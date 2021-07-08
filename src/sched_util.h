@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -77,9 +66,13 @@ void *schedule_next(struct schedule_helper *sh);
 void *schedule_peak(struct schedule_helper *sh);
 #define schedule_add(x, y) schedule_insert((x), (y), 1)
 
+int schedule_add_mol(struct schedule_helper *sh, void* /*struct abstract_molecule* */ data);
+
 int schedule_anticipate(struct schedule_helper *sh, double *t);
 struct abstract_element *
 schedule_cleanup(struct schedule_helper *sh,
                  int (*is_defunct)(struct abstract_element *e));
 
 void delete_scheduler(struct schedule_helper *sh);
+
+void sort_schedule_by_time_and_id(struct schedule_helper *sh);

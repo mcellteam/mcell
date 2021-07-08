@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -33,6 +22,7 @@
 #include "logging.h"
 #include "version_info.h"
 #include "mcell_misc.h"
+#include "dump_state.h"
 
 
 /* declaration of static functions */
@@ -70,6 +60,12 @@ void mcell_print_stats() { mem_dump_stats(mcell_get_log_file()); }
  *
  ************************************************************************/
 void mcell_print(const char *message) { mcell_log("%s", message); }
+
+
+void mcell_dump_state(MCELL_STATE *state) {
+  dump_volume(state, "", DUMP_EVERYTHING);
+}
+
 
 /************************************************************************
  *
@@ -202,6 +198,7 @@ int mcell_generate_range_singleton(struct num_expr_list_head *lh,
   lh->shared = 0;
   lh->value_head->value = value;
   lh->value_head->next = NULL;
+  lh->start_end_step_set = false;
   return 0;
 }
 
@@ -237,8 +234,8 @@ char *mcell_find_include_file(char const *path, char const *cur_path) {
     candidate = strdup(path);
   else {
     const char *last_slash = strrchr(cur_path, '/');
-#ifdef _WIN32
-    char *last_bslash = strrchr(cur_path, '\\');
+#ifdef _WIN64
+    const char *last_bslash = strrchr(cur_path, '\\');
     if (last_bslash > last_slash)
       last_slash = last_bslash;
 #endif

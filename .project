@@ -3,11 +3,18 @@
 	<name>mcell</name>
 	<comment></comment>
 	<projects>
+		<project>libbng</project>
+		<project>VTK</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
-			<name>org.python.pydev.PyDevBuilder</name>
+			<name>org.eclipse.ui.externaltools.ExternalToolBuilder</name>
+			<triggers>full,incremental,</triggers>
 			<arguments>
+				<dictionary>
+					<key>LaunchConfigHandle</key>
+					<value>&lt;project&gt;/.externalToolBuilders/org.python.pydev.PyDevBuilder.launch</value>
+				</dictionary>
 			</arguments>
 		</buildCommand>
 		<buildCommand>
@@ -23,4 +30,24 @@
 		<nature>org.eclipse.cdt.cmake.core.cmakeNature</nature>
 		<nature>org.python.pydev.pythonNature</nature>
 	</natures>
+	<filteredResources>
+		<filter>
+			<id>1621289856888</id>
+			<name></name>
+			<type>14</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-.sc*.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1621289856890</id>
+			<name></name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-.sc*.cpp</arguments>
+			</matcher>
+		</filter>
+	</filteredResources>
 </projectDescription>

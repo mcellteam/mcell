@@ -1,0 +1,115 @@
+
+geometry_utils:
+  doc: | 
+     Submodule geometry_utils provides several functions to define 
+     model geometry. Rather limited for now.  
+  type: submodule  # default type is class
+  methods:
+  - name: create_box
+    doc: Creates a GeometryObject in the shape of a cube whose center is at (0, 0, 0).
+    return_type: GeometryObject*
+    examples: tests/pymcell4/1400_rel_site_for_each_it/model.py tests/pymcell4/1105_point_release_w_create_box_not_cube/model.py
+    params:
+    - name: name
+      type: str
+      doc: Name of the created geometry object.
+
+    - name: edge_dimension
+      type: float
+      default: unset
+      doc: | 
+         Specifies length of each edge of the box in um. 
+         None of x/y/z dimensions can be set.
+
+    - name: xyz_dimensions
+      type: List[float]
+      default: unset
+      doc: Specifies x/y/z sizes of the box in um. Parameter edge_dimension must not be set.
+      
+  - name: create_icosphere
+    doc: Creates a GeometryObject in the shape of an icosphere whose center is at (0, 0, 0).
+    return_type: GeometryObject*
+    examples: tests/pymcell4/1110_point_release_w_create_icosphere/model.py
+    params:
+    - name: name
+      type: str
+      doc: Name of the created geometry object.
+
+    - name: radius
+      type: float
+      doc: Specifies radius of the sphere.
+
+    - name: subdivisions
+      type: int
+      min: 1
+      max: 8
+      doc: | 
+         Number of subdivisions from the initial icosphere. 
+         The higher this value will be the smoother the icosphere will be.
+         Allowed range is between 1 and 8.
+      
+bngl_utils:
+  doc: | 
+     Submodule bngl_utils provides a function to load parameters from a BNGL file. 
+  type: submodule 
+  methods:
+  - name: load_bngl_parameters
+    return_type: Dict[str, float]
+    doc: Load parameters section from a BNGL file and return it as a dictionary name->value.
+    examples: tests/pymcell4_positive/2010_bng_parameter_override/model.py
+    
+    params:
+    - name: file_name
+      type: str
+      doc: Path to the BNGL file to be loaded.
+
+    - name: parameter_overrides
+      type: Dict[str, float]
+      default: empty
+      doc: |
+         For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+         its value is ignored and instead value parameter_overrides[k] is used.
+      
+      
+run_utils:
+  doc: | 
+     Submodule run_utils provides functions used by checkpointing. 
+  type: submodule
+  methods:
+  - name: get_last_checkpoint_dir
+    doc: | 
+       Searches the directory checkpoints for the last checkpoint for the given 
+       parameters and returns the directory name if such a directory exists. 
+       Returns empty string if no checkpoint directory was found.
+       Currently supports only the seed argument.
+    todo: extend to handle additional parameters, not just seed
+    return_type: str
+    params:
+    - name: seed
+      type: int
+
+  - name: remove_cwd
+    doc: |
+       Removes all directory names items pointing to the current working directory from a list and 
+       returns a new list.
+    return_type: List[str]
+    params:
+    - name: paths
+      type: List[str]
+    
+data_utils:
+   doc: |
+      Submodule data_utils provides data loading and manipulation functions.
+   type: submodule
+   methods:
+   - name: load_dat_file
+     doc: | 
+        Loads a two-column file where the first column is usually time and the second is a 
+        floating point value. Returns a two-column list. 
+        Can be used to load a file with variable rate constants. 
+     return_type: List[List[float]]
+     params:
+     - name: file_name
+       type: str      
+       doc: Path to the .dat file to be loaded.
+      

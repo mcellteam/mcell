@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -29,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
 #include "diffuse.h"
 #include "rng.h"
@@ -1764,16 +1754,17 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
   int list_length_f, list_length_s; /* length of the linked lists above */
 
   int max_size = 12 * 12 * MAX_MATCHING_RXNS; /* reasonable assumption */
-  struct rxn *rxn_array[max_size]; /* array of reaction objects with neighbor
-                                     molecules */
+  /* array of reaction objects with neighbor molecules */
+  std::vector<struct rxn *> rxn_array(max_size);
+
   /* local probability factors for the reactions */
   double local_prob_factor_f, local_prob_factor_s;
-  double local_prob_factor[max_size];
-  double cf[max_size]; /* Correction factors for area for those molecules */
+  std::vector<double> local_prob_factor(max_size);
+  std::vector<double> cf(max_size); /* Correction factors for area for those molecules */
   /* points to the first partner in the trimol reaction */
-  struct surface_molecule *first_partner[max_size];
+  std::vector<struct surface_molecule *> first_partner(max_size);
   /* points to the second partner in the trimol reaction */
-  struct surface_molecule *second_partner[max_size];
+  std::vector<struct surface_molecule *> second_partner(max_size);
 
   for (kk = 0; kk < max_size; kk++) {
     rxn_array[kk] = NULL;
@@ -1916,7 +1907,7 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
   } else {
     /* XXX: Change required here to support macromol+trimol */
 
-    j = test_many_reactions_all_neighbors(rxn_array, cf, local_prob_factor, n,
+    j = test_many_reactions_all_neighbors(&rxn_array[0], &cf[0], &local_prob_factor[0], n,
                                           &(i), world->rng);
   }
 

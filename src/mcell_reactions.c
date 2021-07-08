@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -1049,14 +1038,15 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
 
 /*************************************************************************
  *
- * mcell_add_concentration_clamp adds a surface clamp to the simulation
+ * mcell_add_clamp adds a surface clamp to the simulation
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
+mcell_add_clamp(struct sym_table_head *rxn_sym_table,
                               struct species *surface_class,
                               struct sym_entry *mol_sym, short orient,
-                              double conc) {
+                              int clamp_type,
+                              double clamp_value) {
   struct rxn *rxnp;
   struct pathway *pathp;
   struct sym_entry *stp3;
@@ -1080,7 +1070,7 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
     // diffusing in 3D");
     return MCELL_FAIL;
   }
-  if (conc < 0) {
+  if (clamp_value < 0) {
     // mdlerror(parse_state, "Concentration can only be clamped to positive
     // values.");
     return MCELL_FAIL;
@@ -1120,9 +1110,7 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
   pathp->reactant3 = NULL;
   pathp->flags = 0;
 
-  pathp->flags |= PATHW_CLAMP_CONC;
-
-  pathp->km = conc;
+  pathp->km = clamp_value;
   pathp->km_filename = NULL;
 
   pathp->orientation1 = 1;
@@ -1133,24 +1121,62 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
     pathp->orientation2 = (orient < 0) ? -1 : 1;
   }
 
-  pathp->product_head = NULL;
-  pathp->prod_signature = NULL;
+  if (clamp_type == CLAMP_TYPE_CONC) {
+    pathp->flags |= PATHW_CLAMP_CONC;
 
-  pathp->next = rxnp->pathway_head;
-  rxnp->pathway_head = pathp;
+    pathp->product_head = NULL;
+    pathp->prod_signature = NULL;
+  }
+  else {
+    pathp->flags |= PATHW_CLAMP_FLUX | PATHW_REFLEC;
+    pathp->product_head = NULL;
+    pathp->prod_signature = NULL;
+
+    /*
+    Original implementation from branch neumann_boundaries
+    created rxn a+ sc -> a, however in this case the molecules could pass through
+    the clamped membrane which does not seem correct*/
+
+#if 0
+    struct product *prodp;
+    prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
+                                                    "reaction product");
+    if (prodp == NULL) {
+      free(pathp);
+      return MCELL_FAIL;
+    }
+
+    prodp->prod = pathp->reactant2;
+    prodp->orientation = pathp->orientation2;
+    prodp->next = NULL;
+    pathp->product_head = prodp;
+    if (pathp->product_head != NULL) {
+      pathp->prod_signature = create_prod_signature(&pathp->product_head);
+      if (pathp->prod_signature == NULL) {
+        // mdlerror(parse_state, "Error creating 'prod_signature' field for the
+        // reaction pathway.");
+        free(pathp);
+        return MCELL_FAIL;
+      }
+    }
+#endif
+  }
 
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
   no->name = CHECKED_STRDUP(mol_sym->name, "molecule name");
   no->orient = pathp->orientation2;
 
-  if (surface_class->clamp_conc_mols == NULL) {
+  if (surface_class->clamp_mols == NULL) {
     no->next = NULL;
-    surface_class->clamp_conc_mols = no;
+    surface_class->clamp_mols = no;
   } else {
-    no->next = surface_class->clamp_conc_mols;
-    surface_class->clamp_conc_mols = no;
+    no->next = surface_class->clamp_mols;
+    surface_class->clamp_mols = no;
   }
   rxnp->get_reactant_diffusion = rxn_get_standard_diffusion;
+  pathp->next = rxnp->pathway_head;
+  rxnp->pathway_head = pathp;
+
   return MCELL_SUCCESS;
 }
 
@@ -1359,44 +1385,65 @@ int init_reactions(MCELL_STATE *state) {
 
           rx->product_idx[n_pathway] = 0;
 
-          /* Look for concentration clamp */
-          if (path->reactant2 != NULL &&
-              (path->reactant2->flags & IS_SURFACE) != 0 && path->km >= 0.0 &&
-              path->product_head == NULL &&
-              ((path->flags & PATHW_CLAMP_CONC) != 0)) {
-            struct ccn_clamp_data *ccd;
+          /* Look for clamp */
+          if ( path->reactant2 != NULL
+               && (path->reactant2->flags & IS_SURFACE) != 0
+               && path->km >= 0.0
+               && ( ( path->product_head == NULL && (path->flags & PATHW_CLAMP_CONC) != 0 )
+                  ||
+                  ( path->product_head == NULL && (path->flags & PATHW_CLAMP_FLUX) != 0 ) )
+             ) {
+
+            struct clamp_data *cdp;
 
             if (n_pathway != 0 || path->next != NULL)
               mcell_warn("Mixing surface modes with other surface reactions.  "
                          "Please don't.");
 
             if (path->km > 0) {
-              ccd = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data,
-                                          "concentration clamp data");
-              if (ccd == NULL)
+              cdp = CHECKED_MALLOC_STRUCT(struct clamp_data,
+                                          "clamp data");
+              if (cdp == NULL)
                 return 1;
 
-              ccd->surf_class = path->reactant2;
-              ccd->mol = path->reactant1;
-              ccd->concentration = path->km;
+              cdp->surf_class = path->reactant2;
+              cdp->mol = path->reactant1;
+              cdp->clamp_value = path->km;
+              if ((path->flags & PATHW_CLAMP_CONC) != 0) {
+                cdp->clamp_type = CLAMP_TYPE_CONC;
+              }
+              else {
+                cdp->clamp_type = CLAMP_TYPE_FLUX;
+              }
               if (path->orientation1 * path->orientation2 == 0) {
-                ccd->orient = 0;
+                cdp->orient = 0;
               } else {
-                ccd->orient =
+                cdp->orient =
                     (path->orientation1 == path->orientation2) ? 1 : -1;
               }
-              ccd->sides = NULL;
-              ccd->next_mol = NULL;
-              ccd->next_obj = NULL;
-              ccd->objp = NULL;
-              ccd->n_sides = 0;
-              ccd->side_idx = NULL;
-              ccd->cum_area = NULL;
-              ccd->scaling_factor = 0.0;
-              ccd->next = state->clamp_list;
-              state->clamp_list = ccd;
+              cdp->sides = NULL;
+              cdp->next_mol = NULL;
+              cdp->next_obj = NULL;
+              cdp->objp = NULL;
+              cdp->n_sides = 0;
+              cdp->side_idx = NULL;
+              cdp->cum_area = NULL;
+              cdp->scaling_factor = 0.0;
+              cdp->next = state->clamp_list;
+              state->clamp_list = cdp;
             }
+            path->clamp_concentration = path->km; // remember for mcell3->4 converter
             path->km = GIGANTIC;
+
+            if ((path->flags & PATHW_CLAMP_FLUX) != 0) {
+              rx->n_pathways = RX_REFLEC;
+              if (path->reactant2 != NULL &&
+                  (path->reactant2->flags & IS_SURFACE) &&
+                  (path->reactant1->flags & ON_GRID)) {
+                path->reactant1->flags |= CAN_REGION_BORDER;
+              }
+            }
+
           } else if ((path->flags & PATHW_TRANSP) != 0) {
             rx->n_pathways = RX_TRANSP;
             if (path->reactant2 != NULL &&
@@ -1579,6 +1626,16 @@ int init_reactions(MCELL_STATE *state) {
   for (int n_rxn_bin = 0; n_rxn_bin < state->rx_hashsize; n_rxn_bin++) {
     for (struct rxn *this_rx = state->reaction_hash[n_rxn_bin]; this_rx != NULL;
          this_rx = this_rx->next) {
+      set_reaction_player_flags(this_rx);
+    }
+  }
+
+#if 0
+  // TODO: move this to a separate function and call after mcell4 conversion
+  // pathway_head is used there - this is sued in mcell4's init
+  for (int n_rxn_bin = 0; n_rxn_bin < state->rx_hashsize; n_rxn_bin++) {
+    for (struct rxn *this_rx = state->reaction_hash[n_rxn_bin]; this_rx != NULL;
+         this_rx = this_rx->next) {
       /* Here we deallocate all memory used for creating pathways. */
       path = this_rx->pathway_head;
       struct pathway *next_path = path;
@@ -1600,10 +1657,11 @@ int init_reactions(MCELL_STATE *state) {
         path = next_path;
       }
 
-      set_reaction_player_flags(this_rx);
+      //set_reaction_player_flags(this_rx);
       this_rx->pathway_head = NULL;
     }
   }
+#endif
 
   add_surface_reaction_flags(state->mol_sym_table, state->all_mols, state->all_surface_mols,
                              state->all_volume_mols);
@@ -1650,14 +1708,6 @@ extract_reactants(struct pathway *pathp, struct mcell_species *reactants,
       }
     } else {
       ++(*num_vol_mols);
-    }
-
-    /* Sanity check this reactant */
-    if (reactant_species->flags & IS_SURFACE) {
-      mcell_error("surface class can be listed only as the last reactant on "
-                  "the left-hand side of the reaction with the preceding '@' "
-                  "sign.");
-      return MCELL_FAIL;
     }
 
     /* Copy in reactant info */
@@ -2859,7 +2909,7 @@ void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
  Note: This does not work properly right now. Even if rates are high and
        HIGH_REACTION_PROBABILITY is set to ERROR, the error is ignored
 *************************************************************************/
-int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
+int scale_rxn_probabilities(unsigned char *reaction_prob_limit_flag,
                         struct notifications *notify,
                         struct pathway *path, struct rxn *rx,
                         double pb_factor) {
@@ -3214,7 +3264,7 @@ struct rxn *split_reaction(struct rxn *rx) {
   head->n_pathways = 1;
   while (to_place != NULL) {
     if (to_place->flags &
-        (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP | PATHW_CLAMP_CONC)) {
+        (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP | PATHW_CLAMP_CONC | PATHW_CLAMP_FLUX)) {
       reaction = create_sibling_reaction(rx);
       if (reaction == NULL)
         return NULL;
@@ -3857,6 +3907,7 @@ int load_rate_file(struct volume* state, struct rxn *rx, char *fname, int path) 
             state->chkpt_start_time_seconds, t);
 
         tp->value = rate_constant;
+        tp->value_from_file = rate_constant; // tp->value gets updated later, for MCell we need the value from file
 #ifdef DEBUG
         valid_linecount++;
 #endif

@@ -12,6 +12,9 @@ from collections import defaultdict
 import write_bngxmle
 import os
 
+# special object created for releases in case 
+# when there are no compartments
+DEFAULT_COMPARTMENT = 'default_compartment'
 
 def eprint(*args, **kwargs):
     '''
@@ -134,6 +137,9 @@ def process_init_compartments(initializations):
                 cstr.write('\t{0} 2 1 {1}\n'.format(optionDict['membrane'], optionDict['parent']))
                 cstr.write('\t{0} 3 1 {1}\n'.format(optionDict['name'], optionDict['membrane']))
             else:
+                if optionDict['name'] == DEFAULT_COMPARTMENT:
+                    # skip this special name - BNGL has not compartments
+                    continue 
                 tmp = '{0} 3 1 {1}'.format(optionDict['name'], optionDict['parent'])
                 tmp = tmp.strip()
                 cstr.write('\t{0}\n'.format(tmp))
@@ -148,7 +154,10 @@ def process_observables(observables):
     ostr.write('begin observables\n')
     for observable in observables:
         if 'patterns' in observable.keys() and 'outputfile' in observable.keys():
-            tmpObservable = '\tMolecules '
+            if observable['outputfile'].endswith('_Species.dat'):
+                tmpObservable = '\tSpecies ' # extension, not supported by the CellBlender plotting
+            else:
+                tmpObservable = '\tMolecules ' # this is the default 
             tmpObservable += '{0} '.format(observable['outputfile'].split('/')[-1].split('.')[0])
             patternList = []
             for pattern in observable['patterns']:
@@ -302,6 +311,7 @@ def construct_bng_from_mdlr(mdlrPath, nfsimFlag=False, separate_spatial=True):
     else:
         functions = ''
 
+    observables = ''
     if not nfsimFlag:
         observables = process_observables(sections['observables'])
     else:

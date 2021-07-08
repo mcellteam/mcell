@@ -1,0 +1,202 @@
+Color:
+  superclass: BaseDataClass
+  doc: | 
+     Represents color with alpha component.
+     Provides two means to set value, either red, green, blue and alpha, 
+     or rgba. If both color individual components and rgba are set in initialization,
+     the individual components are used.
+      
+  items:
+  - name: red
+    type: float
+    default: unset
+    doc: Red component in range 0-1.
+
+  - name: green
+    type: float
+    default: unset
+    doc: Green component in range 0-1.
+
+  - name: blue
+    type: float
+    default: unset
+    doc: Blue component in range 0-1.
+
+  - name: alpha
+    type: float
+    default: 1
+    doc: Alpha component in range 0-1. 1 means nontransparent.
+      
+  - name: rgba
+    type: uint32
+    default: 0
+    doc: | 
+       This attribute provides an alternative way of defining colors by supplying a 
+       32-bit unsigned integer representation of the color with an aplha channel. 
+       In hexadecimal notation the first 2 digits are value for red, second 2 digits are 
+       green, third 2 digits are blue and the last two digits are alpha. 
+       The range for each component is thus 0x0-0xFF (0-255). 
+       Example\: 0x0000ffcc represents the same color as rgba(0, 0, 100%, 80%).
+       All values are valid.
+          
+
+Region:
+  superclass: BaseDataClass
+  doc: Represents region construted from 1 or more multiple, usually unnamed? 
+  items:
+  - name: node_type
+    type: RegionNodeType
+    default: RegionNodeType.UNSET
+    doc: | 
+      When this values is LeafGeometryObject, then this object is of class GeometryObject,
+      when LeafSurfaceRegion, then it is of class SurfaceRegion.
+
+  - name: left_node
+    type: Region*
+    default: unset
+    doc: Internal, do not use. When node_type is not Leaf, this is the left operand 
+
+  - name: right_node
+    type: Region*
+    default: unset
+    doc: Internal, do not use. When node_type is not Leaf, this is the right operand 
+    
+  methods:
+  - name: __add__
+    doc: Computes union of two regions, use with Python operator '+'. 
+    return_type: Region*
+    params:
+    - name: other
+      type: Region* 
+          
+  - name: __sub__
+    doc: Computes difference of two regions, use with Python operator '-'.
+    return_type: Region*
+    params:
+    - name: other
+      type: Region* 
+
+  - name: __mul__
+    doc: Computes intersection of two regions, use with Python operator '*'.
+    return_type: Region*
+    params:
+    - name: other
+      type: Region* 
+    
+    
+SurfaceRegion:
+  superclass: Region
+  doc: |
+     Defines a region on the object. The extent of a region is given by the wall_indices list. 
+     Molecules can be added and surface properties can be set with the optional regional surface commands. 
+     You can have an arbitrary number of regions on an object, and they may overlap if
+     you wish. Molecules added to overlapping regions accumulate. Triangles belonging to 
+     multiple regions inherit all parent regions’ surface properties. Users
+     have to make sure that in case of overlapped regions their surface properties
+     are compatible. 
+  examples: tests/pymcell4_positive/1700_linear_conc_gradient_w_conc_clamp/geometry.py
+  items:
+  - name: name
+    type: str
+    doc: Name of this region.
+    
+  - name: wall_indices
+    type: List[int]
+    doc: |
+      Surface region must be a part of a GeometryObject, items in this list are indices to 
+      its wall_list array.
+
+  - name: surface_class
+    type: SurfaceClass*
+    default: unset
+    doc: | 
+       Optional surface class assigned to this surface region.
+       If not set, it is inherited from the parent geometry object's surface_class.
+
+  - name: initial_surface_releases
+    type: List[InitialSurfaceRelease*]
+    default: empty
+    doc: |
+      Each item of this list defines either density or number of molecules to be released on this surface 
+      regions when simulation starts.
+    internal: Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER. 
+    
+  - name: initial_color
+    type: Color*
+    default: unset
+    doc: Initial color for this specific surface region. If not set, color of the parent's GeometryObject is used. 
+    
+GeometryObject:
+  superclass: Region
+  doc: Class represents geometry objects defined by triangular surface elements.
+  examples: tests/pymcell4_positive/1330_get_wall/geometry.py 
+  items:
+  - name: name
+    type: str
+    doc: | 
+       Name of the object. Also represents BNGL compartment name if 'is_bngl_compartment' is True.
+
+  - name: vertex_list
+    type: List[List[float]]
+    doc: | 
+       List of [x,y,z] triplets specifying positions of individual vertices of each triangle.
+        
+  - name: wall_list
+    type: List[List[int]]
+    doc: | 
+       List of [a,b,c] triplets specifying each wall, individual values are indices into the 
+       vertex_list attribute.
+       
+  - name: is_bngl_compartment
+    type: bool
+    default: false
+    doc: |
+       Set to True if this object represents a 3D BNGL compartment. 
+       Its name will be then the BNGL compartment name.       
+
+  - name: surface_compartment_name
+    type: str
+    default: unset
+    doc: |
+       When is_bngl_compartment is True, this attribute can be set to specify its 
+       membrane (2D) compartment name.
+
+  - name: surface_regions
+    type: List[SurfaceRegion*]
+    default: empty
+    doc: |
+       All surface regions associated with this geometry object.
+       
+  - name: surface_class
+    type: SurfaceClass*
+    default: unset
+    doc: |
+      Surface class for the whole object's surface. It is applied to the whole surface of this object 
+      except for those surface regions that have their specific surface class set explicitly.
+
+  - name: initial_surface_releases
+    type: List[InitialSurfaceRelease*]
+    default: empty
+    doc: |
+      Each item in this list defines either density or number of molecules to be released on this surface 
+      regions when simulation starts.
+    internal: Shouldn't we be inheriting this from Region?
+    
+  - name: initial_color
+    type: Color*
+    default: unset
+    doc: | 
+       Initial color for this geometry object. If a surface region has its color set, its value 
+       is used for the walls of that surface region.
+    
+  methods:
+  - name: translate
+    doc: | 
+       Move object by a specified vector. 
+       Cannot be called after model was initialized.
+    examples: tests/pymcell4_positive/1400_object_translate/model.py
+    params:
+    - name: move
+      type: List[float]
+      doc: 3D vector [x, y, z] that will be added to each vertex of this object.
+    

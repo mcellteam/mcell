@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -34,6 +23,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <vector>
 
 #include "logging.h"
 #include "rng.h"
@@ -42,6 +32,9 @@
 #include "wall_util.h"
 #include "react.h"
 #include "init.h"
+
+#include "debug_config.h"
+#include "dump_state.h"
 
 /*************************************************************************
 xyz2uv and uv2xyz:
@@ -1879,13 +1872,16 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head,
   /* number of tile vertices on the common edge */
   const int new_pos_size = new_grid->n + 1;
   /* array of the positions of tile vertices on the common edge */
-  double new_pos[new_pos_size];
+  std::vector<double> new_pos(new_pos_size);
 
   /* each tile vertex on the common shared edge is connected to
      3 tiles (the end points of the shared edge are connected
      to 1 tile). */
   /* 2-dimensional array of the tile indices */
-  int new_tile_idx[new_pos_size][3];
+  std::vector<std::vector<int>> new_tile_idx(new_pos_size);
+  for (auto& elem: new_tile_idx) {
+    elem.resize(3);
+  }
 
   int i, k;
   /* what vertices of new wall are shared with original wall */
@@ -2097,16 +2093,16 @@ int add_more_tile_neighbors_to_list_fast(struct tile_neighbor **tile_nbr_head,
 
   int ind_high, ind_low = -1;
   if (orig_pos_1 > orig_pos_2) {
-    ind_high = bisect_high(new_pos, new_pos_size, orig_pos_1);
+    ind_high = bisect_high(&new_pos[0], new_pos_size, orig_pos_1);
     if (orig_pos_2 > 0) {
-      ind_low = bisect(new_pos, new_pos_size, orig_pos_2);
+      ind_low = bisect(&new_pos[0], new_pos_size, orig_pos_2);
     }
 
   } else {
-    ind_high = bisect_high(new_pos, new_pos_size, orig_pos_2);
+    ind_high = bisect_high(&new_pos[0], new_pos_size, orig_pos_2);
 
     if (orig_pos_1 > 0) {
-      ind_low = bisect(new_pos, new_pos_size, orig_pos_1);
+      ind_low = bisect(&new_pos[0], new_pos_size, orig_pos_1);
     }
   }
 
@@ -3062,6 +3058,10 @@ void find_neighbor_tiles(struct volume *world, struct surface_molecule *sm,
 
   *tile_nbr_head = tmp_head;
   *list_length = tmp_list_length;
+
+#ifdef DEBUG_GRIDS
+  dump_tile_neighbors_list(*tile_nbr_head, __FUNCTION__, "  ");
+#endif
 }
 
 

@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -27,6 +16,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <vector>
 
 #include "logging.h"
 #include "rng.h"
@@ -40,6 +30,10 @@
 #include "mcell_reactions.h"
 
 #include "diffuse.h"
+
+#include "debug_config.h"
+#include "debug.h"
+#include "dump_state.h"
 
 static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct vector3 *hitpt, double t,
@@ -124,9 +118,9 @@ void tiny_diffuse_3D(
     struct wall *w) {
 
   struct vector3 temp_displacement = {
-    .x = displacement->x,
-    .y = displacement->y,
-    .z = displacement->z
+    displacement->x,
+    displacement->y,
+    displacement->z
   };
   struct collision *shead = ray_trace(
       world, pos, NULL, subvol, &temp_displacement, w);
@@ -159,9 +153,9 @@ place_volume_product(struct volume *world, struct species *product_species, stru
    * to ensure they end up on the correct side of the plane. */
   if (w) {
     double bump = (orient > 0) ? EPS_C : -EPS_C;
-    struct vector3 displacement = { .x = 2 * bump * w->normal.x,
-                                    .y = 2 * bump * w->normal.y,
-                                    .z = 2 * bump * w->normal.z,
+    struct vector3 displacement = {2 * bump * w->normal.x,
+                                   2 * bump * w->normal.y,
+                                   2 * bump * w->normal.z,
                                   };
     tiny_diffuse_3D(world, subvol, &displacement, &pos, w);
   }
@@ -245,7 +239,7 @@ place_volume_product(struct volume *world, struct species *product_species, stru
   ++new_volume_mol->subvol->mol_count;
 
   /* Add to the schedule. */
-  if (schedule_add(subvol->local_storage->timer, new_volume_mol))
+  if (schedule_add_mol(subvol->local_storage->timer, new_volume_mol))
     mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
                       product_species->sym->name);
   return new_volume_mol;
@@ -307,7 +301,7 @@ place_sm_product(struct volume *world, struct species *product_species, struct g
     grid->sm_list[grid_index], new_surf_mol);
 
   /* Add to the schedule. */
-  if (schedule_add(sv->local_storage->timer, new_surf_mol))
+  if (schedule_add_mol(sv->local_storage->timer, new_surf_mol))
     mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
                       product_species->sym->name);
 
@@ -351,6 +345,20 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct abstract_molecule *reacB,
                                    short orientA, short orientB) {
 
+#ifdef DEBUG_RXNS
+  // NOTE: maybe make a single dump call out of this
+  DUMP_CONDITION3(
+    dump_processing_reaction(world->current_iterations, hitpt, t, rx, reacA, reacB, w);
+    dump_molecule_species(reacA);
+    if (reacB != nullptr) {
+      mcell_log(" + ");
+      dump_molecule_species(reacB);
+    }
+    mcell_log("\nreaction_index: %d\n", path);
+    dump_rxn(rx, "", true);
+  );
+#endif
+
   /* Did the moving molecule cross the plane? */
   bool cross_wall = false; 
 
@@ -363,14 +371,14 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   struct species **rx_players = rx->players + i0; 
 
   int const n_players = iN - i0;                /* number of reaction players */
-  struct abstract_molecule *product[n_players]; /* array of products */
+  std::vector<struct abstract_molecule *> product(n_players); /* array of products */
   /* array that decodes the type of each product */
-  char product_type[n_players]; 
-  short product_orient[n_players]; /* array of orientations for each product */
+  std::vector<char> product_type(n_players);
+  std::vector<short> product_orient(n_players); /* array of orientations for each product */
   /* array of surface_grids for products */
-  struct surface_grid *product_grid[n_players];
-  int product_grid_idx[n_players]; /* array of grid indices for products */
-  byte product_flag[n_players];    /* array of placement flags for products */
+  std::vector<struct surface_grid *> product_grid(n_players);
+  std::vector<int> product_grid_idx(n_players); /* array of grid indices for products */
+  std::vector<byte> product_flag(n_players);    /* array of placement flags for products */
 
   /* Unimol rxn (not mol-mol, not mol-wall) */
   bool const is_unimol = is_rxn_unimol(rx);
@@ -427,7 +435,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   }
   assert(reacA != NULL);
 
-  add_reactants_to_product_list(rx, reacA, reacB, NULL, product, product_type);
+  add_reactants_to_product_list(rx, reacA, reacB, NULL, &product[0], &product_type[0]);
 
   /* Determine whether any of the reactants can be replaced by a product.
      This is only useful for surface molecules to make sure reactions of the
@@ -867,6 +875,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
           /* make sure we can get to the tile given the surface regions defined
            * in the model */
+          //ASSERT_FOR_MCELL4(sm_bitmask == 0); - should not be needed anymore but keeping it as a marker for future debugging
           if (!product_tile_can_be_reached(tile_grid->surface, rlp_head_wall_1,
             rlp_head_wall_2, rlp_head_obj_1, rlp_head_obj_2, sm_bitmask, is_unimol)) {
             uncheck_vacant_tile(tile_vacant_nbr_head, rnd_num);
@@ -964,6 +973,13 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           world, product_species, g_data, product_grid[n_product],
           product_grid_idx[n_product], &prod_uv_pos, product_orient[n_product],
           t, reacA->periodic_box);
+
+#ifdef DEBUG_RXNS
+      DUMP_CONDITION3(
+          dump_surface_molecule((struct surface_molecule*)this_product, "", true, "  created sm:", world->current_iterations, this_product->t, true);
+      );
+#endif
+
     } else { /* else place the molecule in space. */
       /* For either a unimolecular reaction, or a reaction between two surface
          molecules we don't have a hitpoint. */
@@ -989,6 +1005,12 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           world, product_species, g_data, sm_reactant, w, product_subvol, hitpt,
           product_orient[n_product], t, reacA->periodic_box);
 
+#ifdef DEBUG_RXNS
+      DUMP_CONDITION3(
+      		dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations, this_product->t, true);
+      );
+#endif
+
       if (((struct volume_molecule *)this_product)->index < DISSOCIATION_MAX)
         update_dissociation_index = true;
     }
@@ -1004,6 +1026,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
     if (product_species->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
       count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t, this_product->periodic_box);
 
+#ifndef MCELL3_DO_NOT_REUSE_MOL_ID_UNIMOL_RXN
     /* preserve molecule id if rxn is unimolecular with one product */
     if (is_unimol && (n_players == 1)) {
       this_product->id = reacA->id;
@@ -1016,10 +1039,12 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       world->current_mol_id--; /* give back id we used */
       continue;
     }
+#endif
   }
 
   /* If necessary, update the dissociation index. */
   if (update_dissociation_index) {
+    ASSERT_FOR_MCELL4(false);
     if (--world->dissociation_index < DISSOCIATION_MIN)
       world->dissociation_index = DISSOCIATION_MAX;
   }
@@ -1087,7 +1112,14 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
 
     //NFSim calculation
     if(reac->properties->flags & EXTERNAL_SPECIES){
+#if 0 // just to dump the whole rxn, fails later for some reason..
+      // populate all pathways
+      for (int path = 0; path < rx->n_pathways; path++) {
+        outcome_nfsim(world, rx, path, reac, NULL, t);
+      }
+#else
       outcome_nfsim(world, rx, path, reac, NULL, t);
+#endif
     }
     result = outcome_products_random(world, NULL, NULL, t, rx, path, reac,
                                        NULL, 0, 0);
@@ -1133,6 +1165,11 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
                                   -1, &(vm->pos), NULL, vm->t, vm->periodic_box);
       }
     } else {
+#ifdef DEBUG_RXNS
+      DUMP_CONDITION3(
+        dump_surface_molecule(sm, "", true, "Unimolecular sm defunct:", world->current_iterations, sm->t, false);
+      );
+#endif
       remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SCHEDULE) {
@@ -1152,16 +1189,28 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     who_was_i->cum_lifetime_seconds += t_time - reac->birthday;
 
     who_was_i->population--;
-    if (vm != NULL)
+    if (vm != NULL) {
+#ifdef DEBUG_RXNS
+      DUMP_CONDITION3(
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, false);
+      );
+#endif
       collect_molecule(vm);
+    }
     else {
       reac->properties = NULL;
       mem_put(reac->birthplace, reac);
     }
     return RX_DESTROY;
   } else if (who_am_i != who_was_i) {
-    if (vm != NULL)
+    if (vm != NULL) {
+#ifdef DEBUG_RXNS
+      DUMP_CONDITION3(
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, false);
+      );
+#endif
       collect_molecule(vm);
+    }
     else
       reac->properties = NULL;
     return RX_DESTROY;
@@ -1190,6 +1239,11 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
                         struct abstract_molecule *reacB, short orientA,
                         short orientB, double t, struct vector3 *hitpt,
                         struct vector3 *loc_okay) {
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      MCell::dump_outcome_bimolecular_timing(t);
+  );
+#endif
 
   assert(periodic_boxes_are_identical(reacA->periodic_box, reacB->periodic_box));
 
@@ -1242,6 +1296,12 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   }
 
   if (killB) {
+#ifdef DEBUG_RXNS
+    DUMP_CONDITION3(
+      dump_volume_molecule((struct volume_molecule*)reacB, "", true, "  defunct m:", world->current_iterations, 0.0, false);
+    );
+#endif
+
     vm = NULL;
     if ((reacB->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacB;
@@ -1282,6 +1342,12 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   }
 
   if (killA) {
+#ifdef DEBUG_RXNS
+    DUMP_CONDITION3(
+      dump_volume_molecule((struct volume_molecule*)reacA, "", true, "  defunct m:", world->current_iterations, 0.0, false);
+    );
+#endif
+
     vm = NULL;
     if ((reacA->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacA;
@@ -1443,6 +1509,11 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
       if (vm->flags & IN_SCHEDULE) {
         vm->subvol->local_storage->timer->defunct_count++;
       }
+#ifdef DEBUG_RXNS
+      DUMP_CONDITION3(
+         dump_volume_molecule((struct volume_molecule*)vm, "", true, "  defunct m:", world->current_iterations, 0.0, false);
+      );
+#endif
       collect_molecule(vm);
       return RX_DESTROY;
     } else

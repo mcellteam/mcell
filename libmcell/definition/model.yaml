@@ -1,0 +1,414 @@
+Model:
+  superclasses: [Subsystem, Instantiation, Observables, Introspection]
+  doc: |
+     This is the main class that is used to assemble all simulation input 
+     and configuration. It also provides methods to do initialization,
+     run simulation, and introspect the running simulation.
+  examples: tests/pymcell4/1400_rel_site_for_each_it/model.py
+  items:
+  - name: config
+    type: Config
+    default: Config()
+    doc: Simulation configuration.
+
+  - name: warnings
+    type: Warnings
+    default: Warnings()
+    doc: Configuration on how to report warnings. 
+
+  - name: notifications
+    type: Notifications
+    default: Notifications()
+    doc: Configuration on how to report certain notifications.
+
+  methods:
+  - name: initialize
+    doc: | 
+      Initializes model, initialization blocks most of changes to 
+      contained components. 
+    params:
+    - name: print_copyright
+      type: bool
+      default: True
+      doc: Prints information about MCell.
+      
+  - name: run_iterations
+    doc: | 
+       Runs specified number of iterations. Returns the number of iterations
+       executed (it might be less than the requested number of iterations when 
+       a checkpoint was scheduled). 
+    return_type: uint64
+    params:
+    - name: iterations
+      type: float
+      doc: Number of iterations to run. Value is truncated to an integer.
+
+  - name: end_simulation
+    doc: |
+      Generates the last visualization and reaction output (if they are included 
+      in the model), then flushes all buffers and optionally prints simulation report. 
+      Buffers are also flushed when the Model object is destroyed such as when Ctrl-C
+      is pressed during simulation.   
+    params:
+    - name: print_final_report
+      type: bool
+      default: True
+      doc: Print information on simulation time and counts of selected events. 
+      
+  - name: add_subsystem
+    doc: Adds all components of a Subsystem object to the model.
+    params:
+    - name: subsystem
+      type: Subsystem*
+      
+  - name: add_instantiation
+    doc: Adds all components of an Instantiation object to the model.
+    params:
+    - name: instantiation
+      type: Instantiation*
+
+  - name: add_observables
+    doc: Adds all counts and viz outputs of an Observables object to the model.
+    params:
+    - name: observables
+      type: Observables*
+      
+  - name: dump_internal_state
+    doc: Prints out the simulation engine's internal state, mainly for debugging.
+    params:      
+    - name: with_geometry
+      type: bool
+      default: false
+      doc: Include geometry in the dump.
+          
+  - name: export_data_model
+    doc: | 
+       Exports the current state of the model into a data model JSON format.
+       Does not export state of molecules.
+       Must be called after model initialization.
+       Always exports the current state, i.e. with the current geometry and reaction rates. 
+       Events (ReleaseSites and VizOutputs) with scheduled time other than zero are not exported correctly yet.  
+    params: 
+    - name: file
+      type: str
+      default: unset
+      doc: | 
+         If file is not set, then uses the first VizOutput to determine the target directory 
+         and creates name using the current iteration. Fails if argument file is not set and 
+         there is no VizOutput in the model.
+        
+  - name: export_viz_data_model
+    doc: |
+       Same as export_data_model, only the created data model will contain only information required for visualization
+       in CellBlender. This makes the loading of the model by CellBlender faster and also allows to avoid potential
+       compatibility issues.
+       Must be called after model initialization.
+    examples: tests/pymcell4_positive/1520_sphere_collision/model.py
+    params: 
+    - name: file
+      type: str
+      default: unset
+      doc: Optional path to the output data model file. 
+
+  - name: export_geometry
+    doc: |
+       Exports model geometry as Wavefront OBJ format. 
+       Must be called after model initialization.
+       Does not export material colors (yet).
+    params: 
+    - name: output_files_prefix
+      type: str
+      default: unset
+      doc: | 
+         Optional prefix for .obj and .mtl files that will be created on export. 
+         If output_files_prefix is not set, then uses the first VizOutput to determine the target directory 
+         and creates names using the current iteration. Fails if argument output_files_prefix is not set and 
+         there is no VizOutput in the model.
+     
+  # --- state modification ---
+  - name: release_molecules
+    doc: | 
+       Performs immediate release of molecules based on the definition of the release site argument.
+       The ReleaseSite.release_time must not be in the past and must be within the current iteration 
+       meaning that the time must be greater or equal iteration * time_step and less than (iteration + 1) * time_step.
+       The ReleaseEvent must not use a release_pattern because this is an immediate release and it is not 
+       scheduled into the global scheduler.
+    examples: tests/pymcell4/2300_immediate_release/model.py
+    params:
+    - name: release_site
+      type: ReleaseSite*
+      
+  - name: run_reaction
+    doc: | 
+      Run a single reaction on reactants. Callbacks will be called if they are registered for the given reaction.
+      Returns a list of product IDs.
+      Note\: only unimolecular reactions are currently supported.
+    examples: pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py
+    return_type: List[int]
+    params:
+    - name: reaction_rule
+      type: ReactionRule*
+      doc: Reaction rule to run.
+      
+    - name: reactant_ids
+      type: List[int]
+      doc: | 
+        The number of reactants for a unimolecular reaction must be 1 and for a bimolecular reaction must be 2.
+        Reactants for a bimolecular reaction do not have to be listed in the same order as in the reaction rule definition. 
+    
+    - name: time
+      type: float
+      doc: |
+        Precise time in seconds when this reaction occurs. Important to know for how long the products
+        will be diffused when they are created in a middle of a time step. 
+      
+  # --- dynamic geometry ---
+      
+  - name: add_vertex_move
+    doc: |
+       Appends information about a displacement for given object's vertex into an internal list of vertex moves. 
+       To do the actual geometry change, call Model.apply_vertex_moves.
+       The reason why we first need to collect all changes and then apply them all at the same time is for performance
+       reasons. 
+    examples: tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py
+    params: 
+    - name: object
+      type: GeometryObject*
+      doc: Object whose vertex will be changed.
+    - name: vertex_index
+      type: int
+      doc: Index of vertex in object's vertex list that will be changed.
+    - name: displacement
+      type: List[float]
+      doc: |
+        Change of vertex coordinates [x, y, z] (in um) that will be added to the current 
+        coordinates of the vertex.
+      
+  - name: apply_vertex_moves
+    doc: | 
+       Applies all the vertex moves specified with Model.add_vertex_move call.
+       Walls of different objects are checked against collisions and move the maximal way so that they do not 
+       overlap.
+       The API representation (GeometryObject) is not updated, only the internal MCell data are changed.
+       Note\: It is not supported yet to move two objects that woudl collide at the same time.  
+       When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
+       when collect_wall_wall_hits is False, and empty list is returned.
+    examples: tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py
+    return_type: List[WallWallHitInfo*]
+    params:
+    - name: collect_wall_wall_hits
+      type: bool
+      default: false
+      doc: |
+         When set to True, a list of wall pairs that collided is returned,
+         otherwise an empty list is returned.
+  
+  # --- callbacks ---
+  
+  - name: register_mol_wall_hit_callback
+    doc: |
+       Register a callback for event when a molecule hits a wall. 
+       May be called only after model initialization because it internally uses geometry object
+       and species ids that are set during the initialization. 
+       
+    examples: tests/pymcell4_positive/1300_wall_hit_callback/model.py
+           
+    params:
+    - name: function
+      type: std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>
+      doc: | 
+         Callback function to be called. 
+         The function must have two arguments MolWallHitInfo and context.
+         Do not modify the received MolWallHitInfo object since it may be reused for other 
+         wall hit callbacks (e.g. when the first callback is for a specific geometry object and 
+         the second callback is for any geometry object). 
+         The context object (py::object type argument) is on the other hand provided 
+         to be modified and one can for instance use it to count the number of hits.. 
+
+    - name: context
+      type: py::object
+      doc: | 
+         Context passed to the callback function, the callback function can store
+         information to this object. Some context must be always passed, even when 
+         it is a useless python object. 
+     
+    - name: object
+      type: GeometryObject*
+      default: unset
+      doc: Only hits of this object will be reported, any object hit is reported when not set.
+      internal: Extend this to Region later
+      
+    - name: species
+      type: Species*
+      default: unset
+      doc: | 
+         Only hits of molecules of this species will be reported, any hit of volume molecules of 
+         any species is reported when this argument is not set.
+         Sets an internal flag for this species to make sure that the species id does not change 
+         during simulation.           
+      
+  - name: register_reaction_callback
+    doc: | 
+       Defines a function to be called when a reaction was processed.
+       It is allowed to do state modifications except for removing reacting molecules, 
+       they will be removed automatically after return from this callback. 
+       Unlimited number of reaction callbacks is allowed. 
+       May be called only after model initialization because it internally uses 
+       reaction rule ids that are set during the initialization. 
+       
+    examples: tests/pymcell4_positive/1800_vol_rxn_callback/model.py    
+    params: 
+    - name: function
+      type: std::function<void(std::shared_ptr<ReactionInfo>, py::object)>
+      doc: | 
+         Callback function to be called. 
+         The function must have two arguments ReactionInfo and context.
+         Called right after a reaction occured but before the reactants were removed.
+         After return the reaction proceeds and reactants are removed (unless they were kept
+         by the reaction such as with reaction A + B -> A + C).
+         
+    - name: context
+      type: py::object
+      doc: | 
+         Context passed to the callback function, the callback function can store
+         information to this object. Some context must be always passed, even when 
+         it is a useless python object. 
+      internal: |
+         In the future, One may set attributes of ReactionInfo to say how the reaction should proceed. 
+         If unchanged, reaction proceeds as it woudl without this callback. 
+         
+    - name: reaction_rule
+      type: ReactionRule*
+      doc: The callback function will be called whenever this reaction rule is applied.
+      internal: maybe also add filtering by species
+  
+  # --- other ---
+  
+  - name: load_bngl
+    doc: | 
+      Loads sections\: molecule types, reaction rules, seed species, and observables from a BNGL file
+      and creates objects in the current model according to it.
+      All elementary molecule types used in the seed species section must be defined in subsystem.
+      If an item in the seed species section does not have its compartment set,
+      the argument default_region must be set and the molecules are released into or onto the 
+      default_region. 
+    examples: pymcell4/1400_rel_site_for_each_it/model.py
+    params:
+    - name: file_name
+      type: str  
+      doc: Path to the BNGL file to be loaded.
+      
+    - name: observables_path_or_file
+      type: str
+      default: ""
+      doc: |
+         Directory prefix or file name where observable values will be stored.
+         If a directory such as './react_data/seed_' + str(SEED).zfill(5) + '/' or an empty 
+         string is used,
+         each observable gets its own file and the output file format for created Count 
+         objects is CountOutputFormat.DAT.
+         If a file has a .gdat extension such as 
+         './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat', all observable are stored in this 
+         file and the output file format for created Count objects is CountOutputFormat.GDAT.
+         Must not be empty when observables_output_format is explicitly set to CountOutputFormat.GDAT.
+      
+    - name: default_release_region
+      type: Region*
+      default: unset
+      doc: | 
+         Used as region for releases for seed species that have no compartments specified.
+      
+    - name: parameter_overrides
+      type: Dict[str, float]
+      default: empty
+      doc: |
+         For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+         its value is ignored and instead value parameter_overrides[k] is used.
+
+    - name: observables_output_format
+      type: CountOutputFormat
+      default: CountOutputFormat.AUTOMATIC_FROM_EXTENSION
+      doc: |
+         Selection of output format. Default setting uses automatic detection
+         based on contents of the 'observables_path_or_file' attribute.
+      
+  - name: export_to_bngl
+    doc: |
+      Exports all defined species, reaction rules and applicable observables
+      as a BNGL file that can be then loaded by MCell4 or BioNetGen. 
+      The resulting file should be validated that it produces expected results. 
+      Many MCell features cannot be exported into BNGL and when such a feature is 
+      encountered the export fails with a RuntimeError exception.
+      However, the export code tries to export as much as possible and one can catch
+      the RuntimeError exception and use the possibly incomplete BNGL file anyway.   
+      
+    params:
+    - name: file_name
+      type: str
+      doc: Output file name.
+      
+    - name: simulation_method
+      type: BNGSimulationMethod
+      default: BNGSimulationMethod.ODE
+      doc: |
+         Selection of the BioNetGen simulation method. 
+         Selects BioNetGen action to run with the selected simulation method.
+         For BNGSimulationMethod.NF the export is limited to a single volume and
+         a single surface and the enerated rates use volume and surface area so that 
+         simulation with NFSim produces corect results. 
+      
+  - name: save_checkpoint
+    todo: provide more configurability for parameters
+    doc: |
+       Saves current model state as checkpoint. 
+       The default directory structure is checkpoints/seed_<SEED>/it_<ITERATION>,
+       it can be changed by setting 'custom_dir'.
+       If used during an iteration such as in a callback, an event is scheduled for the  
+       beginning of the next iteration. This scheduled event saves the checkpoint.  
+    examples: tests/pymcell4_positive/2700_save_checkpoint_rxn_in_box/model.py
+    params:
+    - name: custom_dir
+      type: str
+      default: unset
+      doc: |
+         Sets custom directory where the checkpoint will be stored. 
+         The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'. 
+
+  - name: schedule_checkpoint
+    todo: provide more configurability for parameters
+    doc: |
+       Schedules checkpoint save event that will occur when an iteration is started.  
+       This means that it will be executed right before any other events scheduled for 
+       the given iteration are executed.
+       Can be called asynchronously at any time after initialization.
+    examples: tests/nutmeg4_pymcell4/2760_schedule_checkpoint_async_w_timer/model.py
+    params:
+    - name: iteration
+      type: uint64
+      default: 0
+      todo: shouldn't we specify simulated time instead?
+      doc: |
+        Specifies iteration number when the checkpoint save will occur. 
+        Please note that iterations are counted from 0.
+        To schedule a checkpoint for the closest time as possible, keep the default value 0,
+        this will schedule checkpoint for the beginning of the iteration with number current iteration + 1.  
+        If calling schedule_checkpoint from a different thread (e.g. by using threading.Timer), 
+        it is highly recommended to keep the default value 0 or choose some time that will be 
+        for sure in the future.
+    
+    - name: continue_simulation
+      type: bool
+      default: false
+      doc: |
+        When false, saving the checkpoint means that we want to terminate the simulation 
+        right after the save. The currently running function Model.run_iterations
+        will not simulate any following iterations and execution will return from this function
+        to execute the next statement which is usually 'model.end_simulation()'.
+        When true, the checkpoint is saved and simulation continues uninterrupted.
+              
+    - name: custom_dir
+      type: str
+      default: unset
+      doc: |
+         Sets custom directory where the checkpoint will be stored. 
+         The default is 'checkpoints/seed_<SEED>/it_<ITERATION>'. 

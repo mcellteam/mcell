@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 * ****************************************************************************/
 
@@ -106,7 +95,7 @@ int mcell_change_geometry(struct volume *state, struct poly_object_list *pobj_li
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
 
-  struct object *world_object = NULL;
+  struct geom_object *world_object = NULL;
   mcell_create_instance_object(state, "Scene", &world_object);
 
   while (pobj_list != NULL) {
@@ -117,7 +106,7 @@ int mcell_change_geometry(struct volume *state, struct poly_object_list *pobj_li
       pobj_list->connections,
       pobj_list->num_conn
     };
-    struct object *new_mesh = NULL;
+    struct geom_object *new_mesh = NULL;
     mcell_create_poly_object(state, world_object, &polygon, &new_mesh);
 
     struct region *test_region = mcell_create_region(state, new_mesh, pobj_list->reg_name);

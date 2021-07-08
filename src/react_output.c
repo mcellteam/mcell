@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -29,7 +18,9 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <signal.h>
 #include <errno.h>
 
@@ -88,101 +79,103 @@ int truncate_output_file(char *name, double start_value) {
         name);
     /*goto failure;*/
   }
-
   {
-  /* Iterate over the entire file */
-  int where = 0; /* Byte offset in file */
-  int start = 0; /* Byte offset in buffer */
-  while (ftell(f) != fs.st_size) {
-    /* Refill the buffer */
-    long long n = (long long)fread(buffer + start, 1, bsize - start, f);
+    /* Iterate over the entire file */
+    int where = 0; /* Byte offset in file */
+    int start = 0; /* Byte offset in buffer */
+    while (ftell(f) != fs.st_size) {
+      /* Refill the buffer */
+      long long n = (long long)fread(buffer + start, 1, bsize - start, f);
 
-    /* Until the current buffer runs dry */
-    int ran_out = 0;
-    i = 0;
-    n += start;
-    int lf = 0;
-    while (!ran_out) {
-      /* Skip leading horizontal whitespace */
-      while (i < n && (buffer[i] == ' ' || buffer[i] == '\t'))
-        i++;
+      /* Until the current buffer runs dry */
+      int ran_out = 0;
+      i = 0;
+      n += start;
+      int lf = 0;
+      while (!ran_out) {
+        /* Skip leading horizontal whitespace */
+        while (i < n && (buffer[i] == ' ' || buffer[i] == '\t'))
+          i++;
 
-      /* Scan over leading numeric characters */
-      int j = i;
-      for (;
-           j < n && (isdigit(buffer[j]) || strchr("eE-+.", buffer[j]) != NULL);
-           j++) {
-      }
+        /* Scan over leading numeric characters */
+        int j = i;
+        for (;
+             j < n && (isdigit(buffer[j]) || strchr("eE-+.", buffer[j]) != NULL);
+             j++) {
+        }
 
-      /* If we had a leading number... */
-      if (j > i && j < (n - 1)) {
-        char *done = NULL;
+        /* If we had a leading number... */
+        if (j > i && j < (n - 1)) {
+          char *done = NULL;
 
-        /* Parse and validate the number */
-        buffer[j] = '\0';
-        double my_value = strtod(buffer + i, &done) + EPS_C;
+          /* Parse and validate the number */
+          buffer[j] = '\0';
+          double my_value = strtod(buffer + i, &done) + EPS_C;
 
-        /* If it was a valid number and it was >= our start time */
-        if (done != buffer + i && my_value >= start_value) {
-          if (fseek(f, 0, SEEK_SET)) {
-            mcell_perror(
-                errno,
-                "Failed to seek to beginning of reaction data output file '%s'",
-                name);
-            /*goto failure;*/
+          /* If it was a valid number and it was >= our start time */
+          if (done != buffer + i && my_value >= start_value) {
+            if (fseek(f, 0, SEEK_SET)) {
+              mcell_perror(
+                  errno,
+                  "Failed to seek to beginning of reaction data output file '%s'",
+                  name);
+              /*goto failure;*/
+            }
+            #ifndef _MSC_VER
+              if (ftruncate(fileno(f), where + lf)) {
+                mcell_perror(errno,
+                             "Failed to truncate reaction data output file '%s'",
+                             name);
+                /*goto failure;*/
+              }
+            #else
+              mcell_error("TODO: ftruncate is not supported on windows");
+            #endif
+            fclose(f);
+            free(buffer);
+            return 0;
           }
+        }
 
-          if (ftruncate(fileno(f), where + lf)) {
-            mcell_perror(errno,
-                         "Failed to truncate reaction data output file '%s'",
-                         name);
-            /*goto failure;*/
+        /* We will keep this line.  Scan until we hit a newline */
+        for (i = j; i < n && buffer[i] != '\n' && buffer[i] != '\r'; i++) {
+        }
+
+        /* If we're not at the end of the buffer, scan over all crs/lfs. */
+        if (i < n) {
+          for (j = i; j < n && (buffer[j] == '\n' || buffer[j] == '\r'); j++) {
           }
-          fclose(f);
-          free(buffer);
-          return 0;
+          lf = j;
+          i = j; /* If we have run out, we'll catch it next time through */
         }
-      }
 
-      /* We will keep this line.  Scan until we hit a newline */
-      for (i = j; i < n && buffer[i] != '\n' && buffer[i] != '\r'; i++) {
-      }
-
-      /* If we're not at the end of the buffer, scan over all crs/lfs. */
-      if (i < n) {
-        for (j = i; j < n && (buffer[j] == '\n' || buffer[j] == '\r'); j++) {
+        /* If we hit 'n' and the last read was only partial (i.e. EOF), break out
+           */
+        else if (n < bsize) {
+          ran_out = 1;
         }
-        lf = j;
-        i = j; /* If we have run out, we'll catch it next time through */
-      }
 
-      /* If we hit 'n' and the last read was only partial (i.e. EOF), break out
-         */
-      else if (n < bsize) {
-        ran_out = 1;
-      }
-
-      /* Last read was a full read and we've scanned the whole buffer */
-      else {
-        /* If we need to keep some data, resituate it in the buffer */
-        if (lf > start) {
-          /* discard all but n - lf bytes */
-          memmove(buffer, buffer + lf, n - lf);
-          where += lf;
-          start = n - lf;
-        } else {
-          /* discard all bytes */
-          where += n;
-          start = 0;
+        /* Last read was a full read and we've scanned the whole buffer */
+        else {
+          /* If we need to keep some data, resituate it in the buffer */
+          if (lf > start) {
+            /* discard all but n - lf bytes */
+            memmove(buffer, buffer + lf, n - lf);
+            where += lf;
+            start = n - lf;
+          } else {
+            /* discard all bytes */
+            where += n;
+            start = 0;
+          }
+          lf = 0;
+          ran_out = 1;
         }
-        lf = 0;
-        ran_out = 1;
       }
     }
-  }
-  fclose(f);
-  free(buffer);
-  return 0;
+    fclose(f);
+    free(buffer);
+    return 0;
   }
 
 failure:
@@ -305,7 +298,7 @@ static void emergency_output_signal_handler(int signo) {
   Out: None.
 **************************************************************************/
 static void install_emergency_output_signal_handler(int signo) {
-#ifdef _WIN32 /* fixme: for Windows do a better job than just signal(), need   \
+#ifdef _WIN64 /* fixme: for Windows do a better job than just signal(), need   \
                  to find out what other things the *nix version is doing */
   signal(signo, &emergency_output_signal_handler);
 #else
@@ -638,7 +631,7 @@ int check_reaction_output_file(struct output_set *os) {
 
   switch (os->file_flags) {
   case FILE_OVERWRITE:
-    f = fopen(name, "w");
+    f = fopen(name, "w"); // TODO: this might clear mcell3 file when mcell4 mode is used but there is no easy way how to pass information on the mode
     if (!f) {
       switch (errno) {
       case EACCES:
@@ -714,6 +707,7 @@ int check_reaction_output_file(struct output_set *os) {
     fclose(f);
     break;
   case FILE_CREATE:
+#ifndef _MSC_VER
     i = access(name, F_OK);
     if (!i) {
       i = stat(name, &fs);
@@ -724,6 +718,7 @@ int check_reaction_output_file(struct output_set *os) {
         return 1;
       }
     }
+#endif
     f = fopen(name, "w");
     if (f == NULL) {
       switch (errno) {

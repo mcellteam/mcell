@@ -165,11 +165,11 @@ initializeNFSimQueryforBimolecularFiring(struct abstract_molecule *am,
   return options;
 }
 
-static void find_objects(struct object* current_parent,
-                  const char* name1, struct object** obj1,
-                  const char* name2, struct object** obj2) {
+static void find_objects(struct geom_object* current_parent,
+                  const char* name1, struct geom_object** obj1,
+                  const char* name2, struct geom_object** obj2) {
 
-  struct object* curr = current_parent;
+  struct geom_object* curr = current_parent;
   while (curr != NULL) {
     // did we find our object?
     if (*obj1 == NULL && curr->last_name != NULL && strcmp(curr->last_name, name1) == 0) {
@@ -190,7 +190,7 @@ static void find_objects(struct object* current_parent,
   }
 }
 
-static bool has_region(struct object* obj, const char* reg_name) {
+static bool has_region(struct geom_object* obj, const char* reg_name) {
 
   for (struct region_list *r = obj->regions; r != NULL; r = r->next) {
     if (r->reg != NULL && strcmp(r->reg->region_last_name, reg_name) == 0) {
@@ -384,8 +384,8 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn *rx, void *results,
       // 3) if we go from surface into the object -> orientation == -1,
       //    all other cases are kept as they were implemented originally because we
       //    do not have other information about the hierarchy of objects
-      struct object* objOutside = NULL;
-      struct object* objOrigCompartment = NULL;
+      struct geom_object* objOutside = NULL;
+      struct geom_object* objOrigCompartment = NULL;
       find_objects(world->root_instance, outside, &objOutside, originalCompartment, &objOrigCompartment);
 
       // if we found only one of these objects, check its regions

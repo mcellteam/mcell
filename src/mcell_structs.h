@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -25,18 +14,21 @@
 
 #include "config.h"
 
-#include <limits.h>
+#ifndef _MSC_VER
+#include <sys/time.h>
 #include <sys/types.h>
+#endif
+
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
-#include <sys/time.h>
 
-#include "rng.h"
-#include "vector.h"
 #include "mem_util.h"
 #include "sched_util.h"
 #include "util.h"
+
+#include "mcell_structs_shared.h"
 
 /*****************************************************/
 /**  Brand new constants created for use in MCell3  **/
@@ -174,44 +166,21 @@ enum manifold_flag_t {
   IS_MANIFOLD         /* Known to be manifold */
 };
 
-/* Reaction flags */
-/* RX_ABSORB_REGION_BORDER signifies that a reaction is between a surface
-   molecule and an ABSORPTIVE region border */
-/* RX_REFLEC signifies that a reaction is between a molecule and a REFLECTIVE
-   wall */
-/* RX_TRANSP signifies that a reaction is between a molecule and a TRANSPARENT
-   wall */
-/* Any value equal to or less than RX_SPECIAL refers to a special wall type */
-/* RX_BLOCKED signals a reaction that cannot take place because the grid is
-   full */
-/* Any value equal to or less than RX_NO_RX indicates that a reaction did not
-   take place */
-/* RX_FLIP signals that a molecule flips its orientation (crosses a wall if
-   it's free) */
-/* RX_DESTROY signals that the molecule no longer exists (so don't try to keep
-   using it) */
-/* RX_A_OK signals that all is OK with a reaction, proceed as normal (reflect
-   if you're free) */
-#define RX_ABSORB_REGION_BORDER -5
-#define RX_REFLEC -4
-#define RX_TRANSP -3
-#define RX_SPECIAL -3
-#define RX_BLOCKED -2
-#define RX_NO_RX -2
-#define RX_FLIP -1
-#define RX_LEAST_VALID_PATHWAY 0
-#define RX_DESTROY 0
-#define RX_A_OK 1
-#define MAX_MATCHING_RXNS 64
 
 /* Pathway flags */
 // TRANSPARENT means surface reaction between the molecule and TRANSPARENT wall
 // REFLECTIVE means surface reaction between the molecule and REFLECTIVE wall
 // CLAMP_CONC means surface reaction of CLAMP_CONCENTRATION type
+// CLAMP_FLUX means surface reaction of CLAMP_FLUX type
 #define PATHW_TRANSP 0x0001
 #define PATHW_REFLEC 0x0002
 #define PATHW_ABSORP 0x0004
 #define PATHW_CLAMP_CONC 0x0008
+#define PATHW_CLAMP_FLUX 0x0010
+
+/* Clamp types */
+#define CLAMP_TYPE_CONC 0x0000
+#define CLAMP_TYPE_FLUX 0x0001
 
 #define BRANCH_X 0x04
 #define BRANCH_Y 0x08
@@ -224,14 +193,6 @@ enum manifold_flag_t {
 #define Y_POS 3
 #define Z_NEG 4
 #define Z_POS 5
-
-/* Direction Bit Flags */
-#define X_NEG_BIT 0x01
-#define X_POS_BIT 0x02
-#define Y_NEG_BIT 0x04
-#define Y_POS_BIT 0x08
-#define Z_NEG_BIT 0x10
-#define Z_POS_BIT 0x20
 
 /* Collision types for rays striking surfaces */
 /* First a bunch of target types */
@@ -352,10 +313,6 @@ enum warn_level_t {
   WARN_ERROR /* treat the warning and an error and stop */
 };
 
-/* Number of times to try diffusing on a surface before we give up (we might
- * fail if the target grid is full) */
-#define SURFACE_DIFFUSION_RETRIES 10
-
 /* Overwrite Policy Flags */
 /* Flags for different types of file output */
 enum overwrite_policy_t {
@@ -439,8 +396,6 @@ enum checkpoint_request_type_t {
 /* 1/2^32 */
 #define R_UINT_MAX 2.3283064365386962890625e-10
 
-#define MY_PI 3.14159265358979323846
-#define N_AV 6.0221417930e23
 #define ROUND_UP 0.5
 
 /* Placement Type Flags */
@@ -520,14 +475,6 @@ enum output_timer_type_t {
   OUTPUT_BY_STEP,
   OUTPUT_BY_TIME_LIST,
   OUTPUT_BY_ITERATION_LIST,
-};
-
-/* Visualization modes. */
-enum viz_mode_t {
-  VIZ_MODE_INVALID = -1,
-  NO_VIZ_MODE = 0,
-  ASCII_MODE = 1,
-  CELLBLENDER_MODE = 2,
 };
 
 /* Visualization Frame Data Type */
@@ -627,8 +574,12 @@ struct species {
   struct name_orient *
   transp_mols; /* names of the mols that are TRANSPARENT for surface */
   struct name_orient *absorb_mols; // names of the mols that ABSORB at surface
-  struct name_orient *clamp_conc_mols; /* names of mols that CLAMP_CONC at
-                                          surface */
+  struct name_orient *clamp_mols; /* names of mols that CLAMP_CONC or
+                                          CLAMP_FLUX at surface */
+
+  // mcell4 - we need to store information on whether the user set custom time or space step
+  // 0 - not set, < 0 - custom space step, > 0 custom time step
+  double custom_time_step_from_mdl;
 };
 
 /* All pathways leading away from a given intermediate */
@@ -698,6 +649,7 @@ struct pathway {
   struct species *reactant2;     /* Second reactant (NULL if none) */
   struct species *reactant3;     /* Third reactant (NULL if none) */
   double km;                       /* Rate constant */
+  double clamp_concentration;     /* Concentration clamp constant, used only by MCell3->4 converter */
   char *km_filename;               /* Filename for time-varying rates */
   short orientation1;           /* Orientation of first reactant */
   short orientation2;           /* Orientation of second reactant */
@@ -728,6 +680,7 @@ struct t_func {
   struct t_func *next;
   double time;  /* Time to switch to next rate */
   double value; /* Current rate */
+  double value_from_file; /* MCell4, rate value that was loaded from the file*/
   int path;     /* Which rxn pathway is this for? */
 };
 
@@ -866,6 +819,9 @@ struct edge {
 
   double length;   /* Length of the shared edge */
   double length_1; /* Reciprocal of length of shared edge */
+
+  // for mcell4 only
+  int edge_num_used_for_init;
 };
 
 struct wall {
@@ -897,7 +853,7 @@ struct wall {
 
   u_short flags; /* Count Flags: flags for whether and what we need to count */
 
-  struct object *parent_object; /* The object we are a part of */
+  struct geom_object *parent_object; /* The object we are a part of */
   struct storage *birthplace;   /* Where we live in memory */
 
   struct region_list *counting_regions; /* Counted-on regions containing this
@@ -1204,9 +1160,9 @@ struct volume {
   struct sym_table_head *rxpn_sym_table; /* Named reaction pathway hash table */
   struct sym_table_head *mol_ss_sym_table; /* Spatially structured molecule symbol hash table */
 
-  struct object *root_object;   /* Root of the object template tree */
-  struct object *root_instance; /* Root of the instantiated object tree */
-  struct object *periodic_box_obj;
+  struct geom_object *root_object;   /* Root of the object template tree */
+  struct geom_object *root_instance; /* Root of the instantiated object tree */
+  struct geom_object *periodic_box_obj;
 
   struct release_pattern *default_release_pattern; /* release once at t=0 */
 
@@ -1308,6 +1264,7 @@ struct volume {
                                     occured */
   long long surf_surf_surf_colls; /* How many surf-surf-surf collisions have
                                      occured */
+  long long diffuse_3d_calls;
 
   struct vector3 bb_llf; /* llf corner of world bounding box */
   struct vector3 bb_urb; /* urb corner of world bounding box */
@@ -1364,9 +1321,9 @@ struct volume {
   // XXX: Why do we allocate this on the heap rather than including it inline?
   struct notifications *notify; /* Notification/warning/output flags */
 
-  struct ccn_clamp_data *clamp_list; /* List of objects at which volume
-                                        molecule concentrations should be
-                                        clamped */
+  struct clamp_data *clamp_list; /* List of objects at which volume
+                                        molecule concentration or flux
+                                        should be clamped */
 
   /* Flags for asynchronously-triggered checkpoints */
 
@@ -1387,6 +1344,9 @@ struct volume {
   /* resource usage during initialization */
   struct timeval u_init_time;    /* user time */
   struct timeval s_init_time;    /* system time */
+  int it1_time_set;
+  struct timeval u_it1_time;    /* user time when iteration 1 started */
+  struct timeval s_it1_time;    /* system time when iteration 1 started */
   time_t t_start;                /* global start time */
   byte reaction_prob_limit_flag; /* checks whether there is at least one
                                     reaction with probability greater
@@ -1398,6 +1358,23 @@ struct volume {
   struct species* global_nfsim_surface;
 
   struct pointer_hash *species_mesh_transp; 
+
+  // mcell4 -specific items
+  int use_mcell4;
+  int dump_mcell3;
+  int dump_mcell4;
+  int dump_mcell4_with_geometry;
+  int mdl2datamodel4;
+  int mdl2datamodel4_only_viz;
+
+  // min and max values from PARTITION_X|Y|Z settings,
+  // these are processed already in parser and are not accessible through other variables
+  // during conversion, index is dimension
+  bool partitions_initialized;
+  struct vector3 partition_llf;
+  struct vector3 partition_urb;
+  struct vector3 partition_step;
+  struct vector3 num_subparts;
 };
 
 /* Data structure to store information about collisions. */
@@ -1405,7 +1382,7 @@ struct collision {
   struct collision *next;
   double t; /* Time of collision (may be slightly early) */
 
-  void *target; /* Thing that we hit: wall, molecule, subvol etc */
+	void *target; /* Thing that we hit: wall, molecule, subvol etc */
   int what;     /* Target-type Flags: what kind of thing did we hit? */
   struct rxn *intermediate; /* Reaction that told us we could hit it */
   struct vector3 loc;       /* Location of impact */
@@ -1535,12 +1512,12 @@ struct release_region_data {
   int *obj_index;        /* Indices for objects (in owners array) */
 
   int n_objects;                 /* How many objects are there total */
-  struct object **owners;        /* Array of pointers to each object */
+  struct geom_object **owners;        /* Array of pointers to each object */
   struct bit_array **in_release; /* Array of bit arrays; each bit array says
                                     which walls are in release for an object */
   int *walls_per_obj; /* Number of walls in release for each object */
 
-  struct object *self; /* A pointer to our own release site object */
+  struct geom_object *self; /* A pointer to our own release site object */
   struct release_evaluator *expression; /* A set-construction expression
                                            combining regions to form this
                                            release site */
@@ -1619,20 +1596,21 @@ struct notifications {
 };
 
 /* Information related to concentration clamp surfaces, by object */
-struct ccn_clamp_data {
-  struct ccn_clamp_data *next; // The next concentration clamp, by surf class
+struct clamp_data {
+  struct clamp_data *next;    // The next clamp, by surf class
   struct species *surf_class; /* Which surface class clamps? */
   struct species *mol;        /* Which molecule does it clamp? */
-  double concentration;       /* At which concentration? */
+  int clamp_type;             /* Type of clamp, CLAMP_TYPE_CONC or FLUX */
+  double clamp_value;         /* At what concentration or flux value? */
   short orient;               /* On which side? */
-  struct object *objp;        /* Which object are we clamping? */
+  struct geom_object *objp;        /* Which object are we clamping? */
   struct bit_array *sides;    /* Which walls in that object? */
   int n_sides;                /* How many walls? */
   int *side_idx;              /* Indices of the walls that are clamped */
   double *cum_area;           /* Cumulative area of all the clamped walls */
   double scaling_factor;      /* Used to predict #mols/timestep */
-  struct ccn_clamp_data *next_mol; /* Next clamp, by molecule, for this class */
-  struct ccn_clamp_data *next_obj; /* Next clamp, by object, for this class */
+  struct clamp_data *next_mol; /* Next clamp, by molecule, for this class */
+  struct clamp_data *next_obj; /* Next clamp, by object, for this class */
 };
 
 /* Structure for a VOLUME_DATA_OUTPUT item */
@@ -1847,7 +1825,7 @@ struct region {
   struct sym_entry *sym;  /* Symbol hash table entry for this region */
   u_int hashval;          /* Hash value for counter hash table */
   const char *region_last_name; /* Name of region without prepended object name */
-  struct object *parent;  /* Parent of this region */
+  struct geom_object *parent;  /* Parent of this region */
   struct element_list *element_list_head; /* List of element ranges comprising
                                              this region (used at parse time) */
   struct bit_array *membership; /* Each bit indicates whether the corresponding
@@ -1881,11 +1859,11 @@ struct region_list {
 };
 
 /* Container data structure for all physical objects */
-struct object {
-  struct object *next;        /* Next sibling object */
-  struct object *parent;      /* Parent meta object */
-  struct object *first_child; /* First child object */
-  struct object *last_child;  /* Last child object */
+struct geom_object {
+  struct geom_object *next;        /* Next sibling object */
+  struct geom_object *parent;      /* Parent meta object */
+  struct geom_object *first_child; /* First child object */
+  struct geom_object *last_child;  /* Last child object */
   struct sym_entry *sym;      /* Symbol hash table entry for this object */
   char *last_name; /* Name of object without pre-pended parent object name, must not be const char* */
   enum object_type_t object_type; /* Object Type Flags */
@@ -2062,8 +2040,8 @@ struct hit_data {
 };
 
 struct object_list {
-  struct object *obj_head;
-  struct object *obj_tail;
+  struct geom_object *obj_head;
+  struct geom_object *obj_tail;
 };
 
 double rxn_get_nfsim_diffusion(struct rxn*, int);

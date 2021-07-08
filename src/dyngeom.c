@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 * ****************************************************************************/
 
@@ -41,6 +30,9 @@
 #include "mdlparse_aux.h"
 #include "react.h"
 #include "nfsim_func.h"
+
+#include "debug_config.h"
+#include "dump_state.h"
 
 #define NO_MESH "\0"
 
@@ -641,8 +633,13 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   if (move_molecule) {
     /* move molecule to another location so that it is directly inside or
      * outside of "mesh_name" */
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+    dump_volume_molecule(vm, "", true, "Moving vm towards new wall: ", state->current_iterations, /*vm->t*/0, true);
+#endif
+
     place_mol_relative_to_mesh(
         state, &(vm->pos), sv, mesh_name, &new_pos, out_to_in);
+
     check_for_large_molecular_displacement(
         &(vm->pos), &new_pos, vm, &(state->time_unit),
         state->notify->large_molecular_displacement);
@@ -650,6 +647,10 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct subvolume *new_sv = find_subvolume(state, &(new_vm->pos), NULL);
     new_vm->subvol = new_sv;
     state->dyngeom_molec_displacements++;
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+    dump_volume_molecule(new_vm, "", true, "Vm after being moved: ", state->current_iterations, /*vm->t*/0, true);
+#endif
   }
 
   destroy_string_buffer(nested_mesh_names_old_filtered);
@@ -672,7 +673,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
                               new_vm->periodic_box);
   }
 
-  if (schedule_add(new_vm->subvol->local_storage->timer, new_vm))
+  if (schedule_add_mol(new_vm->subvol->local_storage->timer, new_vm))
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
 
   return new_vm;
@@ -1084,6 +1085,10 @@ void place_mol_relative_to_mesh(struct volume *state,
     }
   }
 
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  dump_wall(best_w, "", true);
+#endif
+
   if (best_w == NULL) {
     mcell_internal_error("Error in function 'place_mol_relative_to_mesh()'.");
   }
@@ -1108,9 +1113,9 @@ void place_mol_relative_to_mesh(struct volume *state,
   }
 
   double bump = (out_to_in > 0) ? EPS_C : -EPS_C;
-  struct vector3 displacement = { .x = 2 * bump * best_w->normal.x,
-                                  .y = 2 * bump * best_w->normal.y,
-                                  .z = 2 * bump * best_w->normal.z,
+  struct vector3 displacement = {2 * bump * best_w->normal.x,
+                                 2 * bump * best_w->normal.y,
+                                 2 * bump * best_w->normal.z,
                                 };
   struct subvolume *new_sv = find_subvolume(state, &v, NULL);
   tiny_diffuse_3D(state, new_sv, &displacement, &v, best_w);
@@ -1253,7 +1258,7 @@ int destroy_everything(struct volume *state) {
   // Destroy mesh-species transparency data structure
   destroy_mesh_transp_data(state->mol_sym_table, state->species_mesh_transp);
 
-  for (struct ccn_clamp_data *clamp_list = state->clamp_list;
+  for (struct clamp_data *clamp_list = state->clamp_list;
        clamp_list != NULL;
        clamp_list = clamp_list->next) {
     clamp_list->n_sides = 0; 
@@ -1310,11 +1315,11 @@ destroy_objects:
   Note: Currently, this ultimately only destroys polygon objects. I don't know
         if there's a need to trash release objects that use release patterns.
 ***************************************************************************/
-int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
+int destroy_objects(struct geom_object *obj_ptr, int free_poly_flag) {
   obj_ptr->sym->count = 0;
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
+    for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       destroy_objects(child_obj_ptr, free_poly_flag);
       child_obj_ptr->n_walls = 0;
@@ -1346,7 +1351,7 @@ destroy_poly_object:
       object (child of root_insance), so we only want to free it once.
   Out: Zero on success. One otherwise. Polygon object is destroyed
 ***************************************************************************/
-int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
+int destroy_poly_object(struct geom_object *obj_ptr, int free_poly_flag) {
   if (free_poly_flag) {
     for (int wall_num = 0; wall_num < obj_ptr->n_walls; wall_num++) {
       struct wall *w = obj_ptr->wall_p[wall_num];
@@ -1629,7 +1634,7 @@ find_sm_region_transp:
   Out: Zero on success. Create a data structure so we can quickly check if a
   surface molecule species can move in or out of any given surface region
 ***************************************************************************/
-int find_sm_region_transp(struct object *obj_ptr,
+int find_sm_region_transp(struct geom_object *obj_ptr,
                           struct mesh_transparency **mesh_transp_head,
                           struct mesh_transparency **mesh_transp_tail,
                           const char *species_name) {
@@ -1721,7 +1726,7 @@ find_vm_obj_region_transp:
   Out: Zero on success. Check every region on obj_ptr to see if any of them are
        transparent to the volume molecules with species_name.
 ***************************************************************************/
-int find_vm_obj_region_transp(struct object *obj_ptr,
+int find_vm_obj_region_transp(struct geom_object *obj_ptr,
                               struct mesh_transparency **mesh_transp_head,
                               struct mesh_transparency **mesh_transp_tail,
                               const char *species_name) {
@@ -1801,7 +1806,7 @@ find_all_obj_region_transp:
   Out: Zero on success. Check every polygon object to see if it is transparent
        to species_name.
 ***************************************************************************/
-int find_all_obj_region_transp(struct object *obj_ptr,
+int find_all_obj_region_transp(struct geom_object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,
                                const char *species_name,
@@ -1809,7 +1814,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
 
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
+    for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       if (find_all_obj_region_transp(
           child_obj_ptr, mesh_transp_head, mesh_transp_tail, species_name,
@@ -1908,12 +1913,13 @@ int add_dynamic_geometry_events(
         char *line_ending = strchr(buf + i, '\n');
         int line_ending_idx = line_ending - buf;
         int file_name_length = line_ending_idx - i + 1;
-        char file_name[file_name_length];
+        char* file_name = new char[file_name_length];
         strncpy(file_name, buf + i, file_name_length);
         file_name[file_name_length - 1] = '\0';
         // Expand path name if needed
         char *full_file_name = mcell_find_include_file(
           file_name, dynamic_geometry_filepath);
+        delete file_name;
         // Treat time 0 as if it were an include file.
         if (!distinguishable(time, 0, EPS_C)) {
           if (zero_file_name) {
@@ -1965,7 +1971,9 @@ int add_dynamic_geometry_events(
     free(zero_file_name);
   }
 
-  free((char*)dynamic_geometry_filepath);
+  // this free causes double free errors
+  // free((char*)dynamic_geometry_filepath);
+  
   // Disable parsing of geometry for the rest of the MDL. It should only happen
   // via files referenced in the DG file.
   state->disable_polygon_objects = 1;
@@ -1979,11 +1987,11 @@ int add_dynamic_geometry_events(
  Out: mesh_names is updated so that it contains a list of all the mesh objects
       with their fully qualified names.
  ***********************************************************************/
-const char *get_mesh_instantiation_names(struct object *obj_ptr,
+const char *get_mesh_instantiation_names(struct geom_object *obj_ptr,
                                    struct string_buffer *mesh_names) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
+    for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       char *mesh_name = (char *)get_mesh_instantiation_names(
           child_obj_ptr, mesh_names);
@@ -2109,12 +2117,12 @@ get_reg_names_all_objects:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 int get_reg_names_all_objects(
-    struct object *obj_ptr,
+    struct geom_object *obj_ptr,
     struct string_buffer *region_names) {
 
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
+    for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       if (get_reg_names_all_objects(child_obj_ptr, region_names))
         return 1;
@@ -2142,7 +2150,7 @@ get_reg_names_this_object:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 int get_reg_names_this_object(
-    struct object *obj_ptr,
+    struct geom_object *obj_ptr,
     struct string_buffer *region_names) {
   for (struct region_list *reg_list_ptr = obj_ptr->regions;
        reg_list_ptr != NULL;

@@ -1,0 +1,353 @@
+constants:
+  - name: STATE_UNSET
+    type: str
+    value: STATE_UNSET
+  - name: STATE_UNSET_INT
+    type: int
+    value: -1
+        
+  - name: BOND_UNBOUND
+    type: int
+    value: -1
+    doc: Represents cases when a component must not be bound in a pattern.
+  - name: BOND_BOUND
+    type: int
+    value: -2
+    doc: Represents bond type !+ in a pattern.
+  - name: BOND_ANY
+    type: int
+    value: -3
+    doc: Represents bond type !? in a pattern.
+
+  - name: PARTITION_EDGE_EXTRA_MARGIN_UM
+    type: float
+    value: 0.01
+    doc: Internal constant used to match partition setup when comparing models against their MDL variant. 
+    
+  - name: DEFAULT_COUNT_BUFFER_SIZE 
+    type: int
+    value: 100
+    doc: Internal constant used to initialize buffer size for molecule and reaction counts.
+    
+  - name: ALL_MOLECULES
+    type: str
+    value: "ALL_MOLECULES"
+
+  - name: ALL_VOLUME_MOLECULES
+    type: str
+    value: "ALL_VOLUME_MOLECULES"
+
+  - name: ALL_SURFACE_MOLECULES
+    type: str
+    value: "ALL_SURFACE_MOLECULES"
+    
+  - name: DEFAULT_CHECKPOINTS_DIR
+    type: str
+    value: "checkpoints"
+
+  - name: DEFAULT_SEED_DIR_PREFIX
+    type: str
+    value: "seed_"
+
+  - name: DEFAULT_SEED_DIR_DIGITS
+    type: int
+    value: 5
+  
+  - name: DEFAULT_ITERATION_DIR_PREFIX
+    type: str
+    value: "it_"
+    
+  # TODO: maybe rename to AllSpecies ...
+  - name: AllMolecules
+    type: Species
+    value: AllMolecules # object from api/globals.cpp
+
+  - name: AllVolumeMolecules
+    type: Species
+    value: AllVolumeMolecules # object from api/globals.cpp
+
+  - name: AllSurfaceMolecules
+    type: Species
+    value: AllSurfaceMolecules # object from api/globals.cpp
+
+  - name: ID_INVALID
+    type: int
+    value: -1 
+    
+  - name: NUMBER_OF_TRAINS_UNLIMITED
+    type: int
+    value: -1     
+    
+  - name: TIME_INFINITY
+    type: float
+    value: 1e140
+
+  - name: INT_UNSET
+    type: int
+    value: INT32_MAX
+    doc: | 
+      This is a special integer value that means that an argument was not set, 
+      its value is 2147483647.
+    
+  - name: FLT_UNSET
+    type: float
+    value: FLT_MAX
+    doc: | 
+      This is a special floating-point value that means that an argument was not set, 
+      its value is 3.40282346638528859812e+38F.
+      
+  - name: RNG_SIZE
+    type: int
+    value: 256
+    doc: |
+      Size of arrays of 
+  
+enums:
+  - name: Orientation
+    doc: Orientation of a Complex.
+    # TODO: consider adding/changing orientation don't care, this might make things a bit clearer 
+    values:
+    - name: DOWN
+      value: -1
+    - name: NONE
+      value: 0
+    - name: UP
+      value: 1
+    - name: NOT_SET
+      value: 2
+    - name: ANY
+      value: 3    
+    - name: DEFAULT
+      value: 4
+      doc: Value DEFAULT means NONE for volume complexes and UP for surface complexes.
+      
+  - name: Notification
+    values:
+    - name: NONE
+      value: 0
+    - name: BRIEF
+      value: 1
+    - name: FULL
+      value: 2
+        
+  - name: WarningLevel
+    values:
+    - name: IGNORE
+      value: 0
+      doc: Do something sensible and continue silently.
+    - name: WARNING
+      value: 1
+      doc: Do something sensible but emit a warning message.
+    - name: ERROR
+      value: 2                
+      doc: Treat the warning as an error and stop.
+      
+  - name: VizMode
+    values:
+    - name: ASCII
+      value: 0
+      doc: Readable molecule visualization output.
+    - name: CELLBLENDER_V1
+      value: 1
+      doc: | 
+         Binary molecule visualization output used by MCell3, format v1.
+         Allows only limited length of species name (256 chars) and 
+         does not contain molecule IDs.   
+    - name: CELLBLENDER
+      value: 2
+      doc: Binary molecule visualization output, format v2. 
+      
+  # other shapes are defined in in release_shape_t but only the spherical one is supported by mcell4 now
+  - name: Shape
+    values:
+    - name: UNSET
+      value: 0
+    - name: SPHERICAL
+      value: 1
+    - name: REGION_EXPR
+      value: 2
+    - name: LIST
+      value: 3
+    - name: COMPARTMENT
+      value: 4
+      
+  - name: SurfacePropertyType
+    values:
+    - name: UNSET
+      value: 0
+    - name: REACTIVE
+      value: 1
+      doc: |
+         This surface class does not do anything by itself, but it can be used as a reactant in 
+         reaction rules. 
+         
+    - name: REFLECTIVE
+      value: 2
+      doc: |
+         If used as a surface property for a volume molecule it is reflected by any surface with
+         this surface class. This is the default behavior for volume molecules.
+         If used for a surface molecule it is reflected by the border of the
+         surface with this surface class. 
+         Setting orientation in affected_complex_pattern allows selective reflection of volume 
+         molecules from only the front or back of a surface or selective reflection of surface 
+         molecules with only a certain orientation from the surface’s border. 
+         Using m.ALL_MOLECULES as affected_complex_pattern has the effect that all 
+         volume molecules are reflected by surfaces with this surface class and all surface molecules 
+         are reflected by the border of the surfaces with this surface class. 
+         Using m.ALL_VOLUME_MOLECULES as affected_complex_pattern has the effect that all
+         volume molecules are reflected by surfaces with this surface class. 
+         Using m.ALL_SURFACE_MOLECULES as affected_complex_pattern has the effect that all
+         surface molecules are reflected by the border of the surface with this surface class.
+         
+    - name: TRANSPARENT
+      value: 3
+      doc: |
+         If used as a surface property for a volume molecule it passes through all surfaces with
+         this surface class.  
+         If used for a surface molecule it passes through the border of the surface with this surface 
+         class. This is the default behavior for surface molecules.
+         Setting orientation in affected_complex_pattern allows selective transparency of volume 
+         molecules from only the front or back of a surface or selective transparency for surface 
+         molecules with only a certain orientation from the surface’s border. 
+         To make a surface with this surface class transparent to all volume molecules,
+         use m.ALL_VOLUME_MOLECULES for affected_complex_pattern. 
+         To make a border of the surface with this surface class transparent to all surface molecules,
+         use m.ALL_SURFACE_MOLECULES for the affected_complex_pattern. 
+         Using m.ALL_MOLECULES for affected_complex_pattern has the effect that surfaces with this surface class 
+         are transparent to all volume molecules and borders of the surfaces with this surface class are 
+         transparent to all surface molecules. 
+            
+    - name: ABSORPTIVE
+      value: 4
+      doc: |
+         If affected_complex_pattern refers to a volume molecule it is destroyed if it touches surfaces with this surface class. 
+         If affected_complex_pattern refers to a surface molecule it is destroyed if it touches the border of the surface with 
+         this surface class, i.e., it is allowed to release surface molecules on absorptive surfaces, they get destroyed only
+         when they touch the border of this surface. 
+         Tick marks on name allow destruction from only one side of the surface for volume molecules or selective destruction 
+         for surface molecules on the surfaces’s border based on their orientation. 
+         To make a surface with this surface class absorptive to all volume molecules, m.ALL_VOLUME_MOLECULES 
+         can be used for affected_complex_pattern. 
+         To make a border of the surface with this surface class absorptive to all surface molecules,
+         m.ALL_SURFACE_MOLECULES can be used for name. 
+         Using m.ALL_MOLECULES as affected_complex_pattern has the effect that surfaces with this surface
+         class are absorptive for all volume molecules and borders of the surfaces with this surface class 
+         are absorptive for all surface molecules.
+         
+    - name: CONCENTRATION_CLAMP
+      value: 5 
+      doc: | 
+         Clamps concentration at a surface by periodically releasing molecules that correspond
+         to the wall being a transparent boundary to the area with given concentration, 
+         and by absorbing all molecules that hit this surface.  
+         The molecules matching affected_complex_pattern are destroyed if they touch the surface (as if they
+         had passed through), and new molecules are created at the surface, as if molecules had passed through 
+         from the other side at a concentration value (units = M). 
+         Orientation marks may be used; in this case, the other side of the surface is reflective. 
+         Note that this command is only used to set the effective concentration of a volume molecule at a surface; 
+         it is not valid to specify a surface molecule. 
+
+    - name: FLUX_CLAMP
+      value: 6 
+      doc: | 
+         Clamps flux at a surface by periodically releasing molecules that correspond
+         to the wall being a transparent boundary to the area with given concentration. 
+         The clamped surface reflects these molecules. 
+      
+  - name: ExprNodeType
+    doc: Used internally to represent expression trees.
+    values:
+    - name: UNSET
+      value: 0
+    - name: LEAF
+      value: 1
+    - name: ADD
+      value: 2
+    - name: SUB
+      value: 3
+      
+  - name: RegionNodeType
+    doc: Used internally to represent region trees.
+    values:
+    - name: UNSET
+      value: 0    
+    - name: LEAF_GEOMETRY_OBJECT
+      value: 1
+    - name: LEAF_SURFACE_REGION
+      value: 2
+    - name: UNION
+      value: 3
+    - name: DIFFERENCE
+      value: 4      
+    - name: INTERSECT
+      value: 5
+      
+  - name: ReactionType
+    doc: Used in reaction callbacks.
+    values:
+    - name: UNSET
+      value: 0
+    - name: UNIMOL_VOLUME
+      value: 1
+    - name: UNIMOL_SURFACE
+      value: 2
+    - name: VOLUME_VOLUME
+      value: 3
+    - name: VOLUME_SURFACE
+      value: 4
+    - name: SURFACE_SURFACE
+      value: 5
+      
+  - name: MoleculeType
+    doc: Used in molecule introspection and internally in checkpointing.
+    values:
+    - name: UNSET
+      value: 0
+    - name: VOLUME
+      value: 1
+    - name: SURFACE
+      value: 2
+      
+  - name: BNGSimulationMethod
+    doc: Specifies simulation method in exported BNGL, used in Model.export_to_bngl.
+    values: 
+    - name: NONE
+      value: 0
+    - name: ODE
+      value: 1
+    - name: SSA
+      value: 2    
+    - name: PLA
+      value: 3    
+    - name: NF
+      value: 4
+      
+  - name: CountOutputFormat
+    values:
+    - name: UNSET
+      value: 0
+      doc: Invalid value.
+      
+    - name: AUTOMATIC_FROM_EXTENSION      
+      value: 1
+      doc: |
+         Output format is determined fom extension - .dat selects DAT file format 
+         and .gdat selects GDAT file format. 
+      
+    - name: DAT
+      value: 2
+      doc: | 
+         A two-column file with columns time and observable value is created. 
+         Each count must have its own unique file name.
+         
+    - name: GDAT
+      value: 3
+      doc: | 
+         A multi-column file with time and observable values is created.
+         The first line of the file is a header that starts with a comment 
+         character followed by time and then by the observable names. 
+         The order of observables is given by the order in which they were added 
+         to the model.
+         Can specify the same output file name for multiple observables.  
+         
+          

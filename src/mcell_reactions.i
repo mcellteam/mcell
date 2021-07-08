@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -68,8 +57,10 @@ struct reaction_rates {
   struct reaction_rate backward_rate;
 };
 
-MCELL_STATUS
-mcell_modify_multiple_rate_constants(struct volume *world, char **names, double *rate_constants, int n_rxns);
+// cannot be compiled on MacOS
+//MCELL_STATUS
+//mcell_modify_multiple_rate_constants(struct volume *world, char **names, double *rate_constants, int n_rxns);
+
 
 MCELL_STATUS
 mcell_modify_rate_constant(struct volume *world, char *name, double rate);
@@ -105,10 +96,11 @@ MCELL_STATUS mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                                         short orient);
 
 MCELL_STATUS
-mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
+mcell_add_clamp(struct sym_table_head *rxn_sym_table,
                               struct species *surface_class,
                               struct sym_entry *mol_sym, short orient,
-                              double conc);
+                              int clamp_type,
+                              double clamp_value);                              
 
 MCELL_STATUS init_reactions(MCELL_STATE *state);
 

@@ -470,7 +470,7 @@ struct vertex_list_head vertlist;
 struct vertex_list *vertlistitem;
 struct element_connection_list_head ecl;
 struct element_connection_list *elem_conn;
-struct object *obj;
+struct geom_object *obj;
 struct object_list obj_list;
 struct voxel_object *voxel;
 
@@ -4602,7 +4602,7 @@ yyreduce:
   case 340:
 #line 1525 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
     {
-                                                          struct object *the_object = (struct object *) (yyvsp[-5].sym)->value;
+                                                          struct geom_object *the_object = (struct geom_object *) (yyvsp[-5].sym)->value;
                                                           the_object->object_type = META_OBJ;
                                                           add_child_objects(the_object, (yyvsp[-2].obj_list).obj_head, (yyvsp[-2].obj_list).obj_tail);
                                                           (yyval.obj) = the_object;
@@ -4624,13 +4624,13 @@ yyreduce:
 
   case 345:
 #line 1544 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
-    { CHECK(mdl_deep_copy_object(parse_state, (struct object *) (yyvsp[-3].sym)->value, (struct object *) (yyvsp[-1].sym)->value)); }
+    { CHECK(mdl_deep_copy_object(parse_state, (struct geom_object *) (yyvsp[-3].sym)->value, (struct geom_object *) (yyvsp[-1].sym)->value)); }
 #line 4629 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 346:
 #line 1546 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
-    { (yyval.obj) = (struct object *) (yyvsp[-6].sym)->value; }
+    { (yyval.obj) = (struct geom_object *) (yyvsp[-6].sym)->value; }
 #line 4635 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
 
@@ -4654,7 +4654,7 @@ yyreduce:
 
   case 352:
 #line 1564 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
-    { CHECK(mdl_set_release_site_geometry_object(parse_state, parse_state->current_release_site, (struct object *) (yyvsp[0].sym)->value)); }
+    { CHECK(mdl_set_release_site_geometry_object(parse_state, parse_state->current_release_site, (struct geom_object *) (yyvsp[0].sym)->value)); }
 #line 4659 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
 
@@ -4926,7 +4926,7 @@ yyreduce:
   case 402:
 #line 1696 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
     {
-                                                          (yyval.obj) = (struct object *) (yyvsp[-3].obj);
+                                                          (yyval.obj) = (struct geom_object *) (yyvsp[-3].obj);
                                                           CHECK(mdl_finish_polygon_list(parse_state, (yyval.obj)));
                                                       }
 #line 4933 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
@@ -5166,7 +5166,7 @@ yyreduce:
 
   case 453:
 #line 1844 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
-    { (yyval.obj) = (struct object *) (yyvsp[-7].sym)->value; }
+    { (yyval.obj) = (struct geom_object *) (yyvsp[-7].sym)->value; }
 #line 5171 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
 
@@ -5235,7 +5235,7 @@ yyreduce:
 #line 1883 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
     {
                                                           CHECK(mdl_finish_box_object(parse_state, (yyvsp[-13].sym)));
-                                                          (yyval.obj) = (struct object *) (yyvsp[-13].sym)->value;
+                                                          (yyval.obj) = (struct geom_object *) (yyvsp[-13].sym)->value;
                                                       }
 #line 5241 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
@@ -5788,7 +5788,7 @@ yyreduce:
 
   case 571:
 #line 2215 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
-    { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE)); }
+    { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE_V1)); }
 #line 5793 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
 
@@ -5812,7 +5812,7 @@ yyreduce:
 
   case 575:
 #line 2221 "/home/jczech/mcell/src/mdlparse.y" /* yacc.c:1646  */
-    { (yyval.ival) = CELLBLENDER_MODE; }
+    { (yyval.ival) = CELLBLENDER_MODE_V1; }
 #line 5817 "/home/jczech/mcell/build/deps/mdlparse.c" /* yacc.c:1646  */
     break;
 

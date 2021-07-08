@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -30,17 +19,17 @@ By Bob Jenkins, 1996.  Public Domain.
 #include "config.h"
 #include "isaac64.h"
 
-#define ind(mm, x) (*(ub8 *)((ub1 *)(mm) + ((x) & ((RANDSIZ - 1) << 3))))
+#define ind_isaac64(mm, x) (*(ub8 *)((ub1 *)(mm) + ((x) & ((RANDSIZ - 1) << 3))))
 
-#define rngstep(mix, a, b, mm, m, m2, r, x)                                    \
+#define rngstep_isaac64(mix, a, b, mm, m, m2, r, x)                                    \
   {                                                                            \
     x = *m;                                                                    \
     a = (mix) + *(m2++);                                                       \
-    *(m++) = y = ind(mm, x) + a + b;                                           \
-    *(r++) = b = ind(mm, y >> RANDSIZL) + x;                                   \
+    *(m++) = y = ind_isaac64(mm, x) + a + b;                                           \
+    *(r++) = b = ind_isaac64(mm, y >> RANDSIZL) + x;                                   \
   }
 
-#define mix(a, b, c, d, e, f, g, h)                                            \
+#define mix_isaac64(a, b, c, d, e, f, g, h)                                            \
   {                                                                            \
     a -= e;                                                                    \
     f ^= h >> 9;                                                               \
@@ -68,31 +57,31 @@ By Bob Jenkins, 1996.  Public Domain.
     g += h;                                                                    \
   }
 
-void isaac64_generate(struct isaac64_state *rng) {
-  register ub8 a, b, x, y, *m, *m2, *r, *mend;
+static void isaac64_generate(struct isaac64_state *rng) {
+  ub8 a, b, x, y, *m, *m2, *r, *mend;
 
   m = rng->mm;
   r = rng->randrsl;
   a = rng->aa;
   b = rng->bb + (++rng->cc);
   for (m = rng->mm, mend = m2 = m + (RANDSIZ / 2); m < mend;) {
-    rngstep(~(a ^ (a << 21)), a, b, rng->mm, m, m2, r, x);
-    rngstep(a ^ (a >> 5), a, b, rng->mm, m, m2, r, x);
-    rngstep(a ^ (a << 12), a, b, rng->mm, m, m2, r, x);
-    rngstep(a ^ (a >> 33), a, b, rng->mm, m, m2, r, x);
+    rngstep_isaac64(~(a ^ (a << 21)), a, b, rng->mm, m, m2, r, x);
+    rngstep_isaac64(a ^ (a >> 5), a, b, rng->mm, m, m2, r, x);
+    rngstep_isaac64(a ^ (a << 12), a, b, rng->mm, m, m2, r, x);
+    rngstep_isaac64(a ^ (a >> 33), a, b, rng->mm, m, m2, r, x);
   }
   for (m2 = rng->mm; m2 < mend;) {
-    rngstep(~(a ^ (a << 21)), a, b, rng->mm, m, m2, r, x);
-    rngstep(a ^ (a >> 5), a, b, rng->mm, m, m2, r, x);
-    rngstep(a ^ (a << 12), a, b, rng->mm, m, m2, r, x);
-    rngstep(a ^ (a >> 33), a, b, rng->mm, m, m2, r, x);
+    rngstep_isaac64(~(a ^ (a << 21)), a, b, rng->mm, m, m2, r, x);
+    rngstep_isaac64(a ^ (a >> 5), a, b, rng->mm, m, m2, r, x);
+    rngstep_isaac64(a ^ (a << 12), a, b, rng->mm, m, m2, r, x);
+    rngstep_isaac64(a ^ (a >> 33), a, b, rng->mm, m, m2, r, x);
   }
   rng->bb = b;
   rng->aa = a;
   ++rng->rngblocks;
 }
 
-void isaac64_init(struct isaac64_state *rng, ub4 seed) {
+static void isaac64_init(struct isaac64_state *rng, ub4 seed) {
   ub8 *r, *m;
   ub8 a, b, c, d, e, f, g, h;
   ub4 i;
@@ -115,7 +104,7 @@ void isaac64_init(struct isaac64_state *rng, ub4 seed) {
 
   for (i = 0; i < 4; ++i) /* scramble it */
   {
-    mix(a, b, c, d, e, f, g, h);
+    mix_isaac64(a, b, c, d, e, f, g, h);
   }
 
   for (i = 0; i < RANDSIZ; i += 8) /* fill in m[] with messy stuff */
@@ -129,7 +118,7 @@ void isaac64_init(struct isaac64_state *rng, ub4 seed) {
     f += r[i + 5];
     g += r[i + 6];
     h += r[i + 7];
-    mix(a, b, c, d, e, f, g, h);
+    mix_isaac64(a, b, c, d, e, f, g, h);
     m[i] = a;
     m[i + 1] = b;
     m[i + 2] = c;
@@ -150,7 +139,7 @@ void isaac64_init(struct isaac64_state *rng, ub4 seed) {
     f += m[i + 5];
     g += m[i + 6];
     h += m[i + 7];
-    mix(a, b, c, d, e, f, g, h);
+    mix_isaac64(a, b, c, d, e, f, g, h);
     m[i] = a;
     m[i + 1] = b;
     m[i + 2] = c;

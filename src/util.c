@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -32,12 +21,22 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <stdbool.h>
+#include <vector>
+
+#ifndef _MSC_VER
+#include <unistd.h>
+#include <sys/resource.h> // Linux include
+#else
+typedef unsigned int uint;
+#endif
 
 #include "logging.h"
 #include "util.h"
 #include "mcell_structs.h"
+
+#include "bng/shared_defines.h"
+#include "bng/filesystem_utils.h"
 
 /*******************************************************************
 new_bit_array: mallocs an array of the desired number of bits
@@ -447,7 +446,7 @@ distinguishable: reports whether two doubles are measurably different
  Out:
     1 if the numbers are different, 0 otherwise
 **********************************************************************/
-inline int distinguishable(double a, double b, double eps) {
+int distinguishable(double a, double b, double eps) {
   double c = fabs(a - b);
   a = fabs(a);
   if (a < 1) {
@@ -861,11 +860,16 @@ dir_exists:
         Out: 1 if it's a directory, 0 if not
 **************************************************************************/
 int dir_exists(char const *path) {
+#ifdef _MSC_VER // TODO
+  release_assert(false);
+  return false;
+#else
   struct stat sb;
   if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode)) {
     return 1;
   }
   return 0;
+#endif
 }
 
 /*************************************************************************
@@ -876,35 +880,28 @@ is_writable_dir:
         Out: 1 if writable, 0 if not
 **************************************************************************/
 int is_writable_dir(char const *path) {
+#ifdef _MSC_VER // TODO
+  release_assert(false);
+  return false;
+#else
   if (dir_exists(path) && !access(path, R_OK | W_OK | X_OK)) {
     return 1;
   }
   return 0;
+#endif
 }
 
 /*************************************************************************
 make_parent_dir:
-    Utility to make the (possibly nested) parent directory of a file.  Will
-    attempt to create a directory with full rwx permission.  If the directory
-    already exists and has rwx permission for the user, this function will
-    return success.  Essentially, this works like mkdirs, but it strips off the
-    last path element first.
+    Utility to make the (possibly nested) parent directory of a file.
+    If the directory already exists. this function will
+    return success.
 
         In:  char const *path - absolute or relative path of file
-        Out: 0 on success, 1 on failure
+        Out: 0 on success, terminates with exit(1) on failure
 **************************************************************************/
 int make_parent_dir(char const *path) {
-  char *pathtmp = CHECKED_STRDUP(path, "directory path");
-  char *last_slash = strrchr(pathtmp, '/');
-  if (last_slash) {
-    *last_slash = '\0';
-    if (mkdirs(pathtmp)) {
-      free(pathtmp);
-      return 1;
-    }
-  }
-
-  free(pathtmp);
+  FSUtils::make_dir_for_file_w_multiple_attempts(path);
   return 0;
 }
 
@@ -962,9 +959,6 @@ int mkdirs(char const *path) {
   }
   free(pathtmp);
 
-  if (access(path, R_OK | W_OK | X_OK) != 0) {
-    return 1;
-  }
   return 0;
 }
 
@@ -1399,8 +1393,13 @@ int is_wildcard_match(char *wild, char *tame) {
   if (nstars == 0)
     return (is_feral_nabbrev(wild, n, tame) == (int)strlen(tame));
   else {
-    int staridx[nstars];
-    int idxA[nstars + 1], idxB[nstars + 1];
+    std::vector<int> staridx;
+    staridx.resize(nstars);
+    std::vector<int> idxA;
+    idxA.resize(nstars + 1);
+    std::vector<int> idxB;
+    idxB.resize(nstars + 1);
+
     char *m;
     int nidx;
     int i, j;
@@ -2051,6 +2050,13 @@ int generate_range(struct num_expr_list_head *list, double start, double end,
         return 1;
     }
   }
+
+  // MCell4
+  list->start_end_step_set = true;
+  list->start = start;
+  list->end = end;
+  list->step = step;
+
   return 0;
 }
 
@@ -2089,4 +2095,172 @@ void free_numeric_list(struct num_expr_list *nel) {
     free(n);
   }
 }
+
+
+#define hashsize(n) ((ub4)1 << (n))
+
+/* ================ Bob Jenkin hash function ======================== */
+
+/*--------------------------------------------------------------------
+mix -- mix 3 32-bit values reversibly.
+For every delta with one or two bits set, and the deltas of all three
+  high bits or all three low bits, whether the original value of a,b,c
+  is almost all zero or is uniformly distributed,
+* If mix() is run forward or backward, at least 32 bits in a,b,c
+  have at least 1/4 probability of changing.
+* If mix() is run forward, every bit of c will change between 1/3 and
+  2/3 of the time.  (Well, 22/100 and 78/100 for some 2-bit deltas.)
+mix() was built out of 36 single-cycle latency instructions in a
+  structure that could supported 2x parallelism, like so:
+      a -= b;
+      a -= c; x = (c>>13);
+      b -= c; a ^= x;
+      b -= a; x = (a<<8);
+      c -= a; b ^= x;
+      c -= b; x = (b>>13);
+      ...
+  Unfortunately, superscalar Pentiums and Sparcs can't take advantage
+  of that parallelism.  They've also turned some of those single-cycle
+  latency instructions into multi-cycle latency instructions.  Still,
+  this is the fastest good hash I could find.  There were about 2^^68
+  to choose from.  I only looked at a billion or so.
+--------------------------------------------------------------------*/
+
+#define mix(a, b, c)                                                           \
+  {                                                                            \
+    a -= b;                                                                    \
+    a -= c;                                                                    \
+    a ^= (c >> 13);                                                            \
+    b -= c;                                                                    \
+    b -= a;                                                                    \
+    b ^= (a << 8);                                                             \
+    c -= a;                                                                    \
+    c -= b;                                                                    \
+    c ^= (b >> 13);                                                            \
+    a -= b;                                                                    \
+    a -= c;                                                                    \
+    a ^= (c >> 12);                                                            \
+    b -= c;                                                                    \
+    b -= a;                                                                    \
+    b ^= (a << 16);                                                            \
+    c -= a;                                                                    \
+    c -= b;                                                                    \
+    c ^= (b >> 5);                                                             \
+    a -= b;                                                                    \
+    a -= c;                                                                    \
+    a ^= (c >> 3);                                                             \
+    b -= c;                                                                    \
+    b -= a;                                                                    \
+    b ^= (a << 10);                                                            \
+    c -= a;                                                                    \
+    c -= b;                                                                    \
+    c ^= (b >> 15);                                                            \
+  }
+/*--------------------------------------------------------------------
+hash() -- hash a variable-length key into a 32-bit value
+  k       : the key (the unaligned variable-length array of bytes)
+  len     : the length of the key, counting by bytes
+  initval : can be any 4-byte value
+Returns a 32-bit value.  Every bit of the key affects every bit of
+the return value.  Every 1-bit and 2-bit delta achieves avalanche.
+About 6*len+35 instructions.
+
+The best hash table sizes are powers of 2.  There is no need to do
+mod a prime (mod is sooo slow!).  If you need less than 32 bits,
+use a bitmask.  For example, if you need only 10 bits, do
+  h = (h & hashmask(10));
+In which case, the hash table should have hashsize(10) elements.
+
+If you are hashing n strings (ub1 **)k, do it like this:
+  for (i=0, h=0; i<n; ++i) h = hash(k[i], len[i], h);
+
+By Bob Jenkins, 1996.  bob_jenkins@burtleburtle.net.  You may use this
+code any way you wish, private, educational, or commercial.  It's free.
+
+See http://burtleburtle.net/bob/hash/evahash.html
+Use for hash table lookup, or anything where one collision in 2^^32 is
+acceptable.  Do NOT use for cryptographic purposes.
+--------------------------------------------------------------------*/
+
+ub4 jenkins_hash(ub1 *k, ub4 length) {
+  ub4 a, b, c, len, initval;
+  /* Set up the internal state */
+  initval = 0;
+  len = length;
+  a = b = 0x9e3779b9; /* the golden ratio; an arbitrary value */
+  c = initval;        /* the previous hash value */
+  length++;
+  /*---------------------------------------- handle most of the key */
+  while (len >= 12) {
+    a += (k[0] + ((ub4)k[1] << 8) + ((ub4)k[2] << 16) + ((ub4)k[3] << 24));
+    b += (k[4] + ((ub4)k[5] << 8) + ((ub4)k[6] << 16) + ((ub4)k[7] << 24));
+    c += (k[8] + ((ub4)k[9] << 8) + ((ub4)k[10] << 16) + ((ub4)k[11] << 24));
+    mix(a, b, c);
+    k += 12;
+    len -= 12;
+  }
+
+  /*------------------------------------- handle the last 11 bytes */
+  c += length;
+  switch (len) /* all the case statements fall through */
+  {
+  case 11:
+    c += ((ub4)k[10] << 24); /* fallthrough */
+  case 10:
+    c += ((ub4)k[9] << 16); /* fallthrough */
+  case 9:
+    c += ((ub4)k[8] << 8); /* fallthrough */
+  /* the first byte of c is reserved for the length */
+  case 8:
+    b += ((ub4)k[7] << 24); /* fallthrough */
+  case 7:
+    b += ((ub4)k[6] << 16); /* fallthrough */
+  case 6:
+    b += ((ub4)k[5] << 8); /* fallthrough */
+  case 5:
+    b += k[4]; /* fallthrough */
+  case 4:
+    a += ((ub4)k[3] << 24); /* fallthrough */
+  case 3:
+    a += ((ub4)k[2] << 16); /* fallthrough */
+  case 2:
+    a += ((ub4)k[1] << 8); /* fallthrough */
+  case 1:
+    a += k[0]; /* fallthrough */
+    /* case 0: nothing left to add */
+  }
+  mix(a, b, c);
+  /*-------------------------------------------- report the result */
+  return (c);
+}
+
+
+// initializer list for rusage causes many compilation warnings when used
+void reset_rusage(rusage* r) {
+  r->ru_utime.tv_sec = 0;
+  r->ru_utime.tv_usec = 0;
+  r->ru_stime.tv_sec = 0;
+  r->ru_stime.tv_usec = 0;
+}
+
+
+
+#ifdef _MSC_VER
+int _win_rename(const char *old, const char *new_name) {
+  DWORD dwAttrib = GetFileAttributes(new_name);
+  if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY)) {
+    /* new_name file exists */
+    if (ReplaceFile(new_name, old, NULL, REPLACEFILE_WRITE_THROUGH, NULL, NULL)) {
+      return 0;
+    }
+    /* fixme: set errno based on GetLastError() [possibly doing some filtering
+     * before] */
+    errno = EACCES;
+    return -1;
+  } else {
+    return rename(old, new_name);
+  }
+}
+#endif
 

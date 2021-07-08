@@ -40,7 +40,7 @@ def single_true(iterable):
 
 
 class MeshObj:
-    """ An entire polygon object and its associated surface regions. """
+    """ An entire polygon geom_object and its associated surface regions. """
     def __init__(
             self,
             name: str,
@@ -52,7 +52,7 @@ class MeshObj:
         self.face_list = face_list
         self.regions = []  # type: List[SurfaceRegion]
         self.translation = translation
-        logging.info("Creating mesh object '%s'" % name)
+        logging.info("Creating mesh geom_object '%s'" % name)
 
     def __str__(self):
         return self.name
@@ -95,7 +95,7 @@ class Species:
 class OrientedSpecies:
     """ A type of molecule with an orientation.
     
-    This is like a normal Species object, but it also contains information
+    This is like a normal Species geom_object, but it also contains information
     about its relative orientation (up, down, or mixed) with respect to a
     surface membrane.
     """
@@ -189,7 +189,7 @@ class SurfaceRegion:
         self.reg_name = reg_name
         self.full_reg_name = "%s[%s]" % (mesh_obj.name, reg_name)
         self.surf_reg_face_list = surf_reg_face_list
-        # Relationship is symmetrical. Every region knows its object. Object
+        # Relationship is symmetrical. Every region knows its geom_object. Object
         # knows its regions.
         self.mesh_obj = mesh_obj
         mesh_obj.regions.append(self)
@@ -211,7 +211,7 @@ class ListRelease:
 
 
 class ObjectRelease:
-    """ An entire polygon object and its associated surface regions. """
+    """ An entire polygon geom_object and its associated surface regions. """
     def __init__(
             self,
             spec,
@@ -278,7 +278,7 @@ class MCellSim:
         # the value for _species & _surface_classes is a swig wrapped sym_entry
         self._species = {}  # type: Dict[str, Any]
         self._surface_classes = {}  # type: Dict[str, Any]
-        # the value for _mesh_objects is a swig wrapped "object"
+        # the value for _mesh_objects is a swig wrapped "geom_object"
         self._mesh_objects = {}  # type: Dict[str, Any]
         # the value for _mesh_objects is a swig wrapped "region"
         self._regions = {}  # type: Dict[str, Any]
@@ -292,7 +292,7 @@ class MCellSim:
         m.mcell_set_seed(self._world, seed)
         # m.mcell_silence_notifications(self._world)
         m.mcell_init_state(self._world)
-        # This is the top level instance object. We just call it "Scene" here
+        # This is the top level instance geom_object. We just call it "Scene" here
         # to be consistent with the MDL output from Blender.
         self.scene_name = "Scene"
         self._scene = m.create_instance_object(self._world, self.scene_name)
@@ -314,6 +314,9 @@ class MCellSim:
 
     def __del__(self):
         self.end_sim()
+
+    def dump(self):
+        mcell_dump_state(self._world)
 
     def silence_warnings(self):
         m.mcell_silence_warnings(self._world)
@@ -361,7 +364,7 @@ class MCellSim:
                 self.add_single_species(s)
 
     def add_reaction(self, rxn: Reaction) -> None:
-        """ Add a Reaction object to the simulation. """
+        """ Add a Reaction geom_object to the simulation. """
         r_spec_list = None
         p_spec_list = None
         # Figure out if it's an iterable of reactants or a single reactant
@@ -415,7 +418,7 @@ class MCellSim:
             name=rxn.name)
 
     def add_geometry(self, mesh_obj: MeshObj) -> None:
-        """ Add a mesh object to the simulation. """
+        """ Add a mesh geom_object to the simulation. """
         mesh = m.create_polygon_object(
             self._world,
             mesh_obj.vert_list,
@@ -433,7 +436,7 @@ class MCellSim:
                 self._regions[full_reg_name] = region_swig_obj
         logging.info("Add geometry '%s' to simulation" % mesh_obj.name)
 
-    def add_viz(self, species: Iterable[Species]) -> None:
+    def add_viz(self, species: Iterable[Species], ascii_output = False) -> None:
         """ Set all the species in an Iterable to be visualized. """
         viz_list = None
         for spec in species:
@@ -442,10 +445,10 @@ class MCellSim:
             logging.info("Output '%s' for viz data." % spec.name)
         m.mcell_create_viz_output(
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
-            0, self._iterations, 1)
+            0, self._iterations, 1, ascii_output)
 
     def release(self, relobj):
-        """ Release molecules in/on an object or as a ListRelease. """
+        """ Release molecules in/on an geom_object or as a ListRelease. """
         if isinstance(relobj, ObjectRelease):
             self.release_into_mesh_obj(relobj)
             logging.info("Add release of '%s' to simulation" % relobj.what_in_where)
@@ -500,7 +503,7 @@ class MCellSim:
             self._releases[rel_name] = (rel_obj, return_status)
 
     def release_into_mesh_obj(self, relobj) -> None:
-        """ Release the specified amount of species into an object. """
+        """ Release the specified amount of species into an geom_object. """
  
         mesh_obj = relobj.mesh_obj
         species = relobj.spec
@@ -526,7 +529,7 @@ class MCellSim:
             mol_list = m.mcell_add_to_species_list(mol_sym, True, orient, None)
         else:
             mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
-        rel_object = m.object()
+        rel_object = m.geom_object()
         if relobj.number:
             number_type = 0
             rel_amt = relobj.number
@@ -601,6 +604,29 @@ class MCellSim:
                 self._world, None, species_sym, count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
 
+    def add_rxn_count(self, rxn_name: str, mesh_obj: MeshObj = None,  reg: SurfaceRegion = None) -> None:
+        """ Set a species (possibly in/on a surface) to be counted """
+        if mesh_obj:
+            mesh = self._mesh_objects[mesh_obj.name]
+            mesh_sym = m.mcell_get_obj_sym(mesh)
+            count_str = "react_data/seed_%04d/%s_%s" % (
+                    self._seed, species.name, mesh_obj.name)
+            count_list, os, out_times, output = m.create_rxn_count(
+                self._world, mesh_sym, rxn_name, count_str, 1e-5)
+        elif reg:
+            reg_swig_obj = self._regions[reg.full_reg_name]
+            reg_sym = m.mcell_get_reg_sym(reg_swig_obj)
+            count_str = "react_data/seed_%04d/%s_%s_%s" % (
+                    self._seed, species.name, reg.mesh_obj.name, reg.reg_name)
+            count_list, os, out_times, output = m.create_rxn_count(
+                self._world, reg_sym, rxn_name, count_str, 1e-5)
+        else:
+            count_str = "react_data/seed_%04d/%s_WORLD" % (
+                    self._seed, species.name)
+            count_list, os, out_times, output = m.create_rxn_count(
+                self._world, None, rxn_name, count_str, 1e-5)
+        self._counts[count_str] = (count_list, os, out_times, output)
+        
     def _get_sc_type(self, sc_type):
         if sc_type == SC.reflect:
             sc_type = m.RFLCT
@@ -731,7 +757,7 @@ def create_release_pattern(
     """Create a release pattern
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
         name -- name of the release pattern
         other arguments -- as listed
@@ -742,13 +768,13 @@ def create_release_pattern(
         number_of_trains)
 
 
-def create_count(world, where, mol_sym, file_path, step):
+def create_count(world, where, mol_sym, file_path, step, report_flags=0, exact_time=0, buffer_size=10000):
     """Creates a count for a specified molecule in a specified region
     and initializes an output block for the count data that will be
     generated.
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
         where (sym_entry) -- symbol entry for the location you want to
             record
@@ -761,17 +787,23 @@ def create_count(world, where, mol_sym, file_path, step):
         output structure
 
     """
-    report_flags = m.REPORT_CONTENTS
+    
+    # REPORT_CONTENTS are defined later and the identifier cannot be used as 
+    # default arg value  
+    if report_flags == 0:
+        report_flags = m.REPORT_CONTENTS
+    
     c_list = m.output_column_list()
     # XXX: m.ORIENT_NOT_SET is using -100 instead of SHRT_MIN (used typemap
     # for mcell_create_count in mcell_react_out.i) because limits.h does not
     # work well with swig
+    c_list.thisown = 0
     count_list = m.mcell_create_count(
         world, mol_sym, m.ORIENT_NOT_SET, where, report_flags, None, c_list)
 
     os = m.output_set()
     os = m.mcell_create_new_output_set(
-        None, 0, count_list.column_head, m.FILE_SUBSTITUTE, file_path)
+        None, exact_time, count_list.column_head, m.FILE_SUBSTITUTE, file_path)
 
     out_times = m.output_times_inlist()
     out_times.type = m.OUTPUT_BY_STEP
@@ -781,7 +813,58 @@ def create_count(world, where, mol_sym, file_path, step):
     output.set_head = os
     output.set_tail = os
 
-    m.mcell_add_reaction_output_block(world, output, 10000, out_times)
+    m.mcell_add_reaction_output_block(world, output, buffer_size, out_times)
+
+    return (count_list, os, out_times, output)
+
+
+def create_rxn_count(world, where, rxn_sym, file_path, step, report_flags=0, exact_time=0, buffer_size=10000):
+    """Creates a count for a specified reaction in a specified region
+    and initializes an output block for the count data that will be
+    generated.
+
+    Args:
+        world (geom_object) -- the world geom_object which has been generated by
+            mcell create_instance_object
+        where (sym_entry) -- symbol entry for the location you want to
+            record
+        mol_sym (sym_entry) -- symbol entry for the molecule
+        file_path (dir) -- name of the file path to output the data to
+        step -- frequency of output in seconds
+
+    Returns:
+        The return values count list, output set, output times and
+        output structure
+
+    """
+    
+    # REPORT_CONTENTS are defined later and the identifier cannot be used as 
+    # default arg value  
+    if report_flags == 0:
+        report_flags = m.REPORT_RXNS
+    
+    c_list = m.output_column_list()
+    # XXX: m.ORIENT_NOT_SET is using -100 instead of SHRT_MIN (used typemap
+    # for mcell_create_count in mcell_react_out.i) because limits.h does not
+    # work well with swig
+    c_list.thisown = 0
+    
+    count_list = m.mcell_create_count(
+        world, rxn_sym, m.ORIENT_NOT_SET, where, report_flags, None, c_list)
+
+    os = m.output_set()
+    os = m.mcell_create_new_output_set(
+        None, exact_time, count_list.column_head, m.FILE_SUBSTITUTE, file_path)
+
+    out_times = m.output_times_inlist()
+    out_times.type = m.OUTPUT_BY_STEP
+    out_times.step = step
+
+    output = m.output_set_list()
+    output.set_head = os
+    output.set_tail = os
+
+    m.mcell_add_reaction_output_block(world, output, buffer_size, out_times)
 
     return (count_list, os, out_times, output)
 
@@ -790,7 +873,7 @@ def create_species(world, name, D, is_2d, custom_time_step=0):
     """Creates a molecule species
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
         name (string) -- Name of the molecule species that will be
             generated
@@ -826,7 +909,7 @@ def create_reaction(
     """Creates a molecular reaction
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
         reactants (mcell_species_list) -- list of species that are the
             reactants for the reaction
@@ -847,22 +930,23 @@ def create_reaction(
     """
 
     if surf_class:
-        # Do nothing, surf_class has been added and a null object is not needed
+        # Do nothing, surf_class has been added and a null geom_object is not needed
         pass
     else:
         surf_class = m.mcell_add_to_species_list(None, False, 0, None)
 
     arrow = m.reaction_arrow()
     # reversible reaction e.g. A<->B
-    if backward_rate_constant:
-        arrow.flags = m.ARROW_BIDIRECTIONAL
-        rate_constant = m.mcell_create_reaction_rates(
-            m.RATE_CONSTANT, rate_constant, m.RATE_CONSTANT,
-            backward_rate_constant)
+    if backward_rate_constant != 0.0:
+        arrow.flags = m.REGULAR_ARROW
+        new_fwd_rate_constant = m.mcell_create_reaction_rates(
+            m.RATE_CONSTANT, rate_constant, m.RATE_UNSET, 0)
+        new_bkwd_rate_constant = m.mcell_create_reaction_rates(
+            m.RATE_CONSTANT, backward_rate_constant, m.RATE_UNSET, 0)
     # irreversible reaction e.g. A->B
     else:
         arrow.flags = m.REGULAR_ARROW
-        rate_constant = m.mcell_create_reaction_rates(
+        new_fwd_rate_constant = m.mcell_create_reaction_rates(
             m.RATE_CONSTANT, rate_constant, m.RATE_UNSET, 0)
     arrow.catalyst = m.mcell_species()
     arrow.catalyst.next = None
@@ -870,41 +954,51 @@ def create_reaction(
     arrow.catalyst.orient_set = 0
     arrow.catalyst.orient = 0
 
-    if (name):
+    if name:
+        if backward_rate_constant:
+            raise ValueError("Name cannot be specified for reversible reactions because internally the reactions are split into two reactions.")
         name_sym = m.mcell_new_rxn_pathname(world, name)
     else:
         name_sym = None
+        
     m.mcell_add_reaction_simplified(
-        world, reactants, arrow, surf_class, products, rate_constant, name_sym)
+        world, reactants, arrow, surf_class, products, new_fwd_rate_constant, name_sym)
+    
+    if backward_rate_constant:
+        m.mcell_add_reaction_simplified(
+            world, products, arrow, surf_class, reactants, new_bkwd_rate_constant, name_sym)
+        
+    return name_sym
+        
 
 
 def create_instance_object(world, name):
-    """Creates an instance object. Simple translation from wrapped code
+    """Creates an instance geom_object. Simple translation from wrapped code
     to python function. Frees the user from having to initialize the
-    scene object and then pass it in and generate the object.
+    scene geom_object and then pass it in and generate the geom_object.
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
-        name (string) -- name of the instance object
+        name (string) -- name of the instance geom_object
 
     Returns:
-        instance object
+        instance geom_object
 
     """
-    scene_temp = m.object()
+    scene_temp = m.geom_object()
     return m.mcell_create_instance_object(world, name, scene_temp)
 
 
 def create_surf_class(world, name):
     """Creates a surface class. Simple translation from wrapped code to
     python function Frees the user from having to initialize the surface
-    class symbol and then pass it in and generate the object.
+    class symbol and then pass it in and generate the geom_object.
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
-        name (string) -- name of the instance object
+        name (string) -- name of the instance geom_object
 
     Returns:
         mcell_symbol for surface class
@@ -967,7 +1061,7 @@ def create_list_release_site(
             species_list = m.mcell_add_to_species_list(
                 mol_sym, surf_flags[i], orientations[i], species_list)
 
-    rel_object = m.object()
+    rel_object = m.geom_object()
     ret = m.mcell_create_list_release_site(
         world, scene, name, species_list, xpos, ypos, zpos, n, diam,
         rel_object)
@@ -984,9 +1078,9 @@ def create_release_site(
     """Creates a molecule release site
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
-        scene (instance object) -- scene for mcell simulation
+        scene (instance geom_object) -- scene for mcell simulation
         pos (vector3) -- position of release site
         diam (vector3) -- diameter of release site
         number (int or float) -- number to be release at release site
@@ -1009,7 +1103,7 @@ def create_release_site(
     diameter.z = diam.z
 
     mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
-    rel_object = m.object()
+    rel_object = m.geom_object()
     release_object = m.mcell_create_geometrical_release_site(
         world, scene, name, shape, position, diameter, mol_list, float(number),
         number_type, 1, None, rel_object)
@@ -1018,30 +1112,32 @@ def create_release_site(
     return (position, diameter, release_object)
 
 
-def create_region_release_site(
+def create_region_release_site( # lala
         world, scene, mesh, release_name, reg_name, number, number_type,
-        mol_sym):
+        mol_sym, is_oriented=True, orientation=0): 
     """Creates a release site on a specific region
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
-        scene (instance object) -- scene for mcell simulation
-        mesh (mesh object) -- scene object where the release will occur
+        scene (instance geom_object) -- scene for mcell simulation
+        mesh (mesh geom_object) -- scene geom_object where the release will occur
         release_name (string) -- name of the region release site
         reg_name (string) -- name of the region for the release site
         number (int or float) -- number to be released at the region release
             site
         number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION
         mol_sym (mcell_symbol) -- species to be released
+        is_oriented -- True if the orientation holds a valid value
+        orientation -- used if is_oriented is True, -1 - down, 1 - up
 
     Returns:
-        release object (object)
+        release geom_object (geom_object)
 
     """
 
-    mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
-    rel_object = m.object()
+    mol_list = m.mcell_add_to_species_list(mol_sym, is_oriented, orientation, None)
+    rel_object = m.geom_object()
     release_object = m.mcell_create_region_release(
         world, scene, mesh, release_name, reg_name, mol_list, float(number),
         number_type, 1, None, rel_object)
@@ -1051,7 +1147,7 @@ def create_region_release_site(
 
 
 def create_box(world, scene, half_length, name):
-    """Creates the verteces and lines of a cube object at the origin
+    """Creates the verteces and lines of a cube geom_object at the origin
 
     Args:
         half_length (double) -- half length of the cube
@@ -1091,7 +1187,7 @@ def create_box(world, scene, half_length, name):
     pobj.connections = elems
     pobj.num_conn = 12
 
-    mesh_temp = m.object()
+    mesh_temp = m.geom_object()
     mesh = m.mcell_create_poly_object(world, scene, pobj, mesh_temp)
 
     return mesh
@@ -1132,18 +1228,18 @@ def change_geometry(world, scene_name, obj_list):
 
 
 def create_polygon_object(world, vert_list, face_list, scene, name, translation=None):
-    """Creates a polygon object from a vertex and element lest
+    """Creates a polygon geom_object from a vertex and element lest
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
         vert_list (vertex list) -- verteces for the polygon
         face_list (element connection list) -- faces for the polygon
-        scene (instance object) -- scene for mcell simulation
-        name (string) -- name of polygon object that will be created
+        scene (instance geom_object) -- scene for mcell simulation
+        name (string) -- name of polygon geom_object that will be created
 
     Returns:
-        polygon object
+        polygon geom_object
     """
 
     verts = None
@@ -1168,7 +1264,7 @@ def create_polygon_object(world, vert_list, face_list, scene, name, translation=
     pobj.connections = elems
     pobj.num_conn = len(face_list)
 
-    mesh_temp = m.object()
+    mesh_temp = m.geom_object()
     mesh = m.mcell_create_poly_object(world, scene, pobj, mesh_temp)
 
     return mesh
@@ -1178,15 +1274,15 @@ def create_surface_region(world, mesh, surf_reg_face_list, region_name):
     """Creates a surface region
 
     Args:
-        world (object) -- the world object which has been generated by
+        world (geom_object) -- the world geom_object which has been generated by
             mcell create_instance_object
-        mesh (polygon object) -- object where surface region will reside
+        mesh (polygon geom_object) -- geom_object where surface region will reside
         surf_reg_face_list (element connection list) -- list of surface
             region faces
         region_name (string) -- name of the surface region being created
 
     Returns:
-        region object
+        region geom_object
 
     """
 

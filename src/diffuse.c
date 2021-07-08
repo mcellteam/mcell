@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -38,6 +27,14 @@
 #include "react.h"
 #include "react_nfsim.h"
 #include "nfsim_func.h"
+
+// for debug & mcell4 development
+#include "debug_config.h"
+#include "debug.h"
+#include "dump_state.h"
+#ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
+#include <vector>
+#endif
 
 
 #define FREE_COLLISION_LISTS()                                                 \
@@ -135,7 +132,7 @@ void count_tentative_collisions(
 void change_boxes_2D(
     bool periodic_traditional,
     struct surface_molecule *sm,
-    struct object *periodic_box_obj,
+    struct geom_object *periodic_box_obj,
     struct vector3 *hit_xyz,
     struct vector3 *teleport_xyz);
 
@@ -355,8 +352,8 @@ struct vector3* reflect_periodic_2D(
 
   struct vector3 target_xyz;
   struct vector2 target_uv = {
-    .u = origin_uv->u + disp_uv->u,
-    .v = origin_uv->v + disp_uv->v
+    origin_uv->u + disp_uv->u,
+    origin_uv->v + disp_uv->v
   };
   // Still within current wall, but we might have hit the periodic box
   // set the target_xyz
@@ -432,7 +429,7 @@ change_boxes_2D:
 void change_boxes_2D(
     bool periodic_traditional,
     struct surface_molecule *sm,
-    struct object *periodic_box_obj,
+    struct geom_object *periodic_box_obj,
     struct vector3 *hit_xyz,
     struct vector3 *teleport_xyz) {
 
@@ -714,18 +711,18 @@ struct wall *ray_trace_2D(
 
   struct wall *this_wall = sm->grid->surface;
 
-  struct vector2 orig_pos = { .u = sm->s_pos.u,
-                               .v = sm->s_pos.v
+  struct vector2 orig_pos = { sm->s_pos.u,
+                              sm->s_pos.v
                             };
-  struct vector2 this_pos = { .u = sm->s_pos.u,
-                              .v = sm->s_pos.v
+  struct vector2 this_pos = { sm->s_pos.u,
+                             sm->s_pos.v
                             };
-  struct vector2 this_disp = { .u = disp->u,
-                               .v = disp->v
+  struct vector2 this_disp = { disp->u,
+                              disp->v
                              };
-  struct periodic_image orig_box = { .x = sm->periodic_box->x,
-                                     .y = sm->periodic_box->y,
-                                     .z = sm->periodic_box->z
+  struct periodic_image orig_box = {sm->periodic_box->x,
+                                    sm->periodic_box->y,
+                                    sm->periodic_box->z
                                    };
   struct vector3 origin_xyz;
   uv2xyz(&this_pos, this_wall, &origin_xyz);
@@ -755,9 +752,9 @@ struct wall *ray_trace_2D(
 
       // We hit the periodic box! Update PBC, "reflect", and keep moving.
       if (hit_xyz) {
-        struct vector3 teleport_xyz = { .x = hit_xyz->x,
-                                        .y = hit_xyz->y,
-                                        .z = hit_xyz->z
+        struct vector3 teleport_xyz = {hit_xyz->x,
+                                       hit_xyz->y,
+                                       hit_xyz->z
                                       };
         change_boxes_2D(
           world->periodic_traditional, sm, world->periodic_box_obj, hit_xyz,
@@ -766,18 +763,18 @@ struct wall *ray_trace_2D(
           // Some of these uv coords might not be valid (i.e. they fall off
           // edge of triangle), but (i think) that's okay. we're ultimately
           // just trying to get remaining uv displacement.
-          struct vector2 target_uv = { .u = this_pos.u + this_disp.u,
-                                       .v = this_pos.v + this_disp.v
+          struct vector2 target_uv = { this_pos.u + this_disp.u,
+                                      this_pos.v + this_disp.v
                                      };
           struct vector3 target_xyz;
           uv2xyz(&target_uv, this_wall, &target_xyz);
-          struct vector3 remaining_disp_xyz = { .x = target_xyz.x - hit_xyz->x,
-                                                .y = target_xyz.y - hit_xyz->y,
-                                                .z = target_xyz.z - hit_xyz->z
+          struct vector3 remaining_disp_xyz = {target_xyz.x - hit_xyz->x,
+                                               target_xyz.y - hit_xyz->y,
+                                               target_xyz.z - hit_xyz->z
                                               };
-          struct vector3 new_target_xyz = { .x = teleport_xyz.x + remaining_disp_xyz.x,
-                                            .y = teleport_xyz.y + remaining_disp_xyz.y,
-                                            .z = teleport_xyz.z + remaining_disp_xyz.z,
+          struct vector3 new_target_xyz = {teleport_xyz.x + remaining_disp_xyz.x,
+                                           teleport_xyz.y + remaining_disp_xyz.y,
+                                           teleport_xyz.z + remaining_disp_xyz.z,
                                           };
           int grid_index = 0;
           int *grid_index_p = &grid_index;
@@ -829,8 +826,8 @@ struct wall *ray_trace_2D(
     }
     // Not ambiguous (-2) or inside wall (-1), must have hit edge (0, 1, 2)
 
-    struct vector2 old_pos = {.u = this_pos.u,
-                              .v = this_pos.v
+    struct vector2 old_pos = {this_pos.u,
+                             this_pos.v
                              };
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
@@ -976,21 +973,63 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
   struct collision *smash = (struct collision *)CHECKED_MEM_GET(
       sv->local_storage->coll, "collision structure");
 
+#ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
+  // sort by side value, useful only for single objects
+  std::vector<wall_list*> sorted_walls;
+  for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+
+    // same as original:
+    // sorted_walls.push_back(wlp);
+
+    // reversed order
+    sorted_walls.insert(sorted_walls.begin(), wlp);
+  }
+#endif
+
   struct wall_list fake_wlp;
   fake_wlp.next = sv->wall_head;
 
   // Check wall collisions
+#ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
+  for (unsigned wall_array_index = 0; wall_array_index < sorted_walls.size(); wall_array_index++) {
+    struct wall_list *wlp = sorted_walls[wall_array_index];
+#else
   for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+#endif
+
     if (wlp->this_wall == reflectee)
       continue;
 
+#ifdef DEBUG_COLLISIONS_WALL_EXTRA
+    // just faking the name for the dump condition macro
+    DUMP_CONDITION3(
+        std::cout << "Checking wall:\n";
+        dump_wall(wlp->this_wall, "", true);
+    );
+#endif
+
     int i = collide_wall(init_pos, v, wlp->this_wall, &(smash->t), &(smash->loc),
                      1, world->rng, world->notify, &(world->ray_polygon_tests));
+
+#ifdef DEBUG_COLLISIONS_WALL_EXTRA
+    // just faking the name for the dump condition macro
+    DUMP_CONDITION3(
+        if (i == COLLIDE_REDO || i == COLLIDE_FRONT || i == COLLIDE_BACK) {
+          std::cout << "Collide wall: vm pos: " << *init_pos  << ", displacement: " << *v << "\n";
+          dump_wall(wlp->this_wall, "", true);
+          std::cout << "collision time: " << smash->t << ", collision pos: " << smash->loc << "\n";
+        }
+    );
+#endif
+
     if (i == COLLIDE_REDO) {
       if (shead != NULL)
         mem_put_list(sv->local_storage->coll, shead);
       shead = NULL;
       wlp = &fake_wlp;
+#ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
+      wall_array_index = 0;
+#endif
       continue;
     } else if (i != COLLIDE_MISS) {
       world->ray_polygon_colls++;
@@ -1469,16 +1508,28 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
           world->all_volume_mols, world->all_surface_mols,
           moving->properties->hashval, (struct abstract_molecule *)moving, 0, w,
           matching_rxns, 1, 1, 0);
-      if (num_matching_rxns == 0)
-        continue;
-      int blocked = 0;
-      for (i = 0; i < num_matching_rxns; i++) {
-        if (matching_rxns[i]->n_pathways == RX_REFLEC) {
-          blocked = 1;
-        }
+      if (num_matching_rxns == 0) {
+        #ifdef FIX_EXTERNAL_SPECIES_WO_RXS_IN_EXACT_DISK
+          if ((moving->properties->flags & EXTERNAL_SPECIES) == 0) {
+            continue;
+          }
+          // do nothing when those are external species and there is no reaction
+          // the original behavior is probably a bug anyway, but I do not want to break
+          // the compatibility completely
+        #else
+          continue;
+        #endif
       }
-      if (!blocked) {
-        continue;
+      else {
+        int blocked = 0;
+        for (i = 0; i < num_matching_rxns; i++) {
+          if (matching_rxns[i]->n_pathways == RX_REFLEC) {
+            blocked = 1;
+          }
+        }
+        if (!blocked) {
+          continue;
+        }
       }
     }
 
@@ -2309,6 +2360,9 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
   if (d2 < d2min)
     d2min = d2;
 
+#ifdef MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
+  return 1;
+#else
   if (d2min < d2_nearmax)
     steps = 1.0;
   else {
@@ -2318,8 +2372,8 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
     else
       steps = sqrt(steps_sq);
   }
-
   return steps;
+#endif
 }
 
 /****************************************************************************
@@ -2923,6 +2977,8 @@ struct volume_molecule *diffuse_3D(
     struct volume_molecule *vm,
     double max_time) {
 
+  world->diffuse_3d_calls++;
+
   struct species* spec = vm->properties;
   if (spec == NULL) {
     mcell_internal_error(
@@ -2939,9 +2995,15 @@ struct volume_molecule *diffuse_3D(
     return vm;
   }
 
+#ifdef DEBUG_DIFFUSION
+  DUMP_CONDITION3(
+  		dump_volume_molecule(vm, "", true, "Diffusing vm:", world->current_iterations, vm->t, true);
+  );
+#endif
+
   int inertness = 0;
   set_inertness_and_maxtime(world, vm, &max_time, &inertness);
-
+  ASSERT_FOR_MCELL4(inertness == 0);
   /* Done housekeeping, now let's do something fun! */
   int calculate_displacement = 1;
 
@@ -2956,6 +3018,9 @@ struct volume_molecule *diffuse_3D(
   double r_rate_factor = 1.0;
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
+
+  bool displacement_printed = false; // mcell4
+  bool timing_printed = false; // mcell4
 
 pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
@@ -2975,6 +3040,29 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     compute_displacement(world, shead, vm, &displacement, &displacement2,
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
+
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      if (!timing_printed) {
+        MCell::dump_vol_mol_timing(
+            "- Timing vm", world->current_iterations, vm->id,
+            vm->t, max_time, vm->t + vm->t2,
+            rate_factor, r_rate_factor, steps, t_steps
+        );
+        timing_printed = true;
+      }
+  );
+#endif
+
+#ifdef DEBUG_DIFFUSION
+  DUMP_CONDITION3(
+		if (!displacement_printed) {
+			dump_vector3(displacement, "  displacement:");
+            std::cout << "t_steps: " << t_steps << "\n";
+			displacement_printed = true;
+		}
+  );
+#endif
 
   if (world->use_expanded_list &&
       ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) &&
@@ -3011,6 +3099,12 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       shead2 =
           (struct collision *)ae_list_sort((struct abstract_element *)shead2);
     }
+
+#ifdef DEBUG_COLLISIONS
+    DUMP_CONDITION3(
+    		dump_collisions(shead2);
+    );
+#endif
 
     struct vector3* loc_certain = NULL;
     struct collision *tentative = shead2;
@@ -3132,6 +3226,16 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
   if (shead != NULL)
     mem_put_list(sv->local_storage->coll, shead);
+
+
+#ifdef DEBUG_DIFFUSION
+  if (vm->properties != NULL) {
+    DUMP_CONDITION3(
+      dump_volume_molecule(vm, "", true, "- Final vm position:", world->current_iterations, /*vm->t*/0, true);
+    );
+  }
+#endif
+
 
   return vm;
 }
@@ -3287,6 +3391,12 @@ struct surface_molecule *diffuse_2D(
         "Attempted to take a 2-D diffusion step for a defunct molecule.");
   }
 
+#ifdef DEBUG_DIFFUSION
+  DUMP_CONDITION3(
+      dump_surface_molecule(sm, "", true, "Diffusing sm:", world->current_iterations, sm->t, true);
+  );
+#endif
+
   // XXX: When would this ever happen, and shouldn't it just be an error?
   if (sm->get_space_step(sm) <= 0.0) {
     sm->t += max_time;
@@ -3329,12 +3439,22 @@ struct surface_molecule *diffuse_2D(
   else
     space_factor = sm->get_space_step(sm) * sqrt(steps);
 
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      MCell::dump_surf_mol_timing(
+          "- Timing sm", world->current_iterations, sm->id,
+          sm->t, max_time, sm->t + sm->t2,
+          space_factor, steps, t_steps
+      ); // advance_time?
+  );
+#endif
+
   world->diffusion_number++;
   world->diffusion_cumtime += steps;
 
-  struct periodic_image previous_box = { .x = sm->periodic_box->x,
-                                         .y = sm->periodic_box->y,
-                                         .z = sm->periodic_box->z
+  struct periodic_image previous_box = {sm->periodic_box->x,
+                                        sm->periodic_box->y,
+                                        sm->periodic_box->z
                                        };
   struct hit_data *hd_info = NULL;
   for (int find_new_position = (SURFACE_DIFFUSION_RETRIES + 1);
@@ -3343,6 +3463,12 @@ struct surface_molecule *diffuse_2D(
 
     struct vector2 displacement;
     pick_2D_displacement(&displacement, space_factor, world->rng);
+
+#ifdef DEBUG_DIFFUSION
+    DUMP_CONDITION3(
+        dump_vector2(displacement, "  displacement:")
+    );
+#endif
 
     if (sm->properties->flags & SET_MAX_STEP_LENGTH) {
       double disp_length = sqrt(displacement.u * displacement.u +
@@ -3437,6 +3563,12 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
                        int grid_grid_reaction_flag,
                        long long *surf_surf_colls) {
 
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      MCell::dump_react_2D_all_neighbors_timing(t, sm->t);
+  );
+#endif
+
   int i;     /* points to the pathway of the reaction */
   int j;     /* points to the the reaction */
   int n = 0; /* total number of possible reactions for a given molecules
@@ -3463,13 +3595,16 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
   const int num_nbrs = list_length;
   int max_size = num_nbrs * MAX_MATCHING_RXNS;
-  struct rxn *rxn_array[max_size]; /* array of reaction objects with neighbor
-                                     molecules */
+
+  /* array of reaction objects with neighbor molecules */
+  std::vector<struct rxn *> rxn_array(max_size);
+
   double local_prob_factor; /* local probability factor for the
                                  reactions */
-  double cf[max_size]; /* Correction factors for area for those molecules */
 
-  struct surface_molecule *smol[max_size]; /* points to neighbor molecules */
+  std::vector<double> cf(max_size); /* Correction factors for area for those molecules */
+
+  std::vector<struct surface_molecule *> smol(max_size); /* points to neighbor molecules */
 
   /* Calculate local_prob_factor for the reaction probability.
      Here we convert from 3 neighbor tiles (upper probability
@@ -3477,7 +3612,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
   local_prob_factor = 3.0 / num_nbrs;
 
-  for (int kk = 0; kk < max_size; kk++) {
+  for (int kk = 0; kk < max_size; kk++) { // NOTE: this is done every call..
     rxn_array[kk] = NULL;
     smol[kk] = NULL;
     cf[kk] = 0;
@@ -3490,6 +3625,12 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
     if (sm_list == NULL || sm_list->sm == NULL)
       continue;
     struct surface_molecule *smp = curr->grid->sm_list[curr->idx]->sm;
+
+#ifdef DEBUG_RXNS
+    DUMP_CONDITION3(
+        dump_surface_molecule(smp, "", true, "  checking in react_2D_all_neighbors: ", world->current_iterations, 0.0, true);
+    );
+#endif
 
     /* check whether the neighbor molecule is behind
        the restrictive region boundary   */
@@ -3550,7 +3691,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
   } else {
     // previously "test_many_bimolecular_all_neighbors"
     int all_neighbors_flag = 1;
-    j = test_many_bimolecular(rxn_array, cf, local_prob_factor, n, &(i), 
+    j = test_many_bimolecular(&rxn_array[0], &cf[0], local_prob_factor, n, &(i),
                               world->rng, all_neighbors_flag);
   }
 
@@ -3625,12 +3766,12 @@ void reschedule_surface_molecules(
     }
 
     mem_put(sm->birthplace, sm);
-    if (schedule_add(sv->local_storage->timer, sm_new))
+    if (schedule_add_mol(sv->local_storage->timer, sm_new))
       mcell_allocfailed("Failed to add a '%s' surface molecule to scheduler "
                         "after migrating to a new memory store.",
                         am->properties->sym->name);
   } else {
-    if (schedule_add(local->timer, am))
+    if (schedule_add_mol(local->timer, am))
       mcell_allocfailed("Failed to add a '%s' surface molecule to scheduler "
                         "after taking a diffusion step.",
                         am->properties->sym->name);
@@ -3657,9 +3798,37 @@ void run_timestep(struct volume *state, struct storage *local,
 
   // Now run the timestep
 
+#ifdef MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
+  #ifdef DUMP_LOCAL_SCHEDULE_HELPER
+    dump_schedule_helper(local->timer, "Before sorting", "", "", true);
+  #endif
+  // sort by time and id so that we get the same ordering as in mcell4
+  sort_schedule_by_time_and_id(local->timer);
+
+  #ifdef DUMP_LOCAL_SCHEDULE_HELPER
+    dump_schedule_helper(local->timer, "After sorting", "", "", true);
+  #endif
+#endif
+
   /* Do not trigger the scheduler to advance!  This will be done
    * by the main loop. */
   while (local->timer->current != NULL) {
+#ifdef DUMP_LOCAL_SCHEDULE_HELPER
+    dump_schedule_helper(local->timer, "local", "", "", true);
+#endif
+
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+#ifdef DUMP_LOCAL_SCHEDULE_HELPER
+  dump_schedule_helper(local->timer, "Before sorting", "", "", true);
+#endif
+
+  sort_schedule_by_time_and_id(local->timer);
+
+#ifdef DUMP_LOCAL_SCHEDULE_HELPER
+  dump_schedule_helper(local->timer, "After sorting", "", "", true);
+#endif
+#endif
+
     am = (struct abstract_molecule *)schedule_next(local->timer);
     if (am->properties == NULL) /* Defunct!  Remove molecule. */
     {
@@ -3673,6 +3842,15 @@ void run_timestep(struct volume *state, struct storage *local,
 
       continue;
     }
+#ifdef DEBUG_SCHEDULER
+    {
+      struct volume *world = state;
+      DUMP_CONDITION3(
+          struct volume_molecule* vm = (struct volume_molecule*)am;
+          dump_volume_molecule(vm, "", true, "\n* Running scheduled action: ", world->current_iterations, vm->t, true);
+      );
+    }
+#endif
 
     am->flags &= ~IN_SCHEDULE;
 
@@ -3690,7 +3868,11 @@ void run_timestep(struct volume *state, struct storage *local,
     struct wall *current_wall = NULL;
     // The maximum time we can spend diffusing or looking for reactions
     double max_time;
+#ifdef MCELL_ALWAYS_DIFFUSE
+    int can_diffuse = 1;
+#else
     int can_diffuse = ((am->flags & ACT_DIFFUSE) != 0);
+#endif
     if (can_diffuse) {
       max_time = checkpt_time - am->t;
       if (local->max_timestep < max_time)
@@ -3733,6 +3915,22 @@ void run_timestep(struct volume *state, struct storage *local,
           continue;
         }
       }
+    }
+    else {
+     // DUMP
+#ifdef DEBUG_DIFFUSION
+      struct volume *world = state;
+      if ((am->flags & TYPE_VOL) != 0) {
+        DUMP_CONDITION3(
+            dump_volume_molecule((struct volume_molecule *)am, "", true, "Not diffusing vm:", world->current_iterations, am->t, true);
+        );
+      }
+      else {
+        DUMP_CONDITION3(
+            dump_surface_molecule((struct surface_molecule *)am, "", true, "Not diffusing sm:", world->current_iterations, am->t, true);
+        );
+      }
+#endif
     }
 
     //int can_surface_mol_react =
@@ -3846,24 +4044,24 @@ void run_timestep(struct volume *state, struct storage *local,
 
 
 /*************************************************************************
-run_concentration_clamp:
+run_clamp:
   In: world: simulation state
       t_now: the current time.
-  Out: No return value.  Molecules are released at concentration-clamped
-       surfaces to maintain the desired concentation.
+  Out: No return value.  Molecules are released at clamped
+       surfaces to maintain the desired concentation or flux.
 *************************************************************************/
-void run_concentration_clamp(struct volume *world, double t_now) {
+void run_clamp(struct volume *world, double t_now) {
   int this_count = 0;
   static int total_count = 0;
-  for (struct ccn_clamp_data *ccd = world->clamp_list; ccd != NULL; ccd = ccd->next) {
-    if (ccd->objp == NULL) {
+  for (struct clamp_data *cdp = world->clamp_list; cdp != NULL; cdp = cdp->next) {
+    if (cdp->objp == NULL) {
       continue;
     }
-    for (struct ccn_clamp_data *ccdo = ccd; ccdo != NULL; ccdo = ccdo->next_obj) {
-      for (struct ccn_clamp_data *ccdm = ccdo; ccdm != NULL; ccdm = ccdm->next_mol) {
-        double n_collisions = ccdo->scaling_factor * ccdm->mol->space_step *
-                       ccdm->concentration / ccdm->mol->time_step;
-        if (ccdm->orient != 0) {
+    for (struct clamp_data *cdpo = cdp; cdpo != NULL; cdpo = cdpo->next_obj) {
+      for (struct clamp_data *cdpm = cdpo; cdpm != NULL; cdpm = cdpm->next_mol) {
+        double n_collisions = cdpo->scaling_factor * cdpm->mol->space_step *
+                       cdpm->clamp_value / cdpm->mol->time_step;
+        if (cdpm->orient != 0) {
           n_collisions *= 0.5;
         }
         int n_emitted = poisson_dist(n_collisions, rng_dbl(world->rng));
@@ -3876,7 +4074,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         vm.t2 = 0;
         vm.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
                   ACT_CLAMPED | ACT_DIFFUSE;
-        vm.properties = ccdm->mol;
+        vm.properties = cdpm->mol;
         initialize_diffusion_function((struct abstract_molecule*)&vm);
 
         vm.mesh_name = NULL;
@@ -3891,10 +4089,10 @@ void run_concentration_clamp(struct volume *world, double t_now) {
 
         this_count += n_emitted;
         while (n_emitted > 0) {
-          int idx = bisect_high(ccdo->cum_area, ccdo->n_sides,
+          int idx = bisect_high(cdpo->cum_area, cdpo->n_sides,
                             rng_dbl(world->rng) *
-                                ccdo->cum_area[ccd->n_sides - 1]);
-          struct wall *w = ccdo->objp->wall_p[ccdo->side_idx[idx]];
+                                cdpo->cum_area[cdp->n_sides - 1]);
+          struct wall *w = cdpo->objp->wall_p[cdpo->side_idx[idx]];
 
           double s1 = sqrt(rng_dbl(world->rng));
           double s2 = rng_dbl(world->rng) * s1;
@@ -3907,10 +4105,10 @@ void run_concentration_clamp(struct volume *world, double t_now) {
           v.z = w->vert[0]->z + s1 * (w->vert[1]->z - w->vert[0]->z) +
                 s2 * (w->vert[2]->z - w->vert[1]->z);
 
-          if (ccdm->orient == 1) {
+          if (cdpm->orient == 1) {
             vm.index = 1;
           }
-          else if (ccdm->orient == -1) {
+          else if (cdpm->orient == -1) {
             vm.index = -1;
           }
           else {
@@ -3938,10 +4136,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
           vm.previous_wall = w;
           // TODO: This isn't right. We need to figure out what PB these should
           // really be created in.
-          struct periodic_image periodic_box = {.x = 0,
-                                                .y = 0,
-                                                .z = 0
-                                               };
+          struct periodic_image periodic_box = {0, 0, 0};
           
           vm.periodic_box = &periodic_box;
 
@@ -3949,10 +4144,10 @@ void run_concentration_clamp(struct volume *world, double t_now) {
             vmp = insert_volume_molecule(world, &vm, vmp);
             if (vmp == NULL)
               mcell_allocfailed("Failed to insert a '%s' volume molecule while "
-                                "concentration clamping.",
+                                "concentration/flux clamping.",
                                 vm.properties->sym->name);
             if (trigger_unimolecular(world->reaction_hash, world->rx_hashsize,
-                                     ccdm->mol->hashval,
+                                     cdpm->mol->hashval,
                                      (struct abstract_molecule *)vmp) != NULL) {
               vm.flags |= ACT_REACT;
               vmp->flags |= ACT_REACT;
@@ -3961,7 +4156,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
             vmp = insert_volume_molecule(world, &vm, vmp);
             if (vmp == NULL)
               mcell_allocfailed("Failed to insert a '%s' volume molecule while "
-                                "concentration clamping.",
+                                "concentration/flux clamping.",
                                 vm.properties->sym->name);
           }
 
@@ -4054,7 +4249,10 @@ static int collide_and_react_with_vol_mol(struct volume* world,
   if (i < RX_LEAST_VALID_PATHWAY) {
     return 0;
   }
-
+  if (loc_certain != NULL) {
+    // only for counting - handled correctly
+    // ASSERT_FOR_MCELL4(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0);
+  }
   int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
     0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
 
@@ -4104,7 +4302,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int mol_grid_flag,
   int mol_grid_grid_flag, double r_rate_factor) {
-
+  ASSERT_FOR_MCELL4(mol_grid_flag == 1);
   struct collision* ttv = *tentative;
   struct vector3* loc = *loc_certain;
   struct wall* w = (struct wall *)smash->target;
@@ -4115,6 +4313,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   } else if (smash->next->t * (1.0 - EPS_C) > smash->t) {
     t_confident = smash->t;
   } else {
+	  ASSERT_FOR_MCELL4(false);
     t_confident = smash->t * (1.0 - EPS_C);
   }
 
@@ -4158,8 +4357,10 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
       }
 
       for (int l = 0; l < num_matching_rxns; l++) {
-        if (matching_rxns[l]->prob_t != NULL)
-          update_probs(world, matching_rxns[l], m->t);
+        if (matching_rxns[l]->prob_t != NULL) { 
+	        ASSERT_FOR_MCELL4(false);
+          update_probs(world, matching_rxns[l], m->t); 
+        }
         scaling_coef[l] = r_rate_factor / w->grid->binding_factor;
       }
 
@@ -4169,6 +4370,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
           world->rng);
         jj = 0;
       } else {
+        ASSERT_FOR_MCELL4(false);      
         jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
           num_matching_rxns, &(ii), world->rng, 0);
       }
@@ -4217,15 +4419,16 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
     find_neighbor_tiles(world, sm, sm->grid, sm->grid_index, 0, 1,
       &tile_nbr_head, &list_length);
     if (tile_nbr_head != NULL) {
-      const int num_nbrs = (const int)list_length;
+      const int num_nbrs = (int)list_length;
       double local_prob_factor; /*local probability factor for the
                                    reaction */
       int max_size = num_nbrs * MAX_MATCHING_RXNS;
       /* array of reaction objects with neighbor mols */
-      struct rxn *rxn_array[max_size];
-      /* correction factors for areas for these mols */
-      double cf[max_size];
-      struct surface_molecule *smol[max_size]; /* points to neighbor mols */
+      std::vector<struct rxn *> rxn_array(max_size);
+
+      std::vector<double> cf(max_size); /* Correction factors for area for those molecules */
+
+      std::vector<struct surface_molecule *> smol(max_size); /* points to neighbor molecules */
 
       local_prob_factor = 3.0 / num_nbrs;
       jj = RX_NO_RX;
@@ -4296,7 +4499,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
       } else if (n > 1) {
         // previously "test_many_bimolecular_all_neighbors"
         int all_neighbors_flag = 1;
-        jj = test_many_bimolecular(rxn_array, cf, local_prob_factor,
+        jj = test_many_bimolecular(&rxn_array[0], &cf[0], local_prob_factor,
           n, &(ii), world->rng, all_neighbors_flag);
       }
 
@@ -4421,6 +4624,11 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
         *loc_certain = &(ttv->loc);
       }
     }
+
+#ifdef DEBUG_TRANSPARENT_SURFACES
+  std::cout << "Crossed a transparent wall, side: " << ((wall*)smash->target)->side << "\n";
+#endif
+
     return 0; /* Ignore this wall and keep going */
   } else if (inertness < inert_to_all) {
     /* Collisions with the surfaces declared REFLECTIVE are treated similar to
@@ -4495,7 +4703,8 @@ int reflect_or_periodic_bc(
   struct wall *reflect_w = w;
   double reflect_t = smash->t;
   struct volume_molecule* vm = *mol;
-  bool periodic_traditional = world->periodic_traditional;
+  bool periodic_traditional = world->periodic_traditional; 
+  ASSERT_FOR_MCELL4(!periodic_traditional);
   register_hits(world, vm, tentative, &reflect_w, &reflect_t, displacement,
     smash, t_steps);
   struct vector3 orig_pos = {vm->pos.x, vm->pos.y, vm->pos.z};
@@ -4519,7 +4728,7 @@ int reflect_or_periodic_bc(
   double urz = 0.0;
   // in the presence of periodic boundary conditions we retrieve the box size
   if (periodic_x || periodic_y || periodic_z) {
-    struct object* o = w->parent_object;
+    struct geom_object* o = w->parent_object;
     assert(o->object_type == BOX_OBJ);
     struct polygon_object* p = (struct polygon_object*)(o->contents);
     struct subdivided_box* sb = p->sb;
@@ -4869,6 +5078,16 @@ void compute_displacement(struct volume* world, struct collision* shead,
     if (*t_steps > max_time) {
       *t_steps = max_time;
       *steps = max_time / m->get_time_step(m);
+      #ifdef MCELL3_ROUND_TSTEPS
+        // makes the floating point difference between mcell3 and 4 little smaller,
+        // but not completely
+        if (*t_steps > 1.0 - EPS_C && *t_steps < 1.0 + EPS_C) {
+          *t_steps = 1.0;
+        }
+        if (*steps > 1.0 - EPS_C && *steps < 1.0 + EPS_C) {
+          *steps = 1.0;
+        }
+      #endif
     }
     if (*steps < EPS_C) {
       *steps = EPS_C;
@@ -5026,14 +5245,16 @@ void set_inertness_and_maxtime(
     if (m->flags & ACT_CLAMPED) { /* Pretend we were already moving */
       m->birthday -= 5 * m->get_time_step(m); /* Pretend to be old */
     } else if ((m->flags & MATURE_MOLECULE) == 0) {
+    #ifndef MCELL3_MOLECULE_MOVES_WITH_MAXIMUM_TIMESTEP
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (m->get_time_step(m) > 1.0) {
-        double f = 1.0 + 0.2 * (m->t - m->birthday);
-        if (f < 1)
+        /* Birthday is in seconds */
+        double f = 1.0 + 0.2 * (m->t - m->birthday / world->time_unit);
+        if (f < 1 - EPS_C)
           mcell_internal_error("A %s molecule is scheduled to move before it "
                                "was born [birthday=%.15g, t=%.15g]",
-                               spec->sym->name, m->birthday * world->time_unit,
+                               spec->sym->name, m->birthday,
                                m->t * world->time_unit);
         if (*max_time > f) {
           *max_time = f;
@@ -5042,6 +5263,9 @@ void set_inertness_and_maxtime(
           m->flags |= MATURE_MOLECULE;
         }
       }
+    #else
+      m->flags |= MATURE_MOLECULE;
+    #endif // MCELL3_MOLECULE_MOVES_WITH_MAXIMUM_TIMESTEP
     }
   }
 }

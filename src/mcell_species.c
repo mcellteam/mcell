@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -225,6 +214,7 @@ struct species *assemble_mol_species(MCELL_STATE *state,
 
   new_spec->D = species->D;
   new_spec->time_step = species->custom_time_step;
+  new_spec->custom_time_step_from_mdl = species->custom_time_step;
 
   if (species->target_only) {
     new_spec->flags |= CANT_INITIATE;
@@ -304,7 +294,7 @@ struct species *assemble_mol_species(MCELL_STATE *state,
   new_spec->refl_mols = NULL;
   new_spec->transp_mols = NULL;
   new_spec->absorb_mols = NULL;
-  new_spec->clamp_conc_mols = NULL;
+  new_spec->clamp_mols = NULL;
 
   species->custom_time_step = new_spec->time_step;
   species->space_step = new_spec->space_step;

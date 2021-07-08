@@ -4,36 +4,39 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
 #pragma once
 
 #include <stdio.h>
+#include <stdint.h>
 
 #define COUNT_OF(arr) (sizeof((arr)) / sizeof((arr[0])))
 
 #define BLOCK_SIZE 10000
 
 struct num_expr_list_head {
+  // we cannot define ctor because it is used in bison's uniopn for
+  // semantic values
+  // however, the start_end_step_set is used only for partition setup
+  // and for this case the structure is initialized correctly
+  /*num_expr_list_head()
+    : start_end_step_set(false) {}*/
+
   struct num_expr_list *value_head;
   struct num_expr_list *value_tail;
   int value_count;
   int shared;
+
+  // MCell4 - original values used to create the list
+  bool start_end_step_set;
+  double start;
+  double end;
+  double step;
 };
 
 struct iteration_counter {
@@ -282,3 +285,16 @@ static inline int minNi(int *array, int N) {
   }
   return smallest;
 }
+
+struct rusage;
+void reset_rusage(rusage* r);
+
+
+#ifndef ISAAC64_H
+/* These guys come in for free if we're using Jenkins' random numbers */
+typedef uint32_t ub4;      /* unsigned 4-byte quantities */
+typedef unsigned char ub1; /* unsigned 1-byte quantities */
+#endif
+
+ub4 jenkins_hash(ub1 *sym, ub4 length);
+

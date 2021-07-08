@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -26,8 +15,14 @@
 #include <float.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <math.h>
 
 #include "sched_util.h"
+
+#include "mcell_structs.h"
+#include "debug_config.h"
+#include "dump_state.h"
 
 /*************************************************************************
 ae_list_sort:
@@ -199,6 +194,7 @@ struct schedule_helper *create_scheduler(double dt_min, double dt_max,
   sh->circ_buf_tail = sh->circ_buf_head + len;
 
   if (sh->dt * sh->buf_len < dt_max) {
+    ASSERT_FOR_MCELL4(false);
     sh->next_scale =
         create_scheduler(dt_min * len, dt_max, maxlen, sh->now + dt_min * len);
     if (sh->next_scale == NULL)
@@ -214,6 +210,23 @@ failure:
   return NULL;
 }
 
+int schedule_add_mol(struct schedule_helper *sh, void *data) {
+  struct abstract_molecule *am = (struct abstract_molecule *)data;
+
+#ifdef DEBUG_SCHEDULER
+  if ((am->flags & TYPE_SURF) != 0) {
+    struct surface_molecule* sm = (struct surface_molecule*)am;
+    dump_surface_molecule(sm, "", true, "\n* Scheduled a new sm action: ", 0, sm->t, true);
+  }
+  else {
+    struct volume_molecule* vm = (struct volume_molecule*)am;
+    dump_volume_molecule(vm, "", true, "\n* Scheduled a new vm action: ", 0, vm->t, true);
+  }
+#endif
+
+  return schedule_insert(sh, am, 1);
+}
+
 /*************************************************************************
 schedule_insert:
   In: scheduler that we are using
@@ -227,6 +240,7 @@ schedule_insert:
 int schedule_insert(struct schedule_helper *sh, void *data,
                     int put_neg_in_current) {
   struct abstract_element *ae = (struct abstract_element *)data;
+
 
   if (put_neg_in_current && ae->t < sh->now) {
     /* insert item into current list */
@@ -649,3 +663,65 @@ void delete_scheduler(struct schedule_helper *sh) {
     free(sh);
   }
 }
+
+#if defined(MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP) || defined(MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID)
+
+#include <vector>
+#include <algorithm>
+
+static bool less_time_and_id(struct abstract_molecule* a1, struct abstract_molecule* a2) {
+  assert(a1 != NULL);
+  assert(a2 != NULL);
+  // WARNING: this comparison is a bit 'shaky' - the constant 100*EPS_C there...
+  return (a1->t + 100*EPS_C < a2->t) || (fabs(a1->t - a2->t) < 100*EPS_C && a1->id < a2->id);
+}
+
+static bool is_sorted(struct abstract_molecule* list) {
+  if (list == NULL || list->next == NULL) {
+      return true;
+  }
+  struct abstract_molecule* prev = list;
+  for (struct abstract_molecule* curr = list->next; curr != NULL; curr = curr->next) {
+    if (!less_time_and_id(prev, curr)) {
+      return false;
+    }
+    prev = curr;
+  }
+  return true;
+}
+
+// used only when MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP or MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_IDis defined
+void sort_schedule_by_time_and_id(struct schedule_helper *sh) {
+
+  for (struct schedule_helper* sh_current = sh; sh_current != NULL; sh_current = sh_current->next_scale) {
+
+    // we need abstract_molecule so that we are able to sort by id
+    struct abstract_molecule* list = (struct abstract_molecule*)sh_current->current;
+
+    // used code from https://en.wikipedia.org/wiki/Insertion_sort#List_insertion_sort_code_in_C
+    // zero or one element in list
+    if (list == NULL || list->next == NULL) {
+        return ;
+    }
+
+    if (is_sorted(list)) {
+      // conversion and sorting takes long time, a minor optimization for faster debugging
+      continue;
+    }
+
+    std::vector<struct abstract_molecule*> vec;
+    for (struct abstract_molecule* item = list; item != NULL; item = item->next) {
+      vec.push_back(item);
+    }
+    std::sort(vec.begin(), vec.end(), less_time_and_id);
+
+    sh_current->current = (struct abstract_element*)vec[0];
+    for (size_t i = 1; i < vec.size(); i++) {
+      vec[i - 1]->next = vec[i];
+    }
+    vec.back()->next = NULL;
+    sh_current->current_tail = (struct abstract_element*)vec.back();
+  }
+}
+
+#endif // defined(MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP) || defined(MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID)

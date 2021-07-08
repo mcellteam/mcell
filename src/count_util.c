@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -507,7 +496,7 @@ void count_region_from_scratch(struct volume *world,
     struct waypoint *wp = &(world->waypoints[this_sv]);
     struct subvolume *my_sv = &(world->subvol[this_sv]);
 
-    struct vector3 here = {.x = wp->loc.x, .y = wp->loc.y, .z = wp->loc.z};
+    struct vector3 here = {wp->loc.x, wp->loc.y, wp->loc.z};
 
     struct region_list *all_regs = NULL;
     struct region_list *all_antiregs = NULL;
@@ -1369,7 +1358,7 @@ int prepare_counters(struct volume *world) {
     if (request->count_location != NULL &&
         request->count_location->sym_type == OBJ) {
       if (expand_object_output(request,
-                               (struct object *)request->count_location->value,
+                               (struct geom_object *)request->count_location->value,
                                world->reg_sym_table))
         mcell_error("Failed to expand request to count on object.");
     }
@@ -1394,8 +1383,8 @@ is_object_instantiated:
   Note: Checking is performed for all instantiated objects
 ********************************************************************/
 int is_object_instantiated(struct sym_entry *entry,
-                           struct object *root_instance) {
-  struct object *obj = NULL;
+                           struct geom_object *root_instance) {
+  struct geom_object *obj = NULL;
   if (entry->sym_type == REG) {
     struct region *reg = (struct region *)entry->value;
     obj = ((struct region *)(entry->value))->parent;
@@ -1407,7 +1396,7 @@ int is_object_instantiated(struct sym_entry *entry,
     }
   }
   else if (entry->sym_type == OBJ && entry->count != 0)
-    obj = ((struct object *)(entry->value));
+    obj = ((struct geom_object *)(entry->value));
   else
     return 0;
 
@@ -1477,7 +1466,7 @@ expand_object_output:
 *************************************************************************/
 int expand_object_output(
     struct output_request *request,
-    struct object *obj,
+    struct geom_object *obj,
     struct sym_table_head *reg_sym_table) {
 #ifdef ALLOW_COUNTS_ON_METAOBJECT
   int n_expanded;
@@ -1502,7 +1491,7 @@ int expand_object_output(
 #else
 #error "Support for counting in/on a metaobject doesn't work right now."
     n_expanded = 0;
-    for (struct object *child = obj->first_child; child != NULL;
+    for (struct geom_object *child = obj->first_child; child != NULL;
          child = child->next) {
       if (!object_has_geometry(child))
         continue; /* NOTE -- for objects nested N deep, we check this
@@ -1548,19 +1537,19 @@ int expand_object_output(
 
   case BOX_OBJ:
   case POLY_OBJ: {
-    request->count_location = NULL;
-    for (struct region_list *rl = obj->regions; rl != NULL; rl = rl->next) {
-      if (is_reverse_abbrev(",ALL", rl->reg->sym->name)) {
-        request->count_location = rl->reg->sym;
-        break;
+      request->count_location = NULL;
+      for (struct region_list *rl = obj->regions; rl != NULL; rl = rl->next) {
+        if (is_reverse_abbrev(",ALL", rl->reg->sym->name)) {
+          request->count_location = rl->reg->sym;
+          break;
+        }
       }
-    }
-    char *region_name = CHECKED_SPRINTF("%s,ALL", obj->sym->name);
-    if (request->count_location == NULL)
-      request->count_location = retrieve_sym(region_name, reg_sym_table);
-    free(region_name);
-    if (request->count_location == NULL)
-      mcell_internal_error("ALL region missing on object %s", obj->sym->name);
+      char *region_name = CHECKED_SPRINTF("%s,ALL", obj->sym->name);
+      if (request->count_location == NULL)
+        request->count_location = retrieve_sym(region_name, reg_sym_table);
+      free(region_name);
+      if (request->count_location == NULL)
+        mcell_internal_error("ALL region missing on object %s", obj->sym->name);
     }
     break;
 
@@ -1577,8 +1566,8 @@ object_has_geometry:
    Out: 0 if there are no geometrical objects within that object (and it
         is not a geometrical object itself).  1 if there are such object.
 *************************************************************************/
-int object_has_geometry(struct object *obj) {
-  struct object *child;
+int object_has_geometry(struct geom_object *obj) {
+  struct geom_object *child;
   switch (obj->object_type) {
   case BOX_OBJ:
   case POLY_OBJ:

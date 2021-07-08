@@ -4,29 +4,20 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef _MSC_VER
 #include <unistd.h>
-#include <time.h>
 #include <sys/time.h>
+#endif
+#include <time.h>
 
 #include "config.h"
 #include "version_info.h"
@@ -72,9 +63,11 @@ void print_version(FILE *f) {
     fprintf(f, " [unofficial revision]");
   fprintf(f, "\n");
 
+#ifndef _WIN64
   /* Print the current machine details */
   gethostname(hostname, sizeof(hostname));
   fprintf(f, "  Running on %s at %s\n", hostname, ctime_r(&now, curtime));
+#endif
   print_credits(f);
 }
 

@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -29,13 +18,18 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fcntl.h>
+#ifndef _MSC_VER
 #include <unistd.h>
 #include <dirent.h>
+#endif
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <assert.h>
+
+#include "c_vector.h"
+#include "debug_config.h"
 
 /*
 #include "isaac64.h"
@@ -51,6 +45,8 @@
 #include "util.h"
 #include "vol_util.h"
 #include "sym_table.h"
+
+#include "bng_util.h"
 
 /***  Temporary Viz Options compared to world->viz_options ***/
 
@@ -386,6 +382,8 @@ static int output_ascii_molecules(struct volume *world,
     free(cf_name);
     cf_name = NULL;
 
+    c_vector_t *vec = vector_create();
+
     for (slp = world->storage_head; slp != NULL; slp = slp->next) {
       for (shp = slp->store->timer; shp != NULL; shp = shp->next_scale) {
         for (i = -1; i < shp->buf_len; i++) {
@@ -395,50 +393,78 @@ static int output_ascii_molecules(struct volume *world,
             if (amp->properties == NULL)
               continue;
 
-            int id = vizblk->species_viz_states[amp->properties->species_id];
-            if (id == EXCLUDE_OBJ)
-              continue;
-
-            if ((amp->properties->flags & NOT_FREE) == 0) {
-              mp = (struct volume_molecule *)amp;
-              where.x = mp->pos.x;
-              where.y = mp->pos.y;
-              where.z = mp->pos.z;
-              norm.x = 0;
-              norm.y = 0;
-              norm.z = 0;
-            } else if ((amp->properties->flags & ON_GRID) != 0) {
-              gmp = (struct surface_molecule *)amp;
-              uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
-              orient = gmp->orient;
-              norm.x = orient * gmp->grid->surface->normal.x;
-              norm.y = orient * gmp->grid->surface->normal.y;
-              norm.z = orient * gmp->grid->surface->normal.z;
-            } else
-              continue;
-
-            where.x *= world->length_unit;
-            where.y *= world->length_unit;
-            where.z *= world->length_unit;
-            /*
-                        fprintf(custom_file,"%d %15.8e %15.8e %15.8e
-               %2d\n",id,where.x,where.y,where.z,orient);
-            */
-            if (id == INCLUDE_OBJ) {
-              /* write name of molecule */
-              fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g\n",
-                      amp->properties->sym->name, amp->id, where.x, where.y,
-                      where.z, norm.x, norm.y, norm.z);
-            } else {
-              /* write state value of molecule */
-              fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g\n", id,
-                      amp->id, where.x, where.y, where.z, norm.x, norm.y,
-                      norm.z);
-            }
+            // remember
+            vector_push_back(vec, amp);
           }
         }
       }
     }
+#ifdef MCELL3_SORTED_VIZ_OUTPUT
+    // sort - necessary for comparison with mcell4 because
+    // molecules with diffusion constant zero are printed out in some "random" order
+    vector_sort_by_mol_id(vec);
+#endif    
+
+    // print
+    size_t sz = vector_get_size(vec);
+    for (size_t k = 0; k < sz; k++) {
+      amp = (struct abstract_molecule*)vector_at(vec, k);
+
+      int id = vizblk->species_viz_states[amp->properties->species_id];
+      if (id == EXCLUDE_OBJ)
+        continue;
+
+      if ((amp->properties->flags & NOT_FREE) == 0) {
+        mp = (struct volume_molecule *)amp;
+        where.x = mp->pos.x;
+        where.y = mp->pos.y;
+        where.z = mp->pos.z;
+        norm.x = 0;
+        norm.y = 0;
+        norm.z = 0;
+      } else if ((amp->properties->flags & ON_GRID) != 0) {
+        gmp = (struct surface_molecule *)amp;
+        uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
+        orient = gmp->orient;
+        norm.x = orient * gmp->grid->surface->normal.x;
+        norm.y = orient * gmp->grid->surface->normal.y;
+        norm.z = orient * gmp->grid->surface->normal.z;
+      } else
+        continue;
+
+      where.x *= world->length_unit;
+      where.y *= world->length_unit;
+      where.z *= world->length_unit;
+      /*
+                  fprintf(custom_file,"%d %15.8e %15.8e %15.8e
+         %2d\n",id,where.x,where.y,where.z,orient);
+      */
+      std::string species_name = amp->properties->sym->name;
+
+      #ifdef ASCII_VIZ_EXTERNAL_SPECIES_NAME
+        if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
+          /* This is complex molecule, so add a new viz molecule for each molecule in the complex */
+          /* The graph pattern will be something like: */
+          /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
+          species_name = graph_pattern_to_bngl(amp->graph_data->graph_pattern);
+        }
+      #endif
+
+      if (id == INCLUDE_OBJ) {
+        /* write name of molecule */
+        fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g\n",
+                species_name.c_str(), amp->id, where.x, where.y,
+                where.z, norm.x, norm.y, norm.z);
+      } else {
+        /* write state value of molecule */
+        fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g\n", id,
+                amp->id, where.x, where.y, where.z, norm.x, norm.y,
+                norm.z);
+      }
+    }
+
+    vector_delete(vec);
+
     fclose(custom_file);
   }
 
@@ -2413,7 +2439,7 @@ int init_frame_data_list(struct volume *world,
       return 1;
     break;
 
-  case CELLBLENDER_MODE:
+  case CELLBLENDER_MODE_V1:
     count_time_values(world, vizblk->frame_data_head);
     if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
       return 1;
@@ -2510,7 +2536,7 @@ int update_frame_data_list(struct volume *world,
         return 1;
       break;
 
-    case CELLBLENDER_MODE:
+    case CELLBLENDER_MODE_V1:
       if (output_cellblender_molecules(world, vizblk, fdlp))
         return 1;
       break;

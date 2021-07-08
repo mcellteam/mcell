@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -26,6 +15,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "rng.h"
 #include "logging.h"
@@ -41,6 +31,9 @@
 #include "react.h"
 #include "nfsim_func.h"
 #include "strfunc.h"
+
+#include "debug_config.h"
+#include "dump_state.h"
 
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
  * the vertices a, b, c, and d.
@@ -63,209 +56,10 @@ static inline double abs_max_2vec(struct vector3 *v1, struct vector3 *v2) {
                max3d(fabs(v2->x), fabs(v2->y), fabs(v2->z)));
 }
 
-// create_new_poly_edge creates a new poly_edge and attaches it to the
-// past pointer to linked list of poly_edges
-static struct poly_edge* create_new_poly_edge(struct poly_edge* list);
-
 // have_common_region checks if wall1 and wall2 located on the (same) object
 // are part of a common region or not
-static bool have_common_region(struct object *obj, int wall1, int wall2);
+static bool have_common_region(struct geom_object *obj, int wall1, int wall2);
 
-
-/**************************************************************************\
- ** Edge hash table section--finds common edges in polygons              **
-\**************************************************************************/
-
-/***************************************************************************
-edge_equals:
-  In: pointers to two poly_edge structs
-  Out: Returns 1 if the edges are the same, 0 otherwise.
-  Note: Orientation invariant, so an edge between vertex 1 and 2
-        is the same as an edge between vertex 2 and 1.
-***************************************************************************/
-
-int edge_equals(struct poly_edge *e1, struct poly_edge *e2) {
-  if ((!distinguishable(e1->v1x, e2->v1x, EPS_C)) &&
-      (!distinguishable(e1->v1y, e2->v1y, EPS_C)) &&
-      (!distinguishable(e1->v1z, e2->v1z, EPS_C)) &&
-      (!distinguishable(e1->v2x, e2->v2x, EPS_C)) &&
-      (!distinguishable(e1->v2y, e2->v2y, EPS_C)) &&
-      (!distinguishable(e1->v2z, e2->v2z, EPS_C))) {
-    return 1;
-  }
-  if ((!distinguishable(e1->v1x, e2->v2x, EPS_C)) &&
-      (!distinguishable(e1->v1y, e2->v2y, EPS_C)) &&
-      (!distinguishable(e1->v1z, e2->v2z, EPS_C)) &&
-      (!distinguishable(e1->v2x, e2->v1x, EPS_C)) &&
-      (!distinguishable(e1->v2y, e2->v1y, EPS_C)) &&
-      (!distinguishable(e1->v2z, e2->v1z, EPS_C))) {
-    return 1;
-  }
-  return 0;
-}
-
-/***************************************************************************
-edge_hash:
-  In: pe: pointer to a poly_edge struct
-      nkeys: number of keys in the hash table
-  Out: Returns a hash value between 0 and nkeys-1.
-  Note: Orientation invariant, so a hash with the two endpoints swapped
-        will be the same.
-***************************************************************************/
-
-int edge_hash(struct poly_edge *pe, int nkeys) {
-  /* Get hash of X,Y,Z set of doubles for 1st and 2nd points */
-  /* (Assume they're laid out consecutively in memory) */
-  /* FIXME: This seems like a hack. Since poly_edge is a struct there's no
-   * guarantee what the memory layout will be and the compiler may pad */
-  unsigned int hashL = jenkins_hash((ub1 *)&(pe->v1x), 3 * sizeof(double));
-  unsigned int hashR = jenkins_hash((ub1 *)&(pe->v2x), 3 * sizeof(double));
-
-  return (hashL + hashR) %
-         nkeys; /* ^ is symmetric so doesn't matter which is L and which is R */
-}
-
-/***************************************************************************
-ehtable_init:
-  In: eht: pointer to an edge_hashtable struct
-      nkeys: number of keys that the hash table uses
-  Out: Returns 0 on success, 1 on failure.
-       Hash table is initialized.
-***************************************************************************/
-
-int ehtable_init(struct edge_hashtable *eht, int nkeys) {
-  eht->nkeys = nkeys;
-  eht->stored = 0;
-  eht->distinct = 0;
-  eht->data =
-      CHECKED_MALLOC_ARRAY_NODIE(struct poly_edge, nkeys, "edge hash table");
-  if (eht->data == NULL)
-    return 1;
-
-  for (int i = 0; i < nkeys; i++) {
-    eht->data[i].next = NULL;
-    eht->data[i].n = 0;
-    eht->data[i].face[0] = eht->data[i].face[1] = -1;
-  }
-
-  return 0;
-}
-
-
-/***************************************************************************
- *
- * create_new_poly_edge creates a new poly_edge and attaches it to the
- * past pointer to linked list of poly_edges
- *
- ***************************************************************************/
-struct poly_edge* create_new_poly_edge(struct poly_edge* list) {
-
-  struct poly_edge *pei = CHECKED_MALLOC_STRUCT_NODIE(struct poly_edge, "polygon edge");
-  if (pei == NULL) {
-    return NULL;
-  }
-
-  pei->next = list->next;
-  list->next = pei;
-  pei->n = 0;
-  pei->face[0] = -1;
-  pei->face[1] = -1;
-  pei->edge[0] = -1;
-  pei->edge[1] = -1;
-  return pei;
-}
-
-/***************************************************************************
-ehtable_add:
-  In: pointer to an edge_hashtable struct
-      pointer to the poly_edge to add
-  Out: Returns 0 on success, 1 on failure.
-       Edge is added to the hash table.
-***************************************************************************/
-int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe) {
-
-  int i = edge_hash(pe, eht->nkeys);
-  struct poly_edge *pep = &(eht->data[i]);
-
-  while (pep != NULL) {
-    if (pep->n == 0) /* New entry */
-    {
-      pep->n = 1;
-      pep->face[0] = pe->face[0];
-      pep->edge[0] = pe->edge[0];
-      pep->v1x = pe->v1x;
-      pep->v1y = pe->v1y;
-      pep->v1z = pe->v1z;
-      pep->v2x = pe->v2x;
-      pep->v2y = pe->v2y;
-      pep->v2z = pe->v2z;
-      eht->stored++;
-      eht->distinct++;
-      return 0;
-    }
-
-    if (edge_equals(pep, pe)) /* This edge exists already ... */
-    {
-      if (pep->face[1] == -1) /* ...and we're the 2nd one */
-      {
-        pep->face[1] = pe->face[0];
-        pep->edge[1] = pe->edge[0];
-        pep->n++;
-        eht->stored++;
-        return 0;
-      } else /* ...or we're 3rd and need more space */
-      {
-        if (pep->next != NULL) {
-          if (edge_equals(pep->next, pe)) /* Space already there */
-          {
-            pep->n++;
-            pep = pep->next;
-            continue; /* Use space on next loop */
-          }
-        }
-
-        struct poly_edge *pei = create_new_poly_edge(pep);
-        if (pei == NULL) {
-          return 1;
-        }
-        pep->n++;
-        pep = pei;
-        eht->distinct--; /* Not really distinct, just need more space */
-      }
-    } else if (pep->next != NULL) {
-      pep = pep->next;
-    } else { /* Hit end of list, so make space for use next loop. */
-      struct poly_edge *pei = create_new_poly_edge(pep);
-      if (pei == NULL) {
-        return 1;
-      }
-      pep = pei;
-    }
-  }
-
-  return 0;
-}
-
-/***************************************************************************
-ehtable_kill:
-  In: eht: pointer to an edge_hashtable struct
-  Out: No return value.  Hashtable data is deallocated.
-  Note: eht itself is not freed, since it isn't created with ehtable_init.
-***************************************************************************/
-void ehtable_kill(struct edge_hashtable *eht) {
-  struct poly_edge *pe;
-
-  for (int i = 0; i < eht->nkeys; i++) {
-    while (eht->data[i].next != NULL) {
-      pe = eht->data[i].next;
-      eht->data[i].next = pe->next;
-      free(pe);
-    }
-  }
-  free(eht->data);
-  eht->data = NULL;
-  eht->nkeys = 0;
-}
 
 /**************************************************************************\
  ** Edge construction section--builds permanent edges from hash table    **
@@ -320,7 +114,7 @@ static int compatible_edges(struct wall **faces, int wA, int eA, int wB,
  have_common_region checks if wall1 and wall2 located on the (same) object
  are part of a common region or not
 ******************************************************************************/
-bool have_common_region(struct object *obj, int wall1, int wall2) {
+bool have_common_region(struct geom_object *obj, int wall1, int wall2) {
 
   struct region_list *rl = obj->regions;
   bool common_region = false;
@@ -507,6 +301,9 @@ int surface_net(struct wall **facelist, int nfaces) {
 
   for (int i = 0; i < nkeys; i++) {
     struct poly_edge *pep = (eht.data + i);
+#ifdef DEBUG_GEOM_OBJ_INITIALIZATION
+    dump_poly_edge(i, pep);
+#endif
     while (pep != NULL) {
       if (pep->n > 2) {
         refine_edge_pairs(pep, facelist);
@@ -572,6 +369,15 @@ void init_edge_transform(struct edge *e, int edgenum) {
   if (j > 2)
     j = 0;
 
+#ifdef DEBUG_EDGE_INITIALIZATION
+  std::cout << "Edge initialization, edgenum: " << edgenum << "\n";
+  dump_wall(wf, "", true);
+  dump_wall(wb, "", true);
+#endif
+
+  // only for mcell4
+  e->edge_num_used_for_init = edgenum;
+
   /* Intermediate basis from the perspective of the forward frame */
 
   struct vector3 temp3d;
@@ -588,6 +394,7 @@ void init_edge_transform(struct edge *e, int edgenum) {
   temp.u = dot_prod(&temp3d, &(wf->unit_u)) - O_f.u;
   temp.v = dot_prod(&temp3d, &(wf->unit_v)) - O_f.v; /* Far side of e */
 
+  assert(temp.u * temp.u + temp.v * temp.v != 0);
   double d = 1.0 / sqrt(temp.u * temp.u + temp.v * temp.v);
   ehat_f.u = temp.u * d;
   ehat_f.v = temp.v * d; /* ehat along edge */
@@ -608,6 +415,7 @@ void init_edge_transform(struct edge *e, int edgenum) {
   temp.u = dot_prod(&temp3d, &(wb->unit_u)) - O_b.u;
   temp.v = dot_prod(&temp3d, &(wb->unit_v)) - O_b.v; /* Far side of e */
 
+  assert(temp.u * temp.u + temp.v * temp.v != 0);
   d = 1.0 / sqrt(temp.u * temp.u + temp.v * temp.v);
   ehat_b.u = temp.u * d;
   ehat_b.v = temp.v * d; /* ehat along edge */
@@ -637,6 +445,10 @@ void init_edge_transform(struct edge *e, int edgenum) {
   e->sin_theta = mtx[0][1];
   e->translate.u = q.u;
   e->translate.v = q.v;
+
+#ifdef DEBUG_EDGE_INITIALIZATION
+  dump_edge(e, "", true);
+#endif
 }
 
 /***************************************************************************
@@ -646,7 +458,7 @@ sharpen_object:
        Adds edges to the object and all its children.
 ***************************************************************************/
 
-int sharpen_object(struct object *parent) {
+int sharpen_object(struct geom_object *parent) {
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ) {
     int i = surface_net(parent->wall_p, parent->n_walls);
 
@@ -659,7 +471,7 @@ int sharpen_object(struct object *parent) {
       parent->is_closed = -i; 
     }
   } else if (parent->object_type == META_OBJ) {
-    for (struct object *o = parent->first_child; o != NULL; o = o->next) {
+    for (struct geom_object *o = parent->first_child; o != NULL; o = o->next) {
       if (sharpen_object(o))
         return 1;
     }
@@ -675,7 +487,7 @@ sharpen_world:
   Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
 int sharpen_world(struct volume *world) {
-  for (struct object *o = world->root_instance; o != NULL; o = o->next) {
+  for (struct geom_object *o = world->root_instance; o != NULL; o = o->next) {
     if (sharpen_object(o))
       return 1;
   }
@@ -704,6 +516,11 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
                               struct vector2 *ip, double r2) {
   UNUSED(r2);
 
+#ifdef DEBUG_CLOSEST_INTERIOR_POINT
+  std::cout << "closest_interior_point: " << *pt << "\n";
+  dump_wall(w, "", true);
+#endif
+
   struct vector3 v;
 
   closest_pt_point_triangle(pt, w->vert[0], w->vert[1], w->vert[2], &v);
@@ -716,8 +533,8 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
   int give_up = 10;
   double a1 = ip->u * w->uv_vert2.v - ip->v * w->uv_vert2.u;
   double a2 = w->uv_vert1_u * ip->v;
-  struct vector2 vert_0 = {.u = 0, .v = 0};
-  struct vector2 vert_1 = {.u = w->uv_vert1_u, .v = 0};
+  struct vector2 vert_0 = {0, 0};
+  struct vector2 vert_1 = {w->uv_vert1_u, 0};
   while (give_up_ctr < give_up &&
          (!distinguishable(ip->v, 0, EPS_C) ||
           !distinguishable(a1, 0, EPS_C) ||
@@ -737,8 +554,15 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
 
     give_up_ctr++;
   }
-  return (v.x - pt->x) * (v.x - pt->x) + (v.y - pt->y) * (v.y - pt->y) +
-         (v.z - pt->z) * (v.z - pt->z);
+
+  double res = (v.x - pt->x) * (v.x - pt->x) + (v.y - pt->y) * (v.y - pt->y) +
+      (v.z - pt->z) * (v.z - pt->z);
+
+#ifdef DEBUG_CLOSEST_INTERIOR_POINT
+  std::cout << "res: " << res << ", ip: " << *ip << "\n";
+#endif
+
+  return res;
 }
 
 /***************************************************************************
@@ -947,6 +771,8 @@ jump_away_line:
 void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
                     struct vector3 *A, struct vector3 *B, struct vector3 *n,
                     struct rng_state *rng) {
+  ASSERT_FOR_MCELL4(false && "Called jump_away_line");
+
   struct vector3 e, f;
   double le_1, tiny;
 
@@ -1385,7 +1211,7 @@ init_tri_wall:
        vectors, local coordinate vectors, and so on.
 ***************************************************************************/
 
-void init_tri_wall(struct object *objp, int side, struct vector3 *v0,
+void init_tri_wall(struct geom_object *objp, int side, struct vector3 *v0,
                    struct vector3 *v1, struct vector3 *v2) {
   struct wall *w; /* The wall we're working with */
   double f, fx, fy, fz;
@@ -1696,8 +1522,8 @@ distribute_object:
   Note: this function is recursive and is called on any children of the
         object passed to it.
 ***************************************************************************/
-int distribute_object(struct volume *world, struct object *parent) {
-  struct object *o; /* Iterator for child objects */
+int distribute_object(struct volume *world, struct geom_object *parent) {
+  struct geom_object *o; /* Iterator for child objects */
   int i;
   long long vert_index; /* index of the vertex in the global array
                      "world->all_vertices" */
@@ -1747,7 +1573,7 @@ distribute_world:
        is distributed to local memory and into appropriate subvolumes.
 ***************************************************************************/
 int distribute_world(struct volume *world) {
-  struct object *o; /* Iterator for objects in the world */
+  struct geom_object *o; /* Iterator for objects in the world */
 
   for (o = world->root_instance; o != NULL; o = o->next) {
     if (distribute_object(world, o) != 0)
@@ -2039,22 +1865,21 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
         failure++;
       }
       else {
-        struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+        struct vector3 pos3d = {0, 0, 0};
         if (place_single_molecule(world, w, grid_index, sm->properties,
                                   sm->graph_data, sm->flags, rso->orientation, sm->t, sm->t2,
                                   sm->birthday, sm->periodic_box, &pos3d) == NULL) {
-          struct vector3 llf, urb;
           if (world->periodic_box_obj) {
             struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);
             struct subdivided_box *sb = p->sb;
-            llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
-            urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
-          }
-          if (world->periodic_box_obj && !point_in_box(&llf, &urb, &pos3d)) {
-            mcell_log("Cannot release '%s' outside of periodic boundaries.",
-                      sm->properties->sym->name);
-            failure++;
-            continue;
+            struct vector3 llf = {sb->x[0], sb->y[0], sb->z[0]};
+            struct vector3 urb = {sb->x[1], sb->y[1], sb->z[1]};
+            if (!point_in_box(&llf, &urb, &pos3d)) {
+              mcell_log("Cannot release '%s' outside of periodic boundaries.",
+                        sm->properties->sym->name);
+              failure++;
+              continue;
+            }
           }
           return 1;
         }
@@ -2118,7 +1943,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
            this_rrd != NULL && n > 0; this_rrd = this_rrd->next) {
         if (n >= n_rrhd ||
             rng_dbl(world->rng) < (this_rrd->my_area / max_A) * ((double)n)) {
-          struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+          struct vector3 pos3d = {0, 0, 0};
           if (place_single_molecule(world, this_rrd->grid->surface,
                                     this_rrd->index, sm->properties, sm->graph_data, sm->flags,
                                     rso->orientation, sm->t, sm->t2,
@@ -2191,18 +2016,17 @@ struct surface_molecule *place_single_molecule(struct volume *state,
     grid2uv(w->grid, grid_index, &s_pos);
   uv2xyz(&s_pos, w, pos3d);
 
-  struct vector3 llf, urb;
   if (state->periodic_box_obj) {
     struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);
     struct subdivided_box *sb = p->sb;
-    llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
-    urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
-  }
+    struct vector3 llf = {sb->x[0], sb->y[0], sb->z[0]};
+    struct vector3 urb = {sb->x[1], sb->y[1], sb->z[1]};
 
-  if (state->periodic_box_obj && !point_in_box(&llf, &urb, pos3d)) {
-    mcell_log("Cannot release '%s' outside of periodic boundaries.",
+    if (!point_in_box(&llf, &urb, pos3d)) {
+      mcell_log("Cannot release '%s' outside of periodic boundaries.",
               spec->sym->name);
-    return NULL;
+      return NULL;
+    }
   }
 
   struct subvolume *gsv = NULL;
@@ -2260,7 +2084,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                               1, NULL, new_sm->grid->surface, new_sm->t,
                               new_sm->periodic_box);
 
-  if (schedule_add(gsv->local_storage->timer, new_sm)) {
+  if (schedule_add_mol(gsv->local_storage->timer, new_sm)) {
     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.",
                       new_sm->properties->sym->name);
     return NULL;
@@ -2553,7 +2377,7 @@ find_restricted_regions_by_object:
         included in the return "region list".
 ************************************************************************/
 struct region_list *
-find_restricted_regions_by_object(struct volume *world, struct object *obj,
+find_restricted_regions_by_object(struct volume *world, struct geom_object *obj,
                                   struct surface_molecule *sm) {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
@@ -2627,7 +2451,7 @@ are_restricted_regions_for_species_on_object:
        0 - if no such regions found
 ************************************************************************/
 int are_restricted_regions_for_species_on_object(struct volume *world,
-                                                 struct object *obj,
+                                                 struct geom_object *obj,
                                                  struct surface_molecule *sm) {
   int wall_idx = INT_MIN;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];

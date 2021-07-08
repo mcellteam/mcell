@@ -1,0 +1,16 @@
+Cloned on June 9, 2020 from https://github.com/pybind/pybind11.git, 
+tag v2.2.4, hash 9a19306
+
+CMake on MacOS is unable to find pybind installed in anaconda and
+building pybind11 along with other sources seems to be the common approach 
+(e.g. in Gamer)  
+
+Also neede to use an older version because for version 2.5.0 build on MacOS 
+reported Unsupported compiler -- pybind11 requires C++11 support
+
+Not stripping the resulting library for now 
+- change in pybind11/tools/pybind11Tools.cmake - see NO STRIP
+
+
+Shorter error message:
+- change in pybind11/include/pybind11/pybind11.h 

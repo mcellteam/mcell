@@ -30,12 +30,12 @@
 
   void dgerror(struct dyngeom_parse_vars *dg_parse, yyscan_t scanner, char const *str);
 
-  void object_list_singleton(struct object_list *head, struct object *objp) {
+  void object_list_singleton(struct object_list *head, struct geom_object *objp) {
     objp->next = NULL;
     head->obj_tail = head->obj_head = objp;
   }
 
-  void add_object_to_list(struct object_list *head, struct object *objp) {
+  void add_object_to_list(struct object_list *head, struct geom_object *objp) {
     objp->next = NULL;
     head->obj_tail = head->obj_tail->next = objp;
   }
@@ -86,7 +86,7 @@
     dg_parse->curr_file = prev_file;
     -- dg_parse->include_stack_ptr;
 
-    /* Free leftover object names */
+    /* Free leftover geom_object names */
     struct name_list *nl;
     while (dg_parse->object_name_list != NULL)
     {
@@ -115,7 +115,7 @@
   struct sym_entry *sym;
   struct vector3 *vec3;
   struct num_expr_list_head nlist;
-  struct object *obj;
+  struct geom_object *obj;
   struct object_list obj_list;
   struct region *reg;
 }
@@ -240,7 +240,7 @@ meta_object_def:
           list_objects
           list_opt_object_cmds
         end_object                                   {
-                                                         struct object *the_object = (struct object *) $1->value;
+                                                         struct geom_object *the_object = (struct geom_object *) $1->value;
                                                          the_object->object_type = META_OBJ;
                                                          add_child_objects(the_object, $4.obj_head, $4.obj_tail);
                                                          $$ = the_object;
@@ -259,9 +259,9 @@ object_ref: existing_object_ref
 
 existing_object_ref:
         new_object OBJECT existing_object
-        start_object                                 { dg_deep_copy_object(dg_parse, (struct object *) $1->value, (struct object *) $3->value); }
+        start_object                                 { dg_deep_copy_object(dg_parse, (struct geom_object *) $1->value, (struct geom_object *) $3->value); }
           list_opt_object_cmds
-        end_object                                   { $$ = (struct object *) $1->value; }            
+        end_object                                   { $$ = (struct geom_object *) $1->value; }            
 ;
 
 new_object_name: var                                 { no_printf("new_object_name\n"); }
@@ -320,7 +320,7 @@ polygon_list_def:
             list_opt_polygon_object_cmds
             list_opt_object_cmds
           '}'
-                                                     { $$ = (struct object *) $<obj>7; dg_finish_object(dg_parse); }
+                                                     { $$ = (struct geom_object *) $<obj>7; dg_finish_object(dg_parse); }
 ;
 
 vertex_list_cmd:
@@ -491,5 +491,4 @@ void dgerror(
     char const *str) {
   mcell_error("%s on line %d in %s\n", str, dg_parse->line_num[dg_parse->include_stack_ptr - 1], dg_parse->curr_file);
 }
-
 

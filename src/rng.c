@@ -4,29 +4,24 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
 #include "config.h"
 
 #include <math.h>
+#include <iostream>
 
 #include "rng.h"
-#include "mcell_structs.h"
+//#include "mcell_structs.h"
+
+static void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment) {
+  std::cout << "  " << extra_comment << "randcnt:" << rng->randcnt << ", aa:" <<
+      (unsigned)rng->aa << ", bb:" << (unsigned)rng->bb << ", cc:" << (unsigned)rng->cc << "\n";
+}
 
 /*************************************************************************
  * Ziggurat Gaussian generator
@@ -175,9 +170,13 @@ rng_gauss:
   In:  struct rng_state *rng - uniform RNG state
   Out: Returns a Gaussian variate (mean 0, variance 1)
  *************************************************************************/
-double rng_gauss(struct rng_state *rng) {
+static double rng_gauss(struct rng_state *rng) {
   double x, y;
   double sign = 1.0;
+
+#ifdef DEBUG_RNG_CALLS
+  dump_rng_call_info(rng, "rng_gauss");
+#endif
 
   int npasses = 0;
   do {
@@ -217,3 +216,23 @@ double rng_gauss(struct rng_state *rng) {
 
   return sign * x;
 }
+
+#if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
+static double rng_dbl(struct rng_state *rng) {
+
+#ifdef DEBUG_RNG_CALLS
+  dump_rng_call_info(rng, "");
+#endif
+  return isaac64_dbl32(rng);
+}
+#endif
+
+#if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
+static unsigned int rng_uint(struct rng_state *rng) {
+
+#ifdef DEBUG_RNG_CALLS
+  dump_rng_call_info(rng, "");
+#endif
+  return isaac64_uint32(rng);
+}
+#endif

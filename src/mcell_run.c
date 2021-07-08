@@ -4,31 +4,23 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 #include <string.h>
 #include <assert.h>
 #include <float.h>
 #include <math.h>
-#include <unistd.h>
 
-#ifndef _WIN32
+#ifndef _MSC_VER
+#include <unistd.h>
 #include <sys/resource.h>
+#else
+#include <process.h> // getpid
 #endif
+
 #if defined(__linux__)
 #include <fenv.h>
 #endif
@@ -48,6 +40,9 @@
 #include <nfsim_c.h>
 #include "mcell_reactions.h"
 #include "mcell_react_out.h"
+
+#include "dump_state.h"
+#include "debug_config.h"
 
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
@@ -104,6 +99,16 @@ static void process_reaction_output(struct volume *wrld, double not_yet) {
                          "should never happen.");
 }
 
+#ifdef MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
+
+#include <vector>
+#include <algorithm>
+
+static bool less_release_time(release_event_queue* r1, release_event_queue* r2) {
+  return r1->event_time < r2->event_time;
+}
+#endif
+
 /***********************************************************************
  process_molecule_releases:
 
@@ -114,6 +119,10 @@ static void process_reaction_output(struct volume *wrld, double not_yet) {
  Out: none.  molecules are released into the world.
  ***********************************************************************/
 void process_molecule_releases(struct volume *wrld, double not_yet) {
+#ifdef MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
+  std::vector<release_event_queue *> releases;
+#endif
+
   for (struct release_event_queue *req = (struct release_event_queue *)schedule_next(wrld->releaser);
        req != NULL || not_yet >= wrld->releaser->now;
        req = (struct release_event_queue *)schedule_next(wrld->releaser)) {
@@ -121,12 +130,25 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
         !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))
       continue;
 
+#ifndef MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
     if (release_molecules(wrld, req))
       mcell_error("Failed to release molecules of type '%s'.",
                   req->release_site->mol_type->sym->name);
+#else
+    releases.push_back(req);
+#endif
 
   }
 
+#ifdef MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
+  std::sort(releases.begin(), releases.end(), less_release_time);
+  for (release_event_queue* req: releases) {
+    if (release_molecules(wrld, req)) {
+      mcell_error("Failed to release molecules of type '%s'.",
+                  req->release_site->mol_type->sym->name);
+    }
+  }
+#endif
   if (wrld->releaser->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while "
                          "retrieving next scheduled release event, but this "
@@ -335,7 +357,21 @@ mcell_run_simulation(MCELL_STATE *world) {
 
   long long frequency = mcell_determine_output_frequency(world);
   int status = 0;
+  world->it1_time_set = 0;
   while (world->current_iterations <= world->iterations) {
+    if (world->current_iterations == 1) {
+      // for a better comparison, we are also reporting when 1st iteration
+      // started
+      struct rusage it1_time;
+      getrusage(RUSAGE_SELF, &it1_time);
+
+      world->u_it1_time.tv_sec = it1_time.ru_utime.tv_sec;
+      world->u_it1_time.tv_usec = it1_time.ru_utime.tv_usec;
+      world->s_it1_time.tv_sec = it1_time.ru_stime.tv_sec;
+      world->s_it1_time.tv_usec = it1_time.ru_stime.tv_usec;
+      world->it1_time_set = 1;
+    }
+
     // XXX: A return status of 1 from mcell_run_iterations does not
     // indicate an error but is used to break out of the loop.
     // This behavior is non-conformant and should be changed.
@@ -500,7 +536,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   // reset this flag to zero
   *restarted_from_checkpoint = 0;
 
-  run_concentration_clamp(world, world->current_iterations);
+  run_clamp(world, world->current_iterations);
 
   double next_release_time;
   if (!schedule_anticipate(world->releaser, &next_release_time))
@@ -513,8 +549,12 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   if (!schedule_anticipate(world->volume_output_scheduler, &next_vol_output))
     next_vol_output = world->iterations + 1;
   double next_viz_output = find_next_viz_output(world->viz_blocks);
+
   double next_barrier =
       min3d(next_release_time, next_vol_output, next_viz_output);
+#ifdef MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP
+  next_barrier = not_yet; // == iterations + 1
+#endif
 
   while (world->storage_head != NULL &&
          world->storage_head->store->current_time <= not_yet) {
@@ -717,8 +757,10 @@ mcell_print_final_statistics(MCELL_STATE *world) {
                   ((world->current_iterations - world->start_iterations) * world->time_unit));
 
     if (world->diffusion_number > 0)
-      mcell_log("Average diffusion jump was %.2f timesteps\n",
-                world->diffusion_cumtime / (double)world->diffusion_number);
+      mcell_log("Average diffusion jump was %.2f timesteps (%.2f/%lld)\n",
+                world->diffusion_cumtime / (double)world->diffusion_number,
+                world->diffusion_cumtime, world->diffusion_number
+      );
     mcell_log("Total number of random number use: %lld", rng_uses(world->rng));
     mcell_log("Total number of ray-subvolume intersection tests: %lld",
               world->ray_voxel_tests);
@@ -728,6 +770,8 @@ mcell_print_final_statistics(MCELL_STATE *world) {
               world->ray_polygon_colls);
     mcell_log("Total number of dynamic geometry molecule displacements: %lld",
               world->dyngeom_molec_displacements);
+    mcell_log("Total number of diffuse 3d calls: %lld", world->diffuse_3d_calls);;
+
     print_molecule_collision_report(
         world->notify->molecule_collision_report,
         world->vol_vol_colls,
@@ -762,6 +806,17 @@ mcell_print_final_statistics(MCELL_STATE *world) {
 
     mcell_log("Simulation CPU time = %f (user) and %f (system)",
               u_run_time - u_init_time, s_run_time - s_init_time);
+
+    if (world->it1_time_set) {
+      double u_it1_time = world->u_it1_time.tv_sec +
+                    (world->u_it1_time.tv_usec / MAX_TARGET_TIMESTEP);
+      double s_it1_time = world->s_it1_time.tv_sec +
+                    (world->s_it1_time.tv_usec / MAX_TARGET_TIMESTEP);
+
+      mcell_log("Simulation CPU time without iteration 0 = %f (user) and %f (system)",
+                u_run_time - u_it1_time, s_run_time - s_it1_time);
+    }
+
     t_end = time(NULL);
     mcell_log("Total wall clock time = %ld seconds",
               (long)difftime(t_end, world->t_start));

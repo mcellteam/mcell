@@ -1,0 +1,9 @@
+Using Sphinx, can be installed with:
+
+python -m pip install sphinx sphinx_rtd_theme
+
+Some documentation is here:
+https://docs.readthedocs.io/en/stable/intro/getting-started-with-sphinx.html
+
+
+

@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -38,6 +27,9 @@
 #include "react.h"
 #include "react_nfsim.h"
 #include "vol_util.h"
+
+#include "dump_state.h"
+#include "debug_config.h"
 
 /*************************************************************************
 trigger_unimolecular:
@@ -1019,6 +1011,21 @@ void compute_lifetime(struct volume *state,
     double tt = FOREVER;
 
     am->t2 = timeof_unimolecular(r, am, state->rng);
+
+#ifdef DEBUG_RXNS
+    struct volume *world = state;
+    if ((am->flags & TYPE_VOL) != 0) {
+      DUMP_CONDITION3(
+          dump_volume_molecule((struct volume_molecule *)am, "", true, "Assigned unimolecular time (prev rng):", world->current_iterations, am->t2, true);
+      );
+    }
+    else {
+      DUMP_CONDITION3(
+          dump_surface_molecule((struct surface_molecule *)am, "", true, "Assigned unimolecular time (prev rng):", world->current_iterations, am->t2, true);
+      );
+    }
+#endif
+
     if (r->prob_t != NULL) {
       tt = r->prob_t->time;
     }

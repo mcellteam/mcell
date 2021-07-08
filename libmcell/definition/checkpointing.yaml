@@ -1,0 +1,69 @@
+
+BaseChkptMol:
+  superclass: BaseDataClass
+  doc: | 
+     Base class for checkpointed molecules.
+     Not to be used directly. All times are in seconds.
+  items:
+  - name: id
+    type: int
+  - name: species
+    type: Species*
+  - name: diffusion_time 
+    type: float     
+  - name: birthday 
+    type: float     
+  - name: flags 
+    type: int
+  - name: unimol_rx_time 
+    type: float
+    default: unset     
+
+ChkptVolMol:
+  superclass: BaseChkptMol
+  doc: | 
+     Class representing a checkpointed volume molecule.
+     Not to be used directly.
+  items:
+  - name: pos
+    type: Vec3
+
+ChkptSurfMol:
+  superclass: BaseChkptMol
+  doc: | 
+     Class representing a checkpointed surface molecule.
+     Not to be used directly.
+  items:
+  - name: pos
+    type: Vec2
+  - name: orientation
+    type: Orientation
+  - name: geometry_object
+    type: GeometryObject*
+  - name: wall_index
+    type: int
+  - name: grid_tile_index
+    type: int
+
+RngState:
+  superclass: BaseDataClass
+  doc: Internal checkpointing structure holding state of the random number generator.
+  items:
+  - name: randcnt
+    type: uint64
+  - name: aa
+    type: uint64
+  - name: bb
+    type: uint64
+  - name: cc
+    type: uint64
+  - name: randslr
+    type: List[uint64]
+    doc: Must contain RNG_SIZE items.
+  - name: mm
+    type: List[uint64]
+    doc: Must contain RNG_SIZE items.
+  - name: rngblocks
+    type: uint64
+    doc: Must contain RNG_SIZE items.
+    

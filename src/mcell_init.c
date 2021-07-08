@@ -4,20 +4,9 @@
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
+ * Use of this source code is governed by an MIT-style
+ * license that can be found in the LICENSE file or at
+ * https://opensource.org/licenses/MIT.
  *
 ******************************************************************************/
 
@@ -25,7 +14,7 @@
 #define _GNU_SOURCE 1
 #endif
 
-#ifndef _WIN32
+#ifndef _WIN64
 #include <sys/resource.h>
 #endif
 #include <stdlib.h>
@@ -36,6 +25,8 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+#include <math.h>
 
 #include "config.h"
 #include "mcell_structs.h"
@@ -78,6 +69,23 @@ static bool has_micro_rev_and_trimol_rxns(struct species **species_list,
 void mcell_set_seed(MCELL_STATE *state, int seed) {
   u_int signed_seed = (u_int) seed;
   state->seed_seq = signed_seed;
+  rng_init(state->rng, state->seed_seq);
+}
+
+/************************************************************************
+ *
+ * set diverse flags
+ *
+ ************************************************************************/
+
+void mcell_set_with_checks_flag(MCELL_STATE *state, int value) {
+  assert(value == 0 || value == 1);
+  state->with_checks_flag = value;
+}
+
+void mcell_set_randomize_smol_pos(MCELL_STATE *state, int value) {
+  assert(value == 0 || value == 1);
+  state->randomize_smol_pos = value;
 }
 
 /************************************************************************
@@ -89,10 +97,12 @@ void mcell_set_seed(MCELL_STATE *state, int seed) {
  *
  ************************************************************************/
 MCELL_STATE *mcell_create() {
+#ifdef _NDEBUG
   // signal handlers
   if (install_usr_signal_handlers()) {
     return NULL;
   }
+#endif
 
   // logging
   mcell_set_log_file(stdout);
@@ -119,6 +129,7 @@ MCELL_STATE *mcell_create() {
   state->seed_seq = 1;
   state->with_checks_flag = 1;
   state->nfsim_flag = 0; //JJT: NFsim flag
+  state->use_mcell4 = 0;
 
   time_t begin_time_of_day;
   time(&begin_time_of_day);
@@ -201,8 +212,12 @@ mcell_init_simulation(MCELL_STATE *state) {
         "Error while checking for overlapped walls.");
   }
 
-  CHECKED_CALL(init_surf_mols(state),
+  if (!state->use_mcell4) {
+    // must not be called for mcell4 - this is done through releases
+    // and we must not have additional rng calls
+    CHECKED_CALL(init_surf_mols(state),
                "Error while placing surface molecules on regions.");
+  }
 
   CHECKED_CALL(init_releases(state->releaser), "Error while initializing release sites.");
 
@@ -390,6 +405,24 @@ mcell_init_output(MCELL_STATE *state) {
   return MCELL_SUCCESS;
 }
 
+
+// only for mcell4 initialization
+static void set_vec3(struct vector3 *v, int dim_index, double value) {
+  switch (dim_index) {
+    case 0:
+      v->x = value;
+      break;
+    case 1:
+      v->y = value;
+      break;
+    case 2:
+      v->z = value;
+      break;
+    default:
+      assert(false);
+  }
+}
+
 /*************************************************************************
  mcell_set_partition:
     Set the partitioning in a particular dimension.
@@ -406,6 +439,20 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
                                       "volume partitions");
   if (dblp == NULL)
     return MCELL_FAIL;
+
+  // MCell4
+  if (head->start_end_step_set) {
+    state->partitions_initialized = true; // setting for all dimensions, expecting that all partition dims are set
+    // ok, we got values directly from the parser, no problem to determine partition setup
+    double llf = head->start * state->r_length_unit;
+    double urb = head->end * state->r_length_unit;
+
+    // get approximate number of subparts the user requested
+    set_vec3(&state->num_subparts, dim, round((head->end - head->start) / head->step));
+
+    set_vec3(&state->partition_llf, dim, llf);
+    set_vec3(&state->partition_urb, dim, urb);
+  }
 
   /* Copy partitions in sorted order to the array */
   unsigned int num_values = 0;
@@ -627,7 +674,7 @@ mcell_silence_warnings(MCELL_STATE *state) {
  *   Out: 0 on success, 1 on failure.
  ***********************************************************************/
 int install_usr_signal_handlers(void) {
-#ifndef _WIN32 /* fixme: Windows does not support USR signals */
+#ifndef _WIN64 /* fixme: Windows does not support USR signals */
   struct sigaction sa, saPrev;
   sa.sa_sigaction = NULL;
   sa.sa_handler = &chkpt_signal_handler;
