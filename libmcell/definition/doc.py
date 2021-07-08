@@ -156,7 +156,7 @@ def generate_documentation(data_classes):
     # and generate api.rst file
     with open(os.path.join(DOC_DIRECTORY, API_RST), 'w') as f:
 
-        title = 'API Documentation'
+        title = 'Python API Reference'
         f.write(
             title + '\n' +
             '='*len(title) + '\n\n'

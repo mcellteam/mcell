@@ -1,6 +1,6 @@
-*******************************
-Simulation Environment Overview
-*******************************
+****************************
+MCell & CellBlender Overview
+****************************
 
 MCell is an agent-based reaction-diffusion program that simulates the movement and interaction of molecules in 3D space.
 MCell 4, the latest version of MCell, provides two different user experiences, one through its visual interface as an 
