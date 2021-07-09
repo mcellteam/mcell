@@ -18,6 +18,16 @@
 #include "api/mol_wall_hit_info.h"
 #include "api/checkpoint_signals.h"
 
+
+extern "C" {
+// including pybind11 with Python 3.9 requires this symbol,
+// however, must not be used
+void __attribute__((weak)) _Py_Dealloc(PyObject*) {
+  release_assert("must not be called");
+}
+
+}
+
 namespace MCell {
 namespace API {
 

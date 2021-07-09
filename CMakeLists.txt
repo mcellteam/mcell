@@ -395,17 +395,10 @@ if (NOT WIN32 AND NOT APPLE)
     set(STDC_FS stdc++fs)
 endif()
 
-if(NOT APPLE)
-    # causes segfault on MacOS if linked
-    set(LINKED_PYTHON_LIB_MCELL_SO python3.9)
-endif()
-set(LINKED_PYTHON_LIB_MCELL_BIN python3.9)
-
-
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
 target_link_libraries(mcell 
-    mcell4 libmcell_dummy libbng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES} ${LINKED_PYTHON_LIB_MCELL_BIN}
+    mcell4 libmcell_dummy libbng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES}
 )
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
@@ -414,7 +407,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
 add_dependencies(mcell4_so libmcell mcell4 libbng jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 libbng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS} ${WIN_PYTHON} ${LINKED_PYTHON_LIB_MCELL_SO}
+    PRIVATE mcell4 libbng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
     PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
 )
 
