@@ -202,7 +202,7 @@ void Model::export_data_model_viz_or_full(
     world->export_data_model(file, only_for_visualization);
   }
   else {
-    world->export_data_model_to_dir(get_first_viz_output_files_prefix(method_name));
+    world->export_data_model_to_dir(get_first_viz_output_files_prefix(method_name), only_for_visualization);
   }
 }
 
