@@ -1203,14 +1203,15 @@ std::string PythonGenerator::generate_single_count_term(
 
     gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
 
+    bool comma_after = (where_to_count != "");
+
     if (rxn_not_mol) {
-      gen_param_expr(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
+      gen_param_expr(out, NAME_REACTION_RULE, what_to_count, comma_after);
     }
     else {
-      bool comma_after_cplx = orientation == "" && where_to_count != "";
       gen_param_expr(
           out, molecules_not_species ? NAME_MOLECULES_PATTERN : NAME_SPECIES_PATTERN,
-          make_species_or_cplx(data, what_to_count, orientation, ""), comma_after_cplx);
+          make_species_or_cplx(data, what_to_count, orientation, ""), comma_after);
     }
 
     if (where_to_count != "") {
@@ -1220,7 +1221,7 @@ std::string PythonGenerator::generate_single_count_term(
     out << CTOR_END;
   }
 
-  return name;
+  return fix_id(name);
 }
 
 
@@ -1244,7 +1245,7 @@ string PythonGenerator::generate_count_terms_for_expression(
     for (uint i = 0; i < num_counts; i++) {
       size_t start = mdl_string.find(COUNT, last_end);
 
-      size_t end = mdl_string.find(']', start);
+      size_t end = find_end_brace_pos(mdl_string, start + strlen(COUNT));
       if (end == string::npos) {
         end = mdl_string.size();
       }

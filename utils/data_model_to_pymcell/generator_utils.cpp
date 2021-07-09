@@ -459,6 +459,23 @@ string remove_whitespace(const string& str) {
 }
 
 
+size_t find_end_brace_pos(const string& str, const size_t start) {
+  int braces_count = 1;
+  assert(str[start] == '[');
+  size_t i = start + 1;
+  while (braces_count > 0 && i < str.size()) {
+    if (str[i] == '[') {
+      braces_count++;
+    }
+    else if (str[i] == ']') {
+      braces_count--;
+    }
+    i++;
+  }
+  return i - 1;
+}
+
+
 void process_single_count_term(
     const SharedGenData& data,
     const string& mdl_string,
@@ -471,7 +488,7 @@ void process_single_count_term(
   // mdl_string is always in the form COUNT[what,where]
   size_t start_brace = mdl_string.find('[');
   size_t comma = mdl_string.rfind(',');
-  size_t end_brace = mdl_string.find(']');
+  size_t end_brace = find_end_brace_pos(mdl_string, start_brace);
 
   if (mdl_string.find(COUNT) == string::npos) {
     ERROR("String 'COUNT' was not found in mdl_string '" + mdl_string + "'.");
@@ -516,23 +533,44 @@ void process_single_count_term(
     rxn_not_mol = false;
   }
 
-  where_to_count = mdl_string.substr(comma + 1, end_brace - comma - 1);
-  size_t dot_pos = where_to_count.find('.');
+
+  string where_tmp = mdl_string.substr(comma + 1, end_brace - comma - 1);
+
+  size_t dot_pos = where_tmp.find('.');
   if (dot_pos != string::npos) {
-    where_to_count = where_to_count.substr(dot_pos + 1);
+    // no completely sure when a '.' can appear
+    where_tmp = where_tmp.substr(dot_pos + 1);
   }
-  where_to_count = trim(where_to_count);
-  if (where_to_count == WORLD) {
-    where_to_count = "";
+  where_tmp = trim(where_tmp);
+  if (where_tmp == WORLD) {
+    where_tmp = "";
   }
-  // where_to_count can now look like this: "Cube[ALL"
-  size_t brace = where_to_count.find('[');
-  if (brace != string::npos) {
-    if (where_to_count.substr(brace + 1) == REGION_ALL_NAME) {
-      where_to_count = where_to_count.substr(0, brace);
+
+  // remove all [ALL] and replace box1[box1_sr1] -> box1_box1_sr1
+  where_to_count = "";
+  size_t i = 0;
+  while (i < where_tmp.size()) {
+    char c = where_tmp[i];
+    if (c == '[') {
+      // followed by ALL]?
+      if (i + 4 < where_tmp.size() && where_tmp.substr(i + 1, 4) == "ALL]") {
+        // skip
+        i += 5;
+      }
+      else {
+        // replace
+        where_to_count += '_';
+        i++;
+      }
+    }
+    else if (c == ']') {
+      // ignore
+      i++;
     }
     else {
-      where_to_count[brace] = '_';
+      // keep character
+      where_to_count += c;
+      i++;
     }
   }
 }

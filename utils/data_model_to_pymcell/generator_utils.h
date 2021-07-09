@@ -213,6 +213,8 @@ uint get_num_counts_in_mdl_string(const string& mdl_string);
 string remove_c_comment(const string& str);
 string remove_whitespace(const string& str);
 
+size_t find_end_brace_pos(const string& str, const size_t start);
+
 void process_single_count_term(
     const SharedGenData& data,
     const string& mdl_string,

@@ -135,6 +135,39 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
 }
 
 
+static std::string get_region_as_mdl_string_recursively(const World* world, const RegionExprNode* node) {
+  if (node->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    string obj_name = world->get_geometry_object(node->geometry_object_id).name;
+    CONVERSION_CHECK(obj_name != "", "Counted object has no name");
+    return obj_name;
+  }
+  else if (node->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+    string reg_name = world->get_region(node->region_id).name;
+    CONVERSION_CHECK(reg_name != "", "Counted region has no name");
+
+    // use MCell4 naming - directly the surface region name without the object
+    return DMUtils::get_object_w_region_name(reg_name, false);
+  }
+  else {
+    release_assert(node->has_binary_op());
+    string left = get_region_as_mdl_string_recursively(world, node->left);
+    string right = get_region_as_mdl_string_recursively(world, node->right);
+
+    switch (node->op) {
+      case RegionExprOperator::DIFFERENCE:
+        return "(" + left + " - " + right + ")";
+      case RegionExprOperator::INTERSECT:
+        return "(" + left + " * " + right + ")";
+      case RegionExprOperator::UNION:
+        return "(" + left + " + " + right + ")";
+      default:
+        assert(false);
+        return "error";
+    }
+  }
+}
+
+
 std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool print_positive_sign) const {
   stringstream res;
   assert(sign_in_expression == -1 || sign_in_expression == 1);
@@ -187,58 +220,46 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
     case CountType::RxnCountInWorld:
       where = VALUE_WORLD;
       break;
+
     case CountType::EnclosedInVolumeRegion:
-    case CountType::RxnCountInVolumeRegion: {
-        if (region_expr.root->op != RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
-          errs() << "Data model export with region expressions is not supported yet, use " <<
-              API::NAME_CLASS_MODEL << "." << API::NAME_EXPORT_VIZ_DATA_MODEL << " instead, error for " <<
-              API::NAME_CLASS_COUNT << " for " <<
-              ((type == CountType::EnclosedInVolumeRegion) ?
-                  species_molecules_pattern.to_str() :
-                  world->get_all_rxns().get(rxn_rule_id)->name) << ".\n";
-          exit(1);
-        }
-        string obj_name = world->get_geometry_object(region_expr.root->geometry_object_id).name;
-        CONVERSION_CHECK(obj_name != "", "Counted object has no name");
-        where = obj_name;
-      }
+    case CountType::RxnCountInVolumeRegion:
+      where = get_region_as_mdl_string_recursively(world, region_expr.root);
       break;
+
     case CountType::PresentOnSurfaceRegion:
     case CountType::RxnCountOnSurfaceRegion:{
-      if (region_expr.root->op != RegionExprOperator::LEAF_SURFACE_REGION) {
-        errs() << "Data model export with region expressions is not supported yet, use " <<
-            API::NAME_CLASS_MODEL << "." << API::NAME_EXPORT_VIZ_DATA_MODEL << " instead, error for " <<
-            API::NAME_CLASS_COUNT << " for " <<
-            ((type == CountType::PresentOnSurfaceRegion) ?
-                species_molecules_pattern.to_str() :
-                world->get_all_rxns().get(rxn_rule_id)->name) << ".\n";
-        exit(1);
-      }
-      region_id_t region_id = region_expr.root->region_id;
-      // if possible, we should use 2d compartment name because in MCell
-      // the encompassing region name is the same as the name of the object,
-      // this would lead to the same name for A@CP and A@PM
-      bool surf_compartment_used = false;
-      const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-      for (const auto& geom_obj: p.get_geometry_objects()) {
-        if (geom_obj.encompassing_region_id == region_id &&
-            geom_obj.surf_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+      if (region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION) {
+        region_id_t region_id = region_expr.root->region_id;
+        // if possible, we should use 2d compartment name because in MCell
+        // the encompassing region name is the same as the name of the object,
+        // this would lead to the same name for A@CP and A@PM
+        bool surf_compartment_used = false;
+        const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+        for (const auto& geom_obj: p.get_geometry_objects()) {
+          if (geom_obj.encompassing_region_id == region_id &&
+              geom_obj.surf_compartment_id != BNG::COMPARTMENT_ID_NONE) {
 
-          const BNG::Compartment& comp = world->bng_engine.get_data().get_compartment(geom_obj.surf_compartment_id);
-          assert(!comp.is_3d);
-          pattern = "@" + comp.name + ":" + pattern;
+            const BNG::Compartment& comp = world->bng_engine.get_data().get_compartment(geom_obj.surf_compartment_id);
+            assert(!comp.is_3d);
+            pattern = "@" + comp.name + ":" + pattern;
 
-          where = VALUE_WORLD;
+            where = VALUE_WORLD;
 
-          surf_compartment_used = true;
-          break;
+            surf_compartment_used = true;
+            break;
+          }
+        }
+
+        if (!surf_compartment_used) {
+          string reg_name = world->get_region(region_id).name;
+          CONVERSION_CHECK(reg_name != "", "Counted region has no name");
+          where = DMUtils::get_object_w_region_name(reg_name, false);
         }
       }
-
-      if (!surf_compartment_used) {
-        string reg_name = world->get_region(region_id).name;
-        CONVERSION_CHECK(reg_name != "", "Counted region has no name");
-        where = DMUtils::get_object_w_region_name(reg_name, false);
+      else {
+        // we don't care about compartments with combined surface regions
+        // TODO: specific test needed
+        where = get_region_as_mdl_string_recursively(world, region_expr.root);
       }
     }
     break;
