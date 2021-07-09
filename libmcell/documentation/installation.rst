@@ -14,8 +14,11 @@ Additional installation steps are required to use MCell4 outside of Blender
 with Python 3.9 and they are described in section: :ref:`setting_system_variables`.     
 
 
-Prerequisites
-#############
+Prerequisites for 4.0.0 (not for 4.0.1)
+#######################################
+
+These prerequisites are required only for 4.0.0. 
+Dependency on system Python was fixed in 4.0.1. 
 
 Installing Python 3.9.2
 ***********************
