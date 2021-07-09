@@ -141,9 +141,13 @@ void Calendar::dump() const {
 }
 
 
-void Calendar::to_data_model(Json::Value& mcell_node) const {
+void Calendar::to_data_model(Json::Value& mcell_node, const bool only_for_viz) const {
   for (const Bucket& bucket: queue) {
     for (const BaseEvent* event: bucket.events) {
+      if (only_for_viz && event->type_index != EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT) {
+        // include only visualization-related events
+        continue;
+      }
       event->to_data_model(mcell_node);
     }
   }
@@ -339,10 +343,10 @@ void Scheduler::dump() const {
 }
 
 
-void Scheduler::to_data_model(Json::Value& mcell_node) const {
+void Scheduler::to_data_model(Json::Value& mcell_node, const bool only_for_viz) const {
   // go through all events and run their conversion,
   // for many events, the conversion does nothing
-  calendar.to_data_model(mcell_node);
+  calendar.to_data_model(mcell_node, only_for_viz);
 }
 
 

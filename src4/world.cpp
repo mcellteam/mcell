@@ -790,23 +790,20 @@ void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
     p.to_data_model(mcell, used_colors);
   }
 
-  if (!only_for_viz) {
-    // base information for reaction_data_output must be set even when there are no such events
-    Json::Value& reaction_data_output = mcell[KEY_REACTION_DATA_OUTPUT];
-    DMUtils::add_version(reaction_data_output, VER_DM_2016_03_15_1800);
-    reaction_data_output[KEY_PLOT_LAYOUT] = " ";
-    reaction_data_output[KEY_PLOT_LEGEND] = "0";
-    reaction_data_output[KEY_MOL_COLORS] = false;
-    reaction_data_output[KEY_ALWAYS_GENERATE] = true;
-    reaction_data_output[KEY_OUTPUT_BUF_SIZE] = "";
-    reaction_data_output[KEY_RXN_STEP] = "";
-    reaction_data_output[KEY_COMBINE_SEEDS] = true;
-    Json::Value& reaction_output_list = reaction_data_output[KEY_REACTION_OUTPUT_LIST];
-    reaction_output_list = Json::Value(Json::arrayValue); // empty array
+  // base information for reaction_data_output must be set even when there are no such events
+  Json::Value& reaction_data_output = mcell[KEY_REACTION_DATA_OUTPUT];
+  DMUtils::add_version(reaction_data_output, VER_DM_2016_03_15_1800);
+  reaction_data_output[KEY_PLOT_LAYOUT] = " ";
+  reaction_data_output[KEY_PLOT_LEGEND] = "0";
+  reaction_data_output[KEY_MOL_COLORS] = false;
+  reaction_data_output[KEY_ALWAYS_GENERATE] = true;
+  reaction_data_output[KEY_OUTPUT_BUF_SIZE] = "";
+  reaction_data_output[KEY_RXN_STEP] = "";
+  reaction_data_output[KEY_COMBINE_SEEDS] = true;
+  Json::Value& reaction_output_list = reaction_data_output[KEY_REACTION_OUTPUT_LIST];
+  reaction_output_list = Json::Value(Json::arrayValue); // empty array
 
-    scheduler.to_data_model(mcell);
-
-  }
+  scheduler.to_data_model(mcell, only_for_viz);
 
   // generate species and rxn info
   BngDataToDatamodelConverter bng_converter;

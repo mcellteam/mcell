@@ -64,7 +64,7 @@ public:
   BaseEvent* pop_next();
 
   void dump() const;
-  void to_data_model(Json::Value& mcell_node) const;
+  void to_data_model(Json::Value& mcell_node, const bool only_for_viz) const;
   const BaseEvent* find_next_event_with_type_index(
       const event_type_index_t event_type_index) const;
   void get_all_events_with_type_index(
@@ -145,7 +145,7 @@ public:
 
   void dump() const;
 
-  void to_data_model(Json::Value& mcell_node) const;
+  void to_data_model(Json::Value& mcell_node, const bool only_for_viz) const;
 
   const BaseEvent* find_next_event_with_type_index(
       const event_type_index_t event_type_index) {
