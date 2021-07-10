@@ -219,7 +219,7 @@ Instantiation:
      Container used to hold instantiation-related model data. 
      Instantiation is usually specific for each model, defines 
      the geometry and initial setup of molecule releases.
-  examples: tests/pymcell4_positive/1600_organelle_move/instantiation.py
+  examples: tests/pymcell4/1250_organelle_move
   items:
   - name: release_sites
     type: List[ReleaseSite*]

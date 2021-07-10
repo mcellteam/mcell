@@ -11,7 +11,7 @@ What is counted is defined through a CounTerm tree and a reference to
 the root of this tree is stored into attribute expression. 
 This tree usually contains just one node.
 
-Example: `1500_region_release_must_set_compartment/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1500_region_release_must_set_compartment/model.py>`_ 
+Example: `1500_region_release_must_set_compartment/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/1500_region_release_must_set_compartment/model.py>`_ 
 
 Attributes:
 ***********
@@ -80,7 +80,7 @@ Methods:
   | Returns the current value for this count. Cannot be used to count reactions.
   | The model must be initialized with this Count present as one of the observables.
 
-  | Example: `2600_get_current_mol_count/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/2600_get_current_mol_count/model.py>`_ 
+  | Example: `2600_get_current_mol_count/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/2600_get_current_mol_count/model.py>`_ 
 
 
 
@@ -167,7 +167,7 @@ Container used to hold observables-related model data.
 Observables are the measured values of the system. 
 This class also includes information on visualization of simulation.
 
-Example: `2600_get_current_mol_count/observables.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/2600_get_current_mol_count/observables.py>`_ 
+Example: `2600_get_current_mol_count/observables.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/2600_get_current_mol_count/observables.py>`_ 
 
 Attributes:
 ***********
@@ -231,7 +231,7 @@ Methods:
   | Loads section observables from a BNGL file and creates Count objects according to it.
   | All elementary molecule types used in the seed species section must be defined in subsystem.
 
-  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
+  | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
 
 
 
@@ -241,7 +241,7 @@ VizOutput
 Defines a visualization output with locations of molecules 
 that can be then loaded by CellBlender.
 
-Example: `1100_point_release/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4/1100_point_release/model.py>`_ 
+Example: `1100_point_release/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/1100_point_release/model.py>`_ 
 
 Attributes:
 ***********

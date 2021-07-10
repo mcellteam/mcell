@@ -143,7 +143,7 @@ Model:
       Run a single reaction on reactants. Callbacks will be called if they are registered for the given reaction.
       Returns a list of product IDs.
       Note\: only unimolecular reactions are currently supported.
-    examples: pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py
+    examples: tests/pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py
     return_type: List[int]
     params:
     - name: reaction_rule
@@ -170,7 +170,7 @@ Model:
        To do the actual geometry change, call Model.apply_vertex_moves.
        The reason why we first need to collect all changes and then apply them all at the same time is for performance
        reasons. 
-    examples: tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py
+    examples: tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py
     params: 
     - name: object
       type: GeometryObject*
@@ -193,7 +193,7 @@ Model:
        Note\: It is not supported yet to move two objects that woudl collide at the same time.  
        When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
        when collect_wall_wall_hits is False, and empty list is returned.
-    examples: tests/pymcell4_positive/1500_tetrahedron_box_collision/model.py
+    examples: tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py
     return_type: List[WallWallHitInfo*]
     params:
     - name: collect_wall_wall_hits

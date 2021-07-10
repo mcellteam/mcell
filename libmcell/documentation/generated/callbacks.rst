@@ -9,7 +9,7 @@ MolWallHitInfo
 Data structure passed to a callback function registered through
 Model.register_mol_wall_hit_callback.
 
-Example: `1300_wall_hit_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1300_wall_hit_callback/model.py>`_ 
+Example: `1300_wall_hit_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1300_wall_hit_callback/model.py>`_ 
 
 Attributes:
 ***********
@@ -42,7 +42,7 @@ ReactionInfo
 Data structure passed to a reaction callback registered with 
 Model.register_reaction_callback.
 
-Example: `1800_vol_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1800_vol_rxn_callback/model.py>`_ 
+Example: `1800_vol_rxn_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1800_vol_rxn_callback/model.py>`_ 
 
 Attributes:
 ***********

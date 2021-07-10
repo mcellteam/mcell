@@ -24,7 +24,7 @@ Methods:
   | If the argument pattern is set, the list of all molecule ids whose species match 
   | the pattern is returned.
 
-  | Example: `1910_get_molecule_ids_w_pattern/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1910_get_molecule_ids_w_pattern/model.py>`_ 
+  | Example: `1910_get_molecule_ids_w_pattern/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1910_get_molecule_ids_w_pattern/model.py>`_ 
 
 
 * | **get_molecule**
@@ -38,7 +38,7 @@ Methods:
   | Returns a information on a molecule from the simulated environment, 
   | None if the molecule does not exist.
 
-  | Example: `1900_molecule_introspection/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1900_molecule_introspection/model.py>`_ 
+  | Example: `1900_molecule_introspection/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1900_molecule_introspection/model.py>`_ 
 
 
 * | **get_species_name**
@@ -51,7 +51,7 @@ Methods:
 
   | Returns a string representing canonical species name in the BNGL format.
 
-  | Example: `1850_run_unimol_rxn_in_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py>`_ 
+  | Example: `1850_run_unimol_rxn_in_callback/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1850_run_unimol_rxn_in_callback/model.py>`_ 
 
 
 * | **get_vertex**
@@ -65,7 +65,7 @@ Methods:
 
   | Returns coordinates of a vertex.
 
-  | Example: `1340_get_vertex/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1340_get_vertex/model.py>`_ 
+  | Example: `1340_get_vertex/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1340_get_vertex/model.py>`_ 
 
 
 * | **get_wall**
@@ -81,7 +81,7 @@ Methods:
 
   | Returns information about a wall belonging to a given object.
 
-  | Example: `1330_get_wall/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1330_get_wall/model.py>`_ 
+  | Example: `1330_get_wall/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1330_get_wall/model.py>`_ 
 
 
 * | **get_vertex_unit_normal**
@@ -99,7 +99,7 @@ Methods:
   | length 1 um (micrometer).
   | This represents the unit vector pointing outwards from the vertex.
 
-  | Example: `1320_get_vertex_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1320_get_vertex_unit_normal/model.py>`_ 
+  | Example: `1320_get_vertex_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1320_get_vertex_unit_normal/model.py>`_ 
 
 
 * | **get_wall_unit_normal**
@@ -115,7 +115,7 @@ Methods:
 
   | Returns wall normal converted to a unit vector of length 1um.
 
-  | Example: `1310_get_wall_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1310_get_wall_unit_normal/model.py>`_ 
+  | Example: `1310_get_wall_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1310_get_wall_unit_normal/model.py>`_ 
 
 
 * | **get_wall_color**
@@ -156,7 +156,7 @@ during simulation obtained through Model.get_molecule.
 Changes through changing attributes of this object are not allowed except 
 for complete removal of this molecule.
 
-Example: `1900_molecule_introspection/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1900_molecule_introspection/model.py>`_ 
+Example: `1900_molecule_introspection/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1900_molecule_introspection/model.py>`_ 
 
 Attributes:
 ***********
@@ -203,7 +203,7 @@ Methods:
   | Removes this molecule from simulation. Any subsequent modifications
   | of this molecule won't have any effect.
 
-  | Example: `1920_molecule_remove/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1920_molecule_remove/model.py>`_ 
+  | Example: `1920_molecule_remove/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1920_molecule_remove/model.py>`_ 
 
 
 
@@ -214,7 +214,7 @@ Constant representation of wall of a geometry object.
 Changes through changing attributes of this object are not allowed
 except for the attribute is_movable.
 
-Example: `1330_get_wall/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1330_get_wall/model.py>`_ 
+Example: `1330_get_wall/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1330_get_wall/model.py>`_ 
 
 Attributes:
 ***********
@@ -247,7 +247,7 @@ WallWallHitInfo
 This class is used in the return type of Model.apply_vertex_moves.
 Contains pair of walls that collided.
 
-Example: `1515_tetrahedron_box_collision_moving_3_w_wall_wall_hit/model.py <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/pymcell4_positive/1515_tetrahedron_box_collision_moving_3_w_wall_wall_hit/model.py>`_ 
+Example: `1515_tetrahedron_box_collision_moving_3_w_wall_wall_hit/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1515_tetrahedron_box_collision_moving_3_w_wall_wall_hit/model.py>`_ 
 
 Attributes:
 ***********
