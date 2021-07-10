@@ -31,7 +31,6 @@ import os
 import sys
 import shutil
 import glob
-import pathlib
 import argparse
 import itertools
 import multiprocessing
@@ -230,18 +229,29 @@ def run_mcell4_parallel(opts, args):
     else:
         print("Finished with errors, " + str(num_failed) + "/" + str(num_total) + " runs failed.")
         return 1    
+
+    
+def my_touch(fname):
+    # emulates 'touch', pathlib.Path(FINISHED_MARKER).touch() may not be available
+    try:
+        if os.path.exists(fname):
+            os.utime(fname, None)
+        else:
+            open(fname, 'a').close()
+    except:
+        print("Warning: could not 'touch' file " + fname + ".")
     
             
 def file_markers_start():    
     if (os.path.exists(FINISHED_MARKER)):
         os.remove(FINISHED_MARKER)
-    pathlib.Path(RUNNING_MARKER).touch()
+    my_touch(RUNNING_MARKER)
 
 
 def file_markers_finish():    
     if (os.path.exists(RUNNING_MARKER)):
         os.remove(RUNNING_MARKER)
-    pathlib.Path(FINISHED_MARKER).touch()
+    my_touch(FINISHED_MARKER)
 
 
 if __name__ == '__main__':
