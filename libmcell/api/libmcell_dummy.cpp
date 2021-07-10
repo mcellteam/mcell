@@ -18,15 +18,19 @@
 #include "api/mol_wall_hit_info.h"
 #include "api/checkpoint_signals.h"
 
+#ifndef _MSC_VER
+// pybind11 adds libpython39.lib all the time and 
+// I found no easy way around it, other OSes are ok 
+// mcell.exe then requires python39.dll to be present
 
 extern "C" {
-// including pybind11 with Python 3.9 requires this symbol,
-// however, must not be used
+// including pybind11 with Python 3.9 requires this symbol, however, must not be used
 void __attribute__((weak)) _Py_Dealloc(PyObject*) {
   release_assert("must not be called");
 }
 
 }
+#endif
 
 namespace MCell {
 namespace API {
