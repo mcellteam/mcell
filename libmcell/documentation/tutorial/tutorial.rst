@@ -60,32 +60,32 @@ Tutorial Sections
 #################
 
 0. | Diffusion of a volume molecule
-   | `0000_vol_mol_diffusion/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/tutorial/0000_vol_mol_diffusion/model.py>`_ 
-   | `0000_vol_mol_diffusion/viz.blend <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/tutorial/0000_vol_mol_diffusion/viz.blend>`_ 
+   | `0000_vol_mol_diffusion/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial//0000_vol_mol_diffusion/model.py>`_ 
+   | `0000_vol_mol_diffusion/viz.blend <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0000_vol_mol_diffusion/viz.blend>`_ 
  
 1. | Adding a box to the model
-   | `0010_vol_mol_diffusion_in_box/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/tutorial/0010_vol_mol_diffusion_in_box/model.py>`_ 
+   | `0010_vol_mol_diffusion_in_box/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial//0010_vol_mol_diffusion_in_box/model.py>`_ 
  
 2. | Replacing the box with an icosphere
-   | `0020_vol_mol_diffusion_in_icosphere/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/tutorial/0020_vol_mol_diffusion_in_icosphere/model.py>`_ 
+   | `0020_vol_mol_diffusion_in_icosphere/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial//0020_vol_mol_diffusion_in_icosphere/model.py>`_ 
  
 3. | Defining species and molecule releases with BNGL (BioNetGen language)
-   | `0030_mol_release_with_bngl_and_compartments/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/tutorial/0030_mol_release_with_bngl_and_compartments/model.py>`_
-   | `0030_mol_release_with_bngl_and_compartments/model.bngl <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/tutorial/0030_mol_release_with_bngl_and_compartments/model.bngl>`_
+   | `0030_mol_release_with_bngl_and_compartments/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial//0030_mol_release_with_bngl_and_compartments/model.py>`_
+   | `0030_mol_release_with_bngl_and_compartments/model.bngl <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0030_mol_release_with_bngl_and_compartments/model.bngl>`_
  
 4. | Volume-volume and volume-surface reaction definition with BNGL
-   | `0040_vol_and_surf_reactions/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/tutorial/0040_vol_and_surf_reactions/model.py>`_ 
-   | `0040_vol_and_surf_reactions/model.bngl <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/tutorial/0040_vol_and_surf_reactions/model.bngl>`_
+   | `0040_vol_and_surf_reactions/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial//0040_vol_and_surf_reactions/model.py>`_ 
+   | `0040_vol_and_surf_reactions/model.bngl <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0040_vol_and_surf_reactions/model.bngl>`_
  
 5. | Counting molecules 
-   | `0050_counting/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/tutorial/0050_counting/model.py>`_ 
-   | `0050_counting/model.bngl <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/tutorial/0050_counting/model.bngl>`_
+   | `0050_counting/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0050_counting/model.py>`_ 
+   | `0050_counting/model.bngl <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0050_counting/model.bngl>`_
  
 6. | Complete organelle model
-   | `0060_full_organelle_model/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/tutorial/0060_full_organelle_model/model.py>`_ 
-   | `0060_full_organelle_model/model.bngl <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/tutorial/0060_full_organelle_model/model.bngl>`_
+   | `0060_full_organelle_model/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0060_full_organelle_model/model.py>`_ 
+   | `0060_full_organelle_model/model.bngl <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0060_full_organelle_model/model.bngl>`_
  
 7. | Optimizing simulation performance
-   | `0070_simulation_performance/model.py <https://github.com/mcellteam/mcell_tests/tree/mcell4_dev/tests/tutorial/0070_simulation_performance/model.py>`_ 
-   | `0070_simulation_performance/model.bngl <https://github.com/mcellteam/mcell_tests/blob/mcell4_dev/tests/tutorial/0070_simulation_performance/model.bngl>`_
+   | `0070_simulation_performance/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0070_simulation_performance/model.py>`_ 
+   | `0070_simulation_performance/model.bngl <https://github.com/mcellteam/mcell_tests/blob/master/tests/tutorial/0070_simulation_performance/model.bngl>`_
  
