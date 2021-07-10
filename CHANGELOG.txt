@@ -1,6 +1,15 @@
 CHANGELOG
 ===============================================================================
 
+Changes in MCell 4.0.1
+-------------------------------------------------------------------------------
+* Bug Fixes:
+  * Fixed dependency on system Python3.9.so
+
+* Minor changes:
+  * Exporting counts information in export_viz_data_model
+  * Support for region expressions for counts in exported data model
+
 Changes in MCell 4.0.0
 -------------------------------------------------------------------------------
 * Completely new MCell implementation
