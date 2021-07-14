@@ -91,7 +91,7 @@ void CountBuffer::flush() {
       for (size_t col = 0; col < data.size(); col++) {
         assert(row < data[col].size());
         const auto& item = data[col][row];
-        release_assert(item.time == time && "Mismatch in gdat column times");
+        release_assert(cmp_eq(item.time, time, SQRT_EPS) && "Mismatch in gdat column times");
         fout << "  ";
         write_gdat_value(fout, item.value);
       }

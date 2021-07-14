@@ -13,58 +13,6 @@ Please also follow the prerequisites.
 Additional installation steps are required to use MCell4 outside of Blender
 with Python 3.9 and they are described in section: :ref:`setting_system_variables`.     
 
-
-Prerequisites for 4.0.0 (not for 4.0.1)
-#######################################
-
-These prerequisites are required only for 4.0.0. 
-Dependency on system Python was fixed in 4.0.1. 
-
-Installing Python 3.9.2
-***********************
-
-To run MCell on Linux, one must also currenly install Python 3.9 devel package.
-Although CellBlender already contains Python 3.9.2.,
-the current build searches for system libraries and they are not available. 
-This will be fixed in the following release but currently Linux installations 
-require system Python 3.9.2 all the time.
-
-Under MacOS and Windows, installing Python is required for MDL model usage 
-(this use case is not common and you can usually skip this prerequisite). 
-
-Linux
-*****
-
-Python does not have a binary installer for Linux so one option is to use 
-a system installer.
-
-Debian/Ubuntu:
-
-.. code-block:: text
-
-   sudo apt install python3.9-dev
-   
-   
-Red Hat/CentOS:
-
-.. code-block:: text
-
-   sudo yum install python3.9-devel
-
-If you have no administrator permissions, please contact us at
-`forum <https://mcell.freeforums.net/>`_ and we will resolve this issue.
-  
-
-MacOS & Windows
-***************
-
-MacOS & Windows require a system Python installation only when you need to run the *mcell* 
-executable from the commandline or to use MCell3 mode (not common).
-If needed, download `MacOS <https://www.python.org/ftp/python/3.9.2/python-3.9.2-macosx10.9.pkg>`_
-or `Windows <https://www.python.org/ftp/python/3.9.2/python-3.9.2-amd64.exe>`_
-package and follow the steps in the installer.  
-
-
 Download
 ########
 
@@ -282,7 +230,7 @@ to make a new user variable. Give the variable name as MCELL_PATH and the value 
 
 .. code-block:: text
 
-   <blender_dir>/2.93/scripts/addons/cellblender/extensions/mcell/
+   <blender_dir>\2.93\scripts\addons\cellblender\extensions\mcell\
    
 Choose OK.
 
@@ -293,7 +241,7 @@ Select it, click *Edit* and then *New* and as the new line enter
     
 .. code-block:: text
 
-   <blender_dir>/2.93/python/bin/
+   <blender_dir>\2.93\python\bin\
    
 Choose OK.
 Then OK again to save these variables.
