@@ -498,6 +498,7 @@ ReactionRule:
   - name: fwd_rate
     type: float
     default: unset 
+    examples: tests/pymcell4/2500_rxn_rate_change_bimol_box_it_100/model.py tests/pymcell4/2700_concentration_based_rxn_rate/model.py
     doc: |
       The units of the reaction rate for uni- and bimolecular reactions are\:
         * [s^-1] for unimolecular reactions,
