@@ -1517,7 +1517,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
           // the original behavior is probably a bug anyway, but I do not want to break
           // the compatibility completely
         #else
-          continue;
+          continue; // FIXME: must not "continue" loop - we must check whether the wall is really transparent
         #endif
       }
       else {

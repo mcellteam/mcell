@@ -939,19 +939,19 @@ static pos_t __attribute__((noinline)) exact_disk(
       BNG::RxnClassesVector matching_rxn_classes;
       RxnUtils::trigger_intersect(p, moving, ORIENTATION_NONE, w, true, matching_rxn_classes);
 
-      if (matching_rxn_classes.empty()) {
-        continue;
-      }
-      bool blocked = false;
-      for (const BNG::RxnClass* rxn_class: matching_rxn_classes) {
-        // TODO: this is the same behavior as in mcell3 but this does not really reject
-        // area that we can reach because the wall can be reactive, e.g. absorptive
-        if (rxn_class->is_reflect_type()) {
-          blocked = true;
+      if (!matching_rxn_classes.empty()) {
+        // all reactions with the wall must be "transparent" for this wall to be ignored
+        bool all_transparent = true;
+        for (const BNG::RxnClass* rxn_class: matching_rxn_classes) {
+          // different behavior than in MCell3 (currently)
+          if (!rxn_class->is_transparent_type()) {
+            all_transparent = false;
+            break;
+          }
         }
-      }
-      if (!blocked) {
-        continue;
+        if (all_transparent) {
+          continue;
+        }
       }
     }
 
