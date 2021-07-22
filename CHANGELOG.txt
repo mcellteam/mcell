@@ -1,6 +1,17 @@
 CHANGELOG
 ===============================================================================
 
+Changes in MCell 4.0.2
+-------------------------------------------------------------------------------
+* Bug Fixes:
+  * Fixed case when having a transparent surface did not correctly adjust 
+    volume reaction rate
+  * Partial fix for geometry import using SBML in CellBlender
+  * Check for scheduling events such as Counts too far into the future
+  
+* Minor changes:
+  * Project base name 'Scene' is not used when exporting MCell4 Python files
+
 Changes in MCell 4.0.1
 -------------------------------------------------------------------------------
 * Bug Fixes:
