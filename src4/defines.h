@@ -142,6 +142,7 @@ const double MIN_WALL_GAP = 1e-4; // 1 angstrom when length unit is 1um
 // ---------------------------------- float types ----------------------------------
 
 const double SCHEDULER_COMPARISON_EPS = 1e-10;
+const size_t SCHEDULER_MAX_BUCKETS_TO_FUTURE = 100000000;
 
 const double MESH_DISTINCTIVE_EPS = EPS;
 

@@ -11,6 +11,7 @@
 ******************************************************************************/
 
 #include "scheduler.h"
+#include "generated/gen_names.h"
 
 namespace MCell {
 
@@ -99,6 +100,13 @@ void Calendar::insert(BaseEvent* event) {
     else {
       // we need to create new buckets
       size_t missing_buckets = buckets_from_first - queue.size() + 1;
+      if (missing_buckets > SCHEDULER_MAX_BUCKETS_TO_FUTURE) {
+        errs() << "An event such as " << API::NAME_CLASS_COUNT << " or " << API::NAME_CLASS_VIZ_OUTPUT <<
+            " is scheduled too far into the future (" << missing_buckets << " time steps). " <<
+            "This would require too much memory, please adjust its period with attribute " << API::NAME_EVERY_N_TIMESTEPS << "." <<
+            " (event type index " << event->type_index << ")\n";
+        exit(1);
+      }
       double next_time = queue.back().start_time + BUCKET_TIME_INTERVAL;
       for (size_t i = 0; i < missing_buckets; i++) {
         queue.push_back(Bucket(next_time));
