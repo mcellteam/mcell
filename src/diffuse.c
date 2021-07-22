@@ -1508,26 +1508,18 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
           world->all_volume_mols, world->all_surface_mols,
           moving->properties->hashval, (struct abstract_molecule *)moving, 0, w,
           matching_rxns, 1, 1, 0);
-      if (num_matching_rxns == 0) {
-        #ifdef FIX_EXTERNAL_SPECIES_WO_RXS_IN_EXACT_DISK
-          if ((moving->properties->flags & EXTERNAL_SPECIES) == 0) {
-            continue;
-          }
-          // do nothing when those are external species and there is no reaction
-          // the original behavior is probably a bug anyway, but I do not want to break
-          // the compatibility completely
-        #else
-          continue; // FIXME: must not "continue" loop - we must check whether the wall is really transparent
-        #endif
-      }
-      else {
-        int blocked = 0;
+
+      if (num_matching_rxns != 0) {
+        // all reactions with the wall must be "transparent" for this wall to be ignored
+        bool all_transparent = true;
         for (i = 0; i < num_matching_rxns; i++) {
-          if (matching_rxns[i]->n_pathways == RX_REFLEC) {
-            blocked = 1;
+          if (matching_rxns[i]->n_pathways != RX_TRANSP) {
+            all_transparent = false;
+            break;
           }
         }
-        if (!blocked) {
+        if (all_transparent) {
+          // ignore this wall
           continue;
         }
       }

@@ -943,13 +943,13 @@ static pos_t __attribute__((noinline)) exact_disk(
         // all reactions with the wall must be "transparent" for this wall to be ignored
         bool all_transparent = true;
         for (const BNG::RxnClass* rxn_class: matching_rxn_classes) {
-          // different behavior than in MCell3 (currently)
           if (!rxn_class->is_transparent_type()) {
             all_transparent = false;
             break;
           }
         }
         if (all_transparent) {
+          // ignore this wall
           continue;
         }
       }
