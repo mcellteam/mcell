@@ -171,8 +171,8 @@ int process_args(
     return ARG_PARSE_ERROR;
   }
 
-  if (opts.output_files_prefix == "Untitled") {
-    cout << "Ignoring files prefix 'Untitled'.\n";
+  if (opts.output_files_prefix == "Untitled" || opts.output_files_prefix == "Scene") {
+    cout << "Ignoring files prefix '" << opts.output_files_prefix << "'.\n";
     opts.output_files_prefix = "";
   }
 
