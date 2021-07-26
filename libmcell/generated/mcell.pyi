@@ -834,7 +834,7 @@ class Model():
     def load_bngl(
             self,
             file_name : str,
-            observables_path_or_file : str = '',
+            observables_path_or_file : str = None,
             default_release_region : Region = None,
             parameter_overrides : Dict[str, float] = None,
             observables_output_format : CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
@@ -982,7 +982,7 @@ class Model():
     def load_bngl_observables(
             self,
             file_name : str,
-            observables_path_or_file : str = '',
+            observables_path_or_file : str = None,
             parameter_overrides : Dict[str, float] = None,
             observables_output_format : CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
         ) -> None:
@@ -1153,7 +1153,7 @@ class Observables():
     def load_bngl_observables(
             self,
             file_name : str,
-            observables_path_or_file : str = '',
+            observables_path_or_file : str = None,
             parameter_overrides : Dict[str, float] = None,
             observables_output_format : CountOutputFormat = CountOutputFormat.AUTOMATIC_FROM_EXTENSION
         ) -> None:
@@ -1492,7 +1492,7 @@ class SurfaceRegion():
 class VizOutput():
     def __init__(
             self,
-            output_files_prefix : str,
+            output_files_prefix : str = None,
             species_list : List[Species] = None,
             mode : VizMode = VizMode.ASCII,
             every_n_timesteps : float = 1

@@ -20,9 +20,6 @@ namespace MCell {
 namespace API {
 
 void GenVizOutput::check_semantics() const {
-  if (!is_set(output_files_prefix)) {
-    throw ValueError("Parameter 'output_files_prefix' must be set.");
-  }
 }
 
 void GenVizOutput::set_initialized() {
@@ -97,7 +94,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
             const VizMode,
             const double
           >(),
-          py::arg("output_files_prefix"),
+          py::arg("output_files_prefix") = STR_UNSET,
           py::arg("species_list") = std::vector<std::shared_ptr<Species>>(),
           py::arg("mode") = VizMode::ASCII,
           py::arg("every_n_timesteps") = 1
@@ -108,7 +105,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def("__str__", &VizOutput::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &VizOutput::__eq__, py::arg("other"))
       .def("dump", &VizOutput::dump)
-      .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix, "Prefix for the viz output files, the prefix value is computed from the simulation seed: \noutput_files_prefix = './viz_data/seed_' + str(SEED).zfill(5) + '/Scene'.\n")
+      .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix, "Prefix for the viz output files.\nWhen not set, the default prefix value is computed from the simulation seed\nwhen the model is initialized to: \n'./viz_data/seed_' + str(seed).zfill(5) + '/Scene'.\n")
       .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list, py::return_value_policy::reference, "Specifies a list of species to be visualized, when empty, all_species will be generated.")
       .def_property("mode", &VizOutput::get_mode, &VizOutput::set_mode, "Specified the output format of the visualization files. \nVizMode.ASCII is a readable representation, VizMode.CELLBLENDER is a binary representation \nthat cannot be read using a text editor but is faster to generate. \n")
       .def_property("every_n_timesteps", &VizOutput::get_every_n_timesteps, &VizOutput::set_every_n_timesteps, "Specifies periodicity of visualization output.\nValue is truncated (floored) to an integer.\nValue 0 means that the viz output is ran only once at iteration 0. \n")
@@ -134,7 +131,9 @@ std::string GenVizOutput::export_to_python(std::ostream& out, PythonExportContex
     ss << exported_name << " = ";
   }
   ss << "m.VizOutput(" << nl;
-  ss << ind << "output_files_prefix = " << "'" << output_files_prefix << "'" << "," << nl;
+  if (output_files_prefix != STR_UNSET) {
+    ss << ind << "output_files_prefix = " << "'" << output_files_prefix << "'" << "," << nl;
+  }
   if (species_list != std::vector<std::shared_ptr<Species>>() && !skip_vectors_export()) {
     ss << ind << "species_list = " << export_vec_species_list(out, ctx, exported_name) << "," << nl;
   }

@@ -29,13 +29,16 @@ Attributes:
 * | **file_name**: str = None
   | File name where this observable values will be stored.
   | File extension or setting explicit output_format determines the output format.
-  | A) When the file_name extension is .dat such as here:
+  | A) When not set, the value is set using seed during model initialization as follows: 
+  | file_name = './react_data/seed_' + str(model.config.seed).zfill(5) + '/' + name + '.dat'
+  | and the output format is set to CountOutputFormat.DAT in the constructor.
+  | B) When the file_name is set explicitly by the user and the extension is .dat such as here:
   | file_name = './react_data/seed_' + str(SEED).zfill(5) + '/' + name + '.dat'
-  | the output format is set to CountOutputFormat.DAT in the constructor.
+  | and the output format is set to CountOutputFormat.DAT in the constructor.
   | File names for individual Counts must be different.
-  | B) When the file_name extension is .gdat such as here:
+  | C) When the file_name is set explicitly by the user and the extension is .gdat such as here:
   | file_name = './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat'
-  | the output format is set to CountOutputFormat.GDAT in the constructor.
+  | and the output format is set to CountOutputFormat.GDAT in the constructor.
   | The file name is usually the same for all counts but one can 
   | create multiple gdat files with different observables.
   | All observables that are stored into a single .gdat file must have the same 
@@ -209,11 +212,12 @@ Methods:
    * | file_name: str
      | Path to the BNGL file.
 
-   * | observables_path_or_file: str = ''
+   * | observables_path_or_file: str = None
      | Directory prefix or file name where observable values will be stored.
      | If a directory such as './react_data/seed_' + str(SEED).zfill(5) + '/' or an empty 
-     | string is used, each observable gets its own file and the output file format for created Count 
+     | string/unset is used, each observable gets its own file and the output file format for created Count 
      | objects is CountOutputFormat.DAT.
+     | When not set, this path is used: './react_data/seed_' + str(model.config.seed).zfill(5) + '/'.
      | If a file has a .gdat extension such as 
      | './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat', all observable are stored in this 
      | file and the output file format for created Count objects is CountOutputFormat.GDAT.
@@ -245,9 +249,11 @@ Example: `1100_point_release/model.py <https://github.com/mcellteam/mcell_tests/
 
 Attributes:
 ***********
-* | **output_files_prefix**: str
-  | Prefix for the viz output files, the prefix value is computed from the simulation seed: 
-  | output_files_prefix = './viz_data/seed_' + str(SEED).zfill(5) + '/Scene'.
+* | **output_files_prefix**: str = None
+  | Prefix for the viz output files.
+  | When not set, the default prefix value is computed from the simulation seed
+  | when the model is initialized to\: 
+  | './viz_data/seed_' + str(seed).zfill(5) + '/Scene'.
 
 * | **species_list**: List[Species] = None
   | Specifies a list of species to be visualized, when empty, all_species will be generated.

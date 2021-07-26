@@ -308,12 +308,12 @@ Methods:
    * | file_name: str
      | Path to the BNGL file to be loaded.
 
-   * | observables_path_or_file: str = ''
+   * | observables_path_or_file: str = None
      | Directory prefix or file name where observable values will be stored.
      | If a directory such as './react_data/seed_' + str(SEED).zfill(5) + '/' or an empty 
-     | string is used,
-     | each observable gets its own file and the output file format for created Count 
+     | string/unset is used, each observable gets its own file and the output file format for created Count 
      | objects is CountOutputFormat.DAT.
+     | When not set, this path is used: './react_data/seed_' + str(model.config.seed).zfill(5) + '/'.
      | If a file has a .gdat extension such as 
      | './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat', all observable are stored in this 
      | file and the output file format for created Count objects is CountOutputFormat.GDAT.
@@ -606,11 +606,12 @@ Methods:
    * | file_name: str
      | Path to the BNGL file.
 
-   * | observables_path_or_file: str = ''
+   * | observables_path_or_file: str = None
      | Directory prefix or file name where observable values will be stored.
      | If a directory such as './react_data/seed_' + str(SEED).zfill(5) + '/' or an empty 
-     | string is used, each observable gets its own file and the output file format for created Count 
+     | string/unset is used, each observable gets its own file and the output file format for created Count 
      | objects is CountOutputFormat.DAT.
+     | When not set, this path is used: './react_data/seed_' + str(model.config.seed).zfill(5) + '/'.
      | If a file has a .gdat extension such as 
      | './react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat', all observable are stored in this 
      | file and the output file format for created Count objects is CountOutputFormat.GDAT.

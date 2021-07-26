@@ -24,7 +24,7 @@ class PythonExportContext;
 
 #define VIZ_OUTPUT_CTOR() \
     VizOutput( \
-        const std::string& output_files_prefix_, \
+        const std::string& output_files_prefix_ = STR_UNSET, \
         const std::vector<std::shared_ptr<Species>> species_list_ = std::vector<std::shared_ptr<Species>>(), \
         const VizMode mode_ = VizMode::ASCII, \
         const double every_n_timesteps_ = 1 \

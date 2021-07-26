@@ -329,6 +329,9 @@ Attributes:
   | to the new rate including recomputation of reaction times for molecules if this is a
   | unimolecular reaction.
 
+  | Examples: `2500_rxn_rate_change_bimol_box_it_100/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/2500_rxn_rate_change_bimol_box_it_100/model.py>`_ `2700_concentration_based_rxn_rate/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/2700_concentration_based_rxn_rate/model.py>`_ 
+
+
 * | **rev_name**: str = None
   | Name of the reaction in reverse direction.
 
