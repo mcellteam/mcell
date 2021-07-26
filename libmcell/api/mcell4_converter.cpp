@@ -9,6 +9,9 @@
  *
 ******************************************************************************/
 
+#include <sstream>
+#include <iomanip>
+
 #include "mcell4_converter.h"
 #include "model.h"
 #include "world.h"
@@ -1563,6 +1566,12 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
   std::map<std::string, vector<uint>> gdat_filename_to_count_indices;
   for (uint i = 0 ; i < model->counts.size(); i++) {
     std::shared_ptr<API::Count>& c = model->counts[i];
+
+    // set default file_name if not set
+    if (!is_set(c->file_name)) {
+      c->file_name = "./react_data/" + get_seed_dir_name(model->config.seed) + "/" + c->name + ".dat";
+    }
+
     if (c->output_format == CountOutputFormat::AUTOMATIC_FROM_EXTENSION) {
       throw RuntimeError(S(NAME_CLASS_COUNT) + "'s " + NAME_OUTPUT_FORMAT + " must not be " +
           NAME_ENUM_COUNT_OUTPUT_FORMAT + "." + NAME_EV_AUTOMATIC_FROM_EXTENSION + " when the model is initialized. "
@@ -1673,6 +1682,10 @@ void MCell4Converter::convert_viz_output_events() {
     viz_event->event_time = 0.0;
     viz_event->periodicity_interval = round_f(v->every_n_timesteps + EPS);
     viz_event->viz_mode = convert_viz_mode(v->mode);
+
+    if (!is_set(v->output_files_prefix)) {
+      v->output_files_prefix = "./viz_data/" + get_seed_dir_name(model->config.seed) + "/Scene";
+    }
     viz_event->file_prefix_name = v->output_files_prefix;
 
     if (is_set(v->species_list)) {

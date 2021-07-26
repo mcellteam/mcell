@@ -31,10 +31,6 @@ void Count::check_semantics() const {
   }
   expression->check_that_species_or_reaction_rule_is_set();
 
-  if (!is_set(file_name)) {
-    throw ValueError(S("Attribute ") + NAME_FILE_NAME + " must be set.");
-  }
-
   if (every_n_timesteps < 0) {
     throw ValueError(
         S("The value of ") + NAME_EVERY_N_TIMESTEPS + " must be higher or equal to 0.");
@@ -59,11 +55,11 @@ void Count::set_automatically_output_format_if_needed() {
   size_t dat_sz = dat.size();
   size_t sz = file_name.size();
 
-  if (sz > gdat.size() && file_name.substr(sz - gdat_sz) == gdat) {
-    output_format = CountOutputFormat::GDAT;
-  }
-  else if (sz > dat.size() && file_name.substr(sz - dat_sz) == dat) {
+  if (!is_set(file_name) || (sz > dat.size() && file_name.substr(sz - dat_sz) == dat)) {
     output_format = CountOutputFormat::DAT;
+  }
+  else if (sz > gdat.size() && file_name.substr(sz - gdat_sz) == gdat) {
+    output_format = CountOutputFormat::GDAT;
   }
   else {
     throw ValueError(S("Cannot automatically determine ") + NAME_OUTPUT_FORMAT + ", " + NAME_FILE_NAME +

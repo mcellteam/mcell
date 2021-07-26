@@ -152,7 +152,14 @@ void Observables::convert_observable(
 
   count->name = o.name;
   if (observables_output_format == CountOutputFormat::DAT) {
-    count->file_name = observables_path_or_file + o.name + ".dat";
+    if (is_set(observables_path_or_file)) {
+      count->file_name = observables_path_or_file + o.name + ".dat";
+    }
+    else {
+      // will be set during conversion
+      count->file_name = STR_UNSET;
+    }
+
   }
   else if (observables_output_format == CountOutputFormat::GDAT) {
     count->file_name = observables_path_or_file;
