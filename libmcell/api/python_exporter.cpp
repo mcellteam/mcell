@@ -361,7 +361,7 @@ std::string PythonExporter::export_model(
   gen_assign(out, MODEL, NAME_CONFIG, NAME_APPEND_TO_COUNT_OUTPUT_DATA, true);
 
   out << "# internal type VectorSpecies does not provide operator += yet\n";
-  out << "for s in " << SIMULATION_STATE << "." << NAME_SPECIES << ":";
+  out << "for s in " << SIMULATION_STATE << "." << NAME_SPECIES << ":\n";
   out << IND4 << MODEL << "." << NAME_SPECIES << ".append(s)\n";
   gen_assign(out, MODEL, NAME_CHECKPOINTED_MOLECULES, S(SIMULATION_STATE) + "." + NAME_CHECKPOINTED_MOLECULES);
   out << "\n";
