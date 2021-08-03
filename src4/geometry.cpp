@@ -781,19 +781,25 @@ bool Region::initialize_region_waypoint(
   if (p.is_valid_waypoint_index(current_waypoint_index)) {
     Waypoint& waypoint = p.get_waypoint(current_waypoint_index);
 
+
+    bool previous_waypoint_use_ok = false;
+    uint num_crossed;
     if (use_previous_waypoint) {
       const Waypoint& previous_waypoint = p.get_waypoint(previous_waypoint_index);
 
       bool must_redo_test = false;
 
-      uint num_crossed = CollisionUtils::get_num_crossed_region_walls(
+      num_crossed = CollisionUtils::get_num_crossed_region_walls(
           p, waypoint.pos, previous_waypoint.pos,
           *this, must_redo_test
       );
-      release_assert(!must_redo_test && 
-        "We cannot easily solve redo here (cannot move waypoints after initialization), "
-        "it should have been fixed in Partition::initialize_waypoint");
 
+      if (!must_redo_test) {
+        previous_waypoint_use_ok = true;
+      }
+    }
+
+    if (previous_waypoint_use_ok) {
       // ok, test passed safely
       if ((num_crossed % 2 == 0 && previous_waypoint_present_in_region) ||
           (num_crossed % 2 == 1 && !previous_waypoint_present_in_region)) {

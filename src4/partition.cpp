@@ -74,7 +74,7 @@ Partition::Partition(
   counted_volume_index_t index = find_or_add_counted_volume(counted_volume_outside_all);
   assert(index == COUNTED_VOLUME_INDEX_OUTSIDE_ALL && "The empty counted volume must have index 0");
 
-  rng_init(&aux_rng, 0);
+  rng_init(&aux_rng, config.initial_seed);
 }
 
 // when a wall is added with add_uninitialized_wall,
