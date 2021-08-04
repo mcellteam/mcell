@@ -112,6 +112,9 @@ std::string BNGLExporter::export_to_bngl(
   parameters << BNG::BEGIN_PARAMETERS << "\n";
 
   parameters << BNG::IND << "# general parameters\n";
+  if (world->config.use_bng_units) {
+    parameters << BNG::IND << BNG::BNG_UNITS << " 1\n";
+  }
   parameters << BNG::IND << BNG::ITERATIONS << " " << world->total_iterations << "\n";
   parameters << BNG::IND << BNG::MCELL_TIME_STEP << " " << f_to_str(world->config.time_unit) << "\n";
 
