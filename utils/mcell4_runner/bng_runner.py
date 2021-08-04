@@ -153,14 +153,15 @@ def run_bng_parallel(opts, seeds):
     
     # nfsim or ode?
     # does not handle comments
-    line = find_in_file(opts.main_model_file, 'method=>"nf"')
-    if not line:
+    line_nf = find_in_file(opts.main_model_file, 'method=>"nf"')
+    line_ssa = find_in_file(opts.main_model_file, 'method=>"ssa"')
+    if not line_nf and not line_ssa:
         # ODE
         dir = os.path.join('bng', 'ode')
         os.makedirs(dir)
         shutil.copy(TEST_BNGL, dir)
                  
-        self.run_bng(dir, opts)
+        run_bng(dir, opts)
         
     else:
         # NFSim - multiple runs are needed
