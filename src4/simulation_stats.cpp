@@ -68,14 +68,17 @@ void SimulationStats::inc_rxn_skipped(
   get_rxn_stats(all_rxns, rxn_class).skipped += skipped;
 }
 
-void SimulationStats::print_missed_rxns_warnings() {
+
+void SimulationStats::print_missed_rxns_warnings(const std::string& warnings_report_file_name) {
   bool first_report = true;
+  stringstream ss;
   for (auto n1_map_pair: bimol_rxn_stats) {
     for (auto n2_stats_pair: n1_map_pair.second) {
       const RxnCountStats& stats = n2_stats_pair.second;
       if (stats.skipped > 0) {
+
         if (first_report) {
-          cerr << "Warning: Some reactions were missed because total reaction probability exceeded 1.\n";
+          ss << "Warning: Some reactions were missed because total reaction probability exceeded 1.\n";
           first_report = false;
         }
 
@@ -83,17 +86,24 @@ void SimulationStats::print_missed_rxns_warnings() {
             0.001 * round(1000 * stats.skipped * 100 / (stats.skipped + stats.occurred));
 
         if (perc >= SQRT_EPS) { // ignore really small values
-          cerr <<
+          ss <<
               "  " << n1_map_pair.first << " + " << n2_stats_pair.first << "  --  " <<
               perc << "% of reactions missed.\n";
         }
       }
     }
   }
+  
+  if (ss.str() != "") {
+    cerr << ss.str();
+    if (warnings_report_file_name != "") {
+      BNG::append_to_report(warnings_report_file_name, ss.str());
+    }
+  }
 }
 
 
-void SimulationStats::print_report() {
+void SimulationStats::print_report(const std::string& warnings_report_file_name) {
 
   cout << "Total number of ray-subvolume intersection tests (number of ray_trace calls): " << ray_voxel_tests << "\n";
   cout << "Total number of ray-polygon intersection tests: " << ray_polygon_tests << "\n";
@@ -110,7 +120,9 @@ void SimulationStats::print_report() {
         " (" << diffusion_cummtime << "/" << diffusion_number << ")\n";
   }
 
-  print_missed_rxns_warnings();
+  if (warnings_report_file_name != "") {
+    print_missed_rxns_warnings(warnings_report_file_name);
+  }
 }
 
 

@@ -82,7 +82,9 @@ public:
     diffusion_cummtime += steps; // this is a bit weird, steps are not time
   }
 
-  void print_report();
+  // warnings_report_file_name may be "", in that case warnings are not appended to
+  // the warnings file
+  void print_report(const std::string& warnings_report_file_name = "");
 
   const uint64_t& get_current_iteration() const {
     return current_iteration;
@@ -128,7 +130,9 @@ private:
   RxnCountStats& get_rxn_stats(
       const BNG::RxnContainer& all_rxns, const BNG::RxnClass* rxn_class);
 
-  void print_missed_rxns_warnings();
+  // warnings_report_file_name may be "", in that case warnings are not appended to
+  // the warnings file
+  void print_missed_rxns_warnings(const std::string& warnings_report_file_name);
 
   uint64_t current_iteration;
 

@@ -581,7 +581,7 @@ void World::end_simulation(const bool print_final_report) {
     }
     cout << "\n";
 
-    stats.print_report();
+    stats.print_report(config.get_warnings_report_file_name());
 
     // report final time
     rusage run_time;
