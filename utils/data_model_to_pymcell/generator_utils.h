@@ -86,6 +86,9 @@ const std::map<const std::string, std::pair<const std::string, const std::string
 };
 
 
+// TODO: use also in other places where it may be useful, currently just for release site quantity
+void check_not_empty(const Value& parent, const char* key, const std::string& msg_location);
+
 // when use_python_functions is true, function calls are replaced with Python function names
 // when False, they are replaced with BNGL function names
 std::string replace_function_calls_in_expr(const std::string& data_model_expr, const bool use_python_functions);

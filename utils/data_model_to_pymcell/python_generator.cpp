@@ -1078,6 +1078,7 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     if (shape != VALUE_LIST) {
       string quantity_type = release_site_item[KEY_QUANTITY_TYPE].asString();
       if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
+        check_not_empty(release_site_item, KEY_QUANTITY, "Release site");
         gen_param_expr(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], prob_not_1);
       }
       else if (quantity_type == VALUE_DENSITY) {

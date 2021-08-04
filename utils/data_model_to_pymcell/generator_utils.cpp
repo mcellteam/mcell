@@ -10,6 +10,8 @@
 ******************************************************************************/
 
 #include <fstream>
+#include <algorithm>
+#include <ctype.h>
 
 #include "generator_utils.h"
 #include "api/python_export_constants.h"
@@ -20,6 +22,16 @@
 using namespace MCell::API;
 
 namespace MCell {
+
+
+void check_not_empty(const Value& parent, const char* key, const std::string& msg_location) {
+  string s = parent[key].asString();
+  bool white_space = std::all_of(s.begin(), s.end(), ::isspace);
+  if (s == "" || white_space) {
+    ERROR("Unexpected empty string as value of " + msg_location + " - " + key + ".");
+  }
+}
+
 
 static std::string replace_id_with_function(const std::string& id, const bool use_python_functions) {
   const auto& func_it = mdl_functions_to_py_bngl_map.find(id);

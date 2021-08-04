@@ -625,6 +625,7 @@ void MCell4Generator::generate_release_sites(std::ostream& out, std::vector<std:
         // simulation result differs based on the order of releases so we must either generate all
         // releases into BNGL or none
         const Value& release_site_item = release_site_list[i];
+        check_not_empty(release_site_item, KEY_QUANTITY, "Release site");
         bng_gen->generate_single_release_site(
             release_site_item[KEY_MOLECULE].asString(), release_site_item[KEY_QUANTITY].asString());
       }
