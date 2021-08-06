@@ -61,7 +61,7 @@ std::string ComponentType::get_canonical_name() const {
   res = name;
 
   set<string> sorted(states.begin(), states.end());
-  for (const string& s: states) {
+  for (const string& s: sorted) {
     res += "~" + s;
   }
 

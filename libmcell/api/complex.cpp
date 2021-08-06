@@ -237,7 +237,35 @@ bool Complex::__eq__(const Complex& other) const {
     return false;
   }
 
-  return get_canonical_name() == other.get_canonical_name();
+  if (get_canonical_name() != other.get_canonical_name()) {
+    return false;
+  }
+
+  // - query for canonical name orders elementary molecules only in
+  //   the internal BNG representation, we want to use the API representation
+  //   here so we must sort them ourselves
+  // - we assume that the name is unique (checked later when added to the model)
+  assert(elementary_molecules.size() == other.elementary_molecules.size());
+  map<string, std::shared_ptr<ElementaryMoleculeType>> emts1, emts2;
+  for (auto& em1: elementary_molecules) {
+    emts1[em1->elementary_molecule_type->name] = em1->elementary_molecule_type; // we may overwrite previous values
+  }
+  for (auto& em2: other.elementary_molecules) {
+    emts2[em2->elementary_molecule_type->name] = em2->elementary_molecule_type; // we may overwrite previous values
+  }
+
+  // - compare elementary molecule types
+  // (elementary molecules are already checked by canonical name comparison)
+  assert(emts1.size() == emts2.size());
+  for (auto& name_em_pair1: emts1) {
+    const auto& name_em_it2 = emts2.find(name_em_pair1.first);
+    assert(name_em_it2 != emts2.end());
+    if (!name_em_pair1.second->__eq__(*name_em_it2->second)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 

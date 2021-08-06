@@ -93,7 +93,7 @@ std::string ElementaryMoleculeType::get_canonical_name() const {
       [](const std::shared_ptr<ComponentType>& a, const std::shared_ptr<ComponentType>& b) -> bool {
           return *a < *b;
       });
-  return name + get_components_str(sorted);
+  return name + get_components_str(sorted, true);
 }
 
 
