@@ -392,6 +392,38 @@ const std::set<vertex_index_t>& GeometryObject::get_connected_vertices(
 }
 
 
+wall_index_t GeometryObject::get_wall_for_vertex_pair(
+    const Partition& p, const vertex_index_t vi1, const vertex_index_t vi2) {
+
+  assert(vi1 != vi2);
+
+  // check cache first
+  UnorderedPair vp(vi1, vi2);
+  auto it = vertex_pair_to_wall_cache.find(vp);
+  if (it != vertex_pair_to_wall_cache.end()) {
+    return it->second;
+  }
+
+  // create a new entry
+  for (wall_index_t wi: wall_indices) {
+    const Wall& w = p.get_wall(wi);
+
+    uint cnt = 0;
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      if (w.vertex_indices[i] == vi1 || w.vertex_indices[i] == vi2) {
+        cnt++;
+      }
+    }
+    if (cnt == 2) {
+      vertex_pair_to_wall_cache[vp] = w.index;
+      return w.index;
+    }
+  }
+
+  return WALL_INDEX_INVALID;
+}
+
+
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind <<
       "GeometryObject: id:" << id << ", name:" << name <<

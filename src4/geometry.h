@@ -129,6 +129,11 @@ public:
   const std::set<vertex_index_t>& get_connected_vertices(
       const Partition& p, const vertex_index_t vi);
 
+  // returns wall index for a pair of vertex indices
+  // uses caching because initial discovery is expensive
+  wall_index_t get_wall_for_vertex_pair(
+      const Partition& p, const vertex_index_t vi1, const vertex_index_t vi2);
+
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
@@ -154,6 +159,9 @@ private:
   // cache with information on which vertices are connected through edges,
   // used in dynamic geometry collision detection
   std::map<vertex_index_t, std::set<vertex_index_t>> connected_vertices_cache;
+
+  // cache with information on which vertex pairs belong to which walls
+  std::map<UnorderedPair<vertex_index_t>, wall_index_t> vertex_pair_to_wall_cache;
 };
 
 typedef std::map<subpart_index_t, small_vector<wall_index_t>> WallsPerSubpartMap;

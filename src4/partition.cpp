@@ -441,18 +441,41 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
 
       map<geometry_object_index_t, uint> num_crossed_walls_per_object;
       bool must_redo_test;
+      wall_index_t closest_hit_wall_index;
 
       stime_t collision_time = CollisionUtils::get_num_crossed_walls_per_object(
           *this, start, end, false,
           num_crossed_walls_per_object, must_redo_test,
           vertex_move_info->geometry_object_id,
-          nullptr
+          &closest_hit_wall_index
       );
 
       if (!num_crossed_walls_per_object.empty() || must_redo_test) {
         // we hit a wall, this means that the moved triangle is partially inside another object,
         // cancel the displacement
         vertex_move_info->displacement = 0;
+
+        if (!must_redo_test) {
+          // remember that there was a wall collision, redos are infrequent and can be ignored
+
+          // which wall of the moved object collided?
+          wall_index_t wi = obj.get_wall_for_vertex_pair(
+              *this, vertex_move_info->vertex_index, connected_vertex_index);
+          assert(wi != WALL_INDEX_INVALID);
+
+          // choose the first colliding wall from the hit object
+          const Wall& hit_wall = get_wall(closest_hit_wall_index);
+
+          colliding_walls.insert(
+              GeometryObjectWallUnorderedPair(
+                  vertex_move_info->geometry_object_id,
+                  wi,
+                  hit_wall.object_id,
+                  hit_wall.index
+              )
+          );
+        }
+
         break;
       }
     }
