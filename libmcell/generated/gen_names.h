@@ -223,6 +223,7 @@ const char* const NAME_PROPERTIES = "properties";
 const char* const NAME_R = "r";
 const char* const NAME_RADIUS = "radius";
 const char* const NAME_RANDCNT = "randcnt";
+const char* const NAME_RANDOMIZE_ORDER = "randomize_order";
 const char* const NAME_RANDSLR = "randslr";
 const char* const NAME_REACTANT_IDS = "reactant_ids";
 const char* const NAME_REACTANTS = "reactants";

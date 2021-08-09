@@ -368,12 +368,15 @@ void Model::add_vertex_move(
 
 
 std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
-    const bool collect_wall_wall_hits) {
+    const bool collect_wall_wall_hits,
+    const bool randomize_order) {
 
   // run the actual vertex update
   std::set<GeometryObjectWallUnorderedPair> colliding_walls;
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  p.apply_vertex_moves(vertex_moves, colliding_walls);
+
+  // may update vertex_move displacements due to collisions
+  p.apply_vertex_moves(randomize_order, vertex_moves, colliding_walls);
 
   std::vector<std::shared_ptr<WallWallHitInfo>> res;
 

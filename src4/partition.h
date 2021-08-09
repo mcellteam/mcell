@@ -938,7 +938,8 @@ public:
 
   // may change the displacements in vertex_moves in some cases, do not use it afterwards
   void apply_vertex_moves(
-      std::vector<VertexMoveInfo>& vertex_moves,
+      const bool randomize_order,
+      std::vector<VertexMoveInfo>& ordered_vertex_moves,
       std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
 
 
@@ -952,11 +953,11 @@ public:
 private:
 
   void clamp_vertex_moves_to_wall_wall_collisions(
-      std::vector<VertexMoveInfo>& vertex_moves,
+      std::vector<VertexMoveInfo*>& vertex_moves,
       std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
 
   void apply_vertex_moves_per_object(
-      std::vector<VertexMoveInfo>& vertex_moves,
+      std::vector<VertexMoveInfo*>& vertex_moves,
       std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
 
   void update_walls_per_subpart(

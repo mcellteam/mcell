@@ -118,7 +118,7 @@ public:
   virtual void release_molecules(std::shared_ptr<ReleaseSite> release_site) = 0;
   virtual std::vector<int> run_reaction(std::shared_ptr<ReactionRule> reaction_rule, const std::vector<int> reactant_ids, const double time) = 0;
   virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<double> displacement) = 0;
-  virtual std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) = 0;
+  virtual std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false, const bool randomize_order = true) = 0;
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
   virtual void register_reaction_callback(const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function, py::object context, std::shared_ptr<ReactionRule> reaction_rule) = 0;
   virtual void load_bngl(const std::string& file_name, const std::string& observables_path_or_file = STR_UNSET, std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>(), const CountOutputFormat observables_output_format = CountOutputFormat::AUTOMATIC_FROM_EXTENSION) = 0;

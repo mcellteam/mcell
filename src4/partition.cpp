@@ -132,18 +132,39 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 
 
 void Partition::apply_vertex_moves(
-    std::vector<VertexMoveInfo>& vertex_moves,
+    const bool randomize_order,
+    std::vector<VertexMoveInfo>& ordered_vertex_moves,
     std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
   colliding_walls.clear();
+
+  std::vector<VertexMoveInfo*> vertex_moves;
+  for (VertexMoveInfo& vertex_move_info: ordered_vertex_moves) {
+    vertex_moves.push_back(&vertex_move_info);
+  }
+  if (randomize_order) {
+    uint n = vertex_moves.size();
+    for (uint i = n-1; i > 0; --i) {
+
+      double rand = rng_dbl(&aux_rng);
+      release_assert(rand >= 0 && rand <= 1);
+      // scale rand to 0..n-1
+      uint rand_index = (double)(n-1) * rand;
+      assert(rand_index < n);
+      VertexMoveInfo* tmp = vertex_moves[i];
+      vertex_moves[i] = vertex_moves[rand_index];
+      vertex_moves[rand_index] = tmp;
+    }
+  }
+
 
   // due to wall-wall collision detection, we must move vertices of each object separately
 
   // is there a single object that we are moving?
   geometry_object_id_t object_id = GEOMETRY_OBJECT_ID_INVALID;
   bool single_object = true;
-  for (const VertexMoveInfo& vertex_move_info: vertex_moves) {
-    if (object_id == GEOMETRY_OBJECT_ID_INVALID || object_id == vertex_move_info.geometry_object_id) {
-      object_id = vertex_move_info.geometry_object_id;
+  for (const VertexMoveInfo* vertex_move_info: vertex_moves) {
+    if (object_id == GEOMETRY_OBJECT_ID_INVALID || object_id == vertex_move_info->geometry_object_id) {
+      object_id = vertex_move_info->geometry_object_id;
     }
     else {
       single_object = false;
@@ -156,9 +177,9 @@ void Partition::apply_vertex_moves(
   }
   else {
     // we must make a separate vector for each
-    map<geometry_object_id_t, vector<VertexMoveInfo>> vertex_moves_per_object;
-    for (const VertexMoveInfo& vertex_move_info: vertex_moves) {
-      vertex_moves_per_object[vertex_move_info.geometry_object_id].push_back(vertex_move_info);
+    map<geometry_object_id_t, vector<VertexMoveInfo*>> vertex_moves_per_object;
+    for (VertexMoveInfo* vertex_move_info: vertex_moves) {
+      vertex_moves_per_object[vertex_move_info->geometry_object_id].push_back(vertex_move_info);
     }
 
     // and process objects one by one
@@ -170,39 +191,39 @@ void Partition::apply_vertex_moves(
 
 
 void Partition::apply_vertex_moves_per_object(
-    std::vector<VertexMoveInfo>& vertex_moves,
+    std::vector<VertexMoveInfo*>& vertex_moves,
     std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
 
-  // 0) clamp maximum movement
+  // 0) clamp maximum movement and collect walls that collide
   clamp_vertex_moves_to_wall_wall_collisions(vertex_moves, colliding_walls);
 
   // 1) create a set of all affected walls with information on how much each wall moves,
   uint_set<vertex_index_t> moved_vertices_set;
   WallsWithTheirMovesMap walls_with_their_moves;
-  for (VertexMoveInfo& vertex_move_info: vertex_moves) {
+  for (VertexMoveInfo* vertex_move_info: vertex_moves) {
 
     // expecting that there we are not moving a single vertex twice
-    if (moved_vertices_set.count(vertex_move_info.vertex_index) != 0) {
+    if (moved_vertices_set.count(vertex_move_info->vertex_index) != 0) {
       mcell_error(
           "When moving dynamic vertices, each vertex may be listed just once, error for vertex with index %d.",
-          vertex_move_info.vertex_index
+          vertex_move_info->vertex_index
       );
     }
-    moved_vertices_set.insert(vertex_move_info.vertex_index);
+    moved_vertices_set.insert(vertex_move_info->vertex_index);
 
-    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info.vertex_index);
+    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info->vertex_index);
 
     // first check whether we can move all walls belonging to the vertex
     for (wall_index_t wall_index: wall_indices) {
       if (!get_wall(wall_index).is_movable) {
         // we must not move this vertex
-        vertex_move_info.vertex_walls_are_movable = false;
+        vertex_move_info->vertex_walls_are_movable = false;
         break;
       }
     }
 
     // if the move is applicable, create mapping in walls_with_their_moves
-    if (vertex_move_info.vertex_walls_are_movable) {
+    if (vertex_move_info->vertex_walls_are_movable) {
       for (wall_index_t wall_index: wall_indices) {
         // remember mapping wall_index -> moves
         auto it = walls_with_their_moves.find(wall_index);
@@ -309,21 +330,21 @@ static Vec3 get_new_vertex_position(
 
 
 void Partition::clamp_vertex_moves_to_wall_wall_collisions(
-    std::vector<VertexMoveInfo>& vertex_moves,
+    std::vector<VertexMoveInfo*>& vertex_moves,
     std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
 
   // this is a first test that checks whether our wall wont simply collide
   // if we send a ray from each of the moved vertices
-  for (VertexMoveInfo& vertex_move_info: vertex_moves) {
-    assert(vertex_move_info.partition_id == id);
+  for (VertexMoveInfo* vertex_move_info: vertex_moves) {
+    assert(vertex_move_info->partition_id == id);
 
-    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info.vertex_index);
-    Vec3& displacement = vertex_move_info.displacement;
+    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info->vertex_index);
+    Vec3& displacement = vertex_move_info->displacement;
     // check that object id is consistent
     assert(!wall_indices.empty());
-    assert(get_wall(wall_indices[0]).object_id == vertex_move_info.geometry_object_id);
+    assert(get_wall(wall_indices[0]).object_id == vertex_move_info->geometry_object_id);
 
-    const Vec3& pos = get_geometry_vertex(vertex_move_info.vertex_index);
+    const Vec3& pos = get_geometry_vertex(vertex_move_info->vertex_index);
     map<geometry_object_index_t, uint> num_crossed_walls_per_object_ignored;
     bool must_redo_test;
     wall_index_t closest_hit_wall_index;
@@ -342,7 +363,7 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
     stime_t collision_time = CollisionUtils::get_num_crossed_walls_per_object(
         *this, pos, pos + displacement + wall_gap_displacement, false,
         num_crossed_walls_per_object_ignored, must_redo_test,
-        vertex_move_info.geometry_object_id,
+        vertex_move_info->geometry_object_id,
         &closest_hit_wall_index
     );
 
@@ -381,7 +402,7 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
         for (wall_index_t wi: wall_indices) {
           colliding_walls.insert(
               GeometryObjectWallUnorderedPair(
-                  vertex_move_info.geometry_object_id,
+                  vertex_move_info->geometry_object_id,
                   wi,
                   hit_wall.object_id,
                   hit_wall.index
@@ -394,20 +415,20 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
 
   // construct a map that gives us displacement per vertex
   map<vertex_index_t, const Vec3*> displacement_per_moved_vertex;
-  for (VertexMoveInfo& vertex_move_info: vertex_moves) {
-    displacement_per_moved_vertex[vertex_move_info.vertex_index] = &vertex_move_info.displacement;
+  for (VertexMoveInfo* vertex_move_info: vertex_moves) {
+    displacement_per_moved_vertex[vertex_move_info->vertex_index] = &vertex_move_info->displacement;
   }
 
   // next, we must check all edges used by this vertex - they must not cross a different object
-  for (VertexMoveInfo& vertex_move_info: vertex_moves) {
-    GeometryObject& obj = get_geometry_object_by_id(vertex_move_info.geometry_object_id);
+  for (VertexMoveInfo* vertex_move_info: vertex_moves) {
+    GeometryObject& obj = get_geometry_object_by_id(vertex_move_info->geometry_object_id);
 
     // get all vertices that share edge with the moved vertex
-    const set<vertex_index_t>& connected_vertices = obj.get_connected_vertices(*this, vertex_move_info.vertex_index);
+    const set<vertex_index_t>& connected_vertices = obj.get_connected_vertices(*this, vertex_move_info->vertex_index);
 
     Vec3 start = get_new_vertex_position(
-        get_geometry_vertex(vertex_move_info.vertex_index),
-        vertex_move_info.vertex_index,
+        get_geometry_vertex(vertex_move_info->vertex_index),
+        vertex_move_info->vertex_index,
         displacement_per_moved_vertex);
 
     for (vertex_index_t connected_vertex_index: connected_vertices) {
@@ -424,14 +445,14 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
       stime_t collision_time = CollisionUtils::get_num_crossed_walls_per_object(
           *this, start, end, false,
           num_crossed_walls_per_object, must_redo_test,
-          vertex_move_info.geometry_object_id,
+          vertex_move_info->geometry_object_id,
           nullptr
       );
 
       if (!num_crossed_walls_per_object.empty() || must_redo_test) {
         // we hit a wall, this means that the moved triangle is partially inside another object,
         // cancel the displacement
-        vertex_move_info.displacement = 0;
+        vertex_move_info->displacement = 0;
         break;
       }
     }

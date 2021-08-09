@@ -810,7 +810,7 @@ bool compute_region_expr_bounding_box(
 // this is the entry point called from Partition class
 void update_moved_walls(
     Partition& p,
-    const std::vector<VertexMoveInfo>& scheduled_vertex_moves,
+    const std::vector<VertexMoveInfo*>& scheduled_vertex_moves,
     // we can compute all the information already from scheduled_vertex_moves,
     // but the keys of the map walls_with_their_moves are the walls that we need to update
     const WallsWithTheirMovesMap& walls_with_their_moves

@@ -224,10 +224,10 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
 
     // should we move it?
     bool moved = false;
-    for (const VertexMoveInfo& vertex_move: move_info.vertex_moves) {
-      if (vertex_move.vertex_index == orig_indices[i]) {
+    for (const VertexMoveInfo* vertex_move: move_info.vertex_moves) {
+      if (vertex_move->vertex_index == orig_indices[i]) {
         assert(!moved);
-        new_vertex = new_vertex + vertex_move.displacement;
+        new_vertex = new_vertex + vertex_move->displacement;
         #ifndef NDEBUG
           break;
         #endif

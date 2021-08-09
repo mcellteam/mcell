@@ -810,7 +810,8 @@ class Model():
 
     def apply_vertex_moves(
             self,
-            collect_wall_wall_hits : bool = False
+            collect_wall_wall_hits : bool = False,
+            randomize_order : bool = True
         ) -> 'List[WallWallHitInfo]':
         pass
 

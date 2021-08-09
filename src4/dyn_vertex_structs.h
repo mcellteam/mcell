@@ -23,7 +23,7 @@ class Partition;
 
 struct WallMoveInfo {
   bool wall_changes_area;
-  std::vector<VertexMoveInfo> vertex_moves;
+  std::vector<VertexMoveInfo*> vertex_moves;
 };
 
 typedef std::map<wall_index_t, WallMoveInfo> WallsWithTheirMovesMap;

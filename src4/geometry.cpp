@@ -1540,21 +1540,21 @@ bool compute_region_expr_bounding_box(
 // this is the entry point called from Partition class
 void update_moved_walls(
     Partition& p,
-    const std::vector<VertexMoveInfo>& scheduled_vertex_moves,
+    const std::vector<VertexMoveInfo*>& scheduled_vertex_moves,
     // we can compute all the information already from scheduled_vertex_moves,
     // but the keys of the map walls_with_their_moves are the walls that we need to update
     const WallsWithTheirMovesMap& walls_with_their_moves
 ) {
 
   // move all vertices
-  for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
+  for (const VertexMoveInfo* move_info: scheduled_vertex_moves) {
     // ignore moves where walls are fixed
-    if (!move_info.vertex_walls_are_movable) {
+    if (!move_info->vertex_walls_are_movable) {
       continue;
     }
 
-    Vec3& vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
-    vertex_ref = vertex_ref + move_info.displacement;
+    Vec3& vertex_ref = p.get_geometry_vertex(move_info->vertex_index);
+    vertex_ref = vertex_ref + move_info->displacement;
     if (! p.in_this_partition(vertex_ref) ) {
       mcell_log("Error: Crossing partitions is not supported yet.\n");
       exit(1);

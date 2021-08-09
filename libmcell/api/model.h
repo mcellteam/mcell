@@ -74,7 +74,10 @@ public:
       std::shared_ptr<GeometryObject> object, const int vertex_index, const std::vector<double> displacement
   ) override;
 
-  std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(const bool collect_wall_wall_hits = false) override;
+  std::vector<std::shared_ptr<WallWallHitInfo>> apply_vertex_moves(
+      const bool collect_wall_wall_hits = false,
+      const bool randomize_order = true
+  ) override;
 
   void register_mol_wall_hit_callback(
       const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function,
