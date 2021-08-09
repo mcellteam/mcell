@@ -627,7 +627,9 @@ void MCell4Generator::generate_release_sites(std::ostream& out, std::vector<std:
         const Value& release_site_item = release_site_list[i];
         check_not_empty(release_site_item, KEY_QUANTITY, "Release site");
         bng_gen->generate_single_release_site(
-            release_site_item[KEY_MOLECULE].asString(), release_site_item[KEY_QUANTITY].asString());
+            release_site_item[KEY_MOLECULE].asString(),
+            release_site_item[KEY_QUANTITY].asString(),
+            get_description(release_site_item));
       }
 
       bng_gen->close_seed_species_section();
@@ -965,6 +967,7 @@ void MCell4Generator::generate_counts(
       bng_gen->generate_single_count(
           observable_name,
           what_to_count,
+          get_description(reaction_output_item),
           molecules_not_species);
       has_bng_observables = true;
 
@@ -986,6 +989,8 @@ void MCell4Generator::generate_counts(
           python_gen->generate_count_terms_for_expression(
               out, mdl_string, what_to_count, where_to_count, orientation, rxn_not_mol);
       where_to_count = "";
+
+      gen_description(out, reaction_output_item);
 
       python_gen->generate_single_count(
           out,

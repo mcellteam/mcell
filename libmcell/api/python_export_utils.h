@@ -96,6 +96,11 @@ void print_comma(std::ostream& out, size_t index, const std::vector<T>& array) {
 }
 
 
+// may return an empty string
+std::string get_description(const Json::Value& value);
+
+void gen_description(std::ostream& out, const std::string desc, const std::string ind = "");
+void gen_description(std::ostream& out, Json::Value& value, const std::string ind = "");
 
 // name might be empty
 void gen_ctor_call(std::ostream& out, std::string name, std::string class_name, bool has_params = true);

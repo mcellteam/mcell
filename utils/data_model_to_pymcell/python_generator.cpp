@@ -333,6 +333,8 @@ std::string PythonGenerator::generate_single_species_or_mol_type(
 
   data.check_if_already_defined_and_add(name, type);
 
+  gen_description(out, molecule_list_item);
+
   string python_name = (generate_species) ? name : ELEMENTARY_MOLECULE_TYPE_PREFIX + name;
   gen_ctor_call(out, python_name, type);
 
@@ -548,6 +550,8 @@ void PythonGenerator::generate_surface_classes(
       }
     }
 
+    gen_description(out, surface_class_list_item);
+
     data.check_if_already_defined_and_add(sc_name, NAME_CLASS_SURFACE_CLASS);
     gen_ctor_call(out, sc_name, NAME_CLASS_SURFACE_CLASS, true);
     gen_param(out, NAME_NAME, sc_name, true);
@@ -665,6 +669,8 @@ std::string PythonGenerator::generate_single_reaction_rule(std::ostream& out, Js
   check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
 
   string name = get_rxn_id(reaction_list_item, data.unnamed_rxn_counter);
+
+  gen_description(out, reaction_list_item);
 
   data.check_if_already_defined_and_add(name, NAME_CLASS_REACTION_RULE);
   gen_ctor_call(out, name, NAME_CLASS_REACTION_RULE);
@@ -1013,6 +1019,8 @@ void PythonGenerator::generate_release_sites(std::ostream& out, std::vector<std:
     }
 
     release_site_names.push_back(name);
+
+    gen_description(out, release_site_item);
 
     data.check_if_already_defined_and_add(name, NAME_CLASS_RELEASE_SITE);
     gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
@@ -1414,6 +1422,9 @@ void PythonGenerator::generate_surface_classes_assignments(ostream& out) {
 
     // and also surface class name
     if (modify_surface_regions_item.isMember(KEY_SURF_CLASS_NAME)) {
+
+      gen_description(out, modify_surface_regions_item);
+
       string surf_class_name = modify_surface_regions_item[KEY_SURF_CLASS_NAME].asString();
       out << obj_or_region_name << "." << NAME_SURFACE_CLASS << " = " << surf_class_name << "\n";
     }

@@ -53,6 +53,7 @@ public:
   void generate_single_count(
       const std::string& observable_name,
       const std::string& what_to_count,
+      const std::string& description,
       const bool molecules_not_species);
   void close_observables_section() { bng_out << BNG::END_OBSERVABLES << "\n\n"; }
 
@@ -61,7 +62,8 @@ public:
   void open_seed_species_section() { bng_out << BNG::BEGIN_SEED_SPECIES << "\n"; }
   void generate_single_release_site(
       const std::string& bngl_cplx,
-      const std::string& quantity);
+      const std::string& quantity,
+      const std::string& description);
   void close_seed_species_section() { bng_out << BNG::END_SEED_SPECIES << "\n\n"; }
 
 

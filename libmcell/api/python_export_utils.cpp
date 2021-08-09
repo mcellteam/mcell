@@ -125,6 +125,33 @@ void open_and_check_file_w_prefix(
 }
 
 
+std::string get_description(const Json::Value& value) {
+  if (value.isMember(KEY_DESCRIPTION)) {
+    return value[KEY_DESCRIPTION].asString();
+  }
+  else {
+    return "";
+  }
+}
+
+
+void gen_description(std::ostream& out, const std::string desc, const std::string ind) {
+  if (desc != "") {
+    out << ind << "# " << desc << "\n";
+  }
+}
+
+
+void gen_description(std::ostream& out, Json::Value& value, const std::string ind) {
+  if (value.isMember(KEY_DESCRIPTION)) {
+    string desc = value[KEY_DESCRIPTION].asString();
+    if (desc != "") {
+      out << ind << "# " << desc << "\n";
+    }
+  }
+}
+
+
 void gen_ctor_call(std::ostream& out, std::string name, std::string class_name, bool has_params) {
   if (name != "") {
     out << make_id(name) << " = " << MDOT << class_name;

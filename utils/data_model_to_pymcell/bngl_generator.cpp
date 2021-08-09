@@ -103,6 +103,8 @@ void BNGLGenerator::generate_bngl_mol_type(Json::Value& molecule_list_item) {
 
   string name = make_id(molecule_list_item[KEY_MOL_NAME].asString());
 
+  gen_description(bng_out, molecule_list_item, IND);
+
   bng_out << IND << name;
 
   bool has_components = false;
@@ -406,6 +408,8 @@ std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_l
 
   string name = get_rxn_id(reaction_list_item, data.unnamed_rxn_counter);
 
+  gen_description(bng_out, reaction_list_item, IND);
+
   bng_out << IND;
   if (generate_name) {
     // printing out name all the time would make the BNGL file hard to read
@@ -515,7 +519,10 @@ bool BNGLGenerator::can_express_count_with_bngl(
 void BNGLGenerator::generate_single_count(
     const std::string& observable_name,
     const std::string& what_to_count,
+    const std::string& description,
     const bool molecules_not_species) {
+
+  gen_description(bng_out, description, IND);
 
   bng_out << IND;
   // there is some issue with macos Apple LLVM version 10.0.0 (clang-1000.10.44.4)
@@ -556,14 +563,16 @@ bool BNGLGenerator::can_express_release_with_bngl(Json::Value& release_site_item
 
   if (compartment != "") {
     if (data.surface_to_volume_compartments_map.count(compartment) == 0) {
-      if (release_site_item[KEY_OBJECT_EXPR].asString() != compartment + "[ALL]") {
+      if (release_site_item[KEY_OBJECT_EXPR].asString() != compartment + "[ALL]" &&
+          release_site_item[KEY_OBJECT_EXPR].asString() != compartment) {
         return false;
       }
     }
     else {
       // get volume compartment name if this is a surface compartment because that is what appears in the data model
       string vol_compartment = data.surface_to_volume_compartments_map[compartment];
-      if (release_site_item[KEY_OBJECT_EXPR].asString() != vol_compartment + "[ALL]") {
+      if (release_site_item[KEY_OBJECT_EXPR].asString() != vol_compartment + "[ALL]" &&
+          release_site_item[KEY_OBJECT_EXPR].asString() != vol_compartment) {
         return false;
       }
     }
@@ -592,7 +601,9 @@ bool BNGLGenerator::can_express_release_with_bngl(Json::Value& release_site_item
 
 void BNGLGenerator::generate_single_release_site(
     const std::string& bngl_cplx,
-    const std::string& quantity) {
+    const std::string& quantity,
+    const std::string& description) {
+  gen_description(bng_out, description, IND);
   bng_out << IND << bngl_cplx << " " << fix_param_id(quantity) <<  "\n";
 }
 
