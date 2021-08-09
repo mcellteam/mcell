@@ -124,6 +124,11 @@ public:
     is_used_in_mol_rxn_counts = value;
   }
 
+  // returns indices of all vertices in this object that are connected through an edge
+  // uses caching because initial discovery is expensive
+  const std::set<vertex_index_t>& get_connected_vertices(
+      const Partition& p, const vertex_index_t vi);
+
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
@@ -145,6 +150,10 @@ private:
   // made private to make sure that is_counted_volume() is used when checking
   // whether crossing this objects' walls should be taken into account
   bool is_used_in_mol_rxn_counts;
+
+  // cache with information on which vertices are connected through edges,
+  // used in dynamic geometry collision detection
+  std::map<vertex_index_t, std::set<vertex_index_t>> connected_vertices_cache;
 };
 
 typedef std::map<subpart_index_t, small_vector<wall_index_t>> WallsPerSubpartMap;

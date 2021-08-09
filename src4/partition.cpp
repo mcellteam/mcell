@@ -294,15 +294,26 @@ void Partition::apply_vertex_moves_per_object(
 }
 
 
+
+static Vec3 get_new_vertex_position(
+    const Vec3& pos, const vertex_index_t vi, const map<vertex_index_t, const Vec3*>& displacements) {
+  auto it = displacements.find(vi);
+  if (it == displacements.end()) {
+    // no displacement for this vertex
+    return pos;
+  }
+  else {
+    return pos + *(it->second);
+  }
+}
+
+
 void Partition::clamp_vertex_moves_to_wall_wall_collisions(
     std::vector<VertexMoveInfo>& vertex_moves,
     std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
 
-  // FIXME: the test does not handle cases when there is a sharp edge or the colliding triangle is smaller,
-  // than the triangle we are moving, but for now let's keep it as it is...
-
   // this is a first test that checks whether our wall wont simply collide
-  // if we send a ray from each of the moved
+  // if we send a ray from each of the moved vertices
   for (VertexMoveInfo& vertex_move_info: vertex_moves) {
     assert(vertex_move_info.partition_id == id);
 
@@ -343,6 +354,7 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
       );
       ignore_hit = true;
       collision_time = 0;
+      displacement = 0;
     }
 
     assert(collision_time >= 0.0 && collision_time <= 1.0);
@@ -376,6 +388,51 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
               )
           );
         }
+      }
+    }
+  }
+
+  // construct a map that gives us displacement per vertex
+  map<vertex_index_t, const Vec3*> displacement_per_moved_vertex;
+  for (VertexMoveInfo& vertex_move_info: vertex_moves) {
+    displacement_per_moved_vertex[vertex_move_info.vertex_index] = &vertex_move_info.displacement;
+  }
+
+  // next, we must check all edges used by this vertex - they must not cross a different object
+  for (VertexMoveInfo& vertex_move_info: vertex_moves) {
+    GeometryObject& obj = get_geometry_object_by_id(vertex_move_info.geometry_object_id);
+
+    // get all vertices that share edge with the moved vertex
+    const set<vertex_index_t>& connected_vertices = obj.get_connected_vertices(*this, vertex_move_info.vertex_index);
+
+    Vec3 start = get_new_vertex_position(
+        get_geometry_vertex(vertex_move_info.vertex_index),
+        vertex_move_info.vertex_index,
+        displacement_per_moved_vertex);
+
+    for (vertex_index_t connected_vertex_index: connected_vertices) {
+      // check if a different object is not crossed
+      // must ignore current object because of "wall redo" checks
+      Vec3 end = get_new_vertex_position(
+          get_geometry_vertex(connected_vertex_index),
+          connected_vertex_index,
+          displacement_per_moved_vertex);
+
+      map<geometry_object_index_t, uint> num_crossed_walls_per_object;
+      bool must_redo_test;
+
+      stime_t collision_time = CollisionUtils::get_num_crossed_walls_per_object(
+          *this, start, end, false,
+          num_crossed_walls_per_object, must_redo_test,
+          vertex_move_info.geometry_object_id,
+          nullptr
+      );
+
+      if (!num_crossed_walls_per_object.empty() || must_redo_test) {
+        // we hit a wall, this means that the moved triangle is partially inside another object,
+        // cancel the displacement
+        vertex_move_info.displacement = 0;
+        break;
       }
     }
   }

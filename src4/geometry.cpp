@@ -359,6 +359,39 @@ void GeometryObject::initialize_neighboring_walls_and_their_edges(Partition& p) 
 }
 
 
+// returns indices of all vertices in this object that are connected through an edge
+const std::set<vertex_index_t>& GeometryObject::get_connected_vertices(
+    const Partition& p, const vertex_index_t vi) {
+
+  // check cache first
+  auto it = connected_vertices_cache.find(vi);
+  if (it != connected_vertices_cache.end()) {
+    return it->second;
+  }
+
+  // create a new entry
+  set<vertex_index_t>& connected_vertices = connected_vertices_cache[vi];
+
+  for (wall_index_t wi: wall_indices) {
+    const Wall& w = p.get_wall(wi);
+
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      if (w.vertex_indices[i] == vi) {
+        // add all other vertices
+        for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+          if (w.vertex_indices[k] != vi) {
+            connected_vertices.insert(w.vertex_indices[k]);
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  return connected_vertices;
+}
+
+
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind <<
       "GeometryObject: id:" << id << ", name:" << name <<
@@ -1071,7 +1104,7 @@ void Grid::dump() const {
 static void report_malformed_geom_object_and_exit(const Partition& p, const Wall& wf, const Wall& wb) {
   const GeometryObject& o = p.get_geometry_object(wb.object_index);
   errs() << "Detected malformed geometry object '" << o.name << "'. " <<
-      "A possible cause is that two vertices share the same location.\n" <<
+      "A possible cause is that two vertices share the same location or a wall became very thin (like a line).\n" <<
       "Error detected for walls with side indices " << wf.side << " and " << wb.side << ".\n" <<
       "Terminating because this issue would lead to simulation errors.\n";
   exit(1);
