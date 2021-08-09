@@ -228,6 +228,11 @@ Methods:
      | When set to True, a list of wall pairs that collided is returned,
      | otherwise an empty list is returned.
 
+   * | randomize_order: bool = True
+     | When set to True (default), the ordeting of the vertex move list created by add_vertex_move
+     | calls is randomized. The reason to apply moves in a random order is to avoid possible biases 
+     | during object collisions.
+
    * | return type: List[WallWallHitInfo]
 
 
