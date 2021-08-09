@@ -108,17 +108,6 @@ public:
     return PARTITION_ID_INVALID;
   }
 
-  partition_id_t get_or_add_partition_index(const Vec3& pos) {
-
-    partition_id_t res = get_partition_index(pos);
-    // not found - add a new partition
-    if (res == PARTITION_ID_INVALID) {
-      res = add_partition(pos);
-    }
-
-    return res;
-  }
-
   // add a partition in a predefined 'lattice' that contains point pos as its llf point
   // size is given by config
   partition_id_t add_partition(const Vec3& partition_llf) {

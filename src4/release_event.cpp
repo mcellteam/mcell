@@ -953,7 +953,7 @@ void ReleaseEvent::release_inside_regions(int& computed_release_number) {
 void ReleaseEvent::release_ellipsoid_or_rectcuboid(int computed_release_number) {
   assert(computed_release_number >= 0 && "Cannot have negative SPHERICAL release");
 
-  Partition& p = world->get_partition(world->get_or_add_partition_index(location));
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   double time_step = world->get_all_species().get(species_id).time_step;
 
   const int is_spheroidal = (release_shape == ReleaseShape::SPHERICAL ||
@@ -1009,7 +1009,7 @@ void ReleaseEvent::release_list() {
   for (const SingleMoleculeReleaseInfo& info: molecule_list) {
 
     BNG::Species& species = world->get_all_species().get(info.species_id);
-    Partition& p = world->get_partition(world->get_or_add_partition_index(info.pos));
+    Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
     if (species.is_vol()) {
       Molecule& new_vm = p.add_volume_molecule(

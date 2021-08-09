@@ -586,6 +586,13 @@ public:
   Molecule& add_volume_molecule(const Molecule& vm_copy, const double release_delay_time = 0) {
     assert(vm_copy.is_vol());
 
+    // check that the molecule belongs to this partition
+    if (!in_this_partition(vm_copy.v.pos)) {
+      const BNG::Species& s = get_all_species().get(vm_copy.species_id);
+      errs() << "cannot create molecule of species '" << s.name << "' outside partition at location " << vm_copy.v.pos << ".\n";
+      exit(1);
+    }
+
     // add a new molecule
     Molecule& new_vm = add_molecule(vm_copy, true, release_delay_time);
 
