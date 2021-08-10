@@ -39,6 +39,7 @@ set(SRC4_SOURCE_FILES
     grid_position.cpp
     region_expr.cpp
     geometry.cpp
+    wall.cpp
     memory_limit_checker.cpp
     world.cpp
     simulation_stats.cpp
