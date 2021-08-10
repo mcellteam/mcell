@@ -660,6 +660,23 @@ void Partition::initialize_all_waypoints() {
 }
 
 
+static uint get_num_same_vertex_coords(const Partition& p, const Wall& w1, const Wall& w2) {
+
+  // assuming no vertices for one wall are identical
+  uint num_same = 0;
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    const Vec3& v1 = p.get_wall_vertex(w1, i);
+    for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+      const Vec3& v2 = p.get_wall_vertex(w2, k);
+      if (v1 == v2) {
+        num_same++;
+      }
+    }
+  }
+  return num_same;
+}
+
+
 bool Partition::check_for_overlapped_walls(const Vec3& rand_vec) const {
 
   typedef pair<wall_index_t, double> WallDprodPair;
@@ -695,20 +712,47 @@ bool Partition::check_for_overlapped_walls(const Vec3& rand_vec) const {
       /* there may be several walls with the same (or mirror) oriented normals */
       const Wall& w2 = get_wall(wall_indices_w_dprod[next_index].first);
 
+
+      uint num_same = get_num_same_vertex_coords(*this, w1, w2);
+      if (num_same == 3) {
+        const string& obj1_name = get_geometry_object(w1.object_id).name;
+        const string& obj2_name = get_geometry_object(w2.object_id).name;
+        errs() << "wall overlap: wall side " << w1.side << " from '" << obj1_name <<
+            "' overlaps wall side " << w2.side << " from '" << obj2_name <<
+            "'.\n";
+      }
+
       if (WallOverlap::are_coplanar(*this, w1, w2, MESH_DISTINCTIVE_EPS) &&
            (WallOverlap::are_coincident(*this, w1, w2, MESH_DISTINCTIVE_EPS) ||
             WallOverlap::coplanar_walls_overlap(*this, w1, w2))
       ) {
+        // check for a shared wall
+        uint num_same = get_num_same_vertex_coords(*this, w1, w2);
+        if (num_same == 2) {
+          // ok, allowed
+          const string& obj1_name = get_geometry_object(w1.object_id).name;
+          const string& obj2_name = get_geometry_object(w2.object_id).name;
+          errs() << "edge overlap: wall side " << w1.side << " from '" << obj1_name <<
+              "' overlaps wall side " << w2.side << " from '" << obj2_name <<
+              "'.\n";
+        }
+        else if (num_same == 3) {
+          // 1) set the primary wall -> first found
+          // 2) unify vertex indices
 
-        const string& obj1_name = get_geometry_object(w1.object_id).name;
-        const string& obj2_name = get_geometry_object(w2.object_id).name;
+          //merge_wall(w1, w2);
+          cout << "wall overlap TODO\n";
+          return false;
+        }
+        else {
+          const string& obj1_name = get_geometry_object(w1.object_id).name;
+          const string& obj2_name = get_geometry_object(w2.object_id).name;
 
-        mcell_log(
-            "Error: walls are overlapped: wall side %d from '%s' and wall "
-            "side %d from '%s'.",
-            w1.side, obj1_name.c_str(), w2.side, obj2_name.c_str()
-        );
-        return false;
+          errs() << "walls are overlapped: wall side " << w1.side << " from '" << obj1_name <<
+              "' overlaps wall side " << w2.side << " from '" << obj2_name <<
+              "', the only overlapping walls that are allowed are those that have the same vertex coordinates.\n";
+          return false;
+        }
       }
 
       next_index++;

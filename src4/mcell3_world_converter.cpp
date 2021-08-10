@@ -735,8 +735,6 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   CHECK_PROPERTY(o->walls == nullptr); // this is null for some reason
   CHECK_PROPERTY(o->wall_p != nullptr);
 
-  vector<ReleaseEvent*> region_releases_to_be_initialized;
-
   // --- regions ---
   uint reg_cnt = 0;
   for (region_list *r = o->regions; r != NULL; r = r->next) {
@@ -771,13 +769,6 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
     // also uses mcell3_region_to_mcell4_index mapping to set that it belongs to a given region
     CHECK(convert_wall_and_update_regions(o->wall_p[i], obj, o->regions));
   }
-
-  // after wall conversion, we can initialize the walls for this release event created from
-  // MOLECULE_DENSITY or MOLECULE_NUMBER
-  for (ReleaseEvent* re: region_releases_to_be_initialized) {
-    re->initialize_walls_for_release();
-  }
-
 
   // set encompassing region id - the region that has all the walls
   for (region_index_t index: obj.regions) {

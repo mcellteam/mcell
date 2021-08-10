@@ -1141,6 +1141,10 @@ private:
 
   std::vector<Wall> walls;
 
+  // some wall data must be shared when walls are overlapping
+  // container for shared wall data, owned by partition
+  std::set<WallSharedData*> wall_shared_data;
+
   // this is a copy of normal and distance from origin for fast wall collision rejection,
   // stored in separate array to optimize cache performance in collide_wall
   std::vector<WallCollisionRejectionData> wall_collision_rejection_data;

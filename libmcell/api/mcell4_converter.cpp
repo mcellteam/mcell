@@ -93,12 +93,6 @@ void MCell4Converter::convert_before_init() {
 
   convert_geometry_objects();
 
-  // - update flags that tell whether we have reactions for all volume/surface species
-  //   and also update molecule type compartment flag
-  // - must be done after geometry object conversions because
-  //   surface classes might have been defined
-  world->get_all_rxns().update_all_mols_and_mol_type_compartments();
-
   // uses random generator state
   if (world->config.check_overlapped_walls) {
     bool ok = world->check_for_overlapped_walls();
@@ -106,6 +100,12 @@ void MCell4Converter::convert_before_init() {
       throw ValueError("Walls in geometry overlap, more details were printed in the previous message.");
     }
   }
+
+  // - update flags that tell whether we have reactions for all volume/surface species
+  //   and also update molecule type compartment flag
+  // - must be done after geometry object conversions because
+  //   surface classes might have been defined
+  world->get_all_rxns().update_all_mols_and_mol_type_compartments();
 
   // we need to schedule the initial release for surfaces before the other releases
   world->create_initial_surface_region_release_event();

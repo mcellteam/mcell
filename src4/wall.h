@@ -216,6 +216,36 @@ public:
   pos_t distance_to_origin; // distance to origin (point normal form)
 };
 
+
+class WallSharedData {
+public:
+  WallSharedData() :
+    area(POS_INVALID) {
+  }
+
+  std::vector<wall_index_t> shared_among_walls;
+
+  /*
+  // flag?
+  bool is_movable;
+
+  // regions, one wall can belong to multiple regions, regions are owned by partition
+  // region may represent a surface class
+  // all regions listed here must be a part of 'regions' in the parent geometry object
+  uint_set<region_index_t> regions; // all regions for all objects -> shared?
+
+  SubpartIndicesSet present_in_subparts; // in what subpartitions is this wall located
+
+  Grid grid; // shared among overlapping walls
+
+  // --- wall constants ---
+  bool wall_constants_precomputed;
+  */
+
+  pos_t area;  /* Area of this element (triangle) */
+};
+
+
 /**
  * Single instance of a wall.
  * Owned by partition, also its vertices are owned by partition.
@@ -235,7 +265,7 @@ public:
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       unit_u(POS_INVALID), unit_v(POS_INVALID),
-      area(POS_INVALID) {
+      wall_shared_data(nullptr) {
 
     nb_walls[0] = WALL_INDEX_INVALID;
     nb_walls[1] = WALL_INDEX_INVALID;
@@ -253,7 +283,7 @@ public:
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       unit_u(POS_INVALID), unit_v(POS_INVALID),
-      area(POS_INVALID) {
+      wall_shared_data(nullptr) {
     vertex_indices[0] = index0;
     vertex_indices[1] = index1;
     vertex_indices[2] = index2;
@@ -290,19 +320,13 @@ public:
     }
   }
 
+  // shared
   wall_id_t id; // world-unique identifier of this wall, mainly for debugging
   wall_index_t index; // index in the partition where it is contained, must be fixed if moved
-  uint side; // index in its parent object, not sure if really needed
 
-  geometry_object_id_t object_id; // id of object to which this wall belongs
-  geometry_object_index_t object_index; // index of object in this partition to which this wall belongs
-
-  bool is_movable;
-
-  // regions, one wall can belong to multiple regions, regions are owned by partition
-  // region may represent a surface class
-  // all regions listed here must be a part of 'regions' in the parwent geometry object
-  uint_set<region_index_t> regions;
+  uint side; // index in its parent object, used only for printouts to the user  - per object
+  geometry_object_id_t object_id; // id of object to which this wall belongs   - per object
+  geometry_object_index_t object_index; // index of object in this partition to which this wall belongs  - per object
 
   // indices of the three triangle's vertices,
   // they are shared in a partition and a single vertex should be usually represented by just one item
@@ -314,19 +338,45 @@ public:
   Edge edges[EDGES_IN_TRIANGLE];
 
   // NOTE: what about walls that are neighboring over a partition edge?
-  wall_index_t nb_walls[EDGES_IN_TRIANGLE]; // neighboring wall indices
+  wall_index_t nb_walls[EDGES_IN_TRIANGLE]; // neighboring wall indices  - per object
 
-  SubpartIndicesSet present_in_subparts; // in what subpartitions is this wall located
-
-  Grid grid;
-
-  // --- wall constants ---
-  bool wall_constants_precomputed;
   pos_t uv_vert1_u;   /* Surface u-coord of 2nd corner (v=0) */
   Vec2 uv_vert2;      /* Surface coords of third corner */
 
   Vec3 unit_u; /* U basis vector for this wall */
   Vec3 unit_v; /* V basis vector for this wall */
+
+  // shared
+  //wall_shared_data_index_t wall_shared_data_index;
+
+  // owned by Partition, cannot use indexes due to
+  // cyclic header file dependency
+  WallSharedData* wall_shared_data;
+
+  double& get_area() const {
+    assert(wall_shared_data != nullptr);
+    return wall_shared_data->area;
+  }
+  void set_area(const Partition& p, double area_) {
+    assert(wall_shared_data != nullptr);
+    wall_shared_data->area = area_;
+  }
+
+  bool is_movable;
+
+  // regions, one wall can belong to multiple regions, regions are owned by partition
+  // region may represent a surface class
+  // all regions listed here must be a part of 'regions' in the parent geometry object
+  uint_set<region_index_t> regions; // all regions for all objects -> shared?
+
+  SubpartIndicesSet present_in_subparts; // in what subpartitions is this wall located
+
+  Grid grid; // shared among overlapping walls
+
+  // --- wall constants ---
+  bool wall_constants_precomputed;
+
+  // Partition& p; TODOW <- cleaner code
 
   pos_t area;  /* Area of this element (triangle) */
 
