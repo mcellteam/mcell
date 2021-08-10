@@ -128,7 +128,7 @@ int mcell_change_geometry(struct volume *state, struct poly_object_list *pobj_li
     CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");
   }
 
-  if (state->with_checks_flag) {
+  if (state->with_checks_flag && !state->use_mcell4) {
     CHECKED_CALL(check_for_overlapped_walls(
         state->rng, state->n_subvols, state->subvol),
         "Error while checking for overlapped walls.");

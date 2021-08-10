@@ -120,6 +120,14 @@ bool MCell3WorldConverter::convert(volume* s) {
   // convert geometry already puts geometry objects into partitions
   CHECK(convert_geometry_objects(s));
 
+  // uses random generator state
+  if (world->config.check_overlapped_walls) {
+    bool ok = world->check_for_overlapped_walls();
+    if (!ok) {
+      mcell_error("Walls in geometry overlap, more details were printed in the previous message.");
+    }
+  }
+
   // release events require wall information
   CHECK(convert_release_events(s));
   CHECK(convert_viz_output_events(s));
@@ -318,7 +326,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
   world->config.use_expanded_list = s->use_expanded_list;
   // check is done in MCell3 initialization code
-  world->config.check_overlapped_walls = false;
+  world->config.check_overlapped_walls = s->with_checks_flag;
 
   // compute other constants
   // may change world->config.subpartition_edge_length

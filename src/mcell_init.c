@@ -206,7 +206,7 @@ mcell_init_simulation(MCELL_STATE *state) {
     CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");
   }
 
-  if (state->with_checks_flag) {
+  if (state->with_checks_flag && !state->use_mcell4) {
     CHECKED_CALL(check_for_overlapped_walls(
         state->rng, state->n_subvols, state->subvol),
         "Error while checking for overlapped walls.");
@@ -306,7 +306,7 @@ mcell_redo_geom(MCELL_STATE *state) {
     CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");
   }
 
-  if (state->with_checks_flag) {
+  if (state->with_checks_flag && !state->use_mcell4) {
     CHECKED_CALL(check_for_overlapped_walls(
         state->rng, state->n_subvols, state->subvol),
         "Error while checking for overlapped walls.");

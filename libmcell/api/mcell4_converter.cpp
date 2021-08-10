@@ -103,7 +103,7 @@ void MCell4Converter::convert_before_init() {
   if (world->config.check_overlapped_walls) {
     bool ok = world->check_for_overlapped_walls();
     if (!ok) {
-      throw ValueError("Walls in geometry overlap, more details were printed in previous message.");
+      throw ValueError("Walls in geometry overlap, more details were printed in the previous message.");
     }
   }
 
