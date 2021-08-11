@@ -754,8 +754,8 @@ public:
 
   // when a wall is added with add_uninitialized_wall,
   // its type and vertices are not know yet, we must include the walls
-  // into subvolumes and also for other purposes
-  void finalize_wall_creation(const wall_index_t wall_index);
+  // into subpartitions and also for other purposes
+  void finalize_walls();
 
   // returns reference to the new object, only sets id
   GeometryObject& add_uninitialized_geometry_object(const geometry_object_id_t id) {

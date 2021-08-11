@@ -80,31 +80,33 @@ Partition::Partition(
 // when a wall is added with add_uninitialized_wall,
 // its type and vertices are not know yet, we must include the walls
 // into subvolumes and also for other purposes
-void Partition::finalize_wall_creation(const wall_index_t wall_index) {
-  Wall& w = get_wall(wall_index);
+void Partition::finalize_walls() {
+  for (Wall& w: walls) {
+    wall_index_t wall_index = w.index;
 
-  for (vertex_index_t vi: w.vertex_indices) {
-    add_wall_using_vertex_mapping(vi, wall_index);
+    for (vertex_index_t vi: w.vertex_indices) {
+      add_wall_using_vertex_mapping(vi, wall_index);
+    }
+
+    w.present_in_subparts.clear();
+
+    // also insert this triangle into walls per subpartition
+    SubpartIndicesVector colliding_subparts;
+    GeometryUtils::wall_subparts_collision_test(*this, w, colliding_subparts);
+    for (subpart_index_t subpart_index: colliding_subparts) {
+      assert(subpart_index < walls_per_subpart.size());
+
+      // mapping subpart->wall
+      walls_per_subpart[subpart_index].insert(wall_index);
+
+      // mapping wall->subpart
+      w.present_in_subparts.insert(subpart_index); // TODO: use insert_unique
+    }
+
+    // make a cache-optimized copy of certain fields from Wall
+    assert(wall_collision_rejection_data.size() == wall_index);
+    wall_collision_rejection_data.push_back(w);
   }
-
-  w.present_in_subparts.clear();
-
-  // also insert this triangle into walls per subpartition
-  SubpartIndicesVector colliding_subparts;
-  GeometryUtils::wall_subparts_collision_test(*this, w, colliding_subparts);
-  for (subpart_index_t subpart_index: colliding_subparts) {
-    assert(subpart_index < walls_per_subpart.size());
-
-    // mapping subpart->wall
-    walls_per_subpart[subpart_index].insert(wall_index);
-
-    // mapping wall->subpart
-    w.present_in_subparts.insert(subpart_index); // TODO: use insert_unique
-  }
-
-  // make a cache-optimized copy of certain fields from Wall
-  assert(wall_collision_rejection_data.size() == wall_index);
-  wall_collision_rejection_data.push_back(w);
 }
 
 // remove items when 'insert' is false

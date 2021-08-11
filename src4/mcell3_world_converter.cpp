@@ -120,14 +120,6 @@ bool MCell3WorldConverter::convert(volume* s) {
   // convert geometry already puts geometry objects into partitions
   CHECK(convert_geometry_objects(s));
 
-  // uses random generator state
-  if (world->config.check_overlapped_walls) {
-    bool ok = world->check_for_overlapped_walls();
-    if (!ok) {
-      mcell_error("Walls in geometry overlap, more details were printed in the previous message.");
-    }
-  }
-
   // release events require wall information
   CHECK(convert_release_events(s));
   CHECK(convert_viz_output_events(s));
@@ -443,6 +435,17 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
   }
 #endif
 
+  // check overlapped walls
+  // uses random generator state
+  if (world->config.check_overlapped_walls) {
+    bool ok = world->check_for_overlapped_walls();
+    if (!ok) {
+      mcell_error("Walls in geometry overlap, more details were printed in the previous message.");
+    }
+  }
+
+  world->get_partition(PARTITION_ID_INITIAL).finalize_walls();
+
   return true;
 }
 
@@ -628,10 +631,6 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
     }
   }
   CHECK_PROPERTY(wall_species_from_mcell3 == region_species_from_mcell3);
-
-  // finally, we must let the partition know that
-  // we initialized the wall
-  p.finalize_wall_creation(wall.index);
 
   return true;
 }

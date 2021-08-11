@@ -93,14 +93,6 @@ void MCell4Converter::convert_before_init() {
 
   convert_geometry_objects();
 
-  // uses random generator state
-  if (world->config.check_overlapped_walls) {
-    bool ok = world->check_for_overlapped_walls();
-    if (!ok) {
-      throw ValueError("Walls in geometry overlap, more details were printed in the previous message.");
-    }
-  }
-
   // - update flags that tell whether we have reactions for all volume/surface species
   //   and also update molecule type compartment flag
   // - must be done after geometry object conversions because
@@ -768,7 +760,6 @@ MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
   wall.initalize_wall_constants(p);
 
   // add wall to subpartitions
-  p.finalize_wall_creation(wall.index);
   dst_obj.wall_indices.push_back(wall.index);
 
   return wall.index;
@@ -1008,6 +999,17 @@ void MCell4Converter::convert_geometry_objects() {
       }
     }
   }
+
+  // check overlapped walls
+  // uses random generator state
+  if (world->config.check_overlapped_walls) {
+    bool ok = world->check_for_overlapped_walls();
+    if (!ok) {
+      throw ValueError("Walls in geometry overlap, more details were printed in the previous message.");
+    }
+  }
+
+  p.finalize_walls();
 }
 
 

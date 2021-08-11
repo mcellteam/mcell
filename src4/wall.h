@@ -272,35 +272,6 @@ public:
     nb_walls[2] = WALL_INDEX_INVALID;
   }
 
-  // the partition argument is used only to access vertices, wall is not aded to the partition
-  Wall(
-      const Partition& p,
-      const vertex_index_t index0, const vertex_index_t index1, const vertex_index_t index2,
-      const bool do_precompute_wall_constants, const bool do_precompute_edge_constants)
-    : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
-      object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
-      is_movable(true),
-      wall_constants_initialized(false),
-      uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
-      unit_u(POS_INVALID), unit_v(POS_INVALID),
-      wall_shared_data(nullptr) {
-    vertex_indices[0] = index0;
-    vertex_indices[1] = index1;
-    vertex_indices[2] = index2;
-
-    nb_walls[0] = WALL_INDEX_INVALID;
-    nb_walls[1] = WALL_INDEX_INVALID;
-    nb_walls[2] = WALL_INDEX_INVALID;
-
-    if (do_precompute_wall_constants) {
-      initalize_wall_constants(p);
-    }
-    if (do_precompute_edge_constants) {
-      assert(do_precompute_wall_constants);
-      initialize_edge_constants(p);
-    }
-  }
-
   bool exists_in_partition() const {
     return id != WALL_ID_NOT_IN_PARTITION;
   }
