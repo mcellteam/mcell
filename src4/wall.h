@@ -219,8 +219,9 @@ public:
 
 class WallSharedData {
 public:
-  WallSharedData() :
+  WallSharedData(const wall_index_t wall_index) :
     area(POS_INVALID) {
+    shared_among_walls.push_back(wall_index);
   }
 
   std::vector<wall_index_t> shared_among_walls;
@@ -258,18 +259,21 @@ public:
  */
 class Wall : public WallCollisionRejectionData {
 public:
-  Wall()
+  // creates its own shared data object
+  Wall(WallSharedData* wall_shared_data_)
     : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
       object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
       is_movable(true),
       wall_constants_initialized(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       unit_u(POS_INVALID), unit_v(POS_INVALID),
-      wall_shared_data(nullptr) {
+      wall_shared_data(wall_shared_data_) {
 
     nb_walls[0] = WALL_INDEX_INVALID;
     nb_walls[1] = WALL_INDEX_INVALID;
     nb_walls[2] = WALL_INDEX_INVALID;
+
+    assert(wall_shared_data != nullptr);
   }
 
   bool exists_in_partition() const {
@@ -374,9 +378,12 @@ public:
   // edge constants initialization is not supported
   WallWithVertices(const Partition& p,
       const Vec3& v0, const Vec3& v1, const Vec3& v2,
-      const bool do_precompute_wall_constants) {
+      const bool do_precompute_wall_constants) :
+      Wall(nullptr) {
 
     id = WALL_ID_NOT_IN_PARTITION;
+
+    wall_shared_data = new WallSharedData(WALL_INDEX_INVALID);
 
     vertices[0] = v0;
     vertices[1] = v1;
@@ -385,6 +392,10 @@ public:
     if (do_precompute_wall_constants) {
       initalize_wall_constants(p);
     }
+  }
+
+  ~WallWithVertices() {
+    delete wall_shared_data;
   }
 
   Vec3 vertices[VERTICES_IN_TRIANGLE];

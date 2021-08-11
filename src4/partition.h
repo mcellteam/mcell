@@ -205,6 +205,8 @@ public:
       SimulationStats& stats_
   );
 
+  ~Partition();
+
   Molecule& get_m(const molecule_id_t id) {
     assert(id != MOLECULE_ID_INVALID);
     assert(id < molecule_id_to_index_mapping.size());
@@ -740,10 +742,9 @@ public:
   }
 
   // returns reference to the new wall, only sets id and index
-  // register_wall must be called after the wall is initialized
   Wall& add_uninitialized_wall(const wall_id_t id) {
     wall_index_t index = walls.size();
-    walls.push_back(Wall());
+    walls.push_back(Wall(create_wall_shared_data(index)));
     Wall& new_wall = walls.back();
 
     new_wall.id = id;
@@ -956,6 +957,11 @@ public:
 
   // returns true if any of the walls overlap
   bool check_for_overlapped_walls(const Vec3& rand_vec) const;
+
+  WallSharedData* create_wall_shared_data(const wall_index_t wall_index) {
+    WallSharedData* res = new WallSharedData(wall_index);
+    return res;
+  }
 
 private:
 

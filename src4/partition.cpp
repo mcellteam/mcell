@@ -77,6 +77,15 @@ Partition::Partition(
   rng_init(&aux_rng, config.initial_seed);
 }
 
+
+Partition::~Partition() {
+  // these data can be shared among multiple walls therefore they are
+  // owned by Partition
+  for (WallSharedData* ptr: wall_shared_data) {
+    delete ptr;
+  }
+}
+
 // when a wall is added with add_uninitialized_wall,
 // its type and vertices are not know yet, we must include the walls
 // into subvolumes and also for other purposes

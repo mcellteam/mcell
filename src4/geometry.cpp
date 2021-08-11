@@ -1195,7 +1195,6 @@ void update_moved_walls(
   }
 
   // update walls
-  // FIXME: this should be placed in geometry.cpp
   for (auto it: walls_with_their_moves) {
     wall_index_t wall_index = it.first;
     Wall& w = p.get_wall(wall_index);
