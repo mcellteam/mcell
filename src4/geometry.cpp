@@ -177,8 +177,8 @@ static void refine_edge_pairs(
       if (compatible_edges(p, faces, wA, eA, wB, eB)) {
         const Wall& wall_a = p.get_wall(wA);
         const Wall& wall_b = p.get_wall(wB);
-        assert(wall_a.wall_constants_precomputed);
-        assert(wall_b.wall_constants_precomputed);
+        assert(wall_a.wall_constants_initialized);
+        assert(wall_b.wall_constants_initialized);
 
         pos_t align = dot(wall_a.normal, wall_b.normal);
 
@@ -325,8 +325,8 @@ static int surface_net(Partition& p, GeometryObject& obj) {
             e.backward_index = facelist[pep->face[1]];
             e.edge_num_used_for_init = pep->edge[0];
 
-            assert(face0.wall_constants_precomputed);
-            assert(face1.wall_constants_precomputed);
+            assert(face0.wall_constants_initialized);
+            assert(face1.wall_constants_initialized);
             e.reinit_edge_constants(p);
 
             face0.edges[pep->edge[0]] = e;
@@ -1201,7 +1201,7 @@ void update_moved_walls(
     Wall& w = p.get_wall(wall_index);
 
     // first we need to update all wall constants
-    w.precompute_wall_constants(p);
+    w.initalize_wall_constants(p);
 
     // then update wall_collision_rejection_data that hold a copy
     p.update_wall_collision_rejection_data(w);
@@ -1233,7 +1233,7 @@ void update_moved_walls(
       continue;
     }
     Wall& w = p.get_wall(wall_index);
-    w.reinit_edge_constants(p);
+    w.initialize_edge_constants(p);
   }
 }
 

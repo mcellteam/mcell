@@ -256,7 +256,7 @@ void Edge::dump(const std::string ind) const {
 }
 
 
-void Wall::precompute_wall_constants(const Partition& p) {
+void Wall::initalize_wall_constants(const Partition& p) {
 
   const Vec3* v0;
   const Vec3* v1;
@@ -316,10 +316,10 @@ void Wall::precompute_wall_constants(const Partition& p) {
   uv_vert2.u = dot(f2, unit_u);
   uv_vert2.v = dot(f2, unit_v);
 
-  wall_constants_precomputed = true;
+  wall_constants_initialized = true;
 }
 
-void Wall::reinit_edge_constants(const Partition& p) {
+void Wall::initialize_edge_constants(const Partition& p) {
   // edges, uses info set by init_tri_wall
   for (uint edge_index = 0; edge_index < EDGES_IN_TRIANGLE; edge_index++) {
     if (edges[edge_index].is_shared_edge()) {

@@ -262,7 +262,7 @@ public:
     : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
       object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
       is_movable(true),
-      wall_constants_precomputed(false),
+      wall_constants_initialized(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       unit_u(POS_INVALID), unit_v(POS_INVALID),
       wall_shared_data(nullptr) {
@@ -280,7 +280,7 @@ public:
     : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
       object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
       is_movable(true),
-      wall_constants_precomputed(false),
+      wall_constants_initialized(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       unit_u(POS_INVALID), unit_v(POS_INVALID),
       wall_shared_data(nullptr) {
@@ -293,11 +293,11 @@ public:
     nb_walls[2] = WALL_INDEX_INVALID;
 
     if (do_precompute_wall_constants) {
-      precompute_wall_constants(p);
+      initalize_wall_constants(p);
     }
     if (do_precompute_edge_constants) {
       assert(do_precompute_wall_constants);
-      reinit_edge_constants(p);
+      initialize_edge_constants(p);
     }
   }
 
@@ -306,10 +306,10 @@ public:
   }
 
   // needs vertex indices to be set
-  void precompute_wall_constants(const Partition& p);
+  void initalize_wall_constants(const Partition& p);
 
   // needs wall constants to be precomputed (all adjacent walls)
-  void reinit_edge_constants(const Partition& p);
+  void initialize_edge_constants(const Partition& p);
 
   bool is_same_region(const Wall& w) const {
     if (w.object_id == object_id && w.regions == regions) {
@@ -374,7 +374,7 @@ public:
   Grid grid; // shared among overlapping walls
 
   // --- wall constants ---
-  bool wall_constants_precomputed;
+  bool wall_constants_initialized;
 
   // Partition& p; TODOW <- cleaner code
 
@@ -412,7 +412,7 @@ public:
     vertices[2] = v2;
 
     if (do_precompute_wall_constants) {
-      precompute_wall_constants(p);
+      initalize_wall_constants(p);
     }
   }
 

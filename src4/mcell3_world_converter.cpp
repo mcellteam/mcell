@@ -515,7 +515,7 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   wall.unit_u = w->unit_u;
   wall.unit_v = w->unit_v;
   wall.distance_to_origin = w->d;
-  wall.wall_constants_precomputed = true;
+  wall.wall_constants_initialized = true;
 
   for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
     edge* e = w->edges[i];
