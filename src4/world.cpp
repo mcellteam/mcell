@@ -40,6 +40,7 @@
 #include "custom_function_call_event.h"
 #include "mol_order_shuffle_event.h"
 #include "vtk_utils.h"
+#include "wall_overlap.h"
 
 #include "api/mol_wall_hit_info.h"
 #include "api/geometry_object.h"
@@ -661,8 +662,8 @@ bool World::check_for_overlapped_walls() {
   rand_vec.y = rng_dbl(&rng);
   rand_vec.z = rng_dbl(&rng);
 
-  for (const Partition& p: partitions) {
-    bool ok = p.check_for_overlapped_walls(rand_vec);
+  for (Partition& p: partitions) {
+    bool ok = WallOverlap::check_for_overlapped_walls(p, rand_vec);
     if (!ok) {
       return false;
     }

@@ -29,6 +29,8 @@
 #include "geometry.h"
 #include "partition.h"
 
+using namespace std;
+
 namespace MCell {
 namespace WallOverlap {
 
@@ -45,7 +47,7 @@ are_walls_coplanar:
   Note: see "Real-time rendering" 2nd Ed., by Tomas Akenine-Moller and
         Eric Haines, pp. 590-591
 ******************************************************************/
-bool are_coplanar(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps) {
+static bool are_coplanar(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps) {
 
   /* find the plane equation of the second wall in the form (n*x + d2 = 0) */
 
@@ -82,7 +84,7 @@ are_walls_coincident:
   Out: 0 if the walls are not coincident
        1 if the walls are coincident
 *******************************************************************/
-bool are_coincident(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps) {
+static bool are_coincident(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps) {
 
   int count = 0;
 
@@ -247,7 +249,7 @@ static bool coplanar_tri_tri(
  *         fide area overlap. If w1 and w2 share an edge or vertex
  *         this will *not* be treated as an overlap.
  */
-bool coplanar_walls_overlap(const Partition& p, const Wall& w1, const Wall& w2) {
+static bool coplanar_walls_overlap(const Partition& p, const Wall& w1, const Wall& w2) {
   assert(are_coplanar(p, w1, w2, POS_EPS));
 
   const Vec3& v0 = p.get_wall_vertex(w1, 0);
@@ -259,6 +261,103 @@ bool coplanar_walls_overlap(const Partition& p, const Wall& w1, const Wall& w2) 
 
   /* plane equation 1: N1.X+d1=0 */
   return coplanar_tri_tri(w1.normal, v0, v1, v2, u0, u1, u2);
+}
+
+
+static uint get_num_same_vertex_coords(const Partition& p, const Wall& w1, const Wall& w2) {
+
+  // assuming no vertices for one wall are identical
+  uint num_same = 0;
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    const Vec3& v1 = p.get_wall_vertex(w1, i);
+    for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+      const Vec3& v2 = p.get_wall_vertex(w2, k);
+      if (v1 == v2) {
+        num_same++;
+      }
+    }
+  }
+  return num_same;
+}
+
+
+bool check_for_overlapped_walls(Partition& p, const Vec3& rand_vec) {
+
+  typedef pair<wall_index_t, double> WallDprodPair;
+  vector<WallDprodPair> wall_indices_w_dprod;
+  for (const Wall& w: p.get_walls()) {
+    double d_prod = dot(rand_vec, w.normal);
+
+    /* we want to place walls with opposite normals into
+       neighboring positions in the sorted list */
+    if (d_prod < 0) {
+      d_prod = -d_prod;
+    }
+
+    wall_indices_w_dprod.push_back(make_pair(w.index, d_prod));
+  }
+
+  // sort according to dprod
+  sort(wall_indices_w_dprod.begin(), wall_indices_w_dprod.end(),
+      [](const WallDprodPair& a, const WallDprodPair& b) -> bool {
+          return a.second < b.second;
+      }
+  );
+
+
+  for (size_t i = 0; i < wall_indices_w_dprod.size(); i++) {
+    WallDprodPair& wd = wall_indices_w_dprod[i];
+    const Wall& w1 = p.get_wall(wd.first);
+
+    size_t next_index = i + 1;
+    while (next_index < wall_indices_w_dprod.size() &&
+        (!distinguishable_f(wd.second, wall_indices_w_dprod[next_index].second, EPS))) {
+
+      /* there may be several walls with the same (or mirror) oriented normals */
+      const Wall& w2 = p.get_wall(wall_indices_w_dprod[next_index].first);
+
+      const string& obj1_name = p.get_geometry_object(w1.object_id).name;
+      const string& obj2_name = p.get_geometry_object(w2.object_id).name;
+
+      uint num_same = get_num_same_vertex_coords(p, w1, w2);
+      if (num_same == 3) {
+        errs() << "wall overlap: wall side " << w1.side << " from '" << obj1_name <<
+            "' overlaps wall side " << w2.side << " from '" << obj2_name <<
+            "'.\n";
+      }
+
+      if (WallOverlap::are_coplanar(p, w1, w2, MESH_DISTINCTIVE_EPS) &&
+           (WallOverlap::are_coincident(p, w1, w2, MESH_DISTINCTIVE_EPS) ||
+            WallOverlap::coplanar_walls_overlap(p, w1, w2))
+      ) {
+        // check for a shared wall
+        uint num_same = get_num_same_vertex_coords(p, w1, w2);
+        if (num_same == 2) {
+          // ok, allowed
+          errs() << "edge overlap: wall side " << w1.side << " from '" << obj1_name <<
+              "' overlaps wall side " << w2.side << " from '" << obj2_name <<
+              "'.\n";
+        }
+        else if (num_same == 3) {
+          // 1) set the primary wall -> first found
+          // 2) unify vertex indices
+
+          //merge_wall(w1, w2);
+          cout << "wall overlap TODO\n";
+          return false;
+        }
+        else {
+          errs() << "walls are overlapped: wall side " << w1.side << " from '" << obj1_name <<
+              "' overlaps wall side " << w2.side << " from '" << obj2_name <<
+              "', the only overlapping walls that are allowed are those that have the same vertex coordinates.\n";
+          return false;
+        }
+      }
+
+      next_index++;
+    }
+  }
+  return true;
 }
 
 } // namespace WallOverlap

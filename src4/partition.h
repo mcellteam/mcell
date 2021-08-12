@@ -955,9 +955,6 @@ public:
       const IVec3& waypoint_index, const bool reinitialize = true
   );
 
-  // returns true if any of the walls overlap
-  bool check_for_overlapped_walls(const Vec3& rand_vec) const;
-
   WallSharedData* create_wall_shared_data(const wall_index_t wall_index) {
     WallSharedData* res = new WallSharedData(wall_index);
     return res;

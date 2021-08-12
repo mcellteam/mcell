@@ -20,11 +20,9 @@ class Wall;
 
 namespace WallOverlap {
 
-bool are_coplanar(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps);
-bool are_coincident(const Partition& p, const Wall& w1, const Wall& w2, const pos_t eps);
-
-// w1 and w2 are assumed to be coplanar
-bool coplanar_walls_overlap(const Partition& p, const Wall& w1, const Wall& w2);
+// rand_vec is a value of three random values used when sorting walls for overlap detection
+// (TODO: not completely sure why a random value is needed there)
+bool check_for_overlapped_walls(Partition& p, const Vec3& rand_vec);
 
 } // namespace WallOverlap
 } // namespace MCell
