@@ -757,7 +757,7 @@ MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
     wall.vertex_indices[i] = src_obj.vertex_indices[src_obj.wall_list[side][i]];
   }
 
-  wall.initalize_wall_constants(p);
+  wall.initialize_wall_constants(p);
 
   // add wall to subpartitions
   dst_obj.wall_indices.push_back(wall.index);

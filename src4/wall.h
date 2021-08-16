@@ -219,45 +219,23 @@ public:
 
 class WallSharedData {
 public:
-  WallSharedData(const wall_index_t wall_index) :
-    area(POS_INVALID) {
+  WallSharedData(const wall_index_t wall_index) {
     shared_among_walls.push_back(wall_index);
   }
 
   std::vector<wall_index_t> shared_among_walls;
-
-  /*
-  // flag?
-  bool is_movable;
-
-  // regions, one wall can belong to multiple regions, regions are owned by partition
-  // region may represent a surface class
-  // all regions listed here must be a part of 'regions' in the parent geometry object
-  uint_set<region_index_t> regions; // all regions for all objects -> shared?
-
-  SubpartIndicesSet present_in_subparts; // in what subpartitions is this wall located
-
-  Grid grid; // shared among overlapping walls
-
-  // --- wall constants ---
-  bool wall_constants_precomputed;
-  */
-
-  pos_t area;  /* Area of this element (triangle) */
+  
+  // merges shared_among_walls contents
+  void merge_initial_wall_data(const WallSharedData* wsd);  
 };
 
 
 /**
- * Single instance of a wall.
+ * Single instance of a wall (mesh face).
  * Owned by partition, also its vertices are owned by partition.
- *
- * This is in fact a triangle, but we are keeping the naming consistent with MCell 3.
- *
- * TODO_LATER: Add additional debug checks that will make sure that the
- * state of this object is consistent. However, how to do it without
- * making the attributes private?
+ * Represented by a triangle.
  */
-class Wall : public WallCollisionRejectionData {
+class Wall: public WallCollisionRejectionData {
 public:
   // creates its own shared data object
   Wall(WallSharedData* wall_shared_data_)
@@ -273,6 +251,10 @@ public:
     nb_walls[1] = WALL_INDEX_INVALID;
     nb_walls[2] = WALL_INDEX_INVALID;
 
+    vertex_indices[0] = VERTEX_INDEX_INVALID;
+    vertex_indices[1] = VERTEX_INDEX_INVALID;
+    vertex_indices[2] = VERTEX_INDEX_INVALID;
+
     assert(wall_shared_data != nullptr);
   }
 
@@ -281,7 +263,7 @@ public:
   }
 
   // needs vertex indices to be set
-  void initalize_wall_constants(const Partition& p);
+  void initialize_wall_constants(const Partition& p);
 
   // needs wall constants to be precomputed (all adjacent walls)
   void initialize_edge_constants(const Partition& p);
@@ -303,6 +285,9 @@ public:
   geometry_object_id_t object_id; // id of object to which this wall belongs   - per object
   geometry_object_index_t object_index; // index of object in this partition to which this wall belongs  - per object
 
+  bool is_movable;
+  bool wall_constants_initialized;
+
   // indices of the three triangle's vertices,
   // they are shared in a partition and a single vertex should be usually represented by just one item
   // so when a position of one vertex changes, it should affect all the triangles that use it
@@ -321,23 +306,21 @@ public:
   Vec3 unit_u; /* U basis vector for this wall */
   Vec3 unit_v; /* V basis vector for this wall */
 
-  // shared
-  //wall_shared_data_index_t wall_shared_data_index;
-
   // owned by Partition, cannot use indexes due to
   // cyclic header file dependency
   WallSharedData* wall_shared_data;
 
-  double& get_area() const {
+  // primary wall is the first listed in 'shared_among_walls'
+  bool is_primary_wall() const {
     assert(wall_shared_data != nullptr);
-    return wall_shared_data->area;
-  }
-  void set_area(const Partition& p, double area_) {
-    assert(wall_shared_data != nullptr);
-    wall_shared_data->area = area_;
+    return wall_shared_data->shared_among_walls[0] == index;
   }
 
-  bool is_movable;
+  // overlapped wall is not the the first listed in 'shared_among_walls'
+  bool is_overlapped_wall() const {
+    assert(wall_shared_data != nullptr);
+    return wall_shared_data->shared_among_walls[0] != index;
+  }
 
   // regions, one wall can belong to multiple regions, regions are owned by partition
   // region may represent a surface class
@@ -349,9 +332,6 @@ public:
   Grid grid; // shared among overlapping walls
 
   // --- wall constants ---
-  bool wall_constants_initialized;
-
-  // Partition& p; TODOW <- cleaner code
 
   pos_t area;  /* Area of this element (triangle) */
 
@@ -390,7 +370,7 @@ public:
     vertices[2] = v2;
 
     if (do_precompute_wall_constants) {
-      initalize_wall_constants(p);
+      initialize_wall_constants(p);
     }
   }
 

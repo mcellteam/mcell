@@ -136,8 +136,9 @@ void Edge::reinit_edge_constants(const Partition& p) {
   edge_index_t i = edge_num_used_for_init;
   assert(i < VERTICES_IN_TRIANGLE);
   edge_index_t j = i + 1;
-  if (j == VERTICES_IN_TRIANGLE)
+  if (j == VERTICES_IN_TRIANGLE) {
     j = 0;
+  }
 
   const Vec3& wf_vert_0 = p.get_geometry_vertex(wf.vertex_indices[0]);
   const Vec3& wf_vert_i = p.get_geometry_vertex(wf.vertex_indices[i]);
@@ -256,7 +257,13 @@ void Edge::dump(const std::string ind) const {
 }
 
 
-void Wall::initalize_wall_constants(const Partition& p) {
+void WallSharedData::merge_initial_wall_data(const WallSharedData* wsd) {
+  shared_among_walls.insert(
+      shared_among_walls.end(), wsd->shared_among_walls.begin(), wsd->shared_among_walls.end());
+}
+
+
+void Wall::initialize_wall_constants(const Partition& p) {
 
   const Vec3* v0;
   const Vec3* v1;

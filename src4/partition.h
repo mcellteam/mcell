@@ -957,7 +957,14 @@ public:
 
   WallSharedData* create_wall_shared_data(const wall_index_t wall_index) {
     WallSharedData* res = new WallSharedData(wall_index);
+    wall_shared_data.insert(res);
     return res;
+  }
+
+  void delete_wall_shared_data(WallSharedData* ptr) {
+    assert(wall_shared_data.count(ptr) != 0);
+    delete ptr;
+    wall_shared_data.erase(ptr);
   }
 
 private:

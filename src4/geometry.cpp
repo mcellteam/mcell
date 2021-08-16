@@ -1200,7 +1200,7 @@ void update_moved_walls(
     Wall& w = p.get_wall(wall_index);
 
     // first we need to update all wall constants
-    w.initalize_wall_constants(p);
+    w.initialize_wall_constants(p);
 
     // then update wall_collision_rejection_data that hold a copy
     p.update_wall_collision_rejection_data(w);

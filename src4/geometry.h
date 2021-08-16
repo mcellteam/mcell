@@ -69,6 +69,7 @@ public:
       surf_compartment_id(BNG::COMPARTMENT_ID_NONE),
       counted_volume_index_inside(COUNTED_VOLUME_INDEX_INVALID),
       counted_volume_index_outside(COUNTED_VOLUME_INDEX_INVALID),
+      is_fully_transparent(false),
       default_color(DEFAULT_COLOR),
       is_used_in_mol_rxn_counts(false)
     {
@@ -103,6 +104,9 @@ public:
   // might be set to COUNTED_VOLUME_INDEX_INTERSECTS if the direct parent of
   // this object intersects with another object
   counted_volume_index_t counted_volume_index_outside;
+
+  // set during surface class conversion
+  bool is_fully_transparent;
 
   // default color id of this object
   rgba_t default_color;

@@ -281,6 +281,42 @@ static uint get_num_same_vertex_coords(const Partition& p, const Wall& w1, const
 }
 
 
+static void merge_walls(Partition& p, Wall& w1, Wall& w2) {
+
+  release_assert(w1.wall_shared_data != w2.wall_shared_data
+      && "Cannot merge already merged walls");
+
+  // which one is primary?
+  const GeometryObject& o1 = p.get_geometry_object(w1.object_index);
+  const GeometryObject& o2 = p.get_geometry_object(w2.object_index);
+  if (!o1.is_fully_transparent && !o2.is_fully_transparent) {
+    errs() << "Cannot allow overlapped wall because neither object '" << o1.name << "' nor '" <<
+        o2.name << "' is fully transparent (does not have a transparent surface class for all molecules). " <<
+        "Error for: wall side " << w1.side << " from '" << o1.name << "' and wall side " << w2.side << " from '" << o2.name << ".\n";
+    exit(1);
+  }
+
+  WallSharedData* shared_data = p.create_wall_shared_data(WALL_INDEX_INVALID);
+
+  // merge in the right order so that the primary wall is listed as the first one
+  // if both are fully transparent, order does not matter
+  if (o1.is_fully_transparent) {
+    shared_data->merge_initial_wall_data(w2.wall_shared_data);
+    shared_data->merge_initial_wall_data(w1.wall_shared_data);
+  }
+  else {
+    shared_data->merge_initial_wall_data(w1.wall_shared_data);
+    shared_data->merge_initial_wall_data(w2.wall_shared_data);
+  }
+
+  p.delete_wall_shared_data(w1.wall_shared_data);
+  p.delete_wall_shared_data(w2.wall_shared_data);
+
+  w1.wall_shared_data = shared_data;
+  w2.wall_shared_data = shared_data;
+}
+
+
 bool check_for_overlapped_walls(Partition& p, const Vec3& rand_vec) {
 
   typedef pair<wall_index_t, double> WallDprodPair;
@@ -307,24 +343,14 @@ bool check_for_overlapped_walls(Partition& p, const Vec3& rand_vec) {
 
   for (size_t i = 0; i < wall_indices_w_dprod.size(); i++) {
     WallDprodPair& wd = wall_indices_w_dprod[i];
-    const Wall& w1 = p.get_wall(wd.first);
+    Wall& w1 = p.get_wall(wd.first);
 
     size_t next_index = i + 1;
     while (next_index < wall_indices_w_dprod.size() &&
         (!distinguishable_f(wd.second, wall_indices_w_dprod[next_index].second, EPS))) {
 
       /* there may be several walls with the same (or mirror) oriented normals */
-      const Wall& w2 = p.get_wall(wall_indices_w_dprod[next_index].first);
-
-      const string& obj1_name = p.get_geometry_object(w1.object_id).name;
-      const string& obj2_name = p.get_geometry_object(w2.object_id).name;
-
-      uint num_same = get_num_same_vertex_coords(p, w1, w2);
-      if (num_same == 3) {
-        errs() << "wall overlap: wall side " << w1.side << " from '" << obj1_name <<
-            "' overlaps wall side " << w2.side << " from '" << obj2_name <<
-            "'.\n";
-      }
+      Wall& w2 = p.get_wall(wall_indices_w_dprod[next_index].first);
 
       if (WallOverlap::are_coplanar(p, w1, w2, MESH_DISTINCTIVE_EPS) &&
            (WallOverlap::are_coincident(p, w1, w2, MESH_DISTINCTIVE_EPS) ||
@@ -334,19 +360,19 @@ bool check_for_overlapped_walls(Partition& p, const Vec3& rand_vec) {
         uint num_same = get_num_same_vertex_coords(p, w1, w2);
         if (num_same == 2) {
           // ok, allowed
-          errs() << "edge overlap: wall side " << w1.side << " from '" << obj1_name <<
-              "' overlaps wall side " << w2.side << " from '" << obj2_name <<
-              "'.\n";
         }
         else if (num_same == 3) {
-          // 1) set the primary wall -> first found
-          // 2) unify vertex indices
+          const string& obj1_name = p.get_geometry_object(w1.object_id).name;
+          const string& obj2_name = p.get_geometry_object(w2.object_id).name;          
+          notifys() << "wall overlap: wall side " << w1.side << " from '" << obj1_name <<
+            "' overlaps wall side " << w2.side << " from '" << obj2_name <<
+            "'.\n";
 
-          //merge_wall(w1, w2);
-          cout << "wall overlap TODO\n";
-          return false;
+          merge_walls(p, w1, w2);
         }
         else {
+          const string& obj1_name = p.get_geometry_object(w1.object_id).name;
+          const string& obj2_name = p.get_geometry_object(w2.object_id).name;          
           errs() << "walls are overlapped: wall side " << w1.side << " from '" << obj1_name <<
               "' overlaps wall side " << w2.side << " from '" << obj2_name <<
               "', the only overlapping walls that are allowed are those that have the same vertex coordinates.\n";
