@@ -144,6 +144,9 @@ public:
   // sets member is_fully_transparent to true
   void initialize_is_fully_transparent(Partition& p);
 
+  // returns nonempty string on error
+  std::string validate_volumetric_mesh(const Partition& p) const;
+
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);

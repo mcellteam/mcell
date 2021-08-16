@@ -47,7 +47,22 @@ geometry_utils:
          Number of subdivisions from the initial icosphere. 
          The higher this value will be the smoother the icosphere will be.
          Allowed range is between 1 and 8.
-      
+    
+  - name: validate_volumetric_mesh
+    doc: | 
+       Checks that the mesh was correctly analyzed, that it has volume and 
+       all edges have neighboring walls.
+       Must be called after model initialization. 
+       Throws exception with detained message if validation did not pass. 
+    params:
+    - name: model
+      type: Model*
+      doc: Model object after initialization.
+
+    - name: geometry_object
+      type: GeometryObject*
+      doc: Geometry object to be checked.
+             
 bngl_utils:
   doc: | 
      Submodule bngl_utils provides a function to load parameters from a BNGL file. 

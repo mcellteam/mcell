@@ -1589,6 +1589,13 @@ class geometry_utils():
         ) -> 'GeometryObject':
         pass
 
+    def validate_volumetric_mesh(
+            self,
+            model : Model,
+            geometry_object : GeometryObject
+        ) -> None:
+        pass
+
 class run_utils():
     def __init__(
             self,

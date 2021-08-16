@@ -12,6 +12,12 @@
 #include "generated/gen_geometry_utils.h"
 
 #include "api/geometry_object.h"
+#include "api/model.h"
+
+#include "world.h"
+#include "geometry.h"
+#include "partition.h"
+
 #include <vtkPlatonicSolidSource.h>
 #include <vtkPolyData.h>
 #include <vtkSmartPointer.h>
@@ -304,6 +310,29 @@ std::shared_ptr<GeometryObject> create_sphere(
   return res;
 }
 #endif
+
+
+void validate_volumetric_mesh(
+    std::shared_ptr<Model> model,
+    std::shared_ptr<GeometryObject> geometry_object) {
+
+  if (!model->is_initialized()) {
+    throw RuntimeError(S("Function ") + NAME_VALIDATE_VOLUMETRIC_MESH + " may be called only after model initialization.");
+  }
+
+  if (geometry_object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
+    throw RuntimeError(S("Function ") + NAME_VALIDATE_VOLUMETRIC_MESH + " may be called on " + NAME_CLASS_GEOMETRY_OBJECT + " used during model initialization.");
+  }
+
+  const Partition& p = model->get_world()->get_partition(PARTITION_ID_INITIAL);
+
+  const MCell::GeometryObject& obj = p.get_geometry_object(geometry_object->geometry_object_id);
+  string msg = obj.validate_volumetric_mesh(p);
+  if (msg != "") {
+    throw RuntimeError("Validation of volumetric mesh failed with following error:\n" + msg);
+  }
+}
+
 
 } // namespace geometry_utils
 

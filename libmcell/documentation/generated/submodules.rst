@@ -101,6 +101,21 @@ Methods:
   | Example: `1110_point_release_w_create_icosphere/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/1110_point_release_w_create_icosphere/model.py>`_ 
 
 
+* | **validate_volumetric_mesh**
+
+   * | model: Model
+     | Model object after initialization.
+
+   * | geometry_object: GeometryObject
+     | Geometry object to be checked.
+
+
+  | Checks that the mesh was correctly analyzed, that it has volume and 
+  | all edges have neighboring walls.
+  | Must be called after model initialization. 
+  | Throws exception with detained message if validation did not pass.
+
+
 
 run_utils
 =========

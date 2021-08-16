@@ -128,6 +128,10 @@ public:
   // TODO: this belongs to Subsystem
   std::shared_ptr<ReactionRule> get_reaction_rule_with_fwd_id(const BNG::rxn_rule_id_t id);
 
+  bool is_initialized() const {
+    return initialized;
+  }
+
   void error_if_initialized(const char* what) {
     if (initialized) {
       throw RuntimeError(S("It is not possible to add ") + what + " once a model was initialized.");

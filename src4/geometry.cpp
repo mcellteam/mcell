@@ -484,6 +484,40 @@ void GeometryObject::initialize_is_fully_transparent(Partition& p) {
 }
 
 
+std::string GeometryObject::validate_volumetric_mesh(const Partition& p) const {
+
+  std::stringstream res;
+
+  for (wall_index_t wi: wall_indices) {
+    const Wall& w = p.get_wall(wi);
+
+    // check that each wall has all neighbors
+    for (uint k = 0; k < EDGES_IN_TRIANGLE; k++) {
+      if (w.nb_walls[k] == WALL_INDEX_INVALID) {
+        res << "Wall side " << w.side << ": neighbor wall with index " << k << " not found.\n";
+      }
+    }
+
+    // check that all edges were initialized
+    for (uint k = 0; k < EDGES_IN_TRIANGLE; k++) {
+      if (w.edges[k].edge_num_used_for_init == EDGE_INDEX_INVALID) {
+        res << "Wall side " << w.side << ": edge with index " << k << " was not initialized.\n";
+      }
+      if (w.edges[k].forward_index == WALL_INDEX_INVALID) {
+        res << "Wall side " << w.side << ": edge with index " << k << " has no forward wall index.\n";
+      }
+      if (w.edges[k].backward_index == WALL_INDEX_INVALID) {
+        res << "Wall side " << w.side << ": edge with index " << k << " has no backward wall index.\n";
+      }
+    }
+
+  }
+
+  return res.str();
+}
+
+
+
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind <<
       "GeometryObject: id:" << id << ", name:" << name <<

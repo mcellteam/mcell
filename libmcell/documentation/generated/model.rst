@@ -229,7 +229,7 @@ Methods:
      | otherwise an empty list is returned.
 
    * | randomize_order: bool = True
-     | When set to True (default), the ordeting of the vertex move list created by add_vertex_move
+     | When set to True (default), the ordering of the vertex move list created by add_vertex_move
      | calls is randomized. The reason to apply moves in a random order is to avoid possible biases 
      | during object collisions.
 
@@ -237,12 +237,13 @@ Methods:
 
 
   | Applies all the vertex moves specified with Model.add_vertex_move call.
-  | Walls of different objects are checked against collisions and move the maximal way so that they do not 
-  | overlap.
-  | The API representation (GeometryObject) is not updated, only the internal MCell data are changed.
-  | Note\: It is not supported yet to move two objects that woudl collide at the same time.  
+  | Walls of different objects are checked against collisions.
+  | When a moved vertex hits a wall of another object, it is stopped at the wall.
+  | When second object's vertex would end inside the moved object, the vertex move 
+  | that would cause it is cancelled because finding the maximum distance we can move is too computationally 
+  | expensive. To minimize the impact of this cancellation, the vertices should be moved only by a small distance.     
   | When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
-  | when collect_wall_wall_hits is False, and empty list is returned.
+  | when collect_wall_wall_hits is False, an empty list is returned.
 
   | Example: `1510_tetrahedron_box_collision_moving_3_verts/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py>`_ 
 

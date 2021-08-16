@@ -18,12 +18,14 @@ namespace MCell {
 namespace API {
 
 class GeometryObject;
+class Model;
 class PythonExportContext;
 
 namespace geometry_utils {
 
 std::shared_ptr<GeometryObject> create_box(const std::string& name, const double edge_dimension = FLT_UNSET, const std::vector<double> xyz_dimensions = std::vector<double>());
 std::shared_ptr<GeometryObject> create_icosphere(const std::string& name, const double radius, const int subdivisions);
+void validate_volumetric_mesh(std::shared_ptr<Model> model, std::shared_ptr<GeometryObject> geometry_object);
 
 } // namespace geometry_utils
 
