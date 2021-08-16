@@ -105,7 +105,8 @@ public:
   // this object intersects with another object
   counted_volume_index_t counted_volume_index_outside;
 
-  // set during surface class conversion
+  // set in initialize_is_fully_transparent, true if all walls have only surface class
+  // that makes them transparent to all molecules, used in overlapping wall detections
   bool is_fully_transparent;
 
   // default color id of this object
@@ -138,6 +139,10 @@ public:
   // uses caching because initial discovery is expensive
   wall_index_t get_wall_for_vertex_pair(
       const Partition& p, const vertex_index_t vi1, const vertex_index_t vi2);
+
+  // checks all walls and their regions and if all are only transparent to all molecules,
+  // sets member is_fully_transparent to true
+  void initialize_is_fully_transparent(Partition& p);
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;

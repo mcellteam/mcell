@@ -425,6 +425,65 @@ wall_index_t GeometryObject::get_wall_for_vertex_pair(
 }
 
 
+// checks all walls and their regions and if all are only transparent to all molecules,
+// sets member is_fully_transparent to true
+void GeometryObject::initialize_is_fully_transparent(Partition& p) {
+
+  is_fully_transparent = false;
+
+  const BNG::SpeciesRxnClassesMap* all_molecules_rxns =
+      p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
+
+  if (all_molecules_rxns == nullptr) {
+    // no transparent surface classes for all molecules were defined at all
+    return;
+  }
+
+  set<species_id_t> transparent_surf_classes_cache;
+
+  // for each wall
+  for (wall_index_t wi: wall_indices) {
+    const Wall& w = p.get_wall(wi);
+
+    bool is_transparent = false;
+
+    // check all regions
+    for (region_index_t ri: w.regions) {
+      const Region& reg = p.get_region(ri);
+      if (!reg.is_reactive()) {
+        continue;
+      }
+
+      if (transparent_surf_classes_cache.count(reg.species_id) != 0) {
+        is_transparent = true;
+        continue;
+      }
+
+      auto reactions_it = all_molecules_rxns->find(reg.species_id);
+      if (reactions_it == all_molecules_rxns->end()) {
+        // no reactions for this type of region -> wall is not transparent
+        return;
+      }
+
+      BNG::RxnClass* rxn_class = reactions_it->second;
+
+      if (rxn_class->is_transparent_type()) {
+        transparent_surf_classes_cache.insert(reg.species_id);
+        is_transparent = true;
+      }
+    }
+
+    if (!is_transparent) {
+      // wall has other surface classes -> object is not fully transparent
+      return;
+    }
+  }
+
+  // ok, all walls are fully transparent
+  is_fully_transparent = true;
+}
+
+
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind <<
       "GeometryObject: id:" << id << ", name:" << name <<

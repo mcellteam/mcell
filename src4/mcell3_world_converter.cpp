@@ -424,8 +424,9 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
   } // for each scene/INSTANTIATE section
 
   // check that our reinit function works correctly
-#ifdef DEBUG_EXTRA_CHECKS
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+#ifdef DEBUG_EXTRA_CHECKS
   for (wall_index_t i = 0; i < p.get_wall_count(); i++) {
     Wall& w = p.get_wall(i);
     for (edge_index_t k = 0; k < EDGES_IN_TRIANGLE; k++) {
@@ -434,6 +435,10 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
     }
   }
 #endif
+
+  for (GeometryObject& obj: p.get_geometry_objects()) {
+    obj.initialize_is_fully_transparent(p);
+  }
 
   // check overlapped walls
   // uses random generator state

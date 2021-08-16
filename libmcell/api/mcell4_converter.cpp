@@ -1000,6 +1000,10 @@ void MCell4Converter::convert_geometry_objects() {
     }
   }
 
+  for (MCell::GeometryObject& obj: p.get_geometry_objects()) {
+    obj.initialize_is_fully_transparent(p);
+  }
+
   // check overlapped walls
   // uses random generator state
   if (world->config.check_overlapped_walls) {
