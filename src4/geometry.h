@@ -70,6 +70,7 @@ public:
       counted_volume_index_inside(COUNTED_VOLUME_INDEX_INVALID),
       counted_volume_index_outside(COUNTED_VOLUME_INDEX_INVALID),
       is_fully_transparent(false),
+      has_overlapped_walls(false),
       default_color(DEFAULT_COLOR),
       is_used_in_mol_rxn_counts(false)
     {
@@ -108,6 +109,11 @@ public:
   // set in initialize_is_fully_transparent, true if all walls have only surface class
   // that makes them transparent to all molecules, used in overlapping wall detections
   bool is_fully_transparent;
+
+  // to true set in check_for_overlapped_walls iff at least one of this object's
+  // wall is overlapped, such object does not allow surface releases and cannot be a
+  // BNGL compartment
+  bool has_overlapped_walls;
 
   // default color id of this object
   rgba_t default_color;

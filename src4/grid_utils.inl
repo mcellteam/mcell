@@ -2107,6 +2107,13 @@ static molecule_id_t place_single_molecule_onto_grid(
     const double release_delay_time
 
 ) {
+  const GeometryObject& obj = p.get_geometry_object(wall.object_index);
+  if (obj.has_overlapped_walls) {
+    const BNG::Species& species = p.get_all_species().get(species_id);
+    errs() << "Geometry object '" << obj.name << "' is fully transparent and has overlapped walls, surface molecules cannot " <<
+        "be released or created on its surface, error for species '" << species.name << "'.\n";
+    exit(1);
+  }
 
   Vec2 pos_on_wall;
   if (override_pos_on_wall) {

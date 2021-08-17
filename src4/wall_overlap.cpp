@@ -287,8 +287,8 @@ static void merge_walls(Partition& p, Wall& w1, Wall& w2) {
       && "Cannot merge already merged walls");
 
   // which one is primary?
-  const GeometryObject& o1 = p.get_geometry_object(w1.object_index);
-  const GeometryObject& o2 = p.get_geometry_object(w2.object_index);
+  GeometryObject& o1 = p.get_geometry_object(w1.object_index);
+  GeometryObject& o2 = p.get_geometry_object(w2.object_index);
   if (!o1.is_fully_transparent && !o2.is_fully_transparent) {
     errs() << "Cannot allow overlapped wall because neither object '" << o1.name << "' nor '" <<
         o2.name << "' is fully transparent (does not have a transparent surface class for all molecules). " <<
@@ -303,10 +303,16 @@ static void merge_walls(Partition& p, Wall& w1, Wall& w2) {
   if (o1.is_fully_transparent) {
     shared_data->merge_initial_wall_data(w2.wall_shared_data);
     shared_data->merge_initial_wall_data(w1.wall_shared_data);
+
+    // mark o1 as being overlapped
+    o1.has_overlapped_walls = true;
   }
   else {
     shared_data->merge_initial_wall_data(w1.wall_shared_data);
     shared_data->merge_initial_wall_data(w2.wall_shared_data);
+
+    // mark o2 as being overlapped
+    o2.has_overlapped_walls = true;
   }
 
   p.delete_wall_shared_data(w1.wall_shared_data);
