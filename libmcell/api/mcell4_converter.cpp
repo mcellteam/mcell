@@ -1014,6 +1014,13 @@ void MCell4Converter::convert_geometry_objects() {
     }
   }
 
+  // check that no overlapped object is a BNGL compartment
+  for (MCell::GeometryObject& obj: p.get_geometry_objects()) {
+    if (obj.has_overlapped_walls && obj.vol_compartment_id != BNG::COMPARTMENT_ID_NONE) {
+      throw ValueError("Overlapped geometry object " + obj.name + " is set to be a BNGL compartment, this is not allowed.");
+    }
+  }
+
   p.finalize_walls();
 }
 
