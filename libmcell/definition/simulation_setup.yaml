@@ -275,6 +275,12 @@ Notifications:
        on the total number of iterations, will be printed during simulation.
     todo: add to cellblender and data model import/export 
      
+  - name: wall_overlap_report
+    type: bool
+    default: False
+    doc: |
+       When True, information on wall overlaps will be printed. 
+     
   # none of these notifications below are currrently interpreted by mcell
 #   - name: probability_report
 #     type: bool

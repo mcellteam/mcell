@@ -47,6 +47,7 @@ public:
     sort_mols_by_subpart(false),
     memory_limit_gb(-1),
     iteration_report(true),
+    wall_overlap_report(false),
     simulation_stats_every_n_iterations(0),
     continue_after_sigalrm(false),
     has_intersecting_counted_objects(false)
@@ -94,6 +95,8 @@ public:
 
   // similar to MCell3's ITERATION_REPORT
   bool iteration_report;
+
+  bool wall_overlap_report;
 
   int simulation_stats_every_n_iterations;
 

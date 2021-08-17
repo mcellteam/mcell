@@ -363,10 +363,12 @@ bool check_for_overlapped_walls(Partition& p, const Vec3& rand_vec) {
         }
         else if (num_same == 3) {
           const string& obj1_name = p.get_geometry_object(w1.object_id).name;
-          const string& obj2_name = p.get_geometry_object(w2.object_id).name;          
-          notifys() << "wall overlap: wall side " << w1.side << " from '" << obj1_name <<
-            "' overlaps wall side " << w2.side << " from '" << obj2_name <<
-            "'.\n";
+          const string& obj2_name = p.get_geometry_object(w2.object_id).name;
+          if (p.config.wall_overlap_report) {
+            notifys() << "wall overlap: wall side " << w1.side << " from '" << obj1_name <<
+              "' overlaps wall side " << w2.side << " from '" << obj2_name <<
+              "'.\n";
+          }
 
           merge_walls(p, w1, w2);
         }

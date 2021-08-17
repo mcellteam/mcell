@@ -306,6 +306,7 @@ const char* const NAME_WALL2 = "wall2";
 const char* const NAME_WALL_INDEX = "wall_index";
 const char* const NAME_WALL_INDICES = "wall_indices";
 const char* const NAME_WALL_LIST = "wall_list";
+const char* const NAME_WALL_OVERLAP_REPORT = "wall_overlap_report";
 const char* const NAME_WARNINGS = "warnings";
 const char* const NAME_WITH_COMPARTMENT = "with_compartment";
 const char* const NAME_WITH_GEOMETRY = "with_geometry";

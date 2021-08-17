@@ -27,7 +27,8 @@ class PythonExportContext;
         const bool rxn_and_species_report_ = false, \
         const int simulation_stats_every_n_iterations_ = 0, \
         const bool rxn_probability_changed_ = true, \
-        const bool iteration_report_ = true \
+        const bool iteration_report_ = true, \
+        const bool wall_overlap_report_ = false \
     ) { \
       class_name = "Notifications"; \
       bng_verbosity_level = bng_verbosity_level_; \
@@ -35,6 +36,7 @@ class PythonExportContext;
       simulation_stats_every_n_iterations = simulation_stats_every_n_iterations_; \
       rxn_probability_changed = rxn_probability_changed_; \
       iteration_report = iteration_report_; \
+      wall_overlap_report = wall_overlap_report_; \
       postprocess_in_ctor(); \
       check_semantics(); \
     } \
@@ -135,6 +137,20 @@ public:
   virtual bool get_iteration_report() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return iteration_report;
+  }
+
+  bool wall_overlap_report;
+  virtual void set_wall_overlap_report(const bool new_wall_overlap_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'wall_overlap_report' of object with name " + name + " (class " + class_name + ") "
+                         "cannot be set after model was initialized.");
+    }
+    cached_data_are_uptodate = false;
+    wall_overlap_report = new_wall_overlap_report_;
+  }
+  virtual bool get_wall_overlap_report() const {
+    cached_data_are_uptodate = false; // arrays and other data can be modified through getters
+    return wall_overlap_report;
   }
 
   // --- methods ---

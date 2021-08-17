@@ -191,6 +191,9 @@ Attributes:
   | When True, a running report of how many iterations have completed, chosen based 
   | on the total number of iterations, will be printed during simulation.
 
+* | **wall_overlap_report**: bool = False
+  | When True, information on wall overlaps will be printed.
+
 Warnings
 ========
 
