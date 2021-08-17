@@ -3012,6 +3012,10 @@ bool DiffuseReactEvent::cross_transparent_wall(
     vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
 
     const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
+
+    // it is ok that we ignore overlapped walls, counted volumes include all objects and
+    // if we cross somewhere where it is not clear, the counted volume for the molecule is
+    // recomputed
     CollisionUtils::update_counted_volume_id_when_crossing_wall(
         p, w, collision.get_orientation_against_wall(), vm);
 

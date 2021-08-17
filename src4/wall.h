@@ -219,10 +219,6 @@ public:
 
 class WallSharedData {
 public:
-  WallSharedData(const wall_index_t wall_index) {
-    shared_among_walls.push_back(wall_index);
-  }
-
   std::vector<wall_index_t> shared_among_walls;
   
   // merges shared_among_walls contents
@@ -363,7 +359,7 @@ public:
 
     id = WALL_ID_NOT_IN_PARTITION;
 
-    wall_shared_data = new WallSharedData(WALL_INDEX_INVALID);
+    wall_shared_data = new WallSharedData;
 
     vertices[0] = v0;
     vertices[1] = v1;

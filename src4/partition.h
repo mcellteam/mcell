@@ -955,8 +955,15 @@ public:
       const IVec3& waypoint_index, const bool reinitialize = true
   );
 
-  WallSharedData* create_wall_shared_data(const wall_index_t wall_index) {
-    WallSharedData* res = new WallSharedData(wall_index);
+  WallSharedData* create_wall_shared_data() {
+    WallSharedData* res = new WallSharedData;
+    wall_shared_data.insert(res);
+    return res;
+  }
+
+  WallSharedData* create_wall_shared_data(const wall_index_t wi) {
+    WallSharedData* res = new WallSharedData;
+    res->shared_among_walls.push_back(wi);
     wall_shared_data.insert(res);
     return res;
   }

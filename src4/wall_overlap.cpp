@@ -296,7 +296,7 @@ static void merge_walls(Partition& p, Wall& w1, Wall& w2) {
     exit(1);
   }
 
-  WallSharedData* shared_data = p.create_wall_shared_data(WALL_INDEX_INVALID);
+  WallSharedData* shared_data = p.create_wall_shared_data();
 
   // merge in the right order so that the primary wall is listed as the first one
   // if both are fully transparent, order does not matter

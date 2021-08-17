@@ -630,6 +630,7 @@ static inline CollisionType INLINE_ATTR collide_wall(
     const Partition& p,
     const Vec3& pos, const wall_index_t wall_index,
     rng_state &rng,
+    const bool skip_overlapped_walls,
     const bool update_move,
     Vec3& move,
     stime_t& collision_time, Vec3& collision_pos,
@@ -726,6 +727,12 @@ static inline CollisionType INLINE_ATTR collide_wall(
   else {
     face = wall_outside_partition;
     face_vert0 = &wall_outside_partition->vertices[0];
+  }
+
+  if (skip_overlapped_walls && face->is_overlapped_wall()) {
+    // checked later because accessing is_overlapped_wall directly would
+    // have negative cache performance impact
+    return CollisionType::WALL_MISS;
   }
 
   Vec3 local = collision_pos - *face_vert0;
@@ -854,7 +861,7 @@ restart_on_redo:
     stime_t collision_time;
     Vec3 collision_pos;
     CollisionType collision_type =
-        collide_wall(p, vm.v.pos, wall_index, rng, true, displacement, collision_time, collision_pos);
+        collide_wall(p, vm.v.pos, wall_index, rng, true, true, displacement, collision_time, collision_pos);
 
 #ifdef DEBUG_COLLISIONS_WALL_EXTRA
     DUMP_CONDITION4(
@@ -931,7 +938,7 @@ static bool collide_wall_test(
   }
 
   res = CollisionUtils::collide_wall(
-      p, pos, face.index, unused_rng_state, false, tmp_move,
+      p, pos, face.index, unused_rng_state, false, false, tmp_move,
       ignored_collision_time, ignored_collision_pos,
       face.exists_in_partition(), w_with_vertices
   );
@@ -1362,7 +1369,7 @@ static uint get_num_crossed_region_walls(
       stime_t collision_time_ignored;
       Vec3 collision_pos_ignored;
       CollisionType collision_type = collide_wall(
-            p, pos, wall_index, p.aux_rng, true, displacement,
+            p, pos, wall_index, p.aux_rng, false, true, displacement,
             collision_time_ignored, collision_pos_ignored);
 
       if (collision_type == CollisionType::WALL_REDO) {
@@ -1433,7 +1440,7 @@ static stime_t get_num_crossed_walls_per_object(
       stime_t collision_time;
       Vec3 collision_pos_ignored;
       CollisionType collision_type = collide_wall(
-            p, pos, wall_index, p.aux_rng, true, displacement,
+            p, pos, wall_index, p.aux_rng, false, true, displacement,
             collision_time, collision_pos_ignored);
 
       if (collision_type == CollisionType::WALL_REDO) {
@@ -1596,7 +1603,7 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
 
       CollisionType collision_type;
       collision_type = collide_wall(
-            p, pos, wall_index, rng, true, displacement,
+            p, pos, wall_index, rng, false, true, displacement,
             collision_time_ignored, collision_pos_ignored
       );
 
