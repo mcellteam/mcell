@@ -397,11 +397,11 @@ void PythonExporter::export_checkpoint_iterations(std::ostream& out) {
     gen_param(out, NAME_ITERATION, ce->event_time, arg2_nondefault);
 
     if (arg2_nondefault) {
-      gen_param(out, NAME_ITERATION, !ce->return_from_run_n_iterations, arg3_nondefault);
+      gen_param(out, NAME_CONTINUE_SIMULATION, !ce->return_from_run_n_iterations, arg3_nondefault);
     }
 
-    if (arg2_nondefault) {
-      gen_param(out, NAME_ITERATION, ce->function_arg.dir_prefix, true);
+    if (arg3_nondefault) {
+      gen_param(out, NAME_CUSTOM_DIR, ce->function_arg.dir_prefix, true);
     }
     out << ")\n";
   }
