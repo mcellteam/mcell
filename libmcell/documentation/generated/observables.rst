@@ -80,10 +80,11 @@ Methods:
    * | return type: float
 
 
-  | Returns the current value for this count. Cannot be used to count reactions.
+  | Returns the current value for this count. Can be used to count both molecules and reactions.
+  | Reaction counting starts at the beginning of the simulation.
   | The model must be initialized with this Count present as one of the observables.
 
-  | Example: `2600_get_current_mol_count/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/2600_get_current_mol_count/model.py>`_ 
+  | Examples: `2600_get_current_mol_count/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/2600_get_current_mol_count/model.py>`_ `2650_get_current_rxn_count/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/2650_get_current_rxn_count/model.py>`_ 
 
 
 
