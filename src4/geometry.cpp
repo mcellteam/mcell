@@ -399,7 +399,7 @@ wall_index_t GeometryObject::get_wall_for_vertex_pair(
   assert(vi1 != vi2);
 
   // check cache first
-  UnorderedPair vp(vi1, vi2);
+  UnorderedPair<vertex_index_t> vp(vi1, vi2);
   auto it = vertex_pair_to_wall_cache.find(vp);
   if (it != vertex_pair_to_wall_cache.end()) {
     return it->second;
