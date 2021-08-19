@@ -1724,8 +1724,7 @@ static int reflect_or_periodic_bc(
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
 
   /* Reduce our remaining available time. */
-  double remaining_time = (pos_t)1.0 - t_reflect;
-  remaining_time_step *= remaining_time;
+  remaining_time_step *= ((pos_t)1.0 - t_reflect);
 
   last_hit_wall_index = reflect_w;
 
@@ -1740,12 +1739,7 @@ static int reflect_or_periodic_bc(
 
   // Set displacement for remainder of step length
   // No PBCs or non-traditional PBCs
-  displacement = (displacement + Vec3(reflect_factor) * w.normal) * Vec3(remaining_time);
-
-  if (remaining_time < EPS) {
-    // we do not want to end up at a wall, reflect a bit further
-    displacement = displacement * (1.0 + EPS);
-  }
+  displacement = (displacement + Vec3(reflect_factor) * w.normal) * Vec3(1.0 - t_reflect);
 
   return 0;
 }
