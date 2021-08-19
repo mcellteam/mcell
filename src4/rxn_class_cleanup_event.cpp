@@ -36,7 +36,7 @@ void RxnClassCleanupEvent::step() {
       // there are no instances, we can efficiently remove all rxn classes for this species
 
       // remove rxn classes
-      world->get_all_rxns().remove_unimol_rxn_classes(sp->id);
+      world->get_all_rxns().remove_unimol_rxn_class(sp->id);
       world->get_all_rxns().remove_bimol_rxn_classes(sp->id);
 
       // clear flag telling that this species was instantiated
