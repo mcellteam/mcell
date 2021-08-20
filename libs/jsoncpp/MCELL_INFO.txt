@@ -1,1 +1,6 @@
 Cloned on March 16, 2020 from https://github.com/open-source-parsers/jsoncpp, branch master (3beb37e).
+
+Commented out deprecation warning:
+
+class /*JSONCPP_DEPRECATED(
+    "Use CharReader and CharReaderBuilder instead.")*/ JSON_API Reader {

@@ -3723,8 +3723,10 @@ static void output_relreg_eval_tree(FILE *f, const char *prefix, char cA, char c
   } else {
     char* prefixA = new char[l + 3];
     char* prefixB = new char[l + 3];
-    strncpy(prefixA, prefix, l);
-    strncpy(prefixB, prefix, l);
+    // l+1 is only to silence warning output truncated before terminating nul copying as many
+    // bytes from a string as its length [-Wstringop-truncation], l woudl suffice
+    strncpy(prefixA, prefix, l+1);
+    strncpy(prefixB, prefix, l+1);
     prefixA[l] = cA;
     prefixB[l] = cB;
     prefixA[l + 1] = prefixB[l + 1] = ' ';

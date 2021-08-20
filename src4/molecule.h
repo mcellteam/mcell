@@ -93,9 +93,14 @@ public:
 
   // assuming that this function has no virtual methods and has only POD types
   // gcc9 reports a warning but, the memcpy here is safe
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+
   void operator = (const Molecule& m) {
     memcpy(this, &m, sizeof(Molecule));
   }
+
+#pragma GCC diagnostic pop
 
   void reset_vol_data() {
     v.pos = Vec3(POS_INVALID);
