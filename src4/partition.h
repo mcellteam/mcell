@@ -213,7 +213,7 @@ public:
 
     // code works with molecule ids, but they need to be converted to indices to the volume_molecules vector
     // because we need to defragment the contents
-    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
+    molecule_index_t vm_vec_index = molecule_id_to_index_mapping[id];
     assert(vm_vec_index != MOLECULE_INDEX_INVALID);
     return molecules[vm_vec_index];
   }
@@ -224,16 +224,9 @@ public:
 
     // code works with molecule ids, but they need to be converted to indices to the volume_molecules vector
     // because we need to defragment the contents
-    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
+    molecule_index_t vm_vec_index = molecule_id_to_index_mapping[id];
     assert(vm_vec_index != MOLECULE_INDEX_INVALID);
     return molecules[vm_vec_index];
-  }
-
-  molecule_id_t get_molecule_index(const Molecule& m) {
-    // simply use pointer arithmetic to compute the molecule's index
-    molecule_id_t res = m.id;
-    assert(res != MOLECULE_ID_INVALID);
-    return res;
   }
 
   void get_molecules_ready_for_diffusion(MoleculeIdsVector& ready_vector) const {
@@ -241,7 +234,6 @@ public:
     ready_vector.clear();
     double time_it_end = stats.get_current_iteration() + 1;
 
-    // TODO: see if this helps
     for (molecule_id_t id: schedulable_molecule_ids) {
       const Molecule& m = get_m(id);
       assert(!m.has_flag(MOLECULE_FLAG_NO_NEED_TO_SCHEDULE));
@@ -253,6 +245,7 @@ public:
     }
 
 #if 0
+    // there was some issue, not sure, may be still helpful to try out
     if (schedulable_molecule_ids.size() != molecules.size()) {
       // more efficient variant when there is less molecules in schedulable_molecule_ids
       for (molecule_id_t id: schedulable_molecule_ids) {
