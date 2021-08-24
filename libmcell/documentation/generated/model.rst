@@ -230,8 +230,11 @@ Methods:
 
    * | randomize_order: bool = True
      | When set to True (default), the ordering of the vertex move list created by add_vertex_move
-     | calls is randomized. The reason to apply moves in a random order is to avoid possible biases 
-     | during object collisions.
+     | calls is randomized. This allows to avoid any bias in the resulting positions of surface
+     | molecules.  
+     | However, the individual vertex moves are then sorted by the object to which the vertex belongs
+     | and the moves are applied object by object for correctness. Setting this to True also radomizes the 
+     | order of objects to which the vertex moves are applied.
 
    * | return type: List[WallWallHitInfo]
 

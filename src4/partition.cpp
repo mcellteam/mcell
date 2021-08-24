@@ -141,6 +141,23 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 }
 
 
+template<typename T>
+static void randomize_vector(rng_state& rng, std::vector<T>& vec) {
+  uint n = vec.size();
+  for (uint i = n-1; i > 0; --i) {
+
+    double rand = rng_dbl(&rng);
+    release_assert(rand >= 0 && rand <= 1);
+    // scale rand to 0..n-1
+    uint rand_index = (double)(n-1) * rand;
+    assert(rand_index < n);
+    T tmp = vec[i];
+    vec[i] = vec[rand_index];
+    vec[rand_index] = tmp;
+  }
+}
+
+
 void Partition::apply_vertex_moves(
     const bool randomize_order,
     std::vector<VertexMoveInfo>& ordered_vertex_moves,
@@ -152,18 +169,7 @@ void Partition::apply_vertex_moves(
     vertex_moves.push_back(&vertex_move_info);
   }
   if (randomize_order) {
-    uint n = vertex_moves.size();
-    for (uint i = n-1; i > 0; --i) {
-
-      double rand = rng_dbl(&aux_rng);
-      release_assert(rand >= 0 && rand <= 1);
-      // scale rand to 0..n-1
-      uint rand_index = (double)(n-1) * rand;
-      assert(rand_index < n);
-      VertexMoveInfo* tmp = vertex_moves[i];
-      vertex_moves[i] = vertex_moves[rand_index];
-      vertex_moves[rand_index] = tmp;
-    }
+    randomize_vector(aux_rng, vertex_moves);
   }
 
 
@@ -192,9 +198,18 @@ void Partition::apply_vertex_moves(
       vertex_moves_per_object[vertex_move_info->geometry_object_id].push_back(vertex_move_info);
     }
 
-    // and process objects one by one
+    // randomize ordering of objects if requested
+    vector<geometry_object_id_t> application_order;
     for (auto& pair_id_moves: vertex_moves_per_object) {
-      apply_vertex_moves_per_object(pair_id_moves.second, colliding_walls);
+      application_order.push_back(pair_id_moves.first);
+    }
+    if (randomize_order) {
+      randomize_vector(aux_rng, application_order);
+    }
+
+    // and process objects one by one
+    for (geometry_object_id_t object_id: application_order) {
+      apply_vertex_moves_per_object(vertex_moves_per_object[object_id], colliding_walls);
     }
   }
 }
