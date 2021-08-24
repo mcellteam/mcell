@@ -422,6 +422,39 @@ std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
 }
 
 
+void Model::pair_molecules(const int id1, const int id2) {
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  string res = p.pair_molecules(id1, id2);
+  if (res != "") {
+    throw RuntimeError(res);
+  }
+}
+
+
+void Model::unpair_molecules(const int id1, const int id2) {
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  string res = p.unpair_molecules(id1, id2);
+  if (res != "") {
+    throw RuntimeError(res);
+  }
+}
+
+
+int Model::get_paired_molecule(const int id) {
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  molecule_id_t res = p.get_paired_molecule(id);
+  if (res == MOLECULE_ID_INVALID) {
+    return ID_INVALID;
+  }
+  else {
+    return res;
+  }
+}
+
+
 void Model::register_mol_wall_hit_callback(
     const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function,
     py::object context,

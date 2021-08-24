@@ -360,7 +360,8 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
 void collect_surface_molecules_moved_due_to_moving_wall(
     const Partition& p,
     const wall_index_t moved_wall_index,
-    SurfaceMoleculeMoveInfoVector& molecule_moves) {
+    SurfaceMoleculeMoveInfoVector& molecule_moves,
+    MoleculeIdsVector& paired_molecules) {
 
   // We have no direct set that would say which molecules belong to a given wall,
   // attempts were done, but even maintaining a simple set in grid costs ~5% of runtime.
@@ -386,6 +387,10 @@ void collect_surface_molecules_moved_due_to_moving_wall(
     molecule_moves.push_back(
         SurfaceMoleculeMoveInfo(id, moved_wall_index, pos3d)
     );
+
+    if (p.get_paired_molecule(id) != MOLECULE_ID_INVALID) {
+      paired_molecules.push_back(id);
+    }
   }
 }
 

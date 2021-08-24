@@ -248,7 +248,48 @@ Methods:
   | When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
   | when collect_wall_wall_hits is False, an empty list is returned.
 
-  | Example: `1510_tetrahedron_box_collision_moving_3_verts/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py>`_ 
+  | Examples: `1510_tetrahedron_box_collision_moving_3_verts/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py>`_ `3200_sphere_collision_against_each_other/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/3200_sphere_collision_against_each_other/model.py>`_ 
+
+
+* | **pair_molecules**
+
+   * | id1: int
+   * | id2: int
+
+  | Sets that two surface molecules are paired. Paired molecules bind walls together
+  | and when one wall is moved, the wall that is bound through a paired molecule is moved as well.
+  | Throws exception if the molecule ids are not surface molecules.
+  | Throws exception if the molecules are on the same object.  
+  | Throws exception if any of the molecules is already paired.
+  | May be called only after model initialization.
+
+  | Example: `2900_pair_unpair_molecules/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py>`_ 
+
+
+* | **unpair_molecules**
+
+   * | id1: int
+   * | id2: int
+
+  | Sets that two surface molecules are not paired. 
+  | Throws exception if the molecule ids are not surface molecules. 
+  | Throws exception if the molecules are not paired together.
+  | May be called only after model initialization.
+
+  | Example: `2900_pair_unpair_molecules/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py>`_ 
+
+
+* | **get_paired_molecule**
+
+   * | id: int
+   * | return type: int
+
+
+  | Return id of the molecule to which the molecule with 'id' is paired.
+  | Returns ID_INVALID (-1) when the molecule is not paired.
+  | May be called only after model initialization.
+
+  | Example: `2900_pair_unpair_molecules/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py>`_ 
 
 
 * | **register_mol_wall_hit_callback**

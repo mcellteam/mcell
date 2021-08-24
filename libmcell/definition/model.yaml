@@ -195,7 +195,7 @@ Model:
        When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
        when collect_wall_wall_hits is False, an empty list is returned.
        
-    examples: tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py
+    examples: tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py tests/pymcell4/3200_sphere_collision_against_each_other/model.py
     return_type: List[WallWallHitInfo*]
     params:
     - name: collect_wall_wall_hits
@@ -215,6 +215,46 @@ Model:
           However, the individual vertex moves are then sorted by the object to which the vertex belongs
           and the moves are applied object by object for correctness. Setting this to True also radomizes the 
           order of objects to which the vertex moves are applied.
+  
+  # --- molecule pairing (used by dynamic geometry) ---
+  - name: pair_molecules
+    doc: | 
+       Sets that two surface molecules are paired. Paired molecules bind walls together
+       and when one wall is moved, the wall that is bound through a paired molecule is moved as well.
+       Throws exception if the molecule ids are not surface molecules.
+       Throws exception if the molecules are on the same object.  
+       Throws exception if any of the molecules is already paired.
+       May be called only after model initialization.
+    examples: tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py
+    params:  
+    - name: id1
+      type: int  
+    - name: id2
+      type: int  
+
+  - name: unpair_molecules
+    doc: | 
+       Sets that two surface molecules are not paired. 
+       Throws exception if the molecule ids are not surface molecules. 
+       Throws exception if the molecules are not paired together.
+       May be called only after model initialization.
+    examples: tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py
+    params:  
+    - name: id1
+      type: int  
+    - name: id2
+      type: int  
+  
+  - name: get_paired_molecule
+    doc: |
+       Return id of the molecule to which the molecule with 'id' is paired.
+       Returns ID_INVALID (-1) when the molecule is not paired.
+       May be called only after model initialization.
+    examples: tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py
+    return_type: int
+    params:  
+    - name: id
+      type: int  
   
   # --- callbacks ---
   

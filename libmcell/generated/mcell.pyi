@@ -815,6 +815,26 @@ class Model():
         ) -> 'List[WallWallHitInfo]':
         pass
 
+    def pair_molecules(
+            self,
+            id1 : int,
+            id2 : int
+        ) -> None:
+        pass
+
+    def unpair_molecules(
+            self,
+            id1 : int,
+            id2 : int
+        ) -> None:
+        pass
+
+    def get_paired_molecule(
+            self,
+            id : int
+        ) -> 'int':
+        pass
+
     def register_mol_wall_hit_callback(
             self,
             function : Callable, # std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>,

@@ -189,7 +189,7 @@ void Partition::apply_vertex_moves(
   }
 
   if (single_object) {
-    apply_vertex_moves_per_object(vertex_moves, colliding_walls);
+    apply_vertex_moves_per_object(true, vertex_moves, colliding_walls);
   }
   else {
     // we must make a separate vector for each
@@ -209,13 +209,14 @@ void Partition::apply_vertex_moves(
 
     // and process objects one by one
     for (geometry_object_id_t object_id: application_order) {
-      apply_vertex_moves_per_object(vertex_moves_per_object[object_id], colliding_walls);
+      apply_vertex_moves_per_object(true, vertex_moves_per_object[object_id], colliding_walls);
     }
   }
 }
 
 
 void Partition::apply_vertex_moves_per_object(
+    const bool move_paired_walls,
     std::vector<VertexMoveInfo*>& vertex_moves,
     std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
 
@@ -262,11 +263,8 @@ void Partition::apply_vertex_moves_per_object(
 
   // set whether walls change area
   for (auto& it: walls_with_their_moves) {
-    // FIXME: reenable and improve check, we do not want molecules to move too far
-    it.second.wall_changes_area = true; /*
-        !(it.second.vertex_moves.size() == 3 &&
-          it.second.vertex_moves[0].displacement == it.second.vertex_moves[1].displacement &&
-          it.second.vertex_moves[1].displacement == it.second.vertex_moves[2].displacement);*/
+    // TODO: implement check to optimize performance
+    it.second.wall_changes_area = true;
   }
 
 
@@ -288,15 +286,14 @@ void Partition::apply_vertex_moves_per_object(
   }
 #endif
 
+  vector<molecule_id_t> paired_molecules;
   for (const auto& it: walls_with_their_moves) {
     DynVertexUtils::collect_volume_molecules_moved_due_to_moving_wall(
         *this, it.first, it.second, already_moved_volume_molecules, volume_molecule_moves);
 
-    // does the area of the wall change?
-    if (it.second.wall_changes_area) {
-      DynVertexUtils::collect_surface_molecules_moved_due_to_moving_wall(
-          *this, it.first, surface_molecule_moves);
-    }
+    // required also to find paired molecules
+    DynVertexUtils::collect_surface_molecules_moved_due_to_moving_wall(
+        *this, it.first, surface_molecule_moves, paired_molecules);
   }
 
   // 3) get information on where these walls are and remove them
@@ -336,6 +333,14 @@ void Partition::apply_vertex_moves_per_object(
   for (const SurfaceMoleculeMoveInfo& move_info: surface_molecule_moves) {
     // finally fix positions of the surface molecules (only those that are on walls that change area)
     DynVertexUtils::move_surface_molecule_to_closest_wall_point(*this, move_info);
+  }
+
+  // 8) move walls that contain paired molecules
+  if (move_paired_walls && !paired_molecules.empty()) {
+    // calls recursively Partition::apply_vertex_moves_per_object(false, ...)
+    // there should be no colliding walls (not completely sure?)
+    // TODO PAIRED
+    // move_walls_with_paired_molecules(paired_molecules, walls_with_their_moves);
   }
 }
 
@@ -819,6 +824,85 @@ void Partition::shuffle_schedulable_molecule_ids() {
   }
 }
 
+
+static std::string check_is_valid_surface_molecule(const Partition& p, const molecule_id_t id, const char* name) {
+  if (id == MOLECULE_ID_INVALID || id >= p.get_molecule_id_to_index_mapping().size()) {
+    return string("Molecule with id '") + name + "' is invalid.";
+  }
+  const Molecule& m = p.get_m(id);
+  if (!m.is_surf()) {
+    return string("Molecule with id '") + name + "' (" + to_string(id) + ") is not a surface molecule.";
+  }
+  return "";
+}
+
+
+std::string Partition::pair_molecules(const molecule_id_t id1, const molecule_id_t id2) {
+  string res;
+  res = check_is_valid_surface_molecule(*this, id1, "id1");
+  if (res != "") { return res; }
+  res = check_is_valid_surface_molecule(*this, id2, "id2");
+  if (res != "") { return res; }
+
+  const Molecule& m1 = get_m(id1);
+  const Molecule& m2 = get_m(id2);
+
+  const Wall& w1 = get_wall(m1.s.wall_index);
+  const Wall& w2 = get_wall(m2.s.wall_index);
+
+  if (w1.object_id == w2.object_id) {
+    return "Molecules must be present on surfaces of different objects.";
+  }
+
+  if (get_paired_molecule(id1) != MOLECULE_ID_INVALID) {
+    return "Molecule with id 'id1' (" + to_string(id1) + ") is already paired.";
+  }
+  if (get_paired_molecule(id2) != MOLECULE_ID_INVALID) {
+    return "Molecule with id 'id2' (" + to_string(id2) + ") is already paired.";
+  }
+  
+  // pair
+  paired_molecules[id1] = id2;
+  paired_molecules[id2] = id1;
+  return "";
+}
+
+
+std::string Partition::unpair_molecules(const molecule_id_t id1, const molecule_id_t id2) {
+  string res;
+  res = check_is_valid_surface_molecule(*this, id1, "id1");
+  if (res != "") { return res; }
+  res = check_is_valid_surface_molecule(*this, id2, "id2");
+  if (res != "") { return res; }
+
+  molecule_id_t pair1 = get_paired_molecule(id1);
+  if (pair1 == MOLECULE_ID_INVALID) {
+    return "Molecule with id 'id1' (" + to_string(id1) + ") is not paired.";
+  }
+  molecule_id_t pair2 = get_paired_molecule(id2);
+  if (pair2 == MOLECULE_ID_INVALID) {
+    return "Molecule with id 'id2' (" + to_string(id2) + ") is not paired.";
+  }
+  if (pair1 != id2) {
+    return "Molecules are not paired to each other.";
+  }
+
+  assert(pair2 == id1);
+  paired_molecules.erase(id1);
+  paired_molecules.erase(id2);
+  return "";
+}
+
+
+molecule_id_t Partition::get_paired_molecule(const molecule_id_t id) const {
+  auto it = paired_molecules.find(id);
+  if (it == paired_molecules.end()) {
+    return MOLECULE_ID_INVALID;
+  }
+  else {
+    return it->second;
+  }
+}
 
 
 void Partition::to_data_model(Json::Value& mcell, std::set<rgba_t>& used_colors) const {

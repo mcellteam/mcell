@@ -683,6 +683,10 @@ public:
     return molecule_id_to_index_mapping;
   }
 
+  const std::vector<molecule_index_t>& get_molecule_id_to_index_mapping() const {
+    return molecule_id_to_index_mapping;
+  }
+
   std::vector<molecule_index_t>& get_schedulable_molecule_ids() {
     return schedulable_molecule_ids;
   }
@@ -974,6 +978,7 @@ private:
       std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
 
   void apply_vertex_moves_per_object(
+      const bool move_paired_walls,
       std::vector<VertexMoveInfo*>& vertex_moves,
       std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
 
@@ -1093,12 +1098,7 @@ public:
 
   void shuffle_schedulable_molecule_ids();
 
-  void print_periodic_stats() const;
-
-  void dump(const bool with_geometry = false);
-  void to_data_model(Json::Value& mcell, std::set<rgba_t>& used_colors) const;
-
-  // ------------ Pymcell4 API ------------
+  // ------------ used directly by Pymcell4 API ------------
   bool does_molecule_exist(const molecule_id_t id) {
     if (id == MOLECULE_ID_INVALID) {
       return false;
@@ -1113,6 +1113,19 @@ public:
     return !get_m(id).is_defunct();
   }
 
+  // the methods pair_molecules and unpair_molecules return a non-empty string
+  // if there was an error while adding/removing molecule pair
+  std::string pair_molecules(const molecule_id_t id1, const molecule_id_t id2);
+  std::string unpair_molecules(const molecule_id_t id1, const molecule_id_t id2);
+
+  // returns MOLECULE_ID_INVALID when the molecule is not paired
+  molecule_id_t get_paired_molecule(const molecule_id_t id) const;
+
+  // --- diverse exports and dumps ---
+  void print_periodic_stats() const;
+
+  void dump(const bool with_geometry = false);
+  void to_data_model(Json::Value& mcell, std::set<rgba_t>& used_colors) const;
 
 
 private:
@@ -1186,6 +1199,9 @@ private:
 
   // indexed by [x][y][z]
   std::vector< std::vector< std::vector< Waypoint > > > waypoints;
+
+  // bidirectional map -> each pair is added twice
+  std::map<molecule_id_t, molecule_id_t> paired_molecules;
 
   // ---------------------------------- shared simulation configuration -------------------
 public:
