@@ -895,6 +895,13 @@ void MCell4Converter::convert_geometry_objects() {
 
   for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
 
+    // set surface region parents
+    for (auto& sr: o->surface_regions) {
+      // not using shared pointers here, any attempt so far resulted in bad_weak_ptr exception
+      // this is safe because the geometry object (parent) has a reference to the surface region
+      sr->parent = o.get();
+    }
+
     MCell::GeometryObject& obj = p.add_uninitialized_geometry_object(world->get_next_geometry_object_id());
 
     obj.name = o->name;
