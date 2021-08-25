@@ -233,9 +233,11 @@ public:
  */
 class Wall: public WallCollisionRejectionData {
 public:
-  // creates its own shared data object
-  Wall(WallSharedData* wall_shared_data_)
-    : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
+  // wall_shared_data_ is owned by Partition and must not be not a nullptr when this is a Wall owned by
+  // a Partition, i.e. not used from WallWithVertices
+  // wall_id_ argument is used only when this constructor is called from constructor of WallWithVertices
+  Wall(WallSharedData* wall_shared_data_, const wall_id_t wall_id_ = WALL_ID_INVALID)
+    : id(wall_id_), index(WALL_INDEX_INVALID), side(0),
       object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
       is_movable(true),
       wall_constants_initialized(false),
@@ -251,7 +253,7 @@ public:
     vertex_indices[1] = VERTEX_INDEX_INVALID;
     vertex_indices[2] = VERTEX_INDEX_INVALID;
 
-    assert(wall_shared_data != nullptr);
+    assert(!exists_in_partition() || wall_shared_data != nullptr);
   }
 
   bool exists_in_partition() const {
@@ -355,9 +357,7 @@ public:
   WallWithVertices(const Partition& p,
       const Vec3& v0, const Vec3& v1, const Vec3& v2,
       const bool do_precompute_wall_constants) :
-      Wall(nullptr) {
-
-    id = WALL_ID_NOT_IN_PARTITION;
+      Wall(nullptr, WALL_ID_NOT_IN_PARTITION) {
 
     wall_shared_data = new WallSharedData;
 

@@ -39,6 +39,7 @@ public:
     parent = nullptr;
   }
 
+  // set during model initialization
   GeometryObject* parent;
 
   // simulation engine mapping
