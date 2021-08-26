@@ -982,6 +982,10 @@ private:
       std::vector<VertexMoveInfo*>& vertex_moves,
       std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
 
+  void move_walls_with_paired_molecules(
+      const MoleculeIdsVector& paired_molecules,
+      const WallsWithTheirMovesMap& walls_with_their_moves);
+
   void update_walls_per_subpart(
       const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert
   );

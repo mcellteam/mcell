@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019,2020 by
+ * Copyright (C) 2019-2021 by
  * The Salk Institute for Biological Studies
  *
  * Use of this source code is governed by an MIT-style
@@ -286,7 +286,7 @@ void Partition::apply_vertex_moves_per_object(
   }
 #endif
 
-  vector<molecule_id_t> paired_molecules;
+  MoleculeIdsVector paired_molecules;
   for (const auto& it: walls_with_their_moves) {
     DynVertexUtils::collect_volume_molecules_moved_due_to_moving_wall(
         *this, it.first, it.second, already_moved_volume_molecules, volume_molecule_moves);
@@ -339,11 +339,120 @@ void Partition::apply_vertex_moves_per_object(
   if (move_paired_walls && !paired_molecules.empty()) {
     // calls recursively Partition::apply_vertex_moves_per_object(false, ...)
     // there should be no colliding walls (not completely sure?)
-    // TODO PAIRED
-    // move_walls_with_paired_molecules(paired_molecules, walls_with_their_moves);
+    move_walls_with_paired_molecules(paired_molecules, walls_with_their_moves);
   }
 }
 
+
+static Vec3 average_vec3(const std::vector<const Vec3*>& moves) {
+  Vec3 res = 0;
+  for (const Vec3* vec: moves) {
+    res = res + *vec;
+  }
+  res = res / Vec3(moves.size());
+  return res;
+}
+
+
+// called from apply_vertex_moves_per_object
+void Partition::move_walls_with_paired_molecules(
+    const MoleculeIdsVector& paired_molecules,
+    const WallsWithTheirMovesMap& walls_with_their_moves) {
+
+  // notation:
+  // object A:
+  // - the object whose walls were moved in the call 'apply_vertex_moves_per_object'
+  //   that initiated call of this method
+  // molecules on A (paired_molecules argument of this method):
+  // - molecules present on object A
+  //
+  // object B:
+  // - the object whose walls we are going to move now
+  //   there cannot be currently multiple objects moved at the same time due to
+  //   potentially missing some moves if molecules on A would be paired with molecules on objects B and C
+  // molecules on B:
+  // - molecules present on object B that are paired with molecules on A
+
+  // we are going to move walls of object B that contain molecules on B
+  // collect which vertices of B will be moved along with molecules on A that initiate their move
+  map<vertex_index_t, vector<const Vec3*>> vertices_from_B_with_moves;
+
+  geometry_object_id_t oid_B = GEOMETRY_OBJECT_ID_INVALID;
+  bool warning_printed = false;
+
+  // assuming that there are usually just a few molecules per wall so we process
+  // paired molecule from A one by one (just a performance assumption)
+  for (molecule_id_t mid_A: paired_molecules) {
+    const Molecule& m_A = get_m(mid_A);
+    assert(m_A.is_surf());
+    wall_index_t wi_A = m_A.s.wall_index;
+
+    molecule_id_t mid_B = get_paired_molecule(mid_A);
+    const Molecule& m_B = get_m(mid_B);
+    assert(m_B.is_surf());
+
+    wall_index_t wi_B = m_B.s.wall_index;
+    const Wall& w_B = get_wall(wi_B);
+
+    // check that we are moving with a single object
+    if (oid_B == GEOMETRY_OBJECT_ID_INVALID) {
+      oid_B = w_B.object_id;
+    }
+    else if (oid_B != w_B.object_id && !warning_printed) {
+      warns() << "Paired molecules from a single geometry object move with more than one "
+          "other object. This might result is some missed wall moves.\n";
+      warning_printed = true;
+    }
+
+    // find all moves for wall from A
+    auto it_wall_moves_A = walls_with_their_moves.find(wi_A);
+    if (it_wall_moves_A == walls_with_their_moves.end()) {
+      // no moves for this wall? should not normally happen
+      // but otherwise this means that the wall is not moved
+      assert(false);
+      continue;
+    }
+
+
+    // for each vertex of w_B, collect all moves
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      vertex_index_t vi_B = w_B.vertex_indices[i];
+      vector<const Vec3*>& displacements_B = vertices_from_B_with_moves[vi_B];
+
+      for (const VertexMoveInfo* move_B: it_wall_moves_A->second.vertex_moves) {
+        displacements_B.push_back(&move_B->displacement);
+      }
+    }
+  }
+
+
+  // prepare argument vector<VertexMoveInfo*>& vertex_moves
+  // by computing average displacement for each vertex of wall that contains a paired molecule
+  vector<VertexMoveInfo*> vertex_move_infos_B;
+
+  for (const auto& pair_vid_moves_B: vertices_from_B_with_moves) {
+    Vec3 avg_displacement = average_vec3(pair_vid_moves_B.second);
+    VertexMoveInfo* move_B = new VertexMoveInfo(
+        PARTITION_ID_INITIAL, oid_B, pair_vid_moves_B.first, avg_displacement
+    );
+    vertex_move_infos_B.push_back(move_B);
+  }
+
+  // call apply_vertex_moves_per_object to move walls in B
+  // the call must not cause move of paired walls (otherwise we would get infinite recursion)
+  // there must not be any new wall collisions (warning if they are)
+  std::set<GeometryObjectWallUnorderedPair> colliding_walls;
+  apply_vertex_moves_per_object(false, vertex_move_infos_B, colliding_walls);
+
+  if (!colliding_walls.empty()) {
+    warns() << "Unexpected wall collisions detected in move_walls_with_paired_molecules.\n";
+  }
+
+  // free allocated vertex_moves
+  for (VertexMoveInfo* ptr: vertex_move_infos_B) {
+    delete ptr;
+  }
+}
 
 
 static Vec3 get_new_vertex_position(
