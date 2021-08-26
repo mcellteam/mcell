@@ -367,6 +367,31 @@ void Model::add_vertex_move(
 }
 
 
+void Model::update_api_vertex_position_using_vertex_move(
+    const VertexMoveInfo& move_info) {
+
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+
+  // get the new vertex coordinates
+  assert(move_info.partition_id == PARTITION_ID_INITIAL);
+  const Vec3& pos = p.get_geometry_vertex(move_info.vertex_index);
+
+  // API object whose vertex we need to update
+  std::shared_ptr<API::GeometryObject> obj =
+      get_geometry_object_with_id(move_info.geometry_object_id);
+
+  // API object's vertex index
+  int obj_vertex_index = obj->get_object_vertex_index(move_info.vertex_index);
+
+  Vec3 pos_um = pos * Vec3(world->config.length_unit);
+  auto& pos_to_update = obj->vertex_list[obj_vertex_index];
+  pos_to_update[0] = pos_um.x;
+  pos_to_update[1] = pos_um.y;
+  pos_to_update[2] = pos_um.z;
+}
+
+
 std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
     const bool collect_wall_wall_hits,
     const bool randomize_order) {
@@ -376,7 +401,10 @@ std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
   // may update vertex_move displacements due to collisions
-  p.apply_vertex_moves(randomize_order, vertex_moves, colliding_walls);
+  vector<VertexMoveInfo*> vertex_moves_due_to_paired_molecules;
+  p.apply_vertex_moves(
+      randomize_order, vertex_moves,
+      colliding_walls, vertex_moves_due_to_paired_molecules);
 
   std::vector<std::shared_ptr<WallWallHitInfo>> res;
 
@@ -398,24 +426,16 @@ std::vector<std::shared_ptr<WallWallHitInfo>> Model::apply_vertex_moves(
 
   // also update the API copy of the geometry
   for (const VertexMoveInfo& move_info: vertex_moves) {
-    // get the new vertex coordinates
-    assert(move_info.partition_id == PARTITION_ID_INITIAL);
-    const Vec3& pos = p.get_geometry_vertex(move_info.vertex_index);
-
-    // API object whose vertex we need to update
-    std::shared_ptr<API::GeometryObject> obj =
-        get_geometry_object_with_id(move_info.geometry_object_id);
-
-    // API object's vertex index
-    int obj_vertex_index = obj->get_object_vertex_index(move_info.vertex_index);
-
-    Vec3 pos_um = pos * Vec3(world->config.length_unit);
-    auto& pos_to_update = obj->vertex_list[obj_vertex_index];
-    pos_to_update[0] = pos_um.x;
-    pos_to_update[1] = pos_um.y;
-    pos_to_update[2] = pos_um.z;
+    update_api_vertex_position_using_vertex_move(move_info);
   }
 
+  // also take into account the vertices moved due to paired molecules
+  for (VertexMoveInfo* move_info: vertex_moves_due_to_paired_molecules) {
+    update_api_vertex_position_using_vertex_move(*move_info);
+    delete move_info;
+  }
+
+  // we processed all the moves
   vertex_moves.clear();
 
   return res;

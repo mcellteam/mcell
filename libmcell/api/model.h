@@ -152,6 +152,9 @@ public:
   }
 
 private:
+  void update_api_vertex_position_using_vertex_move(
+      const VertexMoveInfo& move_info);
+
   void export_data_model_viz_or_full(
       const std::string& file,
       const bool only_for_visualization,

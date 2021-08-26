@@ -161,7 +161,8 @@ static void randomize_vector(rng_state& rng, std::vector<T>& vec) {
 void Partition::apply_vertex_moves(
     const bool randomize_order,
     std::vector<VertexMoveInfo>& ordered_vertex_moves,
-    std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
+    std::set<GeometryObjectWallUnorderedPair>& colliding_walls,
+    std::vector<VertexMoveInfo*>& vertex_moves_due_to_paired_molecules) {
   colliding_walls.clear();
 
   std::vector<VertexMoveInfo*> vertex_moves;
@@ -189,7 +190,9 @@ void Partition::apply_vertex_moves(
   }
 
   if (single_object) {
-    apply_vertex_moves_per_object(true, vertex_moves, colliding_walls);
+    apply_vertex_moves_per_object(
+        true, vertex_moves,
+        colliding_walls, vertex_moves_due_to_paired_molecules);
   }
   else {
     // we must make a separate vector for each
@@ -209,7 +212,9 @@ void Partition::apply_vertex_moves(
 
     // and process objects one by one
     for (geometry_object_id_t object_id: application_order) {
-      apply_vertex_moves_per_object(true, vertex_moves_per_object[object_id], colliding_walls);
+      apply_vertex_moves_per_object(
+          true, vertex_moves_per_object[object_id],
+          colliding_walls, vertex_moves_due_to_paired_molecules);
     }
   }
 }
@@ -218,7 +223,8 @@ void Partition::apply_vertex_moves(
 void Partition::apply_vertex_moves_per_object(
     const bool move_paired_walls,
     std::vector<VertexMoveInfo*>& vertex_moves,
-    std::set<GeometryObjectWallUnorderedPair>& colliding_walls) {
+    std::set<GeometryObjectWallUnorderedPair>& colliding_walls,
+    std::vector<VertexMoveInfo*>& vertex_moves_due_to_paired_molecules) {
 
   // 0) clamp maximum movement and collect walls that collide
   clamp_vertex_moves_to_wall_wall_collisions(vertex_moves, colliding_walls);
@@ -339,7 +345,9 @@ void Partition::apply_vertex_moves_per_object(
   if (move_paired_walls && !paired_molecules.empty()) {
     // calls recursively Partition::apply_vertex_moves_per_object(false, ...)
     // there should be no colliding walls (not completely sure?)
-    move_walls_with_paired_molecules(paired_molecules, walls_with_their_moves);
+    move_walls_with_paired_molecules(
+        paired_molecules, walls_with_their_moves,
+        vertex_moves_due_to_paired_molecules);
   }
 }
 
@@ -357,7 +365,8 @@ static Vec3 average_vec3(const std::vector<const Vec3*>& moves) {
 // called from apply_vertex_moves_per_object
 void Partition::move_walls_with_paired_molecules(
     const MoleculeIdsVector& paired_molecules,
-    const WallsWithTheirMovesMap& walls_with_their_moves) {
+    const WallsWithTheirMovesMap& walls_with_their_moves,
+    std::vector<VertexMoveInfo*>& vertex_moves_due_to_paired_molecules) {
 
   // notation:
   // object A:
@@ -442,16 +451,22 @@ void Partition::move_walls_with_paired_molecules(
   // the call must not cause move of paired walls (otherwise we would get infinite recursion)
   // there must not be any new wall collisions (warning if they are)
   std::set<GeometryObjectWallUnorderedPair> colliding_walls;
-  apply_vertex_moves_per_object(false, vertex_move_infos_B, colliding_walls);
+  vector<VertexMoveInfo*> ignored_moves;
+  apply_vertex_moves_per_object(
+      false, vertex_move_infos_B,
+      colliding_walls, ignored_moves);
+  assert(ignored_moves.empty());
 
   if (!colliding_walls.empty()) {
     warns() << "Unexpected wall collisions detected in move_walls_with_paired_molecules.\n";
   }
 
-  // free allocated vertex_moves
-  for (VertexMoveInfo* ptr: vertex_move_infos_B) {
-    delete ptr;
-  }
+  // remember these vertex_moves so that the Python API can
+  vertex_moves_due_to_paired_molecules.insert(
+      vertex_moves_due_to_paired_molecules.end(),
+      vertex_move_infos_B.begin(),
+      vertex_move_infos_B.end()
+  );
 }
 
 

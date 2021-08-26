@@ -942,10 +942,13 @@ public:
   // ---------------------------------- dynamic vertices ----------------------------------
 
   // may change the displacements in vertex_moves in some cases, do not use it afterwards
+  // returns a list of new vertex moves, the caller is responsible for deleting items
+  // in vertex_moves_due_to_paired_molecules
   void apply_vertex_moves(
       const bool randomize_order,
       std::vector<VertexMoveInfo>& ordered_vertex_moves,
-      std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
+      std::set<GeometryObjectWallUnorderedPair>& colliding_walls,
+      std::vector<VertexMoveInfo*>& vertex_moves_due_to_paired_molecules);
 
 
   void move_waypoint_because_positioned_on_wall(
@@ -980,11 +983,13 @@ private:
   void apply_vertex_moves_per_object(
       const bool move_paired_walls,
       std::vector<VertexMoveInfo*>& vertex_moves,
-      std::set<GeometryObjectWallUnorderedPair>& colliding_walls);
+      std::set<GeometryObjectWallUnorderedPair>& colliding_walls,
+      std::vector<VertexMoveInfo*>& vertex_moves_due_to_paired_molecules);
 
   void move_walls_with_paired_molecules(
       const MoleculeIdsVector& paired_molecules,
-      const WallsWithTheirMovesMap& walls_with_their_moves);
+      const WallsWithTheirMovesMap& walls_with_their_moves,
+      std::vector<VertexMoveInfo*>& vertex_moves_due_to_paired_molecules);
 
   void update_walls_per_subpart(
       const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert
