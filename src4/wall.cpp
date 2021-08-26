@@ -100,11 +100,25 @@ void Grid::dump() const {
 }
 
 
+static std::string get_wall_details(const Partition& p, const Wall& w) {
+  stringstream ss;
+
+  ss << "Wall side " << w.side << " has vertex coordinates " <<
+      p.get_wall_vertex(w, 0) * Vec3(p.config.length_unit) << ", " <<
+      p.get_wall_vertex(w, 1) * Vec3(p.config.length_unit) << ", "<<
+      p.get_wall_vertex(w, 2) * Vec3(p.config.length_unit) <<
+      " and area " << w.area * pow(p.config.length_unit, 2) << " (in um and um^2).";
+  return ss.str();
+}
+
+
 static void report_malformed_geom_object_and_exit(const Partition& p, const Wall& wf, const Wall& wb) {
   const GeometryObject& o = p.get_geometry_object(wb.object_index);
   errs() << "Detected malformed geometry object '" << o.name << "'. " <<
-      "A possible cause is that two vertices share the same location or a wall became very thin (like a line).\n" <<
+      "A possible cause is that two vertices of the same object share the same location or a wall became very thin (like a line).\n" <<
       "Error detected for walls with side indices " << wf.side << " and " << wb.side << ".\n" <<
+      get_wall_details(p, wf) << "\n" <<
+      get_wall_details(p, wb) << "\n" <<
       "Terminating because this issue would lead to simulation errors.\n";
   exit(1);
 }
@@ -133,6 +147,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
   wb.dump(p, "", true);
 #endif
 
+  // edge_num_used_for_init is set in surface_net when object is initialized
   edge_index_t i = edge_num_used_for_init;
   assert(i < VERTICES_IN_TRIANGLE);
   edge_index_t j = i + 1;
