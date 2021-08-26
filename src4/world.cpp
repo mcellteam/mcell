@@ -435,6 +435,21 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
       break;
     }
 
+    if (current_iteration > previous_iteration && current_iteration % output_frequency == 0) {
+      // only with output frequency - getting clock may be costly
+      auto current_time = std::chrono::steady_clock::now();
+
+      // should we flush count buffers because certain time elapsed?
+      // this must be done as the first thing in a new iteration because running just one MolOrRxnCountEvent
+      // may leave incomplete line in a gdat count buffer
+      // FIXME: this should be rather an event
+      double time_diff = chrono::duration_cast<chrono::seconds>(current_time - previous_buffer_flush_time).count();
+      if (time_diff >= COUNT_BUFFER_FLUSH_SECONDS) {
+        flush_buffers();
+        previous_buffer_flush_time = current_time;
+      }
+    }
+
     // this is where events get executed
     EventExecutionInfo event_info = scheduler.handle_next_event();
 
@@ -458,13 +473,6 @@ uint64_t World::run_n_iterations(const uint64_t num_iterations, const bool termi
 
           cout << "\n";
           cout.flush(); // flush is required so that CellBlender can display progress
-        }
-
-        // should we also flush count buffers?
-        double time_diff = chrono::duration_cast<chrono::seconds>(current_time - previous_buffer_flush_time).count();
-        if (time_diff >= COUNT_BUFFER_FLUSH_SECONDS) {
-          flush_buffers();
-          previous_buffer_flush_time = current_time;
         }
       }
 
