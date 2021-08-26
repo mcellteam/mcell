@@ -146,6 +146,7 @@ const char* const NAME_GET_LAST_CHECKPOINT_DIR = "get_last_checkpoint_dir";
 const char* const NAME_GET_MOLECULE = "get_molecule";
 const char* const NAME_GET_MOLECULE_IDS = "get_molecule_ids";
 const char* const NAME_GET_PAIRED_MOLECULE = "get_paired_molecule";
+const char* const NAME_GET_PAIRED_MOLECULES = "get_paired_molecules";
 const char* const NAME_GET_SPECIES_NAME = "get_species_name";
 const char* const NAME_GET_VERTEX = "get_vertex";
 const char* const NAME_GET_VERTEX_UNIT_NORMAL = "get_vertex_unit_normal";

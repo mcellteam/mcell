@@ -1129,6 +1129,9 @@ public:
 
   // returns MOLECULE_ID_INVALID when the molecule is not paired
   molecule_id_t get_paired_molecule(const molecule_id_t id) const;
+  std::map<molecule_id_t, molecule_id_t> get_paired_molecules() const {
+    return paired_molecules;
+  }
 
   // --- diverse exports and dumps ---
   void print_periodic_stats() const;

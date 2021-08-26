@@ -122,6 +122,7 @@ public:
   virtual void pair_molecules(const int id1, const int id2) = 0;
   virtual void unpair_molecules(const int id1, const int id2) = 0;
   virtual int get_paired_molecule(const int id) = 0;
+  virtual std::map<uint, uint> get_paired_molecules() = 0;
   virtual void register_mol_wall_hit_callback(const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
   virtual void register_reaction_callback(const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function, py::object context, std::shared_ptr<ReactionRule> reaction_rule) = 0;
   virtual void load_bngl(const std::string& file_name, const std::string& observables_path_or_file = STR_UNSET, std::shared_ptr<Region> default_release_region = nullptr, const std::map<std::string, double>& parameter_overrides = std::map<std::string, double>(), const CountOutputFormat observables_output_format = CountOutputFormat::AUTOMATIC_FROM_EXTENSION) = 0;

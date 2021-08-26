@@ -82,6 +82,7 @@ public:
   void pair_molecules(const int id1, const int id2) override;
   void unpair_molecules(const int id1, const int id2) override;
   int get_paired_molecule(const int id) override;
+  std::map<uint, uint> get_paired_molecules() override;
 
   void register_mol_wall_hit_callback(
       const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function,

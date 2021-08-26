@@ -835,6 +835,11 @@ class Model():
         ) -> 'int':
         pass
 
+    def get_paired_molecules(
+            self,
+        ) -> 'Dict[uint32, uint32]':
+        pass
+
     def register_mol_wall_hit_callback(
             self,
             function : Callable, # std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)>,

@@ -225,7 +225,7 @@ Model:
        Throws exception if the molecules are on the same object.  
        Throws exception if any of the molecules is already paired.
        May be called only after model initialization.
-    examples: tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py
+    examples: tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py tests/pymcell4_positive/3160_dyn_vert_paired_mols_box_box/model.py
     params:  
     - name: id1
       type: int  
@@ -255,6 +255,15 @@ Model:
     params:  
     - name: id
       type: int  
+  
+  - name: get_paired_molecules
+    examples: tests/pymcell4_positive/3170_get_paired_molecules/model.py
+    doc: |
+       Return a dictionary that contains all molecules that are paired.
+       Molecule ids are keys and the value associated with the key is the second paired molecule.
+       Note\: The reason why uint32 is used as the base type for the dictionary but type int is used
+       everywhere else for molecule ids is only for performance reasons. 
+    return_type: Dict[uint32, uint32]
   
   # --- callbacks ---
   

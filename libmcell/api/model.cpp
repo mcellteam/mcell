@@ -475,6 +475,13 @@ int Model::get_paired_molecule(const int id) {
 }
 
 
+std::map<uint, uint> Model::get_paired_molecules() {
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  return p.get_paired_molecules();
+}
+
+
 void Model::register_mol_wall_hit_callback(
     const std::function<void(std::shared_ptr<MolWallHitInfo>, py::object)> function,
     py::object context,

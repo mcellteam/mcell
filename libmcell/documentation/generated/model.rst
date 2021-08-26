@@ -263,7 +263,7 @@ Methods:
   | Throws exception if any of the molecules is already paired.
   | May be called only after model initialization.
 
-  | Example: `2900_pair_unpair_molecules/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py>`_ 
+  | Examples: `2900_pair_unpair_molecules/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py>`_ `3160_dyn_vert_paired_mols_box_box/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/3160_dyn_vert_paired_mols_box_box/model.py>`_ 
 
 
 * | **unpair_molecules**
@@ -290,6 +290,19 @@ Methods:
   | May be called only after model initialization.
 
   | Example: `2900_pair_unpair_molecules/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/nutmeg4_pymcell4/2900_pair_unpair_molecules/model.py>`_ 
+
+
+* | **get_paired_molecules**
+
+   * | return type: Dict[uint32, uint32]
+
+
+  | Return a dictionary that contains all molecules that are paired.
+  | Molecule ids are keys and the value associated with the key is the second paired molecule.
+  | Note\: The reason why uint32 is used as the base type for the dictionary but type int is used
+  | everywhere else for molecule ids is only for performance reasons.
+
+  | Example: `3170_get_paired_molecules/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/3170_get_paired_molecules/model.py>`_ 
 
 
 * | **register_mol_wall_hit_callback**
