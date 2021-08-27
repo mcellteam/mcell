@@ -297,8 +297,9 @@ Methods:
    * | return type: Dict[uint32, uint32]
 
 
-  | Return a dictionary that contains all molecules that are paired.
+  | Returns a dictionary that contains all molecules that are paired.
   | Molecule ids are keys and the value associated with the key is the second paired molecule.
+  | The returned dictionary is a copy and any changes made to it are ignored by MCell.
   | Note\: The reason why uint32 is used as the base type for the dictionary but type int is used
   | everywhere else for molecule ids is only for performance reasons.
 
