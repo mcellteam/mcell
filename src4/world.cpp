@@ -701,13 +701,13 @@ void World::reset_unimol_rxn_times(const BNG::rxn_rule_id_t rxn_rule_id) {
         // is this a nondiffusible molecule? - these don't have to be not scheduled and therefore
         // their unimol rxn time does not need to be recomputed
         const BNG::Species& s = get_all_species().get(m.species_id);
-        if (!s.can_diffuse() && (m.diffusion_time == TIME_FOREVER || m.diffusion_time == m.unimol_rx_time)) {
+        if (!s.can_diffuse() && (m.diffusion_time == TIME_FOREVER || m.diffusion_time == m.unimol_rxn_time)) {
           // we cannot change the unimol rate if we are currently diffusing, but
           // let's update it as soon as possible
           m.diffusion_time = scheduler.get_next_event_time();
         }
 
-        m.unimol_rx_time = TIME_INVALID;
+        m.unimol_rxn_time = TIME_INVALID;
         m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
         m.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
       }
@@ -942,8 +942,8 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   initialization[KEY_TIME_STEP] = f_to_str(config.time_unit, 8);
   initialization[KEY_ITERATIONS] = to_string(total_iterations);
 
-  if (!cmp_eq(config.rx_radius_3d, config.get_default_rx_radius_3d())) {
-    initialization[KEY_INTERACTION_RADIUS] = f_to_str(config.rx_radius_3d * config.length_unit);
+  if (!cmp_eq(config.rxn_radius_3d, config.get_default_rxn_radius_3d())) {
+    initialization[KEY_INTERACTION_RADIUS] = f_to_str(config.rxn_radius_3d * config.length_unit);
   }
   else {
     // keep default value

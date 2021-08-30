@@ -295,7 +295,7 @@ static inline void get_corner_points_for_subpart_colection(
   Vec3 vp = cross(v, move);
 
   // 3) and compute the vectors v1-v4 of length rx_radius * SQRT2
-  pos_t radius = rx_radius * POS_SQRT2 * POS_RX_RADIUS_MULTIPLIER;
+  pos_t radius = rx_radius * POS_SQRT2 * POS_RXN_RADIUS_MULTIPLIER;
   pos_t ratio = 1/len3(v) * radius;
   pos_t ratiop = 1/len3(vp) * radius;
 
@@ -365,7 +365,7 @@ static inline void collect_crossed_subparts_orig(
   // we need to move the points a bit backwards and also forwards
   pos_t displacement_length = len3(displacement);
   Vec3 displacement_unit = displacement/Vec3(displacement_length);
-  Vec3 displacement_of_radius_length = displacement_unit * Vec3(rx_radius * POS_SQRT2 * POS_RX_RADIUS_MULTIPLIER);
+  Vec3 displacement_of_radius_length = displacement_unit * Vec3(rx_radius * POS_SQRT2 * POS_RXN_RADIUS_MULTIPLIER);
 
   // move molecule collision detection points a bit back
   small_vector<subpart_index_t> start_subpart_indices;
@@ -465,7 +465,7 @@ static bool collide_mol(
     const Molecule& diffused_vm,
     const Vec3& displacement,
     const Molecule& colliding_vm,
-    const pos_t rx_radius_3d,
+    const pos_t rxn_radius_3d,
     stime_t& rel_collision_time,
     Vec3& rel_collision_pos
 ) {
@@ -492,7 +492,7 @@ static bool collide_mol(
   /* check whether the moving molecule will miss interaction disk of the
      test molecule.*/
   pos_t dirlen2 = glm::dot((glm_vec3_t)dir, (glm_vec3_t)dir);
-  pos_t sigma2 = rx_radius_3d * rx_radius_3d;   /* Square of interaction radius */
+  pos_t sigma2 = rxn_radius_3d * rxn_radius_3d;   /* Square of interaction radius */
   if (movelen2 * dirlen2 - d * d > movelen2 * sigma2) {
     return false;
   }

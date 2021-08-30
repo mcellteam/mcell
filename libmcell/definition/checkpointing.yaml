@@ -15,7 +15,7 @@ BaseChkptMol:
     type: float     
   - name: flags 
     type: int
-  - name: unimol_rx_time 
+  - name: unimol_rxn_time 
     type: float
     default: unset     
 

@@ -51,7 +51,7 @@ void GenBaseChkptMol::set_all_attributes_as_default_or_unset() {
   diffusion_time = FLT_UNSET;
   birthday = FLT_UNSET;
   flags = INT_UNSET;
-  unimol_rx_time = FLT_UNSET;
+  unimol_rxn_time = FLT_UNSET;
 }
 
 std::shared_ptr<BaseChkptMol> GenBaseChkptMol::copy_base_chkpt_mol() const {
@@ -62,7 +62,7 @@ std::shared_ptr<BaseChkptMol> GenBaseChkptMol::copy_base_chkpt_mol() const {
   res->diffusion_time = diffusion_time;
   res->birthday = birthday;
   res->flags = flags;
-  res->unimol_rx_time = unimol_rx_time;
+  res->unimol_rxn_time = unimol_rxn_time;
 
   return res;
 }
@@ -75,7 +75,7 @@ std::shared_ptr<BaseChkptMol> GenBaseChkptMol::deepcopy_base_chkpt_mol(py::dict)
   res->diffusion_time = diffusion_time;
   res->birthday = birthday;
   res->flags = flags;
-  res->unimol_rx_time = unimol_rx_time;
+  res->unimol_rxn_time = unimol_rxn_time;
 
   return res;
 }
@@ -97,7 +97,7 @@ bool GenBaseChkptMol::__eq__(const BaseChkptMol& other) const {
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
     flags == other.flags &&
-    unimol_rx_time == other.unimol_rx_time;
+    unimol_rxn_time == other.unimol_rxn_time;
 }
 
 bool GenBaseChkptMol::eq_nonarray_attributes(const BaseChkptMol& other, const bool ignore_name) const {
@@ -117,7 +117,7 @@ bool GenBaseChkptMol::eq_nonarray_attributes(const BaseChkptMol& other, const bo
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
     flags == other.flags &&
-    unimol_rx_time == other.unimol_rx_time;
+    unimol_rxn_time == other.unimol_rxn_time;
 }
 
 std::string GenBaseChkptMol::to_str(const bool all_details, const std::string ind) const {
@@ -128,7 +128,7 @@ std::string GenBaseChkptMol::to_str(const bool all_details, const std::string in
       "diffusion_time=" << diffusion_time << ", " <<
       "birthday=" << birthday << ", " <<
       "flags=" << flags << ", " <<
-      "unimol_rx_time=" << unimol_rx_time;
+      "unimol_rxn_time=" << unimol_rxn_time;
   return ss.str();
 }
 
@@ -148,7 +148,7 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
           py::arg("diffusion_time"),
           py::arg("birthday"),
           py::arg("flags"),
-          py::arg("unimol_rx_time") = FLT_UNSET
+          py::arg("unimol_rxn_time") = FLT_UNSET
       )
       .def("check_semantics", &BaseChkptMol::check_semantics)
       .def("__copy__", &BaseChkptMol::copy_base_chkpt_mol)
@@ -161,7 +161,7 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
       .def_property("diffusion_time", &BaseChkptMol::get_diffusion_time, &BaseChkptMol::set_diffusion_time)
       .def_property("birthday", &BaseChkptMol::get_birthday, &BaseChkptMol::set_birthday)
       .def_property("flags", &BaseChkptMol::get_flags, &BaseChkptMol::set_flags)
-      .def_property("unimol_rx_time", &BaseChkptMol::get_unimol_rx_time, &BaseChkptMol::set_unimol_rx_time)
+      .def_property("unimol_rxn_time", &BaseChkptMol::get_unimol_rxn_time, &BaseChkptMol::set_unimol_rxn_time)
     ;
 }
 
@@ -189,8 +189,8 @@ std::string GenBaseChkptMol::export_to_python(std::ostream& out, PythonExportCon
   ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
   ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
   ss << ind << "flags = " << flags << "," << nl;
-  if (unimol_rx_time != FLT_UNSET) {
-    ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
+  if (unimol_rxn_time != FLT_UNSET) {
+    ss << ind << "unimol_rxn_time = " << f_to_str(unimol_rxn_time) << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

@@ -180,7 +180,7 @@ const double TIME_FOREVER = 1e20; // based on MCell3
 const double TIME_SIMULATION_START = 0;
 
 const pos_t POS_SQRT2 = 1.41421356238;
-const pos_t POS_RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
+const pos_t POS_RXN_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
 
 const uint INT_INVALID = INT32_MAX;
 

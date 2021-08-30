@@ -55,7 +55,7 @@ void GenChkptVolMol::set_all_attributes_as_default_or_unset() {
   diffusion_time = FLT_UNSET;
   birthday = FLT_UNSET;
   flags = INT_UNSET;
-  unimol_rx_time = FLT_UNSET;
+  unimol_rxn_time = FLT_UNSET;
 }
 
 std::shared_ptr<ChkptVolMol> GenChkptVolMol::copy_chkpt_vol_mol() const {
@@ -67,7 +67,7 @@ std::shared_ptr<ChkptVolMol> GenChkptVolMol::copy_chkpt_vol_mol() const {
   res->diffusion_time = diffusion_time;
   res->birthday = birthday;
   res->flags = flags;
-  res->unimol_rx_time = unimol_rx_time;
+  res->unimol_rxn_time = unimol_rxn_time;
 
   return res;
 }
@@ -81,7 +81,7 @@ std::shared_ptr<ChkptVolMol> GenChkptVolMol::deepcopy_chkpt_vol_mol(py::dict) co
   res->diffusion_time = diffusion_time;
   res->birthday = birthday;
   res->flags = flags;
-  res->unimol_rx_time = unimol_rx_time;
+  res->unimol_rxn_time = unimol_rxn_time;
 
   return res;
 }
@@ -104,7 +104,7 @@ bool GenChkptVolMol::__eq__(const ChkptVolMol& other) const {
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
     flags == other.flags &&
-    unimol_rx_time == other.unimol_rx_time;
+    unimol_rxn_time == other.unimol_rxn_time;
 }
 
 bool GenChkptVolMol::eq_nonarray_attributes(const ChkptVolMol& other, const bool ignore_name) const {
@@ -125,7 +125,7 @@ bool GenChkptVolMol::eq_nonarray_attributes(const ChkptVolMol& other, const bool
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
     flags == other.flags &&
-    unimol_rx_time == other.unimol_rx_time;
+    unimol_rxn_time == other.unimol_rxn_time;
 }
 
 std::string GenChkptVolMol::to_str(const bool all_details, const std::string ind) const {
@@ -137,7 +137,7 @@ std::string GenChkptVolMol::to_str(const bool all_details, const std::string ind
       "diffusion_time=" << diffusion_time << ", " <<
       "birthday=" << birthday << ", " <<
       "flags=" << flags << ", " <<
-      "unimol_rx_time=" << unimol_rx_time;
+      "unimol_rxn_time=" << unimol_rxn_time;
   return ss.str();
 }
 
@@ -159,7 +159,7 @@ py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
           py::arg("diffusion_time"),
           py::arg("birthday"),
           py::arg("flags"),
-          py::arg("unimol_rx_time") = FLT_UNSET
+          py::arg("unimol_rxn_time") = FLT_UNSET
       )
       .def("check_semantics", &ChkptVolMol::check_semantics)
       .def("__copy__", &ChkptVolMol::copy_chkpt_vol_mol)
@@ -195,8 +195,8 @@ std::string GenChkptVolMol::export_to_python(std::ostream& out, PythonExportCont
   ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
   ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
   ss << ind << "flags = " << flags << "," << nl;
-  if (unimol_rx_time != FLT_UNSET) {
-    ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
+  if (unimol_rxn_time != FLT_UNSET) {
+    ss << ind << "unimol_rxn_time = " << f_to_str(unimol_rxn_time) << "," << nl;
   }
   ss << ind << "pos = " << "m.Vec3(" << f_to_str(pos.x) << ", " << f_to_str(pos.y) << ", " << f_to_str(pos.z)<< ")," << nl;
   ss << ")" << nl << nl;

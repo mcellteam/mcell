@@ -54,7 +54,7 @@ public:
   // Warning: ctors do not reset surf or vol data
   Molecule()
     : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
-      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_FOREVER),
+      diffusion_time(TIME_INVALID), unimol_rxn_time(TIME_FOREVER),
       birthday(TIME_INVALID) {
   }
 
@@ -68,7 +68,7 @@ public:
       const Vec3& pos_, const double birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
-      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
+      diffusion_time(TIME_INVALID), unimol_rxn_time(TIME_INVALID),
       birthday(birthday_) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
@@ -83,7 +83,7 @@ public:
       const Vec2& pos2d, const double birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
-      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
+      diffusion_time(TIME_INVALID), unimol_rxn_time(TIME_INVALID),
       birthday(birthday_) {
     s.pos = pos2d;
     s.orientation = ORIENTATION_NONE;
@@ -132,7 +132,7 @@ public:
 
   // time assigned for unimol rxn, TIME_INVALID if time has not been set or molecule has no unimol rxn,
   // TIME_FOREVER if the probability of an existing unimol rxn is 0
-  double unimol_rx_time;
+  double unimol_rxn_time;
 
   // - time when the molecule was released or created
   // - used when determining whether this molecule is mature

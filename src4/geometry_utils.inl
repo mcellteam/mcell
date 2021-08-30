@@ -138,7 +138,7 @@ static void wall_subparts_collision_test(
     leeway = urb.z;
   leeway = POS_EPS + leeway * POS_EPS;
   if (p.config.use_expanded_list) {
-    leeway += p.config.rx_radius_3d;
+    leeway += p.config.rxn_radius_3d;
   }
 
   Vec3 leeway3 = Vec3(leeway);

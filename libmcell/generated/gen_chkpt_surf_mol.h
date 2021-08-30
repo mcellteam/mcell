@@ -36,8 +36,8 @@ class PythonExportContext;
         const double diffusion_time_, \
         const double birthday_, \
         const int flags_, \
-        const double unimol_rx_time_ = FLT_UNSET \
-    )  : GenChkptSurfMol(id_,species_,diffusion_time_,birthday_,flags_,unimol_rx_time_) { \
+        const double unimol_rxn_time_ = FLT_UNSET \
+    )  : GenChkptSurfMol(id_,species_,diffusion_time_,birthday_,flags_,unimol_rxn_time_) { \
       class_name = "ChkptSurfMol"; \
       pos = pos_; \
       orientation = orientation_; \
@@ -49,7 +49,7 @@ class PythonExportContext;
       diffusion_time = diffusion_time_; \
       birthday = birthday_; \
       flags = flags_; \
-      unimol_rx_time = unimol_rx_time_; \
+      unimol_rxn_time = unimol_rxn_time_; \
       postprocess_in_ctor(); \
       check_semantics(); \
     } \
@@ -67,8 +67,8 @@ public:
       const double diffusion_time_, 
       const double birthday_, 
       const int flags_, 
-      const double unimol_rx_time_ = FLT_UNSET 
-  )  : BaseChkptMol(id_,species_,diffusion_time_,birthday_,flags_,unimol_rx_time_)  {
+      const double unimol_rxn_time_ = FLT_UNSET 
+  )  : BaseChkptMol(id_,species_,diffusion_time_,birthday_,flags_,unimol_rxn_time_)  {
   }
   GenChkptSurfMol() : BaseChkptMol(DefaultCtorArgType()) {
   }

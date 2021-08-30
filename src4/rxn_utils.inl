@@ -123,7 +123,7 @@ static void find_reactions_with_surf_classes_for_rxn_class_map(
 	  const orientation_t reacA_orient,
     const Region& reg,
     const BNG::SpeciesRxnClassesMap& potential_reactions,
-    const bool allow_rx_transp_reflec_absorb_reg_border,
+    const bool allow_rxn_transp_reflec_absorb_reg_border,
     BNG::RxnClassesVector& matching_rxn_classes
 ) {
 
@@ -136,7 +136,7 @@ static void find_reactions_with_surf_classes_for_rxn_class_map(
   // NOTE: do we need to handle compartments here?
   BNG::RxnClass* rxn_class = reactions_reacA_and_surface_it->second;
 
-  if (!allow_rx_transp_reflec_absorb_reg_border &&
+  if (!allow_rxn_transp_reflec_absorb_reg_border &&
       rxn_class->is_reflect_transparent_or_absorb_region_border()
   ) {
     // do not allow this type
@@ -185,7 +185,7 @@ static void find_mol_reactions_with_surf_classes(
     const Molecule& reacA,
 	  const orientation_t reacA_orient,
     const WallOrObj& regions_list,
-    const bool allow_rx_transp_reflec_absorb_reg_border,
+    const bool allow_rxn_transp_reflec_absorb_reg_border,
     BNG::RxnClassesVector& matching_rxns
 ) {
   // for all reactions applicable to reacA and and wall
@@ -218,7 +218,7 @@ static void find_mol_reactions_with_surf_classes(
       find_reactions_with_surf_classes_for_rxn_class_map(
           p, reacA, reacA_orient, reg,
           *species_rxns,
-          allow_rx_transp_reflec_absorb_reg_border,
+          allow_rxn_transp_reflec_absorb_reg_border,
           matching_rxns
       );
     }
@@ -227,7 +227,7 @@ static void find_mol_reactions_with_surf_classes(
       find_reactions_with_surf_classes_for_rxn_class_map(
           p, reacA, reacA_orient, reg,
           *all_molecules_rxns,
-          allow_rx_transp_reflec_absorb_reg_border,
+          allow_rxn_transp_reflec_absorb_reg_border,
           matching_rxns
       );
     }
@@ -236,7 +236,7 @@ static void find_mol_reactions_with_surf_classes(
       find_reactions_with_surf_classes_for_rxn_class_map(
           p, reacA, reacA_orient, reg,
           *all_vol_or_surf_rxns,
-          allow_rx_transp_reflec_absorb_reg_border,
+          allow_rxn_transp_reflec_absorb_reg_border,
           matching_rxns
       );
     }
@@ -265,29 +265,19 @@ static void trigger_intersect(
     const Molecule& reacA,
 	  const orientation_t reacA_orient,
     const Wall& w,
-    const bool allow_rx_transp_reflec_absorb_reg_border,
+    const bool allow_rxn_transp_reflec_absorb_reg_border,
     BNG::RxnClassesVector& matching_rxns
 ) {
-  /*if (w.in_reactive_region()) {
-   * TODO_CHECK
-    find_surface_mol_reactions_with_surf_classes(
-        p, reacA, w, matching_rxns, false
-        reaction_hash, rx_hashsize, reacA, w, hashA, orientA, num_matching_rxns,
-        allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border,
-        matching_rxns);
-  }*/
-
-
   if (reacA.is_vol()) {
     find_mol_reactions_with_surf_classes(
-        p, reacA, reacA_orient, w, allow_rx_transp_reflec_absorb_reg_border,
+        p, reacA, reacA_orient, w, allow_rxn_transp_reflec_absorb_reg_border,
         matching_rxns
     );
   }
   else if (reacA.is_surf()) {
 	  assert(reacA.s.orientation == reacA_orient);
 	  find_mol_reactions_with_surf_classes(
-        p, reacA, reacA.s.orientation, w, allow_rx_transp_reflec_absorb_reg_border,
+        p, reacA, reacA.s.orientation, w, allow_rxn_transp_reflec_absorb_reg_border,
         matching_rxns
     );
   }
@@ -566,14 +556,14 @@ static int test_many_bimolecular(
   }
 
   /* Pick the reaction class that happens */
-  int rx_index = binary_search_double(cum_rxn_class_probs, prob, cum_rxn_class_probs.size() - 1, 1);
-  assert(rx_index >= 0);
+  int rxn_index = binary_search_double(cum_rxn_class_probs, prob, cum_rxn_class_probs.size() - 1, 1);
+  assert(rxn_index >= 0);
 
-  BNG::RxnClass* selected_rxn_class = rxn_classes[rx_index];
-  if (rx_index > 0) {
-    prob = (prob - cum_rxn_class_probs[rx_index - 1]);
+  BNG::RxnClass* selected_rxn_class = rxn_classes[rxn_index];
+  if (rxn_index > 0) {
+    prob = (prob - cum_rxn_class_probs[rxn_index - 1]);
   }
-  prob = prob * scaling[rx_index];
+  prob = prob * scaling[rxn_index];
 
   /* Now pick the pathway within that reaction */
   // NOTE: might optimize if there is just one rxn
@@ -586,7 +576,7 @@ static int test_many_bimolecular(
 
   chosen_pathway_index = m;
 
-  return rx_index;
+  return rxn_index;
 }
 
 

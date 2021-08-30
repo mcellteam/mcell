@@ -75,7 +75,7 @@ void GenChkptSurfMol::set_all_attributes_as_default_or_unset() {
   diffusion_time = FLT_UNSET;
   birthday = FLT_UNSET;
   flags = INT_UNSET;
-  unimol_rx_time = FLT_UNSET;
+  unimol_rxn_time = FLT_UNSET;
 }
 
 std::shared_ptr<ChkptSurfMol> GenChkptSurfMol::copy_chkpt_surf_mol() const {
@@ -91,7 +91,7 @@ std::shared_ptr<ChkptSurfMol> GenChkptSurfMol::copy_chkpt_surf_mol() const {
   res->diffusion_time = diffusion_time;
   res->birthday = birthday;
   res->flags = flags;
-  res->unimol_rx_time = unimol_rx_time;
+  res->unimol_rxn_time = unimol_rxn_time;
 
   return res;
 }
@@ -109,7 +109,7 @@ std::shared_ptr<ChkptSurfMol> GenChkptSurfMol::deepcopy_chkpt_surf_mol(py::dict)
   res->diffusion_time = diffusion_time;
   res->birthday = birthday;
   res->flags = flags;
-  res->unimol_rx_time = unimol_rx_time;
+  res->unimol_rxn_time = unimol_rxn_time;
 
   return res;
 }
@@ -146,7 +146,7 @@ bool GenChkptSurfMol::__eq__(const ChkptSurfMol& other) const {
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
     flags == other.flags &&
-    unimol_rx_time == other.unimol_rx_time;
+    unimol_rxn_time == other.unimol_rxn_time;
 }
 
 bool GenChkptSurfMol::eq_nonarray_attributes(const ChkptSurfMol& other, const bool ignore_name) const {
@@ -181,7 +181,7 @@ bool GenChkptSurfMol::eq_nonarray_attributes(const ChkptSurfMol& other, const bo
     diffusion_time == other.diffusion_time &&
     birthday == other.birthday &&
     flags == other.flags &&
-    unimol_rx_time == other.unimol_rx_time;
+    unimol_rxn_time == other.unimol_rxn_time;
 }
 
 std::string GenChkptSurfMol::to_str(const bool all_details, const std::string ind) const {
@@ -197,7 +197,7 @@ std::string GenChkptSurfMol::to_str(const bool all_details, const std::string in
       "diffusion_time=" << diffusion_time << ", " <<
       "birthday=" << birthday << ", " <<
       "flags=" << flags << ", " <<
-      "unimol_rx_time=" << unimol_rx_time;
+      "unimol_rxn_time=" << unimol_rxn_time;
   return ss.str();
 }
 
@@ -227,7 +227,7 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
           py::arg("diffusion_time"),
           py::arg("birthday"),
           py::arg("flags"),
-          py::arg("unimol_rx_time") = FLT_UNSET
+          py::arg("unimol_rxn_time") = FLT_UNSET
       )
       .def("check_semantics", &ChkptSurfMol::check_semantics)
       .def("__copy__", &ChkptSurfMol::copy_chkpt_surf_mol)
@@ -267,8 +267,8 @@ std::string GenChkptSurfMol::export_to_python(std::ostream& out, PythonExportCon
   ss << ind << "diffusion_time = " << f_to_str(diffusion_time) << "," << nl;
   ss << ind << "birthday = " << f_to_str(birthday) << "," << nl;
   ss << ind << "flags = " << flags << "," << nl;
-  if (unimol_rx_time != FLT_UNSET) {
-    ss << ind << "unimol_rx_time = " << f_to_str(unimol_rx_time) << "," << nl;
+  if (unimol_rxn_time != FLT_UNSET) {
+    ss << ind << "unimol_rxn_time = " << f_to_str(unimol_rxn_time) << "," << nl;
   }
   ss << ind << "pos = " << "m.Vec2(" << f_to_str(pos.u) << ", " << f_to_str(pos.v)<< ")," << nl;
   ss << ind << "orientation = " << orientation << "," << nl;

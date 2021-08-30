@@ -211,14 +211,14 @@ class BaseChkptMol():
             diffusion_time : float,
             birthday : float,
             flags : int,
-            unimol_rx_time : float = None
+            unimol_rxn_time : float = None
         ):
         self.id = id
         self.species = species
         self.diffusion_time = diffusion_time
         self.birthday = birthday
         self.flags = flags
-        self.unimol_rx_time = unimol_rx_time
+        self.unimol_rxn_time = unimol_rxn_time
 
 
 class ChkptSurfMol():
@@ -234,7 +234,7 @@ class ChkptSurfMol():
             diffusion_time : float,
             birthday : float,
             flags : int,
-            unimol_rx_time : float = None
+            unimol_rxn_time : float = None
         ):
         self.pos = pos
         self.orientation = orientation
@@ -246,7 +246,7 @@ class ChkptSurfMol():
         self.diffusion_time = diffusion_time
         self.birthday = birthday
         self.flags = flags
-        self.unimol_rx_time = unimol_rx_time
+        self.unimol_rxn_time = unimol_rxn_time
 
 
 class ChkptVolMol():
@@ -258,7 +258,7 @@ class ChkptVolMol():
             diffusion_time : float,
             birthday : float,
             flags : int,
-            unimol_rx_time : float = None
+            unimol_rxn_time : float = None
         ):
         self.pos = pos
         self.id = id
@@ -266,7 +266,7 @@ class ChkptVolMol():
         self.diffusion_time = diffusion_time
         self.birthday = birthday
         self.flags = flags
-        self.unimol_rx_time = unimol_rx_time
+        self.unimol_rxn_time = unimol_rxn_time
 
 
 class Color():

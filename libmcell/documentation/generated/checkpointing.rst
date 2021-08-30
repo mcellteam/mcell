@@ -21,7 +21,7 @@ Attributes:
 
 * | **flags**: int
 
-* | **unimol_rx_time**: float = None
+* | **unimol_rxn_time**: float = None
 
 ChkptSurfMol
 ============
@@ -51,7 +51,7 @@ Attributes:
 
 * | **flags**: int
 
-* | **unimol_rx_time**: float = None
+* | **unimol_rxn_time**: float = None
 
 ChkptVolMol
 ===========
@@ -73,7 +73,7 @@ Attributes:
 
 * | **flags**: int
 
-* | **unimol_rx_time**: float = None
+* | **unimol_rxn_time**: float = None
 
 RngState
 ========

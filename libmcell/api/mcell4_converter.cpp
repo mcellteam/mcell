@@ -118,9 +118,9 @@ void MCell4Converter::convert_before_init() {
   convert_initial_iteration_and_time_and_move_scheduler_time();
 
   // some general checks
-  if (world->config.rx_radius_3d * POS_SQRT2 >= world->config.subpart_edge_length / 2) {
+  if (world->config.rxn_radius_3d * POS_SQRT2 >= world->config.subpart_edge_length / 2) {
     throw ValueError(S("Reaction radius multiplied by sqrt(2) ") +
-        to_string(world->config.rx_radius_3d * world->config.length_unit * POS_SQRT2) +
+        to_string(world->config.rxn_radius_3d * world->config.length_unit * POS_SQRT2) +
         " must be less than half of subpartition edge length " +
         to_string(world->config.subpart_edge_length * world->config.length_unit / 2) + ". " +
         "Increase the model's " + NAME_CONFIG + "." + NAME_SUBPARTITION_DIMENSION + ".");
@@ -249,19 +249,19 @@ void MCell4Converter::convert_simulation_setup() {
   if (is_set(config.interaction_radius)) {
     // NOTE: mcell3 does not convert the unit of the interaction radius in parser which
     // seems a bit weird
-    world->config.rx_radius_3d = config.interaction_radius / length_unit;
+    world->config.rxn_radius_3d = config.interaction_radius / length_unit;
   }
   else {
-    world->config.rx_radius_3d = world->config.get_default_rx_radius_3d();
+    world->config.rxn_radius_3d = world->config.get_default_rxn_radius_3d();
   }
 
   if (is_set(config.intermembrane_interaction_radius)) {
     // NOTE: mcell3 does not convert the unit of the interaction radius in parser which
     // seems a bit weird
-    world->config.intermembrane_rx_radius_3d = config.intermembrane_interaction_radius / length_unit;
+    world->config.intermembrane_rxn_radius_3d = config.intermembrane_interaction_radius / length_unit;
   }
   else {
-    world->config.intermembrane_rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
+    world->config.intermembrane_rxn_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
   }
 
   pos_t vacancy_search_dist = config.vacancy_search_distance / length_unit; // Convert units
@@ -1822,11 +1822,11 @@ void MCell4Converter::convert_checkpointed_molecules() {
     // TODO: check that the flags make sense
     res_m.flags = m->flags;
 
-    if (is_set(m->unimol_rx_time)) {
-      res_m.unimol_rx_time = m->unimol_rx_time / world->config.time_unit;
+    if (is_set(m->unimol_rxn_time)) {
+      res_m.unimol_rxn_time = m->unimol_rxn_time / world->config.time_unit;
     }
     else {
-      res_m.unimol_rx_time = TIME_INVALID;
+      res_m.unimol_rxn_time = TIME_INVALID;
     }
 
     if (m->type == MoleculeType::VOLUME) {

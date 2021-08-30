@@ -39,7 +39,7 @@ static inline void __attribute__((always_inline)) collect_neighboring_subparts(
     const Partition& p,
     const Vec3& pos,
     const IVec3& subpart_indices,
-    const pos_t rx_radius,
+    const pos_t rxn_radius,
     const pos_t subpart_edge_len,
     SubpartIndicesSet& crossed_subpart_indices
 ) {
@@ -47,9 +47,9 @@ static inline void __attribute__((always_inline)) collect_neighboring_subparts(
 
   Vec3 rel_pos = pos - p.get_origin_corner();
 
-  Vec3 rx_radius3(rx_radius);
-  Vec3 rel_pos_plus_radius = rel_pos + rx_radius3;
-  Vec3 rel_pos_minus_radius = rel_pos - rx_radius3;
+  Vec3 rxn_radius3(rxn_radius);
+  Vec3 rel_pos_plus_radius = rel_pos + rxn_radius3;
+  Vec3 rel_pos_minus_radius = rel_pos - rxn_radius3;
 
   Vec3 boundary = Vec3(subpart_indices) * Vec3(subpart_edge_len);
 
@@ -128,7 +128,7 @@ static inline subpart_index_t __attribute__((always_inline)) collect_crossed_sub
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
   const Vec3& displacement,
-  const pos_t rx_radius,
+  const pos_t rxn_radius,
   const pos_t sp_edge_length,
   const bool collect_for_molecules,
   const bool collect_for_walls,
@@ -185,12 +185,12 @@ static inline subpart_index_t __attribute__((always_inline)) collect_crossed_sub
   // the diameter of a square, computing precise length would be most probably worse perfrmance-wise
   // TODO: explain why this should work
   // a more efficient variant if definitely possible
-  pos_t rx_radius_for_neighbors = rx_radius * POS_SQRT2;
+  pos_t rxn_radius_for_neighbors = rxn_radius * POS_SQRT2;
 
   // first check what's around the starting point
   if (collect_for_molecules && p.config.use_expanded_list) {
     collect_neighboring_subparts(
-        p, vm.v.pos, src_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
+        p, vm.v.pos, src_subpart_indices, rxn_radius_for_neighbors, sp_edge_length,
         crossed_subparts_for_molecules
     );
   }
@@ -280,7 +280,7 @@ static inline subpart_index_t __attribute__((always_inline)) collect_crossed_sub
       // also neighbors
       if (collect_for_molecules && p.config.use_expanded_list) {
         collect_neighboring_subparts(
-            p, curr_pos, curr_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
+            p, curr_pos, curr_subpart_indices, rxn_radius_for_neighbors, sp_edge_length,
             crossed_subparts_for_molecules
         );
       }
@@ -291,7 +291,7 @@ static inline subpart_index_t __attribute__((always_inline)) collect_crossed_sub
   // finally check also neighbors in destination
   if (collect_for_molecules && p.config.use_expanded_list) {
     collect_neighboring_subparts(
-        p, dest_pos, dest_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
+        p, dest_pos, dest_subpart_indices, rxn_radius_for_neighbors, sp_edge_length,
         crossed_subparts_for_molecules
     );
   }

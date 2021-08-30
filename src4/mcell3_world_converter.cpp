@@ -200,7 +200,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->config.initial_iteration = 0;
   world->config.length_unit = s->length_unit;
   world->config.grid_density = s->grid_density;
-  world->config.rx_radius_3d = s->rx_radius_3d;
+  world->config.rxn_radius_3d = s->rx_radius_3d;
   world->config.vacancy_search_dist2 = s->vacancy_search_dist2; // unit was already recomputed
   world->config.initial_seed = s->seed_seq;
   world->config.molecule_placement_failure = convert_warning_level(s->notify->mol_placement_failure);
@@ -324,9 +324,9 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // may change world->config.subpartition_edge_length
   world->config.init();
 
-  if (world->config.rx_radius_3d * 2 * POS_SQRT2 > world->config.subpart_edge_length) {
+  if (world->config.rxn_radius_3d * 2 * POS_SQRT2 > world->config.subpart_edge_length) {
     mcell_error("Reaction radius multiplied by sqrt(2) %f must be less than half of subpartition edge length %f.",
-        world->config.rx_radius_3d * world->config.length_unit * POS_SQRT2,
+        world->config.rxn_radius_3d * world->config.length_unit * POS_SQRT2,
         world->config.subpart_edge_length * world->config.length_unit / 2.0
     );
   }

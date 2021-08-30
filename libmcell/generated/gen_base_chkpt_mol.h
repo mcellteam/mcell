@@ -29,7 +29,7 @@ class PythonExportContext;
         const double diffusion_time_, \
         const double birthday_, \
         const int flags_, \
-        const double unimol_rx_time_ = FLT_UNSET \
+        const double unimol_rxn_time_ = FLT_UNSET \
     ) { \
       class_name = "BaseChkptMol"; \
       id = id_; \
@@ -37,7 +37,7 @@ class PythonExportContext;
       diffusion_time = diffusion_time_; \
       birthday = birthday_; \
       flags = flags_; \
-      unimol_rx_time = unimol_rx_time_; \
+      unimol_rxn_time = unimol_rxn_time_; \
       postprocess_in_ctor(); \
       check_semantics(); \
     } \
@@ -140,18 +140,18 @@ public:
     return flags;
   }
 
-  double unimol_rx_time;
-  virtual void set_unimol_rx_time(const double new_unimol_rx_time_) {
+  double unimol_rxn_time;
+  virtual void set_unimol_rxn_time(const double new_unimol_rxn_time_) {
     if (initialized) {
-      throw RuntimeError("Value 'unimol_rx_time' of object with name " + name + " (class " + class_name + ") "
+      throw RuntimeError("Value 'unimol_rxn_time' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
     }
     cached_data_are_uptodate = false;
-    unimol_rx_time = new_unimol_rx_time_;
+    unimol_rxn_time = new_unimol_rxn_time_;
   }
-  virtual double get_unimol_rx_time() const {
+  virtual double get_unimol_rxn_time() const {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
-    return unimol_rx_time;
+    return unimol_rxn_time;
   }
 
   // --- methods ---
