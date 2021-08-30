@@ -1706,7 +1706,7 @@ static void update_counted_volume_id_when_crossing_wall(
  *      position in the neighboring image
  *
  ******************************************************************************/
-static int reflect_or_periodic_bc(
+static int reflect_from_wall(
     const Partition& p,
     const Collision& collision,
     Molecule& vm, // moves vm to the reflection point

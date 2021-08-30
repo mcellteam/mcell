@@ -551,7 +551,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         if (!was_defunct) {
           elapsed_molecule_time += t_steps * collision.time;
           // if a molecule was reflected, changes its position to the reflection point
-          int res = CollisionUtils::reflect_or_periodic_bc(
+          int res = CollisionUtils::reflect_from_wall(
               p, collision,
               vm_new_ref, remaining_displacement, t_steps, last_hit_wall_index
           );
