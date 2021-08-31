@@ -1,5 +1,5 @@
 # To generate HTML documentation simply run 
-# > doxygen DoxyFile
+# > doxygen Doxyfile
 # 
 # The documentation will be created in directory build 
 # Requirements: doxygen, graphviz 
