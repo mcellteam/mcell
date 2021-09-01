@@ -41,6 +41,7 @@ class Options:
         self.mcell4_dir = None
         self.bng_dir = None
         self.single_bng_run = False
+        self.labels = ['MCell4', 'MCell3R', 'NFSim']
 
         
 def create_argparse():
@@ -49,6 +50,7 @@ def create_argparse():
     parser.add_argument('-m3', '--mcell3', type=str, help='mcell3 react_data directory')
     parser.add_argument('-b', '--bng', type=str, help='bionetgen directory')
     parser.add_argument('-s', '--single_bng_run', action='store_true', help='the bionetgen directory contains only a single .gdat file')
+    parser.add_argument('-l', '--labels', type=str, help='comma-separated list of labels (used in order -m4,-m3,-b')
     return parser
 
 
@@ -68,6 +70,9 @@ def process_opts():
 
     if args.single_bng_run:
         opts.single_bng_run = args.single_bng_run 
+
+    if args.labels:
+        opts.labels = args.labels.split(',') 
 
     return opts
 
@@ -189,7 +194,6 @@ def main():
     else:
         counts.append({})
             
-    names = ['MCell4', 'MCell3R', 'BNG']
     clrs = ['b', 'g', 'r'] 
 
     all_observables = set(counts[0].keys())
@@ -212,6 +216,7 @@ def main():
             df = pd.DataFrame()           
             df['time'] = data.iloc[:, 0]
             df['means'] = data.iloc[:, 1:].mean(axis=1)
+            print(opts.labels[i], df['means'])
             df['mean_minus_std'] = df['means'] - data.iloc[:, 1:].std(axis=1)
             df['mean_plus_std'] = df['means'] + data.iloc[:, 1:].std(axis=1)
     
@@ -222,11 +227,14 @@ def main():
             ax.fill_between(
                 df['time'], 
                 df['mean_minus_std'], df['mean_plus_std'],
-                alpha=0.2, facecolor=clrs[i])
+                alpha=0.1, facecolor=clrs[i])
     
-            legend_names.append(names[i])
+            legend_names.append(opts.labels[i])
     
         plt.legend(legend_names)
+        
+        plt.xlabel("time [s]")
+        plt.ylabel("N(t)")
         
         plt.savefig(obs + '.png', dpi=600)
         plt.close(fig)

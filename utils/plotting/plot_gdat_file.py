@@ -32,7 +32,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import sys
-
+from io import StringIO
 
 def main():
     if len(sys.argv) != 2 and len(sys.argv) != 3:
@@ -46,7 +46,12 @@ def main():
     if not os.path.exists(file):
         sys.exit("File " + file + " does not exist.")
     
-    df = pd.read_csv(file, index_col=0, skipinitialspace=True, delim_whitespace=True)
+    wholefile = open(file).read()
+    
+    df = pd.read_csv(StringIO(wholefile[1:]), index_col=0, skipinitialspace=True, delim_whitespace=True)
+    
+    
+    #df = df.set_index('time')
     print(df)
     
     col_names = pd.DataFrame
