@@ -22,4 +22,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/plotting/plot_dat_files.py ${BUILD_UT
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/plotting/plot_gdat_file.py ${BUILD_UTILS_DIR}/plot_gdat_file.py COPYONLY)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/visualize/visualize.sh ${BUILD_UTILS_DIR}/visualize.sh COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/visualize/visualize.py ${BUILD_UTILS_DIR}/visualize.py COPYONLY)
 
