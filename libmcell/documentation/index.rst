@@ -19,6 +19,7 @@ with a tutorial, and a complete definition of the interface.
    api_overview
    bngl
    generated/api
+   features/features
    model_conversions
    file_formats
 

@@ -324,12 +324,37 @@ apply_vertex_moves (collect_wall_wall_hits: bool=False, randomize_order: bool=Tr
 
 
   | Applies all the vertex moves specified with Model.add_vertex_move call.
-  | Walls of different objects are checked against collisions.
-  | When a moved vertex hits a wall of another object, it is stopped at the wall.
-  | When second object's vertex would end inside the moved object, the vertex move 
-  | that would cause it is cancelled because finding the maximum distance we can move is too computationally 
-  | expensive. To minimize the impact of this cancellation, the vertices should be moved only by a small distance.     
-  | When collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
+  | 
+  | All affected vertices are first divided based on to which geometery object they belong. 
+  | Then each object is manipulated one by one. 
+  | 
+  | During vertex moves, collisions are checked\:
+  | a) When a moved vertex hits a wall of another object, it is stopped at the wall.
+  | b) When a second object's vertex would end up inside the moved object, the vertex move 
+  | that would cause it is canceled (its displacement set to 0) because finding the maximum 
+  | distance we can move is too computationally expensive. To minimize the impact of this 
+  | cancellation, the vertices should be moved only by a small distance.
+  | 
+  | Applying vertex moves also takes paired molecules into account\: 
+  | When moves are applied to an object, all moved molecules that are paired are collected.
+  | For each of the paired molecules, we collect displacements for each 
+  | of the vertices of the 'primary' wall where this molecule is located (that were provided by the user 
+  | through add_vertex_move, and were possibly truncated due to collisions).
+  | Then we find the second wall where the second molecule of the pair is located.
+  | For each of the vertices of all 'secondary' walls, we collect a list of displacements
+  | that move the vertices of 'primary' walls. 
+  | Then, an average displacement is computed for each vertex, and these average displacements
+  | are used to move the 'secondary' walls.
+  | When a 'primary' wall collides, its displacement is clamped or canceled. This is true even if 
+  | it collides with a 'secondary' wall that would be otherwise moved. So, the displacement of the 
+  | 'primary' wall will mostly just pull the 'secondary' wall, not push. Therefore it is needed 
+  | that both objects are active and pull each other. 
+  | 
+  | This process is well commented in MCell code\: 
+  | `partition.cpp <https://github.com/mcellteam/mcell/blob/master/src4/partition.cpp>`_ in functions
+  | apply_vertex_moves, apply_vertex_moves_per_object, and move_walls_with_paired_molecules. 
+  |      
+  | When argument collect_wall_wall_hits is True, a list of wall pairs that collided is returned,
   | when collect_wall_wall_hits is False, an empty list is returned.
 
 * | collect_wall_wall_hits: bool = False
@@ -344,7 +369,7 @@ apply_vertex_moves (collect_wall_wall_hits: bool=False, randomize_order: bool=Tr
   | and the moves are applied object by object for correctness. Setting this to True also radomizes the 
   | order of objects to which the vertex moves are applied.
 
-  | Examples: `1510_tetrahedron_box_collision_moving_3_verts/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py>`_ `3200_sphere_collision_against_each_other/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/3200_sphere_collision_against_each_other/model.py>`_ 
+  | Examples: `1510_tetrahedron_box_collision_moving_3_verts/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1510_tetrahedron_box_collision_moving_3_verts/model.py>`_ `3200_sphere_collision_against_each_other/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/3200_sphere_collision_against_each_other/model.py>`_ `3150_dyn_vert_intramembrane_rxns_and_paired_mols/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/3150_dyn_vert_intramembrane_rxns_and_paired_mols/model.py>`_ 
 
 
 .. _Model__pair_molecules:
