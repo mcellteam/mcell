@@ -441,6 +441,10 @@ void Partition::move_walls_with_paired_molecules(
 
   for (const auto& pair_vid_moves_B: vertices_from_B_with_moves) {
     Vec3 avg_displacement = average_vec3(pair_vid_moves_B.second);
+    if (cmp_eq(avg_displacement, 0)) {
+      // no need to move vertex if it is not being moved at all
+      continue;
+    }
     VertexMoveInfo* move_B = new VertexMoveInfo(
         PARTITION_ID_INITIAL, oid_B, pair_vid_moves_B.first, avg_displacement
     );
