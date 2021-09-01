@@ -18,23 +18,42 @@ Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/bl
 
 Attributes:
 ***********
-* | **name**: str = None
+.. _Complex__name:
+
+name: str
+---------
+
   | When set, this complex instance is initialized from a BNGL string passed as this argument, 
   | the string is parsed and elementary_molecules and compartment are initialized.
   | Only one of name or elementary_molecules can be set.
+  | - default argument value in constructor: None
 
-* | **elementary_molecules**: List[ElementaryMolecule] = None
+.. _Complex__elementary_molecules:
+
+elementary_molecules: List[ElementaryMolecule]
+----------------------------------------------
+
   | Individual molecule instances contained in the complex.
   | Only one of name or elementary_molecules can be set.
+  | - default argument value in constructor: None
 
-* | **orientation**: Orientation = Orientation.DEFAULT
+.. _Complex__orientation:
+
+orientation: Orientation
+------------------------
+
   | Specifies orientation of a molecule. 
   | When Orientation.DEFAULT if kept then during model initialization is
   | 'orientation' set to Orientation.NONE for volume complexes and to 
   | Orientation.UP for surface complexes.
   | Ignored by derived class Species.
+  | - default argument value in constructor: Orientation.DEFAULT
 
-* | **compartment_name**: str = None
+.. _Complex__compartment_name:
+
+compartment_name: str
+---------------------
+
   | Specifies compartment name of this Complex.
   | Only one of 'orientation' and 'compartment_name' can be set. 
   | Corresponds to BNGL specification of a compartment for the whole complex '\@COMP\:'.
@@ -50,21 +69,24 @@ Attributes:
   | set), all compartments of surface elementary molecules must be the same, and
   | all compartments of volume elementary molecules must be from the two neighboring 
   | volume compartments.
+  | - default argument value in constructor: None
 
 
 Methods:
 *********
-* | **to_bngl_str**
+.. _Complex__to_bngl_str:
 
-   * | return type: str
+to_bngl_str () -> str
+---------------------
 
 
   | Creates a string that corresponds to its BNGL representation including compartments.
 
 
-* | **as_species**
+.. _Complex__as_species:
 
-   * | return type: Species
+as_species () -> Species
+------------------------
 
 
   | Returns a Species object based on this Complex. All species-specific 
@@ -84,24 +106,40 @@ Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/bl
 
 Attributes:
 ***********
-* | **component_type**: ComponentType
+.. _Component__component_type:
+
+component_type: ComponentType
+-----------------------------
+
   | Reference to a component type.
 
-* | **state**: str = STATE_UNSET
-  | Specific state value of this component instance.
 
-* | **bond**: int = BOND_UNBOUND
+.. _Component__state:
+
+state: str
+----------
+
+  | Specific state value of this component instance.
+  | - default argument value in constructor: STATE_UNSET
+
+.. _Component__bond:
+
+bond: int
+---------
+
   | Specific bond for this component instance.
   | It is either a numberical value such as in A(c!1),
   | or one of special values BOND_UNBOUND in A(c), 
   | BOND_BOUND in A(c!+) or BOND_ANY in A(c!?).
+  | - default argument value in constructor: BOND_UNBOUND
 
 
 Methods:
 *********
-* | **to_bngl_str**
+.. _Component__to_bngl_str:
 
-   * | return type: str
+to_bngl_str () -> str
+---------------------
 
 
   | Creates a string that corresponds to this component's BNGL representation.
@@ -117,46 +155,59 @@ Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/bl
 
 Attributes:
 ***********
-* | **name**: str
+.. _ComponentType__name:
+
+name: str
+---------
+
   | Name of this component type.
 
-* | **states**: List[str] = None
+
+.. _ComponentType__states:
+
+states: List[str]
+-----------------
+
   | List of states allowed by this component.
+  | - default argument value in constructor: None
 
 
 Methods:
 *********
-* | **inst**
+.. _ComponentType__inst:
 
-   * | state: str = STATE_UNSET
-     | Selected state, must be from the list of the allowed states.
-
-   * | bond: int = BOND_UNBOUND
-     | Bond information for the created component instance.
-
-   * | return type: Component
+inst (state: str=STATE_UNSET, bond: int=BOND_UNBOUND) -> Component
+------------------------------------------------------------------
 
 
   | Instantiate a component from this component type.
 
+* | state: str = STATE_UNSET
+  | Selected state, must be from the list of the allowed states.
 
-* | **inst**
+* | bond: int = BOND_UNBOUND
+  | Bond information for the created component instance.
 
-   * | state: int = STATE_UNSET_INT
-     | Selected state, must be from the list of the allowed, converted to string.
 
-   * | bond: int = BOND_UNBOUND
-     | Bond information for the created component instance.
+.. _ComponentType__inst:
 
-   * | return type: Component
+inst (state: int=STATE_UNSET_INT, bond: int=BOND_UNBOUND) -> Component
+----------------------------------------------------------------------
 
 
   | Instantiate a component from this component type.
 
+* | state: int = STATE_UNSET_INT
+  | Selected state, must be from the list of the allowed, converted to string.
 
-* | **to_bngl_str**
+* | bond: int = BOND_UNBOUND
+  | Bond information for the created component instance.
 
-   * | return type: str
+
+.. _ComponentType__to_bngl_str:
+
+to_bngl_str () -> str
+---------------------
 
 
   | Creates a string that corresponds to its BNGL representation.
@@ -172,28 +223,44 @@ Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/bl
 
 Attributes:
 ***********
-* | **elementary_molecule_type**: ElementaryMoleculeType
+.. _ElementaryMolecule__elementary_molecule_type:
+
+elementary_molecule_type: ElementaryMoleculeType
+------------------------------------------------
+
   | Reference to the type of this elementary molecule.
 
-* | **components**: List[Component] = None
+
+.. _ElementaryMolecule__components:
+
+components: List[Component]
+---------------------------
+
   | List of component instances. Not all components need to be specified 
   | in case when this elementary molecule is used in a pattern.
+  | - default argument value in constructor: None
 
-* | **compartment_name**: str = None
+.. _ElementaryMolecule__compartment_name:
+
+compartment_name: str
+---------------------
+
   | Optional BNGL compartment name for this elemenrary molecule. If a 2D/surface compartment is specified, the elementary moelcule must be of surface type. If a 3D/volume compartment is specified, the elementary moelcule must be of volume type.
+  | - default argument value in constructor: None
 
 
 Methods:
 *********
-* | **to_bngl_str**
+.. _ElementaryMolecule__to_bngl_str:
 
-   * | with_compartment: bool = True
-     | Include compartment name in the returned BNGL string.
-
-   * | return type: str
+to_bngl_str (with_compartment: bool=True) -> str
+------------------------------------------------
 
 
   | Creates a string that corresponds to its BNGL representation
+
+* | with_compartment: bool = True
+  | Include compartment name in the returned BNGL string.
 
 
 
@@ -209,61 +276,98 @@ Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/bl
 
 Attributes:
 ***********
-* | **name**: str
+.. _ElementaryMoleculeType__name:
+
+name: str
+---------
+
   | Name of this elementary molecule type.
 
-* | **components**: List[ComponentType] = None
-  | List of components used by this elementary molecule type.
 
-* | **diffusion_constant_2d**: float = None
+.. _ElementaryMoleculeType__components:
+
+components: List[ComponentType]
+-------------------------------
+
+  | List of components used by this elementary molecule type.
+  | - default argument value in constructor: None
+
+.. _ElementaryMoleculeType__diffusion_constant_2d:
+
+diffusion_constant_2d: float
+----------------------------
+
   | Elementary molecule based on this type is constrained to a surface
   | and diffuses with the specified diffusion constant.
   | D can be zero, in which case the molecule doesn’t move. 
   | The units of D are cm^2 /s.
+  | - default argument value in constructor: None
 
-* | **diffusion_constant_3d**: float = None
+.. _ElementaryMoleculeType__diffusion_constant_3d:
+
+diffusion_constant_3d: float
+----------------------------
+
   | Elementary molecule based on this type diffuses in space with the 
   | specified diffusion constant D. 
   | D can be zero, in which case the molecule doesn’t move. 
   | The units of D are cm^2 /s.
+  | - default argument value in constructor: None
 
-* | **custom_time_step**: float = None
+.. _ElementaryMoleculeType__custom_time_step:
+
+custom_time_step: float
+-----------------------
+
   | This molecule should take timesteps of length custom_time_step (in seconds). 
   | Use either this or custom_time_step, not both.
+  | - default argument value in constructor: None
 
-* | **custom_space_step**: float = None
+.. _ElementaryMoleculeType__custom_space_step:
+
+custom_space_step: float
+------------------------
+
   | This molecule should take steps of average length given by the custom_space_step value (in microns). 
   | Use either this or custom_time_step, not both.
+  | - default argument value in constructor: None
 
-* | **target_only**: bool = False
+.. _ElementaryMoleculeType__target_only:
+
+target_only: bool
+-----------------
+
   | This molecule will not initiate reactions when it runs into other molecules. This
   | setting can speed up simulations when applied to a molecule at high concentrations 
   | that reacts with a molecule at low concentrations (it is more efficient for
   | the low-concentration molecule to trigger the reactions). This directive does
   | not affect unimolecular reactions.
+  | - default argument value in constructor: False
 
 
 Methods:
 *********
-* | **inst**
+.. _ElementaryMoleculeType__inst:
 
-   * | components: List[Component] = None
-     | Instances of components for the the created elementary molecule.
-     | Not all components need to be specified in case when the elementary 
-     | molecule is used in a pattern.
-
-   * | compartment_name: str = None
-     | Optional specification of compartment name for the created elementary molecule.
-
-   * | return type: ElementaryMolecule
+inst (components: List[Component]=None, compartment_name: str=None) -> ElementaryMolecule
+-----------------------------------------------------------------------------------------
 
 
   | Create an elementary molecule based on this elementary molecule type.
 
+* | components: List[Component] = None
+  | Instances of components for the the created elementary molecule.
+  | Not all components need to be specified in case when the elementary 
+  | molecule is used in a pattern.
 
-* | **to_bngl_str**
+* | compartment_name: str = None
+  | Optional specification of compartment name for the created elementary molecule.
 
-   * | return type: str
+
+.. _ElementaryMoleculeType__to_bngl_str:
+
+to_bngl_str () -> str
+---------------------
 
 
   | Creates a string that corresponds to its BNGL representation.
@@ -297,17 +401,36 @@ Examples: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/b
 
 Attributes:
 ***********
-* | **name**: str = None
+.. _ReactionRule__name:
+
+name: str
+---------
+
   | Name of the reaction. If this is a reversible reaction, then it is the name of the 
   | reaction in forward direction.
+  | - default argument value in constructor: None
 
-* | **reactants**: List[Complex] = None
+.. _ReactionRule__reactants:
+
+reactants: List[Complex]
+------------------------
+
   | List of reactant patterns. Must contain one or two patterns.
+  | - default argument value in constructor: None
 
-* | **products**: List[Complex] = None
+.. _ReactionRule__products:
+
+products: List[Complex]
+-----------------------
+
   | List of reactant patterns. May be empty.
+  | - default argument value in constructor: None
 
-* | **fwd_rate**: float = None
+.. _ReactionRule__fwd_rate:
+
+fwd_rate: float
+---------------
+
   | The units of the reaction rate for uni- and bimolecular reactions are\:
   |   \* [s^-1] for unimolecular reactions,
   |   \* [N^-1\*s^-1] bimolecular reactions between two surface molecules on different objects 
@@ -328,20 +451,35 @@ Attributes:
   | If the new value differs from previous, updates all information related 
   | to the new rate including recomputation of reaction times for molecules if this is a
   | unimolecular reaction.
+  | - default argument value in constructor: None
 
   | Examples: `2500_rxn_rate_change_bimol_box_it_100/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/2500_rxn_rate_change_bimol_box_it_100/model.py>`_ `2700_concentration_based_rxn_rate/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/2700_concentration_based_rxn_rate/model.py>`_ 
 
 
-* | **rev_name**: str = None
-  | Name of the reaction in reverse direction.
+.. _ReactionRule__rev_name:
 
-* | **rev_rate**: float = None
+rev_name: str
+-------------
+
+  | Name of the reaction in reverse direction.
+  | - default argument value in constructor: None
+
+.. _ReactionRule__rev_rate:
+
+rev_rate: float
+---------------
+
   | Reverse reactions rate, reaction is unidirectional when not specified.
   | May be changed after model initialization, in the case behaves the same was as for 
   | changing the 'fwd_rate'. 
   | Uses the same units as 'fwd_rate'.
+  | - default argument value in constructor: None
 
-* | **variable_rate**: List[List[float]] = None
+.. _ReactionRule__variable_rate:
+
+variable_rate: List[List[float]]
+--------------------------------
+
   | The array passed as this argument must have as its items a pair of floats (time in s, rate).
   | Must be sorted by time (this is not checked).      
   | Variable rate is applicable only for irreversible reactions.
@@ -350,13 +488,19 @@ Attributes:
   | Members fwd_rate and rev_rate must not be set when setting this attribute through a constructor. 
   | When this attribute is set outside of the class constructor, fwd_rate is automatically reset to an 'unset' value.
   | Cannot be set after model initialization.
+  | - default argument value in constructor: None
 
-* | **is_intermembrane_surface_reaction**: bool = False
+.. _ReactionRule__is_intermembrane_surface_reaction:
+
+is_intermembrane_surface_reaction: bool
+---------------------------------------
+
   | Experimental, see addintinal explanation in 'fwd' rate.
   | Then set to true, this is a special type of surface-surface reaction that 
   | allows for two surface molecules to react when they are on different geometrical objects. 
   | Note\: This support is limited for now, the reaction rule must be in the form of A + B -> C + D 
   | where all reactants and products must be surface molecules and their orientation must be 'any' (default).
+  | - default argument value in constructor: False
 
   | Example: `3000_intermembrane_rxns/customization.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/3000_intermembrane_rxns/customization.py>`_ 
 
@@ -364,9 +508,10 @@ Attributes:
 
 Methods:
 *********
-* | **to_bngl_str**
+.. _ReactionRule__to_bngl_str:
 
-   * | return type: str
+to_bngl_str () -> str
+---------------------
 
 
   | Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.
@@ -407,55 +552,104 @@ Example: `0040_to_bngl_str/model.py <https://github.com/mcellteam/mcell_tests/bl
 
 Attributes:
 ***********
-* | **name**: str = None
+.. _Species__name:
+
+name: str
+---------
+
   | Name of the species in the BNGL format. 
   | One must either specify name or elementary_molecules (inherited from Complex). 
   | This argument name is parsed during model initialization.
+  | - default argument value in constructor: None
 
-* | **diffusion_constant_2d**: float = None
+.. _Species__diffusion_constant_2d:
+
+diffusion_constant_2d: float
+----------------------------
+
   | This molecule is constrained to surface  with diffusion constant D. 
   | D can be zero, in which case the molecule doesn’t move. 
   | The units of D are cm^2/s.
+  | - default argument value in constructor: None
 
-* | **diffusion_constant_3d**: float = None
+.. _Species__diffusion_constant_3d:
+
+diffusion_constant_3d: float
+----------------------------
+
   | This molecule diffuses in space with diffusion constant D. 
   | D can be zero, in which case the molecule doesn’t move. 
   | The units of D are cm^2/s.
+  | - default argument value in constructor: None
 
-* | **custom_time_step**: float = None
+.. _Species__custom_time_step:
+
+custom_time_step: float
+-----------------------
+
   | Optional setting of a custom time step for this specific species. 
   | A molecule of this species should take timesteps of length custom_time_step (in seconds). 
   | Use either this or custom_time_step.
+  | - default argument value in constructor: None
 
-* | **custom_space_step**: float = None
+.. _Species__custom_space_step:
+
+custom_space_step: float
+------------------------
+
   | Optional setting of a custom space step for this specific species. 
   | A molecule of this species should take steps of average length custom_space_step (in microns). 
   | Use either this or custom_time_step.
+  | - default argument value in constructor: None
 
-* | **target_only**: bool = False
+.. _Species__target_only:
+
+target_only: bool
+-----------------
+
   | A molecule of this species will not initiate reactions when it runs into other molecules. This
   | setting can speed up simulations when applied to a molecule at high concentrations 
   | that reacts with a molecule at low concentrations (it is more efficient for
   | the low-concentration molecule to trigger the reactions). This directive does
   | not affect unimolecular reactions.
+  | - default argument value in constructor: False
 
-* | **name**: str = None
+.. _Species__name:
+
+name: str
+---------
+
   | When set, this complex instance is initialized from a BNGL string passed as this argument, 
   | the string is parsed and elementary_molecules and compartment are initialized.
   | Only one of name or elementary_molecules can be set.
+  | - default argument value in constructor: None
 
-* | **elementary_molecules**: List[ElementaryMolecule] = None
+.. _Species__elementary_molecules:
+
+elementary_molecules: List[ElementaryMolecule]
+----------------------------------------------
+
   | Individual molecule instances contained in the complex.
   | Only one of name or elementary_molecules can be set.
+  | - default argument value in constructor: None
 
-* | **orientation**: Orientation = Orientation.DEFAULT
+.. _Species__orientation:
+
+orientation: Orientation
+------------------------
+
   | Specifies orientation of a molecule. 
   | When Orientation.DEFAULT if kept then during model initialization is
   | 'orientation' set to Orientation.NONE for volume complexes and to 
   | Orientation.UP for surface complexes.
   | Ignored by derived class Species.
+  | - default argument value in constructor: Orientation.DEFAULT
 
-* | **compartment_name**: str = None
+.. _Species__compartment_name:
+
+compartment_name: str
+---------------------
+
   | Specifies compartment name of this Complex.
   | Only one of 'orientation' and 'compartment_name' can be set. 
   | Corresponds to BNGL specification of a compartment for the whole complex '\@COMP\:'.
@@ -471,35 +665,39 @@ Attributes:
   | set), all compartments of surface elementary molecules must be the same, and
   | all compartments of volume elementary molecules must be from the two neighboring 
   | volume compartments.
+  | - default argument value in constructor: None
 
 
 Methods:
 *********
-* | **inst**
+.. _Species__inst:
 
-   * | orientation: Orientation = Orientation.DEFAULT
-     | Maximum one of orientation or compartment_name can be set, not both.
-
-   * | compartment_name: str = None
-     | Maximum one of orientation or compartment_name can be set, not both.
-
-   * | return type: Complex
+inst (orientation: Orientation=Orientation.DEFAULT, compartment_name: str=None) -> Complex
+------------------------------------------------------------------------------------------
 
 
   | Creates a copy of a Complex from this Species with specified orientation and compartment name.
 
+* | orientation: Orientation = Orientation.DEFAULT
+  | Maximum one of orientation or compartment_name can be set, not both.
 
-* | **to_bngl_str**
+* | compartment_name: str = None
+  | Maximum one of orientation or compartment_name can be set, not both.
 
-   * | return type: str
+
+.. _Species__to_bngl_str:
+
+to_bngl_str () -> str
+---------------------
 
 
   | Creates a string that corresponds to its BNGL representation including compartments.
 
 
-* | **as_species**
+.. _Species__as_species:
 
-   * | return type: Species
+as_species () -> Species
+------------------------
 
 
   | Returns a Species object based on this Complex. All species-specific 
@@ -523,100 +721,132 @@ Example: `2550_variable_rate_unimol_w_rxn_class_cleanup/sybsystem.py <https://gi
 
 Attributes:
 ***********
-* | **species**: List[Species] = None
+.. _Subsystem__species:
+
+species: List[Species]
+----------------------
+
   | List of species to be included in the model for initialization.
   | Used usually only for simple species (species that are defined using a
   | single molecule type without components such as 'A').
   | Other species may be created inside simulation
+  | - default argument value in constructor: None
 
-* | **reaction_rules**: List[ReactionRule] = None
+.. _Subsystem__reaction_rules:
 
-* | **surface_classes**: List[SurfaceClass] = None
+reaction_rules: List[ReactionRule]
+----------------------------------
 
-* | **elementary_molecule_types**: List[ElementaryMoleculeType] = None
+  | - default argument value in constructor: None
+
+.. _Subsystem__surface_classes:
+
+surface_classes: List[SurfaceClass]
+-----------------------------------
+
+  | - default argument value in constructor: None
+
+.. _Subsystem__elementary_molecule_types:
+
+elementary_molecule_types: List[ElementaryMoleculeType]
+-------------------------------------------------------
+
   | Contains list of elementary molecule types with their diffusion constants and other information. 
   | Populated when a BNGL file is loaded and also on initialization from Species objects present in 
   | the species list.
+  | - default argument value in constructor: None
 
 
 Methods:
 *********
-* | **add_species**
+.. _Subsystem__add_species:
 
-   * | s: Species
+add_species (s: Species)
+------------------------
+
 
   | Add a reference to a Species object to the species list.
 
+* | s: Species
 
-* | **find_species**
+.. _Subsystem__find_species:
 
-   * | name: str
-   * | return type: Species
+find_species (name: str) -> Species
+-----------------------------------
 
 
   | Find a Species object using name in the species list. 
   | Returns None if no such species is found.
 
+* | name: str
 
-* | **add_reaction_rule**
+.. _Subsystem__add_reaction_rule:
 
-   * | r: ReactionRule
+add_reaction_rule (r: ReactionRule)
+-----------------------------------
+
 
   | Add a reference to a ReactionRule object to the reaction_rules list.
 
+* | r: ReactionRule
 
-* | **find_reaction_rule**
+.. _Subsystem__find_reaction_rule:
 
-   * | name: str
-   * | return type: ReactionRule
+find_reaction_rule (name: str) -> ReactionRule
+----------------------------------------------
 
 
   | Find a ReactionRule object using name in the reaction_rules list. 
   | Returns None if no such reaction rule is found.
 
+* | name: str
 
-* | **add_surface_class**
+.. _Subsystem__add_surface_class:
 
-   * | sc: SurfaceClass
+add_surface_class (sc: SurfaceClass)
+------------------------------------
+
 
   | Add a reference to a SurfaceClass object to the surface_classes list.
 
+* | sc: SurfaceClass
 
-* | **find_surface_class**
+.. _Subsystem__find_surface_class:
 
-   * | name: str
-   * | return type: SurfaceClass
+find_surface_class (name: str) -> SurfaceClass
+----------------------------------------------
 
 
   | Find a SurfaceClass object using name in the surface_classes list. 
   | Returns None if no such surface class is found.
 
+* | name: str
 
-* | **add_elementary_molecule_type**
+.. _Subsystem__add_elementary_molecule_type:
 
-   * | mt: ElementaryMoleculeType
+add_elementary_molecule_type (mt: ElementaryMoleculeType)
+---------------------------------------------------------
+
 
   | Add a reference to an ElementaryMoleculeType object to the elementary_molecule_types list.
 
+* | mt: ElementaryMoleculeType
 
-* | **find_elementary_molecule_type**
+.. _Subsystem__find_elementary_molecule_type:
 
-   * | name: str
-   * | return type: ElementaryMoleculeType
+find_elementary_molecule_type (name: str) -> ElementaryMoleculeType
+-------------------------------------------------------------------
 
 
   | Find an ElementaryMoleculeType object using name in the elementary_molecule_types list. 
   | Returns None if no such elementary molecule type is found.
 
+* | name: str
 
-* | **load_bngl_molecule_types_and_reaction_rules**
+.. _Subsystem__load_bngl_molecule_types_and_reaction_rules:
 
-   * | file_name: str
-     | Path to the BNGL file to be loaded.
-
-   * | parameter_overrides: Dict[str, float] = None
-     | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
-     | its value is ignored and instead value parameter_overrides[k] is used.
+load_bngl_molecule_types_and_reaction_rules (file_name: str, parameter_overrides: Dict[str, float]=None)
+--------------------------------------------------------------------------------------------------------
 
 
   | Parses a BNGL file, only reads molecule types and reaction rules sections, 
@@ -625,6 +855,13 @@ Methods:
   | Compartments names are stored in rxn rules as strings because compartments belong 
   | to geometry objects and the subsystem is independent on specific geometry.
   | However, the compartments and their objects must be defined before initialization.
+
+* | file_name: str
+  | Path to the BNGL file to be loaded.
+
+* | parameter_overrides: Dict[str, float] = None
+  | For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,
+  | its value is ignored and instead value parameter_overrides[k] is used.
 
   | Example: `2100_gradual_bngl_load/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4/2100_gradual_bngl_load/model.py>`_ 
 
@@ -642,29 +879,54 @@ Examples: `1600_crossing_transparent_compartment_wall/model.py <https://github.c
 
 Attributes:
 ***********
-* | **name**: str
+.. _SurfaceClass__name:
+
+name: str
+---------
+
   | Name of the surface class.
 
-* | **properties**: List[SurfaceProperty] = None
+
+.. _SurfaceClass__properties:
+
+properties: List[SurfaceProperty]
+---------------------------------
+
   | A surface class can either have a list of properties or just one property.
   | In the usual case of having one property, one can set the attributes 
   | type, affected_species, etc. inherited from SurfaceProperty directly.
+  | - default argument value in constructor: None
 
-* | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
+.. _SurfaceClass__type:
+
+type: SurfacePropertyType
+-------------------------
+
   | Must be set. See SurfacePropertyType for options.
+  | - default argument value in constructor: SurfacePropertyType.UNSET
 
-* | **affected_complex_pattern**: Complex = None
+.. _SurfaceClass__affected_complex_pattern:
+
+affected_complex_pattern: Complex
+---------------------------------
+
   | A complex pattern with optional orientation must be set.
   | Default orientation means that the pattern matches any orientation.
   | For concentration or flux clamp the orientation specifies on which side  
   | will be the concentration held (UP is front or outside, DOWN is back or 
   | inside, and DEFAULT, ANY or NONE is on both sides).
   | The complex pattern must not use compartments.
+  | - default argument value in constructor: None
 
-* | **concentration**: float = None
+.. _SurfaceClass__concentration:
+
+concentration: float
+--------------------
+
   | Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 
   | SurfacePropertyType.CLAMP_FLUX. Represents concentration of the imagined opposide side 
   | of the wall that has this concentration or flux clamped.
+  | - default argument value in constructor: None
 
 SurfaceProperty
 ===============
@@ -673,19 +935,34 @@ Single property for a SurfaceClass.
 
 Attributes:
 ***********
-* | **type**: SurfacePropertyType = SurfacePropertyType.UNSET
-  | Must be set. See SurfacePropertyType for options.
+.. _SurfaceProperty__type:
 
-* | **affected_complex_pattern**: Complex = None
+type: SurfacePropertyType
+-------------------------
+
+  | Must be set. See SurfacePropertyType for options.
+  | - default argument value in constructor: SurfacePropertyType.UNSET
+
+.. _SurfaceProperty__affected_complex_pattern:
+
+affected_complex_pattern: Complex
+---------------------------------
+
   | A complex pattern with optional orientation must be set.
   | Default orientation means that the pattern matches any orientation.
   | For concentration or flux clamp the orientation specifies on which side  
   | will be the concentration held (UP is front or outside, DOWN is back or 
   | inside, and DEFAULT, ANY or NONE is on both sides).
   | The complex pattern must not use compartments.
+  | - default argument value in constructor: None
 
-* | **concentration**: float = None
+.. _SurfaceProperty__concentration:
+
+concentration: float
+--------------------
+
   | Specifies concentration when type is SurfacePropertyType.CLAMP_CONCENTRATION or 
   | SurfacePropertyType.CLAMP_FLUX. Represents concentration of the imagined opposide side 
   | of the wall that has this concentration or flux clamped.
+  | - default argument value in constructor: None
 

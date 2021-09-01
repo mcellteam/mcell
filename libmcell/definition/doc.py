@@ -38,6 +38,39 @@ def gen_example_links(base_links):
     
     return res 
 
+
+def write_h4(f, text, name, class_name):
+    
+    f.write('.. _' + class_name + '__' + name + ':\n\n')
+    
+    f.write(text + '\n')
+    f.write('-' * len(text) + '\n\n')
+
+
+def get_method_declaration(method):
+    res = method[KEY_NAME] + ' ('
+    
+    if KEY_PARAMS in method:
+        num_params = len(method[KEY_PARAMS])
+        for i in range(num_params):
+            param = method[KEY_PARAMS][i]
+            t = yaml_type_to_py_type(param[KEY_TYPE])
+            res += param[KEY_NAME] + ': ' + t
+            
+            if KEY_DEFAULT in param:
+                res += '=' + get_default_or_unset_value_py(param)
+                
+            if i != num_params - 1:
+                res += ', '
+
+    res += ')'
+
+    if KEY_RETURN_TYPE in method:
+        res += ' -> ' + yaml_type_to_py_type(method[KEY_RETURN_TYPE])
+        
+    return res
+            
+
 def generate_class_documentation(f, class_name, class_def):
     f.write(class_name + '\n' + '='*len(class_name) + '\n\n')
     
@@ -53,14 +86,16 @@ def generate_class_documentation(f, class_name, class_def):
         num_items = len(class_def[KEY_ITEMS])
         for item in class_def[KEY_ITEMS]:
             t = yaml_type_to_py_type(item[KEY_TYPE])
-            f.write('* | **' + item[KEY_NAME] + '**: ' + t)
             
-            if KEY_DEFAULT in item:
-                f.write(' = ' + get_default_or_unset_value_py(item))
-            f.write('\n')
+            header = item[KEY_NAME] + ': ' + t
+            write_h4(f, header, item[KEY_NAME], class_name)
             
             if KEY_DOC in item and item[KEY_DOC]:
                 f.write('  | ' + indent_and_fix_rst_chars(item[KEY_DOC].strip(), '  | ') + '\n')
+
+            if KEY_DEFAULT in item:
+                f.write('  | - default argument value in constructor: ' + get_default_or_unset_value_py(item))
+            f.write('\n')
                 
             if KEY_EXAMPLES in item:
                 f.write('\n  | ' + gen_example_links(item[KEY_EXAMPLES]) + '\n\n')
@@ -72,26 +107,24 @@ def generate_class_documentation(f, class_name, class_def):
         for method in class_def[KEY_METHODS]:
             method_name = method[KEY_NAME]
             
-            f.write('* | **' + method[KEY_NAME] + '**\n\n')
+            header = get_method_declaration(method)
+            write_h4(f, header, method_name, class_name)
+            
+            if KEY_DOC in method:
+                f.write('\n  | ' + indent_and_fix_rst_chars(method[KEY_DOC].strip(), '  | ') + '\n\n')
 
             if KEY_PARAMS in method:
                 num_params = len(method[KEY_PARAMS])
                 for param in method[KEY_PARAMS]:
                     t = yaml_type_to_py_type(param[KEY_TYPE])
-                    f.write('   * | ' + param[KEY_NAME] + ': ' + t)
+                    f.write('* | ' + param[KEY_NAME] + ': ' + t)
                     if KEY_DEFAULT in param:
                         f.write(' = ' + get_default_or_unset_value_py(param))
                     if KEY_DOC in param:
-                        f.write('\n     | ' + indent_and_fix_rst_chars(param[KEY_DOC].strip(), '     | ') + '\n\n')
+                        f.write('\n  | ' + indent_and_fix_rst_chars(param[KEY_DOC].strip(), '  | ') + '\n\n')
                     else:
                         f.write('\n')
 
-            if KEY_RETURN_TYPE in method:
-                f.write('   * | return type: ' + yaml_type_to_py_type(method[KEY_RETURN_TYPE]) + '\n\n')
-            
-            if KEY_DOC in method:
-                f.write('\n  | ' + indent_and_fix_rst_chars(method[KEY_DOC].strip(), '  | ') + '\n\n')
-                
             if KEY_EXAMPLES in method:
                 f.write('  | ' + gen_example_links(method[KEY_EXAMPLES]) + '\n\n')
                 

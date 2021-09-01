@@ -11,17 +11,47 @@ Not to be used directly. All times are in seconds.
 
 Attributes:
 ***********
-* | **id**: int
+.. _BaseChkptMol__id:
 
-* | **species**: Species
+id: int
+-------
 
-* | **diffusion_time**: float
 
-* | **birthday**: float
 
-* | **flags**: int
+.. _BaseChkptMol__species:
 
-* | **unimol_rxn_time**: float = None
+species: Species
+----------------
+
+
+
+.. _BaseChkptMol__diffusion_time:
+
+diffusion_time: float
+---------------------
+
+
+
+.. _BaseChkptMol__birthday:
+
+birthday: float
+---------------
+
+
+
+.. _BaseChkptMol__flags:
+
+flags: int
+----------
+
+
+
+.. _BaseChkptMol__unimol_rxn_time:
+
+unimol_rxn_time: float
+----------------------
+
+  | - default argument value in constructor: None
 
 ChkptSurfMol
 ============
@@ -31,27 +61,82 @@ Not to be used directly.
 
 Attributes:
 ***********
-* | **pos**: Vec2
+.. _ChkptSurfMol__pos:
 
-* | **orientation**: Orientation
+pos: Vec2
+---------
 
-* | **geometry_object**: GeometryObject
 
-* | **wall_index**: int
 
-* | **grid_tile_index**: int
+.. _ChkptSurfMol__orientation:
 
-* | **id**: int
+orientation: Orientation
+------------------------
 
-* | **species**: Species
 
-* | **diffusion_time**: float
 
-* | **birthday**: float
+.. _ChkptSurfMol__geometry_object:
 
-* | **flags**: int
+geometry_object: GeometryObject
+-------------------------------
 
-* | **unimol_rxn_time**: float = None
+
+
+.. _ChkptSurfMol__wall_index:
+
+wall_index: int
+---------------
+
+
+
+.. _ChkptSurfMol__grid_tile_index:
+
+grid_tile_index: int
+--------------------
+
+
+
+.. _ChkptSurfMol__id:
+
+id: int
+-------
+
+
+
+.. _ChkptSurfMol__species:
+
+species: Species
+----------------
+
+
+
+.. _ChkptSurfMol__diffusion_time:
+
+diffusion_time: float
+---------------------
+
+
+
+.. _ChkptSurfMol__birthday:
+
+birthday: float
+---------------
+
+
+
+.. _ChkptSurfMol__flags:
+
+flags: int
+----------
+
+
+
+.. _ChkptSurfMol__unimol_rxn_time:
+
+unimol_rxn_time: float
+----------------------
+
+  | - default argument value in constructor: None
 
 ChkptVolMol
 ===========
@@ -61,19 +146,54 @@ Not to be used directly.
 
 Attributes:
 ***********
-* | **pos**: Vec3
+.. _ChkptVolMol__pos:
 
-* | **id**: int
+pos: Vec3
+---------
 
-* | **species**: Species
 
-* | **diffusion_time**: float
 
-* | **birthday**: float
+.. _ChkptVolMol__id:
 
-* | **flags**: int
+id: int
+-------
 
-* | **unimol_rxn_time**: float = None
+
+
+.. _ChkptVolMol__species:
+
+species: Species
+----------------
+
+
+
+.. _ChkptVolMol__diffusion_time:
+
+diffusion_time: float
+---------------------
+
+
+
+.. _ChkptVolMol__birthday:
+
+birthday: float
+---------------
+
+
+
+.. _ChkptVolMol__flags:
+
+flags: int
+----------
+
+
+
+.. _ChkptVolMol__unimol_rxn_time:
+
+unimol_rxn_time: float
+----------------------
+
+  | - default argument value in constructor: None
 
 RngState
 ========
@@ -82,20 +202,55 @@ Internal checkpointing structure holding state of the random number generator.
 
 Attributes:
 ***********
-* | **randcnt**: int
+.. _RngState__randcnt:
 
-* | **aa**: int
+randcnt: int
+------------
 
-* | **bb**: int
 
-* | **cc**: int
 
-* | **randslr**: List[int]
+.. _RngState__aa:
+
+aa: int
+-------
+
+
+
+.. _RngState__bb:
+
+bb: int
+-------
+
+
+
+.. _RngState__cc:
+
+cc: int
+-------
+
+
+
+.. _RngState__randslr:
+
+randslr: List[int]
+------------------
+
   | Must contain RNG_SIZE items.
 
-* | **mm**: List[int]
+
+.. _RngState__mm:
+
+mm: List[int]
+-------------
+
   | Must contain RNG_SIZE items.
 
-* | **rngblocks**: int
+
+.. _RngState__rngblocks:
+
+rngblocks: int
+--------------
+
   | Must contain RNG_SIZE items.
+
 
