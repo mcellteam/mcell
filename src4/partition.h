@@ -450,13 +450,13 @@ public:
 private:
   // internal methods that sets molecule's id and adds it to all relevant structures,
   // do not use species-id here because it may change
-  Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol, const double release_delay_time) {
+  Molecule& add_molecule(const Molecule& m_copy, const bool is_vol, const double release_delay_time) {
 #ifndef NDEBUG
-    const BNG::Species& species = get_species(vm_copy.species_id);
+    const BNG::Species& species = get_species(m_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
 #endif
 
-    if (vm_copy.id == MOLECULE_ID_INVALID) {
+    if (m_copy.id == MOLECULE_ID_INVALID) {
       // assign new ID, in theory, molecule IDs should be assigned by World, but this
       // is a common operation and some decentralized solution is needed
       molecule_id_t molecule_id = next_molecule_id;
@@ -465,8 +465,8 @@ private:
       // We always have to increase the size of the mapping array - its size is
       // large enough to hold ids for all molecules that were ever created,
       // we will need to reuse ids or compress it later
-      uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
-      molecule_id_to_index_mapping.push_back(next_molecule_array_index);
+      molecule_index_t next_molecule_index = molecules.size(); // get the index of the molecule we are going to store
+      molecule_id_to_index_mapping.push_back(next_molecule_index);
       assert(
           molecule_id_to_index_mapping.size() == next_molecule_id
           && "Mapping array must have value for every molecule index"
@@ -474,7 +474,7 @@ private:
 
       // This is the only place where we insert molecules into volume_molecules,
       // although this array size can be decreased in defragmentation
-      molecules.push_back(vm_copy);
+      molecules.push_back(m_copy);
       Molecule& new_m = molecules.back();
       new_m.id = molecule_id;
 
@@ -490,26 +490,26 @@ private:
       // this is a checkpointed molecule
 
       // update the next molecule id counter
-      if (vm_copy.id >= next_molecule_id) {
-        next_molecule_id = vm_copy.id + 1;
+      if (m_copy.id >= next_molecule_id) {
+        next_molecule_id = m_copy.id + 1;
       }
 
       // set its index in the molecule_id_to_index_mapping array
       // its id must be at the position
       uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
 
-      if (vm_copy.id >= molecule_id_to_index_mapping.size()) {
+      if (m_copy.id >= molecule_id_to_index_mapping.size()) {
         // insert invalid indices up to the index specified by id
         molecule_id_to_index_mapping.insert(
             molecule_id_to_index_mapping.end(),
-            vm_copy.id + 1 - molecule_id_to_index_mapping.size(),
+            m_copy.id + 1 - molecule_id_to_index_mapping.size(),
             MOLECULE_INDEX_INVALID
         );
       }
-      molecule_id_to_index_mapping[vm_copy.id] = next_molecule_array_index;
+      molecule_id_to_index_mapping[m_copy.id] = next_molecule_array_index;
 
       // and append it to the molecules array
-      molecules.push_back(vm_copy);
+      molecules.push_back(m_copy);
       Molecule& new_m = molecules.back();
 
       return new_m;
