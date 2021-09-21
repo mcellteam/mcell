@@ -1344,7 +1344,10 @@ void MCell4Generator::generate_customization_template() {
 
   out <<
       "# This file contains hooks to override default MCell4 model\n"
-      "# code behavior for models generated from CellBlender\n";
+      "# code behavior for models generated from CellBlender\n"
+      "# WARNING: do not import file parameters.py at the top level of this file,\n"
+      "# only from individual functions if needed, parameters such as SEED\n"
+      "# will not be set correctly if parameters are imported too early\n";
 
   out << IMPORT_SYS_OS;
   out << IMPORT_SHARED;
