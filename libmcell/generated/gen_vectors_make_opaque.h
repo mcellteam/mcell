@@ -59,7 +59,6 @@ PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Species>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceClass>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceProperty>>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceRegion>>);
-PYBIND11_MAKE_OPAQUE(std::vector<MCell::Vec3>);
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::VizOutput>>);
 PYBIND11_MAKE_OPAQUE(std::vector<double>);
 PYBIND11_MAKE_OPAQUE(std::vector<int>);

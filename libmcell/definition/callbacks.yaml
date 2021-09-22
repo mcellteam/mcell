@@ -25,7 +25,7 @@ MolWallHitInfo:
      doc: Time of the hit.
       
    - name: pos3d
-     type: Vec3
+     type: List[float]
      doc: Position of the hit.
      
    - name: time_before_hit
@@ -36,7 +36,7 @@ MolWallHitInfo:
         when the molecule reflected from another wall.
           
    - name: pos3d_before_hit
-     type: Vec3
+     type: List[float]
      doc: Position of the molecule at time_before_hit.
       
       
@@ -78,7 +78,7 @@ ReactionInfo:
      doc: Time of the reaction.
      
    - name: pos3d
-     type: Vec3 
+     type: List[float] 
      doc: |
         Specifies where reaction occurred in the 3d space, the specific meaning depends on the reaction type\:
         - unimolecular reaction - position of the reacting molecule,
@@ -102,7 +102,7 @@ ReactionInfo:
         wall where the diffusing surface reactant reacted.
     
    - name: pos2d
-     type: Vec2 
+     type: List[float] 
      default: unset
      doc: |
         Set only for surface reactions or reactions with surface classes.

@@ -79,9 +79,9 @@ void Callbacks::do_mol_wall_hit_callbacks(std::shared_ptr<MolWallHitInfo> info) 
   // convert units
   assert(model->get_world() != nullptr);
   info->time = info->time * model->get_world()->config.time_unit;
-  info->pos3d = info->pos3d * Vec3(model->get_world()->config.length_unit);
+  info->pos3d = mult_vec(info->pos3d, model->get_world()->config.length_unit);
   info->time_before_hit = info->time_before_hit * model->get_world()->config.time_unit;
-  info->pos3d_before_hit = info->pos3d_before_hit * Vec3(model->get_world()->config.length_unit);
+  info->pos3d_before_hit = mult_vec(info->pos3d_before_hit, model->get_world()->config.length_unit);
 
   geometry_object_id_t geometry_object_id = info->geometry_object->geometry_object_id;
 
@@ -162,7 +162,7 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
   // convert units
   assert(model->get_world() != nullptr);
   info->time = info->time * model->get_world()->config.time_unit;
-  info->pos3d = info->pos3d * Vec3(model->get_world()->config.length_unit);
+  info->pos3d = mult_vec(info->pos3d, model->get_world()->config.length_unit);
 
   const BNG::RxnRule* rxn = model->get_world()->get_all_rxns().get(info->rxn_rule_id);
 
@@ -171,7 +171,7 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
     assert(is_set(info->geometry_object));
     assert(info->partition_wall_index >= info->geometry_object->first_wall_index);
     info->wall_index = info->geometry_object->get_object_wall_index(info->partition_wall_index);
-    info->pos2d = info->pos2d * Vec2(model->get_world()->config.length_unit);
+    info->pos2d = mult_vec(info->pos2d, model->get_world()->config.length_unit);
   }
 
   // acquire GIL before calling Python code

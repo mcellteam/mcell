@@ -29,9 +29,9 @@ class PythonExportContext;
       id = ID_INVALID; \
       type = MoleculeType::UNSET; \
       species_id = ID_INVALID; \
-      pos3d = VEC3_UNSET; \
+      pos3d = std::vector<double>(); \
       orientation = Orientation::NOT_SET; \
-      pos2d = VEC2_UNSET; \
+      pos2d = std::vector<double>(); \
       geometry_object = nullptr; \
       wall_index = -1; \
       postprocess_in_ctor(); \
@@ -105,8 +105,8 @@ public:
     return species_id;
   }
 
-  Vec3 pos3d;
-  virtual void set_pos3d(const Vec3& new_pos3d_) {
+  std::vector<double> pos3d;
+  virtual void set_pos3d(const std::vector<double> new_pos3d_) {
     if (initialized) {
       throw RuntimeError("Value 'pos3d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -114,7 +114,7 @@ public:
     cached_data_are_uptodate = false;
     pos3d = new_pos3d_;
   }
-  virtual const Vec3& get_pos3d() const {
+  virtual std::vector<double>& get_pos3d() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return pos3d;
   }
@@ -133,8 +133,8 @@ public:
     return orientation;
   }
 
-  Vec2 pos2d;
-  virtual void set_pos2d(const Vec2& new_pos2d_) {
+  std::vector<double> pos2d;
+  virtual void set_pos2d(const std::vector<double> new_pos2d_) {
     if (initialized) {
       throw RuntimeError("Value 'pos2d' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -142,7 +142,7 @@ public:
     cached_data_are_uptodate = false;
     pos2d = new_pos2d_;
   }
-  virtual const Vec2& get_pos2d() const {
+  virtual std::vector<double>& get_pos2d() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return pos2d;
   }

@@ -109,10 +109,6 @@ void gen_vectors_bind(py::module& m){
   py::implicitly_convertible<py::list, std::vector<std::shared_ptr<MCell::API::SurfaceRegion>>>();
   py::implicitly_convertible<py::tuple, std::vector<std::shared_ptr<MCell::API::SurfaceRegion>>>();
 
-  py::bind_vector<std::vector<MCell::Vec3>>(m,"VectorVec3");
-  py::implicitly_convertible<py::list, std::vector<MCell::Vec3>>();
-  py::implicitly_convertible<py::tuple, std::vector<MCell::Vec3>>();
-
   py::bind_vector<std::vector<std::shared_ptr<MCell::API::VizOutput>>>(m,"VectorVizOutput");
   py::implicitly_convertible<py::list, std::vector<std::shared_ptr<MCell::API::VizOutput>>>();
   py::implicitly_convertible<py::tuple, std::vector<std::shared_ptr<MCell::API::VizOutput>>>();

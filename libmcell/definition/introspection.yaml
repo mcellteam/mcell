@@ -32,7 +32,7 @@ Molecule:
        won't be valid. This can happen when a following iteration is simulated.
      
   - name: pos3d
-    type: Vec3
+    type: List[float]
     default: unset
     doc: |
       Contains position of a molecule in 3D space.        
@@ -45,7 +45,7 @@ Molecule:
       have always orientation set to Orientation.NONE.
       
   - name: pos2d
-    type: Vec2 
+    type: List[float] 
     default: unset
     doc: |
       Set only for surface molecules. Position on a wall in UV coordinates 
@@ -90,7 +90,7 @@ Wall:
     doc: Index of this wall in the object to which this wall belongs.
     
   - name: vertices
-    type: List[Vec3]
+    type: List[List[float]]
     doc: Vertices of the triangle that represents this wall.
     
   - name: area
@@ -98,7 +98,7 @@ Wall:
     doc: Area of the wall in um^2.
     
   - name: unit_normal
-    type: Vec3
+    type: List[float]
     doc: | 
        Normal of this wall with unit length of 1 um.
        There is also a method Model.get_wall_unit_normal that allows to 
@@ -176,7 +176,7 @@ Introspection:
   - name: get_vertex
     doc: Returns coordinates of a vertex.
     examples: tests/pymcell4_positive/1340_get_vertex/model.py
-    return_type: Vec3 
+    return_type: List[float] 
     params:
     - name: object
       type: GeometryObject*
@@ -202,7 +202,7 @@ Introspection:
        length 1 um (micrometer).
        This represents the unit vector pointing outwards from the vertex.
     examples: tests/pymcell4_positive/1320_get_vertex_unit_normal/model.py
-    return_type: Vec3
+    return_type: List[float]
     params:
     - name: object
       type: GeometryObject*
@@ -214,7 +214,7 @@ Introspection:
   - name: get_wall_unit_normal
     doc: Returns wall normal converted to a unit vector of length 1um.
     examples: tests/pymcell4_positive/1310_get_wall_unit_normal/model.py
-    return_type: Vec3
+    return_type: List[float]
     params:
     - name: object
       type: GeometryObject*

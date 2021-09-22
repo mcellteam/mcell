@@ -44,10 +44,10 @@ public:
     type = ReactionType::UNSET;
     reaction_rule = nullptr;
     time = FLT_UNSET;
-    pos3d = POS_INVALID;
+    pos3d.clear();
     geometry_object = nullptr;
     wall_index = -1;
-    pos2d = POS_INVALID;
+    pos2d.clear();
   }
 
   // extra information to be converted in Callbacks

@@ -28,9 +28,9 @@ class PythonExportContext;
       class_name = "Wall"; \
       geometry_object = nullptr; \
       wall_index = INT_UNSET; \
-      vertices = std::vector<Vec3>(); \
+      vertices = std::vector<std::vector<double>>(); \
       area = FLT_UNSET; \
-      unit_normal = VEC3_UNSET; \
+      unit_normal = std::vector<double>(); \
       is_movable = true; \
       postprocess_in_ctor(); \
       check_semantics(); \
@@ -89,8 +89,8 @@ public:
     return wall_index;
   }
 
-  std::vector<Vec3> vertices;
-  virtual void set_vertices(const std::vector<Vec3> new_vertices_) {
+  std::vector<std::vector<double>> vertices;
+  virtual void set_vertices(const std::vector<std::vector<double>> new_vertices_) {
     if (initialized) {
       throw RuntimeError("Value 'vertices' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -98,7 +98,7 @@ public:
     cached_data_are_uptodate = false;
     vertices = new_vertices_;
   }
-  virtual std::vector<Vec3>& get_vertices() {
+  virtual std::vector<std::vector<double>>& get_vertices() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return vertices;
   }
@@ -117,8 +117,8 @@ public:
     return area;
   }
 
-  Vec3 unit_normal;
-  virtual void set_unit_normal(const Vec3& new_unit_normal_) {
+  std::vector<double> unit_normal;
+  virtual void set_unit_normal(const std::vector<double> new_unit_normal_) {
     if (initialized) {
       throw RuntimeError("Value 'unit_normal' of object with name " + name + " (class " + class_name + ") "
                          "cannot be set after model was initialized.");
@@ -126,7 +126,7 @@ public:
     cached_data_are_uptodate = false;
     unit_normal = new_unit_normal_;
   }
-  virtual const Vec3& get_unit_normal() const {
+  virtual std::vector<double>& get_unit_normal() {
     cached_data_are_uptodate = false; // arrays and other data can be modified through getters
     return unit_normal;
   }

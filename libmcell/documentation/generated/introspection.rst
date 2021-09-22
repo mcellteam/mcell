@@ -59,8 +59,8 @@ get_species_name (species_id: int) -> str
 
 .. _Introspection__get_vertex:
 
-get_vertex (object: GeometryObject, vertex_index: int) -> Vec3
---------------------------------------------------------------
+get_vertex (object: GeometryObject, vertex_index: int) -> List[float]
+---------------------------------------------------------------------
 
 
   | Returns coordinates of a vertex.
@@ -91,8 +91,8 @@ get_wall (object: GeometryObject, wall_index: int) -> Wall
 
 .. _Introspection__get_vertex_unit_normal:
 
-get_vertex_unit_normal (object: GeometryObject, vertex_index: int) -> Vec3
---------------------------------------------------------------------------
+get_vertex_unit_normal (object: GeometryObject, vertex_index: int) -> List[float]
+---------------------------------------------------------------------------------
 
 
   | Returns sum of all wall normals that use this vertex converted to a unit vector of 
@@ -110,8 +110,8 @@ get_vertex_unit_normal (object: GeometryObject, vertex_index: int) -> Vec3
 
 .. _Introspection__get_wall_unit_normal:
 
-get_wall_unit_normal (object: GeometryObject, wall_index: int) -> Vec3
-----------------------------------------------------------------------
+get_wall_unit_normal (object: GeometryObject, wall_index: int) -> List[float]
+-----------------------------------------------------------------------------
 
 
   | Returns wall normal converted to a unit vector of length 1um.
@@ -202,8 +202,8 @@ species_id: int
 
 .. _Molecule__pos3d:
 
-pos3d: Vec3
------------
+pos3d: List[float]
+------------------
 
   | Contains position of a molecule in 3D space.
   | - default argument value in constructor: None
@@ -219,8 +219,8 @@ orientation: Orientation
 
 .. _Molecule__pos2d:
 
-pos2d: Vec2
------------
+pos2d: List[float]
+------------------
 
   | Set only for surface molecules. Position on a wall in UV coordinates 
   | relative to the triangle of the wall.
@@ -290,8 +290,8 @@ wall_index: int
 
 .. _Wall__vertices:
 
-vertices: List[Vec3]
---------------------
+vertices: List[List[float]]
+---------------------------
 
   | Vertices of the triangle that represents this wall.
 
@@ -306,8 +306,8 @@ area: float
 
 .. _Wall__unit_normal:
 
-unit_normal: Vec3
------------------
+unit_normal: List[float]
+------------------------
 
   | Normal of this wall with unit length of 1 um.
   | There is also a method Model.get_wall_unit_normal that allows to 

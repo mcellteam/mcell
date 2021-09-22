@@ -415,6 +415,14 @@ struct Vec3: public glm_vec3_t {
 #endif
   Vec3& operator=(const Vec3& other) = default;
 
+  std::vector<double> to_vec() const {
+    std::vector<double> res(3);
+    res[0] = x;
+    res[1] = y;
+    res[2] = z;
+    return res;
+  }
+
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID || z == POS_INVALID); }
 
   std::string to_string() const;
@@ -434,6 +442,13 @@ struct Vec2: public glm_vec2_t {
   Vec2(const std::vector<pos_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
 #endif
   Vec2& operator=(const Vec2& other) = default;
+
+  std::vector<double> to_vec() const {
+    std::vector<double> res(2);
+    res[0] = x;
+    res[1] = y;
+    return res;
+  }
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID); }
 

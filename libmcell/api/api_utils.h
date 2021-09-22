@@ -26,6 +26,14 @@ bool is_simple_species(const std::string& name);
 Orientation convert_mcell_orientation(const orientation_t o);
 orientation_t convert_api_orientation(const Orientation o, const bool allow_default = false, const bool is_vol = true);
 
+static inline std::vector<double> mult_vec(const std::vector<double>& in, const double mult) {
+  std::vector<double> res(in.size());
+  for (size_t i = 0; i < in.size(); i++) {
+    res[i] = in[i] * mult;
+  }
+  return res;
+}
+
 template<class T>
 void append_to_vec(
     std::vector<std::shared_ptr<T>>& dst,

@@ -33,7 +33,7 @@ void GenWall::check_semantics() const {
     throw ValueError("Parameter 'area' must be set.");
   }
   if (!is_set(unit_normal)) {
-    throw ValueError("Parameter 'unit_normal' must be set.");
+    throw ValueError("Parameter 'unit_normal' must be set and the value must not be an empty list.");
   }
 }
 
@@ -48,9 +48,9 @@ void GenWall::set_all_attributes_as_default_or_unset() {
   class_name = "Wall";
   geometry_object = nullptr;
   wall_index = INT_UNSET;
-  vertices = std::vector<Vec3>();
+  vertices = std::vector<std::vector<double>>();
   area = FLT_UNSET;
-  unit_normal = VEC3_UNSET;
+  unit_normal = std::vector<double>();
   is_movable = true;
 }
 
@@ -116,7 +116,7 @@ bool GenWall::eq_nonarray_attributes(const Wall& other, const bool ignore_name) 
     wall_index == other.wall_index &&
     true /*vertices*/ &&
     area == other.area &&
-    unit_normal == other.unit_normal &&
+    true /*unit_normal*/ &&
     is_movable == other.is_movable;
 }
 
@@ -127,7 +127,7 @@ std::string GenWall::to_str(const bool all_details, const std::string ind) const
       "wall_index=" << wall_index << ", " <<
       "vertices=" << vec_nonptr_to_str(vertices, all_details, ind + "  ") << ", " <<
       "area=" << area << ", " <<
-      "unit_normal=" << unit_normal << ", " <<
+      "unit_normal=" << vec_nonptr_to_str(unit_normal, all_details, ind + "  ") << ", " <<
       "is_movable=" << is_movable;
   return ss.str();
 }
@@ -148,7 +148,7 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       .def_property("wall_index", &Wall::get_wall_index, &Wall::set_wall_index, "Index of this wall in the object to which this wall belongs.")
       .def_property("vertices", &Wall::get_vertices, &Wall::set_vertices, py::return_value_policy::reference, "Vertices of the triangle that represents this wall.")
       .def_property("area", &Wall::get_area, &Wall::set_area, "Area of the wall in um^2.")
-      .def_property("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal, "Normal of this wall with unit length of 1 um.\nThere is also a method Model.get_wall_unit_normal that allows to \nretrieve just the normal value without the need to prepare this \nwhole Wall object.  \n")
+      .def_property("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal, py::return_value_policy::reference, "Normal of this wall with unit length of 1 um.\nThere is also a method Model.get_wall_unit_normal that allows to \nretrieve just the normal value without the need to prepare this \nwhole Wall object.  \n")
       .def_property("is_movable", &Wall::get_is_movable, &Wall::set_is_movable, "If True, whis wall can be moved through Model.apply_vertex_moves,\nif False, wall moves are ignored. \nCan be set during simulation.\n")
     ;
 }

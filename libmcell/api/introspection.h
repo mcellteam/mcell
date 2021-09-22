@@ -43,11 +43,11 @@ public:
 
   std::string get_species_name(const int species_id) override;
 
-  Vec3 get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
+  std::vector<double> get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
   std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) override;
 
-  Vec3 get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
-  Vec3 get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) override;
+  std::vector<double> get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
+  std::vector<double> get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) override;
 
   std::shared_ptr<Color> get_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index) override;
   void set_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index, std::shared_ptr<Color> color) override;

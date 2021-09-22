@@ -47,8 +47,8 @@ time: float
 
 .. _MolWallHitInfo__pos3d:
 
-pos3d: Vec3
------------
+pos3d: List[float]
+------------------
 
   | Position of the hit.
 
@@ -65,8 +65,8 @@ time_before_hit: float
 
 .. _MolWallHitInfo__pos3d_before_hit:
 
-pos3d_before_hit: Vec3
-----------------------
+pos3d_before_hit: List[float]
+-----------------------------
 
   | Position of the molecule at time_before_hit.
 
@@ -131,8 +131,8 @@ time: float
 
 .. _ReactionInfo__pos3d:
 
-pos3d: Vec3
------------
+pos3d: List[float]
+------------------
 
   | Specifies where reaction occurred in the 3d space, the specific meaning depends on the reaction type\:
   | - unimolecular reaction - position of the reacting molecule,
@@ -162,8 +162,8 @@ wall_index: int
 
 .. _ReactionInfo__pos2d:
 
-pos2d: Vec2
------------
+pos2d: List[float]
+------------------
 
   | Set only for surface reactions or reactions with surface classes.
   | Specifies where reaction occurred in the 2d UV coordinates defined by the wall where the reaction occured, 

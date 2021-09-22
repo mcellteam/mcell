@@ -657,7 +657,7 @@ class Introspection():
             self,
             object : GeometryObject,
             vertex_index : int
-        ) -> 'Vec3':
+        ) -> 'List[float]':
         pass
 
     def get_wall(
@@ -671,14 +671,14 @@ class Introspection():
             self,
             object : GeometryObject,
             vertex_index : int
-        ) -> 'Vec3':
+        ) -> 'List[float]':
         pass
 
     def get_wall_unit_normal(
             self,
             object : GeometryObject,
             wall_index : int
-        ) -> 'Vec3':
+        ) -> 'List[float]':
         pass
 
     def get_wall_color(
@@ -1036,7 +1036,7 @@ class Model():
             self,
             object : GeometryObject,
             vertex_index : int
-        ) -> 'Vec3':
+        ) -> 'List[float]':
         pass
 
     def get_wall(
@@ -1050,14 +1050,14 @@ class Model():
             self,
             object : GeometryObject,
             vertex_index : int
-        ) -> 'Vec3':
+        ) -> 'List[float]':
         pass
 
     def get_wall_unit_normal(
             self,
             object : GeometryObject,
             wall_index : int
-        ) -> 'Vec3':
+        ) -> 'List[float]':
         pass
 
     def get_wall_color(
@@ -1082,9 +1082,9 @@ class MolWallHitInfo():
             geometry_object : GeometryObject,
             wall_index : int,
             time : float,
-            pos3d : Vec3,
+            pos3d : List[float],
             time_before_hit : float,
-            pos3d_before_hit : Vec3
+            pos3d_before_hit : List[float]
         ):
         self.molecule_id = molecule_id
         self.geometry_object = geometry_object
@@ -1101,9 +1101,9 @@ class Molecule():
             id : int = ID_INVALID,
             type : MoleculeType = MoleculeType.UNSET,
             species_id : int = ID_INVALID,
-            pos3d : Vec3 = None,
+            pos3d : List[float] = None,
             orientation : Orientation = Orientation.NOT_SET,
-            pos2d : Vec2 = None,
+            pos2d : List[float] = None,
             geometry_object : GeometryObject = None,
             wall_index : int = -1
         ):
@@ -1195,10 +1195,10 @@ class ReactionInfo():
             product_ids : List[int],
             reaction_rule : ReactionRule,
             time : float,
-            pos3d : Vec3,
+            pos3d : List[float],
             geometry_object : GeometryObject = None,
             wall_index : int = -1,
-            pos2d : Vec2 = None
+            pos2d : List[float] = None
         ):
         self.type = type
         self.reactant_ids = reactant_ids
@@ -1536,9 +1536,9 @@ class Wall():
             self,
             geometry_object : GeometryObject,
             wall_index : int,
-            vertices : List[Vec3],
+            vertices : List[List[float]],
             area : float,
-            unit_normal : Vec3,
+            unit_normal : List[float],
             is_movable : bool = True
         ):
         self.geometry_object = geometry_object

@@ -78,11 +78,11 @@ public:
     return time;
   }
 
-  Vec3 pos3d;
-  virtual void set_pos3d(const Vec3& new_pos3d_) {
+  std::vector<double> pos3d;
+  virtual void set_pos3d(const std::vector<double> new_pos3d_) {
     pos3d = new_pos3d_;
   }
-  virtual const Vec3& get_pos3d() const {
+  virtual std::vector<double>& get_pos3d() {
     return pos3d;
   }
 
@@ -102,11 +102,11 @@ public:
     return wall_index;
   }
 
-  Vec2 pos2d;
-  virtual void set_pos2d(const Vec2& new_pos2d_) {
+  std::vector<double> pos2d;
+  virtual void set_pos2d(const std::vector<double> new_pos2d_) {
     pos2d = new_pos2d_;
   }
-  virtual const Vec2& get_pos2d() const {
+  virtual std::vector<double>& get_pos2d() {
     return pos2d;
   }
 

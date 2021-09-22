@@ -482,9 +482,9 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           info->geometry_object_id = colliding_wall.object_id; // I would need Model to be accessible here
           info->partition_wall_index = colliding_wall.index; // here as well
           info->time = elapsed_molecule_time + t_steps * collision.time;
-          info->pos3d = collision.pos;
+          info->pos3d = collision.pos.to_vec();
           info->time_before_hit = elapsed_molecule_time;
-          info->pos3d_before_hit = vm_new_ref.v.pos;
+          info->pos3d_before_hit = vm_new_ref.v.pos.to_vec();
 
           world->get_callbacks().do_mol_wall_hit_callbacks(info);
         }
@@ -2351,25 +2351,25 @@ void DiffuseReactEvent::handle_rxn_callback(
 
     // pos3d
     if (reac1->is_vol()) {
-      info->pos3d = collision.pos;
+      info->pos3d = collision.pos.to_vec();
     }
     else {
       // collision.pos is not valid for unimol surf or surf-surf reactions
       const Wall& w = p.get_wall(reac1->s.wall_index);
       const Vec3& v0 = p.get_wall_vertex(w, 0);
-      info->pos3d = GeometryUtils::uv2xyz(reac1->s.pos, w, v0);
+      info->pos3d = GeometryUtils::uv2xyz(reac1->s.pos, w, v0).to_vec();
     }
 
     if (rxn->is_surf_rxn()) {
       const Molecule* first_surf_reac = reac1->is_surf() ? reac1 : reac2;
       // use the first surface reactant for the first surface location
-      info->pos2d = first_surf_reac->s.pos;
+      info->pos2d = first_surf_reac->s.pos.to_vec();
       info->geometry_object_id = p.get_wall(first_surf_reac->s.wall_index).object_id;
       info->partition_wall_index = first_surf_reac->s.wall_index;
     }
     else if (rxn->is_reactive_surface_rxn()) {
       const Wall& w = p.get_wall(collision.colliding_wall_index);
-      info->pos2d = GeometryUtils::xyz2uv(p, collision.pos, w);
+      info->pos2d = GeometryUtils::xyz2uv(p, collision.pos, w).to_vec();
       info->geometry_object_id = w.object_id;
       info->partition_wall_index = collision.colliding_wall_index;
     }

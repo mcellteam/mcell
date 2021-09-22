@@ -117,8 +117,8 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
     const Vec3& w_vert0 = p.get_wall_vertex(w, 0);
 
     res->type = MoleculeType::SURFACE;
-    res->pos2d = m.s.pos * Vec2(world->config.length_unit);
-    res->pos3d = GeometryUtils::uv2xyz(m.s.pos, w, w_vert0) * Vec3(world->config.length_unit);
+    res->pos2d = Vec2(m.s.pos * Vec2(world->config.length_unit)).to_vec();
+    res->pos3d = Vec3(GeometryUtils::uv2xyz(m.s.pos, w, w_vert0) * Vec3(world->config.length_unit)).to_vec();
     res->orientation = convert_mcell_orientation(m.s.orientation);
 
     res->geometry_object = model_inst->get_geometry_object_with_id(w.object_id);
@@ -127,7 +127,7 @@ std::shared_ptr<API::Molecule> Introspection::get_molecule(const int id) {
   }
   else {
     res->type = MoleculeType::VOLUME;
-    res->pos3d = m.v.pos * Vec3(world->config.length_unit);
+    res->pos3d = Vec3(m.v.pos * Vec3(world->config.length_unit)).to_vec();
     res->orientation = Orientation::NONE;
   }
   res->world = world;
@@ -145,11 +145,12 @@ std::string Introspection::get_species_name(const int species_id) {
 }
 
 
-Vec3 Introspection::get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) {
+std::vector<double> Introspection::get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) {
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   return
-      p.get_geometry_vertex(object->get_partition_vertex_index(vertex_index)) *
-      Vec3(world->config.length_unit);
+      Vec3(
+          p.get_geometry_vertex(object->get_partition_vertex_index(vertex_index)) * Vec3(world->config.length_unit)
+      ).to_vec();
 }
 
 
@@ -163,18 +164,18 @@ std::shared_ptr<Wall> Introspection::get_wall(std::shared_ptr<GeometryObject> ob
   res->geometry_object = object;
   res->wall_index = wall_index;
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    res->vertices.push_back(p.get_geometry_vertex(w.vertex_indices[i]) * Vec3(world->config.length_unit));
+    res->vertices.push_back(Vec3(p.get_geometry_vertex(w.vertex_indices[i]) * Vec3(world->config.length_unit)).to_vec());
   }
   res->area = w.area * world->config.length_unit * world->config.length_unit;
-  res->unit_normal = w.normal;
-  assert(cmp_eq(len3(res->unit_normal), (pos_t)1));
+  assert(cmp_eq(len3(w.normal), (pos_t)1));
+  res->unit_normal = w.normal.to_vec();
   res->is_movable = w.is_movable;
   res->world = world;
   return res;
 }
 
 
-Vec3 Introspection::get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) {
+std::vector<double> Introspection::get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) {
   object_is_set_and_initialized(object);
 
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
@@ -193,11 +194,11 @@ Vec3 Introspection::get_vertex_unit_normal(std::shared_ptr<GeometryObject> objec
     normals_sum = normals_sum + w.normal;
   }
 
-  return normals_sum / Vec3(len3(normals_sum));
+  return Vec3(normals_sum / Vec3(len3(normals_sum))).to_vec();
 }
 
 
-Vec3 Introspection::get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) {
+std::vector<double> Introspection::get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) {
   object_is_set_and_initialized(object);
 
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
@@ -205,7 +206,7 @@ Vec3 Introspection::get_wall_unit_normal(std::shared_ptr<GeometryObject> object,
 
   // the value is is already normalized
   assert(cmp_eq(len3(w.normal), (pos_t)1));
-  return w.normal;
+  return w.normal.to_vec();
 }
 
 

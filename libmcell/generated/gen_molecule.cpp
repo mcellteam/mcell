@@ -34,9 +34,9 @@ void GenMolecule::set_all_attributes_as_default_or_unset() {
   id = ID_INVALID;
   type = MoleculeType::UNSET;
   species_id = ID_INVALID;
-  pos3d = VEC3_UNSET;
+  pos3d = std::vector<double>();
   orientation = Orientation::NOT_SET;
-  pos2d = VEC2_UNSET;
+  pos2d = std::vector<double>();
   geometry_object = nullptr;
   wall_index = -1;
 }
@@ -98,9 +98,9 @@ bool GenMolecule::eq_nonarray_attributes(const Molecule& other, const bool ignor
     id == other.id &&
     type == other.type &&
     species_id == other.species_id &&
-    pos3d == other.pos3d &&
+    true /*pos3d*/ &&
     orientation == other.orientation &&
-    pos2d == other.pos2d &&
+    true /*pos2d*/ &&
     (
       (is_set(geometry_object)) ?
         (is_set(other.geometry_object) ?
@@ -121,9 +121,9 @@ std::string GenMolecule::to_str(const bool all_details, const std::string ind) c
       "id=" << id << ", " <<
       "type=" << type << ", " <<
       "species_id=" << species_id << ", " <<
-      "pos3d=" << pos3d << ", " <<
+      "pos3d=" << vec_nonptr_to_str(pos3d, all_details, ind + "  ") << ", " <<
       "orientation=" << orientation << ", " <<
-      "pos2d=" << pos2d << ", " <<
+      "pos2d=" << vec_nonptr_to_str(pos2d, all_details, ind + "  ") << ", " <<
       "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index;
   return ss.str();
@@ -145,9 +145,9 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       .def_property("id", &Molecule::get_id, &Molecule::set_id, "Unique id of this molecule. MCell assigns this unique id to each created \nmolecule. All reactions change ID of molecules even in reactions such as \nA@CP -> A@EC.\n")
       .def_property("type", &Molecule::get_type, &Molecule::set_type, "Type of this molecule, either volume or surface. \n")
       .def_property("species_id", &Molecule::get_species_id, &Molecule::set_species_id, "Species id of this molecule.\nThe species_id value is only temporary. Species ids are created and removed as needed\nautomatically and if this species is removed, this particular species_id value \nwon't be valid. This can happen when a following iteration is simulated.\n")
-      .def_property("pos3d", &Molecule::get_pos3d, &Molecule::set_pos3d, "Contains position of a molecule in 3D space.        \n")
+      .def_property("pos3d", &Molecule::get_pos3d, &Molecule::set_pos3d, py::return_value_policy::reference, "Contains position of a molecule in 3D space.        \n")
       .def_property("orientation", &Molecule::get_orientation, &Molecule::set_orientation, "Contains orientation for surface molecule. Volume molecules \nhave always orientation set to Orientation.NONE.\n")
-      .def_property("pos2d", &Molecule::get_pos2d, &Molecule::set_pos2d, "Set only for surface molecules. Position on a wall in UV coordinates \nrelative to the triangle of the wall.\n        \n")
+      .def_property("pos2d", &Molecule::get_pos2d, &Molecule::set_pos2d, py::return_value_policy::reference, "Set only for surface molecules. Position on a wall in UV coordinates \nrelative to the triangle of the wall.\n        \n")
       .def_property("geometry_object", &Molecule::get_geometry_object, &Molecule::set_geometry_object, "Set only for surface molecules.\nIs set to a reference to the geometry object on whose surface is the molecule located.\n")
       .def_property("wall_index", &Molecule::get_wall_index, &Molecule::set_wall_index, "Set only for surface molecules.\nIndex of wall belonging to the geometry_object where is the \nmolecule located. \n   \n")
     ;

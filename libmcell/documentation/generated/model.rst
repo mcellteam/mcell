@@ -933,8 +933,8 @@ get_species_name (species_id: int) -> str
 
 .. _Model__get_vertex:
 
-get_vertex (object: GeometryObject, vertex_index: int) -> Vec3
---------------------------------------------------------------
+get_vertex (object: GeometryObject, vertex_index: int) -> List[float]
+---------------------------------------------------------------------
 
 
   | Returns coordinates of a vertex.
@@ -965,8 +965,8 @@ get_wall (object: GeometryObject, wall_index: int) -> Wall
 
 .. _Model__get_vertex_unit_normal:
 
-get_vertex_unit_normal (object: GeometryObject, vertex_index: int) -> Vec3
---------------------------------------------------------------------------
+get_vertex_unit_normal (object: GeometryObject, vertex_index: int) -> List[float]
+---------------------------------------------------------------------------------
 
 
   | Returns sum of all wall normals that use this vertex converted to a unit vector of 
@@ -984,8 +984,8 @@ get_vertex_unit_normal (object: GeometryObject, vertex_index: int) -> Vec3
 
 .. _Model__get_wall_unit_normal:
 
-get_wall_unit_normal (object: GeometryObject, wall_index: int) -> Vec3
-----------------------------------------------------------------------
+get_wall_unit_normal (object: GeometryObject, wall_index: int) -> List[float]
+-----------------------------------------------------------------------------
 
 
   | Returns wall normal converted to a unit vector of length 1um.

@@ -69,11 +69,11 @@ public:
     return time;
   }
 
-  Vec3 pos3d;
-  virtual void set_pos3d(const Vec3& new_pos3d_) {
+  std::vector<double> pos3d;
+  virtual void set_pos3d(const std::vector<double> new_pos3d_) {
     pos3d = new_pos3d_;
   }
-  virtual const Vec3& get_pos3d() const {
+  virtual std::vector<double>& get_pos3d() {
     return pos3d;
   }
 
@@ -85,11 +85,11 @@ public:
     return time_before_hit;
   }
 
-  Vec3 pos3d_before_hit;
-  virtual void set_pos3d_before_hit(const Vec3& new_pos3d_before_hit_) {
+  std::vector<double> pos3d_before_hit;
+  virtual void set_pos3d_before_hit(const std::vector<double> new_pos3d_before_hit_) {
     pos3d_before_hit = new_pos3d_before_hit_;
   }
-  virtual const Vec3& get_pos3d_before_hit() const {
+  virtual std::vector<double>& get_pos3d_before_hit() {
     return pos3d_before_hit;
   }
 

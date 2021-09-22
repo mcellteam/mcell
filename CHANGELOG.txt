@@ -1,6 +1,29 @@
 CHANGELOG
 ===============================================================================
 
+Changes in MCell 4.0.5
+-------------------------------------------------------------------------------
+* API changes:
+  * All usages of Vec3 and Vec2 were replaced in API with List[double] 
+  
+Changes in MCell 4.0.4
+-------------------------------------------------------------------------------  
+* New features:
+  * Added support for paired molecules, paired molecules represent two 
+    membrane-bound proteins bound togehert and when one membrane (wall)
+    is moved through dynamic geometry, the second membrane is moved as well 
+
+Changes in MCell 4.0.3
+-------------------------------------------------------------------------------  
+* New features:
+  * Handling of overlapped walls (overlapped walls must use vertices with identical coordinates)
+
+* Minor changes:
+  * Support for default VizOutput and Count output directories/files
+  
+* Bug Fixes:
+  * Fixed timed count buffer flush  
+
 Changes in MCell 4.0.2
 -------------------------------------------------------------------------------
 * Bug Fixes:

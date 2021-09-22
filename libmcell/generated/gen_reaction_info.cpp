@@ -100,7 +100,7 @@ bool GenReactionInfo::eq_nonarray_attributes(const ReactionInfo& other, const bo
         )
      )  &&
     time == other.time &&
-    pos3d == other.pos3d &&
+    true /*pos3d*/ &&
     (
       (is_set(geometry_object)) ?
         (is_set(other.geometry_object) ?
@@ -113,7 +113,7 @@ bool GenReactionInfo::eq_nonarray_attributes(const ReactionInfo& other, const bo
         )
      )  &&
     wall_index == other.wall_index &&
-    pos2d == other.pos2d;
+    true /*pos2d*/;
 }
 
 std::string GenReactionInfo::to_str(const bool all_details, const std::string ind) const {
@@ -124,10 +124,10 @@ std::string GenReactionInfo::to_str(const bool all_details, const std::string in
       "product_ids=" << vec_nonptr_to_str(product_ids, all_details, ind + "  ") << ", " <<
       "\n" << ind + "  " << "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "time=" << time << ", " <<
-      "pos3d=" << pos3d << ", " <<
+      "pos3d=" << vec_nonptr_to_str(pos3d, all_details, ind + "  ") << ", " <<
       "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index << ", " <<
-      "pos2d=" << pos2d;
+      "pos2d=" << vec_nonptr_to_str(pos2d, all_details, ind + "  ");
   return ss.str();
 }
 
@@ -147,10 +147,10 @@ py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
       .def_property("product_ids", &ReactionInfo::get_product_ids, &ReactionInfo::set_product_ids, py::return_value_policy::reference, "IDs of reaction product molecules. They already exist in the simulated system together with reactants; however reactants \nwill be removed after return from this callback. \n")
       .def_property("reaction_rule", &ReactionInfo::get_reaction_rule, &ReactionInfo::set_reaction_rule, "Reaction rule of the reaction that occured.")
       .def_property("time", &ReactionInfo::get_time, &ReactionInfo::set_time, "Time of the reaction.")
-      .def_property("pos3d", &ReactionInfo::get_pos3d, &ReactionInfo::set_pos3d, "Specifies where reaction occurred in the 3d space, the specific meaning depends on the reaction type:\n- unimolecular reaction - position of the reacting molecule,\n- volume-volume or surface-surface reaction - position of the first reactant,\n- volume-surface reaction - position where the volume molecule hit the wall with the surface molecule.\n")
+      .def_property("pos3d", &ReactionInfo::get_pos3d, &ReactionInfo::set_pos3d, py::return_value_policy::reference, "Specifies where reaction occurred in the 3d space, the specific meaning depends on the reaction type:\n- unimolecular reaction - position of the reacting molecule,\n- volume-volume or surface-surface reaction - position of the first reactant,\n- volume-surface reaction - position where the volume molecule hit the wall with the surface molecule.\n")
       .def_property("geometry_object", &ReactionInfo::get_geometry_object, &ReactionInfo::set_geometry_object, "The object on whose surface where the reaction occurred.\nSet only for surface reactions or reactions with surface classes.\n")
       .def_property("wall_index", &ReactionInfo::get_wall_index, &ReactionInfo::set_wall_index, "Set only for surface reactions or reactions with surface classes.\nIndex of wall belonging to the geometry_object where the reaction occured, \ni.e. wall where a volume molecule hit the surface molecule or\nwall where the diffusing surface reactant reacted.\n")
-      .def_property("pos2d", &ReactionInfo::get_pos2d, &ReactionInfo::set_pos2d, "Set only for surface reactions or reactions with surface classes.\nSpecifies where reaction occurred in the 2d UV coordinates defined by the wall where the reaction occured, \nthe rspecific meaning depends on the reaction type:\n- unimolecular reaction - position of the reacting molecule,\n- volume-surface and surface-surface reaction - position of the second reactant.\n  \n  ")
+      .def_property("pos2d", &ReactionInfo::get_pos2d, &ReactionInfo::set_pos2d, py::return_value_policy::reference, "Set only for surface reactions or reactions with surface classes.\nSpecifies where reaction occurred in the 2d UV coordinates defined by the wall where the reaction occured, \nthe rspecific meaning depends on the reaction type:\n- unimolecular reaction - position of the reacting molecule,\n- volume-surface and surface-surface reaction - position of the second reactant.\n  \n  ")
     ;
 }
 

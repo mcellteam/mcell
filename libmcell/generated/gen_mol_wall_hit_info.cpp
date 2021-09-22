@@ -82,9 +82,9 @@ bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo& other, cons
      )  &&
     wall_index == other.wall_index &&
     time == other.time &&
-    pos3d == other.pos3d &&
+    true /*pos3d*/ &&
     time_before_hit == other.time_before_hit &&
-    pos3d_before_hit == other.pos3d_before_hit;
+    true /*pos3d_before_hit*/;
 }
 
 std::string GenMolWallHitInfo::to_str(const bool all_details, const std::string ind) const {
@@ -94,9 +94,9 @@ std::string GenMolWallHitInfo::to_str(const bool all_details, const std::string 
       "\n" << ind + "  " << "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(all_details, ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "wall_index=" << wall_index << ", " <<
       "time=" << time << ", " <<
-      "pos3d=" << pos3d << ", " <<
+      "pos3d=" << vec_nonptr_to_str(pos3d, all_details, ind + "  ") << ", " <<
       "time_before_hit=" << time_before_hit << ", " <<
-      "pos3d_before_hit=" << pos3d_before_hit;
+      "pos3d_before_hit=" << vec_nonptr_to_str(pos3d_before_hit, all_details, ind + "  ");
   return ss.str();
 }
 
@@ -115,9 +115,9 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
       .def_property("geometry_object", &MolWallHitInfo::get_geometry_object, &MolWallHitInfo::set_geometry_object, "Object that was hit.")
       .def_property("wall_index", &MolWallHitInfo::get_wall_index, &MolWallHitInfo::set_wall_index, "Index of the wall belonging to the geometry_object.")
       .def_property("time", &MolWallHitInfo::get_time, &MolWallHitInfo::set_time, "Time of the hit.")
-      .def_property("pos3d", &MolWallHitInfo::get_pos3d, &MolWallHitInfo::set_pos3d, "Position of the hit.")
+      .def_property("pos3d", &MolWallHitInfo::get_pos3d, &MolWallHitInfo::set_pos3d, py::return_value_policy::reference, "Position of the hit.")
       .def_property("time_before_hit", &MolWallHitInfo::get_time_before_hit, &MolWallHitInfo::set_time_before_hit, "The time when the molecule started to diffuse towards the hit wall. \nIt is either the start of the molecule's diffusion or \nwhen the molecule reflected from another wall.\n  \n")
-      .def_property("pos3d_before_hit", &MolWallHitInfo::get_pos3d_before_hit, &MolWallHitInfo::set_pos3d_before_hit, "Position of the molecule at time_before_hit.")
+      .def_property("pos3d_before_hit", &MolWallHitInfo::get_pos3d_before_hit, &MolWallHitInfo::set_pos3d_before_hit, py::return_value_policy::reference, "Position of the molecule at time_before_hit.")
     ;
 }
 
