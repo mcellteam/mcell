@@ -12,6 +12,7 @@
 
 #include "api/pybind11_stl_include.h"
 #include "pybind11/include/pybind11/stl_bind.h"
+#include "pybind11/include/pybind11/numpy.h"
 
 namespace py = pybind11;
 
@@ -116,10 +117,12 @@ void gen_vectors_bind(py::module& m){
   py::bind_vector<std::vector<double>>(m,"VectorFloat");
   py::implicitly_convertible<py::list, std::vector<double>>();
   py::implicitly_convertible<py::tuple, std::vector<double>>();
+  py::implicitly_convertible<py::array_t<double>, std::vector<double>>();
 
   py::bind_vector<std::vector<int>>(m,"VectorInt");
   py::implicitly_convertible<py::list, std::vector<int>>();
   py::implicitly_convertible<py::tuple, std::vector<int>>();
+  py::implicitly_convertible<py::array_t<int>, std::vector<int>>();
 
   py::bind_vector<std::vector<std::string>>(m,"VectorStr");
   py::implicitly_convertible<py::list, std::vector<std::string>>();

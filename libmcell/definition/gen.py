@@ -1907,7 +1907,8 @@ def generate_vector_bindings(data_classes):
     with open(os.path.join(TARGET_DIRECTORY, GEN_VECTORS_BIND_CPP), 'w') as f:
         f.write(COPYRIGHT + '\n')
         f.write('#include "api/pybind11_stl_include.h"\n')
-        f.write('#include "pybind11/include/pybind11/stl_bind.h"\n\n')
+        f.write('#include "pybind11/include/pybind11/stl_bind.h"\n')
+        f.write('#include "pybind11/include/pybind11/numpy.h"\n\n')
         
         f.write('namespace py = pybind11;\n\n')
         
@@ -1939,7 +1940,15 @@ def generate_vector_bindings(data_classes):
                             
             f.write(ind + PY_BIND_VECTOR + '<' + cpp_t + '>(m,"' + name + '");\n')
             f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::list, ' + cpp_t + '>();\n')
-            f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::tuple, ' + cpp_t + '>();\n\n')
+            f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::tuple, ' + cpp_t + '>();\n')
+        
+            # special case for numpy conversions
+            if name == 'VectorFloat':
+                f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::array_t<double>, ' + cpp_t + '>();\n')
+            elif name == 'VectorInt':
+                f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::array_t<int>, ' + cpp_t + '>();\n')
+            f.write('\n')
+                
         
         f.write('}\n')
         f.write('\n' + NAMESPACES_END + '\n\n')
