@@ -572,14 +572,23 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   // CHECK_PROPERTY(w->grid == nullptr); // don't care, we will create grid if needed
 
   // walls use some of the flags used by species
-  CHECK_PROPERTY(
-      w->flags == COUNT_CONTENTS ||
+  if (!
+      (w->flags == COUNT_CONTENTS ||
       w->flags == COUNT_RXNS ||
       w->flags == (COUNT_CONTENTS | COUNT_RXNS) ||
       w->flags == (COUNT_CONTENTS | COUNT_ENCLOSED) ||
       w->flags == (COUNT_RXNS | COUNT_ENCLOSED) ||
-      w->flags == (COUNT_CONTENTS | COUNT_RXNS | COUNT_ENCLOSED)
-  );
+      w->flags == (COUNT_CONTENTS | COUNT_RXNS | COUNT_ENCLOSED))
+  ) {
+    if ((w->flags | COUNT_TRIGGER) != 0) {
+      mcell_error("A wall uses a COUNT_TRIGGER flag, this is not supported in MCell4. "
+          "Use a wall hit or reaction callback in Python MCell4 code instead.", w->flags);
+    }
+    else {
+      mcell_error("Unsupported combination of wall flags 0x%x for MCell4, see MCell code "
+          "(species flags in mcell_structs.h) for more details.", w->flags);
+    }
+  }
 
   // now let's handle regions
   std::set<species_id_t> region_species_from_mcell3;
