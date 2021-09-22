@@ -243,32 +243,6 @@ public:
         ready_vector.push_back(m.id);
       }
     }
-
-#if 0
-    // there was some issue, not sure, may be still helpful to try out
-    if (schedulable_molecule_ids.size() != molecules.size()) {
-      // more efficient variant when there is less molecules in schedulable_molecule_ids
-      for (molecule_id_t id: schedulable_molecule_ids) {
-        const Molecule& m = get_m(id);
-        assert(!m.has_flag(MOLECULE_FLAG_NO_NEED_TO_SCHEDULE));
-        // new products may have been scheduled for the previous iteration
-        if (!m.is_defunct() &&
-            cmp_lt(m.diffusion_time, time_it_end, EPS)) {
-          ready_vector.push_back(m.id);
-        }
-      }
-    }
-    else {
-      // more cache-efficient variant
-      for (const Molecule& m: molecules) {
-        // new products may have been scheduled for the previous iteration
-        if (((m.flags & (MOLECULE_FLAG_NO_NEED_TO_SCHEDULE | MOLECULE_FLAG_DEFUNCT)) == 0) &&
-            cmp_lt(m.diffusion_time, time_it_end, EPS)) {
-          ready_vector.push_back(m.id);
-        }
-      }
-    }
-#endif
   }
 
   bool in_this_partition(const Vec3& pos) const {

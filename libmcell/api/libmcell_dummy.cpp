@@ -55,8 +55,9 @@ bool GenMolWallHitInfo::eq_nonarray_attributes(const MolWallHitInfo&, const bool
   return false;
 }
 
-void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo>) {
+bool Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo>) {
   release_assert("must not be called");
+  return false;
 }
 
 bool GenReactionInfo::__eq__(const ReactionInfo&) const {

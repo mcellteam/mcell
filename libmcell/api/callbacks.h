@@ -39,7 +39,7 @@ class ReactionInfo;
 typedef std::function<void(std::shared_ptr<API::MolWallHitInfo>, pybind11::object)>
   mol_wall_hit_callback_function_t;
 
-typedef std::function<void(std::shared_ptr<API::ReactionInfo>, pybind11::object)>
+typedef std::function<bool(std::shared_ptr<API::ReactionInfo>, pybind11::object)>
   rxn_callback_function_t;
 
 
@@ -147,7 +147,8 @@ public:
     }
   }
 
-  void do_rxn_callback(std::shared_ptr<ReactionInfo> info);
+  // returns true if reaction should be cancelled
+  bool do_rxn_callback(std::shared_ptr<ReactionInfo> info);
 
 private:
 

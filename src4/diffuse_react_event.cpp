@@ -2298,8 +2298,10 @@ void DiffuseReactEvent::handle_rxn_callback(
     // reac1 is the diffused molecule and reac2 is the optional second reactant
     const Molecule* reacA,
     const Molecule* reacB,
-    const MoleculeIdsVector& product_ids
+    const MoleculeIdsVector& product_ids,
+    bool& cancel_reaction
 ) {
+  cancel_reaction = false;
 
   // check callback
   if (world->get_callbacks().needs_rxn_callback(rxn->id)) {
@@ -2374,7 +2376,7 @@ void DiffuseReactEvent::handle_rxn_callback(
       info->partition_wall_index = collision.colliding_wall_index;
     }
 
-    world->get_callbacks().do_rxn_callback(info);
+    cancel_reaction = world->get_callbacks().do_rxn_callback(info);
   }
 }
 
@@ -2859,7 +2861,29 @@ int DiffuseReactEvent::outcome_products_random(
   } // end for - product creation
 
   // this is a safe point where we can manipulate contents of this event
-  handle_rxn_callback(p, collision, time, rxn, reacA, reacB, product_ids);
+  bool cancel_reaction;
+  handle_rxn_callback(p, collision, time, rxn, reacA, reacB, product_ids, cancel_reaction);
+  if (cancel_reaction) {
+    // user requested to cancel the reaction, we must keep both reactants and remove products
+    set<molecule_id_t> reactant_ids;
+    reactant_ids.insert(reacA->id);
+    if (reacB != nullptr) {
+      reactant_ids.insert(reacB->id);
+    }
+
+    for (molecule_id_t prod_id: product_ids) {
+      // the product to be removed must not be a maintained reactant
+      if (reactant_ids.count(prod_id) == 0) {
+        // remove created products
+        p.set_molecule_as_defunct(p.get_m(prod_id));
+      }
+    }
+
+    keep_reacA = true;
+    if (reacB != nullptr) {
+      keep_reacB = true;
+    }
+  }
 
   if (optional_product_ids != nullptr) {
     *optional_product_ids = product_ids;

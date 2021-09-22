@@ -851,7 +851,7 @@ class Model():
 
     def register_reaction_callback(
             self,
-            function : Callable, # std::function<void(std::shared_ptr<ReactionInfo>, py::object)>,
+            function : Callable, # std::function<bool(std::shared_ptr<ReactionInfo>, py::object)>,
             context : Any, # py::object,
             reaction_rule : ReactionRule
         ) -> None:

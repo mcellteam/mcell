@@ -306,7 +306,8 @@ private:
       const BNG::RxnRule* rxn,
       const Molecule* reac1,
       const Molecule* reac2,
-      const MoleculeIdsVector& product_ids
+      const MoleculeIdsVector& product_ids,
+      bool& cancel_reaction
   );
 
   orientation_t determine_orientation_depending_on_surf_comp(

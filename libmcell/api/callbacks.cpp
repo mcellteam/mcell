@@ -150,7 +150,7 @@ void Callbacks::register_rxn_callback(
 }
 
 
-void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
+bool Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
   // select the correct callback
   assert(rxn_callbacks.count(info->rxn_rule_id) != 0);
   const RxnCallbackInfo& specific_callback = rxn_callbacks[info->rxn_rule_id];
@@ -178,7 +178,8 @@ void Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
   py::gil_scoped_acquire acquire;
 
   // call the actual callback
-  specific_callback.callback_function(info, specific_callback.context);
+  bool cancel_reaction = specific_callback.callback_function(info, specific_callback.context);
+  return cancel_reaction;
 }
 
 } /* namespace API */

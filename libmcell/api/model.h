@@ -92,7 +92,7 @@ public:
   ) override;
 
   void register_reaction_callback(
-      const std::function<void(std::shared_ptr<ReactionInfo>, py::object)> function,
+      const std::function<bool(std::shared_ptr<ReactionInfo>, py::object)> function,
       py::object context,
       std::shared_ptr<ReactionRule> reaction_rule
   ) override;

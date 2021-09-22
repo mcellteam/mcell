@@ -5,6 +5,9 @@ Changes in MCell 4.0.5
 -------------------------------------------------------------------------------
 * API changes:
   * All usages of Vec3 and Vec2 were replaced in API with List[double] 
+  * Numpy float and int arrays are accepted as arguments 
+  
+* Reaction callback now allows to cancel the current reaction 
   
 Changes in MCell 4.0.4
 -------------------------------------------------------------------------------  
