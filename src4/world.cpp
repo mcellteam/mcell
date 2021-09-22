@@ -698,12 +698,12 @@ void World::reset_unimol_rxn_times(const BNG::rxn_rule_id_t rxn_rule_id) {
         // the next time (we cannot change it right away for molecules that
         // have longer timestep anyway because they were already diffused to the future)
 
-        // is this a nondiffusible molecule? - these don't have to be not scheduled and therefore
-        // their unimol rxn time does not need to be recomputed
+        // is this a nondiffusible molecule? - these don't have to be scheduled for diffusion,
+        // therefore their unimol rxn time would not be updated
         const BNG::Species& s = get_all_species().get(m.species_id);
         if (!s.can_diffuse() && (m.diffusion_time == TIME_FOREVER || m.diffusion_time == m.unimol_rxn_time)) {
           // we cannot change the unimol rate if we are currently diffusing, but
-          // let's update it as soon as possible
+          // let's update it as soon as possible by running their diffusion
           m.diffusion_time = scheduler.get_next_event_time();
         }
 
