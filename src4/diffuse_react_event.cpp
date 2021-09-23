@@ -205,7 +205,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 ) {
   Molecule& m_initial = p.get_m(m_id);
   double diffusion_start_time = m_initial.diffusion_time;
-  assert(diffusion_start_time + EPS >= event_time && before_this_iterations_end(diffusion_start_time));
+  assert(cmp_ge(diffusion_start_time, event_time, EPS) && cmp_le(diffusion_start_time, event_time + periodicity_interval, EPS));
   assert(m_initial.birthday != TIME_INVALID && m_initial.birthday <= diffusion_start_time);
 
   if (m_initial.is_defunct()) {
@@ -1760,7 +1760,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   double scheduled_time = m.unimol_rxn_time;
 
   assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN));
-  assert(scheduled_time >= event_time && scheduled_time <= event_time + time_up_to_next_barrier);
+  assert(cmp_ge(scheduled_time, event_time, EPS) && cmp_le(scheduled_time, event_time + time_up_to_next_barrier, EPS));
 
   if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) {
     // this time event does not mean to execute the unimol action, but instead to

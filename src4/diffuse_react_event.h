@@ -154,6 +154,7 @@ public:
   }
 
   bool before_this_iterations_end(const double time) const {
+    // must be lt to make sure that we don't simulate molecules with max_time close to 0
     return cmp_lt(time, event_time + periodicity_interval, EPS);
   }
 
