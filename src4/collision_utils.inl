@@ -853,6 +853,7 @@ restart_on_redo:
     SimulationStats* world = &p.stats;
     // just faking the name for the dump condition macro - FIXME - use better name
     DUMP_CONDITION4(
+        vm.id,
         std::cout << "Checking wall:\n";
         w.dump(p, "", true);
     );
@@ -865,6 +866,7 @@ restart_on_redo:
 
 #ifdef DEBUG_COLLISIONS_WALL_EXTRA
     DUMP_CONDITION4(
+        vm.id,
         if (collision_type == CollisionType::WALL_REDO || collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
           cout << "Collide wall: vm pos: " << vm.v.pos << ", displacement: " << displacement << "\n";
           w.dump(p, "", true);

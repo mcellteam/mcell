@@ -750,6 +750,7 @@ static double compute_unimol_lifetime(
 #ifdef DEBUG_RXNS
   SimulationStats* world = &p.stats;
   DUMP_CONDITION4(
+      m.id,
       // calling rng for unimolecular
       m.dump(p, "Assigned unimolecular time (prev rng):", "", p.stats.get_current_iteration(), unimol_time_from_now);
   );

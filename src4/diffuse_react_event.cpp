@@ -247,6 +247,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_species(m.species_id);
   DUMP_CONDITION4(
+    m.id,
 #ifdef DUMP_NONDIFFUSING_VMS
     const char* title =
         (debug_species.can_diffuse()) ?
@@ -393,6 +394,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
+      vm_id,
       dump_vol_mol_timing(
           "- Timing vm", p.stats.get_current_iteration(), vm_id,
           diffusion_start_time, max_time, vm.unimol_rxn_time,
@@ -403,6 +405,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION4(
+      vm_id,
       if (species.can_diffuse()) {
         remaining_displacement.dump("  displacement:", "");
         cout << "t_steps: " << t_steps << "\n";
@@ -434,6 +437,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
 #ifdef DEBUG_COLLISIONS
     DUMP_CONDITION4(
+        vm_id,
         Collision::dump_array(p, molecule_collisions);
     );
 #endif
@@ -577,8 +581,9 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
 #ifdef DEBUG_DIFFUSION
       DUMP_CONDITION4(
-        // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
-        // need to check it further
+          vm_id,
+          // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
+          // need to check it further
           m_new_ref.dump(p, "", "- Final vm position:", world->get_current_iteration(), 0);
       );
 #endif
@@ -1110,6 +1115,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
+      sm_id,
       dump_surf_mol_timing(
           "- Timing sm", p.stats.get_current_iteration(), sm_id,
           diffusion_start_time, max_time, sm.unimol_rxn_time,
@@ -1126,6 +1132,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 
 #ifdef DEBUG_DIFFUSION
       DUMP_CONDITION4(
+          sm_id,
           if (species.can_diffuse()) {
             displacement.dump("  displacement:", "");
           }
@@ -1249,6 +1256,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
+      sm.id,
       dump_react_2D_all_neighbors_timing(
           time, diffusion_start_time + elapsed_molecule_time
       );
@@ -1289,6 +1297,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
 #ifdef DEBUG_RXNS
     DUMP_CONDITION4(
+      sm.id,
       // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
       // need to check it further
       nsm.dump(p, "", "  checking in react_2D_all_neighbors: ", world->get_current_iteration(), 0.0);
@@ -1829,6 +1838,7 @@ int DiffuseReactEvent::outcome_bimolecular(
 ) {
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
+      collision.diffused_molecule_id,
       dump_outcome_bimolecular_timing(time);
   );
 #endif
@@ -1854,6 +1864,7 @@ int DiffuseReactEvent::outcome_bimolecular(
 #ifdef DEBUG_RXNS
     // reference printout first destroys B then A
     DUMP_CONDITION4(
+      collision.diffused_molecule_id,
       if (!keep_reacB) {
         reacB.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
       }
@@ -1960,6 +1971,7 @@ int DiffuseReactEvent::outcome_intersect(
 #ifdef DEBUG_RXNS
     const Molecule& reacA = p.get_m(collision.diffused_molecule_id);
     DUMP_CONDITION4(
+      collision.diffused_molecule_id,
       if (!keep_reacA) {
         reacA.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
       }
@@ -2435,6 +2447,7 @@ int DiffuseReactEvent::outcome_products_random(
 
 #ifdef DEBUG_RXNS
   DUMP_CONDITION4(
+    collision.diffused_molecule_id,
     collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), time);
     cout << p.get_species(p.get_m(collision.diffused_molecule_id).species_id).name;
     if (collision.is_mol_mol_reaction()) {
@@ -2774,6 +2787,7 @@ int DiffuseReactEvent::outcome_products_random(
       }
     #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
+        new_vm.id,
         new_vm.dump(p, "", "  created vm:", world->get_current_iteration(), time);
       );
     #endif
@@ -2846,6 +2860,7 @@ int DiffuseReactEvent::outcome_products_random(
 
       #ifdef DEBUG_RXNS
         DUMP_CONDITION4(
+          new_sm.id,
           new_sm.dump(p, "", "  created sm:", world->get_current_iteration(), time);
         );
       #endif
@@ -2957,6 +2972,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     if (outcome_res != RX_BLOCKED && !unimol_rx->is_simple_cplx_reactant_on_both_sides_of_rxn_w_identical_compartments(0)) {
 #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
+        m_new_ref.id,
         m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);
       );
 #endif

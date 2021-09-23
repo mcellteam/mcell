@@ -146,6 +146,8 @@
 
 //#define DEBUG_EXTRA_CHECKS
 
+
+
 //#define DUMP_ALWAYS
 #define DUMP_NEVER
 
@@ -163,9 +165,11 @@
 */
 //#define DUMP_LOCAL_SCHEDULE_HELPER
 
+#define TRACK_MOL 1 // true
+#define TRACKED_MOL_ID 61254
 
-#define FROM_ITERATION 0
-#define TO_ITERATION 1
+#define FROM_ITERATION 100000
+#define TO_ITERATION 1000000
 
 #define DUMP_NONDIFFUSING_VMS
 
@@ -178,7 +182,7 @@
 #define DEBUG_RXNS
 
 //#define DEBUG_COMPARTMENTS
-#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 //#define DEBUG_WALL_COLLISIONS
 
@@ -222,7 +226,12 @@
 
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
-#define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)
+#define DUMP_CONDITION4(id, code) do { \
+  if (\
+      ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) || \
+      (TRACK_MOL && id == TRACKED_MOL_ID)) { \
+    code; } } while (0)
+
 #define DUMP_CONDITION4P(code) do { if ((int)p.stats.get_current_iteration() >= (int)FROM_ITERATION && (int)p.stats.get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)
 
 #ifdef DEBUG_SCHEDULER
