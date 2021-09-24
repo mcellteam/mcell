@@ -87,6 +87,10 @@
 // testsuite for mcell4 won't pass
 #define MCELL4_NO_RNG_FOR_UNIMOL_RXN_P_0
 
+// when a volume product is created in a surface reaction, it is bumped from the surface,
+// when is this macro enabled, it is bumped only by EPS same as in MCell3, not 16*EPS
+#define MCELL4_VOL_PROD_BUMP_FROM_SURFACE_ONLY_ONE_EPS
+
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
 #define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID

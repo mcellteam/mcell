@@ -2295,7 +2295,19 @@ static void update_vol_mol_after_rxn_with_surf_mol(
     const Collision& collision,
     Molecule& vm
 ) {
-  pos_t bump = (product_orientation > 0) ? POS_EPS : -POS_EPS;
+
+#ifndef MCELL4_VOL_PROD_BUMP_FROM_SURFACE_ONLY_ONE_EPS
+  // larger 'bump' is needed to really avoid a molecule going through the wall
+  // on which it was created
+  const int mult = 16;
+#else
+  // value used in MCell3, although results seemed correct, MCell3 does not
+  // detect an escaped molecule so it is possible that the same
+  // issue was present there as well
+  const int mult = 1;
+#endif
+
+  pos_t bump = (product_orientation > 0) ? mult*POS_EPS : -mult*POS_EPS;
   Vec3 displacement = Vec3(2 * bump) * wall.normal;
   Vec3 new_pos_after_diffuse;
 
