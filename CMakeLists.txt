@@ -22,6 +22,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
   add_definitions(-DYY_NO_UNISTD_H)
+  add_definitions(/EHsc)
 endif(MSVC)
 
 #set(CMAKE_CXX_EXTENSIONS OFF)
