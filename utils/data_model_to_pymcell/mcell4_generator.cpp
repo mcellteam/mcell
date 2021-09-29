@@ -401,8 +401,12 @@ vector<IdLoc> MCell4Generator::generate_reaction_rules(ostream& out, const std::
           !rxn_has_variable_rate(reaction_list_item) &&
           !rxn_uses_surf_class(reaction_list_item, surf_class_names)) {
 
+
         bool used_in_observables = is_rxn_used_in_observables(data.mcell, reaction_list_item[KEY_RXN_NAME].asString());
-        string name = bng_gen->generate_single_reaction_rule(reaction_list_item, used_in_observables);
+        bool rxn_has_name = (reaction_list_item[KEY_RXN_NAME].asString() != "");
+        string name = bng_gen->generate_single_reaction_rule(reaction_list_item, rxn_has_name);
+//        string name = bng_gen->generate_single_reaction_rule(reaction_list_item, used_in_observables);
+        
         rxn_names_w_loc.push_back(IdLoc(name, false));
         if (used_in_observables) {
           data.bngl_reaction_rules_used_in_observables.push_back(name);
