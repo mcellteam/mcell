@@ -60,6 +60,7 @@ private:
 
   std::string generate_single_geometry_object(
       std::ofstream& out, const int index, Json::Value& object);
+  std::vector<std::string> generate_geometry_package();
   std::vector<std::string> generate_geometry();
 
   void generate_release_sites(std::ostream& out, std::vector<std::string>& release_site_names);

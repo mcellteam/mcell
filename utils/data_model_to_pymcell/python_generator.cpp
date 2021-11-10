@@ -830,6 +830,45 @@ string PythonGenerator::generate_single_geometry_object(
 }
 
 
+// Generate geometry as a python package (with  __init__.py) in geom_dir
+//   Generate individual geometry objects as python modules in geom_dir
+void PythonGenerator::generate_geometry_package(const std::string& geom_dir, std::vector<std::string>& geometry_objects) {
+
+
+  ofstream initpy_out;
+  open_and_check_file_w_prefix(geom_dir, "__init__", initpy_out, false);
+
+  initpy_out << "import sys\n";
+  initpy_out << "import os\n\n";
+  initpy_out << "sys.path.append(os.path.dirname(os.path.abspath(__file__)))\n\n";
+  
+  ofstream geom_out;
+
+  Value& geometrical_objects = get_node(mcell, KEY_GEOMETRICAL_OBJECTS);
+  if (!geometrical_objects.isMember(KEY_OBJECT_LIST)) {
+    return;
+  }
+  Value& object_list = get_node(geometrical_objects, KEY_OBJECT_LIST);
+  for (Value::ArrayIndex i = 0; i < object_list.size(); i++) {
+    Value& object = object_list[i];
+    string parent_name = S(KEY_OBJECT_LIST) + "[" + to_string(i) + "]";
+    string geom_name = make_id(get_node(parent_name, object, KEY_NAME).asString());
+    open_and_check_file_w_prefix(geom_dir, geom_name, geom_out, false);
+    geom_out << "import mcell as m\n\n";
+    string name = generate_single_geometry_object(geom_out, i, object);
+    if (name == BNG::DEFAULT_COMPARTMENT_NAME) {
+      data.has_default_compartment_object = true;
+    }
+    geom_out.close();
+    geometry_objects.push_back(name);
+    initpy_out << "from " + geom_name + " import *\n";
+  }
+
+  initpy_out.close();
+  
+}
+
+
 void PythonGenerator::generate_geometry(std::ostream& out, std::vector<std::string>& geometry_objects) {
 
   Value& geometrical_objects = get_node(mcell, KEY_GEOMETRICAL_OBJECTS);

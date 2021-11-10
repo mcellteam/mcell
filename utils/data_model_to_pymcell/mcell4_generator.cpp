@@ -15,6 +15,8 @@
 #include "mcell4_generator.h"
 #include "bng/bng_defines.h"
 #include "src/util.h"
+#include "bng/filesystem_utils.h"
+
 
 using namespace std;
 using namespace MCell::API;
@@ -89,7 +91,8 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   CHECK(generate_parameters(), failed);
   CHECK(generate_subsystem(), failed);
   std::vector<std::string> geometry_names;
-  CHECK(geometry_names = generate_geometry(), failed);
+//  CHECK(geometry_names = generate_geometry(), failed);
+  CHECK(geometry_names = generate_geometry_package(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
   CHECK(generate_observables(), failed);
   CHECK(generate_model(failed), failed);
@@ -566,6 +569,34 @@ void MCell4Generator::generate_subsystem() {
 }
 
 
+vector<string> MCell4Generator::generate_geometry_package() {
+
+  vector<string> geometry_objects;
+
+  // TODO: check versions
+
+  if (!data.mcell.isMember(KEY_GEOMETRICAL_OBJECTS)) {
+    return geometry_objects;
+  }
+  Value& geometrical_objects = get_node(data.mcell, KEY_GEOMETRICAL_OBJECTS);
+  if (!geometrical_objects.isMember(KEY_OBJECT_LIST)) {
+    return geometry_objects;
+  }
+
+  // Make subdir for geometry modules
+  string geom_dir = get_filename(data.output_files_prefix, GEOMETRY, "")+"/";
+  FSUtils::make_dir_w_multiple_attempts(geom_dir);
+
+  // Generate geometry as a python package (with  __init__.py) in geom_dir
+  //  Generate individual geometry objects as python modules in geom_dir 
+  python_gen->generate_geometry_package(geom_dir, geometry_objects);
+
+  geometry_generated = true;
+
+  return geometry_objects;
+}
+
+
 vector<string> MCell4Generator::generate_geometry() {
 
   vector<string> geometry_objects;
@@ -591,6 +622,7 @@ vector<string> MCell4Generator::generate_geometry() {
   // NOTE: we can generate BNGL compartments from geometry here
 
   out.close();
+
   geometry_generated = true;
 
   return geometry_objects;
