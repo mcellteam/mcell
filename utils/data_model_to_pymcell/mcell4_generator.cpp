@@ -914,7 +914,11 @@ void MCell4Generator::generate_counts(
 
     string rxn_or_mol = reaction_output_item[KEY_RXN_OR_MOL].asString();
     string mul_div_str = "";
-    if (rxn_or_mol == VALUE_MDLSTRING) {
+    if (rxn_or_mol == VALUE_FILE) {
+      // Always skip "FILE:" observables
+      continue;
+    }
+    else if (rxn_or_mol == VALUE_MDLSTRING) {
       // first check whether we need to generate count_terms
       string mdl_string = reaction_output_item[KEY_MDL_STRING].asString();
       uint num_counts = get_num_counts_in_mdl_string(mdl_string);

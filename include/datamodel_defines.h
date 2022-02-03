@@ -224,6 +224,7 @@ const char* const KEY_RXN_OR_MOL = "rxn_or_mol";
 const char* const VALUE_MDLSTRING = "MDLString";
 const char* const VALUE_REACTION = "Reaction";
 const char* const VALUE_MOLECULE = "Molecule";
+const char* const VALUE_FILE = "File";
 const char* const KEY_PLOTTING_ENABLED = "plotting_enabled";
 const char* const KEY_MDL_FILE_PREFIX = "mdl_file_prefix"; // contains count name
 const char* const KEY_OUTPUT_FILE_OVERRIDE = "output_file_override";
