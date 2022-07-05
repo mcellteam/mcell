@@ -355,44 +355,53 @@ bool compute_containement_mapping(
 }
 
 
+static int get_max_path_length_recursive(
+    const GeomObjectInfo& child,
+    const ContainmentMap& contained_in_mapping,
+    const GeomObjectInfo** best_parent = nullptr) {
+
+  // need to find an object that is a direct parent
+  // we can find it by counting length of paths to from child to an object that has no parents
+  // E.g., this is the contents of contained_in_mapping and we would like to determine parent of O3
+  //    O3 -> O1, O2
+  //    O2 -> O1
+  //
+  // Listing all possible paths from O3:
+  //
+  // 1: O3 -> O1
+  // 2: O3 -> O2 -> O1
+  //
+  // the longest is 2:, therefore the direct parent of O3 is O2
+  // partial overlaps and loops are not allowed here
+
+  int max_length = 0;
+  const auto& it_obj_contained_in = contained_in_mapping.find(child);
+  if (it_obj_contained_in == contained_in_mapping.end()) {
+    if (best_parent != nullptr) {
+      *best_parent = nullptr;
+    }
+    return 1; // end, final object
+  }
+
+  for (const GeomObjectInfo& parent: it_obj_contained_in->second) {
+    int length = get_max_path_length_recursive(parent, contained_in_mapping);
+    if (length > max_length) {
+      max_length = length;
+      if (best_parent != nullptr) {
+        *best_parent = &parent;
+      }
+    }
+  }
+
+  return max_length + 1;
+}
+
 const GeomObjectInfo* get_direct_parent_info(
     const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
 
-  auto it = contained_in_mapping.find(obj_info);
-  if (it == contained_in_mapping.end()) {
-    return nullptr;
-  }
-  const std::set<GeomObjectInfo>& obj_contained_in = it->second;
-
-  // need to find an object that is a direct parent
-  //   p in contained_in_mapping(obj)
-  // such that:
-  //  contained_in_mapping(p) == contained_in_mapping(obj) - p
-  //
-  // i.e.: p is the direct intermediate between our object and all other objects obj is contained in
-  //
-  for (const GeomObjectInfo& parent: obj_contained_in) {
-
-    // copy 'parents' and remove 'p'
-    std::set<GeomObjectInfo> obj_contained_in_less_p = obj_contained_in;
-    obj_contained_in_less_p.erase(parent);
-
-    auto it = contained_in_mapping.find(parent);
-    if (it == contained_in_mapping.end()) {
-      // this object has no parent so it must be the direct parent
-      return &parent;
-    }
-    const std::set<GeomObjectInfo>& p_contained_in = it->second;
-
-    if (obj_contained_in_less_p == p_contained_in) {
-      // this is the closest parent
-      return &parent;
-    }
-  }
-
-  // nothing found - is outside of all objects
-  assert(obj_contained_in.empty());
-  return nullptr;
+  const GeomObjectInfo* best_parent;
+  get_max_path_length_recursive(obj_info, contained_in_mapping, &best_parent);
+  return best_parent;
 }
 
 

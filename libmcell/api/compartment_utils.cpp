@@ -107,29 +107,6 @@ static std::shared_ptr<API::GeometryObject> get_obj_by_name(
 void set_parent_and_children_compartments(
     std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects) {
 
-#if 0
-  auto obj_cp = std::shared_ptr<API::GeometryObject>(nullptr);
-  for (auto obj: compartment_objects) {
-    release_assert(obj->name == "CP" || obj->name == "EC"); // limited for now
-    if (obj->name == "CP") {
-      obj_cp = obj;
-    }
-  }
-
-  auto obj_ec = std::shared_ptr<API::GeometryObject>(nullptr);
-  for (auto obj: compartment_objects) {
-    if (obj->name == "EC") {
-      obj->child_compartments.insert(obj_cp);
-      obj_ec = obj;
-    }
-  }
-  if (is_set(obj_cp) && is_set(obj_ec)) {
-    obj_cp->parent_compartment = obj_ec;
-  }
-
-  return true;
-#endif
-
   GeomObjectInfoVector compartment_infos;
   convert_compartment_objects_to_geom_object_infos(compartment_objects, compartment_infos);
 
