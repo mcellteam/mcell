@@ -858,8 +858,8 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   tile_index_t j = GridUtils::xyz2grid_tile_index(p, collision.pos, wall);
   assert(j != TILE_INDEX_INVALID);
 
-  molecule_id_t colliging_mol_id = grid.get_molecule_on_tile(j);
-  if (colliging_mol_id == MOLECULE_ID_INVALID) {
+  molecule_id_t colliding_mol_id = grid.get_molecule_on_tile(j);
+  if (colliding_mol_id == MOLECULE_ID_INVALID) {
     return -1;
   }
 
@@ -868,7 +868,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     collision_orientation = ORIENTATION_UP;
   }
 
-  Molecule& colliding_molecule = p.get_m(colliging_mol_id);
+  Molecule& colliding_molecule = p.get_m(colliding_mol_id);
   assert(colliding_molecule.is_surf());
 
   Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
@@ -2746,7 +2746,26 @@ int DiffuseReactEvent::outcome_products_random(
         pos = GeometryUtils::uv2xyz(reacA->s.pos, w_pos, p.get_wall_vertex(w_pos, 0));
       }
       else {
-        pos = collision.pos;
+        // Nov 10, 2022.  Fix placement of non-diffusible vol product.
+        // Determine if one of the vol reactants is non-diffusive
+        // figure out which vol reactant is non-diffusive
+        // For bimolecular rxns:
+        //   the vol product is non-diffusive if one of the vol reactants
+        //   is non-diffusive. We should place the product at the location
+        //   of the "colliding_molecule" which should be non-diffusive
+        //   in this case.
+        // For unimolecular rxns:
+        //   reacB_id is invalid
+        //   and collision.pos is the location of the unimolecular reactant
+        if (species.D == 0 && reacB_id != MOLECULE_ID_INVALID) {
+          // set position of product to position of non-diffusive reactant
+          pos = p.get_m(collision.colliding_molecule_id).v.pos;
+        }
+        else {
+          // both reactants are diffusive or rxn is unimolecular:
+          pos = collision.pos;
+        }
+         
       }
       Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, pos, time);
 
