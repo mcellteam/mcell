@@ -214,7 +214,7 @@ private:
 
   bool collide_and_react_with_vol_mol(
       Partition& p,
-      const Collision& collision,
+      Collision& collision,
       Vec3& displacement,
       const double t_steps,
       const double r_rate_factor,

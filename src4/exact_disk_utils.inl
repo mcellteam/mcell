@@ -157,7 +157,7 @@ enum class ExdRole {
 
 /* Negative numbers used as flags for reaction disks, used as result of exact_disk */
 /* Note: TARGET_OCCLUDED_RES is assumed for any negative number not defined here */
-#define TARGET_OCCLUDED_RES -1
+#define TARGET_OCCLUDED_RES -2
 
 enum class IntersectResult {
   TARGET_OCCLUDED,
@@ -847,11 +847,13 @@ static pos_t __attribute__((noinline)) exact_disk(
     bool use_expanded_list // option from world
 ) {
   const BNG::Species& moving_species = p.get_all_species().get(moving.species_id);
+  const BNG::Species& target_species = p.get_all_species().get(target.species_id);
 
   /* Initialize */
   exd_vertex_t* vertex_head = NULL;
   int n_verts = 0;
   int n_edges = 0;
+  pos_t target_pos_factor = 1;
 
   /* Partially set up coordinate systems for first pass */
   pos_t R2 = R * R;
@@ -884,6 +886,7 @@ static pos_t __attribute__((noinline)) exact_disk(
   const WallsInSubpart& wall_indices = p.get_subpart_wall_indices(collision_subpart_index);
 
   // TODO_LATER: move this to a separate function - only after we got rid of linked lists
+
   for (wall_index_t wall_index: wall_indices) {
     const Wall& w = p.get_wall(wall_index);
     Vec3 w_vert[VERTICES_IN_TRIANGLE];
@@ -934,7 +937,40 @@ static pos_t __attribute__((noinline)) exact_disk(
     if (a > 0 && a * a >= b)
       continue;
 
+    /* Check if wall is reflective to target */
+    if (!target_species.has_flag(BNG::SPECIES_FLAG_CAN_VOLWALL)) {
+      // target is reflected by all walls
+      // set target_pos_factor to -1 to indicate that the product should be placed at target.pos 
+      target_pos_factor = -1;
+    }
+    else {
+      // target is transparent to one or more walls
+      // so make sure the target species is reflective to at least one wall
+      BNG::RxnClassesVector target_matching_rxn_classes;
+      RxnUtils::trigger_intersect(p, target, ORIENTATION_NONE, w, true, target_matching_rxn_classes);
+      bool some_reflective = true;
+
+      // Check target_matching_rxn_classes for at least one reflective case
+      if (!target_matching_rxn_classes.empty()) {
+        // all reactions with the wall must be "transparent" for this wall to be ignored
+        some_reflective = false;
+        for (const BNG::RxnClass* rxn_class: target_matching_rxn_classes) {
+          if (!rxn_class->is_transparent_type()) {
+            some_reflective = true;
+            break;
+          }
+        }
+      }
+
+      // set target_pos_factor to -1 to indicate that the product should be placed at target.pos 
+      if (some_reflective) {
+        target_pos_factor = -1;
+      }
+    }
+
+    // NOTE: should be able to move this block before bbox calculations above
     /* Reject those that the moving particle can travel through */
+
     if (moving_species.has_flag(BNG::SPECIES_FLAG_CAN_VOLWALL)) {
       BNG::RxnClassesVector matching_rxn_classes;
       RxnUtils::trigger_intersect(p, moving, ORIENTATION_NONE, w, true, matching_rxn_classes);
@@ -1016,7 +1052,7 @@ static pos_t __attribute__((noinline)) exact_disk(
     }
     assert(circle_res == IntersectResult::CONTINUE_WITH_THIS_WALL);
 
-    /* Add this edge to the growing list, or return -1 if edge blocks target */
+    /* Add this edge to the growing list, or return TARGET_OCCLUDED_RES if edge blocks target */
 
     /* Construct final endpoints and prepare to store them */
     exd_vertex_t* ppa;
@@ -1093,7 +1129,7 @@ static pos_t __attribute__((noinline)) exact_disk(
 
   /* Did we even find anything?  If not, return full area */
   if (n_edges == 0) {
-    return 1;
+    return target_pos_factor*1;
   }
   /* If there is only one edge, just calculate it */
   else if (n_edges == 1) {
@@ -1111,7 +1147,7 @@ static pos_t __attribute__((noinline)) exact_disk(
     pos_t A = (0.5 * bres + R2 * (MY_PI - 0.5 * sres)) / (MY_PI * R2);
 
     delete_list(vertex_head);
-    return A;
+    return target_pos_factor*A;
   }
 
   /* If there are multiple edges, calculating area is more complex. */
@@ -1141,7 +1177,7 @@ static pos_t __attribute__((noinline)) exact_disk(
 
   /* Return fractional area */
 
-  return A / (MY_PI * R2);
+  return target_pos_factor*A / (MY_PI * R2);
 }
 
 

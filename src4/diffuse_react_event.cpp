@@ -785,7 +785,7 @@ RayTraceState ray_trace_vol(
 // returns true if the first reactant was destroyed
 bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     Partition& p,
-    const Collision& collision,
+    Collision& collision,
     Vec3& displacement,
     const double t_steps,
     const double r_rate_factor,
@@ -795,6 +795,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   Molecule& colliding_molecule = p.get_m(collision.colliding_molecule_id); // am
   Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
 
+
   // returns 1 when there are no walls at all
   double factor = ExactDiskUtils::exact_disk(
       p, collision.pos, displacement, p.config.rxn_radius_3d,
@@ -802,8 +803,25 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
       p.config.use_expanded_list
   );
 
-  if (factor < 0) {
-    return 0; // reaction blocked by a wall
+  // Negative value of factor has two meanings:
+  // factor == -2  (i.e. == TARGET_OCCLUDED_RES) means reaction is blocked by a wall
+  // (factor < 0 && factor >= -1) means target is near reflective boundary so
+  //   we need to place the product at the location of target
+
+  // if exact_disk() returned with TARGET_OCCLUDED_RES
+  if (factor == -2) {
+    return false; // reaction blocked by a wall
+  }
+  
+  // NOTE TEST: force collision.pos to position of target
+  // collision.pos = colliding_molecule.v.pos;
+
+  if (factor < 0 && factor >= -1) {
+    // target and loc are near wall reflective to target
+    // place product at location of target molecule
+    factor *= -1;  // set factor back to positive value for this case only
+    // NOTE TEST: do not set collision.pos to position of target
+    collision.pos = colliding_molecule.v.pos;
   }
 
   RxnClass* rxn_class = collision.rxn_class;
@@ -2746,6 +2764,7 @@ int DiffuseReactEvent::outcome_products_random(
         pos = GeometryUtils::uv2xyz(reacA->s.pos, w_pos, p.get_wall_vertex(w_pos, 0));
       }
       else {
+        // TODO: check outcome of case:  vol + surf -> vol
         // Nov 10, 2022.  Fix placement of non-diffusible vol product.
         // Determine if one of the vol reactants is non-diffusive
         // figure out which vol reactant is non-diffusive
@@ -2765,6 +2784,7 @@ int DiffuseReactEvent::outcome_products_random(
           // both reactants are diffusive or rxn is unimolecular:
           pos = collision.pos;
         }
+
          
       }
       Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, pos, time);
