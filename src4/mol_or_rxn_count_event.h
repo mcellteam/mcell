@@ -254,6 +254,7 @@ private:
 
   // index to this array is species_id
   std::vector<CountSpeciesInfo> count_species_info;
+  //std::unordered_map<species_id_t, CountSpeciesInfo> count_species_info_umap;
 
   // flags to optimize counting
   bool count_mols;

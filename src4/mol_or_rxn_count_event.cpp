@@ -727,6 +727,7 @@ double MolOrRxnCountEvent::get_single_count_value() {
 
 
 void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_id) {
+  //CountSpeciesInfo& info = count_species_info_umap[species_id];
   CountSpeciesInfo& info = count_species_info[species_id];
   assert(info.type == CountSpeciesInfoType::NotSeen);
 
@@ -793,6 +794,7 @@ inline const CountSpeciesInfo& MolOrRxnCountEvent::get_or_compute_count_species_
     // extend the array if we did not see these species yet
     count_species_info.resize(species_id + 1);
   }
+  //CountSpeciesInfo& res = count_species_info_umap[species_id];
   CountSpeciesInfo& res = count_species_info[species_id];
   if (res.type == CountSpeciesInfoType::NotSeen) {
     // updates res
