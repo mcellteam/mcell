@@ -410,7 +410,7 @@ void MolOrRxnCountItem::to_data_model(const World* world, Json::Value& reaction_
 template<class T>
 static uint sum_all_map_items(const T& map) {
   uint res = 0;
-  for (const auto it: map) {
+  for (const auto& it: map) {
     res += it.second;
   }
   return res;
@@ -499,7 +499,7 @@ void MolOrRxnCountEvent::compute_mol_count_item(
     const Partition& p,
     const MolOrRxnCountItem& item,
     const Molecule& m,
-    CountItemVector& count_items
+    CountValueVector& count_values
 ) {
   species_id_t all_mol_id = world->get_all_species().get_all_molecules_species_id();
   species_id_t all_vol_id = world->get_all_species().get_all_volume_molecules_species_id();
@@ -518,21 +518,21 @@ void MolOrRxnCountEvent::compute_mol_count_item(
 
       if (term.type == CountType::EnclosedInWorld) {
         // count the molecule
-        count_items[item.index].inc_or_dec(term.sign_in_expression, num_matches);
+        count_values[item.index].inc_or_dec(term.sign_in_expression, num_matches);
       }
       else if (m.is_vol() && term.type == CountType::EnclosedInVolumeRegion) {
 
         // is the molecule inside of the object/volume region expression that we are checking?
         const CountedVolume& enclosing_volumes = p.get_counted_volume(m.v.counted_volume_index);
         if (counted_volume_matches_region_expr_recursively(enclosing_volumes, term.region_expr.root)) {
-          count_items[item.index].inc_or_dec(term.sign_in_expression, num_matches);
+          count_values[item.index].inc_or_dec(term.sign_in_expression, num_matches);
         }
       }
       else if (m.is_surf() && term.type == CountType::PresentOnSurfaceRegion) {
 
         // does the molecule's wall match the region expression?
         if (wall_matches_region_expr_recursively(p, m.s.wall_index, term.region_expr.root)) {
-          count_items[item.index].inc_or_dec(term.sign_in_expression, num_matches);
+          count_values[item.index].inc_or_dec(term.sign_in_expression, num_matches);
         }
       }
     }
@@ -544,7 +544,7 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
     Partition& p,
     const MolOrRxnCountItem& item,
     const BNG::RxnRule* rxn,
-    CountItemVector& count_items
+    CountValueVector& count_values
 ) {
   for (const MolOrRxnCountTerm& term: item.terms) {
     assert(!term.is_rxn_count() || term.rxn_rule_id != BNG::RXN_RULE_ID_INVALID);
@@ -553,7 +553,7 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
     if (term.is_rxn_count() && term.rxn_rule_id == rxn->id) {
 
       // use initial_reactions_count (from previous checkpoint)
-      count_items[item.index].value += term.initial_reactions_count;
+      count_values[item.index].value += term.initial_reactions_count;
 
       // get counts from partition
       const CountInGeomObjectMap& counts_in_objects = p.get_rxn_in_volume_count_map(term.rxn_rule_id);
@@ -562,18 +562,18 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
       if (term.type == CountType::RxnCountInWorld) {
         // count all the occurrences
 
-        count_items[item.index].inc_or_dec(
+        count_values[item.index].inc_or_dec(
             term.sign_in_expression,
             sum_all_map_items(counts_in_objects)
         );
-        count_items[item.index].inc_or_dec(
+        count_values[item.index].inc_or_dec(
             term.sign_in_expression,
             sum_all_map_items(counts_on_walls)
         );
       }
       else if (term.type == CountType::RxnCountInVolumeRegion) {
 
-        for (const auto it: counts_in_objects) {
+        for (const auto& it: counts_in_objects) {
           if (it.second != 0) {
             counted_volume_index_t counted_volume_index_for_this_count = it.first;
 
@@ -581,20 +581,20 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
             // might be nullptr if not found
             const CountedVolume& enclosing_volumes = p.get_counted_volume(counted_volume_index_for_this_count);
             if (counted_volume_matches_region_expr_recursively(enclosing_volumes, term.region_expr.root)) {
-              count_items[item.index].inc_or_dec(term.sign_in_expression, it.second);
+              count_values[item.index].inc_or_dec(term.sign_in_expression, it.second);
             }
           }
         }
       }
       else if (term.type == CountType::RxnCountOnSurfaceRegion) {
 
-        for (const auto it: counts_on_walls) {
+        for (const auto& it: counts_on_walls) {
           if (it.second != 0) {
             wall_index_t wall_index_for_this_count = it.first;
 
             // does the reaction's wall match the region expression?
             if (wall_matches_region_expr_recursively(p, wall_index_for_this_count, term.region_expr.root)) {
-              count_items[item.index].inc_or_dec(term.sign_in_expression, it.second);
+              count_values[item.index].inc_or_dec(term.sign_in_expression, it.second);
             }
           }
         }
@@ -604,17 +604,17 @@ void MolOrRxnCountEvent::compute_rxn_count_item(
 }
 
 
-void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
+void MolOrRxnCountEvent::compute_counts(CountValueVector& count_values) {
 
   // go through all molecules and count them
   PartitionVector& partitions = world->get_partitions();
-  count_items.resize(mol_rxn_count_items.size());
+  count_values.resize(mol_rxn_count_items.size());
 
   // initialize new count items
   for (uint i = 0; i < mol_rxn_count_items.size(); i++) {
-    count_items[i].column_index = mol_rxn_count_items[i].buffer_column_index;
-    count_items[i].time = event_time * world->config.time_unit;
-    count_items[i].value = 0;
+    count_values[i].column_index = mol_rxn_count_items[i].buffer_column_index;
+    count_values[i].time = event_time * world->config.time_unit;
+    count_values[i].value = 0;
   }
 
   uint_set<uint> processed_item_indices;
@@ -644,7 +644,7 @@ void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
         assert(multiplier != 0);
 
         // use the count of this species as tracked in the BNG library
-        count_items[item.index].inc_or_dec(
+        count_values[item.index].inc_or_dec(
             term.sign_in_expression, species->get_num_instantiations() * multiplier);
 
         processed_item_indices.insert(index);
@@ -677,7 +677,7 @@ void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
             continue;
           }
 
-          compute_mol_count_item(p, mol_rxn_count_items[i], m, count_items);
+          compute_mol_count_item(p, mol_rxn_count_items[i], m, count_values);
         }
       } // for molecules
     }
@@ -690,7 +690,7 @@ void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
 
         // for each counting info
         for (uint i = 0; i < mol_rxn_count_items.size(); i++) {
-          compute_rxn_count_item(p, mol_rxn_count_items[i], rxn, count_items);
+          compute_rxn_count_item(p, mol_rxn_count_items[i], rxn, count_values);
         }
       } // for rxns
     }
@@ -699,30 +699,30 @@ void MolOrRxnCountEvent::compute_counts(CountItemVector& count_items) {
   for (uint i = 0; i < mol_rxn_count_items.size(); i++) {
     // multiply the results by a constant
     // (value is different from 1 when the count expression in MDL had a top level multiplication)
-    count_items[i].value *= mol_rxn_count_items[i].multiplier;
+    count_values[i].value *= mol_rxn_count_items[i].multiplier;
   }
 }
 
 
 void MolOrRxnCountEvent::step() {
-  CountItemVector count_items;
+  CountValueVector count_values;
 
-  compute_counts(count_items);
+  compute_counts(count_values);
 
   // store the counts to buffers
   for (uint i = 0; i < mol_rxn_count_items.size(); i++) {
-    world->get_count_buffer(mol_rxn_count_items[i].buffer_id).add(count_items[i]);
+    world->get_count_buffer(mol_rxn_count_items[i].buffer_id).add(count_values[i]);
   }
 }
 
 
 double MolOrRxnCountEvent::get_single_count_value() {
-  CountItemVector count_items;
+  CountValueVector count_values;
 
-  compute_counts(count_items);
-  assert(count_items.size() == 1);
+  compute_counts(count_values);
+  assert(count_values.size() == 1);
 
-  return count_items[0].value;
+  return count_values[0].value;
 }
 
 

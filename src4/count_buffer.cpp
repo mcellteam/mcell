@@ -27,7 +27,7 @@ const uint GDAT_COLUMN_WIDTH = 14;
 
 namespace MCell {
 
-void CountItem::write_as_dat(std::ostream& out) const {
+void CountValue::write_as_dat(std::ostream& out) const {
   out << time << " " << value << "\n";
 }
 
@@ -69,9 +69,9 @@ void CountBuffer::flush() {
   if (output_format == CountOutputFormat::DAT) {
     // there is a single column
     assert(data.size() == 1);
-    for (const auto& item: data[0]) {
-      assert(item.column_index == 0);
-      item.write_as_dat(fout);
+    for (const auto& value: data[0]) {
+      assert(value.column_index == 0);
+      value.write_as_dat(fout);
     }
   }
   else {
@@ -90,10 +90,10 @@ void CountBuffer::flush() {
       // output each column
       for (size_t col = 0; col < data.size(); col++) {
         assert(row < data[col].size());
-        const auto& item = data[col][row];
-        release_assert(cmp_eq(item.time, time, SQRT_EPS) && "Mismatch in gdat column times");
+        const auto& value = data[col][row];
+        release_assert(cmp_eq(value.time, time, SQRT_EPS) && "Mismatch in gdat column times");
         fout << "  ";
-        write_gdat_value(fout, item.value);
+        write_gdat_value(fout, value.value);
       }
       fout << "\n";
     }

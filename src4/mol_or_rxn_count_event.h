@@ -240,17 +240,17 @@ private:
       const Partition& p,
       const MolOrRxnCountItem& item,
       const Molecule& m,
-      CountItemVector& count_items
+      CountValueVector& count_values
   );
 
   void compute_rxn_count_item(
       Partition& p,
       const MolOrRxnCountItem& item,
       const BNG::RxnRule* rxn,
-      CountItemVector& count_items
+      CountValueVector& count_values
   );
 
-  void compute_counts(CountItemVector& count_items);
+  void compute_counts(CountValueVector& count_values);
 
   // index to this array is species_id
   std::vector<CountSpeciesInfo> count_species_info;

@@ -21,13 +21,13 @@ namespace MCell {
 
 using API::CountOutputFormat;
 
-class CountItem {
+class CountValue {
 public:
-  CountItem()
+  CountValue()
     : column_index(UINT_INVALID), time(TIME_INVALID), value(0) {
   }
 
-  CountItem(const double time_, const double value_)
+  CountValue(const double time_, const double value_)
     : column_index(UINT_INVALID), time(time_), value(value_) {
   }
 
@@ -43,7 +43,7 @@ public:
   void write_as_dat(std::ostream& out) const;
 };
 
-typedef small_vector<CountItem> CountItemVector;
+typedef small_vector<CountValue> CountValueVector;
 
 
 // might need to be a template in the future
@@ -67,12 +67,12 @@ public:
     data.resize(column_names.size());
   }
 
-  void add(const CountItem& item) {
-    assert(item.column_index < data.size());
-    if (data[item.column_index].size() >= buffer_size) {
+  void add(const CountValue& value) {
+    assert(value.column_index < data.size());
+    if (data[value.column_index].size() >= buffer_size) {
       flush();
     }
-    data[item.column_index].push_back(item);
+    data[value.column_index].push_back(value);
   }
 
   // close, create an empty file
@@ -117,7 +117,7 @@ private:
 
   // buffer columns, size of this vector is the
   // same as column_names size
-  std::vector<CountItemVector> data;
+  std::vector<CountValueVector> data;
 
   bool open_for_append;
 };
