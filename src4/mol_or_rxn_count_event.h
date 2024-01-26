@@ -13,6 +13,9 @@
 #ifndef SRC4_MOL_OR_RXN_COUNT_EVENT_H_
 #define SRC4_MOL_OR_RXN_COUNT_EVENT_H_
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include "bng/bng.h"
 
 #include "base_event.h"
@@ -166,22 +169,13 @@ public:
 typedef small_vector<MolOrRxnCountItem> MolOrRxnCountItemVector;
 
 
-enum class CountSpeciesInfoType {
-  NotSeen,
-  Counted,
-  NotCounted
-};
-
 /**
  * Structure used in caching of information on whether the coutn event counts given species.
  */
 struct CountSpeciesInfo {
   CountSpeciesInfo()
-    : type(CountSpeciesInfoType::NotSeen),
-      all_are_world_mol_counts(true) {
+    : all_are_world_mol_counts(true) {
   }
-
-  CountSpeciesInfoType type;
 
   // when true, all count items that count this species are listed in
   // the world_count_item_indices
@@ -233,7 +227,7 @@ public:
   World* world;
 
 private:
-  const CountSpeciesInfo& get_or_compute_count_species_info(const species_id_t species_id);
+  inline bool _compute_count_species_info(const species_id_t);
   void compute_count_species_info(const species_id_t species_id);
 
   void compute_mol_count_item(
@@ -252,9 +246,10 @@ private:
 
   void compute_counts(CountValueVector& count_values);
 
-  // index to this array is species_id
-  std::vector<CountSpeciesInfo> count_species_info;
-  //std::unordered_map<species_id_t, CountSpeciesInfo> count_species_info_umap;
+  // umap containing only the CountSpeciesInfo of counted ones without CountSpeciesInfoType
+  std::unordered_map<species_id_t, CountSpeciesInfo> count_species_info;
+  // uset containing only species ids of the not-counted ones
+  std::unordered_set<species_id_t> not_counted;
 
   // flags to optimize counting
   bool count_mols;
