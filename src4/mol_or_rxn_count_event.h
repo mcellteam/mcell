@@ -13,9 +13,6 @@
 #ifndef SRC4_MOL_OR_RXN_COUNT_EVENT_H_
 #define SRC4_MOL_OR_RXN_COUNT_EVENT_H_
 
-#include <unordered_map>
-#include <unordered_set>
-
 #include "bng/bng.h"
 
 #include "base_event.h"
@@ -227,7 +224,7 @@ public:
   World* world;
 
 private:
-  inline bool _compute_count_species_info(const species_id_t);
+  inline bool species_in_count_species_info(const species_id_t species_id);
   void compute_count_species_info(const species_id_t species_id);
 
   void compute_mol_count_item(
@@ -246,10 +243,10 @@ private:
 
   void compute_counts(CountValueVector& count_values);
 
-  // umap containing only the CountSpeciesInfo of counted ones without CountSpeciesInfoType
-  std::unordered_map<species_id_t, CountSpeciesInfo> count_species_info;
-  // uset containing only species ids of the not-counted ones
-  std::unordered_set<species_id_t> not_counted;
+  // mapping from all species_ids to those to be counted
+  std::vector<species_id_t> count_species_id_vec;
+  // containing CountSpeciesInfo for those to be counted
+  std::vector<CountSpeciesInfo> count_species_info_vec;
 
   // flags to optimize counting
   bool count_mols;
