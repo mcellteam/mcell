@@ -90,12 +90,14 @@ BUILD_UNAME=`uname -a`
 
 ####################
 ### Gather program version info
-version_path=`dirname $0`/version.txt
+repo_dir=`dirname $0`
+version_path=${repo_dir}/version.txt
+#version_path=`dirname $0`/version.txt
 MCELL_VERSION=`cat "${version_path}"`
 MCELL_HAVE_REVISION_INFO=0
 GIT=`which git 2>/dev/null`
 if test -x "${GIT}"; then
-  if "${GIT}" describe --all --abbrev=4 HEAD >/dev/null 2>&1; then
+  if ( cd ${repo_dir} ; "${GIT}" describe --all --abbrev=4 HEAD >/dev/null 2>&1; ) then
     MCELL_HAVE_REVISION_INFO=1
   fi
 fi
@@ -108,10 +110,10 @@ echo
 echo "/* Program version info */"
 echo "#define MCELL_VERSION \"${MCELL_VERSION}\""
 if test "$MCELL_HAVE_REVISION_INFO" = "1"; then
-    echo "#define MCELL_REVISION $(git show -s --format=\"%h\")"
-    echo "#define MCELL_REVISION_DATE $(git show -s --format=\"%aD\")"
+    echo "#define MCELL_REVISION $(cd ${repo_dir} ; git show -s --format=\"%h\") "
+    echo "#define MCELL_REVISION_DATE $(cd ${repo_dir} ; git show -s --format=\"%aD\")"
     echo "#define MCELL_REVISION_COMMITTED 1"
-    echo "#define MCELL_REVISION_BRANCH \"$(git rev-parse --abbrev-ref HEAD)\""
+    echo "#define MCELL_REVISION_BRANCH \"$(cd ${repo_dir}  ; git rev-parse --abbrev-ref HEAD)\""
 else
     echo "#define MCELL_REVISION \"\""
     echo "#define MCELL_REVISION_DATE \"\""
