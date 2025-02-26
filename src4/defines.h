@@ -240,6 +240,11 @@ const edge_index_t EDGE_INDEX_INVALID = INDEX_INVALID;
 typedef uint count_buffer_id_t; // index of a tile in a grid
 const count_buffer_id_t COUNT_BUFFER_ID_INVALID = INDEX_INVALID;
 
+// index of CountSpeciesInfo in count_species_info_vec
+typedef uint count_species_info_index_t;
+const count_species_info_index_t NotSeenYet = INDEX_INVALID;
+const count_species_info_index_t NotToBeCounted = INDEX_INVALID2;
+
 typedef uint rgba_t; // color represented by rgba
 const rgba_t DEFAULT_COLOR = 0xFFFFFF3F; // 1, 1, 1, 0.25
 

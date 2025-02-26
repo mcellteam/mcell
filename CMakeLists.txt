@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.25.1)
 project(mcell)
 
 if ("${PYTHON_VERSION}" STREQUAL "")
-  set(PYTHON_VERSION 3.9)
+  set(PYTHON_VERSION 3.11)
 endif()
 string(REPLACE "\." "" PYTHON_VERSION_NO_DOT ${PYTHON_VERSION})
 set(CMAKE_CXX_FLAGS "-DPYTHON_VERSION=${PYTHON_VERSION_NO_DOT}")
@@ -23,6 +23,10 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
   add_definitions(-DYY_NO_UNISTD_H)
   add_definitions(/EHsc)
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /O2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2")
+  endif()
 endif(MSVC)
 
 #set(CMAKE_CXX_EXTENSIONS OFF)
@@ -30,7 +34,7 @@ endif(MSVC)
 # Using default gcc 8.3.0 provided in Debian 10
 # causes a segfault in nfSIM, however different gcc is ok
 if(CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 8.3.0)
-  message(FATAL_ERROR 
+  message(FATAL_ERROR
     "There is an error in nfSim, possibly due to a compiler issue, with gcc-8.3.0. "
     "Use a different compiler with CC=... and CXX=... "
   )
@@ -44,19 +48,26 @@ find_package(VTK REQUIRED)
 # jsoncpp_test cannot be built with gperftools linking options
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  SET(CMAKE_C_FLAGS_DEBUG "-Og")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-Og")
+endif()
 
-if (NOT WIN32) 
-  SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
+if (NOT WIN32)
+  # SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
+  # SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
   if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall 
-    # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep 
+    # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall
+    # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep
     # seems to be related to AVX2, maybe gcc issue
-    # changing to sandybridge gives 2-6% in performance (in executed instructions), however 
-    # MCell does not work afterwards on machines such as Mac Mini 2018 with Intel i5 
-    set(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
-      
+    # changing to sandybridge gives 2-6% in performance (in executed instructions), however
+    # MCell does not work afterwards on machines such as Mac Mini 2018 with Intel i5
+    # set(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
+    set(OPTIMIZATION_FLAGS " -O3")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      SET(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -finline-limit=10000 ")
+    endif()
       # must not be used for pymcell (at least for now)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
   endif()
@@ -65,21 +76,31 @@ if (NOT WIN32)
   set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-deprecated-declarations")
 
   if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")
+	  set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")
   endif()
 
   set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-  set(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
+  # set(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
+  set(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
+
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(COMMON_C_CXX_FLAGS "${COMMON_C_CXX_FLAGS} ${OPTIMIZATION_FLAGS} ")
+  endif()
+
+  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(COMMON_C_CXX_FLAGS "${COMMON_C_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} ")
+  endif()
+
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++17 -fpermissive ")
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
 
-  # special performance and debug options are not supported on Windows 
+  # special performance and debug options are not supported on Windows
   option(ENABLE_LTO "Use link-time optimization" OFF)
-  option(ENABLE_GCOV "Use gcc coverage" OFF) 
+  option(ENABLE_GCOV "Use gcc coverage" OFF)
   option(ENABLE_GPROF "Use gprof profiling" OFF)
-  option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
+  option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)
   option(ENABLE_SANITIZER "Use address sanitizer" OFF)
 
   if (ENABLE_LTO)
@@ -108,14 +129,14 @@ if (NOT WIN32)
   if (ENABLE_GPERFTOOLS)
     # build and install gperftools, for now it is done manually
     # using script build_gperftools.sh
-    # then to run profiling 
+    # then to run profiling
     # CPUPROFILE=./prof.out mcell
     # or
     # LD_PRELOAD='/mnt/code/src4/mcell/build/install_gperftools/lib/libprofiler.so' CPUPROFILE=./prof.out python model.py
     # pprof --text <app> ./prof.out # text output
     # pprof --gv <app> ./prof.out # graphical output, requires gv installed
     # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
-    # pybind11 ignores CMAKE_SHARED_LINKER_FLAGS so we must put the -L args to CXX flags as well 
+    # pybind11 ignores CMAKE_SHARED_LINKER_FLAGS so we must put the -L args to CXX flags as well
     SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/ ${CMAKE_INCLUDE_GPERF_FLAGS}")
     SET(CMAKE_LD_GPERF_FLAGS "${CMAKE_INCLUDE_GPERF_FLAGS} -lprofiler ")
@@ -125,30 +146,41 @@ if (NOT WIN32)
   else()
     SET(GPERFTOOLS_LIB "")
   endif()
-    
+
   if (ENABLE_SANITIZER)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address ")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address ")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
   endif()
 
-endif() # if (NOT WIN32) 
+endif() # if (NOT WIN32)
 
+if(NOT CMAKE_SYSTEM_NAME STREQUAL Windows)
+  string(REPLACE " " ";" C_FLAGS ${CMAKE_C_FLAGS})
+  string(REPLACE " " ";" CXX_FLAGS ${CMAKE_CXX_FLAGS})
+  set(C_CXX_FLAGS ${C_FLAGS} ${CXX_FLAGS})
+  list(REMOVE_DUPLICATES C_CXX_FLAGS)
+  list(FIND C_CXX_FLAGS "-isystem" TMP)
+  MATH(EXPR TMPP "${TMP} + 1")
+  list(REMOVE_AT C_CXX_FLAGS ${TMP} ${TMPP})
+  list(JOIN C_CXX_FLAGS " " C_CXX_FLAGS)
+  message("-- C_CXX_FLAGS: ${C_CXX_FLAGS}")
+endif()
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
 include_directories(
-  "${CMAKE_SOURCE_DIR}/src" 
+  "${CMAKE_SOURCE_DIR}/src"
   "${CMAKE_SOURCE_DIR}/src4"   all
-  "${CMAKE_CURRENT_BINARY_DIR}/deps" 
+  "${CMAKE_CURRENT_BINARY_DIR}/deps"
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/../libbng/"
   "${CMAKE_SOURCE_DIR}/../libbng/libs/"
   "${CMAKE_SOURCE_DIR}/../libbng/libs/sparsehash/src/"
-  "${CMAKE_SOURCE_DIR}/libs"  
-  "${CMAKE_SOURCE_DIR}/libmcell"  
-      
+  "${CMAKE_SOURCE_DIR}/libs"
+  "${CMAKE_SOURCE_DIR}/libmcell"
+
   # VTK - should be set by find_package but it does not work somehow...
   "${CMAKE_SOURCE_DIR}/../VTK/Common/DataModel/"
   "${VTK_DIR}/Common/DataModel/"
@@ -177,6 +209,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../VTK/Common/ExecutionModel/"
   "${VTK_DIR}/Common/ExecutionModel/"
   "${CMAKE_SOURCE_DIR}/../VTK/Utilities/KWIML/"
+  "${VTK_DIR}/Utilities/KWSys/"
 )
 
 
@@ -192,7 +225,7 @@ find_package(BISON)
 find_package(FLEX)
 BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.cpp)
-  
+
 BISON_TARGET(dynGeomParser ${CMAKE_SOURCE_DIR}/src/dyngeom_parse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_yacc.cpp)
 
@@ -215,14 +248,14 @@ ADD_FLEX_BISON_DEPENDENCY(dynGeomScanner dynGeomParser dyngeomlex_l)
 if (NOT WIN32)
   add_custom_target(
     version_h
-    COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+    COMMAND env CFLAGS=${C_CXX_FLAGS} ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
     DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
     VERBATIM)
 elseif (WIN32)
   add_custom_target(version_h)
   add_custom_command(TARGET version_h COMMAND ${CMAKE_COMMAND} -E
                    copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
-endif()                    
+endif()
 
 
 # linking on centos7 with 7.3.1 fails with undefined reference to `casc::detail::asc_NodeBase::~asc_NodeBase()'
@@ -316,7 +349,7 @@ set(SOURCE_FILES
 set(SOURCE_FILES_ONLY_MCELL
     src/mcell.c
     src/mdlparse_util.c
-)    
+)
 
 SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES} PROPERTIES LANGUAGE CXX )
 set( SOURCE_FILES ${SOURCE_FILES} src/mdlparse.y src/dyngeom_parse.y )
@@ -357,7 +390,7 @@ configure_file(${CMAKE_SOURCE_DIR}/libmcell/generated/mcell.pyi ${BUILD_UTILS_DI
 # TODO: list all files using configure_file
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
-pybind11_add_module(mcell4_so MODULE  
+pybind11_add_module(mcell4_so MODULE
     # few files from mcell3 that are used
     # TODO: get rid of all deps except for the random generator
     src/logging.c
@@ -369,7 +402,7 @@ pybind11_add_module(mcell4_so MODULE
     src/vector.c
     src/dump_state.cpp
     src/bng_util.cpp
-            
+
     libmcell/api/exports.cpp
 )
 
@@ -382,7 +415,7 @@ add_executable(mcell
   ${SOURCE_FILES}
   ${SOURCE_FILES_ONLY_MCELL}
   ${BISON_mdlParser_OUTPUTS}
-  ${BISON_dynGeomParser_OUTPUTS}  
+  ${BISON_dynGeomParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS}
   ${FLEX_dynGeomScanner_OUTPUTS})
 
@@ -399,26 +432,28 @@ if (NOT WIN32 AND NOT APPLE)
 endif()
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
-add_dependencies(mcell version_h mcell4)  
-target_link_libraries(mcell 
+add_dependencies(mcell version_h mcell4)
+target_link_libraries(mcell
     mcell4 libmcell_dummy libbng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES}
+    $<$<NOT:$<PLATFORM_ID:Darwin>>:Python3::Python>
+    $<$<PLATFORM_ID:Darwin>:pybind11::python_link_helper>
 )
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
 
 add_dependencies(mcell4_so libmcell mcell4 libbng jsoncpp_lib)
-target_link_libraries(mcell4_so 
+target_link_libraries(mcell4_so
     PUBLIC libmcell
     PRIVATE mcell4 libbng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
-    PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries 
+    PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries
 )
 
 set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(mcell4_so PROPERTIES PREFIX "")
 set_target_properties(mcell4_so PROPERTIES OUTPUT_NAME "mcell")
 if (WIN32)
-    set_target_properties(mcell4_so PROPERTIES SUFFIX ".pyd") 
+    set_target_properties(mcell4_so PROPERTIES SUFFIX ".pyd")
 else()
     set_target_properties(mcell4_so PROPERTIES SUFFIX ".so") # must be .so on MacOS as well
 endif()

@@ -629,13 +629,13 @@ void MolOrRxnCountEvent::compute_counts(CountValueVector& count_values) {
         continue;
       }
 
-      bool to_be_counted {species_in_count_species_info(species->id)};
-      if (!to_be_counted) {
-	continue;
+      check_countable_species(species->id);
+      count_species_info_index_t countable_species_index = countable_species_lut[species->id];
+      if (countable_species_index == NotToBeCounted) {
+        continue;
       }
 
-      const CountSpeciesInfo& species_info {count_species_info_vec[count_species_id_vec[species->id]]};
-
+      const CountSpeciesInfo& species_info {count_species_info_vec[countable_species_index]};
       for (uint index: species_info.world_count_item_indices) {
         const MolOrRxnCountItem& item = mol_rxn_count_items[index];
         assert(item.is_world_mol_count());
@@ -665,10 +665,10 @@ void MolOrRxnCountEvent::compute_counts(CountValueVector& count_values) {
         }
 
         // check whether we are counting these species at all
-        bool to_be_counted {species_in_count_species_info(m.species_id)};
-	if (!to_be_counted) {
-	  continue;
-	}
+        check_countable_species(m.species_id);
+        if (countable_species_lut[m.species_id] == NotToBeCounted) {
+          continue;
+        }
 
         // for each counting info
         for (uint i = 0; i < mol_rxn_count_items.size(); i++) {
@@ -727,6 +727,12 @@ double MolOrRxnCountEvent::get_single_count_value() {
 
 
 void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_id) {
+  assert(countable_species_lut[species_id] == NotSeenYet);
+
+  // we saw this species, might be overwritten
+  countable_species_lut[species_id] = NotToBeCounted;
+  CountSpeciesInfo info;
+  bool matches = false;
 
   // for each counting info
   for (MolOrRxnCountItem& count_item: mol_rxn_count_items) {
@@ -740,10 +746,10 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
       }
       assert(term.is_mol_count());
 
-      bool matches = false;
+      bool term_matches = false;
       if (term.species_pattern_type == SpeciesPatternType::SpeciesId) {
         if (term.species_id == species_id) {
-          matches = true;
+          term_matches = true;
         }
       }
       else {
@@ -751,23 +757,23 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
             term.species_pattern_type == SpeciesPatternType::MoleculesPattern);
 
         const BNG::Species& species = world->get_all_species().get(species_id);
-        uint num_matches = species.get_pattern_num_matches(term.species_molecules_pattern);
+        uint num_term_matches = species.get_pattern_num_matches(term.species_molecules_pattern);
 
         // also the primary compartment id must match
         if (term.primary_compartment_id != BNG::COMPARTMENT_ID_NONE &&
             term.primary_compartment_id != species.get_primary_compartment_id()) {
-          num_matches = 0;
+          num_term_matches = 0;
         }
 
-        if (num_matches > 0) {
+        if (num_term_matches > 0) {
           // we must also remember that this species id matches the term's pattern
-          term.species_ids_matching_pattern_w_multiplier_cache[species_id] = num_matches;
-          matches = true;
+          term.species_ids_matching_pattern_w_multiplier_cache[species_id] = num_term_matches;
+          term_matches = true;
         }
       }
 
-      if (matches) {
-	CountSpeciesInfo info;
+      if (term_matches) {
+        matches = true;
         if (count_item.is_world_mol_count()) {
           // optimization for faster counting
           info.world_count_item_indices.insert(count_item.index);
@@ -776,29 +782,31 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
           // there are also other count items besides those in the world_count_item_indices set
           info.all_are_world_mol_counts = false;
         }
-	count_species_info_vec.push_back(info);
-	count_species_id_vec[species_id] = count_species_info_vec.size() - 1;
       }
     } // for count_item.terms
   } // for mol_count_items
+  if (matches) {
+    count_species_info_vec.push_back(info);
+    countable_species_lut[species_id] = count_species_info_vec.size() - 1;  // ToBeCounted;
+  }
+  // Otherwise, CountSpeciesInfo will be destructed automatically.
 }
 
 
-inline bool MolOrRxnCountEvent::species_in_count_species_info(const species_id_t species_id) {
-  assert(species_id != BNG::SPECIES_ID_INVALID);
+inline void MolOrRxnCountEvent::check_countable_species(const species_id_t species_id) {
+  assert(species_id != SPECIES_ID_INVALID);
 
-  if (species_id >= count_species_id_vec.size()) {
-    count_species_id_vec.resize(species_id + 1, BNG::SPECIES_ID_INVALID);
+  if (species_id >= countable_species_lut.size()) {
+    // extend the array if we did not see these species yet
+    countable_species_lut.resize(species_id + 1, NotSeenYet);
+  }
+
+  if (countable_species_lut[species_id] == NotSeenYet) {
+    // update the info
     compute_count_species_info(species_id);
   }
 
-  if (count_species_id_vec[species_id] != BNG::SPECIES_ID_INVALID) {
-    return true;
-  }
-  else {
-    return false;
-  }
-
+  assert(countable_species_lut[species_id] != NotSeenYet);  // Seen
 }
 
 

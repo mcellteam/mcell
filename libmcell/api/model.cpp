@@ -129,7 +129,7 @@ void Model::initialize(const bool print_copyright) {
 
   if (print_copyright) {
     cout <<
-      "Copyright (C) 2006-2021 by\n"
+      "Copyright (C) 2006-2025 by\n"
       "  The National Center for Multiscale Modeling of Biological Systems,\n"
       "  The Salk Institute for Biological Studies, and\n"
       "  Pittsburgh Supercomputing Center, Carnegie Mellon University,\n"

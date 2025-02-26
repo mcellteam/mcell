@@ -224,7 +224,7 @@ public:
   World* world;
 
 private:
-  inline bool species_in_count_species_info(const species_id_t species_id);
+  void check_countable_species(const species_id_t species_id);
   void compute_count_species_info(const species_id_t species_id);
 
   void compute_mol_count_item(
@@ -243,8 +243,12 @@ private:
 
   void compute_counts(CountValueVector& count_values);
 
-  // mapping from all species_ids to those to be counted
-  std::vector<species_id_t> count_species_id_vec;
+  // indexed by species_id
+  // mapping all species_ids onto those to be counted (CountSpeciesInfo)
+  // values: NotSeenYet, NotToBeCounted, >= 0 for indexing count_species_info_vec
+  std::vector<count_species_info_index_t> countable_species_lut;
+
+  // indexed by the values (>= 0) stored in countable_species_lut
   // containing CountSpeciesInfo for those to be counted
   std::vector<CountSpeciesInfo> count_species_info_vec;
 
