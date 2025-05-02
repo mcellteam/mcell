@@ -5,18 +5,18 @@
 
 /* Program version info */
 #define MCELL_VERSION "4.1.0"
-#define MCELL_REVISION "TBD by hand"
-#define MCELL_REVISION_DATE "Mon, 4 Mar 2024 10:18:10 -0800"
+#define MCELL_REVISION "1f73cd52"
+#define MCELL_REVISION_DATE " Wed, 26 Feb 2025 13:47:26 -0800"
 #define MCELL_REVISION_COMMITTED 1
 #define MCELL_REVISION_BRANCH "mcell4_dev"
 
 /* Build info */
-#define MCELL_BUILDDATE  "Wed  Feb 5 12:46:27 PM PST 2025"
+#define MCELL_BUILDDATE  "Thu May  1 01:13:53 PM PDT 2025"
 #define MCELL_BUILDUSER  "bkaynak"
 #define MCELL_BUILDHOST  "huxley"
 #define MCELL_SRCDIR     "/home/bkaynak/Desktop/xxx/cpp/mcell/mcell4_builds/mcell4_build_311/mcell/src"
 #define MCELL_BUILDDIR   "/nadata/cnl/home/bkaynak/Desktop/xxx/cpp/mcell/mcell4_builds/mcell4_build_311/mcell_tools/work/build_mcell"
-#define MCELL_BUILDUNAME "Linux huxley 6.1.0-30-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.124-1 (2025-01-12) x86_64 GNU/Linux"
+#define MCELL_BUILDUNAME "Linux huxley 6.1.0-32-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.129-1 (2025-03-06) x86_64 GNU/Linux"
 
 /* Tool identity and version info */
 #define MCELL_FLEX "flex"
