@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25.1)
 project(mcell)
 
 if ("${PYTHON_VERSION}" STREQUAL "")
-  set(PYTHON_VERSION 3.11)
+  set(PYTHON_VERSION 3.13)
 endif()
 string(REPLACE "\." "" PYTHON_VERSION_NO_DOT ${PYTHON_VERSION})
 set(CMAKE_CXX_FLAGS "-DPYTHON_VERSION=${PYTHON_VERSION_NO_DOT}")
@@ -64,7 +64,7 @@ if (NOT WIN32)
     # changing to sandybridge gives 2-6% in performance (in executed instructions), however
     # MCell does not work afterwards on machines such as Mac Mini 2018 with Intel i5
     # set(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
-    set(OPTIMIZATION_FLAGS " -O3")
+    set(OPTIMIZATION_FLAGS " -O3 -g")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       SET(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -finline-limit=10000 ")
     endif()
