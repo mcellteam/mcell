@@ -252,9 +252,11 @@ if (NOT WIN32)
     DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
     VERBATIM)
 elseif (WIN32)
-  add_custom_target(version_h)
-  add_custom_command(TARGET version_h COMMAND ${CMAKE_COMMAND} -E
-                   copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
+  add_custom_target(
+    version_h
+    COMMAND powershell -ExecutionPolicy Bypass -File ${CMAKE_SOURCE_DIR}/src/version.ps1 -OutputFile ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h -CFlags "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS}" -LdFlags "${CMAKE_EXE_LINKER_FLAGS}"
+    DEPENDS ${CMAKE_SOURCE_DIR}/src/version.ps1
+    VERBATIM)
 endif()
 
 
