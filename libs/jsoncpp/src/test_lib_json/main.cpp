@@ -12,6 +12,7 @@
 
 #include "fuzz.h"
 #include "jsontest.h"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -24,8 +25,14 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 using CharReaderPtr = std::unique_ptr<Json::CharReader>;
+
+namespace Json {
+// Defined in json_reader.cpp; test instrumentation seam.
+JSON_API size_t& newlineScanByteCountForTesting();
+} // namespace Json
 
 // Make numeric limits more convenient to talk about.
 // Assumes int type in 32 bits.
@@ -74,6 +81,8 @@ struct ValueTest : JsonTest::TestCase {
   Json::Value float_{0.00390625f};
   Json::Value array1_;
   Json::Value object1_;
+  Json::Value object2_;
+  Json::Value object3_;
   Json::Value emptyString_{""};
   Json::Value string1_{"a"};
   Json::Value string_{"sometext with space"};
@@ -83,6 +92,34 @@ struct ValueTest : JsonTest::TestCase {
   ValueTest() {
     array1_.append(1234);
     object1_["id"] = 1234;
+
+    // object2 with matching values
+    object2_["null"] = Json::nullValue;
+    object2_["bool"] = true;
+    object2_["int"] = Json::Int{Json::Value::maxInt};
+    object2_["int64"] = Json::Int64{Json::Value::maxInt64};
+    object2_["uint"] = Json::UInt{Json::Value::maxUInt};
+    object2_["uint64"] = Json::UInt64{Json::Value::maxUInt64};
+    object2_["integral"] = 1234;
+    object2_["double"] = 1234.56789;
+    object2_["numeric"] = 0.12345f;
+    object2_["string"] = "string";
+    object2_["array"] = Json::arrayValue;
+    object2_["object"] = Json::objectValue;
+
+    // object3 with not matching values
+    object3_["object"] = Json::nullValue;
+    object3_["null"] = true;
+    object3_["bool"] = Json::Int{Json::Value::maxInt};
+    object3_["int"] = "not_an_int";
+    object3_["int64"] = "not_an_int64";
+    object3_["uint"] = "not_an_uint";
+    object3_["uin64"] = "not_an_uint64";
+    object3_["integral"] = 1234.56789;
+    object3_["double"] = false;
+    object3_["numeric"] = "string";
+    object3_["string"] = Json::arrayValue;
+    object3_["array"] = Json::objectValue;
   }
 
   struct IsCheck {
@@ -118,6 +155,8 @@ struct ValueTest : JsonTest::TestCase {
   /// Normalize the representation of floating-point number by stripped leading
   /// 0 in exponent.
   static Json::String normalizeFloatingPointStr(const Json::String& s);
+
+  void runCZStringTests();
 };
 
 Json::String ValueTest::normalizeFloatingPointStr(const Json::String& s) {
@@ -134,6 +173,44 @@ Json::String ValueTest::normalizeFloatingPointStr(const Json::String& s) {
   }
   return normalized + exponent;
 }
+
+void ValueTest::runCZStringTests() {
+  // 1. Copy Constructor (Index)
+  Json::Value::CZString idx1(123);
+  Json::Value::CZString idx2(idx1);
+  JSONTEST_ASSERT_EQUAL(idx2.index(), 123);
+
+  // 2. Move Constructor (Index)
+  Json::Value::CZString idx3(std::move(idx1));
+  JSONTEST_ASSERT_EQUAL(idx3.index(), 123);
+
+  // 3. Move Assignment (Index)
+  Json::Value::CZString idx4(456);
+  idx4 = std::move(idx3);
+  JSONTEST_ASSERT_EQUAL(idx4.index(), 123);
+
+  // 4. Copy Constructor (String)
+  Json::Value::CZString str1("param", 5,
+                             Json::Value::CZString::duplicateOnCopy);
+  Json::Value::CZString str2((str1)); // copy makes it duplicate (owning)
+  JSONTEST_ASSERT_STRING_EQUAL(str2.data(), "param");
+
+  // 5. Move Constructor (String)
+  // Move from Owning string (str2)
+  Json::Value::CZString str3(std::move(str2));
+  JSONTEST_ASSERT_STRING_EQUAL(str3.data(), "param");
+
+  // 6. Move Assignment (String)
+  Json::Value::CZString str4("other", 5,
+                             Json::Value::CZString::duplicateOnCopy);
+  Json::Value::CZString str5((str4)); // owning "other"
+  // Move-assign owning "param" (str3) into owning "other" (str5)
+  // This verifies we don't leak "other" (if fixed) and correctly take "param"
+  str5 = std::move(str3);
+  JSONTEST_ASSERT_STRING_EQUAL(str5.data(), "param");
+}
+
+JSONTEST_FIXTURE_LOCAL(ValueTest, CZStringCoverage) { runCZStringTests(); }
 
 JSONTEST_FIXTURE_LOCAL(ValueTest, checkNormalizeFloatingPointStr) {
   struct TestData {
@@ -218,10 +295,75 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, objects) {
   JSONTEST_ASSERT(foundId != nullptr);
   JSONTEST_ASSERT_EQUAL(Json::Value(1234), *foundId);
 
+  const std::string stringIdKey = "id";
+  const Json::Value* stringFoundId = object1_.find(stringIdKey);
+  JSONTEST_ASSERT(stringFoundId != nullptr);
+  JSONTEST_ASSERT_EQUAL(Json::Value(1234), *stringFoundId);
+
   const char unknownIdKey[] = "unknown id";
   const Json::Value* foundUnknownId =
       object1_.find(unknownIdKey, unknownIdKey + strlen(unknownIdKey));
   JSONTEST_ASSERT_EQUAL(nullptr, foundUnknownId);
+
+  const std::string stringUnknownIdKey = "unknown id";
+  const Json::Value* stringFoundUnknownId = object1_.find(stringUnknownIdKey);
+  JSONTEST_ASSERT_EQUAL(nullptr, stringFoundUnknownId);
+
+  // Access through find<Type>()
+  const Json::Value* nullFound = object2_.findNull("null");
+  JSONTEST_ASSERT(nullFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(Json::nullValue, *nullFound);
+  JSONTEST_ASSERT(object3_.findNull("null") == nullptr);
+
+  const Json::Value* boolFound = object2_.findBool("bool");
+  JSONTEST_ASSERT(boolFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(true, *boolFound);
+  JSONTEST_ASSERT(object3_.findBool("bool") == nullptr);
+
+  const Json::Value* intFound = object2_.findInt("int");
+  JSONTEST_ASSERT(intFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(Json::Int{Json::Value::maxInt}, *intFound);
+  JSONTEST_ASSERT(object3_.findInt("int") == nullptr);
+
+  const Json::Value* int64Found = object2_.findInt64("int64");
+  JSONTEST_ASSERT(int64Found != nullptr);
+  JSONTEST_ASSERT_EQUAL(Json::Int64{Json::Value::maxInt64}, *int64Found);
+  JSONTEST_ASSERT(object3_.findInt64("int64") == nullptr);
+
+  const Json::Value* uintFound = object2_.findUInt("uint");
+  JSONTEST_ASSERT(uintFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(Json::UInt{Json::Value::maxUInt}, *uintFound);
+  JSONTEST_ASSERT(object3_.findUInt("uint") == nullptr);
+
+  const Json::Value* uint64Found = object2_.findUInt64("uint64");
+  JSONTEST_ASSERT(uint64Found != nullptr);
+  JSONTEST_ASSERT_EQUAL(Json::UInt64{Json::Value::maxUInt64}, *uint64Found);
+  JSONTEST_ASSERT(object3_.findUInt64("uint64") == nullptr);
+
+  const Json::Value* integralFound = object2_.findIntegral("integral");
+  JSONTEST_ASSERT(integralFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(1234, *integralFound);
+  JSONTEST_ASSERT(object3_.findIntegral("integral") == nullptr);
+
+  const Json::Value* doubleFound = object2_.findDouble("double");
+  JSONTEST_ASSERT(doubleFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(1234.56789, *doubleFound);
+  JSONTEST_ASSERT(object3_.findDouble("double") == nullptr);
+
+  const Json::Value* numericFound = object2_.findNumeric("numeric");
+  JSONTEST_ASSERT(numericFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(0.12345f, *numericFound);
+  JSONTEST_ASSERT(object3_.findNumeric("numeric") == nullptr);
+
+  const Json::Value* stringFound = object2_.findString("string");
+  JSONTEST_ASSERT(stringFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(std::string{"string"}, *stringFound);
+  JSONTEST_ASSERT(object3_.findString("string") == nullptr);
+
+  const Json::Value* arrayFound = object2_.findArray("array");
+  JSONTEST_ASSERT(arrayFound != nullptr);
+  JSONTEST_ASSERT_EQUAL(Json::arrayValue, *arrayFound);
+  JSONTEST_ASSERT(object3_.findArray("array") == nullptr);
 
   // Access through demand()
   const char yetAnotherIdKey[] = "yet another id";
@@ -308,10 +450,14 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, arrays) {
   const Json::Value& constArray = array1_;
   JSONTEST_ASSERT_EQUAL(Json::Value(1234), constArray[index0]);
   JSONTEST_ASSERT_EQUAL(Json::Value(1234), constArray[0]);
+  JSONTEST_ASSERT_EQUAL(Json::Value(1234), constArray.front());
+  JSONTEST_ASSERT_EQUAL(Json::Value(1234), constArray.back());
 
   // Access through non-const reference
   JSONTEST_ASSERT_EQUAL(Json::Value(1234), array1_[index0]);
   JSONTEST_ASSERT_EQUAL(Json::Value(1234), array1_[0]);
+  JSONTEST_ASSERT_EQUAL(Json::Value(1234), array1_.front());
+  JSONTEST_ASSERT_EQUAL(Json::Value(1234), array1_.back());
 
   array1_[2] = Json::Value(17);
   JSONTEST_ASSERT_EQUAL(Json::Value(), array1_[1]);
@@ -347,6 +493,37 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, resizeArray) {
     JSONTEST_ASSERT_EQUAL(array.size(), 0);
   }
 }
+
+JSONTEST_FIXTURE_LOCAL(ValueTest, copyMoveArray) {
+  Json::Value array;
+  array.append("item1");
+  array.append("item2");
+
+  // Test Copy Constructor (covers CZString(const CZString&) with index)
+  Json::Value copy(array);
+  JSONTEST_ASSERT_EQUAL(copy.size(), 2);
+  JSONTEST_ASSERT_EQUAL(Json::Value("item1"), copy[0]);
+  JSONTEST_ASSERT_EQUAL(Json::Value("item2"), copy[1]);
+
+  // Test Move Constructor (covers CZString(CZString&&) with index)
+  Json::Value moved(std::move(copy));
+  JSONTEST_ASSERT_EQUAL(moved.size(), 2);
+  JSONTEST_ASSERT_EQUAL(Json::Value("item1"), moved[0]);
+  JSONTEST_ASSERT_EQUAL(Json::Value("item2"), moved[1]);
+}
+
+JSONTEST_FIXTURE_LOCAL(ValueTest, resizePopulatesAllMissingElements) {
+  Json::ArrayIndex n = 10;
+  Json::Value v;
+  v.resize(n);
+  JSONTEST_ASSERT_EQUAL(n, v.size());
+  JSONTEST_ASSERT_EQUAL(n, std::distance(v.begin(), v.end()));
+  JSONTEST_ASSERT_EQUAL(v.front(), Json::Value{});
+  JSONTEST_ASSERT_EQUAL(v.back(), Json::Value{});
+  for (const Json::Value& e : v)
+    JSONTEST_ASSERT_EQUAL(e, Json::Value{});
+}
+
 JSONTEST_FIXTURE_LOCAL(ValueTest, getArrayValue) {
   Json::Value array;
   for (Json::ArrayIndex i = 0; i < 5; i++)
@@ -393,6 +570,8 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, arrayInsertAtRandomIndex) {
   JSONTEST_ASSERT_EQUAL(Json::Value("index0"), array[0]); // check append
   JSONTEST_ASSERT_EQUAL(Json::Value("index1"), array[1]);
   JSONTEST_ASSERT_EQUAL(Json::Value("index2"), array[2]);
+  JSONTEST_ASSERT_EQUAL(Json::Value("index0"), array.front());
+  JSONTEST_ASSERT_EQUAL(Json::Value("index2"), array.back());
 
   // insert lvalue at the head
   JSONTEST_ASSERT(array.insert(0, str1));
@@ -400,6 +579,8 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, arrayInsertAtRandomIndex) {
   JSONTEST_ASSERT_EQUAL(Json::Value("index0"), array[1]);
   JSONTEST_ASSERT_EQUAL(Json::Value("index1"), array[2]);
   JSONTEST_ASSERT_EQUAL(Json::Value("index2"), array[3]);
+  JSONTEST_ASSERT_EQUAL(Json::Value("index3"), array.front());
+  JSONTEST_ASSERT_EQUAL(Json::Value("index2"), array.back());
   // checking address
   for (Json::ArrayIndex i = 0; i < 3; i++) {
     JSONTEST_ASSERT_EQUAL(vec[i], &array[i]);
@@ -412,6 +593,8 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, arrayInsertAtRandomIndex) {
   JSONTEST_ASSERT_EQUAL(Json::Value("index4"), array[2]);
   JSONTEST_ASSERT_EQUAL(Json::Value("index1"), array[3]);
   JSONTEST_ASSERT_EQUAL(Json::Value("index2"), array[4]);
+  JSONTEST_ASSERT_EQUAL(Json::Value("index3"), array.front());
+  JSONTEST_ASSERT_EQUAL(Json::Value("index2"), array.back());
   // checking address
   for (Json::ArrayIndex i = 0; i < 4; i++) {
     JSONTEST_ASSERT_EQUAL(vec[i], &array[i]);
@@ -425,6 +608,8 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, arrayInsertAtRandomIndex) {
   JSONTEST_ASSERT_EQUAL(Json::Value("index1"), array[3]);
   JSONTEST_ASSERT_EQUAL(Json::Value("index2"), array[4]);
   JSONTEST_ASSERT_EQUAL(Json::Value("index5"), array[5]);
+  JSONTEST_ASSERT_EQUAL(Json::Value("index3"), array.front());
+  JSONTEST_ASSERT_EQUAL(Json::Value("index5"), array.back());
   // checking address
   for (Json::ArrayIndex i = 0; i < 5; i++) {
     JSONTEST_ASSERT_EQUAL(vec[i], &array[i]);
@@ -1155,15 +1340,13 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, integers) {
   JSONTEST_ASSERT_EQUAL(true, val.asBool());
   JSONTEST_ASSERT_STRING_EQUAL("-9223372036854775808", val.asString());
 
-  // int64 min (floating point constructor). Note that kint64min *is* exactly
-  // representable as a double.
+  // int64 min (floating point constructor). Since double values in proximity of
+  // kint64min are rounded to kint64min, we don't check for conversion to int64.
   val = Json::Value(double(kint64min));
 
   JSONTEST_ASSERT_EQUAL(Json::realValue, val.type());
 
   checks = IsCheck();
-  checks.isInt64_ = true;
-  checks.isIntegral_ = true;
   checks.isDouble_ = true;
   checks.isNumeric_ = true;
   JSONTEST_ASSERT_PRED(checkIs(val, checks));
@@ -1172,8 +1355,6 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, integers) {
   JSONTEST_ASSERT(!val.isConvertibleTo(Json::intValue));
   JSONTEST_ASSERT(!val.isConvertibleTo(Json::uintValue));
 
-  JSONTEST_ASSERT_EQUAL(kint64min, val.asInt64());
-  JSONTEST_ASSERT_EQUAL(kint64min, val.asLargestInt());
   JSONTEST_ASSERT_EQUAL(-9223372036854775808.0, val.asDouble());
   JSONTEST_ASSERT_EQUAL(-9223372036854775808.0, val.asFloat());
   JSONTEST_ASSERT_EQUAL(true, val.asBool());
@@ -1770,7 +1951,7 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, typeChecksThrowExceptions) {
   JSONTEST_ASSERT_THROWS(objVal.asBool());
   JSONTEST_ASSERT_THROWS(arrVal.asBool());
 
-#endif
+#endif // JSON_USE_EXCEPTION
 }
 
 JSONTEST_FIXTURE_LOCAL(ValueTest, offsetAccessors) {
@@ -1817,7 +1998,8 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, StaticString) {
 
 JSONTEST_FIXTURE_LOCAL(ValueTest, WideString) {
   // https://github.com/open-source-parsers/jsoncpp/issues/756
-  const std::string uni = u8"\u5f0f\uff0c\u8fdb"; // "式，进"
+  const std::string uni =
+      reinterpret_cast<const char*>(u8"\u5f0f\uff0c\u8fdb"); // "式，进"
   std::string styled;
   {
     Json::Value v;
@@ -1874,7 +2056,7 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, CommentBefore) {
     Json::String result = Json::writeString(wbuilder, val);
     JSONTEST_ASSERT_STRING_EQUAL(expected, result);
     Json::String res2 = val.toStyledString();
-    Json::String exp2 = "";
+    Json::String exp2;
     exp2 += expected;
     exp2 += "\n";
     JSONTEST_ASSERT_STRING_EQUAL(exp2, res2);
@@ -2002,6 +2184,34 @@ JSONTEST_FIXTURE_LOCAL(ValueTest, precision) {
   b.settings_["precisionType"] = "decimal";
   v = 0.256345694873740545068;
   expected = "0.3";
+  result = Json::writeString(b, v);
+  JSONTEST_ASSERT_STRING_EQUAL(expected, result);
+
+  b.settings_["precision"] = 0;
+  b.settings_["precisionType"] = "decimal";
+  v = 123.56345694873740545068;
+  expected = "124";
+  result = Json::writeString(b, v);
+  JSONTEST_ASSERT_STRING_EQUAL(expected, result);
+
+  b.settings_["precision"] = 1;
+  b.settings_["precisionType"] = "decimal";
+  v = 1230.001;
+  expected = "1230.0";
+  result = Json::writeString(b, v);
+  JSONTEST_ASSERT_STRING_EQUAL(expected, result);
+
+  b.settings_["precision"] = 0;
+  b.settings_["precisionType"] = "decimal";
+  v = 1230.001;
+  expected = "1230";
+  result = Json::writeString(b, v);
+  JSONTEST_ASSERT_STRING_EQUAL(expected, result);
+
+  b.settings_["precision"] = 0;
+  b.settings_["precisionType"] = "decimal";
+  v = 1231.5;
+  expected = "1232";
   result = Json::writeString(b, v);
   JSONTEST_ASSERT_STRING_EQUAL(expected, result);
 
@@ -2592,7 +2802,7 @@ JSONTEST_FIXTURE_LOCAL(StreamWriterTest, indentation) {
 JSONTEST_FIXTURE_LOCAL(StreamWriterTest, writeZeroes) {
   Json::String binary("hi", 3); // include trailing 0
   JSONTEST_ASSERT_EQUAL(3, binary.length());
-  Json::String expected("\"hi\\u0000\""); // unicoded zero
+  Json::String expected(R"("hi\u0000")"); // unicoded zero
   Json::StreamWriterBuilder b;
   {
     Json::Value root;
@@ -2639,6 +2849,96 @@ JSONTEST_FIXTURE_LOCAL(StreamWriterTest, unicode) {
                   "{\n\t\"test\" : "
                   "\"\\t\\n\\ud806\\udca1=\\u0133\\ud82c\\udd1b\\uff67\"\n}");
 }
+
+// Control chars should be escaped regardless of UTF-8 input encoding.
+JSONTEST_FIXTURE_LOCAL(StreamWriterTest, escapeControlCharacters) {
+  auto uEscape = [](unsigned ch) {
+    static const char h[] = "0123456789abcdef";
+    std::string r = "\\u";
+    r += h[(ch >> (3 * 4)) & 0xf];
+    r += h[(ch >> (2 * 4)) & 0xf];
+    r += h[(ch >> (1 * 4)) & 0xf];
+    r += h[(ch >> (0 * 4)) & 0xf];
+    return r;
+  };
+  auto shortEscape = [](unsigned ch) -> const char* {
+    switch (ch) {
+    case '\"':
+      return "\\\"";
+    case '\\':
+      return "\\\\";
+    case '\b':
+      return "\\b";
+    case '\f':
+      return "\\f";
+    case '\n':
+      return "\\n";
+    case '\r':
+      return "\\r";
+    case '\t':
+      return "\\t";
+    default:
+      return nullptr;
+    }
+  };
+
+  Json::StreamWriterBuilder b;
+
+  for (bool emitUTF8 : {true, false}) {
+    b.settings_["emitUTF8"] = emitUTF8;
+
+    for (unsigned i = 0; i != 0x100; ++i) {
+      if (!emitUTF8 && i >= 0x80)
+        break; // The algorithm would try to parse UTF-8, so stop here.
+
+      std::string raw({static_cast<char>(i)});
+      std::string esc = raw;
+      if (i < 0x20)
+        esc = uEscape(i);
+      if (const char* shEsc = shortEscape(i))
+        esc = shEsc;
+
+      // std::cout << "emit=" << emitUTF8 << ", i=" << std::hex << i << std::dec
+      //          << std::endl;
+
+      Json::Value root;
+      root["test"] = raw;
+      JSONTEST_ASSERT_STRING_EQUAL(
+          std::string("{\n\t\"test\" : \"").append(esc).append("\"\n}"),
+          Json::writeString(b, root))
+          << ", emit=" << emitUTF8 << ", i=" << i << ", raw=\"" << raw << "\""
+          << ", esc=\"" << esc << "\"";
+    }
+  }
+}
+
+#ifdef _WIN32
+JSONTEST_FIXTURE_LOCAL(StreamWriterTest, escapeTabCharacterWindows) {
+  // Get the current locale before changing it
+  std::string currentLocale = setlocale(LC_ALL, NULL);
+  setlocale(LC_ALL, "English_United States.1252");
+
+  Json::Value root;
+  root["test"] = "\tTabTesting\t";
+
+  Json::StreamWriterBuilder b;
+
+  JSONTEST_ASSERT(Json::writeString(b, root) == "{\n\t\"test\" : "
+                                                "\"\\tTabTesting\\t\"\n}");
+
+  b.settings_["emitUTF8"] = true;
+  JSONTEST_ASSERT(Json::writeString(b, root) == "{\n\t\"test\" : "
+                                                "\"\\tTabTesting\\t\"\n}");
+
+  b.settings_["emitUTF8"] = false;
+  JSONTEST_ASSERT(Json::writeString(b, root) == "{\n\t\"test\" : "
+                                                "\"\\tTabTesting\\t\"\n}");
+
+  // Restore the locale
+  if (!currentLocale.empty())
+    setlocale(LC_ALL, currentLocale.c_str());
+}
+#endif
 
 struct ReaderTest : JsonTest::TestCase {
   void setStrictMode() {
@@ -2815,9 +3115,9 @@ JSONTEST_FIXTURE_LOCAL(ReaderTest, strictModeParseNumber) {
 }
 
 JSONTEST_FIXTURE_LOCAL(ReaderTest, parseChineseWithOneError) {
-  checkParse(R"({ "pr)"
-             u8"\u4f50\u85e4" // 佐藤
-             R"(erty" :: "value" })",
+  checkParse(reinterpret_cast<const char*>(R"({ "pr)"
+                                           u8"\u4f50\u85e4" // 佐藤
+                                           R"(erty" :: "value" })"),
              {{18, 19, "Syntax error: value, object or array expected."}},
              "* Line 1, Column 19\n  Syntax error: value, object or array "
              "expected.\n");
@@ -2859,6 +3159,17 @@ JSONTEST_FIXTURE_LOCAL(ReaderTest, allowNumericKeysTest) {
   checkParse(R"({ 123 : "abc" })");
 }
 
+JSONTEST_FIXTURE_LOCAL(ReaderTest, allowDroppedNullPlaceholders) {
+  Json::Features features;
+  features.allowDroppedNullPlaceholders_ = true;
+  setFeatures(features);
+  checkParse(R"([1,,2])");
+  JSONTEST_ASSERT_EQUAL(3, root.size());
+  JSONTEST_ASSERT_EQUAL(1, root[0].asInt());
+  JSONTEST_ASSERT(root[1].isNull());
+  JSONTEST_ASSERT_EQUAL(2, root[2].asInt());
+}
+
 struct CharReaderTest : JsonTest::TestCase {};
 
 JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseWithNoErrors) {
@@ -2866,7 +3177,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseWithNoErrors) {
   CharReaderPtr reader(b.newCharReader());
   Json::String errs;
   Json::Value root;
-  char const doc[] = "{ \"property\" : \"value\" }";
+  char const doc[] = R"({ "property" : "value" })";
   bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
   JSONTEST_ASSERT(ok);
   JSONTEST_ASSERT(errs.empty());
@@ -2914,14 +3225,15 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseString) {
     JSONTEST_ASSERT_EQUAL("", root[0]);
   }
   {
-    char const doc[] = "[\"\\u8A2a\"]";
+    char const doc[] = R"(["\u8A2a"])";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(ok);
     JSONTEST_ASSERT(errs.empty());
-    JSONTEST_ASSERT_EQUAL(u8"\u8A2a", root[0].asString()); // "訪"
+    JSONTEST_ASSERT_EQUAL(reinterpret_cast<const char*>(u8"\u8A2a"),
+                          root[0].asString()); // "訪"
   }
   {
-    char const doc[] = "[ \"\\uD801\" ]";
+    char const doc[] = R"([ "\uD801" ])";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(!ok);
     JSONTEST_ASSERT(errs == "* Line 1, Column 3\n"
@@ -2930,7 +3242,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseString) {
                             "See Line 1, Column 10 for detail.\n");
   }
   {
-    char const doc[] = "[ \"\\uD801\\d1234\" ]";
+    char const doc[] = R"([ "\uD801\d1234" ])";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(!ok);
     JSONTEST_ASSERT(errs == "* Line 1, Column 3\n"
@@ -2939,7 +3251,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseString) {
                             "See Line 1, Column 12 for detail.\n");
   }
   {
-    char const doc[] = "[ \"\\ua3t@\" ]";
+    char const doc[] = R"([ "\ua3t@" ])";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(!ok);
     JSONTEST_ASSERT(errs == "* Line 1, Column 3\n"
@@ -2948,7 +3260,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseString) {
                             "See Line 1, Column 9 for detail.\n");
   }
   {
-    char const doc[] = "[ \"\\ua3t\" ]";
+    char const doc[] = R"([ "\ua3t" ])";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(!ok);
     JSONTEST_ASSERT(
@@ -2960,7 +3272,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseString) {
   {
     b.settings_["allowSingleQuotes"] = true;
     CharReaderPtr charreader(b.newCharReader());
-    char const doc[] = "{'a': 'x\\ty', \"b\":'x\\\\y'}";
+    char const doc[] = R"({'a': 'x\ty', "b":'x\\y'})";
     bool ok = charreader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(ok);
     JSONTEST_ASSERT_STRING_EQUAL("", errs);
@@ -3001,13 +3313,49 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseComment) {
   }
 }
 
+JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseCommentsAfterValueScansLinearly) {
+  // A value, then a comment whose only newline is at its end, then many
+  // trailing comments. Comment handling should scan the value->comment gap a
+  // bounded number of times (linear in the input), not once per trailing
+  // comment (O(comments * gap)). Assert directly on bytes scanned
+  // (deterministic) rather than wall-clock time (flaky under valgrind/CI).
+  //
+  // Regression test for crbug.com/521541633 (jsoncpp_fuzzer timeout: a 400KB
+  // input scanned 2.24GB across 8384 containsNewLine calls, ~18s).
+  const int kFiller = 256;
+  const int kComments = 1000;
+  std::string doc = "[0 /*";
+  doc.append(kFiller, 'a');
+  doc += "\n*/";
+  for (int i = 0; i < kComments; ++i)
+    doc += "/*c*/";
+  doc += "]";
+
+  Json::CharReaderBuilder b;
+  CharReaderPtr reader(b.newCharReader());
+  Json::Value root;
+  Json::String errs;
+
+  Json::newlineScanByteCountForTesting() = 0;
+  const bool ok =
+      reader->parse(doc.data(), doc.data() + doc.size(), &root, &errs);
+
+  JSONTEST_ASSERT(ok);
+  JSONTEST_ASSERT(errs.empty());
+  JSONTEST_ASSERT_EQUAL(0, root[0]);
+  // Quadratic-regression guard. Linear scans ~O(input); the bug scanned
+  // ~kComments * kFiller (~2.7M here vs a few bytes fixed).
+  const size_t scanned = Json::newlineScanByteCountForTesting();
+  JSONTEST_ASSERT(scanned < 4 * doc.size());
+}
+
 JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseObjectWithErrors) {
   Json::CharReaderBuilder b;
   CharReaderPtr reader(b.newCharReader());
   Json::Value root;
   Json::String errs;
   {
-    char const doc[] = "{ \"property\" : \"value\" ";
+    char const doc[] = R"({ "property" : "value" )";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(!ok);
     JSONTEST_ASSERT(errs == "* Line 1, Column 24\n"
@@ -3015,7 +3363,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseObjectWithErrors) {
     JSONTEST_ASSERT_EQUAL("value", root["property"]);
   }
   {
-    char const doc[] = "{ \"property\" : \"value\" ,";
+    char const doc[] = R"({ "property" : "value" ,)";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(!ok);
     JSONTEST_ASSERT(errs == "* Line 1, Column 25\n"
@@ -3038,7 +3386,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseArrayWithErrors) {
     JSONTEST_ASSERT_EQUAL("value", root[0]);
   }
   {
-    char const doc[] = "[ \"value1\" \"value2\" ]";
+    char const doc[] = R"([ "value1" "value2" ])";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(!ok);
     JSONTEST_ASSERT(errs == "* Line 1, Column 12\n"
@@ -3052,7 +3400,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseWithOneError) {
   CharReaderPtr reader(b.newCharReader());
   Json::String errs;
   Json::Value root;
-  char const doc[] = "{ \"property\" :: \"value\" }";
+  char const doc[] = R"({ "property" :: "value" })";
   bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
   JSONTEST_ASSERT(!ok);
   JSONTEST_ASSERT(errs ==
@@ -3078,7 +3426,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseWithDetailError) {
   CharReaderPtr reader(b.newCharReader());
   Json::String errs;
   Json::Value root;
-  char const doc[] = "{ \"property\" : \"v\\alue\" }";
+  char const doc[] = R"({ "property" : "v\alue" })";
   bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
   JSONTEST_ASSERT(!ok);
   JSONTEST_ASSERT(errs ==
@@ -3087,9 +3435,11 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseWithDetailError) {
 }
 
 JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseWithStackLimit) {
+#if JSON_USE_EXCEPTION
+
   Json::CharReaderBuilder b;
   Json::Value root;
-  char const doc[] = "{ \"property\" : \"value\" }";
+  char const doc[] = R"({ "property" : "value" })";
   {
     b.settings_["stackLimit"] = 2;
     CharReaderPtr reader(b.newCharReader());
@@ -3106,10 +3456,22 @@ JSONTEST_FIXTURE_LOCAL(CharReaderTest, parseWithStackLimit) {
     JSONTEST_ASSERT_THROWS(
         reader->parse(doc, doc + std::strlen(doc), &root, &errs));
   }
+  // Default stack limit should reject deeply nested input (regression test for
+  // stack exhaustion from fuzz input like [[[[...]]]])
+  {
+    Json::CharReaderBuilder defaultBuilder;
+    Json::String nested(300, '[');
+    CharReaderPtr reader(defaultBuilder.newCharReader());
+    Json::String errs;
+    JSONTEST_ASSERT_THROWS(reader->parse(
+        nested.data(), nested.data() + nested.size(), &root, &errs));
+  }
+
+#endif // JSON_USE_EXCEPTION
 }
 
 JSONTEST_FIXTURE_LOCAL(CharReaderTest, testOperator) {
-  const std::string styled = "{ \"property\" : \"value\" }";
+  const std::string styled = R"({ "property" : "value" })";
   std::istringstream iss(styled);
   Json::Value root;
   iss >> root;
@@ -3122,7 +3484,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderStrictModeTest, dupKeys) {
   Json::CharReaderBuilder b;
   Json::Value root;
   char const doc[] =
-      "{ \"property\" : \"value\", \"key\" : \"val1\", \"key\" : \"val2\" }";
+      R"({ "property" : "value", "key" : "val1", "key" : "val2" })";
   {
     b.strictMode(&b.settings_);
     CharReaderPtr reader(b.newCharReader());
@@ -3141,7 +3503,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderFailIfExtraTest, issue164) {
   // This is interpreted as a string value followed by a colon.
   Json::CharReaderBuilder b;
   Json::Value root;
-  char const doc[] = " \"property\" : \"value\" }";
+  char const doc[] = R"( "property" : "value" })";
   {
     b.settings_["failIfExtra"] = false;
     CharReaderPtr reader(b.newCharReader());
@@ -3286,11 +3648,11 @@ struct CharReaderAllowDropNullTest : JsonTest::TestCase {
     return [=](const Value& root) { JSONTEST_ASSERT_EQUAL(root, v); };
   }
 
-  ValueCheck objGetAnd(std::string idx, ValueCheck f) {
+  static ValueCheck objGetAnd(std::string idx, ValueCheck f) {
     return [=](const Value& root) { f(root.get(idx, true)); };
   }
 
-  ValueCheck arrGetAnd(int idx, ValueCheck f) {
+  static ValueCheck arrGetAnd(int idx, ValueCheck f) {
     return [=](const Value& root) { f(root[idx]); };
   }
 };
@@ -3445,8 +3807,7 @@ JSONTEST_FIXTURE_LOCAL(CharReaderAllowSpecialFloatsTest, issue209) {
   Json::String errs;
   CharReaderPtr reader(b.newCharReader());
   {
-    char const doc[] =
-        "{\"a\":NaN,\"b\":Infinity,\"c\":-Infinity,\"d\":+Infinity}";
+    char const doc[] = R"({"a":NaN,"b":Infinity,"c":-Infinity,"d":+Infinity})";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(ok);
     JSONTEST_ASSERT_STRING_EQUAL("", errs);
@@ -3488,16 +3849,16 @@ JSONTEST_FIXTURE_LOCAL(CharReaderAllowSpecialFloatsTest, issue209) {
   for (const auto& td : test_data) {
     bool ok = reader->parse(&*td.in.begin(), &*td.in.begin() + td.in.size(),
                             &root, &errs);
-    JSONTEST_ASSERT(td.ok == ok) << "line:" << td.line << "\n"
-                                 << "  expected: {"
-                                 << "ok:" << td.ok << ", in:\'" << td.in << "\'"
-                                 << "}\n"
-                                 << "  actual: {"
-                                 << "ok:" << ok << "}\n";
+    // clang-format off
+    JSONTEST_ASSERT(td.ok == ok) <<
+        "line:" << td.line << "\n  " <<
+        "expected: {ok:" << td.ok << ", in:\'" << td.in << "\'}\n " <<
+        "actual: {ok:" << ok << "}\n";
+    // clang-format on
   }
 
   {
-    char const doc[] = "{\"posInf\": +Infinity, \"NegInf\": -Infinity}";
+    char const doc[] = R"({"posInf": +Infinity, "NegInf": -Infinity})";
     bool ok = reader->parse(doc, doc + std::strlen(doc), &root, &errs);
     JSONTEST_ASSERT(ok);
     JSONTEST_ASSERT_STRING_EQUAL("", errs);
@@ -3578,7 +3939,81 @@ JSONTEST_FIXTURE_LOCAL(BuilderTest, settings) {
   }
 }
 
+struct BomTest : JsonTest::TestCase {};
+
+JSONTEST_FIXTURE_LOCAL(BomTest, skipBom) {
+  const std::string with_bom = "\xEF\xBB\xBF{\"key\" : \"value\"}";
+  Json::Value root;
+  JSONCPP_STRING errs;
+  std::istringstream iss(with_bom);
+  bool ok = parseFromStream(Json::CharReaderBuilder(), iss, &root, &errs);
+  // The default behavior is to skip the BOM, so we can parse it normally.
+  JSONTEST_ASSERT(ok);
+  JSONTEST_ASSERT(errs.empty());
+  JSONTEST_ASSERT_STRING_EQUAL(root["key"].asString(), "value");
+}
+JSONTEST_FIXTURE_LOCAL(BomTest, notSkipBom) {
+  const std::string with_bom = "\xEF\xBB\xBF{\"key\" : \"value\"}";
+  Json::Value root;
+  JSONCPP_STRING errs;
+  std::istringstream iss(with_bom);
+  Json::CharReaderBuilder b;
+  b.settings_["skipBom"] = false;
+  bool ok = parseFromStream(b, iss, &root, &errs);
+  // Detect the BOM, and failed on it.
+  JSONTEST_ASSERT(!ok);
+  JSONTEST_ASSERT(!errs.empty());
+}
+
 struct IteratorTest : JsonTest::TestCase {};
+
+JSONTEST_FIXTURE_LOCAL(IteratorTest, members) {
+  Json::Value j;
+  j["k1"] = "a";
+  j["k2"] = "b";
+
+  std::vector<std::string> keys;
+  std::vector<std::string> values;
+
+  for (const auto& member : j.members()) {
+    keys.push_back(member.name);
+    values.push_back(member.value.asString());
+  }
+
+  JSONTEST_ASSERT((keys == std::vector<std::string>{"k1", "k2"}));
+  JSONTEST_ASSERT((values == std::vector<std::string>{"a", "b"}));
+
+  // Test modification through value reference
+  for (const auto& member : j.members()) {
+    member.value = "c";
+  }
+
+  JSONTEST_ASSERT(j["k1"].asString() == "c");
+
+  // Test const members
+  const Json::Value& cj = j;
+  keys.clear();
+  values.clear();
+
+  for (const auto& member : cj.members()) {
+    keys.push_back(member.name);
+    values.push_back(member.value.asString());
+  }
+
+  JSONTEST_ASSERT((keys == std::vector<std::string>{"k1", "k2"}));
+  JSONTEST_ASSERT((values == std::vector<std::string>{"c", "c"}));
+
+#if __cplusplus >= 201703L
+  keys.clear();
+  values.clear();
+  for (auto const& [k, v] : cj.members()) {
+    keys.push_back(k);
+    values.push_back(v.asString());
+  }
+  JSONTEST_ASSERT((keys == std::vector<std::string>{"k1", "k2"}));
+  JSONTEST_ASSERT((values == std::vector<std::string>{"c", "c"}));
+#endif
+}
 
 JSONTEST_FIXTURE_LOCAL(IteratorTest, convert) {
   Json::Value j;
@@ -3700,6 +4135,8 @@ JSONTEST_FIXTURE_LOCAL(IteratorTest, indexes) {
 }
 
 JSONTEST_FIXTURE_LOCAL(IteratorTest, constness) {
+#if JSON_USE_EXCEPTION
+
   Json::Value const v;
   JSONTEST_ASSERT_THROWS(
       Json::Value::iterator it(v.begin())); // Compile, but throw.
@@ -3719,8 +4156,10 @@ JSONTEST_FIXTURE_LOCAL(IteratorTest, constness) {
   for (; iter != value.end(); ++iter) {
     out << *iter << ',';
   }
-  Json::String expected = "\" 9\",\"10\",\"11\",";
+  Json::String expected = R"(" 9","10","11",)";
   JSONTEST_ASSERT_STRING_EQUAL(expected, out.str());
+
+#endif // JSON_USE_EXCEPTION
 }
 
 struct RValueTest : JsonTest::TestCase {};
@@ -3745,6 +4184,36 @@ JSONTEST_FIXTURE_LOCAL(FuzzTest, fuzzDoesntCrash) {
       0,
       LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t*>(example.c_str()),
                              example.size()));
+}
+
+struct ParseWithStructuredErrorsTest : JsonTest::TestCase {
+  void testErrors(
+      const std::string& doc, bool success,
+      const std::vector<Json::CharReader::StructuredError>& expectedErrors) {
+    Json::CharReaderBuilder b;
+    CharReaderPtr reader(b.newCharReader());
+    Json::Value root;
+    JSONTEST_ASSERT_EQUAL(
+        reader->parse(doc.data(), doc.data() + doc.length(), &root, nullptr),
+        success);
+    auto actualErrors = reader->getStructuredErrors();
+    JSONTEST_ASSERT_EQUAL(expectedErrors.size(), actualErrors.size());
+    for (std::size_t i = 0; i < actualErrors.size(); i++) {
+      const auto& a = actualErrors[i];
+      const auto& e = expectedErrors[i];
+      JSONTEST_ASSERT_EQUAL(a.offset_start, e.offset_start);
+      JSONTEST_ASSERT_EQUAL(a.offset_limit, e.offset_limit);
+      JSONTEST_ASSERT_STRING_EQUAL(a.message, e.message);
+    }
+  }
+};
+
+JSONTEST_FIXTURE_LOCAL(ParseWithStructuredErrorsTest, success) {
+  testErrors("{}", true, {});
+}
+
+JSONTEST_FIXTURE_LOCAL(ParseWithStructuredErrorsTest, singleError) {
+  testErrors("{ 1 : 2 }", false, {{2, 3, "Missing '}' or object member name"}});
 }
 
 int main(int argc, const char* argv[]) {
@@ -3799,6 +4268,20 @@ JSONTEST_FIXTURE_LOCAL(MemberTemplateIs, BehavesSameAsNamedIs) {
     JSONTEST_ASSERT_EQUAL(j.is<double>(), j.isDouble());
     JSONTEST_ASSERT_EQUAL(j.is<Json::String>(), j.isString());
   }
+}
+
+class VersionTest : public JsonTest::TestCase {};
+
+JSONTEST_FIXTURE_LOCAL(VersionTest, VersionNumbersMatch) {
+  std::ostringstream vstr;
+  vstr << JSONCPP_VERSION_MAJOR << '.' << JSONCPP_VERSION_MINOR << '.'
+       << JSONCPP_VERSION_PATCH;
+  JSONTEST_ASSERT_EQUAL(vstr.str(), std::string(JSONCPP_VERSION_STRING));
+}
+
+JSONTEST_FIXTURE_LOCAL(VersionTest, RuntimeVersionString) {
+  JSONTEST_ASSERT_EQUAL(std::string(JSONCPP_VERSION_STRING),
+                        std::string(Json::version()));
 }
 
 #if defined(__GNUC__)

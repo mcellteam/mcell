@@ -1,6 +1,6 @@
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.12.0)
     # The new Python3 module is much more robust than the previous PythonInterp
-    find_package(Python3 3.5 EXACT REQUIRED COMPONENTS Interpreter)
+    find_package(Python3 COMPONENTS Interpreter)
     # Set variables for backwards compatibility with cmake < 3.12.0
     set(PYTHONINTERP_FOUND ${Python3_Interpreter_FOUND})
     set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
@@ -19,8 +19,10 @@ if(BUILD_SHARED_LIBS)
     else()
         add_definitions(-DJSON_DLL)
     endif()
+    target_link_libraries(jsontestrunner_exe jsoncpp_lib)
+else()
+    target_link_libraries(jsontestrunner_exe jsoncpp_static)
 endif()
-target_link_libraries(jsontestrunner_exe jsoncpp_lib)
 
 set_target_properties(jsontestrunner_exe PROPERTIES OUTPUT_NAME jsontestrunner_exe)
 
@@ -45,5 +47,10 @@ if(PYTHONINTERP_FOUND)
     add_test(NAME jsoncpp_readerwriter_json_checker
         COMMAND "${PYTHON_EXECUTABLE}" -B "${RUNJSONTESTS_PATH}" --with-json-checker  $<TARGET_FILE:jsontestrunner_exe> "${TEST_DIR}/data"
         WORKING_DIRECTORY "${TEST_DIR}/data"
+    )
+
+    # Both tests write .actual/.actual-rewrite along with test data, need to prevent collision when running tests via ctest -j
+    set_tests_properties(jsoncpp_readerwriter jsoncpp_readerwriter_json_checker
+        PROPERTIES RESOURCE_LOCK "test_data_files"
     )
 endif()

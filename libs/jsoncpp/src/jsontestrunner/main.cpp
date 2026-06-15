@@ -111,7 +111,7 @@ static void printValueTree(FILE* fout, Json::Value& value,
     Json::Value::Members members(value.getMemberNames());
     std::sort(members.begin(), members.end());
     Json::String suffix = *(path.end() - 1) == '.' ? "" : ".";
-    for (auto name : members) {
+    for (const auto& name : members) {
       printValueTree(fout, value[name], path + suffix + name);
     }
   } break;
@@ -240,9 +240,12 @@ static int parseCommandLine(int argc, const char* argv[], Options* opts) {
     return printUsage(argv);
   }
   int index = 1;
-  if (Json::String(argv[index]) == "--json-checker") {
-    opts->features = Json::Features::strictMode();
+  if (Json::String(argv[index]) == "--parse-only") {
     opts->parseOnly = true;
+    ++index;
+  }
+  if (Json::String(argv[index]) == "--strict") {
+    opts->features = Json::Features::strictMode();
     ++index;
   }
   if (Json::String(argv[index]) == "--json-config") {
@@ -335,6 +338,7 @@ int main(int argc, const char* argv[]) {
     std::cerr << "Unhandled exception:" << std::endl << e.what() << std::endl;
     return 1;
   }
+  return 0;
 }
 
 #if defined(__GNUC__)

@@ -45,8 +45,33 @@ endif()
 set(VTK_DIR ${CMAKE_SOURCE_DIR}/../mcell_tools/work/build_vtk)
 find_package(VTK REQUIRED)
 
+# jsoncpp 1.9.8 defaults the BUILD_SHARED_LIBS option to ON. Because jsoncpp is
+# pulled in via add_subdirectory(), that cache variable would leak into the rest
+# of the project and turn libraries that do not specify STATIC/SHARED explicitly
+# (e.g. nauty in libbng) into shared libraries, which then fail to link
+# (undefined reference to updatecan). jsoncpp 1.9.3 defaulted this to OFF, so
+# force it OFF before adding jsoncpp to preserve the previous static-link behavior.
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
+
+# jsoncpp is added before mcell's global -fPIC flags are configured below, so its
+# targets do not inherit them. jsoncpp 1.9.3 set POSITION_INDEPENDENT_CODE ON on
+# its static target explicitly; jsoncpp 1.9.8 does not do this for the static
+# target. Because the static jsoncpp is linked into the shared module mcell.so, it
+# must be position independent, otherwise linking fails with "relocation ... can
+# not be used when making a shared object; recompile with -fPIC". Force PIC here.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # jsoncpp_test cannot be built with gperftools linking options
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
+
+# jsoncpp 1.9.3 exposes a single static target named "jsoncpp_lib", while
+# jsoncpp 1.9.8 names the static target "jsoncpp_static" (jsoncpp_lib only exists
+# when BUILD_SHARED_LIBS is ON). Pick whichever exists so both versions work.
+if(TARGET jsoncpp_lib)
+  set(JSONCPP_LIB jsoncpp_lib)
+else()
+  set(JSONCPP_LIB jsoncpp_static)
+endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   SET(CMAKE_C_FLAGS_DEBUG "-Og")
@@ -436,7 +461,7 @@ endif()
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)
 target_link_libraries(mcell
-    mcell4 libmcell_dummy libbng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES}
+    mcell4 libmcell_dummy libbng nfsim_c_static NFsim_static ${JSONCPP_LIB} nauty ${VTK_LIBRARIES}
     $<$<NOT:$<PLATFORM_ID:Darwin>>:Python3::Python>
     $<$<PLATFORM_ID:Darwin>:pybind11::python_link_helper>
 )
@@ -444,10 +469,10 @@ target_link_libraries(mcell
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
 
-add_dependencies(mcell4_so libmcell mcell4 libbng jsoncpp_lib)
+add_dependencies(mcell4_so libmcell mcell4 libbng ${JSONCPP_LIB})
 target_link_libraries(mcell4_so
     PUBLIC libmcell
-    PRIVATE mcell4 libbng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
+    PRIVATE mcell4 libbng ${JSONCPP_LIB} nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
     PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries
 )
 
