@@ -1,17 +1,8 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.25...4.3)
 
-project(data_model_to_pymcell)
+project(data_model_to_pymcell CXX)
 
-include_directories(
-    ${CMAKE_SOURCE_DIR} 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../.. 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../libs/jsoncpp/include
-)
-
-set(CMAKE_CXX_STANDARD 17)
-include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/libs/ ${CMAKE_SOURCE_DIR}/libs/sparsehash/src)
-
-set(SOURCE_FILES
+add_executable(${PROJECT_NAME}
   data_model_to_pymcell.cpp
 	mcell4_generator.cpp
 	python_generator.cpp
@@ -22,16 +13,17 @@ set(SOURCE_FILES
 	../../libmcell/api/python_export_utils.cpp
 )
 
-set(ALL_SOURCES
-    ${SOURCE_FILES}
-)
+add_dependencies(${PROJECT_NAME} version_h)
 
-add_executable(${PROJECT_NAME}
-    ${ALL_SOURCES}
-)
-
-add_dependencies(data_model_to_pymcell version_h)  
+# src/src4/include, sparsehash and VTK headers arrive transitively from the
+# linked libmcell / libbng / VTK targets; only this tool's extras are listed.
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../..
+    ${CMAKE_BINARY_DIR}/deps
+    ${CMAKE_SOURCE_DIR}/libs/jsoncpp/include)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
 target_link_libraries(${PROJECT_NAME}
-    ${JSONCPP_LIB} libmcell ${VTK_LIBRARIES} libbng
+    PRIVATE JsonCpp::JsonCpp MCell::libmcell ${VTK_LIBRARIES} BNG::bng
 )

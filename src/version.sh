@@ -144,9 +144,5 @@ echo "#define MCELL_CC_VERSION \"${CC_VERSION}\""
 echo "#define MCELL_LD \"${LD}\""
 echo "#define MCELL_LD_PATH \"${LD_PATH}\""
 echo "#define MCELL_LD_VERSION \"${LD_VERSION}\""
-echo
-echo "/* Build options */"
-echo "#define MCELL_LFLAGS \"${LFLAGS}\""
-echo "#define MCELL_YFLAGS \"${YFLAGS}\""
-echo "#define MCELL_CFLAGS \"${CFLAGS}\""
-echo "#define MCELL_LDFLAGS \"${LDFLAGS}\""
+# Build-flag macros (MCELL_CFLAGS / MCELL_LDFLAGS / MCELL_LFLAGS / MCELL_YFLAGS)
+# are emitted separately by CMake into version_flags.h via file(GENERATE).

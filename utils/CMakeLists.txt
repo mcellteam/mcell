@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.25...4.3)
 
 SET(BUILD_UTILS_DIR ${CMAKE_BINARY_DIR}/utils)
 

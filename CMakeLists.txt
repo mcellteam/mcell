@@ -1,33 +1,20 @@
-cmake_minimum_required(VERSION 3.25.1)
+cmake_minimum_required(VERSION 3.25...4.3)
 project(mcell)
 
 if ("${PYTHON_VERSION}" STREQUAL "")
   set(PYTHON_VERSION 3.13)
 endif()
 string(REPLACE "\." "" PYTHON_VERSION_NO_DOT ${PYTHON_VERSION})
-set(CMAKE_CXX_FLAGS "-DPYTHON_VERSION=${PYTHON_VERSION_NO_DOT}")
 set(PYBIND11_PYTHON_VERSION ${PYTHON_VERSION})
 
 find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 include_directories(${Python3_INCLUDE_DIRS})
 
-add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
-
-
-#TODO: unify case for cmake commands, e.g. set vs SET
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
-  add_definitions(-DYY_NO_UNISTD_H)
-  add_definitions(/EHsc)
-  if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /O2")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2")
-  endif()
-endif(MSVC)
+# All project-wide flags, definitions, the C++ standard and the platform/compiler
+# branches that used to be appended to CMAKE_CXX_FLAGS are centralised in the
+# mcell_project_options INTERFACE target (defined below) and consumed by every
+# first-party and bundled target.
 
 #set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -43,7 +30,26 @@ endif()
 
 # add VTK libs VTK and headers
 set(VTK_DIR ${CMAKE_SOURCE_DIR}/../mcell_tools/work/build_vtk)
-find_package(VTK REQUIRED)
+# Request only the modules MCell actually uses (the rest come transitively):
+#   CommonCore        - vtkSmartPointer
+#   CommonDataModel   - vtkPolyData / vtkPointData / vtkTriangle
+#   CommonTransforms  - vtkTransform
+#   FiltersCore       - vtkCleanPolyData / vtkTriangleFilter / vtkMassProperties / ...
+#   FiltersModeling   - vtkCollisionDetectionFilter / vtkSelectEnclosedPoints
+#   FiltersSources    - vtkPlatonicSolidSource
+#   IOExport          - vtkOBJExporter
+#   RenderingCore     - vtkRenderer / vtkRenderWindow / vtkPolyDataMapper
+# After this, ${VTK_LIBRARIES} expands to exactly these VTK:: targets, which
+# carry their own include dirs (no manual include paths needed).
+find_package(VTK REQUIRED COMPONENTS
+  CommonCore
+  CommonDataModel
+  CommonTransforms
+  FiltersCore
+  FiltersModeling
+  FiltersSources
+  IOExport
+  RenderingCore)
 
 # jsoncpp 1.9.8 defaults the BUILD_SHARED_LIBS option to ON. Because jsoncpp is
 # pulled in via add_subdirectory(), that cache variable would leak into the rest
@@ -72,6 +78,72 @@ if(TARGET jsoncpp_lib)
 else()
   set(JSONCPP_LIB jsoncpp_static)
 endif()
+# Give jsoncpp a stable namespaced name so the rest of the tree links
+# JsonCpp::JsonCpp regardless of which underlying target the vendored version
+# exposes (jsoncpp_lib vs jsoncpp_static).
+if(NOT TARGET JsonCpp::JsonCpp)
+  add_library(JsonCpp::JsonCpp ALIAS ${JSONCPP_LIB})
+endif()
+
+# ===========================================================================
+# Project-wide build options as a single INTERFACE target.
+#
+# Everything that used to be appended to CMAKE_C_FLAGS / CMAKE_CXX_FLAGS lives
+# here as generator expressions (per language / config / platform / compiler).
+# Every first-party target AND the bundled siblings link this PRIVATE (see the
+# loop after the subdirectories), so the whole build shares one flag set.
+# ===========================================================================
+add_library(mcell_project_options INTERFACE)
+
+# Single project-wide C++ standard knob. Bump to 20 or 23 to experiment; CMake
+# emits -std=gnu++<N> automatically once <N> exceeds the compiler default. The
+# "max" of this and any lower per-target floor wins, so the bundled nfsim/libbng
+# get raised to the same standard. (Note: a value the compiler does not yet
+# advertise -- e.g. 26 on GCC 12 -- is silently ignored, leaving the default.)
+set(MCELL_CXX_STANDARD 17 CACHE STRING "C++ standard for the whole MCell build (17/20/23)")
+# The feature gives a configure-time guarantee the compiler supports the standard
+# (and is the floor that overrides the siblings' lower cxx_std_* requirements).
+target_compile_features(mcell_project_options INTERFACE cxx_std_${MCELL_CXX_STANDARD})
+# ...and we *also* pass -std=gnu++<N> explicitly so the standard is always visible
+# on the compile command line, even when it matches the compiler default (GCC's
+# default is already gnu++17, so the feature alone would emit no flag). We use the
+# gnu++ dialect (extensions on) to preserve the historical behaviour the legacy
+# C-compiled-as-C++ code relies on.
+target_compile_options(mcell_project_options INTERFACE
+    $<$<AND:$<NOT:$<PLATFORM_ID:Windows>>,$<COMPILE_LANGUAGE:CXX>>:-std=gnu++${MCELL_CXX_STANDARD}>)
+
+target_compile_definitions(mcell_project_options INTERFACE
+    PACKAGE_BUGREPORT="mcell@salk.edu"
+    PYTHON_VERSION=${PYTHON_VERSION_NO_DOT}
+    $<$<NOT:$<PLATFORM_ID:Windows>>:_GNU_SOURCE=1>
+    $<$<PLATFORM_ID:Windows>:YY_NO_UNISTD_H>)
+
+# Common GCC/Clang warning set (kept identical to the historical global flags).
+set(MCELL_NIX_WARNINGS
+    -Wall -Wextra
+    -Wno-unused-parameter -Wno-unused-function
+    -Wno-unused-variable -Wno-deprecated-declarations)
+
+target_compile_options(mcell_project_options INTERFACE
+    # warnings (non-Windows)
+    $<$<NOT:$<PLATFORM_ID:Windows>>:${MCELL_NIX_WARNINGS}>
+    $<$<AND:$<NOT:$<PLATFORM_ID:Windows>>,$<CXX_COMPILER_ID:Clang>>:-Wno-ignored-optimization-argument>
+    # -fpermissive is C++-only and required by the legacy C-compiled-as-C++ code
+    $<$<AND:$<NOT:$<PLATFORM_ID:Windows>>,$<COMPILE_LANGUAGE:CXX>>:-fpermissive>
+    # the few genuine C sources are C11 (matches the historical -std=c11)
+    $<$<AND:$<NOT:$<PLATFORM_ID:Windows>>,$<COMPILE_LANGUAGE:C>>:-std=c11>
+    # Release optimisation (historically Release-only)
+    $<$<AND:$<NOT:$<PLATFORM_ID:Windows>>,$<CONFIG:Release>>:-O3;-g>
+    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Release>>:-finline-limit=10000>
+    # MSVC equivalents of the old if(MSVC) block
+    $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
+    $<$<CXX_COMPILER_ID:MSVC>:/std:c++latest>
+    $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>)
+
+# The bundled mcell/libs headers were exposed via a global -isystem; keep that
+# as a SYSTEM usage requirement so consumers' warnings stay quiet.
+target_include_directories(mcell_project_options SYSTEM INTERFACE
+    ${CMAKE_SOURCE_DIR}/libs)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   SET(CMAKE_C_FLAGS_DEBUG "-Og")
@@ -82,42 +154,13 @@ if (NOT WIN32)
   # SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
   # SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
+  # Release-only LINK option: the mcell executable is linked -no-pie (avoids an
+  # AVX2 / MCell3 wall-overlap miscompile; see git history). It is a link option,
+  # so it stays on CMAKE_EXE_LINKER_FLAGS rather than mcell_project_options.
+  # (Compile-side optimisation -O3/-g/-finline-limit now lives in that target.)
   if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall
-    # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep
-    # seems to be related to AVX2, maybe gcc issue
-    # changing to sandybridge gives 2-6% in performance (in executed instructions), however
-    # MCell does not work afterwards on machines such as Mac Mini 2018 with Intel i5
-    # set(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
-    set(OPTIMIZATION_FLAGS " -O3 -g")
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-      SET(OPTIMIZATION_FLAGS "${OPTIMIZATION_FLAGS} -finline-limit=10000 ")
-    endif()
-      # must not be used for pymcell (at least for now)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
   endif()
-
-
-  set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-deprecated-declarations")
-
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	  set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")
-  endif()
-
-  set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-  # set(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
-  set(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
-
-  if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(COMMON_C_CXX_FLAGS "${COMMON_C_CXX_FLAGS} ${OPTIMIZATION_FLAGS} ")
-  endif()
-
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(COMMON_C_CXX_FLAGS "${COMMON_C_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG} ")
-  endif()
-
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++17 -fpermissive ")
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
 
@@ -180,63 +223,49 @@ if (NOT WIN32)
 
 endif() # if (NOT WIN32)
 
-if(NOT CMAKE_SYSTEM_NAME STREQUAL Windows)
-  string(REPLACE " " ";" C_FLAGS ${CMAKE_C_FLAGS})
-  string(REPLACE " " ";" CXX_FLAGS ${CMAKE_CXX_FLAGS})
-  set(C_CXX_FLAGS ${C_FLAGS} ${CXX_FLAGS})
-  list(REMOVE_DUPLICATES C_CXX_FLAGS)
-  list(FIND C_CXX_FLAGS "-isystem" TMP)
-  MATH(EXPR TMPP "${TMP} + 1")
-  list(REMOVE_AT C_CXX_FLAGS ${TMP} ${TMPP})
-  list(JOIN C_CXX_FLAGS " " C_CXX_FLAGS)
-  message("-- C_CXX_FLAGS: ${C_CXX_FLAGS}")
-endif()
-
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
-include_directories(
-  "${CMAKE_SOURCE_DIR}/src"
-  "${CMAKE_SOURCE_DIR}/src4"   all
-  "${CMAKE_CURRENT_BINARY_DIR}/deps"
-  "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
-  "${CMAKE_SOURCE_DIR}/include"
-  "${CMAKE_SOURCE_DIR}/../libbng/"
-  "${CMAKE_SOURCE_DIR}/../libbng/libs/"
-  "${CMAKE_SOURCE_DIR}/../libbng/libs/sparsehash/src/"
-  "${CMAKE_SOURCE_DIR}/libs"
-  "${CMAKE_SOURCE_DIR}/libmcell"
 
-  # VTK - should be set by find_package but it does not work somehow...
-  "${CMAKE_SOURCE_DIR}/../VTK/Common/DataModel/"
-  "${VTK_DIR}/Common/DataModel/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Common/Core/"
-  "${VTK_DIR}/Common/Core/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Common/Transforms/"
-  "${VTK_DIR}/Common/Transforms/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Common/Math/"
-  "${VTK_DIR}/Common/Math/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Filters/Core/"
-  "${VTK_DIR}/Filters/Core/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Filters/Modeling/"
-  "${VTK_DIR}/Filters/Modeling/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Filters/Sources/"
-  "${VTK_DIR}/Filters/Sources/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Rendering/Core/"
-  "${VTK_DIR}/Rendering/Core/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Rendering/Context2D/"
-  "${VTK_DIR}/Rendering/Context2D/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Rendering/FreeType/"
-  "${VTK_DIR}/Rendering/FreeType/"
-  "${CMAKE_SOURCE_DIR}/../VTK/IO/Export/"
-  "${VTK_DIR}/IO/Export/"
-  "${CMAKE_SOURCE_DIR}/../VTK/IO/Image/"
-  "${VTK_DIR}/IO/Image/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Common/ExecutionModel/"
-  "${VTK_DIR}/Common/ExecutionModel/"
-  "${CMAKE_SOURCE_DIR}/../VTK/Utilities/KWIML/"
-  "${VTK_DIR}/Utilities/KWSys/"
-)
+# ---------------------------------------------------------------------------
+# Build-flag strings for the `mcell --fullversion` banner.
+#
+# These are assembled here, where the real project flags are defined, and
+# emitted to deps/version_flags.h via file(GENERATE) -- the same mechanism on
+# Linux, macOS and Windows. This replaces the old fragile shell flag-splitting
+# (and the separate -CFlags/-LdFlags plumbing into version.sh / version.ps1),
+# and also fixes MCELL_LDFLAGS, which used to be empty on Linux/macOS.
+# ---------------------------------------------------------------------------
+if (WIN32)
+  set(_banner_cflags /EHsc /std:c++latest -DPYTHON_VERSION=${PYTHON_VERSION_NO_DOT} /O2)
+else()
+  set(_banner_cflags ${MCELL_NIX_WARNINGS}
+      -fpermissive -std=gnu++${MCELL_CXX_STANDARD} -D_GNU_SOURCE=1
+      -DPYTHON_VERSION=${PYTHON_VERSION_NO_DOT})
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    list(APPEND _banner_cflags -O3 -g)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      list(APPEND _banner_cflags -finline-limit=10000)
+    endif()
+  endif()
+endif()
+list(JOIN _banner_cflags " " MCELL_BANNER_CFLAGS)
+string(STRIP "${CMAKE_EXE_LINKER_FLAGS}" MCELL_BANNER_LDFLAGS)
 
+file(GENERATE
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/version_flags.h
+  CONTENT "/* Auto-generated by CMake -- do not edit. Build flags for --fullversion. */
+#pragma once
+#define MCELL_CFLAGS  \"${MCELL_BANNER_CFLAGS}\"
+#define MCELL_LDFLAGS \"${MCELL_BANNER_LDFLAGS}\"
+#define MCELL_LFLAGS  \"-Cema\"
+#define MCELL_YFLAGS  \"\"
+")
+# Include directories are now expressed as per-target usage requirements:
+# - each library (libbng, nfsim, mcell4, libmcell, ...) exports its own headers,
+# - VTK headers come from linking the VTK:: targets,
+# so the mcell executable and the mcell4_so module only need to spell out the
+# handful of dirs unique to their own translation units (see APP_INCLUDE_DIRS
+# near the target definitions below).
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
@@ -269,17 +298,18 @@ ADD_FLEX_BISON_DEPENDENCY(dynGeomScanner dynGeomParser dyngeomlex_l)
 
 
 
-# create version.h target
+# create version.h target (build environment / tool / git info only; the build
+# flags now live in version_flags.h generated above via file(GENERATE)).
 if (NOT WIN32)
   add_custom_target(
     version_h
-    COMMAND env CFLAGS=${C_CXX_FLAGS} ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+    COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
     DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
     VERBATIM)
 elseif (WIN32)
   add_custom_target(
     version_h
-    COMMAND powershell -ExecutionPolicy Bypass -File ${CMAKE_SOURCE_DIR}/src/version.ps1 -OutputFile ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h -CFlags "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS}" -LdFlags "${CMAKE_EXE_LINKER_FLAGS}"
+    COMMAND powershell -ExecutionPolicy Bypass -File ${CMAKE_SOURCE_DIR}/src/version.ps1 -OutputFile ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
     DEPENDS ${CMAKE_SOURCE_DIR}/src/version.ps1
     VERBATIM)
 endif()
@@ -393,7 +423,21 @@ if (UNIX)
   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif()
 
-INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
+# Include dirs needed by the mcell executable's and the mcell4_so module's OWN
+# translation units (most others arrive transitively from the linked libraries).
+# The generated config.h / version.h and the flex/bison output live under deps.
+set(APP_INCLUDE_DIRS
+    ${CMAKE_CURRENT_BINARY_DIR}/deps
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src4
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/libmcell
+    ${CMAKE_SOURCE_DIR}/libs
+    ${CMAKE_SOURCE_DIR}/libs/jsoncpp/include
+    ${CMAKE_SOURCE_DIR}/../nfsimCInterface/src
+    ${CMAKE_SOURCE_DIR}/../libbng
+    ${CMAKE_SOURCE_DIR}/../libbng/libs
+    ${CMAKE_SOURCE_DIR}/../libbng/libs/sparsehash/src)
 
 # copy tools for MDLr to MDL
 SET(MCELL_RULES_DIR ${CMAKE_SOURCE_DIR}/src/rules_py)
@@ -458,10 +502,12 @@ if (NOT WIN32 AND NOT APPLE)
     set(STDC_FS stdc++fs)
 endif()
 
+target_include_directories(mcell PRIVATE ${APP_INCLUDE_DIRS})
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)
 target_link_libraries(mcell
-    mcell4 libmcell_dummy libbng nfsim_c_static NFsim_static ${JSONCPP_LIB} nauty ${VTK_LIBRARIES}
+    PRIVATE
+    MCell::mcell4 MCell::libmcell_dummy BNG::bng NFsimC::NFsimC NFsim::NFsim JsonCpp::JsonCpp Nauty::nauty ${VTK_LIBRARIES}
     $<$<NOT:$<PLATFORM_ID:Darwin>>:Python3::Python>
     $<$<PLATFORM_ID:Darwin>:pybind11::python_link_helper>
 )
@@ -471,11 +517,12 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
 
 add_dependencies(mcell4_so libmcell mcell4 libbng ${JSONCPP_LIB})
 target_link_libraries(mcell4_so
-    PUBLIC libmcell
-    PRIVATE mcell4 libbng ${JSONCPP_LIB} nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
-    PUBLIC libmcell  # linking dependency issue, we must include limbcell once again to the list of libraries
+    PUBLIC MCell::libmcell
+    PRIVATE MCell::mcell4 BNG::bng JsonCpp::JsonCpp Nauty::nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
+    PUBLIC MCell::libmcell  # linking dependency issue, we must include libmcell once again to the list of libraries
 )
 
+target_include_directories(mcell4_so PRIVATE ${APP_INCLUDE_DIRS})
 set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(mcell4_so PROPERTIES PREFIX "")
 set_target_properties(mcell4_so PROPERTIES OUTPUT_NAME "mcell")
@@ -484,3 +531,26 @@ if (WIN32)
 else()
     set_target_properties(mcell4_so PROPERTIES SUFFIX ".so") # must be .so on MacOS as well
 endif()
+
+# Apply the shared project options to every target in this build -- the
+# first-party targets and the bundled siblings (nfsim/libbng/nauty), which used
+# to receive these flags through the global CMAKE_*_FLAGS. Linking is PRIVATE so
+# the flags do not leak through public interfaces. Guarded by if(TARGET) so the
+# Windows-only / optional variants are skipped cleanly.
+foreach(_t IN ITEMS
+    mcell4 libmcell libmcell_dummy mcell mcell4_so
+    data_model_to_pymcell bng_analyzer
+    libbng parser_tester_libbng nauty
+    NFsim_static NFsim_static_fpic NFsim NFsim_EXE
+    nfsim_c nfsim_c_static)
+  if (TARGET ${_t})
+    target_link_libraries(${_t} PRIVATE mcell_project_options)
+  endif()
+endforeach()
+
+# VTK 9 object factories register via per-target autoinit headers. Apply it to
+# every target that compiles VTK-using translation units so factory-backed
+# objects (e.g. renderers) resolve at runtime. MODULES is the set we requested.
+vtk_module_autoinit(
+  TARGETS mcell4 libmcell data_model_to_pymcell mcell mcell4_so
+  MODULES ${VTK_LIBRARIES})

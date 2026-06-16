@@ -1,30 +1,11 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.25...4.3)
 
-project(libmcell)
+project(libmcell CXX)
 
 option(ENABLE_DOC "Enable build of documentation" OFF)
 
 find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
-include_directories(${Python3_INCLUDE_DIRS})
-
-include_directories(${CMAKE_SOURCE_DIR} 
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src4 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include
-    
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../mcell_tools/work/build_mcell/deps/
-    ${CMAKE_CURRENT_SOURCE_DIR}/../libs  
-    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include
-)
-
-if (NOT WIN32) # TODO
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src ${PYTHON_INCLUDES}")
-else()
-    include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src )
-    include_directories(${PYTHON_INCLUDES})
-endif()    
 
 set(SOURCE_FILES
     api/api_utils.cpp
@@ -143,4 +124,36 @@ add_dependencies(${PROJECT_NAME} version_h)
 add_library(libmcell_dummy STATIC
     api/libmcell_dummy.cpp
 )
+add_library(MCell::libmcell       ALIAS libmcell)
+add_library(MCell::libmcell_dummy ALIAS libmcell_dummy)
+
+foreach(_t libmcell libmcell_dummy)
+  target_include_directories(${_t} PUBLIC
+      ${CMAKE_SOURCE_DIR}
+      ${CMAKE_CURRENT_SOURCE_DIR}
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src4
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src
+      ${CMAKE_CURRENT_SOURCE_DIR}/../include
+      ${CMAKE_CURRENT_SOURCE_DIR}/../libs
+      ${CMAKE_CURRENT_SOURCE_DIR}/../../libbng
+      ${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/libs
+      ${CMAKE_CURRENT_SOURCE_DIR}/../../nfsimCInterface/src)
+  target_include_directories(${_t} PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include
+      ${CMAKE_BINARY_DIR}/deps)          # generated config.h / version.h
+  # third-party / external headers as SYSTEM so their warnings stay quiet
+  target_include_directories(${_t} SYSTEM PUBLIC
+      ${Python3_INCLUDE_DIRS}
+      ${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/libs/sparsehash/src)
+  target_compile_features(${_t} PUBLIC cxx_std_17)
+  # the generated binding sources are huge; build them unoptimized (historic
+  # behaviour, kept to preserve build times and codegen expectations).
+  if (NOT WIN32)
+    target_compile_options(${_t} PRIVATE -g3 -O0)
+  endif()
+endforeach()
+
+# geometry_utils / compartment_utils include VTK directly; link the VTK targets
+# so their include directories come along automatically.
+target_link_libraries(libmcell PRIVATE ${VTK_LIBRARIES})
 

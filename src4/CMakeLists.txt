@@ -1,18 +1,6 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.25...4.3)
 
-project(mcell4)
-
-include_directories(${CMAKE_SOURCE_DIR} 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src4" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../src" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../include" 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../libs"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../libmcell"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/libs/"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/libs/sparsehash/src/"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include/"
-)
+project(mcell4 CXX)
 
 set(SRC4_SOURCE_FILES
 
@@ -53,3 +41,29 @@ set(SRC4_SOURCE_FILES
 add_library(${PROJECT_NAME} STATIC
     ${SRC4_SOURCE_FILES}
 )
+add_library(MCell::mcell4 ALIAS ${PROJECT_NAME})
+
+# Usage requirements (PUBLIC dirs propagate to mcell / mcell4_so which link mcell4).
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libmcell
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libs
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../libbng
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../nfsimCInterface/src)
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_BINARY_DIR}/deps)            # generated config.h / version.h
+# Third-party bundled headers: SYSTEM, so they never shadow our own headers.
+# (sparsehash ships its own config.h, which must NOT win over deps/config.h.)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/libs
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../libbng/libs/sparsehash/src)
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+
+# vtk_utils / world / bngl_exporter include VTK directly. Linking the VTK
+# targets pulls in their include directories (no manual paths needed).
+target_link_libraries(${PROJECT_NAME} PRIVATE ${VTK_LIBRARIES})

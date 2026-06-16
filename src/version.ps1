@@ -201,12 +201,8 @@ $lines += @(
     "#define MCELL_LD `"${LD}`""
     "#define MCELL_LD_PATH `"${LD_PATH_ESC}`""
     "#define MCELL_LD_VERSION `"${LD_VERSION}`""
-    ""
-    "/* Build options */"
-    "#define MCELL_LFLAGS `"${LFLAGS}`""
-    "#define MCELL_YFLAGS `"${YFLAGS}`""
-    "#define MCELL_CFLAGS `"${CFLAGS}`""
-    "#define MCELL_LDFLAGS `"${LDFLAGS}`""
+    # Build-flag macros (MCELL_CFLAGS / MCELL_LDFLAGS / MCELL_LFLAGS / MCELL_YFLAGS)
+    # are emitted separately by CMake into version_flags.h via file(GENERATE).
 )
 
 ####################
