@@ -548,6 +548,20 @@ foreach(_t IN ITEMS
   endif()
 endforeach()
 
+# nfsim (NFinput.cpp) and its C interface use Boost (algorithm/string, range).
+# The only copy in this source tree is the one bundled in libbng/libs; the
+# first-party targets (mcell4/libmcell/...) already pick it up via their own
+# include dirs, but the nfsim family used to receive it solely from mcell's old
+# global include_directories. Wire the bundled Boost to them explicitly here.
+# (Linux has a system Boost that masked this regression; macOS does not.)
+foreach(_t IN ITEMS
+    NFsim_static NFsim_static_fpic NFsim NFsim_EXE
+    nfsim_c nfsim_c_static)
+  if (TARGET ${_t})
+    target_include_directories(${_t} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/../libbng/libs)
+  endif()
+endforeach()
+
 # VTK 9 object factories register via per-target autoinit headers. Apply it to
 # every target that compiles VTK-using translation units so factory-backed
 # objects (e.g. renderers) resolve at runtime. MODULES is the set we requested.
