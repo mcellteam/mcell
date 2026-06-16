@@ -175,7 +175,9 @@ if (NOT WIN32)
   # AVX2 / MCell3 wall-overlap miscompile; see git history). It is a link option,
   # so it stays on CMAKE_EXE_LINKER_FLAGS rather than mcell_project_options.
   # (Compile-side optimisation -O3/-g/-finline-limit now lives in that target.)
-  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  # -no-pie is a Linux/GNU-ld workaround: macOS makes PIE mandatory and clang
+  # just warns "argument unused during compilation: '-no-pie'", so skip it there.
+  if (CMAKE_BUILD_TYPE STREQUAL "Release" AND NOT APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
   endif()
 
