@@ -152,15 +152,19 @@ target_include_directories(mcell_project_options SYSTEM INTERFACE
     ${CMAKE_SOURCE_DIR}/libs)
 
 # Debuggable Debug builds, cross-platform:
-#   * GCC (Linux) and Clang/AppleClang (macOS): -Og keeps the historical
-#     "optimise but stay debuggable" behaviour, and -g emits the symbols gdb/lldb
-#     need. (Plain -Og alone, as before, produced NO debug symbols.)
+#   * GCC (Linux) and Clang/AppleClang (macOS): -O0 disables optimisation so
+#     every local variable stays live and stepping is linear, and -g emits the
+#     symbols gdb/lldb need. We deliberately use -O0 rather than -Og: under
+#     Clang/lldb (macOS) -Og still optimises enough to drop variables and make
+#     lldb warn "compiled with optimization - variables may not be available".
+#     The cost is a slower Debug binary, which is the expected Debug tradeoff;
+#     override with -DCMAKE_CXX_FLAGS_DEBUG="-Og -g" if you want a faster one.
 #   * MSVC (Windows): CMake's default CMAKE_*_FLAGS_DEBUG already carries
 #     /Zi /Od /RTC1 -- a full debug build -- so we leave it untouched. (NOT MSVC
-#     also excludes clang-cl, which uses the MSVC-style driver, not -Og/-g.)
+#     also excludes clang-cl, which uses the MSVC-style driver, not -O0/-g.)
 if (NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  set(CMAKE_C_FLAGS_DEBUG   "-Og -g")
-  set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
+  set(CMAKE_C_FLAGS_DEBUG   "-O0 -g")
+  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 endif()
 
 if (NOT WIN32)
