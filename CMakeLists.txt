@@ -151,9 +151,16 @@ target_compile_options(mcell_project_options INTERFACE
 target_include_directories(mcell_project_options SYSTEM INTERFACE
     ${CMAKE_SOURCE_DIR}/libs)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  SET(CMAKE_C_FLAGS_DEBUG "-Og")
-  SET(CMAKE_CXX_FLAGS_DEBUG "-Og")
+# Debuggable Debug builds, cross-platform:
+#   * GCC (Linux) and Clang/AppleClang (macOS): -Og keeps the historical
+#     "optimise but stay debuggable" behaviour, and -g emits the symbols gdb/lldb
+#     need. (Plain -Og alone, as before, produced NO debug symbols.)
+#   * MSVC (Windows): CMake's default CMAKE_*_FLAGS_DEBUG already carries
+#     /Zi /Od /RTC1 -- a full debug build -- so we leave it untouched. (NOT MSVC
+#     also excludes clang-cl, which uses the MSVC-style driver, not -Og/-g.)
+if (NOT MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  set(CMAKE_C_FLAGS_DEBUG   "-Og -g")
+  set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
 endif()
 
 if (NOT WIN32)
@@ -253,6 +260,12 @@ else()
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       list(APPEND _banner_cflags -finline-limit=10000)
     endif()
+  elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # Mirror the per-config optimisation flags CMake actually injects for Debug
+    # (CMAKE_CXX_FLAGS_DEBUG is set to "-Og -g" for GCC/Clang above). Without
+    # this the banner would under-report a Debug build.
+    separate_arguments(_banner_debug_flags UNIX_COMMAND "${CMAKE_CXX_FLAGS_DEBUG}")
+    list(APPEND _banner_cflags ${_banner_debug_flags})
   endif()
 endif()
 list(JOIN _banner_cflags " " MCELL_BANNER_CFLAGS)
