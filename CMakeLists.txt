@@ -135,9 +135,15 @@ target_compile_options(mcell_project_options INTERFACE
     # Release optimisation (historically Release-only)
     $<$<AND:$<NOT:$<PLATFORM_ID:Windows>>,$<CONFIG:Release>>:-O3;-g>
     $<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Release>>:-finline-limit=10000>
-    # MSVC equivalents of the old if(MSVC) block
+    # MSVC equivalents of the old if(MSVC) block.
     $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
-    $<$<CXX_COMPILER_ID:MSVC>:/std:c++latest>
+    # The C++ standard on MSVC comes from the cxx_std_<N> feature above (=>
+    # /std:c++17). We deliberately do NOT force /std:c++latest: on modern MSVC it
+    # implies /permissive- -> /Zc:strictStrings, which rejects the legacy
+    # string-literal-to-char* code in the vendored nauty (and nfsim). Turning
+    # strict strings off is the MSVC counterpart of the -fpermissive we pass to
+    # GCC/Clang for the same legacy code.
+    $<$<CXX_COMPILER_ID:MSVC>:/Zc:strictStrings->
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>)
 
 # The bundled mcell/libs headers were exposed via a global -isystem; keep that
@@ -236,7 +242,8 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
 # and also fixes MCELL_LDFLAGS, which used to be empty on Linux/macOS.
 # ---------------------------------------------------------------------------
 if (WIN32)
-  set(_banner_cflags /EHsc /std:c++latest -DPYTHON_VERSION=${PYTHON_VERSION_NO_DOT} /O2)
+  set(_banner_cflags /EHsc /std:c++${MCELL_CXX_STANDARD} /Zc:strictStrings-
+      -DPYTHON_VERSION=${PYTHON_VERSION_NO_DOT} /O2)
 else()
   set(_banner_cflags ${MCELL_NIX_WARNINGS}
       -fpermissive -std=gnu++${MCELL_CXX_STANDARD} -D_GNU_SOURCE=1
