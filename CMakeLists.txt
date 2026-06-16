@@ -179,7 +179,15 @@ if (NOT WIN32)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
   endif()
 
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
+  # libm is a separate library on Linux (glibc), so it must be linked explicitly.
+  # On macOS the math functions live in libSystem, which is always linked
+  # implicitly, so an explicit -lm is redundant -- and because VTK already pulls
+  # one in transitively (libvtkkissfft), the new macOS linker warns "ignoring
+  # duplicate libraries: '-lm'". Skip it on Apple to silence that.
+  if (NOT APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
+  endif()
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
 
   # special performance and debug options are not supported on Windows
   option(ENABLE_LTO "Use link-time optimization" OFF)
