@@ -431,7 +431,7 @@ public:
 }; // GenConfig
 
 class Config;
-py::class_<Config> define_pybinding_Config(py::module& m);
+void define_pybinding_Config(py::module_& m);
 } // namespace API
 } // namespace MCell
 

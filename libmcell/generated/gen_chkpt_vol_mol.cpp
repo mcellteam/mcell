@@ -141,8 +141,8 @@ std::string GenChkptVolMol::to_str(const bool all_details, const std::string ind
   return ss.str();
 }
 
-py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
-  return py::class_<ChkptVolMol, BaseChkptMol, std::shared_ptr<ChkptVolMol>>(m, "ChkptVolMol", "Class representing a checkpointed volume molecule.\nNot to be used directly.\n")
+void define_pybinding_ChkptVolMol(py::module_& m) {
+  py::class_<ChkptVolMol, BaseChkptMol>(m, "ChkptVolMol", "Class representing a checkpointed volume molecule.\nNot to be used directly.\n")
       .def(
           py::init<
             const Vec3&,
@@ -155,7 +155,7 @@ py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
           >(),
           py::arg("pos"),
           py::arg("id"),
-          py::arg("species"),
+          py::arg("species").none(),
           py::arg("diffusion_time"),
           py::arg("birthday"),
           py::arg("flags"),
@@ -167,7 +167,7 @@ py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
       .def("__str__", &ChkptVolMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ChkptVolMol::__eq__, py::arg("other"))
       .def("dump", &ChkptVolMol::dump)
-      .def_property("pos", &ChkptVolMol::get_pos, &ChkptVolMol::set_pos)
+      .def_prop_rw("pos", &ChkptVolMol::get_pos, &ChkptVolMol::set_pos)
     ;
 }
 

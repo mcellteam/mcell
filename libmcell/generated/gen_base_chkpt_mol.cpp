@@ -132,8 +132,8 @@ std::string GenBaseChkptMol::to_str(const bool all_details, const std::string in
   return ss.str();
 }
 
-py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
-  return py::class_<BaseChkptMol, std::shared_ptr<BaseChkptMol>>(m, "BaseChkptMol", "Base class for checkpointed molecules.\nNot to be used directly. All times are in seconds.\n")
+void define_pybinding_BaseChkptMol(py::module_& m) {
+  py::class_<BaseChkptMol>(m, "BaseChkptMol", "Base class for checkpointed molecules.\nNot to be used directly. All times are in seconds.\n")
       .def(
           py::init<
             const int,
@@ -144,7 +144,7 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
             const double
           >(),
           py::arg("id"),
-          py::arg("species"),
+          py::arg("species").none(),
           py::arg("diffusion_time"),
           py::arg("birthday"),
           py::arg("flags"),
@@ -156,12 +156,12 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
       .def("__str__", &BaseChkptMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &BaseChkptMol::__eq__, py::arg("other"))
       .def("dump", &BaseChkptMol::dump)
-      .def_property("id", &BaseChkptMol::get_id, &BaseChkptMol::set_id)
-      .def_property("species", &BaseChkptMol::get_species, &BaseChkptMol::set_species)
-      .def_property("diffusion_time", &BaseChkptMol::get_diffusion_time, &BaseChkptMol::set_diffusion_time)
-      .def_property("birthday", &BaseChkptMol::get_birthday, &BaseChkptMol::set_birthday)
-      .def_property("flags", &BaseChkptMol::get_flags, &BaseChkptMol::set_flags)
-      .def_property("unimol_rxn_time", &BaseChkptMol::get_unimol_rxn_time, &BaseChkptMol::set_unimol_rxn_time)
+      .def_prop_rw("id", &BaseChkptMol::get_id, &BaseChkptMol::set_id)
+      .def_prop_rw("species", &BaseChkptMol::get_species, &BaseChkptMol::set_species)
+      .def_prop_rw("diffusion_time", &BaseChkptMol::get_diffusion_time, &BaseChkptMol::set_diffusion_time)
+      .def_prop_rw("birthday", &BaseChkptMol::get_birthday, &BaseChkptMol::set_birthday)
+      .def_prop_rw("flags", &BaseChkptMol::get_flags, &BaseChkptMol::set_flags)
+      .def_prop_rw("unimol_rxn_time", &BaseChkptMol::get_unimol_rxn_time, &BaseChkptMol::set_unimol_rxn_time)
     ;
 }
 

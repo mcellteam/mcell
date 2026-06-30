@@ -194,7 +194,7 @@ public:
 }; // GenCountTerm
 
 class CountTerm;
-py::class_<CountTerm> define_pybinding_CountTerm(py::module& m);
+void define_pybinding_CountTerm(py::module_& m);
 } // namespace API
 } // namespace MCell
 

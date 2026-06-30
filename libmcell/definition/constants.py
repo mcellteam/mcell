@@ -157,8 +157,8 @@ DEFAULT_CTOR_ARG_TYPE = 'DefaultCtorArgType'
 RET_TYPE_CHECK_SEMANTICS = 'void'
 CHECK_SEMANTICS = 'check_semantics'
 DECL_CHECK_SEMANTICS = CHECK_SEMANTICS + '() const'
-DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
-DECL_DEFINE_PYBINDIND_ENUMS = 'void define_pybinding_enums(py::module& m)'
+DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module_& m)'
+DECL_DEFINE_PYBINDIND_ENUMS = 'void define_pybinding_enums(py::module_& m)'
 DECL_SET_INITIALIZED = 'set_initialized()'
 
 RET_TYPE_SET_ALL_DEFAULT_OR_UNSET = 'void'
@@ -186,7 +186,7 @@ KEYWORD_VIRTUAL = 'virtual'
 CLASS_NAME_ATTR = 'class_name'
 CACHED_DATA_ARE_UPTODATE_ATTR = 'cached_data_are_uptodate'
 
-GEN_VECTORS_BIND = 'gen_vectors_bind(py::module& m)'
+GEN_VECTORS_BIND = 'gen_vectors_bind(py::module_& m)'
 
 GEN_CONSTANTS_H = 'gen_constants.h'
 GEN_CONSTANTS_CPP = 'gen_constants.cpp'
@@ -218,7 +218,18 @@ VEC_NONPTR_TO_STR = 'vec_nonptr_to_str'
 VEC_PTR_TO_STR = 'vec_ptr_to_str'
 F_TO_STR = 'f_to_str'
 
-PY_BIND_VECTOR = 'py::bind_vector'
-PY_IMPLICITLY_CONVERTIBLE = 'py::implicitly_convertible'
+PY_BIND_VECTOR = 'py::bind_vector'          # nb::bind_vector via the `py` alias
+PY_IMPLICITLY_CONVERTIBLE = 'py::implicitly_convertible'  # nanobind: unused (bind_vector accepts sequences)
 
-PYBIND11_MAKE_OPAQUE = 'PYBIND11_MAKE_OPAQUE'
+# nanobind: NB_MAKE_OPAQUE (analogue of PYBIND11_MAKE_OPAQUE) — still required because
+# bind_vector conflicts with the stl/vector.h caster otherwise.
+PYBIND11_MAKE_OPAQUE = 'NB_MAKE_OPAQUE'
+
+# classes whose hand-written api/ subclass derives from std::enable_shared_from_this and
+# whose shared_from_this() is reachable from Python on a freshly-constructed instance
+# (Region boolean ops, CountTerm '+', ComponentType/ElementaryMoleculeType .inst()). With
+# nanobind these MUST be constructed via a make_shared factory (nb::new_) instead of
+# nb::init, otherwise shared_from_this() throws bad_weak_ptr.
+ENABLE_SHARED_FROM_THIS_CLASSES = {
+    'ComponentType', 'Region', 'CountTerm', 'ElementaryMoleculeType',
+}

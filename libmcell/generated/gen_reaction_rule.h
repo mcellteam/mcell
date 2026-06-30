@@ -180,7 +180,7 @@ public:
 }; // GenReactionRule
 
 class ReactionRule;
-py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m);
+void define_pybinding_ReactionRule(py::module_& m);
 } // namespace API
 } // namespace MCell
 

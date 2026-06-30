@@ -114,7 +114,7 @@ public:
 }; // GenReactionInfo
 
 class ReactionInfo;
-py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m);
+void define_pybinding_ReactionInfo(py::module_& m);
 } // namespace API
 } // namespace MCell
 

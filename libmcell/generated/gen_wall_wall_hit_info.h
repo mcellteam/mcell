@@ -89,7 +89,7 @@ public:
 }; // GenWallWallHitInfo
 
 class WallWallHitInfo;
-py::class_<WallWallHitInfo> define_pybinding_WallWallHitInfo(py::module& m);
+void define_pybinding_WallWallHitInfo(py::module_& m);
 } // namespace API
 } // namespace MCell
 

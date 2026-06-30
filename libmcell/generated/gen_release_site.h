@@ -277,7 +277,7 @@ public:
 }; // GenReleaseSite
 
 class ReleaseSite;
-py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m);
+void define_pybinding_ReleaseSite(py::module_& m);
 } // namespace API
 } // namespace MCell
 

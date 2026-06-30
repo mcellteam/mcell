@@ -201,8 +201,8 @@ std::string GenChkptSurfMol::to_str(const bool all_details, const std::string in
   return ss.str();
 }
 
-py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
-  return py::class_<ChkptSurfMol, BaseChkptMol, std::shared_ptr<ChkptSurfMol>>(m, "ChkptSurfMol", "Class representing a checkpointed surface molecule.\nNot to be used directly.\n")
+void define_pybinding_ChkptSurfMol(py::module_& m) {
+  py::class_<ChkptSurfMol, BaseChkptMol>(m, "ChkptSurfMol", "Class representing a checkpointed surface molecule.\nNot to be used directly.\n")
       .def(
           py::init<
             const Vec2&,
@@ -219,11 +219,11 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
           >(),
           py::arg("pos"),
           py::arg("orientation"),
-          py::arg("geometry_object"),
+          py::arg("geometry_object").none(),
           py::arg("wall_index"),
           py::arg("grid_tile_index"),
           py::arg("id"),
-          py::arg("species"),
+          py::arg("species").none(),
           py::arg("diffusion_time"),
           py::arg("birthday"),
           py::arg("flags"),
@@ -235,11 +235,11 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
       .def("__str__", &ChkptSurfMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ChkptSurfMol::__eq__, py::arg("other"))
       .def("dump", &ChkptSurfMol::dump)
-      .def_property("pos", &ChkptSurfMol::get_pos, &ChkptSurfMol::set_pos)
-      .def_property("orientation", &ChkptSurfMol::get_orientation, &ChkptSurfMol::set_orientation)
-      .def_property("geometry_object", &ChkptSurfMol::get_geometry_object, &ChkptSurfMol::set_geometry_object)
-      .def_property("wall_index", &ChkptSurfMol::get_wall_index, &ChkptSurfMol::set_wall_index)
-      .def_property("grid_tile_index", &ChkptSurfMol::get_grid_tile_index, &ChkptSurfMol::set_grid_tile_index)
+      .def_prop_rw("pos", &ChkptSurfMol::get_pos, &ChkptSurfMol::set_pos)
+      .def_prop_rw("orientation", &ChkptSurfMol::get_orientation, &ChkptSurfMol::set_orientation)
+      .def_prop_rw("geometry_object", &ChkptSurfMol::get_geometry_object, &ChkptSurfMol::set_geometry_object)
+      .def_prop_rw("wall_index", &ChkptSurfMol::get_wall_index, &ChkptSurfMol::set_wall_index)
+      .def_prop_rw("grid_tile_index", &ChkptSurfMol::get_grid_tile_index, &ChkptSurfMol::set_grid_tile_index)
     ;
 }
 

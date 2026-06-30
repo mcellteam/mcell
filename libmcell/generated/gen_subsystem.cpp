@@ -76,8 +76,8 @@ std::string GenSubsystem::to_str(const bool all_details, const std::string ind) 
   return ss.str();
 }
 
-py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
-  return py::class_<Subsystem, std::shared_ptr<Subsystem>>(m, "Subsystem", "Subsystem usually defines a reaction network. It is a collection of \nspecies and reaction rules that use these species. \nThe main motivation for introducing such an object to MCell4 is to have \na class independent on that particular initial model state and observables that \nonly contains reactions. This way, one can define independent reusable subsystems\nand possibly merge them together when creating a model that includes multiple reaction \nnetworks. \n")
+void define_pybinding_Subsystem(py::module_& m) {
+  py::class_<Subsystem>(m, "Subsystem", "Subsystem usually defines a reaction network. It is a collection of \nspecies and reaction rules that use these species. \nThe main motivation for introducing such an object to MCell4 is to have \na class independent on that particular initial model state and observables that \nonly contains reactions. This way, one can define independent reusable subsystems\nand possibly merge them together when creating a model that includes multiple reaction \nnetworks. \n")
       .def(
           py::init<
             const std::vector<std::shared_ptr<Species>>,
@@ -94,20 +94,20 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       .def("__deepcopy__", &Subsystem::deepcopy_subsystem, py::arg("memo"))
       .def("__str__", &Subsystem::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Subsystem::__eq__, py::arg("other"))
-      .def("add_species", &Subsystem::add_species, py::arg("s"), "Add a reference to a Species object to the species list.\n- s\n")
+      .def("add_species", &Subsystem::add_species, py::arg("s").none(), "Add a reference to a Species object to the species list.\n- s\n")
       .def("find_species", &Subsystem::find_species, py::arg("name"), "Find a Species object using name in the species list. \nReturns None if no such species is found.\n\n- name\n")
-      .def("add_reaction_rule", &Subsystem::add_reaction_rule, py::arg("r"), "Add a reference to a ReactionRule object to the reaction_rules list.\n- r\n")
+      .def("add_reaction_rule", &Subsystem::add_reaction_rule, py::arg("r").none(), "Add a reference to a ReactionRule object to the reaction_rules list.\n- r\n")
       .def("find_reaction_rule", &Subsystem::find_reaction_rule, py::arg("name"), "Find a ReactionRule object using name in the reaction_rules list. \nReturns None if no such reaction rule is found.\n\n- name\n")
-      .def("add_surface_class", &Subsystem::add_surface_class, py::arg("sc"), "Add a reference to a SurfaceClass object to the surface_classes list.\n- sc\n")
+      .def("add_surface_class", &Subsystem::add_surface_class, py::arg("sc").none(), "Add a reference to a SurfaceClass object to the surface_classes list.\n- sc\n")
       .def("find_surface_class", &Subsystem::find_surface_class, py::arg("name"), "Find a SurfaceClass object using name in the surface_classes list. \nReturns None if no such surface class is found.\n\n- name\n")
-      .def("add_elementary_molecule_type", &Subsystem::add_elementary_molecule_type, py::arg("mt"), "Add a reference to an ElementaryMoleculeType object to the elementary_molecule_types list.\n- mt\n")
+      .def("add_elementary_molecule_type", &Subsystem::add_elementary_molecule_type, py::arg("mt").none(), "Add a reference to an ElementaryMoleculeType object to the elementary_molecule_types list.\n- mt\n")
       .def("find_elementary_molecule_type", &Subsystem::find_elementary_molecule_type, py::arg("name"), "Find an ElementaryMoleculeType object using name in the elementary_molecule_types list. \nReturns None if no such elementary molecule type is found.\n\n- name\n")
       .def("load_bngl_molecule_types_and_reaction_rules", &Subsystem::load_bngl_molecule_types_and_reaction_rules, py::arg("file_name"), py::arg("parameter_overrides") = std::map<std::string, double>(), "Parses a BNGL file, only reads molecule types and reaction rules sections, \ni.e. ignores observables and seed species. \nParameter values are evaluated and the result value is directly used.  \nCompartments names are stored in rxn rules as strings because compartments belong \nto geometry objects and the subsystem is independent on specific geometry.\nHowever, the compartments and their objects must be defined before initialization.\n\n- file_name: Path to the BNGL file to be loaded.\n\n- parameter_overrides: For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,\nits value is ignored and instead value parameter_overrides[k] is used.\n\n\n")
       .def("dump", &Subsystem::dump)
-      .def_property("species", &Subsystem::get_species, &Subsystem::set_species, py::return_value_policy::reference, "List of species to be included in the model for initialization.\nUsed usually only for simple species (species that are defined using a\nsingle molecule type without components such as 'A').\nOther species may be created inside simulation  \n")
-      .def_property("reaction_rules", &Subsystem::get_reaction_rules, &Subsystem::set_reaction_rules, py::return_value_policy::reference)
-      .def_property("surface_classes", &Subsystem::get_surface_classes, &Subsystem::set_surface_classes, py::return_value_policy::reference)
-      .def_property("elementary_molecule_types", &Subsystem::get_elementary_molecule_types, &Subsystem::set_elementary_molecule_types, py::return_value_policy::reference, "Contains list of elementary molecule types with their diffusion constants and other information. \nPopulated when a BNGL file is loaded and also on initialization from Species objects present in \nthe species list.\n")
+      .def_prop_rw("species", &Subsystem::get_species, &Subsystem::set_species, py::rv_policy::reference, "List of species to be included in the model for initialization.\nUsed usually only for simple species (species that are defined using a\nsingle molecule type without components such as 'A').\nOther species may be created inside simulation  \n")
+      .def_prop_rw("reaction_rules", &Subsystem::get_reaction_rules, &Subsystem::set_reaction_rules, py::rv_policy::reference)
+      .def_prop_rw("surface_classes", &Subsystem::get_surface_classes, &Subsystem::set_surface_classes, py::rv_policy::reference)
+      .def_prop_rw("elementary_molecule_types", &Subsystem::get_elementary_molecule_types, &Subsystem::set_elementary_molecule_types, py::rv_policy::reference, "Contains list of elementary molecule types with their diffusion constants and other information. \nPopulated when a BNGL file is loaded and also on initialization from Species objects present in \nthe species list.\n")
     ;
 }
 

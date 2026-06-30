@@ -69,8 +69,8 @@ std::string GenWarnings::to_str(const bool all_details, const std::string ind) c
   return ss.str();
 }
 
-py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
-  return py::class_<Warnings, std::shared_ptr<Warnings>>(m, "Warnings", "This class contains warnings settings. For now it contains only one configurable \nwarning.\n")
+void define_pybinding_Warnings(py::module_& m) {
+  py::class_<Warnings>(m, "Warnings", "This class contains warnings settings. For now it contains only one configurable \nwarning.\n")
       .def(
           py::init<
             const WarningLevel,
@@ -85,8 +85,8 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
       .def("__str__", &Warnings::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Warnings::__eq__, py::arg("other"))
       .def("dump", &Warnings::dump)
-      .def_property("high_reaction_probability", &Warnings::get_high_reaction_probability, &Warnings::set_high_reaction_probability, "Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.\nWarning when probability is greater than 1 is always printed.\nCannot be set to WarningLevel.ERROR.\n")
-      .def_property("molecule_placement_failure", &Warnings::get_molecule_placement_failure, &Warnings::set_molecule_placement_failure, "Print a warning or end with an error when a release of a molecule fails.\n")
+      .def_prop_rw("high_reaction_probability", &Warnings::get_high_reaction_probability, &Warnings::set_high_reaction_probability, "Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.\nWarning when probability is greater than 1 is always printed.\nCannot be set to WarningLevel.ERROR.\n")
+      .def_prop_rw("molecule_placement_failure", &Warnings::get_molecule_placement_failure, &Warnings::set_molecule_placement_failure, "Print a warning or end with an error when a release of a molecule fails.\n")
     ;
 }
 

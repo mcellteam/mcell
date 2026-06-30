@@ -29,7 +29,7 @@ void validate_volumetric_mesh(std::shared_ptr<Model> model, std::shared_ptr<Geom
 
 } // namespace geometry_utils
 
-void define_pybinding_geometry_utils(py::module& m);
+void define_pybinding_geometry_utils(py::module_& m);
 } // namespace API
 } // namespace MCell
 

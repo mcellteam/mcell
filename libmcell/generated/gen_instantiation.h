@@ -95,7 +95,7 @@ public:
 }; // GenInstantiation
 
 class Instantiation;
-py::class_<Instantiation> define_pybinding_Instantiation(py::module& m);
+void define_pybinding_Instantiation(py::module_& m);
 } // namespace API
 } // namespace MCell
 

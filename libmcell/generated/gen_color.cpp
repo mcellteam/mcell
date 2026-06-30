@@ -87,8 +87,8 @@ std::string GenColor::to_str(const bool all_details, const std::string ind) cons
   return ss.str();
 }
 
-py::class_<Color> define_pybinding_Color(py::module& m) {
-  return py::class_<Color, std::shared_ptr<Color>>(m, "Color", "Represents color with alpha component.\nProvides two means to set value, either red, green, blue and alpha, \nor rgba. If both color individual components and rgba are set in initialization,\nthe individual components are used.\n \n")
+void define_pybinding_Color(py::module_& m) {
+  py::class_<Color>(m, "Color", "Represents color with alpha component.\nProvides two means to set value, either red, green, blue and alpha, \nor rgba. If both color individual components and rgba are set in initialization,\nthe individual components are used.\n \n")
       .def(
           py::init<
             const double,
@@ -109,11 +109,11 @@ py::class_<Color> define_pybinding_Color(py::module& m) {
       .def("__str__", &Color::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Color::__eq__, py::arg("other"))
       .def("dump", &Color::dump)
-      .def_property("red", &Color::get_red, &Color::set_red, "Red component in range 0-1.")
-      .def_property("green", &Color::get_green, &Color::set_green, "Green component in range 0-1.")
-      .def_property("blue", &Color::get_blue, &Color::set_blue, "Blue component in range 0-1.")
-      .def_property("alpha", &Color::get_alpha, &Color::set_alpha, "Alpha component in range 0-1. 1 means nontransparent.")
-      .def_property("rgba", &Color::get_rgba, &Color::set_rgba, "This attribute provides an alternative way of defining colors by supplying a \n32-bit unsigned integer representation of the color with an aplha channel. \nIn hexadecimal notation the first 2 digits are value for red, second 2 digits are \ngreen, third 2 digits are blue and the last two digits are alpha. \nThe range for each component is thus 0x0-0xFF (0-255). \nExample: 0x0000ffcc represents the same color as rgba(0, 0, 100%, 80%).\nAll values are valid.\n   \n")
+      .def_prop_rw("red", &Color::get_red, &Color::set_red, "Red component in range 0-1.")
+      .def_prop_rw("green", &Color::get_green, &Color::set_green, "Green component in range 0-1.")
+      .def_prop_rw("blue", &Color::get_blue, &Color::set_blue, "Blue component in range 0-1.")
+      .def_prop_rw("alpha", &Color::get_alpha, &Color::set_alpha, "Alpha component in range 0-1. 1 means nontransparent.")
+      .def_prop_rw("rgba", &Color::get_rgba, &Color::set_rgba, "This attribute provides an alternative way of defining colors by supplying a \n32-bit unsigned integer representation of the color with an aplha channel. \nIn hexadecimal notation the first 2 digits are value for red, second 2 digits are \ngreen, third 2 digits are blue and the last two digits are alpha. \nThe range for each component is thus 0x0-0xFF (0-255). \nExample: 0x0000ffcc represents the same color as rgba(0, 0, 100%, 80%).\nAll values are valid.\n   \n")
     ;
 }
 

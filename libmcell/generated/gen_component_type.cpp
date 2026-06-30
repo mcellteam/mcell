@@ -73,13 +73,15 @@ std::string GenComponentType::to_str(const bool all_details, const std::string i
   return ss.str();
 }
 
-py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
-  return py::class_<ComponentType, std::shared_ptr<ComponentType>>(m, "ComponentType", "Multiple functional attributes for each molecule type are described using components. And this class defines a type of a component. For example, proteins have multiple functional substructures such as domains, motifs, and binding sites. These components can be unchanging (called stateless) or exist in one of many different internal states For example, certain binding motifs may have different behaviors depending on whether they are unphosphorylated or phosphorylated.")
+void define_pybinding_ComponentType(py::module_& m) {
+  py::class_<ComponentType>(m, "ComponentType", "Multiple functional attributes for each molecule type are described using components. And this class defines a type of a component. For example, proteins have multiple functional substructures such as domains, motifs, and binding sites. These components can be unchanging (called stateless) or exist in one of many different internal states For example, certain binding motifs may have different behaviors depending on whether they are unphosphorylated or phosphorylated.")
       .def(
-          py::init<
-            const std::string&,
-            const std::vector<std::string>
-          >(),
+          py::new_([](
+            const std::string& name,
+            const std::vector<std::string> states
+          ) {
+            return std::make_shared<ComponentType>(name, states);
+          }),
           py::arg("name"),
           py::arg("states") = std::vector<std::string>()
       )
@@ -92,8 +94,8 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
       .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET_INT, py::arg("bond") = BOND_UNBOUND, "Instantiate a component from this component type.\n- state: Selected state, must be from the list of the allowed, converted to string.\n\n- bond: Bond information for the created component instance.\n\n")
       .def("to_bngl_str", &ComponentType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")
       .def("dump", &ComponentType::dump)
-      .def_property("name", &ComponentType::get_name, &ComponentType::set_name, "Name of this component type.")
-      .def_property("states", &ComponentType::get_states, &ComponentType::set_states, py::return_value_policy::reference, "List of states allowed by this component.")
+      .def_prop_rw("name", &ComponentType::get_name, &ComponentType::set_name, "Name of this component type.")
+      .def_prop_rw("states", &ComponentType::get_states, &ComponentType::set_states, py::rv_policy::reference, "List of states allowed by this component.")
     ;
 }
 

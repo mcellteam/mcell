@@ -108,18 +108,20 @@ std::string GenElementaryMoleculeType::to_str(const bool all_details, const std:
   return ss.str();
 }
 
-py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::module& m) {
-  return py::class_<ElementaryMoleculeType, std::shared_ptr<ElementaryMoleculeType>>(m, "ElementaryMoleculeType", "An elementary molecule type is a base indivisible entity. It is the same as  \na molecule type in BNGL entered in section molecule types. \nThe 'elementary' prefix was added to distinguish it clearly from molecules in \nsimulation.\n")
+void define_pybinding_ElementaryMoleculeType(py::module_& m) {
+  py::class_<ElementaryMoleculeType>(m, "ElementaryMoleculeType", "An elementary molecule type is a base indivisible entity. It is the same as  \na molecule type in BNGL entered in section molecule types. \nThe 'elementary' prefix was added to distinguish it clearly from molecules in \nsimulation.\n")
       .def(
-          py::init<
-            const std::string&,
-            const std::vector<std::shared_ptr<ComponentType>>,
-            const double,
-            const double,
-            const double,
-            const double,
-            const bool
-          >(),
+          py::new_([](
+            const std::string& name,
+            const std::vector<std::shared_ptr<ComponentType>> components,
+            const double diffusion_constant_2d,
+            const double diffusion_constant_3d,
+            const double custom_time_step,
+            const double custom_space_step,
+            const bool target_only
+          ) {
+            return std::make_shared<ElementaryMoleculeType>(name, components, diffusion_constant_2d, diffusion_constant_3d, custom_time_step, custom_space_step, target_only);
+          }),
           py::arg("name"),
           py::arg("components") = std::vector<std::shared_ptr<ComponentType>>(),
           py::arg("diffusion_constant_2d") = FLT_UNSET,
@@ -136,13 +138,13 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<Component>>(), py::arg("compartment_name") = STR_UNSET, "Create an elementary molecule based on this elementary molecule type.\n- components: Instances of components for the the created elementary molecule.\nNot all components need to be specified in case when the elementary \nmolecule is used in a pattern.\n \n\n\n- compartment_name: Optional specification of compartment name for the created elementary molecule. \n\n\n")
       .def("to_bngl_str", &ElementaryMoleculeType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")
       .def("dump", &ElementaryMoleculeType::dump)
-      .def_property("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name, "Name of this elementary molecule type.")
-      .def_property("components", &ElementaryMoleculeType::get_components, &ElementaryMoleculeType::set_components, py::return_value_policy::reference, "List of components used by this elementary molecule type.")
-      .def_property("diffusion_constant_2d", &ElementaryMoleculeType::get_diffusion_constant_2d, &ElementaryMoleculeType::set_diffusion_constant_2d, "Elementary molecule based on this type is constrained to a surface\nand diffuses with the specified diffusion constant.\nD can be zero, in which case the molecule doesn’t move. \nThe units of D are cm^2 /s.\n")
-      .def_property("diffusion_constant_3d", &ElementaryMoleculeType::get_diffusion_constant_3d, &ElementaryMoleculeType::set_diffusion_constant_3d, "Elementary molecule based on this type diffuses in space with the \nspecified diffusion constant D. \nD can be zero, in which case the molecule doesn’t move. \nThe units of D are cm^2 /s.\n")
-      .def_property("custom_time_step", &ElementaryMoleculeType::get_custom_time_step, &ElementaryMoleculeType::set_custom_time_step, "This molecule should take timesteps of length custom_time_step (in seconds). \nUse either this or custom_time_step, not both.\n")
-      .def_property("custom_space_step", &ElementaryMoleculeType::get_custom_space_step, &ElementaryMoleculeType::set_custom_space_step, "This molecule should take steps of average length given by the custom_space_step value (in microns). \nUse either this or custom_time_step, not both.\n")
-      .def_property("target_only", &ElementaryMoleculeType::get_target_only, &ElementaryMoleculeType::set_target_only, "This molecule will not initiate reactions when it runs into other molecules. This\nsetting can speed up simulations when applied to a molecule at high concentrations \nthat reacts with a molecule at low concentrations (it is more efficient for\nthe low-concentration molecule to trigger the reactions). This directive does\nnot affect unimolecular reactions.      \n")
+      .def_prop_rw("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name, "Name of this elementary molecule type.")
+      .def_prop_rw("components", &ElementaryMoleculeType::get_components, &ElementaryMoleculeType::set_components, py::rv_policy::reference, "List of components used by this elementary molecule type.")
+      .def_prop_rw("diffusion_constant_2d", &ElementaryMoleculeType::get_diffusion_constant_2d, &ElementaryMoleculeType::set_diffusion_constant_2d, "Elementary molecule based on this type is constrained to a surface\nand diffuses with the specified diffusion constant.\nD can be zero, in which case the molecule doesn’t move. \nThe units of D are cm^2 /s.\n")
+      .def_prop_rw("diffusion_constant_3d", &ElementaryMoleculeType::get_diffusion_constant_3d, &ElementaryMoleculeType::set_diffusion_constant_3d, "Elementary molecule based on this type diffuses in space with the \nspecified diffusion constant D. \nD can be zero, in which case the molecule doesn’t move. \nThe units of D are cm^2 /s.\n")
+      .def_prop_rw("custom_time_step", &ElementaryMoleculeType::get_custom_time_step, &ElementaryMoleculeType::set_custom_time_step, "This molecule should take timesteps of length custom_time_step (in seconds). \nUse either this or custom_time_step, not both.\n")
+      .def_prop_rw("custom_space_step", &ElementaryMoleculeType::get_custom_space_step, &ElementaryMoleculeType::set_custom_space_step, "This molecule should take steps of average length given by the custom_space_step value (in microns). \nUse either this or custom_time_step, not both.\n")
+      .def_prop_rw("target_only", &ElementaryMoleculeType::get_target_only, &ElementaryMoleculeType::set_target_only, "This molecule will not initiate reactions when it runs into other molecules. This\nsetting can speed up simulations when applied to a molecule at high concentrations \nthat reacts with a molecule at low concentrations (it is more efficient for\nthe low-concentration molecule to trigger the reactions). This directive does\nnot affect unimolecular reactions.      \n")
     ;
 }
 
@@ -182,7 +184,7 @@ std::string GenElementaryMoleculeType::export_to_python(std::ostream& out, Pytho
     ss << ind << "custom_space_step = " << f_to_str(custom_space_step) << "," << nl;
   }
   if (target_only != false) {
-    ss << ind << "target_only = " << target_only << "," << nl;
+    ss << ind << "target_only = " << (target_only ? "True" : "False") << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

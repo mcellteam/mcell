@@ -25,7 +25,7 @@ std::vector<std::vector<double>> load_dat_file(const std::string& file_name);
 
 } // namespace data_utils
 
-void define_pybinding_data_utils(py::module& m);
+void define_pybinding_data_utils(py::module_& m);
 } // namespace API
 } // namespace MCell
 

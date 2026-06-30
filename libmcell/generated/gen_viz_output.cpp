@@ -85,8 +85,8 @@ std::string GenVizOutput::to_str(const bool all_details, const std::string ind) 
   return ss.str();
 }
 
-py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
-  return py::class_<VizOutput, std::shared_ptr<VizOutput>>(m, "VizOutput", "Defines a visualization output with locations of molecules \nthat can be then loaded by CellBlender.\n")
+void define_pybinding_VizOutput(py::module_& m) {
+  py::class_<VizOutput>(m, "VizOutput", "Defines a visualization output with locations of molecules \nthat can be then loaded by CellBlender.\n")
       .def(
           py::init<
             const std::string&,
@@ -105,10 +105,10 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def("__str__", &VizOutput::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &VizOutput::__eq__, py::arg("other"))
       .def("dump", &VizOutput::dump)
-      .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix, "Prefix for the viz output files.\nWhen not set, the default prefix value is computed from the simulation seed\nwhen the model is initialized to: \n'./viz_data/seed_' + str(seed).zfill(5) + '/Scene'.\n")
-      .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list, py::return_value_policy::reference, "Specifies a list of species to be visualized, when empty, all_species will be generated.")
-      .def_property("mode", &VizOutput::get_mode, &VizOutput::set_mode, "Specified the output format of the visualization files. \nVizMode.ASCII is a readable representation, VizMode.CELLBLENDER is a binary representation \nthat cannot be read using a text editor but is faster to generate. \n")
-      .def_property("every_n_timesteps", &VizOutput::get_every_n_timesteps, &VizOutput::set_every_n_timesteps, "Specifies periodicity of visualization output.\nValue is truncated (floored) to an integer.\nValue 0 means that the viz output is ran only once at iteration 0. \n")
+      .def_prop_rw("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix, "Prefix for the viz output files.\nWhen not set, the default prefix value is computed from the simulation seed\nwhen the model is initialized to: \n'./viz_data/seed_' + str(seed).zfill(5) + '/Scene'.\n")
+      .def_prop_rw("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list, py::rv_policy::reference, "Specifies a list of species to be visualized, when empty, all_species will be generated.")
+      .def_prop_rw("mode", &VizOutput::get_mode, &VizOutput::set_mode, "Specified the output format of the visualization files. \nVizMode.ASCII is a readable representation, VizMode.CELLBLENDER is a binary representation \nthat cannot be read using a text editor but is faster to generate. \n")
+      .def_prop_rw("every_n_timesteps", &VizOutput::get_every_n_timesteps, &VizOutput::set_every_n_timesteps, "Specifies periodicity of visualization output.\nValue is truncated (floored) to an integer.\nValue 0 means that the viz output is ran only once at iteration 0. \n")
     ;
 }
 

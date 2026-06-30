@@ -30,6 +30,10 @@ import doc
 
 # --- some global data ---
 g_enums = set()
+# transitive closure of classes that (directly or via a superclass) derive from a
+# std::enable_shared_from_this base — these must be constructed via a make_shared
+# factory in nanobind (computed from ENABLE_SHARED_FROM_THIS_CLASSES at generation).
+g_esft_classes = set()
 
 # ------------------------
 
@@ -698,12 +702,11 @@ def write_gen_class(f, class_def, class_name, decls):
 
 
 def write_define_binding_decl(f, class_name, ret_type_void = False):
-    if ret_type_void:
-        f.write('void ')
-    else:
-        f.write('py::class_<' + class_name + '> ') 
-    
-    f.write('define_pybinding_' + class_name + '(py::module& m)')           
+    # nanobind: class_<X, Base> does NOT slice to class_<X> (unlike pybind11, which
+    # converted via the shared `object` base). The return value is never used by any
+    # caller, so all define_pybinding_* functions return void.
+    f.write('void ')
+    f.write('define_pybinding_' + class_name + '(py::module_& m)')
 
 
 def remove_ptr_mark(t):
@@ -1159,6 +1162,10 @@ def write_export_to_python_implementation(f, class_name, class_def):
                         '<< ")," << ' + NL + ';\n')
         elif type == YAML_TYPE_FLOAT:
             f.write(F_TO_STR + '(' + name + ') << "," << ' + NL + ';\n')
+        elif type == YAML_TYPE_BOOL:
+            # nanobind rejects int for a bool argument (pybind11 accepted 0/1), so
+            # exported Python code must use real bools, not the C++ '<< bool' -> 1/0.
+            f.write('(' + name + ' ? "True" : "False") << "," << ' + NL + ';\n')
         else:
             # using operators << for enums
             f.write(name + ' << "," << ' + NL + ';\n')
@@ -1387,6 +1394,17 @@ def create_doc_str(yaml_doc, w_quotes=True):
         return res
 
 
+def is_nullable_arg(attr_or_param):
+    # nanobind rejects None for object/pointer args unless they are marked .none();
+    # pybind11 accepted None implicitly. Object (shared_ptr) and py::object args qualify.
+    t = attr_or_param[KEY_TYPE]
+    return is_yaml_ptr_type(t) or t == YAML_TYPE_PY_OBJECT
+
+
+def arg_none_suffix(attr_or_param):
+    return '.none()' if is_nullable_arg(attr_or_param) else ''
+
+
 def write_pybind11_method_bindings(f, class_name, method, class_def):
     assert KEY_NAME in method
     name = rename_cpp_reserved_id(method[KEY_NAME])
@@ -1407,7 +1425,7 @@ def write_pybind11_method_bindings(f, class_name, method, class_def):
             p = params[i]
             assert KEY_NAME in p
             param_name = p[KEY_NAME]
-            f.write('py::arg("' + param_name + '")')
+            f.write('py::arg("' + param_name + '")' + arg_none_suffix(p))
             if KEY_DEFAULT in p:
                 f.write(' = ' + get_default_or_unset_value(p))
             
@@ -1446,19 +1464,46 @@ def write_pybind11_bindings(f, class_name, class_def):
         ctor_has_args = False
 
     if def_type == VALUE_CLASS:
-        f.write('  return py::class_<' + class_name + ', ' + superclass + \
-                SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '"')
+        # nanobind: drop the std::shared_ptr<> holder (inferred from stl/shared_ptr.h);
+        # only the bound base class (if any) is passed as an extra template argument.
+        bases = superclass.rstrip(', ')  # '' or 'BaseClass'
+        class_template = class_name + ((', ' + bases) if bases else '')
+        f.write('  py::class_<' + class_template + '>(m, "' + class_name + '"')
         if KEY_DOC in class_def:
             f.write(', ' + create_doc_str(class_def[KEY_DOC]))                
                  
         f.write(')\n')
-        f.write('      .def(\n')
-        f.write('          py::init<\n')
-    
+        use_factory = class_name in g_esft_classes
         num_items = len(items)
-        if ctor_has_args:
-            if has_single_superclass(class_def) or is_container_class_no_model(class_name):
-                # init operands
+        emit_ctor_args = ctor_has_args and (
+            has_single_superclass(class_def) or is_container_class_no_model(class_name))
+
+        if use_factory:
+            # nanobind: enable_shared_from_this classes must be constructed via a
+            # std::make_shared factory (py::new_) so shared_from_this() works; a plain
+            # py::init leaves the weak_ptr uninitialized -> bad_weak_ptr at runtime.
+            f.write('      .def(\n')
+            f.write('          py::new_([](\n')
+            ctor_names = []
+            if emit_ctor_args:
+                for i in range(num_items):
+                    attr = items[i]
+                    if attr_not_in_ctor(attr):
+                        continue
+                    const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
+                    f.write('            ' + const_spec + get_type_as_ref_param(attr) + ' ' + attr[KEY_NAME])
+                    ctor_names.append(attr[KEY_NAME])
+                    if i != num_items - 1:
+                        f.write(',\n')
+                if num_items != 0:
+                    f.write('\n')
+            f.write('          ) {\n')
+            f.write('            return ' + MAKE_SHARED + '<' + class_name + '>(' + ', '.join(ctor_names) + ');\n')
+            f.write('          })')
+        else:
+            f.write('      .def(\n')
+            f.write('          py::init<\n')
+            if emit_ctor_args:
                 for i in range(num_items):
                     attr = items[i]
                     if attr_not_in_ctor(attr):
@@ -1469,28 +1514,25 @@ def write_pybind11_bindings(f, class_name, class_def):
                         f.write(',\n')
                 if num_items != 0:
                     f.write('\n')
-                
-        f.write('          >()')
-        
-        if ctor_has_args:    
-            # init argument names and default values
-            if has_single_superclass(class_def) or is_container_class_no_model(class_name):
-                if num_items != 0:
-                    f.write(',')
-                f.write('\n')
-            
-                for i in range(num_items):
-                    attr = items[i]
-                    if attr_not_in_ctor(attr):
-                        continue
-                    name = attr[KEY_NAME]
-                    f.write('          py::arg("' + name + '")')
-                    if KEY_DEFAULT in attr:
-                        f.write(' = ' + get_default_or_unset_value(attr))
-                    if i != num_items - 1:
-                        f.write(',\n')
-        f.write('\n')          
-        f.write('      )\n')            
+            f.write('          >()')
+
+        # init/factory argument names and default values (identical for both forms)
+        if emit_ctor_args:
+            if num_items != 0:
+                f.write(',')
+            f.write('\n')
+            for i in range(num_items):
+                attr = items[i]
+                if attr_not_in_ctor(attr):
+                    continue
+                name = attr[KEY_NAME]
+                f.write('          py::arg("' + name + '")' + arg_none_suffix(attr))
+                if KEY_DEFAULT in attr:
+                    f.write(' = ' + get_default_or_unset_value(attr))
+                if i != num_items - 1:
+                    f.write(',\n')
+        f.write('\n')
+        f.write('      )\n')
 
         # common methods
         if has_single_superclass(class_def):
@@ -1518,10 +1560,10 @@ def write_pybind11_bindings(f, class_name, class_def):
         for i in range(num_items):
             if not has_single_superclass(class_def) or not is_inherited(items[i]):
                 name = items[i][KEY_NAME]
-                f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name)
-                
+                f.write('      .def_prop_rw("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name)
+
                 if is_yaml_list_type(items[i][KEY_TYPE]):
-                    f.write(', py::return_value_policy::reference') 
+                    f.write(', py::rv_policy::reference')
                 
                 if KEY_DOC in items[i]:
                     f.write(', ' + create_doc_str(items[i][KEY_DOC]))
@@ -1757,7 +1799,9 @@ def write_constant_binding(f, constant_def):
     if pybind_type == PYBIND_TYPE_OBJECT:
         f.write('  m.attr("' + name + '") = py::' + PYBIND_TYPE_OBJECT + '(' + PY_CAST + '(' + name + '));\n')
     else:
-        f.write('  m.attr("' + name + '") = py::' + pybind_type + '(' + name + ');\n')
+        # nanobind: nb::str has no std::string ctor; assign the raw C++ value and let
+        # nanobind's casters convert it (str/int/float/bool) on attr assignment.
+        f.write('  m.attr("' + name + '") = ' + name + ';\n')
     
 
 def write_enum_binding(f, enum_def):
@@ -1767,7 +1811,7 @@ def write_enum_binding(f, enum_def):
     values = enum_def[KEY_VALUES]
     num = len(values)
     
-    f.write('  py::enum_<' + name + '>(m, "' + name + '", py::arithmetic()')
+    f.write('  py::enum_<' + name + '>(m, "' + name + '", py::is_arithmetic()')
 
     # Pybind11 does nto allow help for enum members so we put all that information into
     # the header 
@@ -1795,8 +1839,13 @@ def write_enum_binding(f, enum_def):
         v = values[i]
         assert KEY_NAME in v
         f.write('    .value("' + v[KEY_NAME] + '", ' + name + '::' + v[KEY_NAME] + ')\n')
-        
-    f.write('    .export_values();\n')
+
+    # nanobind has no .export_values(); terminate the enum chain, then export each
+    # enumerator into the module scope manually (replicates pybind11 export_values()).
+    f.write('  ;\n')
+    for i in range(num):
+        v = values[i]
+        f.write('  m.attr("' + v[KEY_NAME] + '") = ' + name + '::' + v[KEY_NAME] + ';\n')
         
         
 def generate_constants_implementation(constants_items, enums_items):
@@ -1849,6 +1898,25 @@ def set_global_enums(data_classes):
     g_enums = res
 
 
+def set_global_esft_classes(data_classes):
+    # A class needs the make_shared factory if it is one of the enable_shared_from_this
+    # base classes OR (transitively) derives from one — e.g. GeometryObject/SurfaceRegion
+    # inherit Region's enable_shared_from_this<Region>, so box1 - box2 (Region::__sub__ ->
+    # shared_from_this()) throws bad_weak_ptr unless they too are made via make_shared.
+    global g_esft_classes
+    res = set(ENABLE_SHARED_FROM_THIS_CLASSES)
+    changed = True
+    while changed:
+        changed = False
+        for key, value in data_classes.items():
+            if key == KEY_CONSTANTS or key == KEY_ENUMS or key in res:
+                continue
+            if isinstance(value, dict) and value.get(KEY_SUPERCLASS) in res:
+                res.add(key)
+                changed = True
+    g_esft_classes = res
+
+
 def capitalize_first(s):
     if s[0].islower():
         return s[0].upper() + s[1:]
@@ -1886,7 +1954,7 @@ def generate_vector_bindings(data_classes):
         f.write('#define ' + guard + '\n\n')
         f.write('#include <vector>\n')
         f.write('#include <memory>\n')
-        f.write('#include "pybind11/include/pybind11/pybind11.h"\n') 
+        f.write('#include <nanobind/nanobind.h>\n')  # defines NB_MAKE_OPAQUE (via nb_cast.h)
         f.write('#include "defines.h"\n\n')
         f.write(NAMESPACES_BEGIN + '\n\n')
         
@@ -1899,18 +1967,18 @@ def generate_vector_bindings(data_classes):
         f.write('\n' + NAMESPACES_END + '\n\n')
         
         for t in sorted_list_types:
-            f.write(PYBIND11_MAKE_OPAQUE + '(' + yaml_type_to_cpp_type(t, True) + ');\n')
+            # NB_MAKE_OPAQUE takes no trailing semicolon (it is a type specialization).
+            f.write(PYBIND11_MAKE_OPAQUE + '(' + yaml_type_to_cpp_type(t, True) + ')\n')
         
         f.write('\n#endif // ' + guard + '\n')
              
     # generate gen_bind_vector.cpp
     with open(os.path.join(TARGET_DIRECTORY, GEN_VECTORS_BIND_CPP), 'w') as f:
         f.write(COPYRIGHT + '\n')
-        f.write('#include "api/pybind11_stl_include.h"\n')
-        f.write('#include "pybind11/include/pybind11/stl_bind.h"\n')
-        f.write('#include "pybind11/include/pybind11/numpy.h"\n\n')
-        
-        f.write('namespace py = pybind11;\n\n')
+        f.write('#include "api/pybind11_stl_include.h"\n')   # nanobind stl casters + bind_vector
+        f.write('#include "generated/gen_vectors_make_opaque.h"\n\n')  # NB_MAKE_OPAQUE specializations
+
+        f.write('namespace py = nanobind;\n\n')
         
         for t in sorted_used_types:
             if is_base_yaml_type(t):
@@ -1938,15 +2006,11 @@ def generate_vector_bindings(data_classes):
             if name[-1] == '*':
                 name = name[:-1]
                             
+            # nanobind: bind_vector registers an implicit constructor from any Python
+            # sequence, so the explicit py::implicitly_convertible<list/tuple,V> calls
+            # pybind11 needed are unnecessary. (numpy-array conversion for VectorFloat/
+            # VectorInt is a follow-up via nb::ndarray if a sequence ctor proves insufficient.)
             f.write(ind + PY_BIND_VECTOR + '<' + cpp_t + '>(m,"' + name + '");\n')
-            f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::list, ' + cpp_t + '>();\n')
-            f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::tuple, ' + cpp_t + '>();\n')
-        
-            # special case for numpy conversions
-            if name == 'VectorFloat':
-                f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::array_t<double>, ' + cpp_t + '>();\n')
-            elif name == 'VectorInt':
-                f.write(ind + PY_IMPLICITLY_CONVERTIBLE + '<py::array_t<int>, ' + cpp_t + '>();\n')
             f.write('\n')
                 
         
@@ -1960,8 +2024,9 @@ def generate_data_classes(data_classes):
         data_classes[KEY_ENUMS] if KEY_ENUMS in data_classes else [])
 
     set_global_enums(data_classes)
-    
-    # std::vector/list needs special handling because we need it to be opaque 
+    set_global_esft_classes(data_classes)
+
+    # std::vector/list needs special handling because we need it to be opaque
     # so that the user can modify the internal value
     generate_vector_bindings(data_classes)
 

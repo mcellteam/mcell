@@ -14,7 +14,7 @@
 
 #include <vector>
 #include <memory>
-#include "pybind11/include/pybind11/pybind11.h"
+#include <nanobind/nanobind.h>
 #include "defines.h"
 
 namespace MCell {
@@ -41,28 +41,28 @@ class VizOutput;
 } // namespace API
 } // namespace MCell
 
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::BaseChkptMol>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Complex>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Component>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ComponentType>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Count>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ElementaryMolecule>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ElementaryMoleculeType>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::GeometryObject>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::InitialSurfaceRelease>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::vector<double>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::vector<int>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::MoleculeReleaseInfo>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ReactionRule>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ReleaseSite>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Species>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceClass>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceProperty>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceRegion>>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::VizOutput>>);
-PYBIND11_MAKE_OPAQUE(std::vector<double>);
-PYBIND11_MAKE_OPAQUE(std::vector<int>);
-PYBIND11_MAKE_OPAQUE(std::vector<std::string>);
-PYBIND11_MAKE_OPAQUE(std::vector<uint64_t>);
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::BaseChkptMol>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Complex>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Component>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ComponentType>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Count>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ElementaryMolecule>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ElementaryMoleculeType>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::GeometryObject>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::InitialSurfaceRelease>>)
+NB_MAKE_OPAQUE(std::vector<std::vector<double>>)
+NB_MAKE_OPAQUE(std::vector<std::vector<int>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::MoleculeReleaseInfo>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ReactionRule>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::ReleaseSite>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::Species>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceClass>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceProperty>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::SurfaceRegion>>)
+NB_MAKE_OPAQUE(std::vector<std::shared_ptr<MCell::API::VizOutput>>)
+NB_MAKE_OPAQUE(std::vector<double>)
+NB_MAKE_OPAQUE(std::vector<int>)
+NB_MAKE_OPAQUE(std::vector<std::string>)
+NB_MAKE_OPAQUE(std::vector<uint64_t>)
 
 #endif // GEN_VECTORS_MAKE_OPAQUE_H

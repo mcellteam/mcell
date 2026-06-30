@@ -241,35 +241,37 @@ std::string GenGeometryObject::to_str(const bool all_details, const std::string 
   return ss.str();
 }
 
-py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
-  return py::class_<GeometryObject, Region, std::shared_ptr<GeometryObject>>(m, "GeometryObject", "Class represents geometry objects defined by triangular surface elements.")
+void define_pybinding_GeometryObject(py::module_& m) {
+  py::class_<GeometryObject, Region>(m, "GeometryObject", "Class represents geometry objects defined by triangular surface elements.")
       .def(
-          py::init<
-            const std::string&,
-            const std::vector<std::vector<double>>,
-            const std::vector<std::vector<int>>,
-            const bool,
-            const std::string&,
-            const std::vector<std::shared_ptr<SurfaceRegion>>,
-            std::shared_ptr<SurfaceClass>,
-            const std::vector<std::shared_ptr<InitialSurfaceRelease>>,
-            std::shared_ptr<Color>,
-            const RegionNodeType,
-            std::shared_ptr<Region>,
-            std::shared_ptr<Region>
-          >(),
+          py::new_([](
+            const std::string& name,
+            const std::vector<std::vector<double>> vertex_list,
+            const std::vector<std::vector<int>> wall_list,
+            const bool is_bngl_compartment,
+            const std::string& surface_compartment_name,
+            const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions,
+            std::shared_ptr<SurfaceClass> surface_class,
+            const std::vector<std::shared_ptr<InitialSurfaceRelease>> initial_surface_releases,
+            std::shared_ptr<Color> initial_color,
+            const RegionNodeType node_type,
+            std::shared_ptr<Region> left_node,
+            std::shared_ptr<Region> right_node
+          ) {
+            return std::make_shared<GeometryObject>(name, vertex_list, wall_list, is_bngl_compartment, surface_compartment_name, surface_regions, surface_class, initial_surface_releases, initial_color, node_type, left_node, right_node);
+          }),
           py::arg("name"),
           py::arg("vertex_list"),
           py::arg("wall_list"),
           py::arg("is_bngl_compartment") = false,
           py::arg("surface_compartment_name") = STR_UNSET,
           py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>(),
-          py::arg("surface_class") = nullptr,
+          py::arg("surface_class").none() = nullptr,
           py::arg("initial_surface_releases") = std::vector<std::shared_ptr<InitialSurfaceRelease>>(),
-          py::arg("initial_color") = nullptr,
+          py::arg("initial_color").none() = nullptr,
           py::arg("node_type") = RegionNodeType::UNSET,
-          py::arg("left_node") = nullptr,
-          py::arg("right_node") = nullptr
+          py::arg("left_node").none() = nullptr,
+          py::arg("right_node").none() = nullptr
       )
       .def("check_semantics", &GeometryObject::check_semantics)
       .def("__copy__", &GeometryObject::copy_geometry_object)
@@ -278,15 +280,15 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def("__eq__", &GeometryObject::__eq__, py::arg("other"))
       .def("translate", &GeometryObject::translate, py::arg("move"), "Move object by a specified vector. \nCannot be called after model was initialized.\n\n- move: 3D vector [x, y, z] that will be added to each vertex of this object.\n\n")
       .def("dump", &GeometryObject::dump)
-      .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name, "Name of the object. Also represents BNGL compartment name if 'is_bngl_compartment' is True.\n")
-      .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list, py::return_value_policy::reference, "List of [x,y,z] triplets specifying positions of individual vertices of each triangle.\n \n")
-      .def_property("wall_list", &GeometryObject::get_wall_list, &GeometryObject::set_wall_list, py::return_value_policy::reference, "List of [a,b,c] triplets specifying each wall, individual values are indices into the \nvertex_list attribute.\n")
-      .def_property("is_bngl_compartment", &GeometryObject::get_is_bngl_compartment, &GeometryObject::set_is_bngl_compartment, "Set to True if this object represents a 3D BNGL compartment. \nIts name will be then the BNGL compartment name.       \n")
-      .def_property("surface_compartment_name", &GeometryObject::get_surface_compartment_name, &GeometryObject::set_surface_compartment_name, "When is_bngl_compartment is True, this attribute can be set to specify its \nmembrane (2D) compartment name.\n")
-      .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions, py::return_value_policy::reference, "All surface regions associated with this geometry object.\n")
-      .def_property("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class, "Surface class for the whole object's surface. It is applied to the whole surface of this object \nexcept for those surface regions that have their specific surface class set explicitly.\n")
-      .def_property("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases, py::return_value_policy::reference, "Each item in this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
-      .def_property("initial_color", &GeometryObject::get_initial_color, &GeometryObject::set_initial_color, "Initial color for this geometry object. If a surface region has its color set, its value \nis used for the walls of that surface region.\n")
+      .def_prop_rw("name", &GeometryObject::get_name, &GeometryObject::set_name, "Name of the object. Also represents BNGL compartment name if 'is_bngl_compartment' is True.\n")
+      .def_prop_rw("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list, py::rv_policy::reference, "List of [x,y,z] triplets specifying positions of individual vertices of each triangle.\n \n")
+      .def_prop_rw("wall_list", &GeometryObject::get_wall_list, &GeometryObject::set_wall_list, py::rv_policy::reference, "List of [a,b,c] triplets specifying each wall, individual values are indices into the \nvertex_list attribute.\n")
+      .def_prop_rw("is_bngl_compartment", &GeometryObject::get_is_bngl_compartment, &GeometryObject::set_is_bngl_compartment, "Set to True if this object represents a 3D BNGL compartment. \nIts name will be then the BNGL compartment name.       \n")
+      .def_prop_rw("surface_compartment_name", &GeometryObject::get_surface_compartment_name, &GeometryObject::set_surface_compartment_name, "When is_bngl_compartment is True, this attribute can be set to specify its \nmembrane (2D) compartment name.\n")
+      .def_prop_rw("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions, py::rv_policy::reference, "All surface regions associated with this geometry object.\n")
+      .def_prop_rw("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class, "Surface class for the whole object's surface. It is applied to the whole surface of this object \nexcept for those surface regions that have their specific surface class set explicitly.\n")
+      .def_prop_rw("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases, py::rv_policy::reference, "Each item in this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
+      .def_prop_rw("initial_color", &GeometryObject::get_initial_color, &GeometryObject::set_initial_color, "Initial color for this geometry object. If a surface region has its color set, its value \nis used for the walls of that surface region.\n")
     ;
 }
 
@@ -322,7 +324,7 @@ std::string GenGeometryObject::export_to_python(std::ostream& out, PythonExportC
   ss << ind << "vertex_list = " << export_vec_vertex_list(out, ctx, exported_name) << "," << nl;
   ss << ind << "wall_list = " << export_vec_wall_list(out, ctx, exported_name) << "," << nl;
   if (is_bngl_compartment != false) {
-    ss << ind << "is_bngl_compartment = " << is_bngl_compartment << "," << nl;
+    ss << ind << "is_bngl_compartment = " << (is_bngl_compartment ? "True" : "False") << "," << nl;
   }
   if (surface_compartment_name != STR_UNSET) {
     ss << ind << "surface_compartment_name = " << "'" << surface_compartment_name << "'" << "," << nl;

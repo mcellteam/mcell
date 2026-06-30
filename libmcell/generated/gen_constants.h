@@ -283,8 +283,8 @@ static inline std::ostream& operator << (std::ostream& out, const CountOutputFor
 };
 
 
-void define_pybinding_constants(py::module& m);
-void define_pybinding_enums(py::module& m);
+void define_pybinding_constants(py::module_& m);
+void define_pybinding_enums(py::module_& m);
 
 } // namespace API
 } // namespace MCell

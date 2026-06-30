@@ -149,7 +149,7 @@ public:
 }; // GenWall
 
 class Wall;
-py::class_<Wall> define_pybinding_Wall(py::module& m);
+void define_pybinding_Wall(py::module_& m);
 } // namespace API
 } // namespace MCell
 

@@ -351,7 +351,7 @@ Model:
     examples: tests/pymcell4_positive/1800_vol_rxn_callback/model.py    
     params: 
     - name: function
-      type: std::function<bool(std::shared_ptr<ReactionInfo>, py::object)>
+      type: std::function<py::object(std::shared_ptr<ReactionInfo>, py::object)>
       doc: | 
          Callback function to be called. 
          The function must have two arguments ReactionInfo and context.

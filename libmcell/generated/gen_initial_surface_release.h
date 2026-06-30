@@ -110,7 +110,7 @@ public:
 }; // GenInitialSurfaceRelease
 
 class InitialSurfaceRelease;
-py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::module& m);
+void define_pybinding_InitialSurfaceRelease(py::module_& m);
 } // namespace API
 } // namespace MCell
 

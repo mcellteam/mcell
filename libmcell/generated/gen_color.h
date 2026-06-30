@@ -141,7 +141,7 @@ public:
 }; // GenColor
 
 class Color;
-py::class_<Color> define_pybinding_Color(py::module& m);
+void define_pybinding_Color(py::module_& m);
 } // namespace API
 } // namespace MCell
 

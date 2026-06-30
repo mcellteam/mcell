@@ -144,7 +144,7 @@ public:
 }; // GenSurfaceRegion
 
 class SurfaceRegion;
-py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m);
+void define_pybinding_SurfaceRegion(py::module_& m);
 } // namespace API
 } // namespace MCell
 

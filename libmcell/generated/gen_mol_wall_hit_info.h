@@ -97,7 +97,7 @@ public:
 }; // GenMolWallHitInfo
 
 class MolWallHitInfo;
-py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m);
+void define_pybinding_MolWallHitInfo(py::module_& m);
 } // namespace API
 } // namespace MCell
 

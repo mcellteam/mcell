@@ -100,8 +100,8 @@ std::string GenMolWallHitInfo::to_str(const bool all_details, const std::string 
   return ss.str();
 }
 
-py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
-  return py::class_<MolWallHitInfo, std::shared_ptr<MolWallHitInfo>>(m, "MolWallHitInfo", "Data structure passed to a callback function registered through\nModel.register_mol_wall_hit_callback.\n \n")
+void define_pybinding_MolWallHitInfo(py::module_& m) {
+  py::class_<MolWallHitInfo>(m, "MolWallHitInfo", "Data structure passed to a callback function registered through\nModel.register_mol_wall_hit_callback.\n \n")
       .def(
           py::init<
           >()
@@ -111,13 +111,13 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
       .def("__str__", &MolWallHitInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &MolWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &MolWallHitInfo::dump)
-      .def_property("molecule_id", &MolWallHitInfo::get_molecule_id, &MolWallHitInfo::set_molecule_id, "Id of molecule that hit the wall.")
-      .def_property("geometry_object", &MolWallHitInfo::get_geometry_object, &MolWallHitInfo::set_geometry_object, "Object that was hit.")
-      .def_property("wall_index", &MolWallHitInfo::get_wall_index, &MolWallHitInfo::set_wall_index, "Index of the wall belonging to the geometry_object.")
-      .def_property("time", &MolWallHitInfo::get_time, &MolWallHitInfo::set_time, "Time of the hit.")
-      .def_property("pos3d", &MolWallHitInfo::get_pos3d, &MolWallHitInfo::set_pos3d, py::return_value_policy::reference, "Position of the hit.")
-      .def_property("time_before_hit", &MolWallHitInfo::get_time_before_hit, &MolWallHitInfo::set_time_before_hit, "The time when the molecule started to diffuse towards the hit wall. \nIt is either the start of the molecule's diffusion or \nwhen the molecule reflected from another wall.\n  \n")
-      .def_property("pos3d_before_hit", &MolWallHitInfo::get_pos3d_before_hit, &MolWallHitInfo::set_pos3d_before_hit, py::return_value_policy::reference, "Position of the molecule at time_before_hit.")
+      .def_prop_rw("molecule_id", &MolWallHitInfo::get_molecule_id, &MolWallHitInfo::set_molecule_id, "Id of molecule that hit the wall.")
+      .def_prop_rw("geometry_object", &MolWallHitInfo::get_geometry_object, &MolWallHitInfo::set_geometry_object, "Object that was hit.")
+      .def_prop_rw("wall_index", &MolWallHitInfo::get_wall_index, &MolWallHitInfo::set_wall_index, "Index of the wall belonging to the geometry_object.")
+      .def_prop_rw("time", &MolWallHitInfo::get_time, &MolWallHitInfo::set_time, "Time of the hit.")
+      .def_prop_rw("pos3d", &MolWallHitInfo::get_pos3d, &MolWallHitInfo::set_pos3d, py::rv_policy::reference, "Position of the hit.")
+      .def_prop_rw("time_before_hit", &MolWallHitInfo::get_time_before_hit, &MolWallHitInfo::set_time_before_hit, "The time when the molecule started to diffuse towards the hit wall. \nIt is either the start of the molecule's diffusion or \nwhen the molecule reflected from another wall.\n  \n")
+      .def_prop_rw("pos3d_before_hit", &MolWallHitInfo::get_pos3d_before_hit, &MolWallHitInfo::set_pos3d_before_hit, py::rv_policy::reference, "Position of the molecule at time_before_hit.")
     ;
 }
 

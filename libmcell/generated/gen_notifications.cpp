@@ -93,8 +93,8 @@ std::string GenNotifications::to_str(const bool all_details, const std::string i
   return ss.str();
 }
 
-py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
-  return py::class_<Notifications, std::shared_ptr<Notifications>>(m, "Notifications")
+void define_pybinding_Notifications(py::module_& m) {
+  py::class_<Notifications>(m, "Notifications")
       .def(
           py::init<
             const int,
@@ -117,12 +117,12 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def("__str__", &Notifications::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Notifications::__eq__, py::arg("other"))
       .def("dump", &Notifications::dump)
-      .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level, "Sets verbosity level that enables printouts of extra information on BioNetGen \nspecies and rules created and used during simulation.\n")
-      .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "When set to True, simulation generates files rxn_report_SEED.txt, and \nspecies_report_SEED.txt that contain details on reaction classes and species \nthat were created based on reaction rules.   \n")
-      .def_property("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations, "When set to a value other than 0, internal simulation stats will be printed. \n")
-      .def_property("rxn_probability_changed", &Notifications::get_rxn_probability_changed, &Notifications::set_rxn_probability_changed, "When True, information that a reaction's probability has changed is printed during simulation.    \n")
-      .def_property("iteration_report", &Notifications::get_iteration_report, &Notifications::set_iteration_report, "When True, a running report of how many iterations have completed, chosen based \non the total number of iterations, will be printed during simulation.\n")
-      .def_property("wall_overlap_report", &Notifications::get_wall_overlap_report, &Notifications::set_wall_overlap_report, "When True, information on wall overlaps will be printed. \n")
+      .def_prop_rw("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level, "Sets verbosity level that enables printouts of extra information on BioNetGen \nspecies and rules created and used during simulation.\n")
+      .def_prop_rw("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "When set to True, simulation generates files rxn_report_SEED.txt, and \nspecies_report_SEED.txt that contain details on reaction classes and species \nthat were created based on reaction rules.   \n")
+      .def_prop_rw("simulation_stats_every_n_iterations", &Notifications::get_simulation_stats_every_n_iterations, &Notifications::set_simulation_stats_every_n_iterations, "When set to a value other than 0, internal simulation stats will be printed. \n")
+      .def_prop_rw("rxn_probability_changed", &Notifications::get_rxn_probability_changed, &Notifications::set_rxn_probability_changed, "When True, information that a reaction's probability has changed is printed during simulation.    \n")
+      .def_prop_rw("iteration_report", &Notifications::get_iteration_report, &Notifications::set_iteration_report, "When True, a running report of how many iterations have completed, chosen based \non the total number of iterations, will be printed during simulation.\n")
+      .def_prop_rw("wall_overlap_report", &Notifications::get_wall_overlap_report, &Notifications::set_wall_overlap_report, "When True, information on wall overlaps will be printed. \n")
     ;
 }
 
@@ -149,19 +149,19 @@ std::string GenNotifications::export_to_python(std::ostream& out, PythonExportCo
     ss << ind << "bng_verbosity_level = " << bng_verbosity_level << "," << nl;
   }
   if (rxn_and_species_report != false) {
-    ss << ind << "rxn_and_species_report = " << rxn_and_species_report << "," << nl;
+    ss << ind << "rxn_and_species_report = " << (rxn_and_species_report ? "True" : "False") << "," << nl;
   }
   if (simulation_stats_every_n_iterations != 0) {
     ss << ind << "simulation_stats_every_n_iterations = " << simulation_stats_every_n_iterations << "," << nl;
   }
   if (rxn_probability_changed != true) {
-    ss << ind << "rxn_probability_changed = " << rxn_probability_changed << "," << nl;
+    ss << ind << "rxn_probability_changed = " << (rxn_probability_changed ? "True" : "False") << "," << nl;
   }
   if (iteration_report != true) {
-    ss << ind << "iteration_report = " << iteration_report << "," << nl;
+    ss << ind << "iteration_report = " << (iteration_report ? "True" : "False") << "," << nl;
   }
   if (wall_overlap_report != false) {
-    ss << ind << "wall_overlap_report = " << wall_overlap_report << "," << nl;
+    ss << ind << "wall_overlap_report = " << (wall_overlap_report ? "True" : "False") << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

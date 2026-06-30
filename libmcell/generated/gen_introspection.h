@@ -54,7 +54,7 @@ public:
 }; // GenIntrospection
 
 class Introspection;
-py::class_<Introspection> define_pybinding_Introspection(py::module& m);
+void define_pybinding_Introspection(py::module_& m);
 } // namespace API
 } // namespace MCell
 

@@ -21,12 +21,19 @@
 #define _hypot hypot
 #include <cmath>
 #endif
-#include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
-#include "pybind11/include/pybind11/functional.h"
-#include "pybind11/include/pybind11/stl_bind.h"
-namespace py = pybind11;
+// nanobind (migrated from pybind11). The `py` alias is kept so the bulk of the
+// generated code is unchanged; only name-differing tokens were updated in gen.py.
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/shared_ptr.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/set.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/bind_vector.h>
+namespace py = nanobind;
 
-// must be included before any usage of std::vector in API
+// must be included before any usage of std::vector in API (NB_MAKE_OPAQUE specializations)
 #include "generated/gen_vectors_make_opaque.h"
 
 #include <ostream>

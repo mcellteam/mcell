@@ -93,7 +93,7 @@ public:
 }; // GenWarnings
 
 class Warnings;
-py::class_<Warnings> define_pybinding_Warnings(py::module& m);
+void define_pybinding_Warnings(py::module_& m);
 } // namespace API
 } // namespace MCell
 

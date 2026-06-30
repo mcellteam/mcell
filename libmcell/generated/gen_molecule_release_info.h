@@ -95,7 +95,7 @@ public:
 }; // GenMoleculeReleaseInfo
 
 class MoleculeReleaseInfo;
-py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module& m);
+void define_pybinding_MoleculeReleaseInfo(py::module_& m);
 } // namespace API
 } // namespace MCell
 

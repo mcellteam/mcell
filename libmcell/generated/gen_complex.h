@@ -116,7 +116,7 @@ public:
 }; // GenComplex
 
 class Complex;
-py::class_<Complex> define_pybinding_Complex(py::module& m);
+void define_pybinding_Complex(py::module_& m);
 } // namespace API
 } // namespace MCell
 

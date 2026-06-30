@@ -210,27 +210,29 @@ std::string GenSurfaceRegion::to_str(const bool all_details, const std::string i
   return ss.str();
 }
 
-py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
-  return py::class_<SurfaceRegion, Region, std::shared_ptr<SurfaceRegion>>(m, "SurfaceRegion", "Defines a region on the object. The extent of a region is given by the wall_indices list. \nMolecules can be added and surface properties can be set with the optional regional surface commands. \nYou can have an arbitrary number of regions on an object, and they may overlap if\nyou wish. Molecules added to overlapping regions accumulate. Triangles belonging to \nmultiple regions inherit all parent regions’ surface properties. Users\nhave to make sure that in case of overlapped regions their surface properties\nare compatible. \n")
+void define_pybinding_SurfaceRegion(py::module_& m) {
+  py::class_<SurfaceRegion, Region>(m, "SurfaceRegion", "Defines a region on the object. The extent of a region is given by the wall_indices list. \nMolecules can be added and surface properties can be set with the optional regional surface commands. \nYou can have an arbitrary number of regions on an object, and they may overlap if\nyou wish. Molecules added to overlapping regions accumulate. Triangles belonging to \nmultiple regions inherit all parent regions’ surface properties. Users\nhave to make sure that in case of overlapped regions their surface properties\nare compatible. \n")
       .def(
-          py::init<
-            const std::string&,
-            const std::vector<int>,
-            std::shared_ptr<SurfaceClass>,
-            const std::vector<std::shared_ptr<InitialSurfaceRelease>>,
-            std::shared_ptr<Color>,
-            const RegionNodeType,
-            std::shared_ptr<Region>,
-            std::shared_ptr<Region>
-          >(),
+          py::new_([](
+            const std::string& name,
+            const std::vector<int> wall_indices,
+            std::shared_ptr<SurfaceClass> surface_class,
+            const std::vector<std::shared_ptr<InitialSurfaceRelease>> initial_surface_releases,
+            std::shared_ptr<Color> initial_color,
+            const RegionNodeType node_type,
+            std::shared_ptr<Region> left_node,
+            std::shared_ptr<Region> right_node
+          ) {
+            return std::make_shared<SurfaceRegion>(name, wall_indices, surface_class, initial_surface_releases, initial_color, node_type, left_node, right_node);
+          }),
           py::arg("name"),
           py::arg("wall_indices"),
-          py::arg("surface_class") = nullptr,
+          py::arg("surface_class").none() = nullptr,
           py::arg("initial_surface_releases") = std::vector<std::shared_ptr<InitialSurfaceRelease>>(),
-          py::arg("initial_color") = nullptr,
+          py::arg("initial_color").none() = nullptr,
           py::arg("node_type") = RegionNodeType::UNSET,
-          py::arg("left_node") = nullptr,
-          py::arg("right_node") = nullptr
+          py::arg("left_node").none() = nullptr,
+          py::arg("right_node").none() = nullptr
       )
       .def("check_semantics", &SurfaceRegion::check_semantics)
       .def("__copy__", &SurfaceRegion::copy_surface_region)
@@ -238,11 +240,11 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       .def("__str__", &SurfaceRegion::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
       .def("dump", &SurfaceRegion::dump)
-      .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name, "Name of this region.")
-      .def_property("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices, py::return_value_policy::reference, "Surface region must be a part of a GeometryObject, items in this list are indices to \nits wall_list array.\n")
-      .def_property("surface_class", &SurfaceRegion::get_surface_class, &SurfaceRegion::set_surface_class, "Optional surface class assigned to this surface region.\nIf not set, it is inherited from the parent geometry object's surface_class.\n")
-      .def_property("initial_surface_releases", &SurfaceRegion::get_initial_surface_releases, &SurfaceRegion::set_initial_surface_releases, py::return_value_policy::reference, "Each item of this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
-      .def_property("initial_color", &SurfaceRegion::get_initial_color, &SurfaceRegion::set_initial_color, "Initial color for this specific surface region. If not set, color of the parent's GeometryObject is used.")
+      .def_prop_rw("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name, "Name of this region.")
+      .def_prop_rw("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices, py::rv_policy::reference, "Surface region must be a part of a GeometryObject, items in this list are indices to \nits wall_list array.\n")
+      .def_prop_rw("surface_class", &SurfaceRegion::get_surface_class, &SurfaceRegion::set_surface_class, "Optional surface class assigned to this surface region.\nIf not set, it is inherited from the parent geometry object's surface_class.\n")
+      .def_prop_rw("initial_surface_releases", &SurfaceRegion::get_initial_surface_releases, &SurfaceRegion::set_initial_surface_releases, py::rv_policy::reference, "Each item of this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
+      .def_prop_rw("initial_color", &SurfaceRegion::get_initial_color, &SurfaceRegion::set_initial_color, "Initial color for this specific surface region. If not set, color of the parent's GeometryObject is used.")
     ;
 }
 

@@ -473,8 +473,8 @@ register_mol_wall_hit_callback (function: Callable, # std::function<void(std::sh
 
 .. _Model__register_reaction_callback:
 
-register_reaction_callback (function: Callable, # std::function<bool(std::shared_ptr<ReactionInfo>, py::object)>, context: Any, # py::object, reaction_rule: ReactionRule)
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+register_reaction_callback (function: Callable, # std::function<py::object(std::shared_ptr<ReactionInfo>, py::object)>, context: Any, # py::object, reaction_rule: ReactionRule)
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
   | Defines a function to be called when a reaction was processed.
@@ -484,12 +484,17 @@ register_reaction_callback (function: Callable, # std::function<bool(std::shared
   | May be called only after model initialization because it internally uses 
   | reaction rule ids that are set during the initialization.
 
-* | function: Callable, # std::function<bool(std::shared_ptr<ReactionInfo>, py::object)>
+* | function: Callable, # std::function<py::object(std::shared_ptr<ReactionInfo>, py::object)>
   | Callback function to be called. 
   | The function must have two arguments ReactionInfo and context.
   | Called right after a reaction occured but before the reactants were removed.
-  | After return the reaction proceeds and reactants are removed (unless they were kept
-  | by the reaction such as with reaction A + B -> A + C).
+  | It is also allowed to return a boolean value from the callbck function.
+  | If False or None is returned the reaction proceeds and reactants are removed 
+  | (unless they were kept by the reaction such as with reaction A + B -> A + C).
+  | If True is returned, the reaction is cancelled, reactants are kept and products 
+  | are removed.         
+  | No return is needed in the callback function since Python 
+  | automatically returns None that is cast to False.
 
 * | context: Any, # py::object
   | Context passed to the callback function, the callback function can store

@@ -68,11 +68,7 @@
 
 
 #if __cplusplus < 201402L && !defined(_MSC_VER)
-#error "Pybind11 overload requires at least C++14"
-#endif
-
-#ifndef PYBIND11_OVERLOAD_CAST
-#error "PYBIND11_OVERLOAD_CAST must be defined"
+#error "overload_cast requires at least C++14"
 #endif
 
 #include "pybind11_stl_include.h"
@@ -81,9 +77,9 @@ namespace MCell {
 namespace API {
 
 // defined in gen_vectors_bind.cpp
-void gen_vectors_bind(py::module& m);
+void gen_vectors_bind(py::module_& m);
 
-void define_pybinding_Vec3(py::module& m) {
+void define_pybinding_Vec3(py::module_& m) {
   py::class_<MCell::Vec3>(m, "Vec3")
       .def(
           py::init<>()
@@ -106,13 +102,13 @@ void define_pybinding_Vec3(py::module& m) {
       .def("__repr__",  [](const Vec3& a)
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ", " + std::to_string(a.z) + ")"; } )
       .def("to_list",  [](const Vec3& a) { return py::cast(std::vector<double>{a.x, a.y, a.z}); } )
-      .def_readwrite("x", &Vec3::x)
-      .def_readwrite("y", &Vec3::y)
-      .def_readwrite("z", &Vec3::z)
+      .def_rw("x", &Vec3::x)
+      .def_rw("y", &Vec3::y)
+      .def_rw("z", &Vec3::z)
   ;
 }
 
-void define_pybinding_Vec2(py::module& m) {
+void define_pybinding_Vec2(py::module_& m) {
   py::class_<MCell::Vec2>(m, "Vec2")
       .def(
           py::init<>()
@@ -135,14 +131,14 @@ void define_pybinding_Vec2(py::module& m) {
       .def("__repr__",  [](const Vec2& a)
           { return "(" + std::to_string(a.x) + ", " + std::to_string(a.y) + ")"; } )
       .def("to_list",  [](const Vec2& a) { return std::vector<double>{a.x, a.y}; } )
-      .def_readwrite("x", &Vec2::x)
-      .def_readwrite("y", &Vec2::y)
-      .def_readwrite("u", &Vec2::u)
-      .def_readwrite("v", &Vec2::v)
+      .def_rw("x", &Vec2::x)
+      .def_rw("y", &Vec2::y)
+      .def_rw("u", &Vec2::u)
+      .def_rw("v", &Vec2::v)
   ;
 }
 
-void define_pybinding_IVec3(py::module& m) {
+void define_pybinding_IVec3(py::module_& m) {
   py::class_<MCell::IVec3>(m, "IVec3")
       .def(
           py::init<>()
@@ -170,17 +166,17 @@ void define_pybinding_IVec3(py::module& m) {
       .def("__truediv__", [](const IVec3& a, const IVec3& b) { return IVec3(a / b); } )
       .def("__eq__",  [](const IVec3& a, const IVec3& b) { return a == b; } )
       */
-      .def_readwrite("x", &IVec3::x)
-      .def_readwrite("y", &IVec3::y)
-      .def_readwrite("z", &IVec3::z)
+      .def_rw("x", &IVec3::x)
+      .def_rw("y", &IVec3::y)
+      .def_rw("z", &IVec3::z)
   ;
 }
 
 // all define_binding_* functions are called here
-PYBIND11_MODULE(mcell, m) {
+NB_MODULE(mcell, m) {
 
   // version
-  m.attr("__version__") = py::str(MCELL_VERSION);
+  m.attr("__version__") = MCELL_VERSION;  // nanobind casts const char*/std::string -> str
 
   // bindings of custom vector types
   gen_vectors_bind(m);
@@ -255,7 +251,7 @@ void check_ctrl_c(const double current_time, World* world) {
     release_assert(world != nullptr);
     world->flush_and_close_buffers();
 
-    throw py::error_already_set();
+    throw py::python_error();
   }
 }
 

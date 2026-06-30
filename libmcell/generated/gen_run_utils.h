@@ -26,7 +26,7 @@ std::vector<std::string> remove_cwd(const std::vector<std::string> paths);
 
 } // namespace run_utils
 
-void define_pybinding_run_utils(py::module& m);
+void define_pybinding_run_utils(py::module_& m);
 } // namespace API
 } // namespace MCell
 

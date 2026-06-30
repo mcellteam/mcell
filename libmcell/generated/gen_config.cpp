@@ -219,8 +219,8 @@ std::string GenConfig::to_str(const bool all_details, const std::string ind) con
   return ss.str();
 }
 
-py::class_<Config> define_pybinding_Config(py::module& m) {
-  return py::class_<Config, std::shared_ptr<Config>>(m, "Config", "Class holds simulation configuration.")
+void define_pybinding_Config(py::module_& m) {
+  py::class_<Config>(m, "Config", "Class holds simulation configuration.")
       .def(
           py::init<
             const int,
@@ -267,7 +267,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("memory_limit_gb") = -1,
           py::arg("initial_iteration") = 0,
           py::arg("initial_time") = 0,
-          py::arg("initial_rng_state") = nullptr,
+          py::arg("initial_rng_state").none() = nullptr,
           py::arg("append_to_count_output_data") = false,
           py::arg("continue_after_sigalrm") = false
       )
@@ -277,29 +277,29 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def("__str__", &Config::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Config::__eq__, py::arg("other"))
       .def("dump", &Config::dump)
-      .def_property("seed", &Config::get_seed, &Config::set_seed, "Random generator seed value.")
-      .def_property("time_step", &Config::get_time_step, &Config::set_time_step, "Set the simulation time step to time_step seconds. 1e-6 (1us) is a common value. \nOne can set the time steps taken by individual molecules, but this \ntime step is still used as a default.\n")
-      .def_property("use_bng_units", &Config::get_use_bng_units, &Config::set_use_bng_units, "When False (default), MCell uses traditional MCell units for bimolecular reaction rates are:\n * [M^-1*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule \n               and a surface (molecule), \n * [um^2*N^-1*s^-1] bimolecular reactions between two surface molecules on the same surface.\nWhen True, BioNetGen units for bimolecular reaction rates are:\n * [um^3*N^-1*s^-1] for any bimolecular reactions. Surface-surface reaction rate conversion assumes 10nm membrane thickness\nBioNetGen units are compatible with BioNetGen's ODE, SSA, and PLA solvers given that seed species \nis copy number (N), these units are not compatible with NFSim. \nNo other units are affected by this setting.\n")
-      .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density, "Tile all surfaces so that they can hold molecules at N different positions per square micron.")
-      .def_property("interaction_radius", &Config::get_interaction_radius, &Config::set_interaction_radius, "Diffusing volume molecules will interact with each other when\nthey get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified).\n")
-      .def_property("intermembrane_interaction_radius", &Config::get_intermembrane_interaction_radius, &Config::set_intermembrane_interaction_radius, "Diffusing surface molecules will interact with surface molecules on other\nwalls when they get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified). \nWhen unset, the default value is computed as: \n1.0 / sqrt_f(MY_PI * surface_grid_density).\n")
-      .def_property("vacancy_search_distance", &Config::get_vacancy_search_distance, &Config::set_vacancy_search_distance, "Rather internal, there is usually no need to change this value.\nUsed in dynamic geometry (see Model.apply_vertex_moves()). \nWhen a wall moves or its dimensions change, this is the maximum search distance \nuse when looking onto which tiles place the molecules on this wall. \nIf no empty tile is found within this distance, simulation fails.  \n    \n")
-      .def_property("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid, "If set to True, then all molecules on a surface will be\nlocated exactly at the center of their grid element. If False, the\nmolecules will be randomly located when placed, and reactions\nwill take place at the location of the target (or the site of impact\nin the case of 3D molecule/surface reactions). \n")
-      .def_property("partition_dimension", &Config::get_partition_dimension, &Config::set_partition_dimension, "All the simulated 3d space is placed in a partition. The partition is a cube and \nthis partition_dimension specifies the length of its edge in um.\n")
-      .def_property("initial_partition_origin", &Config::get_initial_partition_origin, &Config::set_initial_partition_origin, py::return_value_policy::reference, "Optional placement of the initial partition in um, specifies the left, lower front \npoint. If not set, value -partition_dimension/2 is used for each of the dimensions \nplacing the center of the partition to (0, 0, 0).   \n")
-      .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension, "Subpartition are spatial division of 3D space used to accelerate collision checking.\nIn general, partitions should be chosen to avoid having too many surfaces and molecules\nin one subpartition. \nIf there are few surfaces and/or molecules in a subvolume, it is advantageous to have the \nsubvolume as large as possible. Crossing partition boundaries takes a small amount of time, \nso it is rarely useful to have partitions more finely spaced than the average diffusion distance \nof the faster-moving molecules in the simulation.\n")
-      .def_property("total_iterations", &Config::get_total_iterations, &Config::set_total_iterations, "Required for checkpointing so that the checkpointed model has information on\nthe intended total number of iterations. \nAlso used when generating visualization data files and also for other reporting uses. \nValue is truncated to an integer.\n")
-      .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls, "Enables check for overlapped walls. Overlapping walls can cause issues during \nsimulation such as a molecule escaping closed geometry when it hits two walls \nthat overlap. \n")
-      .def_property("reaction_class_cleanup_periodicity", &Config::get_reaction_class_cleanup_periodicity, &Config::set_reaction_class_cleanup_periodicity, "Reaction class cleanup removes computed reaction classes for inactive species from memory.\nThis provides faster reaction lookup faster but when the same reaction class is \nneeded again, it must be recomputed.\n")
-      .def_property("species_cleanup_periodicity", &Config::get_species_cleanup_periodicity, &Config::set_species_cleanup_periodicity, "Species cleanup removes inactive species from memory. It removes also all reaction classes \nthat reference it.\nThis provides faster addition of new species lookup faster but when the species is \nneeded again, it must be recomputed.\n")
-      .def_property("molecules_order_random_shuffle_periodicity", &Config::get_molecules_order_random_shuffle_periodicity, &Config::set_molecules_order_random_shuffle_periodicity, "Randomly shuffle the order in which molecules are simulated.\nThis helps to overcome potential biases that may occur when \nmolecules are ordered e.g. by their species when simulation starts. \nThe first shuffling occurs at this iteration, i.e. no shuffle is done at iteration 0.\nSetting this parameter to 0 disables the shuffling.  \n")
-      .def_property("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules, "Enables sorting of molecules for diffusion, this may improve cache locality and provide \nslightly better performance. \nProduces different results for the same seed when enabled because molecules are simulated \nin a different order. \n")
-      .def_property("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb, "Sets memory limit in GB for simulation run. \nWhen this limit is hit, all buffers are flushed and simulation is terminated with an error.\n")
-      .def_property("initial_iteration", &Config::get_initial_iteration, &Config::set_initial_iteration, "Initial iteration, used when resuming a checkpoint.")
-      .def_property("initial_time", &Config::get_initial_time, &Config::set_initial_time, "Initial time in us, used when resuming a checkpoint.\nWill be truncated to be a multiple of time step.\n")
-      .def_property("initial_rng_state", &Config::get_initial_rng_state, &Config::set_initial_rng_state, "Used for checkpointing, may contain state of the random number generator to be set \nafter initialization right before the first event is started. \nWhen not set, the set 'seed' value is used to initialize the random number generator.  \n")
-      .def_property("append_to_count_output_data", &Config::get_append_to_count_output_data, &Config::set_append_to_count_output_data, "Used for checkpointing, instead of creating new files for Count observables data, \nnew values are appended to the existing files. If such files do not exist, new files are\ncreated.\n")
-      .def_property("continue_after_sigalrm", &Config::get_continue_after_sigalrm, &Config::set_continue_after_sigalrm, "MCell registers a SIGALRM signal handler. When SIGALRM signal is received and \ncontinue_after_sigalrm is False, checkpoint is stored and simulation is terminated. \nWhen continue_after_sigalrm is True, checkpoint is stored and simulation continues.\nSIGALRM is not supported on Windows.\n")
+      .def_prop_rw("seed", &Config::get_seed, &Config::set_seed, "Random generator seed value.")
+      .def_prop_rw("time_step", &Config::get_time_step, &Config::set_time_step, "Set the simulation time step to time_step seconds. 1e-6 (1us) is a common value. \nOne can set the time steps taken by individual molecules, but this \ntime step is still used as a default.\n")
+      .def_prop_rw("use_bng_units", &Config::get_use_bng_units, &Config::set_use_bng_units, "When False (default), MCell uses traditional MCell units for bimolecular reaction rates are:\n * [M^-1*s^-1] for bimolecular reactions between either two volume molecules, a volume molecule \n               and a surface (molecule), \n * [um^2*N^-1*s^-1] bimolecular reactions between two surface molecules on the same surface.\nWhen True, BioNetGen units for bimolecular reaction rates are:\n * [um^3*N^-1*s^-1] for any bimolecular reactions. Surface-surface reaction rate conversion assumes 10nm membrane thickness\nBioNetGen units are compatible with BioNetGen's ODE, SSA, and PLA solvers given that seed species \nis copy number (N), these units are not compatible with NFSim. \nNo other units are affected by this setting.\n")
+      .def_prop_rw("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density, "Tile all surfaces so that they can hold molecules at N different positions per square micron.")
+      .def_prop_rw("interaction_radius", &Config::get_interaction_radius, &Config::set_interaction_radius, "Diffusing volume molecules will interact with each other when\nthey get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified).\n")
+      .def_prop_rw("intermembrane_interaction_radius", &Config::get_intermembrane_interaction_radius, &Config::set_intermembrane_interaction_radius, "Diffusing surface molecules will interact with surface molecules on other\nwalls when they get within N microns of each other. The default is\n1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density \n(default or user-specified). \nWhen unset, the default value is computed as: \n1.0 / sqrt_f(MY_PI * surface_grid_density).\n")
+      .def_prop_rw("vacancy_search_distance", &Config::get_vacancy_search_distance, &Config::set_vacancy_search_distance, "Rather internal, there is usually no need to change this value.\nUsed in dynamic geometry (see Model.apply_vertex_moves()). \nWhen a wall moves or its dimensions change, this is the maximum search distance \nuse when looking onto which tiles place the molecules on this wall. \nIf no empty tile is found within this distance, simulation fails.  \n    \n")
+      .def_prop_rw("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid, "If set to True, then all molecules on a surface will be\nlocated exactly at the center of their grid element. If False, the\nmolecules will be randomly located when placed, and reactions\nwill take place at the location of the target (or the site of impact\nin the case of 3D molecule/surface reactions). \n")
+      .def_prop_rw("partition_dimension", &Config::get_partition_dimension, &Config::set_partition_dimension, "All the simulated 3d space is placed in a partition. The partition is a cube and \nthis partition_dimension specifies the length of its edge in um.\n")
+      .def_prop_rw("initial_partition_origin", &Config::get_initial_partition_origin, &Config::set_initial_partition_origin, py::rv_policy::reference, "Optional placement of the initial partition in um, specifies the left, lower front \npoint. If not set, value -partition_dimension/2 is used for each of the dimensions \nplacing the center of the partition to (0, 0, 0).   \n")
+      .def_prop_rw("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension, "Subpartition are spatial division of 3D space used to accelerate collision checking.\nIn general, partitions should be chosen to avoid having too many surfaces and molecules\nin one subpartition. \nIf there are few surfaces and/or molecules in a subvolume, it is advantageous to have the \nsubvolume as large as possible. Crossing partition boundaries takes a small amount of time, \nso it is rarely useful to have partitions more finely spaced than the average diffusion distance \nof the faster-moving molecules in the simulation.\n")
+      .def_prop_rw("total_iterations", &Config::get_total_iterations, &Config::set_total_iterations, "Required for checkpointing so that the checkpointed model has information on\nthe intended total number of iterations. \nAlso used when generating visualization data files and also for other reporting uses. \nValue is truncated to an integer.\n")
+      .def_prop_rw("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls, "Enables check for overlapped walls. Overlapping walls can cause issues during \nsimulation such as a molecule escaping closed geometry when it hits two walls \nthat overlap. \n")
+      .def_prop_rw("reaction_class_cleanup_periodicity", &Config::get_reaction_class_cleanup_periodicity, &Config::set_reaction_class_cleanup_periodicity, "Reaction class cleanup removes computed reaction classes for inactive species from memory.\nThis provides faster reaction lookup faster but when the same reaction class is \nneeded again, it must be recomputed.\n")
+      .def_prop_rw("species_cleanup_periodicity", &Config::get_species_cleanup_periodicity, &Config::set_species_cleanup_periodicity, "Species cleanup removes inactive species from memory. It removes also all reaction classes \nthat reference it.\nThis provides faster addition of new species lookup faster but when the species is \nneeded again, it must be recomputed.\n")
+      .def_prop_rw("molecules_order_random_shuffle_periodicity", &Config::get_molecules_order_random_shuffle_periodicity, &Config::set_molecules_order_random_shuffle_periodicity, "Randomly shuffle the order in which molecules are simulated.\nThis helps to overcome potential biases that may occur when \nmolecules are ordered e.g. by their species when simulation starts. \nThe first shuffling occurs at this iteration, i.e. no shuffle is done at iteration 0.\nSetting this parameter to 0 disables the shuffling.  \n")
+      .def_prop_rw("sort_molecules", &Config::get_sort_molecules, &Config::set_sort_molecules, "Enables sorting of molecules for diffusion, this may improve cache locality and provide \nslightly better performance. \nProduces different results for the same seed when enabled because molecules are simulated \nin a different order. \n")
+      .def_prop_rw("memory_limit_gb", &Config::get_memory_limit_gb, &Config::set_memory_limit_gb, "Sets memory limit in GB for simulation run. \nWhen this limit is hit, all buffers are flushed and simulation is terminated with an error.\n")
+      .def_prop_rw("initial_iteration", &Config::get_initial_iteration, &Config::set_initial_iteration, "Initial iteration, used when resuming a checkpoint.")
+      .def_prop_rw("initial_time", &Config::get_initial_time, &Config::set_initial_time, "Initial time in us, used when resuming a checkpoint.\nWill be truncated to be a multiple of time step.\n")
+      .def_prop_rw("initial_rng_state", &Config::get_initial_rng_state, &Config::set_initial_rng_state, "Used for checkpointing, may contain state of the random number generator to be set \nafter initialization right before the first event is started. \nWhen not set, the set 'seed' value is used to initialize the random number generator.  \n")
+      .def_prop_rw("append_to_count_output_data", &Config::get_append_to_count_output_data, &Config::set_append_to_count_output_data, "Used for checkpointing, instead of creating new files for Count observables data, \nnew values are appended to the existing files. If such files do not exist, new files are\ncreated.\n")
+      .def_prop_rw("continue_after_sigalrm", &Config::get_continue_after_sigalrm, &Config::set_continue_after_sigalrm, "MCell registers a SIGALRM signal handler. When SIGALRM signal is received and \ncontinue_after_sigalrm is False, checkpoint is stored and simulation is terminated. \nWhen continue_after_sigalrm is True, checkpoint is stored and simulation continues.\nSIGALRM is not supported on Windows.\n")
     ;
 }
 
@@ -329,7 +329,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << ind << "time_step = " << f_to_str(time_step) << "," << nl;
   }
   if (use_bng_units != false) {
-    ss << ind << "use_bng_units = " << use_bng_units << "," << nl;
+    ss << ind << "use_bng_units = " << (use_bng_units ? "True" : "False") << "," << nl;
   }
   if (surface_grid_density != 10000) {
     ss << ind << "surface_grid_density = " << f_to_str(surface_grid_density) << "," << nl;
@@ -344,7 +344,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << ind << "vacancy_search_distance = " << f_to_str(vacancy_search_distance) << "," << nl;
   }
   if (center_molecules_on_grid != false) {
-    ss << ind << "center_molecules_on_grid = " << center_molecules_on_grid << "," << nl;
+    ss << ind << "center_molecules_on_grid = " << (center_molecules_on_grid ? "True" : "False") << "," << nl;
   }
   if (partition_dimension != 10) {
     ss << ind << "partition_dimension = " << f_to_str(partition_dimension) << "," << nl;
@@ -359,7 +359,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << ind << "total_iterations = " << f_to_str(total_iterations) << "," << nl;
   }
   if (check_overlapped_walls != true) {
-    ss << ind << "check_overlapped_walls = " << check_overlapped_walls << "," << nl;
+    ss << ind << "check_overlapped_walls = " << (check_overlapped_walls ? "True" : "False") << "," << nl;
   }
   if (reaction_class_cleanup_periodicity != 500) {
     ss << ind << "reaction_class_cleanup_periodicity = " << reaction_class_cleanup_periodicity << "," << nl;
@@ -371,7 +371,7 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << ind << "molecules_order_random_shuffle_periodicity = " << molecules_order_random_shuffle_periodicity << "," << nl;
   }
   if (sort_molecules != false) {
-    ss << ind << "sort_molecules = " << sort_molecules << "," << nl;
+    ss << ind << "sort_molecules = " << (sort_molecules ? "True" : "False") << "," << nl;
   }
   if (memory_limit_gb != -1) {
     ss << ind << "memory_limit_gb = " << memory_limit_gb << "," << nl;
@@ -386,10 +386,10 @@ std::string GenConfig::export_to_python(std::ostream& out, PythonExportContext& 
     ss << ind << "initial_rng_state = " << initial_rng_state->export_to_python(out, ctx) << "," << nl;
   }
   if (append_to_count_output_data != false) {
-    ss << ind << "append_to_count_output_data = " << append_to_count_output_data << "," << nl;
+    ss << ind << "append_to_count_output_data = " << (append_to_count_output_data ? "True" : "False") << "," << nl;
   }
   if (continue_after_sigalrm != false) {
-    ss << ind << "continue_after_sigalrm = " << continue_after_sigalrm << "," << nl;
+    ss << ind << "continue_after_sigalrm = " << (continue_after_sigalrm ? "True" : "False") << "," << nl;
   }
   ss << ")" << nl << nl;
   if (!str_export) {

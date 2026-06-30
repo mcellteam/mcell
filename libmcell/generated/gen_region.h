@@ -112,7 +112,7 @@ public:
 }; // GenRegion
 
 class Region;
-py::class_<Region> define_pybinding_Region(py::module& m);
+void define_pybinding_Region(py::module_& m);
 } // namespace API
 } // namespace MCell
 

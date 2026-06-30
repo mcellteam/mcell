@@ -84,7 +84,7 @@ public:
 }; // GenComponentType
 
 class ComponentType;
-py::class_<ComponentType> define_pybinding_ComponentType(py::module& m);
+void define_pybinding_ComponentType(py::module_& m);
 } // namespace API
 } // namespace MCell
 

@@ -127,7 +127,7 @@ public:
 }; // GenReleasePattern
 
 class ReleasePattern;
-py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m);
+void define_pybinding_ReleasePattern(py::module_& m);
 } // namespace API
 } // namespace MCell
 

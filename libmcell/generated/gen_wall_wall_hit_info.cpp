@@ -122,8 +122,8 @@ std::string GenWallWallHitInfo::to_str(const bool all_details, const std::string
   return ss.str();
 }
 
-py::class_<WallWallHitInfo> define_pybinding_WallWallHitInfo(py::module& m) {
-  return py::class_<WallWallHitInfo, std::shared_ptr<WallWallHitInfo>>(m, "WallWallHitInfo", "This class is used in the return type of Model.apply_vertex_moves.\nContains pair of walls that collided.\n")
+void define_pybinding_WallWallHitInfo(py::module_& m) {
+  py::class_<WallWallHitInfo>(m, "WallWallHitInfo", "This class is used in the return type of Model.apply_vertex_moves.\nContains pair of walls that collided.\n")
       .def(
           py::init<
           >()
@@ -134,8 +134,8 @@ py::class_<WallWallHitInfo> define_pybinding_WallWallHitInfo(py::module& m) {
       .def("__str__", &WallWallHitInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &WallWallHitInfo::__eq__, py::arg("other"))
       .def("dump", &WallWallHitInfo::dump)
-      .def_property("wall1", &WallWallHitInfo::get_wall1, &WallWallHitInfo::set_wall1, "First colliding wall.")
-      .def_property("wall2", &WallWallHitInfo::get_wall2, &WallWallHitInfo::set_wall2, "Second colliding wall.")
+      .def_prop_rw("wall1", &WallWallHitInfo::get_wall1, &WallWallHitInfo::set_wall1, "First colliding wall.")
+      .def_prop_rw("wall2", &WallWallHitInfo::get_wall2, &WallWallHitInfo::set_wall2, "Second colliding wall.")
     ;
 }
 

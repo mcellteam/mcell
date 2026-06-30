@@ -165,7 +165,7 @@ public:
 }; // GenChkptSurfMol
 
 class ChkptSurfMol;
-py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m);
+void define_pybinding_ChkptSurfMol(py::module_& m);
 } // namespace API
 } // namespace MCell
 

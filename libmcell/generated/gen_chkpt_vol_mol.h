@@ -100,7 +100,7 @@ public:
 }; // GenChkptVolMol
 
 class ChkptVolMol;
-py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m);
+void define_pybinding_ChkptVolMol(py::module_& m);
 } // namespace API
 } // namespace MCell
 

@@ -175,7 +175,7 @@ public:
 }; // GenRngState
 
 class RngState;
-py::class_<RngState> define_pybinding_RngState(py::module& m);
+void define_pybinding_RngState(py::module_& m);
 } // namespace API
 } // namespace MCell
 

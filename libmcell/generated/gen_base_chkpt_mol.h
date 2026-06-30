@@ -158,7 +158,7 @@ public:
 }; // GenBaseChkptMol
 
 class BaseChkptMol;
-py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m);
+void define_pybinding_BaseChkptMol(py::module_& m);
 } // namespace API
 } // namespace MCell
 

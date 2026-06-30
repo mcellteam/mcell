@@ -180,7 +180,7 @@ public:
 }; // GenMolecule
 
 class Molecule;
-py::class_<Molecule> define_pybinding_Molecule(py::module& m);
+void define_pybinding_Molecule(py::module_& m);
 } // namespace API
 } // namespace MCell
 

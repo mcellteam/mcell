@@ -110,7 +110,7 @@ public:
 }; // GenSurfaceProperty
 
 class SurfaceProperty;
-py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m);
+void define_pybinding_SurfaceProperty(py::module_& m);
 } // namespace API
 } // namespace MCell
 

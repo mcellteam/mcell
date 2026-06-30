@@ -17,7 +17,7 @@
 namespace MCell {
 namespace API {
 
-void define_pybinding_data_utils(py::module& m) {
+void define_pybinding_data_utils(py::module_& m) {
   m.def_submodule("data_utils")
       .def("load_dat_file", &data_utils::load_dat_file, py::arg("file_name"), "Loads a two-column file where the first column is usually time and the second is a \nfloating point value. Returns a two-column list. \nCan be used to load a file with variable rate constants. \n\n- file_name: Path to the .dat file to be loaded.\n\n")
     ;

@@ -79,7 +79,7 @@ public:
 }; // GenObservables
 
 class Observables;
-py::class_<Observables> define_pybinding_Observables(py::module& m);
+void define_pybinding_Observables(py::module_& m);
 } // namespace API
 } // namespace MCell
 

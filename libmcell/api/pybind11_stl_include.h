@@ -24,7 +24,15 @@
 #undef HAVE_UNISTD_H
 #undef HAVE_SYS_TIME_H
 #endif
-#include "libs/pybind11/include/pybind11/stl.h"
+// nanobind STL type casters (migrated from pybind11/stl.h). Opt-in per type.
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/shared_ptr.h>
+#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/set.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/bind_vector.h>
 
 #ifndef _WIN64
 #undef _hypot

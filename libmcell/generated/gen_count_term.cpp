@@ -247,26 +247,28 @@ std::string GenCountTerm::to_str(const bool all_details, const std::string ind) 
   return ss.str();
 }
 
-py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
-  return py::class_<CountTerm, std::shared_ptr<CountTerm>>(m, "CountTerm", "A count observable can be defined as an expression composed of addition\nor subtraction individual count terms. This class represents one count term\nin this expression.\n \n")
+void define_pybinding_CountTerm(py::module_& m) {
+  py::class_<CountTerm>(m, "CountTerm", "A count observable can be defined as an expression composed of addition\nor subtraction individual count terms. This class represents one count term\nin this expression.\n \n")
       .def(
-          py::init<
-            std::shared_ptr<Complex>,
-            std::shared_ptr<Complex>,
-            std::shared_ptr<ReactionRule>,
-            std::shared_ptr<Region>,
-            const ExprNodeType,
-            std::shared_ptr<CountTerm>,
-            std::shared_ptr<CountTerm>,
-            const uint64_t
-          >(),
-          py::arg("species_pattern") = nullptr,
-          py::arg("molecules_pattern") = nullptr,
-          py::arg("reaction_rule") = nullptr,
-          py::arg("region") = nullptr,
+          py::new_([](
+            std::shared_ptr<Complex> species_pattern,
+            std::shared_ptr<Complex> molecules_pattern,
+            std::shared_ptr<ReactionRule> reaction_rule,
+            std::shared_ptr<Region> region,
+            const ExprNodeType node_type,
+            std::shared_ptr<CountTerm> left_node,
+            std::shared_ptr<CountTerm> right_node,
+            const uint64_t initial_reactions_count
+          ) {
+            return std::make_shared<CountTerm>(species_pattern, molecules_pattern, reaction_rule, region, node_type, left_node, right_node, initial_reactions_count);
+          }),
+          py::arg("species_pattern").none() = nullptr,
+          py::arg("molecules_pattern").none() = nullptr,
+          py::arg("reaction_rule").none() = nullptr,
+          py::arg("region").none() = nullptr,
           py::arg("node_type") = ExprNodeType::LEAF,
-          py::arg("left_node") = nullptr,
-          py::arg("right_node") = nullptr,
+          py::arg("left_node").none() = nullptr,
+          py::arg("right_node").none() = nullptr,
           py::arg("initial_reactions_count") = 0
       )
       .def("check_semantics", &CountTerm::check_semantics)
@@ -274,17 +276,17 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
       .def("__deepcopy__", &CountTerm::deepcopy_count_term, py::arg("memo"))
       .def("__str__", &CountTerm::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &CountTerm::__eq__, py::arg("other"))
-      .def("__add__", &CountTerm::__add__, py::arg("op2"), "Create a new CountTerm that represents addition of two count terms.\nUsually used through operator '+' such as in ct1 + ct2.  \n\n- op2\n")
-      .def("__sub__", &CountTerm::__sub__, py::arg("op2"), "Create a new CountTerm that represents subtraction of two count terms.\nUsually used through operator '-' such as in ct1 - ct2.  \n\n- op2\n")
+      .def("__add__", &CountTerm::__add__, py::arg("op2").none(), "Create a new CountTerm that represents addition of two count terms.\nUsually used through operator '+' such as in ct1 + ct2.  \n\n- op2\n")
+      .def("__sub__", &CountTerm::__sub__, py::arg("op2").none(), "Create a new CountTerm that represents subtraction of two count terms.\nUsually used through operator '-' such as in ct1 - ct2.  \n\n- op2\n")
       .def("dump", &CountTerm::dump)
-      .def_property("species_pattern", &CountTerm::get_species_pattern, &CountTerm::set_species_pattern, "Count the number of molecules that match the given complex instance pattern.\nThis corresponds to the BNGL 'Species' specifier in the BNGL seed species section.\nCounts each molecule exactly once. \nIf the pattern has a compartment set, this specifies the counted region.\nExactly one of species_pattern, molecules_pattern, and reaction_rule must be set. \n")
-      .def_property("molecules_pattern", &CountTerm::get_molecules_pattern, &CountTerm::set_molecules_pattern, "Count the number of matches of the given pattern on molecules.\nThis corresponds to the BNGL 'Molecules' specifier in the BNGL seed species section.\nThe observable will increment the count every time the pattern matches the molecule.\nFor instance, pattern A will match a complex A(a!1).B(a!1,a!2).A(b!2) twice. \nWhen the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a \nmolecule A(b.a!1).A(a!1,b!2).B(a!2) will be counted twice because the \npattern may match in two different ways. \nIf the pattern has a compartment set, the compartment is used to filter out the molecules.   \nExactly one of species_pattern, molecules_pattern, and reaction_rule must be set.\n")
-      .def_property("reaction_rule", &CountTerm::get_reaction_rule, &CountTerm::set_reaction_rule, "Count the number of applications of this specific reactions that occurred since the\nstart of the simulation.\nExactly one of species_pattern, molecules_pattern, and reaction_rule must be set.\n  \n")
-      .def_property("region", &CountTerm::get_region, &CountTerm::set_region, "Only a GeometryObject or SurfaceRegion can be passed as the region argument, \ncompound regions (created with +, -, *) are not supproted yet.   \nCan be combined with a compartment specified in the species_pattern or molecules_pattern.\nIf compartment in species_pattern or molecules_pattern is not specified and \nregion is left unset, counting is done in the whole world.\n")
-      .def_property("node_type", &CountTerm::get_node_type, &CountTerm::set_node_type, "Internal, used to specify what type of count expression node this object represents.")
-      .def_property("left_node", &CountTerm::get_left_node, &CountTerm::set_left_node, "Internal, when node_type is not Leaf, this is the left operand.")
-      .def_property("right_node", &CountTerm::get_right_node, &CountTerm::set_right_node, "Internal, when node_type is not Leaf, this is the right operand.")
-      .def_property("initial_reactions_count", &CountTerm::get_initial_reactions_count, &CountTerm::set_initial_reactions_count, "Used for checkpointing, allows to set initial count of reactions that occurred.\nIgnored when molecules are counted.\n")
+      .def_prop_rw("species_pattern", &CountTerm::get_species_pattern, &CountTerm::set_species_pattern, "Count the number of molecules that match the given complex instance pattern.\nThis corresponds to the BNGL 'Species' specifier in the BNGL seed species section.\nCounts each molecule exactly once. \nIf the pattern has a compartment set, this specifies the counted region.\nExactly one of species_pattern, molecules_pattern, and reaction_rule must be set. \n")
+      .def_prop_rw("molecules_pattern", &CountTerm::get_molecules_pattern, &CountTerm::set_molecules_pattern, "Count the number of matches of the given pattern on molecules.\nThis corresponds to the BNGL 'Molecules' specifier in the BNGL seed species section.\nThe observable will increment the count every time the pattern matches the molecule.\nFor instance, pattern A will match a complex A(a!1).B(a!1,a!2).A(b!2) twice. \nWhen the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a \nmolecule A(b.a!1).A(a!1,b!2).B(a!2) will be counted twice because the \npattern may match in two different ways. \nIf the pattern has a compartment set, the compartment is used to filter out the molecules.   \nExactly one of species_pattern, molecules_pattern, and reaction_rule must be set.\n")
+      .def_prop_rw("reaction_rule", &CountTerm::get_reaction_rule, &CountTerm::set_reaction_rule, "Count the number of applications of this specific reactions that occurred since the\nstart of the simulation.\nExactly one of species_pattern, molecules_pattern, and reaction_rule must be set.\n  \n")
+      .def_prop_rw("region", &CountTerm::get_region, &CountTerm::set_region, "Only a GeometryObject or SurfaceRegion can be passed as the region argument, \ncompound regions (created with +, -, *) are not supproted yet.   \nCan be combined with a compartment specified in the species_pattern or molecules_pattern.\nIf compartment in species_pattern or molecules_pattern is not specified and \nregion is left unset, counting is done in the whole world.\n")
+      .def_prop_rw("node_type", &CountTerm::get_node_type, &CountTerm::set_node_type, "Internal, used to specify what type of count expression node this object represents.")
+      .def_prop_rw("left_node", &CountTerm::get_left_node, &CountTerm::set_left_node, "Internal, when node_type is not Leaf, this is the left operand.")
+      .def_prop_rw("right_node", &CountTerm::get_right_node, &CountTerm::set_right_node, "Internal, when node_type is not Leaf, this is the right operand.")
+      .def_prop_rw("initial_reactions_count", &CountTerm::get_initial_reactions_count, &CountTerm::set_initial_reactions_count, "Used for checkpointing, allows to set initial count of reactions that occurred.\nIgnored when molecules are counted.\n")
     ;
 }
 

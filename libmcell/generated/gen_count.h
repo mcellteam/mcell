@@ -145,7 +145,7 @@ public:
 }; // GenCount
 
 class Count;
-py::class_<Count> define_pybinding_Count(py::module& m);
+void define_pybinding_Count(py::module_& m);
 } // namespace API
 } // namespace MCell
 

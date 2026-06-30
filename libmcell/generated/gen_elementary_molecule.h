@@ -113,7 +113,7 @@ public:
 }; // GenElementaryMolecule
 
 class ElementaryMolecule;
-py::class_<ElementaryMolecule> define_pybinding_ElementaryMolecule(py::module& m);
+void define_pybinding_ElementaryMolecule(py::module_& m);
 } // namespace API
 } // namespace MCell
 

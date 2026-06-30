@@ -127,7 +127,7 @@ public:
 }; // GenVizOutput
 
 class VizOutput;
-py::class_<VizOutput> define_pybinding_VizOutput(py::module& m);
+void define_pybinding_VizOutput(py::module_& m);
 } // namespace API
 } // namespace MCell
 

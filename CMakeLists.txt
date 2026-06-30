@@ -149,7 +149,10 @@ target_compile_options(mcell_project_options INTERFACE
 # The bundled mcell/libs headers were exposed via a global -isystem; keep that
 # as a SYSTEM usage requirement so consumers' warnings stay quiet.
 target_include_directories(mcell_project_options SYSTEM INTERFACE
-    ${CMAKE_SOURCE_DIR}/libs)
+    ${CMAKE_SOURCE_DIR}/libs
+    # vendored nanobind headers (migrated from pybind11); <nanobind/...> + robin_map
+    ${CMAKE_SOURCE_DIR}/libs/nanobind/include
+    ${CMAKE_SOURCE_DIR}/libs/nanobind/ext/robin_map/include)
 
 # Debuggable Debug builds, cross-platform:
 #   * GCC (Linux) and Clang/AppleClang (macOS): -O0 disables optimisation so
@@ -358,7 +361,18 @@ if (WIN32)
   # include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/libs/libunistd/unistd)
 endif()
 
+# pybind11 subdir kept only so pybind11::python_link_helper still resolves for the
+# mcell executable on Darwin; the Python module now uses nanobind (below).
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
+
+# nanobind (vendored in libs/nanobind) — provides nanobind_add_module for mcell4_so.
+# nanobind-config requires the capital-P Python:: targets; pin them to the same
+# interpreter MCell already resolved via find_package(Python3 ... EXACT).
+set(Python_EXECUTABLE ${Python3_EXECUTABLE})
+find_package(Python ${PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
+set(nanobind_DIR ${CMAKE_SOURCE_DIR}/libs/nanobind/cmake)
+find_package(nanobind CONFIG REQUIRED)
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/../libbng/ ${CMAKE_CURRENT_BINARY_DIR}/libs/libbng)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
@@ -495,7 +509,7 @@ configure_file(${CMAKE_SOURCE_DIR}/libmcell/generated/mcell.pyi ${BUILD_UTILS_DI
 # TODO: list all files using configure_file
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
-pybind11_add_module(mcell4_so MODULE
+nanobind_add_module(mcell4_so
     # few files from mcell3 that are used
     # TODO: get rid of all deps except for the random generator
     src/logging.c
@@ -554,6 +568,9 @@ target_link_libraries(mcell4_so
     PUBLIC MCell::libmcell
     PRIVATE MCell::mcell4 BNG::bng JsonCpp::JsonCpp Nauty::nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
     PUBLIC MCell::libmcell  # linking dependency issue, we must include libmcell once again to the list of libraries
+    # nanobind has a support lib (unlike header-only pybind11); libmcell/mcell4 reference its
+    # symbols, so for GNU ld's left-to-right static resolution it must come AFTER them.
+    PRIVATE nanobind-static
 )
 
 target_include_directories(mcell4_so PRIVATE ${APP_INCLUDE_DIRS})

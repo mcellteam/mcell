@@ -25,7 +25,7 @@ std::map<std::string, double> load_bngl_parameters(const std::string& file_name,
 
 } // namespace bngl_utils
 
-void define_pybinding_bngl_utils(py::module& m);
+void define_pybinding_bngl_utils(py::module_& m);
 } // namespace API
 } // namespace MCell
 

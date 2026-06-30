@@ -69,8 +69,8 @@ std::string GenInstantiation::to_str(const bool all_details, const std::string i
   return ss.str();
 }
 
-py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
-  return py::class_<Instantiation, std::shared_ptr<Instantiation>>(m, "Instantiation", "Container used to hold instantiation-related model data. \nInstantiation is usually specific for each model, defines \nthe geometry and initial setup of molecule releases.\n")
+void define_pybinding_Instantiation(py::module_& m) {
+  py::class_<Instantiation>(m, "Instantiation", "Container used to hold instantiation-related model data. \nInstantiation is usually specific for each model, defines \nthe geometry and initial setup of molecule releases.\n")
       .def(
           py::init<
             const std::vector<std::shared_ptr<ReleaseSite>>,
@@ -85,17 +85,17 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
       .def("__deepcopy__", &Instantiation::deepcopy_instantiation, py::arg("memo"))
       .def("__str__", &Instantiation::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Instantiation::__eq__, py::arg("other"))
-      .def("add_release_site", &Instantiation::add_release_site, py::arg("s"), "Adds a reference to the release site s to the list of release sites.\n- s\n")
+      .def("add_release_site", &Instantiation::add_release_site, py::arg("s").none(), "Adds a reference to the release site s to the list of release sites.\n- s\n")
       .def("find_release_site", &Instantiation::find_release_site, py::arg("name"), "Finds a release site by its name, returns None if no such release site is present.\n- name\n")
-      .def("add_geometry_object", &Instantiation::add_geometry_object, py::arg("o"), "Adds a reference to the geometry object o to the list of geometry objects.\n- o\n")
+      .def("add_geometry_object", &Instantiation::add_geometry_object, py::arg("o").none(), "Adds a reference to the geometry object o to the list of geometry objects.\n- o\n")
       .def("find_geometry_object", &Instantiation::find_geometry_object, py::arg("name"), "Finds a geometry object by its name, returns None if no such geometry object is present.\n- name\n")
       .def("find_volume_compartment_object", &Instantiation::find_volume_compartment_object, py::arg("name"), "Finds a geometry object by its name, the geometry object must be a BNGL compartment.\nReturns None if no such geometry object is present.\n\n- name\n")
       .def("find_surface_compartment_object", &Instantiation::find_surface_compartment_object, py::arg("name"), "Finds a geometry object that is a BNGL compartment and its surface name is name.\nReturns None if no such geometry object is present.\n\n- name\n")
-      .def("load_bngl_compartments_and_seed_species", &Instantiation::load_bngl_compartments_and_seed_species, py::arg("file_name"), py::arg("default_release_region") = nullptr, py::arg("parameter_overrides") = std::map<std::string, double>(), "First loads section compartments and for each 3D compartment that does not \nalready exist as a geometry object in this Instantiation object, creates a \nbox with compartment's volume and also sets its 2D (membrane) compartment name.\nWhen multiple identical geometry objects are added to the final Model object, \nonly one copy is left so one can merge multiple Instantiation objects that created \ncompartments assuming that their volume is the same.        \nThen loads section seed species from a BNGL file and creates release sites according to it.\nAll elementary molecule types used in the seed species section must be already defined in subsystem.\nIf an item in the BNGL seed species section does not have its compartment set,\nthe argument default_region must be set and the molecules are then released into or onto the \ndefault_region. \n\n- file_name: Path to the BNGL file.\n\n- default_release_region: Used as region for releases for seed species that have no compartments specified.\n\n\n- parameter_overrides: For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,\nits value is ignored and instead value parameter_overrides[k] is used.\n\n\n")
+      .def("load_bngl_compartments_and_seed_species", &Instantiation::load_bngl_compartments_and_seed_species, py::arg("file_name"), py::arg("default_release_region").none() = nullptr, py::arg("parameter_overrides") = std::map<std::string, double>(), "First loads section compartments and for each 3D compartment that does not \nalready exist as a geometry object in this Instantiation object, creates a \nbox with compartment's volume and also sets its 2D (membrane) compartment name.\nWhen multiple identical geometry objects are added to the final Model object, \nonly one copy is left so one can merge multiple Instantiation objects that created \ncompartments assuming that their volume is the same.        \nThen loads section seed species from a BNGL file and creates release sites according to it.\nAll elementary molecule types used in the seed species section must be already defined in subsystem.\nIf an item in the BNGL seed species section does not have its compartment set,\nthe argument default_region must be set and the molecules are then released into or onto the \ndefault_region. \n\n- file_name: Path to the BNGL file.\n\n- default_release_region: Used as region for releases for seed species that have no compartments specified.\n\n\n- parameter_overrides: For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,\nits value is ignored and instead value parameter_overrides[k] is used.\n\n\n")
       .def("dump", &Instantiation::dump)
-      .def_property("release_sites", &Instantiation::get_release_sites, &Instantiation::set_release_sites, py::return_value_policy::reference, "List of release sites to be included in the model.  \n")
-      .def_property("geometry_objects", &Instantiation::get_geometry_objects, &Instantiation::set_geometry_objects, py::return_value_policy::reference, "List of geometry objects to be included in the model.  \n")
-      .def_property("checkpointed_molecules", &Instantiation::get_checkpointed_molecules, &Instantiation::set_checkpointed_molecules, py::return_value_policy::reference, "Used when resuming simulation from a checkpoint.\n")
+      .def_prop_rw("release_sites", &Instantiation::get_release_sites, &Instantiation::set_release_sites, py::rv_policy::reference, "List of release sites to be included in the model.  \n")
+      .def_prop_rw("geometry_objects", &Instantiation::get_geometry_objects, &Instantiation::set_geometry_objects, py::rv_policy::reference, "List of geometry objects to be included in the model.  \n")
+      .def_prop_rw("checkpointed_molecules", &Instantiation::get_checkpointed_molecules, &Instantiation::set_checkpointed_molecules, py::rv_policy::reference, "Used when resuming simulation from a checkpoint.\n")
     ;
 }
 

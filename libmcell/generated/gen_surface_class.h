@@ -93,7 +93,7 @@ public:
 }; // GenSurfaceClass
 
 class SurfaceClass;
-py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m);
+void define_pybinding_SurfaceClass(py::module_& m);
 } // namespace API
 } // namespace MCell
 

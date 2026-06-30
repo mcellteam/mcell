@@ -102,15 +102,15 @@ std::string GenComponent::to_str(const bool all_details, const std::string ind) 
   return ss.str();
 }
 
-py::class_<Component> define_pybinding_Component(py::module& m) {
-  return py::class_<Component, std::shared_ptr<Component>>(m, "Component", "Instance of a component type belonging to a molecule instance.\nA component instance must have its state set if there is at least one allowed state.\nIt is also used to connect molecule instance in a complex instance through bonds.\n")
+void define_pybinding_Component(py::module_& m) {
+  py::class_<Component>(m, "Component", "Instance of a component type belonging to a molecule instance.\nA component instance must have its state set if there is at least one allowed state.\nIt is also used to connect molecule instance in a complex instance through bonds.\n")
       .def(
           py::init<
             std::shared_ptr<ComponentType>,
             const std::string&,
             const int
           >(),
-          py::arg("component_type"),
+          py::arg("component_type").none(),
           py::arg("state") = "STATE_UNSET",
           py::arg("bond") = BOND_UNBOUND
       )
@@ -121,9 +121,9 @@ py::class_<Component> define_pybinding_Component(py::module& m) {
       .def("__eq__", &Component::__eq__, py::arg("other"))
       .def("to_bngl_str", &Component::to_bngl_str, "Creates a string that corresponds to this component's BNGL representation.")
       .def("dump", &Component::dump)
-      .def_property("component_type", &Component::get_component_type, &Component::set_component_type, "Reference to a component type.")
-      .def_property("state", &Component::get_state, &Component::set_state, "Specific state value of this component instance.")
-      .def_property("bond", &Component::get_bond, &Component::set_bond, "Specific bond for this component instance.\nIt is either a numberical value such as in A(c!1),\nor one of special values BOND_UNBOUND in A(c), \nBOND_BOUND in A(c!+) or BOND_ANY in A(c!?).\n   \n")
+      .def_prop_rw("component_type", &Component::get_component_type, &Component::set_component_type, "Reference to a component type.")
+      .def_prop_rw("state", &Component::get_state, &Component::set_state, "Specific state value of this component instance.")
+      .def_prop_rw("bond", &Component::get_bond, &Component::set_bond, "Specific bond for this component instance.\nIt is either a numberical value such as in A(c!1),\nor one of special values BOND_UNBOUND in A(c), \nBOND_BOUND in A(c!+) or BOND_ANY in A(c!?).\n   \n")
     ;
 }
 

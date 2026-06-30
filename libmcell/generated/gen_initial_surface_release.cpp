@@ -102,15 +102,15 @@ std::string GenInitialSurfaceRelease::to_str(const bool all_details, const std::
   return ss.str();
 }
 
-py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::module& m) {
-  return py::class_<InitialSurfaceRelease, std::shared_ptr<InitialSurfaceRelease>>(m, "InitialSurfaceRelease", "Defines molecules to be released onto a SurfaceRegion right when simulation starts")
+void define_pybinding_InitialSurfaceRelease(py::module_& m) {
+  py::class_<InitialSurfaceRelease>(m, "InitialSurfaceRelease", "Defines molecules to be released onto a SurfaceRegion right when simulation starts")
       .def(
           py::init<
             std::shared_ptr<Complex>,
             const int,
             const double
           >(),
-          py::arg("complex"),
+          py::arg("complex").none(),
           py::arg("number_to_release") = INT_UNSET,
           py::arg("density") = FLT_UNSET
       )
@@ -120,9 +120,9 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def("__str__", &InitialSurfaceRelease::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &InitialSurfaceRelease::__eq__, py::arg("other"))
       .def("dump", &InitialSurfaceRelease::dump)
-      .def_property("complex", &InitialSurfaceRelease::get_complex, &InitialSurfaceRelease::set_complex, "Defines the species of the molecule that will be released.\n")
-      .def_property("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release, "Number of molecules to be released onto a region,\nonly one of number_to_release and density can be set.\n")
-      .def_property("density", &InitialSurfaceRelease::get_density, &InitialSurfaceRelease::set_density, "Density of molecules to be released onto a region,\nonly one of number_to_release and density can be set.\n")
+      .def_prop_rw("complex", &InitialSurfaceRelease::get_complex, &InitialSurfaceRelease::set_complex, "Defines the species of the molecule that will be released.\n")
+      .def_prop_rw("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release, "Number of molecules to be released onto a region,\nonly one of number_to_release and density can be set.\n")
+      .def_prop_rw("density", &InitialSurfaceRelease::get_density, &InitialSurfaceRelease::set_density, "Density of molecules to be released onto a region,\nonly one of number_to_release and density can be set.\n")
     ;
 }
 

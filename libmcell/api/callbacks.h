@@ -23,7 +23,7 @@
 #undef HAVE_UNISTD_H
 #undef HAVE_SYS_TIME_H
 #endif
-#include "pybind11/include/pybind11/pybind11.h"
+#include <nanobind/nanobind.h>
 
 #include "api/api_common.h"
 #include "defines.h"
@@ -36,10 +36,14 @@ class Model;
 class MolWallHitInfo;
 class ReactionInfo;
 
-typedef std::function<void(std::shared_ptr<API::MolWallHitInfo>, pybind11::object)>
+typedef std::function<void(std::shared_ptr<API::MolWallHitInfo>, py::object)>
   mol_wall_hit_callback_function_t;
 
-typedef std::function<bool(std::shared_ptr<API::ReactionInfo>, pybind11::object)>
+// Return type is py::object (not bool) because nanobind's std::function caster
+// strictly casts the return value, and None (a callback with no `return`) cannot
+// be cast to bool — it would throw cast_error. do_rxn_callback interprets the
+// returned object's truthiness instead (None/False/no-return => don't cancel).
+typedef std::function<py::object(std::shared_ptr<API::ReactionInfo>, py::object)>
   rxn_callback_function_t;
 
 

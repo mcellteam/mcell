@@ -108,7 +108,7 @@ public:
 }; // GenSubsystem
 
 class Subsystem;
-py::class_<Subsystem> define_pybinding_Subsystem(py::module& m);
+void define_pybinding_Subsystem(py::module_& m);
 } // namespace API
 } // namespace MCell
 

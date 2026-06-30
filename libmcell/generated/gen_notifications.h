@@ -157,7 +157,7 @@ public:
 }; // GenNotifications
 
 class Notifications;
-py::class_<Notifications> define_pybinding_Notifications(py::module& m);
+void define_pybinding_Notifications(py::module_& m);
 } // namespace API
 } // namespace MCell
 

@@ -177,8 +177,10 @@ bool Callbacks::do_rxn_callback(std::shared_ptr<ReactionInfo> info) {
   // acquire GIL before calling Python code
   py::gil_scoped_acquire acquire;
 
-  // call the actual callback
-  bool cancel_reaction = specific_callback.callback_function(info, specific_callback.context);
+  // call the actual callback; interpret the returned object's truthiness
+  // (Python convention: return True to cancel; None/False/no-return => proceed).
+  py::object res = specific_callback.callback_function(info, specific_callback.context);
+  bool cancel_reaction = (res.ptr() != nullptr) && (PyObject_IsTrue(res.ptr()) == 1);
   return cancel_reaction;
 }
 

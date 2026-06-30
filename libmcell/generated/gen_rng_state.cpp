@@ -120,8 +120,8 @@ std::string GenRngState::to_str(const bool all_details, const std::string ind) c
   return ss.str();
 }
 
-py::class_<RngState> define_pybinding_RngState(py::module& m) {
-  return py::class_<RngState, std::shared_ptr<RngState>>(m, "RngState", "Internal checkpointing structure holding state of the random number generator.")
+void define_pybinding_RngState(py::module_& m) {
+  py::class_<RngState>(m, "RngState", "Internal checkpointing structure holding state of the random number generator.")
       .def(
           py::init<
             const uint64_t,
@@ -146,13 +146,13 @@ py::class_<RngState> define_pybinding_RngState(py::module& m) {
       .def("__str__", &RngState::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &RngState::__eq__, py::arg("other"))
       .def("dump", &RngState::dump)
-      .def_property("randcnt", &RngState::get_randcnt, &RngState::set_randcnt)
-      .def_property("aa", &RngState::get_aa, &RngState::set_aa)
-      .def_property("bb", &RngState::get_bb, &RngState::set_bb)
-      .def_property("cc", &RngState::get_cc, &RngState::set_cc)
-      .def_property("randslr", &RngState::get_randslr, &RngState::set_randslr, py::return_value_policy::reference, "Must contain RNG_SIZE items.")
-      .def_property("mm", &RngState::get_mm, &RngState::set_mm, py::return_value_policy::reference, "Must contain RNG_SIZE items.")
-      .def_property("rngblocks", &RngState::get_rngblocks, &RngState::set_rngblocks, "Must contain RNG_SIZE items.")
+      .def_prop_rw("randcnt", &RngState::get_randcnt, &RngState::set_randcnt)
+      .def_prop_rw("aa", &RngState::get_aa, &RngState::set_aa)
+      .def_prop_rw("bb", &RngState::get_bb, &RngState::set_bb)
+      .def_prop_rw("cc", &RngState::get_cc, &RngState::set_cc)
+      .def_prop_rw("randslr", &RngState::get_randslr, &RngState::set_randslr, py::rv_policy::reference, "Must contain RNG_SIZE items.")
+      .def_prop_rw("mm", &RngState::get_mm, &RngState::set_mm, py::rv_policy::reference, "Must contain RNG_SIZE items.")
+      .def_prop_rw("rngblocks", &RngState::get_rngblocks, &RngState::set_rngblocks, "Must contain RNG_SIZE items.")
     ;
 }
 

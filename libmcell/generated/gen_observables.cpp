@@ -60,8 +60,8 @@ std::string GenObservables::to_str(const bool all_details, const std::string ind
   return ss.str();
 }
 
-py::class_<Observables> define_pybinding_Observables(py::module& m) {
-  return py::class_<Observables, std::shared_ptr<Observables>>(m, "Observables", "Container used to hold observables-related model data. \nObservables are the measured values of the system. \nThis class also includes information on visualization of simulation.\n")
+void define_pybinding_Observables(py::module_& m) {
+  py::class_<Observables>(m, "Observables", "Container used to hold observables-related model data. \nObservables are the measured values of the system. \nThis class also includes information on visualization of simulation.\n")
       .def(
           py::init<
             const std::vector<std::shared_ptr<VizOutput>>,
@@ -74,13 +74,13 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       .def("__deepcopy__", &Observables::deepcopy_observables, py::arg("memo"))
       .def("__str__", &Observables::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Observables::__eq__, py::arg("other"))
-      .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"), "Adds a reference to the viz_output object to the list of visualization output specifications.\n- viz_output\n")
-      .def("add_count", &Observables::add_count, py::arg("count"), "Adds a reference to the count object to the list of count specifications.\n- count\n")
+      .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output").none(), "Adds a reference to the viz_output object to the list of visualization output specifications.\n- viz_output\n")
+      .def("add_count", &Observables::add_count, py::arg("count").none(), "Adds a reference to the count object to the list of count specifications.\n- count\n")
       .def("find_count", &Observables::find_count, py::arg("name"), "Finds a count object by its name, returns None if no such count is present.\n- name\n")
       .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("file_name"), py::arg("observables_path_or_file") = STR_UNSET, py::arg("parameter_overrides") = std::map<std::string, double>(), py::arg("observables_output_format") = CountOutputFormat::AUTOMATIC_FROM_EXTENSION, "Loads section observables from a BNGL file and creates Count objects according to it.\nAll elementary molecule types used in the seed species section must be defined in subsystem.\n\n- file_name: Path to the BNGL file.\n\n- observables_path_or_file: Directory prefix or file name where observable values will be stored.\nIf a directory such as './react_data/seed_' + str(SEED).zfill(5) + '/' or an empty \nstring/unset is used, each observable gets its own file and the output file format for created Count \nobjects is CountOutputFormat.DAT.\nWhen not set, this path is used: './react_data/seed_' + str(model.config.seed).zfill(5) + '/'.\nIf a file has a .gdat extension such as \n'./react_data/seed_' + str(SEED).zfill(5) + '/counts.gdat', all observable are stored in this \nfile and the output file format for created Count objects is CountOutputFormat.GDAT.\nMust not be empty when observables_output_format is explicitly set to CountOutputFormat.GDAT.\n\n\n- parameter_overrides: For each key k in the parameter_overrides, if it is defined in the BNGL's parameters section,\nits value is ignored and instead value parameter_overrides[k] is used.\n\n\n- observables_output_format: Selection of output format. Default setting uses automatic detection\nbased on contents of the 'observables_path_or_file' attribute.\n             \n\n\n")
       .def("dump", &Observables::dump)
-      .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs, py::return_value_policy::reference, "List of visualization outputs to be included in the model.\nThere is usually just one VizOutput object.   \n")
-      .def_property("counts", &Observables::get_counts, &Observables::set_counts, py::return_value_policy::reference, "List of counts to be included in the model.\n")
+      .def_prop_rw("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs, py::rv_policy::reference, "List of visualization outputs to be included in the model.\nThere is usually just one VizOutput object.   \n")
+      .def_prop_rw("counts", &Observables::get_counts, &Observables::set_counts, py::rv_policy::reference, "List of counts to be included in the model.\n")
     ;
 }
 
