@@ -144,6 +144,13 @@ target_compile_options(mcell_project_options INTERFACE
     # strict strings off is the MSVC counterpart of the -fpermissive we pass to
     # GCC/Clang for the same legacy code.
     $<$<CXX_COMPILER_ID:MSVC>:/Zc:strictStrings->
+    # Safeguard for MSVC's per-object section limit (error C1128). The ~74
+    # generated gen_*.cpp TUs are dense with nanobind template instantiations;
+    # the Release build currently stays under the limit (nanobind instantiates
+    # far less than pybind11 did), but Debug builds and future TU growth can
+    # overflow it. /bigobj lifts the limit and is harmless on the other TUs, so
+    # apply it build-wide (covers mcell4_so and the libmcell/mcell4 generated TUs).
+    $<$<CXX_COMPILER_ID:MSVC>:/bigobj>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>)
 
 # The bundled mcell/libs headers were exposed via a global -isystem; keep that
@@ -550,6 +557,13 @@ target_link_libraries(mcell
     PRIVATE
     MCell::mcell4 MCell::libmcell_dummy BNG::bng NFsimC::NFsimC NFsim::NFsim JsonCpp::JsonCpp Nauty::nauty ${VTK_LIBRARIES}
     $<$<NOT:$<PLATFORM_ID:Darwin>>:Python3::Python>
+    # nanobind has a static support lib (pybind11 was header-only). mcell4/libmcell
+    # TUs reference its symbols (e.g. nanobind::python_error::restore,
+    # builtin_exception's dtor via EH paths), and MSVC strictly resolves every
+    # external when linking an executable, so the exe must link nanobind-static too
+    # (listed last, after mcell4/libmcell, to satisfy link-order resolution).
+    # GNU ld / macOS dynamic_lookup did not require this, hence Windows-only.
+    $<$<PLATFORM_ID:Windows>:nanobind-static>
 )
 # On Darwin the executable does not link the (static) Python library; Python C-API
 # symbols are left undefined and resolved at runtime via dynamic_lookup. This is the
