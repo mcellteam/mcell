@@ -4,7 +4,7 @@ project(libmcell CXX)
 
 option(ENABLE_DOC "Enable build of documentation" OFF)
 
-find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
+find_package(Python3 ${MCELL_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 
 set(SOURCE_FILES

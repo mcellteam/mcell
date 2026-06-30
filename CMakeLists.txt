@@ -5,9 +5,9 @@ if ("${PYTHON_VERSION}" STREQUAL "")
   set(PYTHON_VERSION 3.13)
 endif()
 string(REPLACE "\." "" PYTHON_VERSION_NO_DOT ${PYTHON_VERSION})
-set(PYBIND11_PYTHON_VERSION ${PYTHON_VERSION})
+set(MCELL_PYTHON_VERSION ${PYTHON_VERSION})
 
-find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
+find_package(Python3 ${MCELL_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 include_directories(${Python3_INCLUDE_DIRS})
 
@@ -352,18 +352,11 @@ elseif (WIN32)
 endif()
 
 
-# linking on centos7 with 7.3.1 fails with undefined reference to `casc::detail::asc_NodeBase::~asc_NodeBase()'
-set(PYBIND11_LTO_CXX_FLAGS "")
-
 if (WIN32)
   # not compiling for now
   # add_subdirectory(${CMAKE_SOURCE_DIR}/libs/libunistd ${CMAKE_CURRENT_BINARY_DIR}/libs/libunistd)
   # include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/libs/libunistd/unistd)
 endif()
-
-# pybind11 subdir kept only so pybind11::python_link_helper still resolves for the
-# mcell executable on Darwin; the Python module now uses nanobind (below).
-add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
 
 # nanobind (vendored in libs/nanobind) — provides nanobind_add_module for mcell4_so.
 # nanobind-config requires the capital-P Python:: targets; pin them to the same
@@ -557,8 +550,12 @@ target_link_libraries(mcell
     PRIVATE
     MCell::mcell4 MCell::libmcell_dummy BNG::bng NFsimC::NFsimC NFsim::NFsim JsonCpp::JsonCpp Nauty::nauty ${VTK_LIBRARIES}
     $<$<NOT:$<PLATFORM_ID:Darwin>>:Python3::Python>
-    $<$<PLATFORM_ID:Darwin>:pybind11::python_link_helper>
 )
+# On Darwin the executable does not link the (static) Python library; Python C-API
+# symbols are left undefined and resolved at runtime via dynamic_lookup. This is the
+# exact behaviour the old pybind11::python_link_helper provided -- now spelled out
+# directly so libs/pybind11 is no longer needed by the executable.
+target_link_options(mcell PRIVATE $<$<PLATFORM_ID:Darwin>:LINKER:-undefined,dynamic_lookup>)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/data_model_to_pymcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)

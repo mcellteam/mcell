@@ -10,7 +10,8 @@
 ******************************************************************************/
 
 // NOTE: this file should be called config.h, however with MSVC, there is
-// an include collision and pybind11 includes it instead of some other file
+// an include collision and the Python binding library (historically pybind11)
+// includes it instead of some other file
 
 
 #ifndef LIBMCELL_API_CONFIG_H
