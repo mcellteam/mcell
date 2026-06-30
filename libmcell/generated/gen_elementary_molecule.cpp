@@ -10,7 +10,7 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "api/pybind11_stl_include.h"
+#include "api/nanobind_stl_include.h"
 #include "api/python_export_utils.h"
 #include "gen_elementary_molecule.h"
 #include "api/elementary_molecule.h"

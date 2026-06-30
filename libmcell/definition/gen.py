@@ -1609,7 +1609,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         write_generated_notice(f)
         
         f.write('#include <sstream>\n')
-        f.write('#include "api/pybind11_stl_include.h"\n')
+        f.write('#include "api/nanobind_stl_include.h"\n')
         f.write(INCLUDE_API_PYTHON_EXPORT_UTILS_H + '\n')
 
         # includes for our class
@@ -1975,7 +1975,7 @@ def generate_vector_bindings(data_classes):
     # generate gen_bind_vector.cpp
     with open(os.path.join(TARGET_DIRECTORY, GEN_VECTORS_BIND_CPP), 'w') as f:
         f.write(COPYRIGHT + '\n')
-        f.write('#include "api/pybind11_stl_include.h"\n')   # nanobind stl casters + bind_vector
+        f.write('#include "api/nanobind_stl_include.h"\n')   # nanobind stl casters + bind_vector
         f.write('#include "generated/gen_vectors_make_opaque.h"\n\n')  # NB_MAKE_OPAQUE specializations
 
         f.write('namespace py = nanobind;\n\n')

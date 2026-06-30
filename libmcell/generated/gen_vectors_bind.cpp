@@ -10,7 +10,7 @@
 ******************************************************************************/
 
 
-#include "api/pybind11_stl_include.h"
+#include "api/nanobind_stl_include.h"
 #include "generated/gen_vectors_make_opaque.h"
 
 namespace py = nanobind;

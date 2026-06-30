@@ -12,8 +12,8 @@
 // Windows build needs a fix otherwise this compilation error occurs:
 // msys/mingw64/include/c++/10.2.0/cmath:1121:11: error: 'hypot' has not been declared in '::'
 
-#ifndef API_PYBIND_STL_INCLUDE
-#define API_PYBIND_STL_INCLUDE
+#ifndef API_NANOBIND_STL_INCLUDE
+#define API_NANOBIND_STL_INCLUDE
 
 #ifdef _WIN64
 // fix for _hypot compilation issue

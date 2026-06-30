@@ -65,7 +65,7 @@ typedef std::invalid_argument ValueError; // using naming from Python
 // The associated value is a string indicating what precisely went wrong.
 typedef std::logic_error RuntimeError; // e.g. not defined?
 
-// forward declarations for PYBIND11_MAKE_OPAQUE
+// forward declarations for NB_MAKE_OPAQUE
 class Component;
 }
 }

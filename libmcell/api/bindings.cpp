@@ -71,7 +71,7 @@
 #error "overload_cast requires at least C++14"
 #endif
 
-#include "pybind11_stl_include.h"
+#include "nanobind_stl_include.h"
 
 namespace MCell {
 namespace API {
