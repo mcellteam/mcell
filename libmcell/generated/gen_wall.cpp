@@ -143,6 +143,7 @@ py::class_<Wall> define_pybinding_Wall(py::module& m) {
       .def("__deepcopy__", &Wall::deepcopy_wall, py::arg("memo"))
       .def("__str__", &Wall::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Wall::__eq__, py::arg("other"))
+      .def("__hash__", [](const Wall& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &Wall::dump)
       .def_property("geometry_object", &Wall::get_geometry_object, &Wall::set_geometry_object, "Object to which this wall belongs.")
       .def_property("wall_index", &Wall::get_wall_index, &Wall::set_wall_index, "Index of this wall in the object to which this wall belongs.")

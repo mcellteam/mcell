@@ -114,6 +114,7 @@ py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module&
       .def("__deepcopy__", &MoleculeReleaseInfo::deepcopy_molecule_release_info, py::arg("memo"))
       .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &MoleculeReleaseInfo::__eq__, py::arg("other"))
+      .def("__hash__", [](const MoleculeReleaseInfo& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &MoleculeReleaseInfo::dump)
       .def_property("complex", &MoleculeReleaseInfo::get_complex, &MoleculeReleaseInfo::set_complex, "Complex instance defining the molecule that will be released.\nOrientation of the complex instance is used to define orientation of the released molecule,\nwhen Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and\nsurface molecules are released with Orientation.UP.\nCompartment must not be set because this specific release definition states the location.  \n")
       .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location, py::return_value_policy::reference, "3D position where the molecule will be released. \nIf a molecule has a 2D diffusion constant, it will be\nplaced on the surface closest to the coordinate given. \nArgument must have exactly three floating point values [x, y, z].\n  \n")

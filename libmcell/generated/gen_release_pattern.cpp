@@ -108,6 +108,7 @@ py::class_<ReleasePattern> define_pybinding_ReleasePattern(py::module& m) {
       .def("__deepcopy__", &ReleasePattern::deepcopy_release_pattern, py::arg("memo"))
       .def("__str__", &ReleasePattern::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleasePattern::__eq__, py::arg("other"))
+      .def("__hash__", [](const ReleasePattern& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &ReleasePattern::dump)
       .def_property("name", &ReleasePattern::get_name, &ReleasePattern::set_name, "Name of the release pattern.")
       .def_property("release_interval", &ReleasePattern::get_release_interval, &ReleasePattern::set_release_interval, "During a train of releases, release molecules after every t seconds. \nDefault is to release only once.\n")

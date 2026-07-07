@@ -141,6 +141,7 @@ py::class_<ReactionInfo> define_pybinding_ReactionInfo(py::module& m) {
       .def("__deepcopy__", &ReactionInfo::deepcopy_reaction_info, py::arg("memo"))
       .def("__str__", &ReactionInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionInfo::__eq__, py::arg("other"))
+      .def("__hash__", [](const ReactionInfo& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &ReactionInfo::dump)
       .def_property("type", &ReactionInfo::get_type, &ReactionInfo::set_type, "Specifies whether the reaction is unimolecular or bimolecular and\nalso provides information on reactant types. \n")
       .def_property("reactant_ids", &ReactionInfo::get_reactant_ids, &ReactionInfo::set_reactant_ids, py::return_value_policy::reference, "IDs of the reacting molecules, contains 1 ID for a unimolecular or a molecule+surface class reaction, \n2 IDs for a bimolecular reaction.\nFor a bimolecular reaction, the first ID is always the molecule that diffused and the second one \nis the molecule that was hit.\nIDs can be used to obtain the location of the molecules. The position of the first molecule obtained through \nmodel.get_molecule() is the position of the diffusing molecule before the collision.\nAll the reactants are removed after return from this callback, unless they are kept by the reaction such as A in A + B -> A + C.  \n")

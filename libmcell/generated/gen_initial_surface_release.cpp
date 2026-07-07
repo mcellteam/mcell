@@ -119,6 +119,7 @@ py::class_<InitialSurfaceRelease> define_pybinding_InitialSurfaceRelease(py::mod
       .def("__deepcopy__", &InitialSurfaceRelease::deepcopy_initial_surface_release, py::arg("memo"))
       .def("__str__", &InitialSurfaceRelease::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &InitialSurfaceRelease::__eq__, py::arg("other"))
+      .def("__hash__", [](const InitialSurfaceRelease& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &InitialSurfaceRelease::dump)
       .def_property("complex", &InitialSurfaceRelease::get_complex, &InitialSurfaceRelease::set_complex, "Defines the species of the molecule that will be released.\n")
       .def_property("number_to_release", &InitialSurfaceRelease::get_number_to_release, &InitialSurfaceRelease::set_number_to_release, "Number of molecules to be released onto a region,\nonly one of number_to_release and density can be set.\n")

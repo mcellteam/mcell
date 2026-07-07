@@ -139,6 +139,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       .def("__deepcopy__", &ReactionRule::deepcopy_reaction_rule, py::arg("memo"))
       .def("__str__", &ReactionRule::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ReactionRule::__eq__, py::arg("other"))
+      .def("__hash__", [](const ReactionRule& self) -> size_t { return (size_t)(const void*)&self; })
       .def("to_bngl_str", &ReactionRule::to_bngl_str, "Creates a string that corresponds to the reaction rule's BNGL representation, does not contain rates.")
       .def("dump", &ReactionRule::dump)
       .def_property("name", &ReactionRule::get_name, &ReactionRule::set_name, "Name of the reaction. If this is a reversible reaction, then it is the name of the \nreaction in forward direction.\n")

@@ -259,6 +259,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def("__deepcopy__", &ReleaseSite::deepcopy_release_site, py::arg("memo"))
       .def("__str__", &ReleaseSite::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ReleaseSite::__eq__, py::arg("other"))
+      .def("__hash__", [](const ReleaseSite& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name, "Name of the release site")
       .def_property("complex", &ReleaseSite::get_complex, &ReleaseSite::set_complex, "Defines the species of the molecule that will be released. Not used for the LIST shape. \nMust be set when molecule_list is empty and unset when molecule_list is not empty.\nOrientation of the complex instance is used to define orientation of the released molecule,\nwhen Orientation.DEFAULT is set, volume molecules are released with Orientation.NONE and\nsurface molecules are released with Orientation.UP.\nWhen compartment is specified and region is not set, this sets shape to Shape.COMPARTMENT and \nthe molecules are released into the compartment.\nWhen this is a release of volume molecules, and both compartment and region are set, \nthis sets shape to Shape.REGION_EXPR and the target region is the intersection \nof the region and the compartment.\n")

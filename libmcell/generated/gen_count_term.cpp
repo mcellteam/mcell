@@ -274,6 +274,7 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
       .def("__deepcopy__", &CountTerm::deepcopy_count_term, py::arg("memo"))
       .def("__str__", &CountTerm::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &CountTerm::__eq__, py::arg("other"))
+      .def("__hash__", [](const CountTerm& self) -> size_t { return (size_t)(const void*)&self; })
       .def("__add__", &CountTerm::__add__, py::arg("op2"), "Create a new CountTerm that represents addition of two count terms.\nUsually used through operator '+' such as in ct1 + ct2.  \n\n- op2\n")
       .def("__sub__", &CountTerm::__sub__, py::arg("op2"), "Create a new CountTerm that represents subtraction of two count terms.\nUsually used through operator '-' such as in ct1 - ct2.  \n\n- op2\n")
       .def("dump", &CountTerm::dump)

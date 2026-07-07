@@ -74,6 +74,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       .def("__deepcopy__", &Observables::deepcopy_observables, py::arg("memo"))
       .def("__str__", &Observables::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Observables::__eq__, py::arg("other"))
+      .def("__hash__", [](const Observables& self) -> size_t { return (size_t)(const void*)&self; })
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"), "Adds a reference to the viz_output object to the list of visualization output specifications.\n- viz_output\n")
       .def("add_count", &Observables::add_count, py::arg("count"), "Adds a reference to the count object to the list of count specifications.\n- count\n")
       .def("find_count", &Observables::find_count, py::arg("name"), "Finds a count object by its name, returns None if no such count is present.\n- name\n")

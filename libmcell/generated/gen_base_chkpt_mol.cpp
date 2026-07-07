@@ -155,6 +155,7 @@ py::class_<BaseChkptMol> define_pybinding_BaseChkptMol(py::module& m) {
       .def("__deepcopy__", &BaseChkptMol::deepcopy_base_chkpt_mol, py::arg("memo"))
       .def("__str__", &BaseChkptMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &BaseChkptMol::__eq__, py::arg("other"))
+      .def("__hash__", [](const BaseChkptMol& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &BaseChkptMol::dump)
       .def_property("id", &BaseChkptMol::get_id, &BaseChkptMol::set_id)
       .def_property("species", &BaseChkptMol::get_species, &BaseChkptMol::set_species)

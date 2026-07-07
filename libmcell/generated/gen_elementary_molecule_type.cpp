@@ -133,6 +133,7 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def("__deepcopy__", &ElementaryMoleculeType::deepcopy_elementary_molecule_type, py::arg("memo"))
       .def("__str__", &ElementaryMoleculeType::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ElementaryMoleculeType::__eq__, py::arg("other"))
+      .def("__hash__", [](const ElementaryMoleculeType& self) -> size_t { return (size_t)(const void*)&self; })
       .def("inst", &ElementaryMoleculeType::inst, py::arg("components") = std::vector<std::shared_ptr<Component>>(), py::arg("compartment_name") = STR_UNSET, "Create an elementary molecule based on this elementary molecule type.\n- components: Instances of components for the the created elementary molecule.\nNot all components need to be specified in case when the elementary \nmolecule is used in a pattern.\n \n\n\n- compartment_name: Optional specification of compartment name for the created elementary molecule. \n\n\n")
       .def("to_bngl_str", &ElementaryMoleculeType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")
       .def("dump", &ElementaryMoleculeType::dump)

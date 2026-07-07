@@ -140,6 +140,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def("__deepcopy__", &Count::deepcopy_count, py::arg("memo"))
       .def("__str__", &Count::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Count::__eq__, py::arg("other"))
+      .def("__hash__", [](const Count& self) -> size_t { return (size_t)(const void*)&self; })
       .def("get_current_value", &Count::get_current_value, "Returns the current value for this count. Can be used to count both molecules and reactions.\nReaction counting starts at the beginning of the simulation.\nThe model must be initialized with this Count present as one of the observables.\n")
       .def("dump", &Count::dump)
       .def_property("name", &Count::get_name, &Count::set_name, "Name of a count may be specified when one needs to search for them later. \nWhen the count is created when a BNGL file is loaded, its name is set, for instance\nwhen the following BNGL code is loaded:\n\nbegin observables\n   Molecules Acount A\nend observables\n\nthe name is set to Acount.\n")

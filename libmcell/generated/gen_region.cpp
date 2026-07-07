@@ -139,6 +139,7 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
       .def("__deepcopy__", &Region::deepcopy_region, py::arg("memo"))
       .def("__str__", &Region::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Region::__eq__, py::arg("other"))
+      .def("__hash__", [](const Region& self) -> size_t { return (size_t)(const void*)&self; })
       .def("__add__", &Region::__add__, py::arg("other"), "Computes union of two regions, use with Python operator '+'.\n- other\n")
       .def("__sub__", &Region::__sub__, py::arg("other"), "Computes difference of two regions, use with Python operator '-'.\n- other\n")
       .def("__mul__", &Region::__mul__, py::arg("other"), "Computes intersection of two regions, use with Python operator '*'.\n- other\n")

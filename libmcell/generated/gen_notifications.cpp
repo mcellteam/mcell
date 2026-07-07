@@ -116,6 +116,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
       .def("__deepcopy__", &Notifications::deepcopy_notifications, py::arg("memo"))
       .def("__str__", &Notifications::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Notifications::__eq__, py::arg("other"))
+      .def("__hash__", [](const Notifications& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &Notifications::dump)
       .def_property("bng_verbosity_level", &Notifications::get_bng_verbosity_level, &Notifications::set_bng_verbosity_level, "Sets verbosity level that enables printouts of extra information on BioNetGen \nspecies and rules created and used during simulation.\n")
       .def_property("rxn_and_species_report", &Notifications::get_rxn_and_species_report, &Notifications::set_rxn_and_species_report, "When set to True, simulation generates files rxn_report_SEED.txt, and \nspecies_report_SEED.txt that contain details on reaction classes and species \nthat were created based on reaction rules.   \n")

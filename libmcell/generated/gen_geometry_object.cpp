@@ -276,6 +276,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def("__deepcopy__", &GeometryObject::deepcopy_geometry_object, py::arg("memo"))
       .def("__str__", &GeometryObject::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &GeometryObject::__eq__, py::arg("other"))
+      .def("__hash__", [](const GeometryObject& self) -> size_t { return (size_t)(const void*)&self; })
       .def("translate", &GeometryObject::translate, py::arg("move"), "Move object by a specified vector. \nCannot be called after model was initialized.\n\n- move: 3D vector [x, y, z] that will be added to each vertex of this object.\n\n")
       .def("dump", &GeometryObject::dump)
       .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name, "Name of the object. Also represents BNGL compartment name if 'is_bngl_compartment' is True.\n")

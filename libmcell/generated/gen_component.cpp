@@ -119,6 +119,7 @@ py::class_<Component> define_pybinding_Component(py::module& m) {
       .def("__deepcopy__", &Component::deepcopy_component, py::arg("memo"))
       .def("__str__", &Component::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Component::__eq__, py::arg("other"))
+      .def("__hash__", [](const Component& self) -> size_t { return (size_t)(const void*)&self; })
       .def("to_bngl_str", &Component::to_bngl_str, "Creates a string that corresponds to this component's BNGL representation.")
       .def("dump", &Component::dump)
       .def_property("component_type", &Component::get_component_type, &Component::set_component_type, "Reference to a component type.")

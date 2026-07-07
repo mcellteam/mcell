@@ -1502,6 +1502,11 @@ def write_pybind11_bindings(f, class_name, class_def):
         # keeping the default __repr__ implementation for better error messages 
         #f.write('      .def("__repr__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         f.write('      .def("__eq__", &' + class_name + '::__eq__, py::arg("other"))\n')
+        # pybind11 >= 2.6 sets __hash__ to None whenever __eq__ is defined (mirroring
+        # CPython semantics), which makes API objects unhashable. Older pybind11 (2.2)
+        # kept the default identity-based hash. Restore that behavior explicitly so
+        # API objects can still be used as dict keys / set members.
+        f.write('      .def("__hash__", [](const ' + class_name + '& self) -> size_t { return (size_t)(const void*)&self; })\n')
     else:
         f.write('  m.def_submodule("' + class_name + '")\n')
         

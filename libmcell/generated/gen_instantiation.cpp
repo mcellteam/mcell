@@ -85,6 +85,7 @@ py::class_<Instantiation> define_pybinding_Instantiation(py::module& m) {
       .def("__deepcopy__", &Instantiation::deepcopy_instantiation, py::arg("memo"))
       .def("__str__", &Instantiation::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Instantiation::__eq__, py::arg("other"))
+      .def("__hash__", [](const Instantiation& self) -> size_t { return (size_t)(const void*)&self; })
       .def("add_release_site", &Instantiation::add_release_site, py::arg("s"), "Adds a reference to the release site s to the list of release sites.\n- s\n")
       .def("find_release_site", &Instantiation::find_release_site, py::arg("name"), "Finds a release site by its name, returns None if no such release site is present.\n- name\n")
       .def("add_geometry_object", &Instantiation::add_geometry_object, py::arg("o"), "Adds a reference to the geometry object o to the list of geometry objects.\n- o\n")

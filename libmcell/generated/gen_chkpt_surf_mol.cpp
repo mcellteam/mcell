@@ -234,6 +234,7 @@ py::class_<ChkptSurfMol> define_pybinding_ChkptSurfMol(py::module& m) {
       .def("__deepcopy__", &ChkptSurfMol::deepcopy_chkpt_surf_mol, py::arg("memo"))
       .def("__str__", &ChkptSurfMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ChkptSurfMol::__eq__, py::arg("other"))
+      .def("__hash__", [](const ChkptSurfMol& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &ChkptSurfMol::dump)
       .def_property("pos", &ChkptSurfMol::get_pos, &ChkptSurfMol::set_pos)
       .def_property("orientation", &ChkptSurfMol::get_orientation, &ChkptSurfMol::set_orientation)

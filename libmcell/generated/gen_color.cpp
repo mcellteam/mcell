@@ -108,6 +108,7 @@ py::class_<Color> define_pybinding_Color(py::module& m) {
       .def("__deepcopy__", &Color::deepcopy_color, py::arg("memo"))
       .def("__str__", &Color::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Color::__eq__, py::arg("other"))
+      .def("__hash__", [](const Color& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &Color::dump)
       .def_property("red", &Color::get_red, &Color::set_red, "Red component in range 0-1.")
       .def_property("green", &Color::get_green, &Color::set_green, "Green component in range 0-1.")

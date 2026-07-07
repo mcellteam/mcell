@@ -145,6 +145,7 @@ py::class_<RngState> define_pybinding_RngState(py::module& m) {
       .def("__deepcopy__", &RngState::deepcopy_rng_state, py::arg("memo"))
       .def("__str__", &RngState::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &RngState::__eq__, py::arg("other"))
+      .def("__hash__", [](const RngState& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &RngState::dump)
       .def_property("randcnt", &RngState::get_randcnt, &RngState::set_randcnt)
       .def_property("aa", &RngState::get_aa, &RngState::set_aa)

@@ -61,6 +61,7 @@ py::class_<Introspection> define_pybinding_Introspection(py::module& m) {
       .def("__deepcopy__", &Introspection::deepcopy_introspection, py::arg("memo"))
       .def("__str__", &Introspection::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Introspection::__eq__, py::arg("other"))
+      .def("__hash__", [](const Introspection& self) -> size_t { return (size_t)(const void*)&self; })
       .def("get_molecule_ids", &Introspection::get_molecule_ids, py::arg("pattern") = nullptr, "Returns a list of ids of molecules.\nIf the arguments pattern is not set, the list of all molecule ids is returned.  \nIf the argument pattern is set, the list of all molecule ids whose species match \nthe pattern is returned. \n\n- pattern: BNGL pattern to select molecules based on their species, might use compartments.\n\n")
       .def("get_molecule", &Introspection::get_molecule, py::arg("id"), "Returns a information on a molecule from the simulated environment, \nNone if the molecule does not exist.\n\n- id: Unique id of the molecule to be retrieved.\n\n")
       .def("get_species_name", &Introspection::get_species_name, py::arg("species_id"), "Returns a string representing canonical species name in the BNGL format.\n\n- species_id: Id of the species.\n\n")

@@ -94,6 +94,7 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       .def("__deepcopy__", &Subsystem::deepcopy_subsystem, py::arg("memo"))
       .def("__str__", &Subsystem::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Subsystem::__eq__, py::arg("other"))
+      .def("__hash__", [](const Subsystem& self) -> size_t { return (size_t)(const void*)&self; })
       .def("add_species", &Subsystem::add_species, py::arg("s"), "Add a reference to a Species object to the species list.\n- s\n")
       .def("find_species", &Subsystem::find_species, py::arg("name"), "Find a Species object using name in the species list. \nReturns None if no such species is found.\n\n- name\n")
       .def("add_reaction_rule", &Subsystem::add_reaction_rule, py::arg("r"), "Add a reference to a ReactionRule object to the reaction_rules list.\n- r\n")

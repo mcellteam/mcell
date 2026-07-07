@@ -133,6 +133,7 @@ py::class_<WallWallHitInfo> define_pybinding_WallWallHitInfo(py::module& m) {
       .def("__deepcopy__", &WallWallHitInfo::deepcopy_wall_wall_hit_info, py::arg("memo"))
       .def("__str__", &WallWallHitInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &WallWallHitInfo::__eq__, py::arg("other"))
+      .def("__hash__", [](const WallWallHitInfo& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &WallWallHitInfo::dump)
       .def_property("wall1", &WallWallHitInfo::get_wall1, &WallWallHitInfo::set_wall1, "First colliding wall.")
       .def_property("wall2", &WallWallHitInfo::get_wall2, &WallWallHitInfo::set_wall2, "Second colliding wall.")

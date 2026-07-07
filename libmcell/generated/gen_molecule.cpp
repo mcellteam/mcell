@@ -140,6 +140,7 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       .def("__deepcopy__", &Molecule::deepcopy_molecule, py::arg("memo"))
       .def("__str__", &Molecule::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Molecule::__eq__, py::arg("other"))
+      .def("__hash__", [](const Molecule& self) -> size_t { return (size_t)(const void*)&self; })
       .def("remove", &Molecule::remove, "Removes this molecule from simulation. Any subsequent modifications\nof this molecule won't have any effect.\n")
       .def("dump", &Molecule::dump)
       .def_property("id", &Molecule::get_id, &Molecule::set_id, "Unique id of this molecule. MCell assigns this unique id to each created \nmolecule. All reactions change ID of molecules even in reactions such as \nA@CP -> A@EC.\n")

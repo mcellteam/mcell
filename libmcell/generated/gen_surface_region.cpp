@@ -237,6 +237,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       .def("__deepcopy__", &SurfaceRegion::deepcopy_surface_region, py::arg("memo"))
       .def("__str__", &SurfaceRegion::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
+      .def("__hash__", [](const SurfaceRegion& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &SurfaceRegion::dump)
       .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name, "Name of this region.")
       .def_property("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices, py::return_value_policy::reference, "Surface region must be a part of a GeometryObject, items in this list are indices to \nits wall_list array.\n")

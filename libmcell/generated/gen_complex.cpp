@@ -105,6 +105,7 @@ py::class_<Complex> define_pybinding_Complex(py::module& m) {
       .def("__deepcopy__", &Complex::deepcopy_complex, py::arg("memo"))
       .def("__str__", &Complex::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Complex::__eq__, py::arg("other"))
+      .def("__hash__", [](const Complex& self) -> size_t { return (size_t)(const void*)&self; })
       .def("to_bngl_str", &Complex::to_bngl_str, "Creates a string that corresponds to its BNGL representation including compartments.")
       .def("as_species", &Complex::as_species, "Returns a Species object based on this Complex. All species-specific \nattributes are set to their default values and 'name' is set to value returned by \n'to_bngl_str()'.\n")
       .def("dump", &Complex::dump)

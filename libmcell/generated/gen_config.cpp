@@ -276,6 +276,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def("__deepcopy__", &Config::deepcopy_config, py::arg("memo"))
       .def("__str__", &Config::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Config::__eq__, py::arg("other"))
+      .def("__hash__", [](const Config& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &Config::dump)
       .def_property("seed", &Config::get_seed, &Config::set_seed, "Random generator seed value.")
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step, "Set the simulation time step to time_step seconds. 1e-6 (1us) is a common value. \nOne can set the time steps taken by individual molecules, but this \ntime step is still used as a default.\n")

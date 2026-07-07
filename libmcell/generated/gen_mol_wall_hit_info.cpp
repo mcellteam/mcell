@@ -110,6 +110,7 @@ py::class_<MolWallHitInfo> define_pybinding_MolWallHitInfo(py::module& m) {
       .def("__deepcopy__", &MolWallHitInfo::deepcopy_mol_wall_hit_info, py::arg("memo"))
       .def("__str__", &MolWallHitInfo::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &MolWallHitInfo::__eq__, py::arg("other"))
+      .def("__hash__", [](const MolWallHitInfo& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &MolWallHitInfo::dump)
       .def_property("molecule_id", &MolWallHitInfo::get_molecule_id, &MolWallHitInfo::set_molecule_id, "Id of molecule that hit the wall.")
       .def_property("geometry_object", &MolWallHitInfo::get_geometry_object, &MolWallHitInfo::set_geometry_object, "Object that was hit.")

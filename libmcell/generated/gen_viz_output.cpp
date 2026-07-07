@@ -104,6 +104,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def("__deepcopy__", &VizOutput::deepcopy_viz_output, py::arg("memo"))
       .def("__str__", &VizOutput::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &VizOutput::__eq__, py::arg("other"))
+      .def("__hash__", [](const VizOutput& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &VizOutput::dump)
       .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix, "Prefix for the viz output files.\nWhen not set, the default prefix value is computed from the simulation seed\nwhen the model is initialized to: \n'./viz_data/seed_' + str(seed).zfill(5) + '/Scene'.\n")
       .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list, py::return_value_policy::reference, "Specifies a list of species to be visualized, when empty, all_species will be generated.")

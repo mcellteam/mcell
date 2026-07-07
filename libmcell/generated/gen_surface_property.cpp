@@ -116,6 +116,7 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
       .def("__deepcopy__", &SurfaceProperty::deepcopy_surface_property, py::arg("memo"))
       .def("__str__", &SurfaceProperty::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &SurfaceProperty::__eq__, py::arg("other"))
+      .def("__hash__", [](const SurfaceProperty& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &SurfaceProperty::dump)
       .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type, "Must be set. See SurfacePropertyType for options.\n")
       .def_property("affected_complex_pattern", &SurfaceProperty::get_affected_complex_pattern, &SurfaceProperty::set_affected_complex_pattern, "A complex pattern with optional orientation must be set.\nDefault orientation means that the pattern matches any orientation.\nFor concentration or flux clamp the orientation specifies on which side  \nwill be the concentration held (UP is front or outside, DOWN is back or \ninside, and DEFAULT, ANY or NONE is on both sides).\nThe complex pattern must not use compartments.\n")

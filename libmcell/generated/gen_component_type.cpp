@@ -88,6 +88,7 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
       .def("__deepcopy__", &ComponentType::deepcopy_component_type, py::arg("memo"))
       .def("__str__", &ComponentType::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ComponentType::__eq__, py::arg("other"))
+      .def("__hash__", [](const ComponentType& self) -> size_t { return (size_t)(const void*)&self; })
       .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET", py::arg("bond") = BOND_UNBOUND, "Instantiate a component from this component type.\n- state: Selected state, must be from the list of the allowed states.\n\n- bond: Bond information for the created component instance.\n\n")
       .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET_INT, py::arg("bond") = BOND_UNBOUND, "Instantiate a component from this component type.\n- state: Selected state, must be from the list of the allowed, converted to string.\n\n- bond: Bond information for the created component instance.\n\n")
       .def("to_bngl_str", &ComponentType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")

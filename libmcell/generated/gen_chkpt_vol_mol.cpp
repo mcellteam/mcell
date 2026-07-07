@@ -166,6 +166,7 @@ py::class_<ChkptVolMol> define_pybinding_ChkptVolMol(py::module& m) {
       .def("__deepcopy__", &ChkptVolMol::deepcopy_chkpt_vol_mol, py::arg("memo"))
       .def("__str__", &ChkptVolMol::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &ChkptVolMol::__eq__, py::arg("other"))
+      .def("__hash__", [](const ChkptVolMol& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &ChkptVolMol::dump)
       .def_property("pos", &ChkptVolMol::get_pos, &ChkptVolMol::set_pos)
     ;

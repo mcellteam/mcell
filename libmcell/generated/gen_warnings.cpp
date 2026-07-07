@@ -84,6 +84,7 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
       .def("__deepcopy__", &Warnings::deepcopy_warnings, py::arg("memo"))
       .def("__str__", &Warnings::to_str, py::arg("all_details") = false, py::arg("ind") = std::string(""))
       .def("__eq__", &Warnings::__eq__, py::arg("other"))
+      .def("__hash__", [](const Warnings& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &Warnings::dump)
       .def_property("high_reaction_probability", &Warnings::get_high_reaction_probability, &Warnings::set_high_reaction_probability, "Print a warning when a bimolecular reaction probability is over 0.5 but less or equal than 1.\nWarning when probability is greater than 1 is always printed.\nCannot be set to WarningLevel.ERROR.\n")
       .def_property("molecule_placement_failure", &Warnings::get_molecule_placement_failure, &Warnings::set_molecule_placement_failure, "Print a warning or end with an error when a release of a molecule fails.\n")
