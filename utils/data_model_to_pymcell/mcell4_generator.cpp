@@ -1331,39 +1331,48 @@ void MCell4Generator::generate_model(const bool print_failed_marker) {
 
   out << make_section_comment("initialization and execution");
 
+  // Guard the execution block so a 'spawn'-based multiprocessing child
+  // (which re-imports this module under __name__ == '__mp_main__') does not
+  // re-run the simulation. Direct execution ('__main__') and checkpoint
+  // resume (module name 'model') are unaffected. Needed for models that use
+  // the multiprocessing module from customization.py under the spawn start
+  // method (default on macOS and Windows).
+  out << "# do not re-run when re-imported by a multiprocessing 'spawn' child\n";
+  out << "if __name__ != '__mp_main__':\n\n";
+
   out <<
-      "if " << customization_module << " and '" << CUSTOM_INIT_AND_RUN << "' in dir(" << customization_module << "):\n" <<
-      IND4 << customization_module << "." << CUSTOM_INIT_AND_RUN << "(" << MODEL << ")\n" <<
-      "else:\n"
+      IND4 << "if " << customization_module << " and '" << CUSTOM_INIT_AND_RUN << "' in dir(" << customization_module << "):\n" <<
+      IND8 << customization_module << "." << CUSTOM_INIT_AND_RUN << "(" << MODEL << ")\n" <<
+      IND4 << "else:\n"
   ;
 
-  out << IND4;
+  out << IND8;
   gen_method_call(out, MODEL, NAME_INITIALIZE);
   out << "\n";
 
   if (!data.checkpoint_iterations.empty()) {
     out << make_section_comment("checkpoint iterations");
     for (int it: data.checkpoint_iterations) {
-      out << IND4;
+      out << IND8;
       gen_method_call(out, MODEL, NAME_SCHEDULE_CHECKPOINT, to_string(it));
     }
     out << "\n";
   }
 
-  out << IND4 << "if " << PARAM_DUMP << ":\n";
-  out << IND8;
+  out << IND8 << "if " << PARAM_DUMP << ":\n";
+  out << IND8 << IND4;
   gen_method_call(out, MODEL, NAME_DUMP_INTERNAL_STATE);
   out << "\n";
 
   // method export_data_model uses target directory from viz_outputs
-  out << IND4 << "if " << PARAM_EXPORT_DATA_MODEL << " and " << MODEL << "." << NAME_VIZ_OUTPUTS << ":\n";
-  out << IND8;
+  out << IND8 << "if " << PARAM_EXPORT_DATA_MODEL << " and " << MODEL << "." << NAME_VIZ_OUTPUTS << ":\n";
+  out << IND8 << IND4;
   gen_method_call(out, MODEL, NAME_EXPORT_DATA_MODEL);
   out << "\n";
 
-  out << IND4;
+  out << IND8;
   gen_method_call(out, MODEL, NAME_RUN_ITERATIONS, PARAM_ITERATIONS);
-  out << IND4;
+  out << IND8;
   gen_method_call(out, MODEL, NAME_END_SIMULATION);
 }
 
