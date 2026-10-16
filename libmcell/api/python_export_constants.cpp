@@ -52,24 +52,30 @@ std::string get_argparse_checkpoint_iteration() {
 
 std::string get_resume_from_checkpoint_code() {
 
+  // Guarded like the "initialization and execution" block of the generated
+  // model.py: a multiprocessing 'spawn' child re-imports model.py under
+  // __name__ == '__mp_main__' and must not resume the simulation from a
+  // checkpoint written by the parent.
   return
       "# resume simulation if a checkpoint was created\n"
-      "checkpoint_dir = m.run_utils.get_last_checkpoint_dir(" PARAM_SEED ")\n"
-      "if checkpoint_dir:\n"
-      "    # change sys.path so that the only the checkpointed files are loaded\n"
-      "    sys.path = m.run_utils.remove_cwd(sys.path)\n"
-      "    sys.path.append(checkpoint_dir)\n"
-      "    \n"
-      "    # prepare import of the 'model' module from the checkpoint\n"
-      "    model_spec = importlib.util.spec_from_file_location(\n"
-      "        'model', os.path.join(checkpoint_dir, 'model.py'))\n"
-      "    model_module = importlib.util.module_from_spec(model_spec)\n"
-      "    \n"
-      "    # run import, this also resumes simulation from the checkpoint\n"
-      "    model_spec.loader.exec_module(model_module)\n"
+      "# (not when re-imported by a multiprocessing 'spawn' child)\n"
+      "if __name__ != '__mp_main__':\n"
+      "    checkpoint_dir = m.run_utils.get_last_checkpoint_dir(" PARAM_SEED ")\n"
+      "    if checkpoint_dir:\n"
+      "        # change sys.path so that the only the checkpointed files are loaded\n"
+      "        sys.path = m.run_utils.remove_cwd(sys.path)\n"
+      "        sys.path.append(checkpoint_dir)\n"
+      "        \n"
+      "        # prepare import of the 'model' module from the checkpoint\n"
+      "        model_spec = importlib.util.spec_from_file_location(\n"
+      "            'model', os.path.join(checkpoint_dir, 'model.py'))\n"
+      "        model_module = importlib.util.module_from_spec(model_spec)\n"
+      "        \n"
+      "        # run import, this also resumes simulation from the checkpoint\n"
+      "        model_spec.loader.exec_module(model_module)\n"
       "\n"
-      "    # exit after simulation has finished successfully\n"
-      "    sys.exit(0)\n\n"
+      "        # exit after simulation has finished successfully\n"
+      "        sys.exit(0)\n\n"
  ;
 }
 
