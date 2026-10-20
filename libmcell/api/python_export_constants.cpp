@@ -56,14 +56,18 @@ std::string get_resume_from_checkpoint_code() {
   // model.py: a multiprocessing 'spawn' child re-imports model.py under
   // __name__ == '__mp_main__' and must not resume the simulation from a
   // checkpoint written by the parent.
+  // sys.path must stay a list: remove_cwd returns an mcell.VectorStr, and
+  // code running after the resume may need list methods, e.g. a
+  // multiprocessing 'spawn' start calls sys.path.copy().
   return
       "# resume simulation if a checkpoint was created\n"
       "# (not when re-imported by a multiprocessing 'spawn' child)\n"
       "if __name__ != '__mp_main__':\n"
       "    checkpoint_dir = m.run_utils.get_last_checkpoint_dir(" PARAM_SEED ")\n"
       "    if checkpoint_dir:\n"
-      "        # change sys.path so that the only the checkpointed files are loaded\n"
-      "        sys.path = m.run_utils.remove_cwd(sys.path)\n"
+      "        # change sys.path so that the only the checkpointed files are loaded,\n"
+      "        # sys.path must stay a list (remove_cwd returns an mcell.VectorStr)\n"
+      "        sys.path = list(m.run_utils.remove_cwd(sys.path))\n"
       "        sys.path.append(checkpoint_dir)\n"
       "        \n"
       "        # prepare import of the 'model' module from the checkpoint\n"
