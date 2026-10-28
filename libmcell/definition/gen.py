@@ -1526,7 +1526,9 @@ def write_pybind11_bindings(f, class_name, class_def):
                 f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name)
                 
                 if is_yaml_list_type(items[i][KEY_TYPE]):
-                    f.write(', py::return_value_policy::reference') 
+                    # the list is returned by reference so that it can be modified in place,
+                    # reference_internal keeps the owning object alive while the list is used
+                    f.write(', py::return_value_policy::reference_internal')
                 
                 if KEY_DOC in items[i]:
                     f.write(', ' + create_doc_str(items[i][KEY_DOC]))

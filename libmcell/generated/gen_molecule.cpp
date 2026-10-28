@@ -146,9 +146,9 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
       .def_property("id", &Molecule::get_id, &Molecule::set_id, "Unique id of this molecule. MCell assigns this unique id to each created \nmolecule. All reactions change ID of molecules even in reactions such as \nA@CP -> A@EC.\n")
       .def_property("type", &Molecule::get_type, &Molecule::set_type, "Type of this molecule, either volume or surface. \n")
       .def_property("species_id", &Molecule::get_species_id, &Molecule::set_species_id, "Species id of this molecule.\nThe species_id value is only temporary. Species ids are created and removed as needed\nautomatically and if this species is removed, this particular species_id value \nwon't be valid. This can happen when a following iteration is simulated.\n")
-      .def_property("pos3d", &Molecule::get_pos3d, &Molecule::set_pos3d, py::return_value_policy::reference, "Contains position of a molecule in 3D space.        \n")
+      .def_property("pos3d", &Molecule::get_pos3d, &Molecule::set_pos3d, py::return_value_policy::reference_internal, "Contains position of a molecule in 3D space.        \n")
       .def_property("orientation", &Molecule::get_orientation, &Molecule::set_orientation, "Contains orientation for surface molecule. Volume molecules \nhave always orientation set to Orientation.NONE.\n")
-      .def_property("pos2d", &Molecule::get_pos2d, &Molecule::set_pos2d, py::return_value_policy::reference, "Set only for surface molecules. Position on a wall in UV coordinates \nrelative to the triangle of the wall.\n        \n")
+      .def_property("pos2d", &Molecule::get_pos2d, &Molecule::set_pos2d, py::return_value_policy::reference_internal, "Set only for surface molecules. Position on a wall in UV coordinates \nrelative to the triangle of the wall.\n        \n")
       .def_property("geometry_object", &Molecule::get_geometry_object, &Molecule::set_geometry_object, "Set only for surface molecules.\nIs set to a reference to the geometry object on whose surface is the molecule located.\n")
       .def_property("wall_index", &Molecule::get_wall_index, &Molecule::set_wall_index, "Set only for surface molecules.\nIndex of wall belonging to the geometry_object where is the \nmolecule located. \n   \n")
     ;

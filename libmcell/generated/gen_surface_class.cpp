@@ -142,7 +142,7 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
       .def("__hash__", [](const SurfaceClass& self) -> size_t { return (size_t)(const void*)&self; })
       .def("dump", &SurfaceClass::dump)
       .def_property("name", &SurfaceClass::get_name, &SurfaceClass::set_name, "Name of the surface class.")
-      .def_property("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties, py::return_value_policy::reference, "A surface class can either have a list of properties or just one property.\nIn the usual case of having one property, one can set the attributes \ntype, affected_species, etc. inherited from SurfaceProperty directly.\n")
+      .def_property("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties, py::return_value_policy::reference_internal, "A surface class can either have a list of properties or just one property.\nIn the usual case of having one property, one can set the attributes \ntype, affected_species, etc. inherited from SurfaceProperty directly.\n")
     ;
 }
 
