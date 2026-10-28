@@ -241,9 +241,9 @@ void define_pybinding_SurfaceRegion(py::module_& m) {
       .def("__eq__", &SurfaceRegion::__eq__, py::arg("other"))
       .def("dump", &SurfaceRegion::dump)
       .def_prop_rw("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name, "Name of this region.")
-      .def_prop_rw("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices, py::rv_policy::reference, "Surface region must be a part of a GeometryObject, items in this list are indices to \nits wall_list array.\n")
+      .def_prop_rw("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices, py::rv_policy::reference_internal, "Surface region must be a part of a GeometryObject, items in this list are indices to \nits wall_list array.\n")
       .def_prop_rw("surface_class", &SurfaceRegion::get_surface_class, &SurfaceRegion::set_surface_class, "Optional surface class assigned to this surface region.\nIf not set, it is inherited from the parent geometry object's surface_class.\n")
-      .def_prop_rw("initial_surface_releases", &SurfaceRegion::get_initial_surface_releases, &SurfaceRegion::set_initial_surface_releases, py::rv_policy::reference, "Each item of this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
+      .def_prop_rw("initial_surface_releases", &SurfaceRegion::get_initial_surface_releases, &SurfaceRegion::set_initial_surface_releases, py::rv_policy::reference_internal, "Each item of this list defines either density or number of molecules to be released on this surface \nregions when simulation starts.\n")
       .def_prop_rw("initial_color", &SurfaceRegion::get_initial_color, &SurfaceRegion::set_initial_color, "Initial color for this specific surface region. If not set, color of the parent's GeometryObject is used.")
     ;
 }

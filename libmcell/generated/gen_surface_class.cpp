@@ -141,7 +141,7 @@ void define_pybinding_SurfaceClass(py::module_& m) {
       .def("__eq__", &SurfaceClass::__eq__, py::arg("other"))
       .def("dump", &SurfaceClass::dump)
       .def_prop_rw("name", &SurfaceClass::get_name, &SurfaceClass::set_name, "Name of the surface class.")
-      .def_prop_rw("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties, py::rv_policy::reference, "A surface class can either have a list of properties or just one property.\nIn the usual case of having one property, one can set the attributes \ntype, affected_species, etc. inherited from SurfaceProperty directly.\n")
+      .def_prop_rw("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties, py::rv_policy::reference_internal, "A surface class can either have a list of properties or just one property.\nIn the usual case of having one property, one can set the attributes \ntype, affected_species, etc. inherited from SurfaceProperty directly.\n")
     ;
 }
 

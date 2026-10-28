@@ -146,9 +146,9 @@ void define_pybinding_Wall(py::module_& m) {
       .def("dump", &Wall::dump)
       .def_prop_rw("geometry_object", &Wall::get_geometry_object, &Wall::set_geometry_object, "Object to which this wall belongs.")
       .def_prop_rw("wall_index", &Wall::get_wall_index, &Wall::set_wall_index, "Index of this wall in the object to which this wall belongs.")
-      .def_prop_rw("vertices", &Wall::get_vertices, &Wall::set_vertices, py::rv_policy::reference, "Vertices of the triangle that represents this wall.")
+      .def_prop_rw("vertices", &Wall::get_vertices, &Wall::set_vertices, py::rv_policy::reference_internal, "Vertices of the triangle that represents this wall.")
       .def_prop_rw("area", &Wall::get_area, &Wall::set_area, "Area of the wall in um^2.")
-      .def_prop_rw("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal, py::rv_policy::reference, "Normal of this wall with unit length of 1 um.\nThere is also a method Model.get_wall_unit_normal that allows to \nretrieve just the normal value without the need to prepare this \nwhole Wall object.  \n")
+      .def_prop_rw("unit_normal", &Wall::get_unit_normal, &Wall::set_unit_normal, py::rv_policy::reference_internal, "Normal of this wall with unit length of 1 um.\nThere is also a method Model.get_wall_unit_normal that allows to \nretrieve just the normal value without the need to prepare this \nwhole Wall object.  \n")
       .def_prop_rw("is_movable", &Wall::get_is_movable, &Wall::set_is_movable, "If True, whis wall can be moved through Model.apply_vertex_moves,\nif False, wall moves are ignored. \nCan be set during simulation.\n")
     ;
 }

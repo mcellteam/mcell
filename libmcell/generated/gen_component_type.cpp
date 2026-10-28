@@ -95,7 +95,7 @@ void define_pybinding_ComponentType(py::module_& m) {
       .def("to_bngl_str", &ComponentType::to_bngl_str, "Creates a string that corresponds to its BNGL representation.")
       .def("dump", &ComponentType::dump)
       .def_prop_rw("name", &ComponentType::get_name, &ComponentType::set_name, "Name of this component type.")
-      .def_prop_rw("states", &ComponentType::get_states, &ComponentType::set_states, py::rv_policy::reference, "List of states allowed by this component.")
+      .def_prop_rw("states", &ComponentType::get_states, &ComponentType::set_states, py::rv_policy::reference_internal, "List of states allowed by this component.")
     ;
 }
 

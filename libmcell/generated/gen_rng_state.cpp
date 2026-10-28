@@ -150,8 +150,8 @@ void define_pybinding_RngState(py::module_& m) {
       .def_prop_rw("aa", &RngState::get_aa, &RngState::set_aa)
       .def_prop_rw("bb", &RngState::get_bb, &RngState::set_bb)
       .def_prop_rw("cc", &RngState::get_cc, &RngState::set_cc)
-      .def_prop_rw("randslr", &RngState::get_randslr, &RngState::set_randslr, py::rv_policy::reference, "Must contain RNG_SIZE items.")
-      .def_prop_rw("mm", &RngState::get_mm, &RngState::set_mm, py::rv_policy::reference, "Must contain RNG_SIZE items.")
+      .def_prop_rw("randslr", &RngState::get_randslr, &RngState::set_randslr, py::rv_policy::reference_internal, "Must contain RNG_SIZE items.")
+      .def_prop_rw("mm", &RngState::get_mm, &RngState::set_mm, py::rv_policy::reference_internal, "Must contain RNG_SIZE items.")
       .def_prop_rw("rngblocks", &RngState::get_rngblocks, &RngState::set_rngblocks, "Must contain RNG_SIZE items.")
     ;
 }
