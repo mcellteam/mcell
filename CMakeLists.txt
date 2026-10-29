@@ -118,6 +118,14 @@ target_compile_definitions(mcell_project_options INTERFACE
     $<$<NOT:$<PLATFORM_ID:Windows>>:_GNU_SOURCE=1>
     $<$<PLATFORM_ID:Windows>:YY_NO_UNISTD_H>)
 
+# Temporary, for the VTK removal: every place that uses VTK also runs
+# src4/geometry_analysis and reports each difference (src4/geometry_ab_check.h).
+# Removed together with VTK.
+option(MCELL_GEOMETRY_AB_CHECK "Compare VTK with the geometry analysis that replaces it" OFF)
+if (MCELL_GEOMETRY_AB_CHECK)
+  target_compile_definitions(mcell_project_options INTERFACE MCELL_GEOMETRY_AB_CHECK)
+endif()
+
 # Common GCC/Clang warning set (kept identical to the historical global flags).
 set(MCELL_NIX_WARNINGS
     -Wall -Wextra
@@ -600,7 +608,7 @@ endif()
 # the flags do not leak through public interfaces. Guarded by if(TARGET) so the
 # Windows-only / optional variants are skipped cleanly.
 foreach(_t IN ITEMS
-    mcell4 libmcell libmcell_dummy mcell mcell4_so
+    mcell_geometry mcell4 libmcell libmcell_dummy mcell mcell4_so
     data_model_to_pymcell bng_analyzer
     libbng parser_tester_libbng nauty
     NFsim_static NFsim_static_fpic NFsim NFsim_EXE

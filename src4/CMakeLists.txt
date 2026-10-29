@@ -36,6 +36,11 @@ set(SRC4_SOURCE_FILES
     region_utils.cpp
     bng_data_to_datamodel_converter.cpp
     bngl_exporter.cpp
+)
+
+# The geometry analysis that replaces VTK. It depends on nothing else in MCell,
+# so tools such as data_model_to_pymcell can link it alone.
+set(GEOMETRY_SOURCE_FILES
     predicates.cpp
     geometry_analysis.cpp
 )
@@ -65,13 +70,20 @@ elseif(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
 else()
   set(MCELL_NO_FP_CONTRACTION -ffp-contract=off)
 endif()
-set_source_files_properties(predicates.cpp geometry_analysis.cpp PROPERTIES COMPILE_OPTIONS
+set_source_files_properties(${GEOMETRY_SOURCE_FILES} PROPERTIES COMPILE_OPTIONS
     "${MCELL_CXX23};${MCELL_NO_FP_CONTRACTION}")
+
+add_library(mcell_geometry STATIC
+    ${GEOMETRY_SOURCE_FILES}
+)
+add_library(MCell::geometry ALIAS mcell_geometry)
+target_include_directories(mcell_geometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(${PROJECT_NAME} STATIC
     ${SRC4_SOURCE_FILES}
 )
 add_library(MCell::mcell4 ALIAS ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} PUBLIC MCell::geometry)
 
 # Usage requirements (PUBLIC dirs propagate to mcell / mcell4_so which link mcell4).
 target_include_directories(${PROJECT_NAME} PUBLIC

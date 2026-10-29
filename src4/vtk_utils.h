@@ -22,6 +22,11 @@
 #include "defines.h"
 #include "geometry.h"
 
+#ifdef MCELL_GEOMETRY_AB_CHECK
+#include <memory>
+#include "geometry_analysis.h"
+#endif
+
 namespace MCell {
 
 class World;
@@ -56,6 +61,11 @@ public:
   std::string name;
 
   vtkSmartPointer<vtkPolyData> polydata;
+
+#ifdef MCELL_GEOMETRY_AB_CHECK
+  // temporary: the same mesh for geometry_analysis (geometry_ab_check.h)
+  std::shared_ptr<const GeometryAnalysis::Solid> ga_solid;
+#endif
 
   GeometryObject& get_geometry_object_noconst(World* world) const;
   const GeometryObject& get_geometry_object(const World* world) const;

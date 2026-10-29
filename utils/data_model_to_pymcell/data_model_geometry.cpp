@@ -27,6 +27,10 @@
 #include "include/datamodel_defines.h"
 #include "generator_utils.h"
 
+#ifdef MCELL_GEOMETRY_AB_CHECK
+#include "geometry_ab_check.h"
+#endif
+
 using namespace Json;
 using Json::Value;
 
@@ -134,11 +138,35 @@ void compute_volume_and_area(Json::Value& model_object, double& volume, double& 
 
   vtkSmartPointer<vtkPolyData> polydata = convert_dm_object_to_polydata(model_object);
 
+#ifdef MCELL_GEOMETRY_AB_CHECK
+  std::vector<GeometryAnalysis::Point> ga_points;
+  Value& vertex_list = get_node(name, model_object, KEY_VERTEX_LIST);
+  for (Value::ArrayIndex i = 0; i < vertex_list.size(); i++) {
+    ga_points.push_back({vertex_list[i][0].asDouble(), vertex_list[i][1].asDouble(), vertex_list[i][2].asDouble()});
+  }
+  std::vector<GeometryAnalysis::Triangle> ga_triangles;
+  Value& element_connections = get_node(name, model_object, KEY_ELEMENT_CONNECTIONS);
+  for (Value::ArrayIndex i = 0; i < element_connections.size(); i++) {
+    Value& e = element_connections[i];
+    ga_triangles.push_back({e[0].asInt(), e[1].asInt(), e[2].asInt()});
+  }
+  const GeometryAnalysis::Mesh ga_mesh = GeometryAnalysis::clean_mesh(ga_points, ga_triangles);
+  GeometryAbCheck::record("data model volume", "cleaning " + name, GeometryAbCheck::compare(polydata.Get(), ga_mesh));
+  GeometryAbCheck::record("data model volume", "watertight " + name,
+      GeometryAbCheck::compare(is_watertight(polydata) != 0.0, GeometryAnalysis::is_watertight(ga_mesh)));
+#endif
+
   if (!is_watertight(polydata)) {
     throw ConversionError("Geometry object " + name + " is not watertight, could not compute volume.");
   }
 
   get_polydata_volume_and_area(polydata, volume, area);
+
+#ifdef MCELL_GEOMETRY_AB_CHECK
+  const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area_vtk(ga_mesh);
+  GeometryAbCheck::record("data model volume", "volume " + name, GeometryAbCheck::compare(volume, va.volume));
+  GeometryAbCheck::record("data model volume", "area " + name, GeometryAbCheck::compare(area, va.area));
+#endif
 }
 
 } // namespace MCell

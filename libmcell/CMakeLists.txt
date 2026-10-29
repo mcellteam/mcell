@@ -155,5 +155,5 @@ endforeach()
 
 # geometry_utils / compartment_utils include VTK directly; link the VTK targets
 # so their include directories come along automatically.
-target_link_libraries(libmcell PRIVATE ${VTK_LIBRARIES})
+target_link_libraries(libmcell PRIVATE ${VTK_LIBRARIES} MCell::geometry)
 

@@ -25,7 +25,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
 target_link_libraries(${PROJECT_NAME}
-    PRIVATE JsonCpp::JsonCpp MCell::libmcell ${VTK_LIBRARIES} BNG::bng
+    PRIVATE JsonCpp::JsonCpp MCell::libmcell MCell::geometry ${VTK_LIBRARIES} BNG::bng
     # libmcell references nanobind's static support-lib symbols; MSVC requires the
     # executable to resolve them, so link nanobind-static on Windows (last, for
     # link-order). Not needed by GNU ld / macOS dynamic_lookup. See mcell/CMakeLists.txt.

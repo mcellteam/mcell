@@ -22,6 +22,10 @@
 #include "vtk_utils.h"
 #include "geometry_object.h"
 
+#ifdef MCELL_GEOMETRY_AB_CHECK
+#include "geometry_ab_check.h"
+#endif
+
 using namespace std;
 
 namespace MCell {
@@ -81,6 +85,25 @@ static void convert_compartment_objects_to_geom_object_infos(
     clean->Update();
 
     int closed = vtkSelectEnclosedPoints::IsSurfaceClosed(clean->GetOutput());
+
+#ifdef MCELL_GEOMETRY_AB_CHECK
+    {
+      vector<GeometryAnalysis::Point> ga_points;
+      for (const std::vector<double>& v: obj.vertex_list) {
+        ga_points.push_back({v[0], v[1], v[2]});
+      }
+      vector<GeometryAnalysis::Triangle> ga_triangles;
+      for (const std::vector<int>& w: obj.wall_list) {
+        ga_triangles.push_back({w[0], w[1], w[2]});
+      }
+      GeometryAnalysis::Mesh mesh = GeometryAnalysis::clean_mesh(ga_points, ga_triangles);
+      GeometryAbCheck::record("compartments", "cleaning " + obj.name, GeometryAbCheck::compare(clean->GetOutput(), mesh));
+      GeometryAbCheck::record("compartments", "closed " + obj.name,
+          GeometryAbCheck::compare(closed == 1, GeometryAnalysis::is_closed(mesh)));
+      obj_info.ga_solid = make_shared<const GeometryAnalysis::Solid>(std::move(mesh));
+    }
+#endif
+
     if (closed != 1) {
       throw RuntimeError("Compartment object must be closed, error for " + obj.name + ".");
     }

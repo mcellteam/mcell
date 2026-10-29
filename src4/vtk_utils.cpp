@@ -36,6 +36,13 @@
 
 #include "vtk_utils.h"
 
+#ifdef MCELL_GEOMETRY_AB_CHECK
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include "geometry_ab_check.h"
+#endif
+
 using namespace std;
 
 namespace MCell {
@@ -136,6 +143,39 @@ static vtkSmartPointer<vtkPolyData> convert_geometry_object_to_polydata(
 }
 
 
+#ifdef MCELL_GEOMETRY_AB_CHECK
+// the mesh of convert_geometry_object_to_polydata for geometry_analysis; the
+// cleaned result depends only on the order of the walls, not of the points
+static GeometryAnalysis::Mesh convert_geometry_object_to_ga_mesh(
+    const World* world, const GeometryObject& obj, const bool convert_units = false) {
+
+  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  vector<GeometryAnalysis::Point> points;
+  vector<GeometryAnalysis::Triangle> triangles;
+  map<vertex_index_t, int> mesh_index;
+  for (wall_index_t wi: obj.wall_indices) {
+    const Wall& w = p.get_wall(wi);
+    GeometryAnalysis::Triangle t;
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      auto it = mesh_index.find(w.vertex_indices[i]);
+      if (it == mesh_index.end()) {
+        Vec3 pt = p.get_geometry_vertex(w.vertex_indices[i]);
+        if (convert_units) {
+          pt = pt * Vec3(world->config.length_unit);
+        }
+        it = mesh_index.emplace(w.vertex_indices[i], (int)points.size()).first;
+        points.push_back({pt.x, pt.y, pt.z});
+      }
+      t[i] = it->second;
+    }
+    triangles.push_back(t);
+  }
+  return GeometryAnalysis::clean_mesh(points, triangles);
+}
+#endif
+
+
 static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector& counted_objects) {
   bool res = true;
 
@@ -146,6 +186,16 @@ static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector
 
 
     int closed = vtkSelectEnclosedPoints::IsSurfaceClosed(polydata.Get());
+
+#ifdef MCELL_GEOMETRY_AB_CHECK
+    {
+      GeometryAnalysis::Mesh mesh = convert_geometry_object_to_ga_mesh(world, obj);
+      GeometryAbCheck::record("counted volumes", "cleaning " + obj.name, GeometryAbCheck::compare(polydata.Get(), mesh));
+      GeometryAbCheck::record("counted volumes", "closed " + obj.name,
+          GeometryAbCheck::compare(closed == 1, GeometryAnalysis::is_closed(mesh)));
+      obj_info.ga_solid = make_shared<const GeometryAnalysis::Solid>(std::move(mesh));
+    }
+#endif
     if (closed != 1) {
       mcell_warn("Counting object must be closed, error for %s.", obj.name.c_str());
       res = false;
@@ -300,6 +350,34 @@ bool compute_containement_mapping(
     for (uint obj2 = obj1 + 1; obj2 < counted_objects.size(); obj2++) {
       ContainmentResult containment_res =
           geom_object_containment_test(counted_objects[obj1].polydata, counted_objects[obj2].polydata);
+
+#ifdef MCELL_GEOMETRY_AB_CHECK
+      {
+        const GeomObjectInfo& i1 = counted_objects[obj1];
+        const GeomObjectInfo& i2 = counted_objects[obj2];
+        const string site = world != nullptr ? "counted volumes" : "compartments";
+        const string names = world != nullptr ?
+            i1.get_geometry_object(world).name + " " + i2.get_geometry_object(world).name :
+            i1.name + " " + i2.name;
+        if (i1.ga_solid == nullptr || i2.ga_solid == nullptr) {
+          GeometryAbCheck::record(site, "containment " + names, "no geometry_analysis solid");
+        }
+        else {
+          const char* vtk_names[] = {"Error", "Disjoint", "Identical", "Intersect", "Obj1InObj2", "Obj2InObj1"};
+          const char* vtk = vtk_names[(int)containment_res];
+          const char* ga = "?";
+          switch (GeometryAnalysis::containment(*i1.ga_solid, *i2.ga_solid)) {
+            case GeometryAnalysis::Containment::Disjoint: ga = "Disjoint"; break;
+            case GeometryAnalysis::Containment::Identical: ga = "Identical"; break;
+            case GeometryAnalysis::Containment::Intersect: ga = "Intersect"; break;
+            case GeometryAnalysis::Containment::FirstInSecond: ga = "Obj1InObj2"; break;
+            case GeometryAnalysis::Containment::SecondInFirst: ga = "Obj2InObj1"; break;
+          }
+          GeometryAbCheck::record(site, "containment " + names,
+              strcmp(vtk, ga) == 0 ? "" : string("vtk ") + vtk + ", geometry_analysis " + ga);
+        }
+      }
+#endif
 
       switch (containment_res) {
         case ContainmentResult::Obj1InObj2:
@@ -601,6 +679,13 @@ static double is_watertight(vtkSmartPointer<vtkPolyData> polydata) {
 double get_geometry_object_volume(const World* world, const GeometryObject& obj) {
   vtkSmartPointer<vtkPolyData> polydata = convert_geometry_object_to_polydata(world, obj);
 
+#ifdef MCELL_GEOMETRY_AB_CHECK
+  const GeometryAnalysis::Mesh ga_mesh = convert_geometry_object_to_ga_mesh(world, obj);
+  GeometryAbCheck::record("bngl export volume", "cleaning " + obj.name, GeometryAbCheck::compare(polydata.Get(), ga_mesh));
+  GeometryAbCheck::record("bngl export volume", "watertight " + obj.name,
+      GeometryAbCheck::compare(is_watertight(polydata) != 0.0, GeometryAnalysis::is_watertight(ga_mesh)));
+#endif
+
   if (!is_watertight(polydata)) {
     return FLT_INVALID;
   }
@@ -622,6 +707,11 @@ double get_geometry_object_volume(const World* world, const GeometryObject& obj)
     vtkSmartPointer<vtkMassProperties>::New();
   massProperties->SetInputConnection(normals->GetOutputPort());
   massProperties->Update();
+
+#ifdef MCELL_GEOMETRY_AB_CHECK
+  GeometryAbCheck::record("bngl export volume", "volume " + obj.name,
+      GeometryAbCheck::compare(massProperties->GetVolume(), GeometryAnalysis::volume_and_area_vtk(ga_mesh).volume));
+#endif
 
   return massProperties->GetVolume();
 }
@@ -665,6 +755,40 @@ void export_geometry_objects_to_obj(
   exporter->SetFilePrefix(file_prefix.c_str());
   exporter->SetActorNames(names); // custom MCell method
   exporter->Write();
+
+#ifdef MCELL_GEOMETRY_AB_CHECK
+  {
+    // vtkOBJExporter writes the points as float, so for this comparison the
+    // module's points are rounded the same way (the module itself writes double)
+    vector<GeometryAnalysis::NamedMesh> meshes;
+    for (const GeometryObject& o: objs) {
+      GeometryAnalysis::Mesh m = convert_geometry_object_to_ga_mesh(world, o, true);
+      for (GeometryAnalysis::Point& pt: m.points) {
+        for (double& c: pt) {
+          c = (double)(float)c;
+        }
+      }
+      meshes.push_back({o.name, std::move(m)});
+    }
+    // same file name in a temporary directory, so that the mtllib lines match
+    namespace fs = std::filesystem;
+    static int export_count = 0;
+    const fs::path dir = fs::temp_directory_path() /
+        ("mcell_geometry_ab_" + to_string(GeometryAbCheck::process_id()) + "_" + to_string(export_count++));
+    fs::create_directories(dir);
+    const string ga_prefix = (dir / fs::path(file_prefix).filename()).string();
+    GeometryAnalysis::write_obj(ga_prefix, meshes);
+    const auto slurp = [](const string& path) {
+      ifstream in(path, ios::binary);
+      return string(istreambuf_iterator<char>(in), istreambuf_iterator<char>());
+    };
+    for (const char* ext: {".obj", ".mtl"}) {
+      GeometryAbCheck::record("obj export", file_prefix + ext,
+          slurp(file_prefix + ext) == slurp(ga_prefix + ext) ? "" : "files differ");
+    }
+    fs::remove_all(dir);
+  }
+#endif
 }
 
 
