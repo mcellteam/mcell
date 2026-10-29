@@ -42,6 +42,8 @@ static void convert_compartment_objects_to_geom_object_infos(
     // we need to convert each geometry object into VTK's polydata representation
     // example: https://vtk.org/Wiki/VTK/Examples/Cxx/PolyData/TriangleArea
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    // VTK stores points as float by default, keep the double precision that MCell simulates with
+    points->SetDataTypeToDouble();
     vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
 
     GeomObjectInfo obj_info(obj.name);

@@ -57,6 +57,8 @@ static vtkSmartPointer<vtkPolyData> convert_dm_object_to_polydata(
   // we need to convert each geometry object into VTK's polydata representation
   // example: https://vtk.org/Wiki/VTK/Examples/Cxx/PolyData/TriangleArea
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  // VTK stores points as float by default, keep the double precision of the data model
+  points->SetDataTypeToDouble();
   vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
 
   Value& vertex_list = get_node(name, model_object, KEY_VERTEX_LIST);
