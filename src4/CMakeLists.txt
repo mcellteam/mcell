@@ -36,7 +36,34 @@ set(SRC4_SOURCE_FILES
     region_utils.cpp
     bng_data_to_datamodel_converter.cpp
     bngl_exporter.cpp
+    predicates.cpp
 )
+
+# The new geometry code that replaces VTK is written for C++23, while the rest
+# of MCell is still built as C++17 (MCELL_CXX_STANDARD). Its headers stay valid
+# C++17 so that the rest of MCell can include them, and objects built by the
+# same compiler with different standards link normally. Drop this flag once
+# MCELL_CXX_STANDARD is 23.
+if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+  set(MCELL_CXX23 /std:c++latest)
+else()
+  set(MCELL_CXX23 -std=gnu++2b) # the C++23 spelling that GCC 11+ and Clang 13+ accept
+endif()
+
+# Shewchuk's exact predicates rely on error-free floating-point transformations.
+# Fused multiply-add (floating-point contraction) breaks them and gives wrong
+# signs, so contraction is switched off for this file. Clang contracts by
+# default where FMA is native (ARM64: macOS, Windows), and clang-cl does so
+# even with /fp:precise; MSVC 2022 contracts only with /fp:contract or /fp:fast.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  set(MCELL_NO_FP_CONTRACTION /fp:precise)
+elseif(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+  set(MCELL_NO_FP_CONTRACTION /clang:-ffp-contract=off)
+else()
+  set(MCELL_NO_FP_CONTRACTION -ffp-contract=off)
+endif()
+set_source_files_properties(predicates.cpp PROPERTIES COMPILE_OPTIONS
+    "${MCELL_CXX23};${MCELL_NO_FP_CONTRACTION}")
 
 add_library(${PROJECT_NAME} STATIC
     ${SRC4_SOURCE_FILES}
