@@ -37,6 +37,7 @@ set(SRC4_SOURCE_FILES
     bng_data_to_datamodel_converter.cpp
     bngl_exporter.cpp
     predicates.cpp
+    geometry_analysis.cpp
 )
 
 # The new geometry code that replaces VTK is written for C++23, while the rest
@@ -52,9 +53,11 @@ endif()
 
 # Shewchuk's exact predicates rely on error-free floating-point transformations.
 # Fused multiply-add (floating-point contraction) breaks them and gives wrong
-# signs, so contraction is switched off for this file. Clang contracts by
-# default where FMA is native (ARM64: macOS, Windows), and clang-cl does so
-# even with /fp:precise; MSVC 2022 contracts only with /fp:contract or /fp:fast.
+# signs, and it would change the last bits of the volume formula from one
+# platform to another, so contraction is switched off for these files. Clang
+# contracts by default where FMA is native (ARM64: macOS, Windows), and
+# clang-cl does so even with /fp:precise; MSVC 2022 contracts only with
+# /fp:contract or /fp:fast.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(MCELL_NO_FP_CONTRACTION /fp:precise)
 elseif(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
@@ -62,7 +65,7 @@ elseif(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
 else()
   set(MCELL_NO_FP_CONTRACTION -ffp-contract=off)
 endif()
-set_source_files_properties(predicates.cpp PROPERTIES COMPILE_OPTIONS
+set_source_files_properties(predicates.cpp geometry_analysis.cpp PROPERTIES COMPILE_OPTIONS
     "${MCELL_CXX23};${MCELL_NO_FP_CONTRACTION}")
 
 add_library(${PROJECT_NAME} STATIC
