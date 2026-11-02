@@ -12,6 +12,8 @@
 #ifndef API_COMPARTMENT_UTILS_H
 #define API_COMPARTMENT_UTILS_H
 
+#include <cassert>
+#include <cctype>
 #include <string>
 #include <map>
 #include <vector>

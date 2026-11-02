@@ -15,17 +15,13 @@
 
 #include <vector>
 #include <map>
-
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
+#include <set>
+#include <memory>
+#include <string>
 
 #include "defines.h"
 #include "geometry.h"
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-#include <memory>
 #include "geometry_analysis.h"
-#endif
 
 namespace MCell {
 
@@ -60,12 +56,8 @@ public:
   // name is used when we are computing containment for compartments
   std::string name;
 
-  vtkSmartPointer<vtkPolyData> polydata;
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-  // temporary: the same mesh for geometry_analysis (geometry_ab_check.h)
-  std::shared_ptr<const GeometryAnalysis::Solid> ga_solid;
-#endif
+  // the object's cleaned closed mesh, prepared for containment tests
+  std::shared_ptr<const GeometryAnalysis::Solid> solid;
 
   GeometryObject& get_geometry_object_noconst(World* world) const;
   const GeometryObject& get_geometry_object(const World* world) const;
@@ -97,13 +89,19 @@ typedef std::vector<GeomObjectInfo> GeomObjectInfoVector;
 typedef std::map<GeomObjectInfo, std::set<GeomObjectInfo>> ContainmentMap;
 typedef std::set<GeomObjectInfo> IntersectingSet;
 
+// lengths of the longest containment paths, filled by get_direct_parent_info;
+// one cache serves all calls for the same containment mapping
+typedef std::map<GeomObjectInfo, int> PathLengthCache;
+
+
+// the mesh of a geometry object for geometry_analysis: its walls in order, with
+// the simulator's vertices in internal units (in microns with convert_units),
+// cleaned (vertices with equal coordinates merged)
+GeometryAnalysis::Mesh get_clean_mesh(
+    const World* world, const GeometryObject& obj, const bool convert_units = false);
 
 // return true if counted volumes were correctly set up
 bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_objects);
-
-#if 0
-bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point);
-#endif
 
 // world is nullptr for compartment hierarchy computation
 bool compute_containement_mapping(
@@ -112,10 +110,12 @@ bool compute_containement_mapping(
     IntersectingSet& intersecting_objects);
 
 const GeomObjectInfo* get_direct_parent_info(
-    const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping);
+    const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping,
+    PathLengthCache& path_lengths);
 
 
-// auxiliary function to compute volume, not related to counted volumes but uses VTK
+// auxiliary function to compute volume, not related to counted volumes,
+// returns FLT_INVALID if the object is not watertight
 double get_geometry_object_volume(const World* world, const GeometryObject& obj);
 
 void export_geometry_objects_to_obj(

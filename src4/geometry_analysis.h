@@ -55,6 +55,10 @@ bool is_closed(const Mesh& mesh);
 // allowed (vtkFeatureEdges, boundary edges only)
 bool is_watertight(const Mesh& mesh);
 
+// some edge belongs to three or more triangles (a non-manifold edge); a mesh
+// is closed when it is watertight and has no such edge
+bool has_non_manifold_edge(const Mesh& mesh);
+
 struct VolumeArea {
   double volume;
   double area;

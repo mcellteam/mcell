@@ -979,6 +979,10 @@ bool is_watertight(const Mesh& mesh) {
   return all_edge_uses(mesh, [](std::size_t uses) { return uses != 1; });
 }
 
+bool has_non_manifold_edge(const Mesh& mesh) {
+  return !all_edge_uses(mesh, [](std::size_t uses) { return uses <= 2; });
+}
+
 VolumeArea volume_and_area_vtk(const Mesh& mesh) {
   // the arithmetic follows vtkMassProperties::RequestData expression by
   // expression, so that the results are bit-identical to VTK's

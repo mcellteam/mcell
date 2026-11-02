@@ -9,22 +9,15 @@
  *
 ******************************************************************************/
 
-#include <vtkSmartPointer.h>
-#include <vtkPolyData.h>
-#include <vtkTriangle.h>
-#include <vtkCleanPolyData.h>
-#include <vtkTriangleFilter.h>
-#include <vtkSelectEnclosedPoints.h>
+#include <memory>
+#include <vector>
 
 #include "compartment_utils.h"
 
 #include "api/api_common.h"
 #include "vtk_utils.h"
 #include "geometry_object.h"
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-#include "geometry_ab_check.h"
-#endif
+#include "geometry_analysis.h"
 
 using namespace std;
 
@@ -34,83 +27,39 @@ using namespace VtkUtils;
 
 namespace API {
 
-// note: similar code is in convert_and_set_geometry_object_polydata but uses different input data
+// note: similar code is in VtkUtils::get_clean_mesh but uses different input data
 static void convert_compartment_objects_to_geom_object_infos(
     const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
     GeomObjectInfoVector& compartment_infos) {
-  bool res = true;
 
   for (const auto& obj_ptr: compartment_objects) {
     const API::GeometryObject& obj = *obj_ptr;
 
-    // we need to convert each geometry object into VTK's polydata representation
-    // example: https://vtk.org/Wiki/VTK/Examples/Cxx/PolyData/TriangleArea
-    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-    // VTK stores points as float by default, keep the double precision that MCell simulates with
-    points->SetDataTypeToDouble();
-    vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
-
-    GeomObjectInfo obj_info(obj.name);
-    obj_info.polydata = vtkSmartPointer<vtkPolyData>::New();
-
-    // first collect vertices
-    uint_set<vertex_index_t> vertex_indices;
+    // the mesh in microns, as the model defines it, cleaned (vertices with equal coordinates merged)
+    vector<GeometryAnalysis::Point> points;
+    points.reserve(obj.vertex_list.size());
     for (const std::vector<double>& v: obj.vertex_list) {
       assert(v.size() == 3);
-      points->InsertNextPoint(v[0], v[1], v[2]);
+      points.push_back({v[0], v[1], v[2]});
     }
-    // store triangles
-    for (const std::vector<int>& wi: obj.wall_list) {
-      assert(wi.size() == VERTICES_IN_TRIANGLE);
-
-      vtkSmartPointer<vtkTriangle> triangle = vtkSmartPointer<vtkTriangle>::New();
-
-      for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-        triangle->GetPointIds()->SetId(i, wi[i]);
-      }
-
-      triangles->InsertNextCell(triangle);
+    vector<GeometryAnalysis::Triangle> triangles;
+    triangles.reserve(obj.wall_list.size());
+    for (const std::vector<int>& w: obj.wall_list) {
+      assert(w.size() == VERTICES_IN_TRIANGLE);
+      triangles.push_back({w[0], w[1], w[2]});
     }
+    GeometryAnalysis::Mesh mesh = GeometryAnalysis::clean_mesh(points, triangles);
 
-    // create input polydata
-    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
-    polydata->SetPoints(points);
-    polydata->SetPolys(triangles);
-
-    // clean them up
-    vtkSmartPointer<vtkTriangleFilter> tri = vtkSmartPointer<vtkTriangleFilter>::New();
-    tri->SetInputData(polydata);
-    vtkSmartPointer<vtkCleanPolyData> clean = vtkSmartPointer<vtkCleanPolyData>::New();
-    clean->SetInputConnection(tri->GetOutputPort());
-    clean->Update();
-
-    int closed = vtkSelectEnclosedPoints::IsSurfaceClosed(clean->GetOutput());
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-    {
-      vector<GeometryAnalysis::Point> ga_points;
-      for (const std::vector<double>& v: obj.vertex_list) {
-        ga_points.push_back({v[0], v[1], v[2]});
-      }
-      vector<GeometryAnalysis::Triangle> ga_triangles;
-      for (const std::vector<int>& w: obj.wall_list) {
-        ga_triangles.push_back({w[0], w[1], w[2]});
-      }
-      GeometryAnalysis::Mesh mesh = GeometryAnalysis::clean_mesh(ga_points, ga_triangles);
-      GeometryAbCheck::record("compartments", "cleaning " + obj.name, GeometryAbCheck::compare(clean->GetOutput(), mesh));
-      GeometryAbCheck::record("compartments", "closed " + obj.name,
-          GeometryAbCheck::compare(closed == 1, GeometryAnalysis::is_closed(mesh)));
-      obj_info.ga_solid = make_shared<const GeometryAnalysis::Solid>(std::move(mesh));
+    // an edge shared by more than two walls is reported before an edge of only one wall
+    if (GeometryAnalysis::has_non_manifold_edge(mesh)) {
+      throw RuntimeError("Non-manifold mesh is not allowed, error for " + obj.name + ".");
     }
-#endif
-
-    if (closed != 1) {
+    if (!GeometryAnalysis::is_watertight(mesh)) {
       throw RuntimeError("Compartment object must be closed, error for " + obj.name + ".");
     }
 
-    // and finally store the points and faces
-    obj_info.polydata = clean->GetOutput();
-
+    GeomObjectInfo obj_info(obj.name);
+    obj_info.solid = make_shared<const GeometryAnalysis::Solid>(std::move(mesh));
     compartment_infos.push_back(obj_info);
   }
 }
@@ -156,12 +105,13 @@ void set_parent_and_children_compartments(
   }
 
   // set children and parents
+  PathLengthCache path_lengths;
   for (const auto& pair_name_parents: contained_in_mapping) {
     auto child = get_obj_by_name(compartment_objects, pair_name_parents.first.name);
 
     // select the direct parent
     const GeomObjectInfo* direct_parent_info =
-        get_direct_parent_info(pair_name_parents.first, contained_in_mapping);
+        get_direct_parent_info(pair_name_parents.first, contained_in_mapping, path_lengths);
 
     if (direct_parent_info == nullptr) {
       // no parent, children set themselves as children of this compartment

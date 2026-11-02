@@ -10,23 +10,9 @@
  *
 ******************************************************************************/
 
-
-#include <vtkSmartPointer.h>
-#include <vtkTriangle.h>
-#include <vtkCleanPolyData.h>
-#include <vtkTriangleFilter.h>
-#include <vtkCollisionDetectionFilter.h>
-#include <vtkSelectEnclosedPoints.h>
-#include <vtkTransform.h>
-#include <vtkPointData.h>
-#include <vtkFeatureEdges.h>
-#include <vtkMassProperties.h>
-#include <vtkPolyDataNormals.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkProperty.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderer.h>
-#include <vtkOBJExporter.h>
+#include <algorithm>
+#include <map>
+#include <memory>
 
 #include "logging.h"
 
@@ -36,28 +22,11 @@
 
 #include "vtk_utils.h"
 
-#ifdef MCELL_GEOMETRY_AB_CHECK
-#include <filesystem>
-#include <fstream>
-#include <iterator>
-#include "geometry_ab_check.h"
-#endif
-
 using namespace std;
 
 namespace MCell {
 
 namespace VtkUtils {
-
-enum class ContainmentResult {
-  Error,
-  Disjoint,
-  Identical,
-  Intersect,
-  Obj1InObj2,
-  Obj2InObj1
-};
-
 
 GeometryObject& GeomObjectInfo::get_geometry_object_noconst(World* world) const {
   assert(world != nullptr);
@@ -75,84 +44,16 @@ const GeometryObject& GeomObjectInfo::get_geometry_object(const World* world) co
 }
 
 
-static vtkSmartPointer<vtkPolyData> convert_geometry_object_to_polydata(
-    const World* world, const GeometryObject& obj, const bool convert_units = false) {
+GeometryAnalysis::Mesh get_clean_mesh(
+    const World* world, const GeometryObject& obj, const bool convert_units) {
 
   const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
-  // we need to convert each geometry object into VTK's polydata representation
-  // example: https://vtk.org/Wiki/VTK/Examples/Cxx/PolyData/TriangleArea
-  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-  // VTK stores points as float by default, keep the double precision that MCell simulates with
-  points->SetDataTypeToDouble();
-  vtkSmartPointer<vtkCellArray> triangles = vtkSmartPointer<vtkCellArray>::New();
-
-  // first collect vertices
-  uint_set<vertex_index_t> vertex_indices;
-  for (wall_index_t wi: obj.wall_indices) {
-    const Wall& w = p.get_wall(wi);
-
-    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-      vertex_indices.insert(w.vertex_indices[i]);
-    }
-  }
-
-  // store vertices and create mapping
-  // mcell vertex index -> vtk vertex index
-  map<vertex_index_t, uint> vertex_mapping;
-  uint curr_vtk_index = 0;
-  for (vertex_index_t vi: vertex_indices) {
-
-    Vec3 pt = p.get_geometry_vertex(vi);
-    if (convert_units) {
-      pt = pt * Vec3(world->config.length_unit);
-    }
-    points->InsertNextPoint(pt.x, pt.y, pt.z);
-
-    vertex_mapping[vi] = curr_vtk_index;
-    curr_vtk_index++;
-  }
-
-  // store triangles
-  for (wall_index_t wi: obj.wall_indices) {
-    const Wall& w = p.get_wall(wi);
-
-    vtkSmartPointer<vtkTriangle> triangle = vtkSmartPointer<vtkTriangle>::New();
-
-    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-      triangle->GetPointIds()->SetId(i, vertex_mapping[w.vertex_indices[i]]);
-    }
-
-    triangles->InsertNextCell(triangle);
-  }
-
-  // create input polydata
-  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
-  polydata->SetPoints(points);
-  polydata->SetPolys(triangles);
-
-  // clean them up
-  vtkSmartPointer<vtkTriangleFilter> tri = vtkSmartPointer<vtkTriangleFilter>::New();
-  tri->SetInputData(polydata);
-  vtkSmartPointer<vtkCleanPolyData> clean = vtkSmartPointer<vtkCleanPolyData>::New();
-  clean->SetInputConnection(tri->GetOutputPort());
-  clean->Update();
-
-  // also copy this information to our object
-  return clean->GetOutput();
-}
-
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-// the mesh of convert_geometry_object_to_polydata for geometry_analysis; the
-// cleaned result depends only on the order of the walls, not of the points
-static GeometryAnalysis::Mesh convert_geometry_object_to_ga_mesh(
-    const World* world, const GeometryObject& obj, const bool convert_units = false) {
-
-  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-
+  // each vertex is listed once, in the order the walls first use it;
+  // the cleaned mesh depends only on the order of the walls
   vector<GeometryAnalysis::Point> points;
   vector<GeometryAnalysis::Triangle> triangles;
+  triangles.reserve(obj.wall_indices.size());
   map<vertex_index_t, int> mesh_index;
   for (wall_index_t wi: obj.wall_indices) {
     const Wall& w = p.get_wall(wi);
@@ -173,162 +74,42 @@ static GeometryAnalysis::Mesh convert_geometry_object_to_ga_mesh(
   }
   return GeometryAnalysis::clean_mesh(points, triangles);
 }
-#endif
 
 
-static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector& counted_objects) {
+// checks the mesh of every counted object and prepares it for the containment
+// tests; reports every object that can't be counted in and then returns false
+static bool prepare_counted_object_solids(const World* world, GeomObjectInfoVector& counted_objects) {
   bool res = true;
 
   for (GeomObjectInfo& obj_info: counted_objects) {
 
-    GeometryObject& obj = world->get_geometry_object(obj_info.geometry_object_id);
-    vtkSmartPointer<vtkPolyData> polydata = convert_geometry_object_to_polydata(world, obj);
+    const GeometryObject& obj = obj_info.get_geometry_object(world);
+    GeometryAnalysis::Mesh mesh = get_clean_mesh(world, obj);
 
-
-    int closed = vtkSelectEnclosedPoints::IsSurfaceClosed(polydata.Get());
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-    {
-      GeometryAnalysis::Mesh mesh = convert_geometry_object_to_ga_mesh(world, obj);
-      GeometryAbCheck::record("counted volumes", "cleaning " + obj.name, GeometryAbCheck::compare(polydata.Get(), mesh));
-      GeometryAbCheck::record("counted volumes", "closed " + obj.name,
-          GeometryAbCheck::compare(closed == 1, GeometryAnalysis::is_closed(mesh)));
-      obj_info.ga_solid = make_shared<const GeometryAnalysis::Solid>(std::move(mesh));
-    }
-#endif
-    if (closed != 1) {
-      mcell_warn("Counting object must be closed, error for %s.", obj.name.c_str());
+    // an edge shared by more than two walls is reported before an edge of only one wall
+    if (GeometryAnalysis::has_non_manifold_edge(mesh)) {
+      mcell_error_nodie("Non-manifold mesh is not allowed, error for %s.", obj.name.c_str());
       res = false;
-      continue;
     }
-
-    // copy a reference to object info as well
-    obj_info.polydata = polydata;
+    else if (!GeometryAnalysis::is_watertight(mesh)) {
+      mcell_error_nodie("Counting inside an open surface is not possible, error for %s.", obj.name.c_str());
+      res = false;
+    }
+    else {
+      obj_info.solid = make_shared<const GeometryAnalysis::Solid>(std::move(mesh));
+    }
   }
 
   return res;
 }
 
 
-// the objects do not collide
-static bool is_noncolliding_obj1_fully_contained_in_obj2(vtkSmartPointer<vtkPolyData> poly1, vtkSmartPointer<vtkPolyData> poly2) {
-  // NOTE: it will be sufficient to check just one point whether it is outside since we know that there is no intersect,
-  // optimize in the future
-
-  // is the object contained?
-  auto select_enclosed_points = vtkSmartPointer<vtkSelectEnclosedPoints>::New();
-
-  select_enclosed_points->SetSurfaceData(poly2); // poly 2 is supposed to be the larger object
-  select_enclosed_points->SetInputData(poly1); // and we are trying whether poly1 fits into that
-  select_enclosed_points->Update();
-
-  vtkDataArray* inside_array = vtkDataArray::SafeDownCast(
-      select_enclosed_points->GetOutput()->GetPointData()->GetAbstractArray("SelectedPoints"));
-
-  for(vtkIdType i = 0; i < inside_array->GetNumberOfTuples(); i++)
-  {
-    if(inside_array->GetComponent(i,0) == 1)
-    {
-      // there was no collision so if any of the points is inside, the object is inside
-      return true;
-    }
-  }
-  return false;
-}
-
-
-static bool objs_have_identical_points(vtkSmartPointer<vtkPolyData> poly1, vtkSmartPointer<vtkPolyData> poly2) {
-  vtkSmartPointer<vtkPoints> points1 = poly1->GetPoints();
-  vtkSmartPointer<vtkPoints> points2 = poly2->GetPoints();
-
-  vtkIdType num_points1 = points1->GetNumberOfPoints();
-  vtkIdType num_points2 = points2->GetNumberOfPoints();
-
-  if (num_points1 != num_points2) {
-    return false;
-  }
-
-  bool all_same = true;
-
-  double verts1[3];
-  double verts2[3];
-
-  for(vtkIdType i = 0; i < num_points1; i++)
-  {
-    points1->GetPoint(i, verts1);
-    points2->GetPoint(i, verts2);
-
-    if (verts1[0] != verts2[0] || verts1[1] != verts2[1] || verts1[2] != verts2[2])
-    {
-      return false;
-    }
-  }
-
-  return all_same;
-}
-
-
-static ContainmentResult geom_object_containment_test(vtkSmartPointer<vtkPolyData> poly1, vtkSmartPointer<vtkPolyData> poly2) {
-
-  // counting objects must be closed (already checked during conversion)
-  assert(vtkSelectEnclosedPoints::IsSurfaceClosed(poly1) == 1);
-  assert(vtkSelectEnclosedPoints::IsSurfaceClosed(poly2) == 1);
-
-  // 1) do they collide?
-  auto matrix1 = vtkSmartPointer<vtkMatrix4x4>::New();
-  auto transform0 = vtkSmartPointer<vtkTransform>::New();
-  vtkSmartPointer<vtkCollisionDetectionFilter> collide = vtkSmartPointer<vtkCollisionDetectionFilter>::New();
-
-  collide->SetInputData( 0, poly1);
-  collide->SetTransform(0, transform0);
-
-  collide->SetInputData( 1, poly2);
-  collide->SetMatrix(1, matrix1);
-
-  collide->SetBoxTolerance(0.0);
-  collide->SetCellTolerance(0.0);
-  collide->SetNumberOfCellsPerNode(2);
-
-  collide->SetCollisionModeToFirstContact();
-
-  collide->GenerateScalarsOn();
-  collide->Update();
-
-  if (collide->GetNumberOfContacts() == 0) {
-    // objects do not collide
-
-    if (is_noncolliding_obj1_fully_contained_in_obj2(poly1, poly2)) {
-      return ContainmentResult::Obj1InObj2;
-    }
-    else if (is_noncolliding_obj1_fully_contained_in_obj2(poly2, poly1)) {
-      return ContainmentResult::Obj2InObj1;
-    }
-    else {
-      return ContainmentResult::Disjoint;
-    }
+static const string& get_name(const World* world, const GeomObjectInfo& info) {
+  if (world != nullptr) {
+    return info.get_geometry_object(world).name;
   }
   else {
-    // the objects collide
-
-    if (objs_have_identical_points(poly1, poly2)) {
-      // do not necessarily have to be identical, but let's assume that if the points are the same,
-      // the objects are the same
-      return ContainmentResult::Identical;
-    }
-    else {
-
-      return ContainmentResult::Intersect;
-
-      #if 0
-        // this is how intersect is computed once it will be needed
-        vtkSmartPointer<vtkBooleanOperationPolyDataFilter> booleanOperation =
-          vtkSmartPointer<vtkBooleanOperationPolyDataFilter>::New();
-        booleanOperation->SetOperationToIntersection();
-        booleanOperation->SetInputData( 0, poly1 );
-        booleanOperation->SetInputData( 1, poly2 );
-        booleanOperation->Update();
-      #endif
-    }
+    return info.name;
   }
 }
 
@@ -348,85 +129,35 @@ bool compute_containement_mapping(
   contained_in_mapping.clear();
   for (uint obj1 = 0; obj1 < counted_objects.size(); obj1++) {
     for (uint obj2 = obj1 + 1; obj2 < counted_objects.size(); obj2++) {
-      ContainmentResult containment_res =
-          geom_object_containment_test(counted_objects[obj1].polydata, counted_objects[obj2].polydata);
+      assert(counted_objects[obj1].solid != nullptr && counted_objects[obj2].solid != nullptr);
 
-#ifdef MCELL_GEOMETRY_AB_CHECK
-      {
-        const GeomObjectInfo& i1 = counted_objects[obj1];
-        const GeomObjectInfo& i2 = counted_objects[obj2];
-        const string site = world != nullptr ? "counted volumes" : "compartments";
-        const string names = world != nullptr ?
-            i1.get_geometry_object(world).name + " " + i2.get_geometry_object(world).name :
-            i1.name + " " + i2.name;
-        if (i1.ga_solid == nullptr || i2.ga_solid == nullptr) {
-          GeometryAbCheck::record(site, "containment " + names, "no geometry_analysis solid");
-        }
-        else {
-          const char* vtk_names[] = {"Error", "Disjoint", "Identical", "Intersect", "Obj1InObj2", "Obj2InObj1"};
-          const char* vtk = vtk_names[(int)containment_res];
-          const char* ga = "?";
-          switch (GeometryAnalysis::containment(*i1.ga_solid, *i2.ga_solid)) {
-            case GeometryAnalysis::Containment::Disjoint: ga = "Disjoint"; break;
-            case GeometryAnalysis::Containment::Identical: ga = "Identical"; break;
-            case GeometryAnalysis::Containment::Intersect: ga = "Intersect"; break;
-            case GeometryAnalysis::Containment::FirstInSecond: ga = "Obj1InObj2"; break;
-            case GeometryAnalysis::Containment::SecondInFirst: ga = "Obj2InObj1"; break;
-          }
-          GeometryAbCheck::record(site, "containment " + names,
-              strcmp(vtk, ga) == 0 ? "" : string("vtk ") + vtk + ", geometry_analysis " + ga);
-        }
-      }
-#endif
-
-      switch (containment_res) {
-        case ContainmentResult::Obj1InObj2:
+      switch (GeometryAnalysis::containment(*counted_objects[obj1].solid, *counted_objects[obj2].solid)) {
+        case GeometryAnalysis::Containment::FirstInSecond:
           contained_in_mapping[counted_objects[obj1]].insert(counted_objects[obj2]);
           break;
 
-        case ContainmentResult::Obj2InObj1:
+        case GeometryAnalysis::Containment::SecondInFirst:
           contained_in_mapping[counted_objects[obj2]].insert(counted_objects[obj1]);
           break;
 
-        case ContainmentResult::Disjoint:
+        case GeometryAnalysis::Containment::Disjoint:
           // nothing to do
           break;
 
-        case ContainmentResult::Intersect:
+        case GeometryAnalysis::Containment::Intersect:
           // we are not processing all pairs so we need to insert both object ids
           intersecting_objects.insert(counted_objects[obj1]);
           intersecting_objects.insert(counted_objects[obj2]);
           break;
 
-        case ContainmentResult::Identical:
-        case ContainmentResult::Error: {
-            std::string fmt;
-            if (containment_res == ContainmentResult::Identical) {
-              fmt = "Identical counted objects are not supported yet, error for %s and %s." ;
-            }
-            else {
-              fmt = "Error while of counted object is not supported yet, error for %s and %s.";
-            }
-            if (world != nullptr) {
-              mcell_warn(
-                  fmt.c_str(),
-                  counted_objects[obj1].get_geometry_object(world).name.c_str(),
-                  counted_objects[obj2].get_geometry_object(world).name.c_str()
-              );
-            }
-            else {
-              mcell_warn(
-                  fmt.c_str(),
-                  counted_objects[obj1].name.c_str(),
-                  counted_objects[obj2].name.c_str()
-              );
-            }
-            res = false;
-          }
+        case GeometryAnalysis::Containment::Identical:
+          mcell_warn(
+              "Identical counted objects are not supported yet, error for %s and %s.",
+              get_name(world, counted_objects[obj1]).c_str(),
+              get_name(world, counted_objects[obj2]).c_str()
+          );
+          res = false;
           break;
-
-        default:
-          assert(false);
       }
     }
   }
@@ -435,10 +166,34 @@ bool compute_containement_mapping(
 }
 
 
-static int get_max_path_length_recursive(
+// length of the longest path from child through the objects that contain it to
+// an object that no other object contains, the objects on the path counted
+static int get_max_path_length(
     const GeomObjectInfo& child,
     const ContainmentMap& contained_in_mapping,
-    const GeomObjectInfo** best_parent = nullptr) {
+    PathLengthCache& path_lengths) {
+
+  const auto cached = path_lengths.find(child);
+  if (cached != path_lengths.end()) {
+    return cached->second;
+  }
+
+  int max_length = 0;
+  const auto it_obj_contained_in = contained_in_mapping.find(child);
+  if (it_obj_contained_in != contained_in_mapping.end()) {
+    for (const GeomObjectInfo& parent: it_obj_contained_in->second) {
+      max_length = max(max_length, get_max_path_length(parent, contained_in_mapping, path_lengths));
+    }
+  }
+
+  path_lengths[child] = max_length + 1;
+  return max_length + 1;
+}
+
+
+const GeomObjectInfo* get_direct_parent_info(
+    const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping,
+    PathLengthCache& path_lengths) {
 
   // need to find an object that is a direct parent
   // we can find it by counting length of paths to from child to an object that has no parents
@@ -453,42 +208,33 @@ static int get_max_path_length_recursive(
   //
   // the longest is 2:, therefore the direct parent of O3 is O2
   // partial overlaps and loops are not allowed here
+  //
+  // the lengths are cached, so each object's length is computed once;
+  // with equal lengths, the first parent in the set's order wins
 
-  int max_length = 0;
-  const auto& it_obj_contained_in = contained_in_mapping.find(child);
+  const auto it_obj_contained_in = contained_in_mapping.find(obj_info);
   if (it_obj_contained_in == contained_in_mapping.end()) {
-    if (best_parent != nullptr) {
-      *best_parent = nullptr;
-    }
-    return 1; // end, final object
+    return nullptr; // no parent
   }
 
+  const GeomObjectInfo* best_parent = nullptr;
+  int max_length = 0;
   for (const GeomObjectInfo& parent: it_obj_contained_in->second) {
-    int length = get_max_path_length_recursive(parent, contained_in_mapping);
+    const int length = get_max_path_length(parent, contained_in_mapping, path_lengths);
     if (length > max_length) {
       max_length = length;
-      if (best_parent != nullptr) {
-        *best_parent = &parent;
-      }
+      best_parent = &parent;
     }
   }
-
-  return max_length + 1;
-}
-
-const GeomObjectInfo* get_direct_parent_info(
-    const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
-
-  const GeomObjectInfo* best_parent;
-  get_max_path_length_recursive(obj_info, contained_in_mapping, &best_parent);
   return best_parent;
 }
 
 
 static const GeometryObject* get_direct_parent(
-    const World* world, const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
+    const World* world, const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping,
+    PathLengthCache& path_lengths) {
 
-  const GeomObjectInfo* info = get_direct_parent_info(obj_info, contained_in_mapping);
+  const GeomObjectInfo* info = get_direct_parent_info(obj_info, contained_in_mapping, path_lengths);
   if (info == nullptr) {
     return nullptr;
   }
@@ -552,6 +298,8 @@ static void define_counted_volumes(
     const ContainmentMap& contained_in_mapping,
     const IntersectingSet& intersecting_objects
 ) {
+  PathLengthCache path_lengths;
+
   for (const GeomObjectInfo& obj_info: counted_objects) {
 
     GeometryObject& current_obj = obj_info.get_geometry_object_noconst(world);
@@ -569,7 +317,8 @@ static void define_counted_volumes(
               world, obj_info.geometry_object_id, contained_in_mapping, intersecting_objects);
     }
 
-    const GeometryObject* direct_parent_obj = get_direct_parent(world, obj_info, contained_in_mapping);
+    const GeometryObject* direct_parent_obj =
+        get_direct_parent(world, obj_info, contained_in_mapping, path_lengths);
 
     // set outside index for our object
     counted_volume_index_t outside_index;
@@ -611,8 +360,10 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
     }
   }
 
-  // prepare VTK polydata objects
-  convert_objects_to_clean_polydata(world, counted_objects);
+  // check the meshes and prepare them for the containment tests
+  if (!prepare_counted_object_solids(world, counted_objects)) {
+    return false;
+  }
 
   // holds mapping that tells in which geometry objects is a given object contained
   ContainmentMap contained_in_mapping;
@@ -634,161 +385,33 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
   return true;
 }
 
-#if 0
-bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point) {
-  assert(obj.is_counted_volume_or_compartment());
-  assert(obj.counted_volume_polydata.Get() != nullptr);
 
-  double point_coords[3] = {point.x, point.y, point.z};
-
-  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-  points->InsertNextPoint(point_coords);
-
-  vtkSmartPointer<vtkPolyData> points_polydata = vtkSmartPointer<vtkPolyData>::New();
-  points_polydata->SetPoints(points);
-
-  auto select_enclosed_points = vtkSmartPointer<vtkSelectEnclosedPoints>::New();
-
-  select_enclosed_points->SetSurfaceData(obj.counted_volume_polydata);
-  select_enclosed_points->SetInputData(points_polydata); // and we are trying whether poly1 fits into that
-  select_enclosed_points->Update();
-
-  return select_enclosed_points->IsInside(0) ;
-}
-#endif
-
-
-static double is_watertight(vtkSmartPointer<vtkPolyData> polydata) {
-  // check if the object is watertight,
-  // based on https://lorensen.github.io/VTKExamples/site/Cxx/Meshes/BoundaryEdges/
-  vtkSmartPointer<vtkFeatureEdges> featureEdges =
-    vtkSmartPointer<vtkFeatureEdges>::New();
-  featureEdges->SetInputData(polydata.Get());
-  featureEdges->BoundaryEdgesOn();
-  featureEdges->FeatureEdgesOff();
-  featureEdges->ManifoldEdgesOff();
-  featureEdges->NonManifoldEdgesOff();
-  featureEdges->Update();
-
-  // if there are no edges, the object is watertight
-  return featureEdges->GetOutput()->GetNumberOfCells() < 1;
-}
-
-// auxiliary function to compute volume, not related to counted volumes but uses VTK
+// auxiliary function to compute volume, not related to counted volumes,
 // returns FLT_INVALID if the object is not watertight
 double get_geometry_object_volume(const World* world, const GeometryObject& obj) {
-  vtkSmartPointer<vtkPolyData> polydata = convert_geometry_object_to_polydata(world, obj);
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-  const GeometryAnalysis::Mesh ga_mesh = convert_geometry_object_to_ga_mesh(world, obj);
-  GeometryAbCheck::record("bngl export volume", "cleaning " + obj.name, GeometryAbCheck::compare(polydata.Get(), ga_mesh));
-  GeometryAbCheck::record("bngl export volume", "watertight " + obj.name,
-      GeometryAbCheck::compare(is_watertight(polydata) != 0.0, GeometryAnalysis::is_watertight(ga_mesh)));
-#endif
-
-  if (!is_watertight(polydata)) {
+  const GeometryAnalysis::Mesh mesh = get_clean_mesh(world, obj);
+  if (!GeometryAnalysis::is_watertight(mesh)) {
     return FLT_INVALID;
   }
 
-  // volume computation is based on
-  // https://lorensen.github.io/VTKExamples/site/Cxx/Utilities/MassProperties/
-  vtkSmartPointer<vtkTriangleFilter> triangleFilter =
-      vtkSmartPointer<vtkTriangleFilter>::New();
-  triangleFilter->SetInputData(polydata);
-
-  // Make the triangle windong order consistent
-  vtkSmartPointer<vtkPolyDataNormals> normals =
-    vtkSmartPointer<vtkPolyDataNormals>::New();
-  normals->SetInputConnection(triangleFilter->GetOutputPort());
-  normals->ConsistencyOn();
-  normals->SplittingOff();
-
-  vtkSmartPointer<vtkMassProperties> massProperties =
-    vtkSmartPointer<vtkMassProperties>::New();
-  massProperties->SetInputConnection(normals->GetOutputPort());
-  massProperties->Update();
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-  GeometryAbCheck::record("bngl export volume", "volume " + obj.name,
-      GeometryAbCheck::compare(massProperties->GetVolume(), GeometryAnalysis::volume_and_area_vtk(ga_mesh).volume));
-#endif
-
-  return massProperties->GetVolume();
+  // computed as vtkPolyDataNormals and vtkMassProperties computed it
+  return GeometryAnalysis::volume_and_area_vtk(mesh).volume;
 }
 
 
 void export_geometry_objects_to_obj(
     const World* world, const GeometryObjectVector& objs, const std::string& file_prefix) {
 
-  vtkNew<vtkRenderer> renderer;
-
-  vector<string> names;
+  // one object per geometry object, named by it, in microns; the material of
+  // each is white with 25% transparency (note: same as DEFAULT_COLOR)
+  vector<GeometryAnalysis::NamedMesh> meshes;
   for (const GeometryObject& o: objs) {
-    // convert objects
-    vtkSmartPointer<vtkPolyData> polydata =
-        convert_geometry_object_to_polydata(world, o, true);
-
-    vtkNew<vtkPolyDataMapper> mapper;
-    mapper->SetInputData(polydata);
-
-    vtkNew<vtkActor> actor;
-    actor->SetMapper(mapper);
-
-    // material, the default is white with 25% transparency
-    // note: same as DEFAULT_COLOR
-    actor->GetProperty()->SetDiffuseColor(1, 1, 1);
-    actor->GetProperty()->SetOpacity(0.25);
-
-    renderer->AddActor(actor);
-
-    // we must also set names to the exported objects,
-    // there is no support for object names in VTK and
-    // the OBJ exporter needed to be updated
-    names.push_back(o.name);
+    meshes.push_back({o.name, get_clean_mesh(world, o, true)});
   }
 
-  vtkNew<vtkRenderWindow> window;
-  window->AddRenderer(renderer);
-
-  vtkNew<vtkOBJExporter> exporter;
-  exporter->SetRenderWindow(window);
-  exporter->SetFilePrefix(file_prefix.c_str());
-  exporter->SetActorNames(names); // custom MCell method
-  exporter->Write();
-
-#ifdef MCELL_GEOMETRY_AB_CHECK
-  {
-    // vtkOBJExporter writes the points as float, so for this comparison the
-    // module's points are rounded the same way (the module itself writes double)
-    vector<GeometryAnalysis::NamedMesh> meshes;
-    for (const GeometryObject& o: objs) {
-      GeometryAnalysis::Mesh m = convert_geometry_object_to_ga_mesh(world, o, true);
-      for (GeometryAnalysis::Point& pt: m.points) {
-        for (double& c: pt) {
-          c = (double)(float)c;
-        }
-      }
-      meshes.push_back({o.name, std::move(m)});
-    }
-    // same file name in a temporary directory, so that the mtllib lines match
-    namespace fs = std::filesystem;
-    static int export_count = 0;
-    const fs::path dir = fs::temp_directory_path() /
-        ("mcell_geometry_ab_" + to_string(GeometryAbCheck::process_id()) + "_" + to_string(export_count++));
-    fs::create_directories(dir);
-    const string ga_prefix = (dir / fs::path(file_prefix).filename()).string();
-    GeometryAnalysis::write_obj(ga_prefix, meshes);
-    const auto slurp = [](const string& path) {
-      ifstream in(path, ios::binary);
-      return string(istreambuf_iterator<char>(in), istreambuf_iterator<char>());
-    };
-    for (const char* ext: {".obj", ".mtl"}) {
-      GeometryAbCheck::record("obj export", file_prefix + ext,
-          slurp(file_prefix + ext) == slurp(ga_prefix + ext) ? "" : "files differ");
-    }
-    fs::remove_all(dir);
+  if (!GeometryAnalysis::write_obj(file_prefix, meshes)) {
+    mcell_error_nodie("Could not write geometry to %s.obj and %s.mtl.", file_prefix.c_str(), file_prefix.c_str());
   }
-#endif
 }
 
 
