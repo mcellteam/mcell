@@ -39,7 +39,7 @@
 #include "run_n_iterations_end_event.h"
 #include "custom_function_call_event.h"
 #include "mol_order_shuffle_event.h"
-#include "vtk_utils.h"
+#include "counted_volume_utils.h"
 #include "wall_overlap.h"
 
 #include "api/mol_wall_hit_info.h"
@@ -146,7 +146,7 @@ void World::create_initial_surface_region_release_event() {
 void World::init_counted_volumes() {
   assert(partitions.size() == 1);
 
-  bool ok = VtkUtils::initialize_counted_volumes(this, config.has_intersecting_counted_objects);
+  bool ok = CountedVolumeUtils::initialize_counted_volumes(this, config.has_intersecting_counted_objects);
   if (!ok) {
     mcell_error("Processing of counted volumes failed, terminating.");
   }
@@ -724,7 +724,7 @@ void World::export_geometry_to_obj(const std::string& files_prefix) const {
   // only one partition now
   const Partition& p = get_partition(PARTITION_ID_INITIAL);
 
-  VtkUtils::export_geometry_objects_to_obj(this, p.get_geometry_objects(), files_prefix);
+  CountedVolumeUtils::export_geometry_objects_to_obj(this, p.get_geometry_objects(), files_prefix);
 }
 
 

@@ -19,7 +19,7 @@
 #include "partition.h"
 #include "release_event.h"
 #include "mol_or_rxn_count_event.h"
-#include "vtk_utils.h"
+#include "counted_volume_utils.h"
 
 #include "datamodel_defines.h"
 
@@ -96,7 +96,7 @@ std::string BNGLExporter::export_to_bngl(
     const GeometryObject& obj = p.get_geometry_objects()[0];
     single_object_name = obj.name;
 
-    double volume_internal_units = VtkUtils::get_geometry_object_volume(world, obj);
+    double volume_internal_units = CountedVolumeUtils::get_geometry_object_volume(world, obj);
     if (volume_internal_units == FLT_INVALID) {
       return "Compartment object " + obj.name + " is not watertight and its volume cannot be computed.\n";
     }
@@ -205,7 +205,7 @@ std::string BNGLExporter::set_compartment_volumes_and_areas() {
       double children_volume = comp.get_volume_including_children(bng_data, false);
 
       // compute total volume
-      double volume_internal_units = VtkUtils::get_geometry_object_volume(world, *obj);
+      double volume_internal_units = CountedVolumeUtils::get_geometry_object_volume(world, *obj);
       if (volume_internal_units == FLT_INVALID) {
         return "Compartment object " + obj->name + " is not watertight and its volume cannot be computed.\n";
       }

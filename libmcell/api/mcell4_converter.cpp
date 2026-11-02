@@ -24,7 +24,7 @@
 #include "isaac64.h"
 #include "mcell_structs_shared.h"
 #include "custom_function_call_event.h"
-#include "vtk_utils.h"
+#include "counted_volume_utils.h"
 #include "geometry_analysis.h"
 
 
@@ -936,7 +936,7 @@ void MCell4Converter::convert_geometry_objects() {
     // an edge shared by more than two walls is not allowed in models that use the API
     // (MDL models are not checked here); edges are matched by exact vertex coordinates,
     // as in the checks of counted objects and compartments
-    if (GeometryAnalysis::has_non_manifold_edge(VtkUtils::get_clean_mesh(world, obj))) {
+    if (GeometryAnalysis::has_non_manifold_edge(CountedVolumeUtils::get_clean_mesh(world, obj))) {
       throw ValueError("Non-manifold mesh is not allowed, error for " + o->name + ".");
     }
 

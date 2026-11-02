@@ -15,7 +15,7 @@
 #include "compartment_utils.h"
 
 #include "api/api_common.h"
-#include "vtk_utils.h"
+#include "counted_volume_utils.h"
 #include "geometry_object.h"
 #include "geometry_analysis.h"
 
@@ -23,11 +23,11 @@ using namespace std;
 
 namespace MCell {
 
-using namespace VtkUtils;
+using namespace CountedVolumeUtils;
 
 namespace API {
 
-// note: similar code is in VtkUtils::get_clean_mesh but uses different input data
+// note: similar code is in CountedVolumeUtils::get_clean_mesh but uses different input data
 static void convert_compartment_objects_to_geom_object_infos(
     const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
     const double rcp_length_unit,

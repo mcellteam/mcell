@@ -29,7 +29,7 @@ class World;
 class Partition;
 class GeometryObject;
 
-namespace VtkUtils {
+namespace CountedVolumeUtils {
 
 
 class GeomObjectInfo {
@@ -121,7 +121,7 @@ double get_geometry_object_volume(const World* world, const GeometryObject& obj)
 void export_geometry_objects_to_obj(
     const World* world, const GeometryObjectVector& objs, const std::string& file_prefix);
 
-}; // namespace VtkUtils
+}; // namespace CountedVolumeUtils
 
 } // namespace MCell
 

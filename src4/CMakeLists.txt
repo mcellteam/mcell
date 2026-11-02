@@ -32,7 +32,7 @@ set(SRC4_SOURCE_FILES
     world.cpp
     simulation_stats.cpp
     simulation_config.cpp
-    vtk_utils.cpp
+    counted_volume_utils.cpp
     region_utils.cpp
     bng_data_to_datamodel_converter.cpp
     bngl_exporter.cpp

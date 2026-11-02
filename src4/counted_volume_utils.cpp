@@ -20,13 +20,13 @@
 #include "partition.h"
 #include "geometry.h"
 
-#include "vtk_utils.h"
+#include "counted_volume_utils.h"
 
 using namespace std;
 
 namespace MCell {
 
-namespace VtkUtils {
+namespace CountedVolumeUtils {
 
 GeometryObject& GeomObjectInfo::get_geometry_object_noconst(World* world) const {
   assert(world != nullptr);
@@ -430,5 +430,5 @@ void export_geometry_objects_to_obj(
 }
 
 
-} // namespace VtkUtils
+} // namespace CountedVolumeUtils
 } // namespace MCell
