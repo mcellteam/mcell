@@ -68,6 +68,13 @@ public:
     return res;
   }
 
+  // vertex_list[i] in internal units, exactly as the simulation stores it;
+  // the compartment hierarchy is computed from the same coordinates
+  Vec3 get_vertex_in_internal_units(const size_t i, const pos_t rcp_length_unit) const {
+    const std::vector<double>& v = vertex_list[i];
+    return Vec3(v[0], v[1], v[2]) * Vec3(rcp_length_unit);
+  }
+
 private:
   void check_vertex_index(const int vertex_index) const {
     if (vertex_index < 0 || vertex_index >= (int)vertex_list.size()) {

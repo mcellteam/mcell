@@ -29,6 +29,7 @@
 #include "geometry_utils.inl" // uses get_wall_bounding_box, maybe not include this file
 #include "collision_utils.inl"
 #include "dump_state.h"
+#include "geometry_analysis.h"
 
 using namespace std;
 
@@ -828,25 +829,6 @@ void Region::init_surface_region_edges(const Partition& p) {
 }
 
 
-/* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
- * the vertices a, b, c, and d.
- * The formula was taken from "Computational Geometry" (2nd Ed) by J. O'Rourke
- */
-static pos_t tetrahedral_volume(
-    const Vec3& a, const Vec3& b,
-    const Vec3& c, const Vec3& d
-) {
-  // TODO: maybe use vector operators
-  return (pos_t)1 / (pos_t)6 *
-      (-1 * (a.z - d.z) * (b.y - d.y) * (c.x - d.x) +
-      (a.y - d.y) * (b.z - d.z) * (c.x - d.x) +
-      (a.z - d.z) * (b.x - d.x) * (c.y - d.y) -
-      (a.x - d.x) * (b.z - d.z) * (c.y - d.y) -
-      (a.y - d.y) * (b.x - d.x) * (c.z - d.z) +
-      (a.x - d.x) * (b.y - d.y) * (c.z - d.z));
-}
-
-
 /***************************************************************************
   Based on is_manifold:
   In: r: A region. This region must already be painted on walls. The edges must
@@ -869,15 +851,14 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
   // initialize bounding box
   compute_bounding_box(p, bounding_box_llf, bounding_box_urb);
 
-  // use the center of the region bounding box as reference point for
-  // computing the volume
-  Vec3 d = (bounding_box_llf + bounding_box_urb) * Vec3(0.5);
-
   perf() << "Computing volume of region " << name << "\n";
 
-  volume = 0;
-  pos_t current_volume = 0;
-  for (auto it: walls_and_edges) {
+  // the walls in the order of their indices, each with its own three vertices
+  vector<GeometryAnalysis::Point> points;
+  vector<GeometryAnalysis::Triangle> triangles;
+  points.reserve(walls_and_edges.size() * VERTICES_IN_TRIANGLE);
+  triangles.reserve(walls_and_edges.size());
+  for (const auto& it: walls_and_edges) {
 
     if (!it.second.empty()) {
       // does this wall represent a region border?
@@ -886,15 +867,21 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
     }
 
     const Wall& w = p.get_wall(it.first);
-
-    // compute volume of tetrahedron with w as its face
-    current_volume += tetrahedral_volume(
-        p.get_wall_vertex(w, 0), p.get_wall_vertex(w, 1), p.get_wall_vertex(w, 2), d);
+    const int first = (int)points.size();
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      const Vec3& v = p.get_wall_vertex(w, i);
+      points.push_back({v.x, v.y, v.z});
+    }
+    triangles.push_back({first, first + 1, first + 2});
   }
+
+  // signed volumes of the tetrahedra between the walls and the center of the
+  // region's bounding box; the same function computes the volumes MCell
+  // reports (BNGL export, data model conversion)
+  volume = GeometryAnalysis::volume_and_area(points, triangles).volume;
 
   perf() << "  - volume computed\n";
 
-  volume = current_volume;
   region_is_manifold = true;
   volume_info_initialized = true;
 }

@@ -30,17 +30,21 @@ namespace API {
 // note: similar code is in VtkUtils::get_clean_mesh but uses different input data
 static void convert_compartment_objects_to_geom_object_infos(
     const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
+    const double rcp_length_unit,
     GeomObjectInfoVector& compartment_infos) {
 
   for (const auto& obj_ptr: compartment_objects) {
     const API::GeometryObject& obj = *obj_ptr;
 
-    // the mesh in microns, as the model defines it, cleaned (vertices with equal coordinates merged)
+    // the mesh in internal units, with the coordinates the simulation will use
+    // (the geometry objects are converted later), cleaned (vertices with equal
+    // coordinates merged)
     vector<GeometryAnalysis::Point> points;
     points.reserve(obj.vertex_list.size());
-    for (const std::vector<double>& v: obj.vertex_list) {
-      assert(v.size() == 3);
-      points.push_back({v[0], v[1], v[2]});
+    for (size_t i = 0; i < obj.vertex_list.size(); i++) {
+      assert(obj.vertex_list[i].size() == 3);
+      const Vec3 v = obj.get_vertex_in_internal_units(i, rcp_length_unit);
+      points.push_back({v.x, v.y, v.z});
     }
     vector<GeometryAnalysis::Triangle> triangles;
     triangles.reserve(obj.wall_list.size());
@@ -79,10 +83,11 @@ static std::shared_ptr<API::GeometryObject> get_obj_by_name(
 
 
 void set_parent_and_children_compartments(
-    std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects) {
+    std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
+    const double rcp_length_unit) {
 
   GeomObjectInfoVector compartment_infos;
-  convert_compartment_objects_to_geom_object_infos(compartment_objects, compartment_infos);
+  convert_compartment_objects_to_geom_object_infos(compartment_objects, rcp_length_unit, compartment_infos);
 
   // get information on what objects are contained within each other
   // e.g. CP -> {EC} - CP is contained in EC, mapping contains all compartments, not just the direct parent

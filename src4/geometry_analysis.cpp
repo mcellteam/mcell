@@ -1079,6 +1079,59 @@ VolumeArea volume_and_area_vtk(const Mesh& mesh) {
   return {std::fabs(kxyz[0] * vol[0] + kxyz[1] * vol[1] + kxyz[2] * vol[2]), surface_area};
 }
 
+VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
+  // the arithmetic follows MCell expression by expression, so that the results
+  // are bit-identical to the simulation's: Region::compute_bounding_box, the
+  // tetrahedral volume of Region::initialize_volume_info_if_needed (its
+  // reference point is the center of the bounding box), and the wall area of
+  // Wall::precompute_wall_constants with glm's cross product
+  if (triangles.empty()) {
+    return {0.0, 0.0};
+  }
+
+  Point llf = points[triangles[0][0]], urb = llf;
+  for (const Triangle& t : triangles) {
+    for (const int idx : t) {
+      const Point& v = points[idx];
+      for (int k = 0; k < 3; k++) {
+        if (llf[k] > v[k]) {
+          llf[k] = v[k];
+        }
+        else if (urb[k] < v[k]) {
+          urb[k] = v[k];
+        }
+      }
+    }
+  }
+  const Point d{(llf[0] + urb[0]) * 0.5, (llf[1] + urb[1]) * 0.5, (llf[2] + urb[2]) * 0.5};
+
+  double volume = 0.0, area = 0.0;
+  for (const Triangle& t : triangles) {
+    const Point& a = points[t[0]];
+    const Point& b = points[t[1]];
+    const Point& c = points[t[2]];
+
+    // signed volume of the tetrahedron a, b, c, d (J. O'Rourke, "Computational
+    // Geometry", 2nd ed.)
+    volume += 1.0 / 6.0 *
+        (-1.0 * (a[2] - d[2]) * (b[1] - d[1]) * (c[0] - d[0]) +
+        (a[1] - d[1]) * (b[2] - d[2]) * (c[0] - d[0]) +
+        (a[2] - d[2]) * (b[0] - d[0]) * (c[1] - d[1]) -
+        (a[0] - d[0]) * (b[2] - d[2]) * (c[1] - d[1]) -
+        (a[1] - d[1]) * (b[0] - d[0]) * (c[2] - d[2]) +
+        (a[0] - d[0]) * (b[1] - d[1]) * (c[2] - d[2]));
+
+    // area: half the length of (b - a) x (c - a)
+    const double ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+    const double vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+    const double nx = uy * vz - vy * uz;
+    const double ny = uz * vx - vz * ux;
+    const double nz = ux * vy - vx * uy;
+    area += 0.5 * std::sqrt(nx * nx + ny * ny + nz * nz);
+  }
+  return {volume, area};
+}
+
 bool triangles_intersect(
     const Point& a0, const Point& a1, const Point& a2,
     const Point& b0, const Point& b1, const Point& b2) {

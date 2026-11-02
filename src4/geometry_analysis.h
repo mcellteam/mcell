@@ -16,7 +16,9 @@
 // containment of one mesh in another, and OBJ export. It replaces MCell's use
 // of VTK. Decisions (is a mesh closed, do two meshes touch, is a point inside)
 // are exact: every sign comes from Shewchuk's predicates. Volume and area
-// follow vtkMassProperties expression by expression. Like the predicates, the
+// follow MCell's Region and Wall code expression by expression
+// (volume_and_area); volume_and_area_vtk follows vtkMassProperties, for
+// comparisons with VTK until VTK is removed. Like the predicates, the
 // decisions are exact as long as no intermediate product underflows or
 // overflows, i.e. for coordinate differences roughly between 1e-80 and 1e80
 // (or zero), far beyond what MCell models use.
@@ -68,6 +70,15 @@ struct VolumeArea {
 // (consistency on, splitting off) followed by vtkMassProperties computes them;
 // both are NaN in the case vtkMassProperties calls an "unpredicted situation"
 VolumeArea volume_and_area_vtk(const Mesh& mesh);
+
+// signed volume and surface area as MCell's simulation computes them: the
+// volume sums the signed volumes of the tetrahedra that join each triangle to
+// the center of the triangles' bounding box
+// (Region::initialize_volume_info_if_needed), so it is negative when the
+// triangles face inward; the area sums 0.5 |(b - a) x (c - a)| over the
+// triangles (Wall::precompute_wall_constants); the triangles are used as given
+// and in order, without cleaning or reorientation
+VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles);
 
 // closed triangles a and b share at least one point, exactly
 bool triangles_intersect(

@@ -44,15 +44,17 @@ const GeometryObject& GeomObjectInfo::get_geometry_object(const World* world) co
 }
 
 
-GeometryAnalysis::Mesh get_clean_mesh(
-    const World* world, const GeometryObject& obj, const bool convert_units) {
+// the walls of a geometry object in order, as triangles of the simulator's
+// vertices in internal units (in microns with convert_units); each vertex is
+// listed once, in the order the walls first use it
+static void get_mesh(
+    const World* world, const GeometryObject& obj, const bool convert_units,
+    vector<GeometryAnalysis::Point>& points, vector<GeometryAnalysis::Triangle>& triangles) {
 
   const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
-  // each vertex is listed once, in the order the walls first use it;
-  // the cleaned mesh depends only on the order of the walls
-  vector<GeometryAnalysis::Point> points;
-  vector<GeometryAnalysis::Triangle> triangles;
+  points.clear();
+  triangles.clear();
   triangles.reserve(obj.wall_indices.size());
   map<vertex_index_t, int> mesh_index;
   for (wall_index_t wi: obj.wall_indices) {
@@ -72,6 +74,16 @@ GeometryAnalysis::Mesh get_clean_mesh(
     }
     triangles.push_back(t);
   }
+}
+
+
+GeometryAnalysis::Mesh get_clean_mesh(
+    const World* world, const GeometryObject& obj, const bool convert_units) {
+
+  // the cleaned mesh depends only on the order of the walls
+  vector<GeometryAnalysis::Point> points;
+  vector<GeometryAnalysis::Triangle> triangles;
+  get_mesh(world, obj, convert_units, points, triangles);
   return GeometryAnalysis::clean_mesh(points, triangles);
 }
 
@@ -387,15 +399,18 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
 
 
 // auxiliary function to compute volume, not related to counted volumes,
-// returns FLT_INVALID if the object is not watertight
+// returns FLT_INVALID if the object is not closed
 double get_geometry_object_volume(const World* world, const GeometryObject& obj) {
-  const GeometryAnalysis::Mesh mesh = get_clean_mesh(world, obj);
-  if (!GeometryAnalysis::is_watertight(mesh)) {
+  vector<GeometryAnalysis::Point> points;
+  vector<GeometryAnalysis::Triangle> triangles;
+  get_mesh(world, obj, false, points, triangles);
+  if (!GeometryAnalysis::is_closed(GeometryAnalysis::clean_mesh(points, triangles))) {
     return FLT_INVALID;
   }
 
-  // computed as vtkPolyDataNormals and vtkMassProperties computed it
-  return GeometryAnalysis::volume_and_area_vtk(mesh).volume;
+  // the volume of the object's region, which releases by concentration use:
+  // the same function on the same walls in the same order
+  return GeometryAnalysis::volume_and_area(points, triangles).volume;
 }
 
 

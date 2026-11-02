@@ -918,11 +918,11 @@ void MCell4Converter::convert_geometry_objects() {
     // vertices
     // remember the "offset" from the first vertex in the target partition
     o->first_vertex_index = p.get_geometry_vertex_count();
-    for (auto& v: o->vertex_list) {
+    for (size_t i = 0; i < o->vertex_list.size(); i++) {
       // add to partition and remember its index
       // must use rcp_length_unit to be identical to mcell4 with mdl
       vertex_index_t vi =
-          p.add_geometry_vertex(Vec3(v[0], v[1], v[2]) * Vec3(world->config.rcp_length_unit));
+          p.add_geometry_vertex(o->get_vertex_in_internal_units(i, world->config.rcp_length_unit));
       o->vertex_indices.push_back(vi);
     }
 
@@ -1071,8 +1071,9 @@ void MCell4Converter::convert_compartments() {
     }
   }
 
-  // set hierarchy of compartments
-  set_parent_and_children_compartments(compartment_objects);
+  // set hierarchy of compartments, from the vertices in internal units
+  // (rcp_length_unit was set by convert_simulation_setup)
+  set_parent_and_children_compartments(compartment_objects, world->config.rcp_length_unit);
 
   for (std::shared_ptr<API::GeometryObject>& o: compartment_objects) {
 

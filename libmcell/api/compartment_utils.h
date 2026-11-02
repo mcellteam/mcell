@@ -24,8 +24,11 @@ namespace API {
 
 class GeometryObject;
 
+// rcp_length_unit converts the vertices to internal units as the simulation
+// does, so that the hierarchy is computed from the coordinates MCell simulates
 void set_parent_and_children_compartments(
-    std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects);
+    std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
+    const double rcp_length_unit);
 
 // used also from data model converter
 static void get_compartment_names(const std::string& bngl_string, std::vector<std::string>& compartments) {
