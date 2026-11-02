@@ -24,6 +24,8 @@
 #include "isaac64.h"
 #include "mcell_structs_shared.h"
 #include "custom_function_call_event.h"
+#include "vtk_utils.h"
+#include "geometry_analysis.h"
 
 
 #include "bng/bng.h"
@@ -929,6 +931,13 @@ void MCell4Converter::convert_geometry_objects() {
     for (size_t i = 0; i < o->wall_list.size(); i++) {
       wall_index_t wi = convert_wall_and_add_to_geom_object(*o, i, p, obj);
       o->wall_indices.push_back(wi);
+    }
+
+    // an edge shared by more than two walls is not allowed in models that use the API
+    // (MDL models are not checked here); edges are matched by exact vertex coordinates,
+    // as in the checks of counted objects and compartments
+    if (GeometryAnalysis::has_non_manifold_edge(VtkUtils::get_clean_mesh(world, obj))) {
+      throw ValueError("Non-manifold mesh is not allowed, error for " + o->name + ".");
     }
 
     // initialize edges
