@@ -13,12 +13,11 @@
 #define SRC4_GEOMETRY_ANALYSIS_H_
 
 // Analysis of closed triangle meshes: cleaning, closedness, volume and area,
-// containment of one mesh in another, and OBJ export. It replaces MCell's use
+// containment of one mesh in another, and OBJ export. It replaced MCell's use
 // of VTK. Decisions (is a mesh closed, do two meshes touch, is a point inside)
 // are exact: every sign comes from Shewchuk's predicates. Volume and area
 // follow MCell's Region and Wall code expression by expression
-// (volume_and_area); volume_and_area_vtk follows vtkMassProperties, for
-// comparisons with VTK until VTK is removed. Like the predicates, the
+// (volume_and_area). Like the predicates, the
 // decisions are exact as long as no intermediate product underflows or
 // overflows, i.e. for coordinate differences roughly between 1e-80 and 1e80
 // (or zero), far beyond what MCell models use.
@@ -65,11 +64,6 @@ struct VolumeArea {
   double volume;
   double area;
 };
-
-// unsigned volume and surface area, computed as vtkPolyDataNormals
-// (consistency on, splitting off) followed by vtkMassProperties computes them;
-// both are NaN in the case vtkMassProperties calls an "unpredicted situation"
-VolumeArea volume_and_area_vtk(const Mesh& mesh);
 
 // signed volume and surface area as MCell's simulation computes them: the
 // volume sums the signed volumes of the tetrahedra that join each triangle to

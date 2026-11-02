@@ -153,7 +153,6 @@ foreach(_t libmcell libmcell_dummy)
   endif()
 endforeach()
 
-# geometry_utils / compartment_utils include VTK directly; link the VTK targets
-# so their include directories come along automatically.
-target_link_libraries(libmcell PRIVATE ${VTK_LIBRARIES} MCell::geometry)
+# compartment_utils and the converter's mesh checks use the geometry analysis
+target_link_libraries(libmcell PRIVATE MCell::geometry)
 

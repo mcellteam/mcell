@@ -18,10 +18,6 @@
 #include "geometry.h"
 #include "partition.h"
 
-#include <vtkPlatonicSolidSource.h>
-#include <vtkPolyData.h>
-#include <vtkSmartPointer.h>
-
 using namespace std;
 
 namespace MCell {
@@ -264,52 +260,6 @@ std::shared_ptr<GeometryObject> create_icosphere(
 
   return res;
 }
-
-#if 0
-// keeping this code as an example on how to transform vtkPolyData
-std::shared_ptr<GeometryObject> create_sphere(
-    const std::string& name, const double radius, const int resolution) {
-
-  vtkNew<vtkSphereSource> sphere;
-  sphere->SetCenter(0.0, 0.0, 0.0);
-  sphere->SetRadius(radius);
-  sphere->SetPhiResolution(resolution);
-  sphere->SetThetaResolution(resolution);
-  sphere->Update();
-
-  vtkSmartPointer<vtkPolyData> polydata = sphere->GetOutput();
-
-  vtkPoints* points = polydata->GetPoints();
-
-  vector<vector<double>> vertex_list;
-  int num_vertices = points->GetNumberOfPoints();
-  for (int i = 0; i < num_vertices; i++) {
-    double pt[3];
-    points->GetPoint(i, pt);
-    vertex_list.push_back(vector<double>{pt[0], pt[1], pt[2]});
-  }
-
-  vector<vector<int>> wall_list;
-  int num_walls = polydata->GetNumberOfCells();
-  for (int i = 0; i < num_walls; i++) {
-    vtkCell* cell = polydata->GetCell(i);
-
-    vector<int> wall;
-    for (int k = 0; k < 3; k++) {
-      wall.push_back(cell->GetPointId(k));
-    }
-    wall_list.push_back(wall);
-  }
-
-  auto res = make_shared<GeometryObject>(
-      name,
-      vertex_list,
-      wall_list
-  );
-
-  return res;
-}
-#endif
 
 
 void validate_volumetric_mesh(

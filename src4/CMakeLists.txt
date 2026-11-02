@@ -38,14 +38,14 @@ set(SRC4_SOURCE_FILES
     bngl_exporter.cpp
 )
 
-# The geometry analysis that replaces VTK. It depends on nothing else in MCell,
+# The geometry analysis that replaced VTK. It depends on nothing else in MCell,
 # so tools such as data_model_to_pymcell can link it alone.
 set(GEOMETRY_SOURCE_FILES
     predicates.cpp
     geometry_analysis.cpp
 )
 
-# The new geometry code that replaces VTK is written for C++23, while the rest
+# The geometry code that replaced VTK is written for C++23, while the rest
 # of MCell is still built as C++17 (MCELL_CXX_STANDARD). Its headers stay valid
 # C++17 so that the rest of MCell can include them, and objects built by the
 # same compiler with different standards link normally. Drop this flag once
@@ -105,7 +105,3 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
-
-# vtk_utils / world / bngl_exporter include VTK directly. Linking the VTK
-# targets pulls in their include directories (no manual paths needed).
-target_link_libraries(${PROJECT_NAME} PRIVATE ${VTK_LIBRARIES})

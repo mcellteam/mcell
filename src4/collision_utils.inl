@@ -1518,9 +1518,12 @@ static counted_volume_index_t compute_counted_volume_for_pos(
   map<geometry_object_index_t, uint> num_crossed_walls_per_object;
 
   CountedVolume cv;
-#if 1
+
   // send a ray trace and collect all walls we crossed,
   // then if we hit wall of an object odd number of times, we are inside of an object
+  // (known issue, noted with the VTK point-in-object alternative that was kept
+  // here disabled until VTK was removed: this does not work correctly in all
+  // cases, the WALL_REDO handling is wrong and it is not clear how to fix it)
 
   // assuming that the whole object fits into our partition
   // can be optimized by choosing some close object
@@ -1545,22 +1548,6 @@ static counted_volume_index_t compute_counted_volume_for_pos(
       cv.contained_in_objects.insert(it.first);
     }
   }
-#else
-  // the implementation above does not work correctly in all cases,
-  // the WALL_REDO handling is wrong and not sure how it can be fixed
-  // using VTK to make sure that we get correct result
-  // maybe we can use the implementation above to optimize the counting,
-  // but for now let's keep it simple
-
-  cv.contained_in_objects.clear();
-  for (GeometryObject& obj: p.get_geometry_objects()) {
-    if (obj.is_counted_volume_or_compartment()) {
-      if (VtkUtils::is_point_inside_counted_volume(obj, pos)) {
-        cv.contained_in_objects.insert(obj.index);
-      }
-    }
-  }
-#endif
 
   return p.find_or_add_counted_volume(cv);
 }

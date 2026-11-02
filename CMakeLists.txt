@@ -28,29 +28,6 @@ if(CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 8.3.0)
 endif()
 
 
-# add VTK libs VTK and headers
-set(VTK_DIR ${CMAKE_SOURCE_DIR}/../mcell_tools/work/build_vtk)
-# Request only the modules MCell actually uses (the rest come transitively):
-#   CommonCore        - vtkSmartPointer
-#   CommonDataModel   - vtkPolyData / vtkPointData / vtkTriangle
-#   CommonTransforms  - vtkTransform
-#   FiltersCore       - vtkCleanPolyData / vtkTriangleFilter / vtkMassProperties / ...
-#   FiltersModeling   - vtkCollisionDetectionFilter / vtkSelectEnclosedPoints
-#   FiltersSources    - vtkPlatonicSolidSource
-#   IOExport          - vtkOBJExporter
-#   RenderingCore     - vtkRenderer / vtkRenderWindow / vtkPolyDataMapper
-# After this, ${VTK_LIBRARIES} expands to exactly these VTK:: targets, which
-# carry their own include dirs (no manual include paths needed).
-find_package(VTK REQUIRED COMPONENTS
-  CommonCore
-  CommonDataModel
-  CommonTransforms
-  FiltersCore
-  FiltersModeling
-  FiltersSources
-  IOExport
-  RenderingCore)
-
 # jsoncpp 1.9.8 defaults the BUILD_SHARED_LIBS option to ON. Because jsoncpp is
 # pulled in via add_subdirectory(), that cache variable would leak into the rest
 # of the project and turn libraries that do not specify STATIC/SHARED explicitly
@@ -117,14 +94,6 @@ target_compile_definitions(mcell_project_options INTERFACE
     PYTHON_VERSION=${PYTHON_VERSION_NO_DOT}
     $<$<NOT:$<PLATFORM_ID:Windows>>:_GNU_SOURCE=1>
     $<$<PLATFORM_ID:Windows>:YY_NO_UNISTD_H>)
-
-# Temporary, for the VTK removal: every place that uses VTK also runs
-# src4/geometry_analysis and reports each difference (src4/geometry_ab_check.h).
-# Removed together with VTK.
-option(MCELL_GEOMETRY_AB_CHECK "Compare VTK with the geometry analysis that replaces it" OFF)
-if (MCELL_GEOMETRY_AB_CHECK)
-  target_compile_definitions(mcell_project_options INTERFACE MCELL_GEOMETRY_AB_CHECK)
-endif()
 
 # Common GCC/Clang warning set (kept identical to the historical global flags).
 set(MCELL_NIX_WARNINGS
@@ -201,9 +170,9 @@ if (NOT WIN32)
 
   # libm is a separate library on Linux (glibc), so it must be linked explicitly.
   # On macOS the math functions live in libSystem, which is always linked
-  # implicitly, so an explicit -lm is redundant -- and because VTK already pulls
-  # one in transitively (libvtkkissfft), the new macOS linker warns "ignoring
-  # duplicate libraries: '-lm'". Skip it on Apple to silence that.
+  # implicitly, so an explicit -lm is redundant (and while VTK was linked, it
+  # pulled one in transitively, so the new macOS linker warned "ignoring
+  # duplicate libraries: '-lm'"). Skip it on Apple.
   if (NOT APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
   endif()
@@ -314,7 +283,6 @@ file(GENERATE
 ")
 # Include directories are now expressed as per-target usage requirements:
 # - each library (libbng, nfsim, mcell4, libmcell, ...) exports its own headers,
-# - VTK headers come from linking the VTK:: targets,
 # so the mcell executable and the mcell4_so module only need to spell out the
 # handful of dirs unique to their own translation units (see APP_INCLUDE_DIRS
 # near the target definitions below).
@@ -563,7 +531,7 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)
 target_link_libraries(mcell
     PRIVATE
-    MCell::mcell4 MCell::libmcell_dummy BNG::bng NFsimC::NFsimC NFsim::NFsim JsonCpp::JsonCpp Nauty::nauty ${VTK_LIBRARIES}
+    MCell::mcell4 MCell::libmcell_dummy BNG::bng NFsimC::NFsimC NFsim::NFsim JsonCpp::JsonCpp Nauty::nauty
     $<$<NOT:$<PLATFORM_ID:Darwin>>:Python3::Python>
     # nanobind has a static support lib (pybind11 was header-only). mcell4/libmcell
     # TUs reference its symbols (e.g. nanobind::python_error::restore,
@@ -585,7 +553,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/utils/)
 add_dependencies(mcell4_so libmcell mcell4 libbng ${JSONCPP_LIB})
 target_link_libraries(mcell4_so
     PUBLIC MCell::libmcell
-    PRIVATE MCell::mcell4 BNG::bng JsonCpp::JsonCpp Nauty::nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
+    PRIVATE MCell::mcell4 BNG::bng JsonCpp::JsonCpp Nauty::nauty ${GPERFTOOLS_LIB} ${GPERFTOOLS_MCELLSO_DEP} ${STDC_FS}
     PUBLIC MCell::libmcell  # linking dependency issue, we must include libmcell once again to the list of libraries
     # nanobind has a support lib (unlike header-only pybind11); libmcell/mcell4 reference its
     # symbols, so for GNU ld's left-to-right static resolution it must come AFTER them.
@@ -631,10 +599,3 @@ foreach(_t IN ITEMS
     target_include_directories(${_t} SYSTEM PRIVATE ${CMAKE_SOURCE_DIR}/../libbng/libs)
   endif()
 endforeach()
-
-# VTK 9 object factories register via per-target autoinit headers. Apply it to
-# every target that compiles VTK-using translation units so factory-backed
-# objects (e.g. renderers) resolve at runtime. MODULES is the set we requested.
-vtk_module_autoinit(
-  TARGETS mcell4 libmcell data_model_to_pymcell mcell mcell4_so
-  MODULES ${VTK_LIBRARIES})

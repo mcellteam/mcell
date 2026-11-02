@@ -15,8 +15,8 @@ add_executable(${PROJECT_NAME}
 
 add_dependencies(${PROJECT_NAME} version_h)
 
-# src/src4/include, sparsehash and VTK headers arrive transitively from the
-# linked libmcell / libbng / VTK targets; only this tool's extras are listed.
+# src/src4/include and sparsehash headers arrive transitively from the linked
+# libmcell / libbng targets; only this tool's extras are listed.
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../..
@@ -25,7 +25,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
 target_link_libraries(${PROJECT_NAME}
-    PRIVATE JsonCpp::JsonCpp MCell::libmcell MCell::geometry ${VTK_LIBRARIES} BNG::bng
+    PRIVATE JsonCpp::JsonCpp MCell::libmcell MCell::geometry BNG::bng
     # libmcell references nanobind's static support-lib symbols; MSVC requires the
     # executable to resolve them, so link nanobind-static on Windows (last, for
     # link-order). Not needed by GNU ld / macOS dynamic_lookup. See mcell/CMakeLists.txt.
