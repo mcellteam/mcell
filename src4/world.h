@@ -36,6 +36,7 @@
 #include "geometry.h"
 #include "count_buffer.h"
 #include "memory_limit_checker.h"
+#include "mesh_utils.h"
 
 #include "logging.h"
 #include "rng.h"
@@ -253,6 +254,10 @@ public:
   uint64_t total_iterations; // number of iterations to simulate - move to Sim config
 
   rng_state rng; // single state for the random number generator
+
+  // meshes and release regions that MeshUtils has checked, so that each warning
+  // is printed once
+  MeshUtils::CheckedMeshes checked_meshes;
 
 private:
   PartitionVector partitions;

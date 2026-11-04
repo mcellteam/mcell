@@ -831,7 +831,6 @@ uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
     const GeometryObject& go = p.get_geometry_object_by_id(region_expr.root->geometry_object_id);
     Region& r = p.get_region_by_id(go.encompassing_region_id);
     r.initialize_volume_info_if_needed(p);
-    release_assert(r.is_manifold() && "Trying to release into a regions that is not a manifold and has no volume");
     vol = r.get_volume();
     exact_number = true;
   }

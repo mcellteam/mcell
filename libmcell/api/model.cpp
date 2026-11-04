@@ -32,6 +32,7 @@
 #include "scheduler.h"
 #include "diffuse_react_event.h"
 #include "release_event.h"
+#include "mesh_utils.h"
 #include "rxn_utils.inl"
 #include "molecule.h"
 #include "viz_output_event.h"
@@ -228,6 +229,9 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
   MCell4Converter converter(this, world);
   MCell::ReleaseEvent* rel_event = converter.convert_single_release_event(release_site);
   assert(rel_event != nullptr);
+
+  // warnings about the meshes of its region, as for the releases checked at initialization
+  MCell::MeshUtils::check_release_regions(world, *rel_event);
 
   // TODO: we must improve handling of cases when the release is in the future
   rel_event->event_time = release_site->release_time / world->config.time_unit;

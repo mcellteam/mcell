@@ -271,6 +271,9 @@ void World::init_simulation(const double start_time) {
 
   init_counted_volumes();
 
+  // warnings about the meshes of geometry objects and release regions
+  MeshUtils::check_meshes(this);
+
   cout <<
       "Partition contains " <<  config.num_subparts_per_partition_edge << "^3 subpartitions, " <<
       "subpartition size is " << config.subpart_edge_length * config.length_unit << " microns.\n";

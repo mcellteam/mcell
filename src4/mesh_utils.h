@@ -13,20 +13,26 @@
 #define SRC4_MESH_UTILS_H_
 
 // MCell's side of the mesh analysis: the meshes of geometry objects for
-// GeometryAnalysis. The algorithms on plain meshes are in GeometryAnalysis;
-// counted volumes are in CountedVolumeUtils.
+// GeometryAnalysis, and the checks of a model's meshes, which print warnings
+// that scripts can parse. The algorithms on plain meshes are in
+// GeometryAnalysis; counted volumes are in CountedVolumeUtils.
 //
 // This header is valid C++17 so that the rest of MCell can include it; the
 // implementation is C++23.
 
+#include <set>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include "defines.h"
 #include "geometry_analysis.h"
 
 namespace MCell {
 
 class World;
 class GeometryObject;
+class ReleaseEvent;
 
 namespace MeshUtils {
 
@@ -40,6 +46,26 @@ void get_mesh(
 // the same mesh, cleaned (vertices with equal coordinates merged)
 GeometryAnalysis::Mesh get_clean_mesh(
     const World* world, const GeometryObject& obj, const bool convert_units = false);
+
+// what the checks have already looked at, so that each warning is printed
+// once; World holds it
+struct CheckedMeshes {
+  // objects whose orientation was checked
+  std::set<geometry_object_id_t> orientation;
+  // release sites and the objects of their regions
+  std::set<std::pair<std::string, geometry_object_id_t>> release_regions;
+};
+
+// checks the meshes of all geometry objects and of the regions of all
+// scheduled releases, and prints one warning line for each problem found:
+//   Warning: [CODE] <object name>: <text>
+// The codes and the cases are listed in mesh_utils.cpp. The run continues.
+// Must be called after the counted volumes are initialized.
+void check_meshes(World* world);
+
+// the checks of the regions of one release, e.g. of one made after the
+// initialization
+void check_release_regions(World* world, const ReleaseEvent& release);
 
 } // namespace MeshUtils
 } // namespace MCell

@@ -829,16 +829,9 @@ void Region::init_surface_region_edges(const Partition& p) {
 }
 
 
-/***************************************************************************
-  Based on is_manifold:
-  In: r: A region. This region must already be painted on walls. The edges must
-         have already been added to the object (i.e. sharpened).
-      count_regions_flag: This is usually set, unless we are only checking
-                          volumes for dynamic geometries.
-  Out: 1 if the region is a manifold, 0 otherwise.
-  Note: by "manifold" we mean "orientable compact two-dimensional
-        manifold without boundaries embedded in R3"
-***************************************************************************/
+// the region's bounding box and its signed volume, negative when the walls face
+// inward; MeshUtils::check_meshes warns when the region of a release is not
+// closed, and when a release by concentration would use a negative volume
 void Region::initialize_volume_info_if_needed(const Partition& p) {
   if (volume_info_initialized) {
     return;
@@ -859,13 +852,6 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
   points.reserve(walls_and_edges.size() * VERTICES_IN_TRIANGLE);
   triangles.reserve(walls_and_edges.size());
   for (const auto& it: walls_and_edges) {
-
-    if (!it.second.empty()) {
-      // does this wall represent a region border?
-      region_is_manifold = false;
-      volume_info_initialized = true;
-    }
-
     const Wall& w = p.get_wall(it.first);
     const int first = (int)points.size();
     for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
@@ -882,7 +868,6 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
 
   perf() << "  - volume computed\n";
 
-  region_is_manifold = true;
   volume_info_initialized = true;
 }
 
@@ -1037,10 +1022,6 @@ bool Region::is_point_inside(Partition& p, const Vec3& pos) {
   initialize_volume_info_if_needed(p);
   initialize_wall_subpart_mapping_if_needed(p);
   initialize_region_waypoints_if_needed(p);
-
-  if (!is_manifold()) {
-    mcell_error("Cannot check whether a point is a non-manifold volumetric region %s. (possibly during a molecule release)", name.c_str());
-  }
 
   // get a waypoint close to this position
   IVec3 waypoint_index;

@@ -24,6 +24,7 @@
 #include <numeric>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include "predicates.h"
@@ -473,6 +474,105 @@ bool all_edge_uses(const Mesh& mesh, UsesOk uses_ok) {
   return true;
 }
 
+// one use of an undirected edge by a triangle; forward: the triangle runs
+// along the edge from its lower to its higher point index
+struct EdgeUse {
+  std::uint64_t key;
+  int triangle;
+  bool forward;
+};
+
+// every use of every edge, the uses of one edge next to each other
+std::vector<EdgeUse> edge_uses(const Mesh& mesh) {
+  std::vector<EdgeUse> uses;
+  uses.reserve(mesh.triangles.size() * 3);
+  for (int ti = 0; ti < static_cast<int>(mesh.triangles.size()); ti++) {
+    const Triangle& t = mesh.triangles[ti];
+    for (int i = 0; i < 3; i++) {
+      const std::uint32_t u = t[i], v = t[(i + 1) % 3];
+      const auto [a, b] = std::minmax(u, v);
+      uses.push_back({(std::uint64_t{a} << 32) | b, ti, u < v});
+    }
+  }
+  std::ranges::sort(uses, {}, &EdgeUse::key);
+  return uses;
+}
+
+// calls f(first, last) for the range of uses of each edge
+template<typename F>
+void for_each_edge(const std::vector<EdgeUse>& uses, F f) {
+  for (std::size_t i = 0; i < uses.size();) {
+    std::size_t j = i;
+    while (j < uses.size() && uses[j].key == uses[i].key) {
+      j++;
+    }
+    f(i, j);
+    i = j;
+  }
+}
+
+// the triangles with their own point list, numbered in the order the triangles
+// first use them, and its bounding box
+Mesh sub_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
+  Mesh res;
+  std::unordered_map<int, int> new_index;
+  res.triangles.reserve(triangles.size());
+  for (const Triangle& t : triangles) {
+    Triangle ids;
+    for (int i = 0; i < 3; i++) {
+      const auto [it, inserted] = new_index.emplace(t[i], static_cast<int>(res.points.size()));
+      if (inserted) {
+        res.points.push_back(points[t[i]]);
+      }
+      ids[i] = it->second;
+    }
+    res.triangles.push_back(ids);
+  }
+  if (!res.points.empty()) {
+    res.lo = res.hi = res.points[0];
+    for (const Point& p : res.points) {
+      for (int k = 0; k < 3; k++) {
+        res.lo[k] = std::min(res.lo[k], p[k]);
+        res.hi[k] = std::max(res.hi[k], p[k]);
+      }
+    }
+  }
+  return res;
+}
+
+// for the volume of volume_and_area: the sum over the triangles of the absolute
+// values of the six products it adds for each, divided by 6, with the same
+// reference point; the rounding error of that volume is below
+// (number of triangles + 16) * 2^-52 times this sum
+double volume_magnitude(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
+  if (triangles.empty()) {
+    return 0.0;
+  }
+  Point llf = points[triangles[0][0]], urb = llf;
+  for (const Triangle& t : triangles) {
+    for (const int idx : t) {
+      const Point& v = points[idx];
+      for (int k = 0; k < 3; k++) {
+        if (llf[k] > v[k]) {
+          llf[k] = v[k];
+        }
+        else if (urb[k] < v[k]) {
+          urb[k] = v[k];
+        }
+      }
+    }
+  }
+  const Point d{(llf[0] + urb[0]) * 0.5, (llf[1] + urb[1]) * 0.5, (llf[2] + urb[2]) * 0.5};
+
+  double sum = 0.0;
+  for (const Triangle& t : triangles) {
+    const Point a = sub(points[t[0]], d), b = sub(points[t[1]], d), c = sub(points[t[2]], d);
+    sum += (std::abs(a[2] * b[1] * c[0]) + std::abs(a[1] * b[2] * c[0]) + std::abs(a[2] * b[0] * c[1]) +
+            std::abs(a[0] * b[2] * c[1]) + std::abs(a[1] * b[0] * c[2]) + std::abs(a[0] * b[1] * c[2])) / 6.0;
+  }
+  return sum;
+}
+
 // ---------------------------------------------------------------------------
 // bounding volume hierarchy
 
@@ -907,6 +1007,149 @@ bool is_watertight(const Mesh& mesh) {
 
 bool has_non_manifold_edge(const Mesh& mesh) {
   return !all_edge_uses(mesh, [](std::size_t uses) { return uses <= 2; });
+}
+
+std::size_t count_inconsistent_edges(const Mesh& mesh) {
+  const std::vector<EdgeUse> uses = edge_uses(mesh);
+  std::size_t count = 0;
+  for_each_edge(uses, [&](std::size_t first, std::size_t last) {
+    if (last - first == 2 && uses[first].forward == uses[first + 1].forward) {
+      count++;
+    }
+  });
+  return count;
+}
+
+std::size_t count_duplicate_points(const std::vector<Point>& points) {
+  std::unordered_set<PointKey, PointKeyHash> seen;
+  seen.reserve(points.size() * 2 + 1);
+  std::size_t count = 0;
+  for (const Point& p : points) {
+    if (!seen.insert(PointKey{key_bits(p[0]), key_bits(p[1]), key_bits(p[2])}).second) {
+      count++;
+    }
+  }
+  return count;
+}
+
+InsideOutParts find_inside_out_parts(const Mesh& mesh) {
+  InsideOutParts res;
+  const int n = static_cast<int>(mesh.triangles.size());
+  if (n == 0) {
+    return res;
+  }
+  const std::vector<EdgeUse> uses = edge_uses(mesh);
+
+  // connected components: triangles joined through edges
+  std::vector<int> parent(n);
+  std::iota(parent.begin(), parent.end(), 0);
+  const auto find = [&parent](int x) {
+    while (parent[x] != x) {
+      parent[x] = parent[parent[x]];
+      x = parent[x];
+    }
+    return x;
+  };
+  for (std::size_t i = 1; i < uses.size(); i++) {
+    if (uses[i].key == uses[i - 1].key) {
+      const int a = find(uses[i - 1].triangle), b = find(uses[i].triangle);
+      if (a != b) {
+        parent[std::max(a, b)] = std::min(a, b);
+      }
+    }
+  }
+  std::vector<int> component_of(n), component_of_root(n, -1);
+  std::vector<std::vector<Triangle>> components; // in the order of their first triangles
+  for (int t = 0; t < n; t++) {
+    const int r = find(t);
+    if (component_of_root[r] < 0) {
+      component_of_root[r] = static_cast<int>(components.size());
+      components.emplace_back();
+    }
+    component_of[t] = component_of_root[r];
+    components[component_of[t]].push_back(mesh.triangles[t]);
+  }
+  const int nc = static_cast<int>(components.size());
+
+  // closed: every edge has exactly two triangles; judged: also consistently
+  // oriented, and later with a certain sign of the volume and a known depth
+  std::vector<char> closed(nc, 1), judged(nc, 1);
+  for_each_edge(uses, [&](std::size_t first, std::size_t last) {
+    const int c = component_of[uses[first].triangle];
+    if (last - first != 2) {
+      closed[c] = 0;
+      judged[c] = 0;
+    }
+    else if (uses[first].forward == uses[first + 1].forward) {
+      judged[c] = 0;
+    }
+  });
+
+  std::vector<double> volume(nc, 0.0);
+  for (int c = 0; c < nc; c++) {
+    if (!judged[c]) {
+      continue;
+    }
+    volume[c] = volume_and_area(mesh.points, components[c]).volume;
+    const double bound = static_cast<double>(components[c].size() + 16) * 0x1p-52 *
+        volume_magnitude(mesh.points, components[c]);
+    if (!(std::abs(volume[c]) > bound)) {
+      judged[c] = 0; // flat: the sign is not certain
+    }
+  }
+
+  // depth: how many of the other closed components enclose a component; one
+  // point of it decides unless it lies on the other surface, then the next one
+  std::vector<int> depth(nc, 0);
+  if (nc > 1) {
+    std::vector<Mesh> meshes(nc);
+    std::vector<std::unique_ptr<Solid>> solids(nc);
+    for (int c = 0; c < nc; c++) {
+      meshes[c] = sub_mesh(mesh.points, components[c]);
+      if (closed[c]) {
+        solids[c] = std::make_unique<Solid>(meshes[c]);
+      }
+    }
+    for (int c = 0; c < nc; c++) {
+      if (!judged[c]) {
+        continue;
+      }
+      for (int k = 0; k < nc && judged[c]; k++) {
+        if (k == c || !solids[k]) {
+          continue;
+        }
+        bool box_inside = true;
+        for (int i = 0; i < 3; i++) {
+          box_inside = box_inside && meshes[k].lo[i] <= meshes[c].lo[i] && meshes[c].hi[i] <= meshes[k].hi[i];
+        }
+        if (!box_inside) {
+          continue;
+        }
+        Side side = Side::Undecided;
+        for (const Point& p : meshes[c].points) {
+          side = point_in_solid(*solids[k], p);
+          if (side == Side::Inside || side == Side::Outside) {
+            break;
+          }
+        }
+        if (side == Side::Inside) {
+          depth[c]++;
+        }
+        else if (side != Side::Outside) {
+          judged[c] = 0; // every point of the component lies on the other surface
+        }
+      }
+    }
+  }
+
+  // outward (positive) at an even depth, inward (a cavity) at an odd one
+  for (int c = 0; c < nc; c++) {
+    if (judged[c] && (volume[c] > 0) != (depth[c] % 2 == 0)) {
+      res.components++;
+      res.signed_volume += volume[c];
+    }
+  }
+  return res;
 }
 
 VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {

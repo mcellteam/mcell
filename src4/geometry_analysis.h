@@ -26,6 +26,7 @@
 // implementation is C++23.
 
 #include <array>
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
@@ -59,6 +60,30 @@ bool is_watertight(const Mesh& mesh);
 // some edge belongs to three or more triangles (a non-manifold edge); a mesh
 // is closed when it is watertight and has no such edge
 bool has_non_manifold_edge(const Mesh& mesh);
+
+// the number of edges of exactly two triangles that both run along the edge in
+// the same direction, so that their normals point to different sides of the
+// surface; edges of one or of three or more triangles are not counted
+std::size_t count_inconsistent_edges(const Mesh& mesh);
+
+// the number of points equal to an earlier point of the list (0.0 equals -0.0,
+// as in clean_mesh)
+std::size_t count_duplicate_points(const std::vector<Point>& points);
+
+struct InsideOutParts {
+  std::size_t components = 0; // connected components that face the wrong way
+  double signed_volume = 0.0; // the sum of their signed volumes
+};
+
+// the parts of a mesh that face the wrong way. The parts are the connected
+// components (triangles joined through edges); a component must face outward
+// (a positive signed volume) when an even number of the mesh's other
+// components enclose it and inward (a cavity) when an odd number does. Only
+// closed, consistently oriented components are judged, and only those whose
+// signed volume is large enough for its sign to be certain (a flat component
+// is never judged); a component on the surface of another can't be judged
+// either
+InsideOutParts find_inside_out_parts(const Mesh& mesh);
 
 struct VolumeArea {
   double volume;

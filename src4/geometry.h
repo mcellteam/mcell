@@ -237,7 +237,7 @@ public:
   Region()
     : id(REGION_ID_INVALID), index(REGION_INDEX_INVALID), species_id(SPECIES_ID_INVALID),
       geometry_object_id(GEOMETRY_OBJECT_ID_INVALID), name(""),
-      volume_info_initialized(false), region_is_manifold(false),
+      volume_info_initialized(false),
       walls_per_subpart_initialized(false), region_waypoints_initialized(false),
       volume(FLT_INVALID)
       {
@@ -270,7 +270,6 @@ public:
 
 private:
   bool volume_info_initialized;
-  bool region_is_manifold;
   bool walls_per_subpart_initialized;
   bool region_waypoints_initialized;
 
@@ -288,11 +287,6 @@ public:
   void initialize_volume_info_if_needed(const Partition& p);
 
   void compute_bounding_box(const Partition& p, Vec3& llf, Vec3& urb);
-
-  bool is_manifold() const {
-    assert(volume_info_initialized);
-    return region_is_manifold;
-  }
 
   pos_t get_volume() const {
     assert(volume_info_initialized);
