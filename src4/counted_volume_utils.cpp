@@ -21,6 +21,7 @@
 #include "geometry.h"
 
 #include "counted_volume_utils.h"
+#include "mesh_utils.h"
 
 using namespace std;
 
@@ -44,50 +45,6 @@ const GeometryObject& GeomObjectInfo::get_geometry_object(const World* world) co
 }
 
 
-// the walls of a geometry object in order, as triangles of the simulator's
-// vertices in internal units (in microns with convert_units); each vertex is
-// listed once, in the order the walls first use it
-static void get_mesh(
-    const World* world, const GeometryObject& obj, const bool convert_units,
-    vector<GeometryAnalysis::Point>& points, vector<GeometryAnalysis::Triangle>& triangles) {
-
-  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-
-  points.clear();
-  triangles.clear();
-  triangles.reserve(obj.wall_indices.size());
-  map<vertex_index_t, int> mesh_index;
-  for (wall_index_t wi: obj.wall_indices) {
-    const Wall& w = p.get_wall(wi);
-    GeometryAnalysis::Triangle t;
-    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-      auto it = mesh_index.find(w.vertex_indices[i]);
-      if (it == mesh_index.end()) {
-        Vec3 pt = p.get_geometry_vertex(w.vertex_indices[i]);
-        if (convert_units) {
-          pt = pt * Vec3(world->config.length_unit);
-        }
-        it = mesh_index.emplace(w.vertex_indices[i], (int)points.size()).first;
-        points.push_back({pt.x, pt.y, pt.z});
-      }
-      t[i] = it->second;
-    }
-    triangles.push_back(t);
-  }
-}
-
-
-GeometryAnalysis::Mesh get_clean_mesh(
-    const World* world, const GeometryObject& obj, const bool convert_units) {
-
-  // the cleaned mesh depends only on the order of the walls
-  vector<GeometryAnalysis::Point> points;
-  vector<GeometryAnalysis::Triangle> triangles;
-  get_mesh(world, obj, convert_units, points, triangles);
-  return GeometryAnalysis::clean_mesh(points, triangles);
-}
-
-
 // checks the mesh of every counted object and prepares it for the containment
 // tests; reports every object that can't be counted in and then returns false
 static bool prepare_counted_object_solids(const World* world, GeomObjectInfoVector& counted_objects) {
@@ -96,7 +53,7 @@ static bool prepare_counted_object_solids(const World* world, GeomObjectInfoVect
   for (GeomObjectInfo& obj_info: counted_objects) {
 
     const GeometryObject& obj = obj_info.get_geometry_object(world);
-    GeometryAnalysis::Mesh mesh = get_clean_mesh(world, obj);
+    GeometryAnalysis::Mesh mesh = MeshUtils::get_clean_mesh(world, obj);
 
     // an edge shared by more than two walls is reported before an edge of only one wall
     if (GeometryAnalysis::has_non_manifold_edge(mesh)) {
@@ -403,7 +360,7 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
 double get_geometry_object_volume(const World* world, const GeometryObject& obj) {
   vector<GeometryAnalysis::Point> points;
   vector<GeometryAnalysis::Triangle> triangles;
-  get_mesh(world, obj, false, points, triangles);
+  MeshUtils::get_mesh(world, obj, false, points, triangles);
   if (!GeometryAnalysis::is_closed(GeometryAnalysis::clean_mesh(points, triangles))) {
     return FLT_INVALID;
   }
@@ -421,7 +378,7 @@ void export_geometry_objects_to_obj(
   // each is white with 25% transparency (note: same as DEFAULT_COLOR)
   vector<GeometryAnalysis::NamedMesh> meshes;
   for (const GeometryObject& o: objs) {
-    meshes.push_back({o.name, get_clean_mesh(world, o, true)});
+    meshes.push_back({o.name, MeshUtils::get_clean_mesh(world, o, true)});
   }
 
   if (!GeometryAnalysis::write_obj(file_prefix, meshes)) {

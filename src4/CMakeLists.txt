@@ -33,6 +33,7 @@ set(SRC4_SOURCE_FILES
     simulation_stats.cpp
     simulation_config.cpp
     counted_volume_utils.cpp
+    mesh_utils.cpp
     region_utils.cpp
     bng_data_to_datamodel_converter.cpp
     bngl_exporter.cpp
@@ -72,6 +73,20 @@ else()
 endif()
 set_source_files_properties(${GEOMETRY_SOURCE_FILES} PROPERTIES COMPILE_OPTIONS
     "${MCELL_CXX23};${MCELL_NO_FP_CONTRACTION}")
+
+# New MCell files that include MCell's C++17 headers are C++23 too. Through
+# them they include glm, whose detail/type_half.inl uses a compound assignment
+# to a volatile variable, deprecated since C++20; that warning is switched off
+# for these files.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(MCELL_CXX23_GLM -Wno-volatile)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(MCELL_CXX23_GLM -Wno-deprecated-volatile)
+else()
+  set(MCELL_CXX23_GLM "")
+endif()
+set_source_files_properties(mesh_utils.cpp PROPERTIES COMPILE_OPTIONS
+    "${MCELL_CXX23};${MCELL_CXX23_GLM}")
 
 add_library(mcell_geometry STATIC
     ${GEOMETRY_SOURCE_FILES}

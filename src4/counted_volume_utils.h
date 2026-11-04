@@ -94,12 +94,6 @@ typedef std::set<GeomObjectInfo> IntersectingSet;
 typedef std::map<GeomObjectInfo, int> PathLengthCache;
 
 
-// the mesh of a geometry object for geometry_analysis: its walls in order, with
-// the simulator's vertices in internal units (in microns with convert_units),
-// cleaned (vertices with equal coordinates merged)
-GeometryAnalysis::Mesh get_clean_mesh(
-    const World* world, const GeometryObject& obj, const bool convert_units = false);
-
 // return true if counted volumes were correctly set up
 bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_objects);
 
