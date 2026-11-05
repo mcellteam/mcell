@@ -97,6 +97,16 @@ set_source_files_properties(mesh_utils.cpp PROPERTIES COMPILE_OPTIONS
 set_source_files_properties(bngl_exporter.cpp PROPERTIES COMPILE_OPTIONS
     "${MCELL_NO_FP_CONTRACTION}")
 
+# add_more_tile_neighbors_to_list_fast (grid_utils.inl, used only through
+# find_neighbor_tiles in this file) places the tiles of two walls along their
+# shared edge from the edge's length (distance3, a sum of squares) and compares
+# the positions exactly. Contracted, the last bit of that length can differ
+# between platforms and change which tiles of the neighboring wall are searched
+# for a reaction partner or a product's place, so simulations diverge (tests
+# 2800 and 0820 failed on Apple silicon).
+set_source_files_properties(diffuse_react_event.cpp PROPERTIES COMPILE_OPTIONS
+    "${MCELL_NO_FP_CONTRACTION}")
+
 add_library(mcell_geometry STATIC
     ${GEOMETRY_SOURCE_FILES}
 )
