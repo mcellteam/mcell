@@ -40,7 +40,7 @@
 // oriented, so for MDL only MESH_DUPLICATE_VERTICES and MESH_INSIDE_OUT can
 // appear.
 
-#include "mesh_utils.h"
+#include "mesh_utils.hpp"
 
 #include <algorithm>
 #include <cassert>

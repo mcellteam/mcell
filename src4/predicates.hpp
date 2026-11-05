@@ -9,8 +9,8 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_PREDICATES_H_
-#define SRC4_PREDICATES_H_
+#ifndef SRC4_PREDICATES_HPP_
+#define SRC4_PREDICATES_HPP_
 
 namespace MCell {
 namespace Predicates {
@@ -32,4 +32,4 @@ double orient3d(const double* pa, const double* pb, const double* pc, const doub
 } // namespace Predicates
 } // namespace MCell
 
-#endif // SRC4_PREDICATES_H_
+#endif // SRC4_PREDICATES_HPP_

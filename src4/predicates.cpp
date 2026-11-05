@@ -60,7 +60,7 @@
 /*                                                                           */
 /*****************************************************************************/
 
-#include "predicates.h"
+#include "predicates.hpp"
 
 /* On some machines, the exact arithmetic routines might be defeated by the  */
 /*   use of internal extended precision floating-point registers.  Sometimes */

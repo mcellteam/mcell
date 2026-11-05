@@ -21,7 +21,7 @@
 #include "geometry.h"
 
 #include "counted_volume_utils.h"
-#include "mesh_utils.h"
+#include "mesh_utils.hpp"
 
 using namespace std;
 

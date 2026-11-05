@@ -29,7 +29,7 @@
 #include "geometry_utils.inl" // uses get_wall_bounding_box, maybe not include this file
 #include "collision_utils.inl"
 #include "dump_state.h"
-#include "geometry_analysis.h"
+#include "geometry_analysis.hpp"
 
 using namespace std;
 

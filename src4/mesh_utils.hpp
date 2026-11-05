@@ -9,8 +9,8 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_MESH_UTILS_H_
-#define SRC4_MESH_UTILS_H_
+#ifndef SRC4_MESH_UTILS_HPP_
+#define SRC4_MESH_UTILS_HPP_
 
 // MCell's side of the mesh analysis: the meshes of geometry objects for
 // GeometryAnalysis, and the checks of a model's meshes, which print warnings
@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "defines.h"
-#include "geometry_analysis.h"
+#include "geometry_analysis.hpp"
 
 namespace MCell {
 
@@ -70,4 +70,4 @@ void check_release_regions(World* world, const ReleaseEvent& release);
 } // namespace MeshUtils
 } // namespace MCell
 
-#endif // SRC4_MESH_UTILS_H_
+#endif // SRC4_MESH_UTILS_HPP_

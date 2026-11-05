@@ -36,7 +36,7 @@
 #include "geometry.h"
 #include "count_buffer.h"
 #include "memory_limit_checker.h"
-#include "mesh_utils.h"
+#include "mesh_utils.hpp"
 
 #include "logging.h"
 #include "rng.h"

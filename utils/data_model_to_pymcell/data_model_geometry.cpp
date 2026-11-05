@@ -14,7 +14,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "geometry_analysis.h"
+#include "geometry_analysis.hpp"
 
 #include "include/datamodel_defines.h"
 #include "generator_utils.h"

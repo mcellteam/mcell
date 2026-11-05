@@ -9,8 +9,8 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_GEOMETRY_ANALYSIS_H_
-#define SRC4_GEOMETRY_ANALYSIS_H_
+#ifndef SRC4_GEOMETRY_ANALYSIS_HPP_
+#define SRC4_GEOMETRY_ANALYSIS_HPP_
 
 // Analysis of closed triangle meshes: cleaning, closedness, volume and area,
 // containment of one mesh in another, and OBJ export. It replaced MCell's use
@@ -156,4 +156,4 @@ bool write_obj(const std::string& file_prefix, const std::vector<NamedMesh>& mes
 } // namespace GeometryAnalysis
 } // namespace MCell
 
-#endif // SRC4_GEOMETRY_ANALYSIS_H_
+#endif // SRC4_GEOMETRY_ANALYSIS_HPP_

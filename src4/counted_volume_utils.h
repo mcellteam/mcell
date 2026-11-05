@@ -21,7 +21,7 @@
 
 #include "defines.h"
 #include "geometry.h"
-#include "geometry_analysis.h"
+#include "geometry_analysis.hpp"
 
 namespace MCell {
 

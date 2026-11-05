@@ -24,8 +24,8 @@
 #include "isaac64.h"
 #include "mcell_structs_shared.h"
 #include "custom_function_call_event.h"
-#include "mesh_utils.h"
-#include "geometry_analysis.h"
+#include "mesh_utils.hpp"
+#include "geometry_analysis.hpp"
 
 
 #include "bng/bng.h"

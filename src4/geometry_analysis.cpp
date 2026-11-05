@@ -12,7 +12,7 @@
 // Built as C++23 with floating-point contraction off (see src4/CMakeLists.txt):
 // the volume formula must give the same bits on every platform.
 
-#include "geometry_analysis.h"
+#include "geometry_analysis.hpp"
 
 #include <algorithm>
 #include <bit>
@@ -27,7 +27,7 @@
 #include <unordered_set>
 #include <utility>
 
-#include "predicates.h"
+#include "predicates.hpp"
 
 namespace MCell {
 namespace GeometryAnalysis {

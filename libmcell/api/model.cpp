@@ -32,7 +32,7 @@
 #include "scheduler.h"
 #include "diffuse_react_event.h"
 #include "release_event.h"
-#include "mesh_utils.h"
+#include "mesh_utils.hpp"
 #include "rxn_utils.inl"
 #include "molecule.h"
 #include "viz_output_event.h"

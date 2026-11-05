@@ -17,7 +17,7 @@
 #include "api/api_common.h"
 #include "counted_volume_utils.h"
 #include "geometry_object.h"
-#include "geometry_analysis.h"
+#include "geometry_analysis.hpp"
 
 using namespace std;
 
