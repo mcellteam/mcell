@@ -102,8 +102,8 @@ public:
   counted_volume_index_t counted_volume_index_inside;
 
   // counted volume to be set when a molecule goes outside of this object
-  // might be set to COUNTED_VOLUME_INDEX_INTERSECTS if the direct parent of
-  // this object intersects with another object
+  // might be set to COUNTED_VOLUME_INDEX_INTERSECTS if this object or an object
+  // that contains it intersects with another object
   counted_volume_index_t counted_volume_index_outside;
 
   // set in initialize_is_fully_transparent, true if all walls have only surface class

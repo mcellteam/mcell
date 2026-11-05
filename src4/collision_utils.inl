@@ -1663,7 +1663,7 @@ static void update_counted_volume_id_when_crossing_wall(
           obj.counted_volume_index_outside == COUNTED_VOLUME_INDEX_INTERSECTS ||
           obj.counted_volume_index_outside == vm.v.counted_volume_index);
 
-      if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
+      if (obj.counted_volume_index_inside != COUNTED_VOLUME_INDEX_INTERSECTS) {
         // no intersect - it is clear what is inside
         vm.v.counted_volume_index = obj.counted_volume_index_inside;
       }

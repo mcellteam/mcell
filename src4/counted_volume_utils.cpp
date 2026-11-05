@@ -286,26 +286,27 @@ static void define_counted_volumes(
               world, obj_info.geometry_object_id, contained_in_mapping, intersecting_objects);
     }
 
-    const GeometryObject* direct_parent_obj =
-        get_direct_parent(world, obj_info, contained_in_mapping, path_lengths);
-
     // set outside index for our object
     counted_volume_index_t outside_index;
-    // parent was found
-    if (direct_parent_obj != nullptr) {
-      outside_index =
-          get_counted_volume_index_using_parents(
-              world, direct_parent_obj->id, contained_in_mapping, intersecting_objects);
+    if (intersecting_objects.count(obj_info) != 0) {
+      // intersects with other objects - a molecule that leaves this object may
+      // still be inside one of them, so the counted volume is computed from the
+      // molecule's position, also when this object has a parent
+      outside_index = COUNTED_VOLUME_INDEX_INTERSECTS;
     }
     else {
-      // parent is unclear
-      if (intersecting_objects.count(obj_info) == 0) {
-        // this is a top level object that has no parent but still needs a counted volume to be created
-        outside_index = COUNTED_VOLUME_INDEX_OUTSIDE_ALL;
+      const GeometryObject* direct_parent_obj =
+          get_direct_parent(world, obj_info, contained_in_mapping, path_lengths);
+
+      if (direct_parent_obj != nullptr) {
+        // parent was found
+        outside_index =
+            get_counted_volume_index_using_parents(
+                world, direct_parent_obj->id, contained_in_mapping, intersecting_objects);
       }
       else {
-        // it is not clear what the outside is
-        outside_index = COUNTED_VOLUME_INDEX_INTERSECTS;
+        // this is a top level object that has no parent but still needs a counted volume to be created
+        outside_index = COUNTED_VOLUME_INDEX_OUTSIDE_ALL;
       }
     }
 
