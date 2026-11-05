@@ -88,6 +88,15 @@ endif()
 set_source_files_properties(mesh_utils.cpp PROPERTIES COMPILE_OPTIONS
     "${MCELL_CXX23};${MCELL_CXX23_GLM}")
 
+# The exported volume of a compartment, its volume times length_unit^3 minus
+# the volumes of its children, is one multiply-subtract
+# (BNGLExporter::set_compartment_volumes_and_areas). Contracted, as Clang does
+# by default on ARM64, it is rounded once instead of twice, and the exported
+# volumes would differ in the last bit between platforms (found on Apple
+# silicon; x86-64 has no fused multiply-add without -mfma).
+set_source_files_properties(bngl_exporter.cpp PROPERTIES COMPILE_OPTIONS
+    "${MCELL_NO_FP_CONTRACTION}")
+
 add_library(mcell_geometry STATIC
     ${GEOMETRY_SOURCE_FILES}
 )
