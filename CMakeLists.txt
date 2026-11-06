@@ -128,7 +128,16 @@ target_compile_options(mcell_project_options INTERFACE
     # overflow it. /bigobj lifts the limit and is harmless on the other TUs, so
     # apply it build-wide (covers mcell4_so and the libmcell/mcell4 generated TUs).
     $<$<CXX_COMPILER_ID:MSVC>:/bigobj>
-    $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>)
+    $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>
+    # No floating-point contraction anywhere. A fused multiply-add rounds once
+    # where a separate multiply and add round twice, so builds for ARM64, where
+    # Clang fuses by default, gave other results than x86-64 (found by the macOS
+    # check of the VTK removal; the geometry files and two engine files in
+    # src4/CMakeLists.txt were switched off first). x86-64 code doesn't change:
+    # it has no FMA without -mfma or /arch:AVX2. MSVC's default /fp:precise
+    # doesn't contract; clang-cl does.
+    $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<NOT:$<STREQUAL:${CMAKE_CXX_COMPILER_FRONTEND_VARIANT},MSVC>>>:-ffp-contract=off>
+    $<$<AND:$<NOT:$<CXX_COMPILER_ID:MSVC>>,$<STREQUAL:${CMAKE_CXX_COMPILER_FRONTEND_VARIANT},MSVC>>:/clang:-ffp-contract=off>)
 
 # The bundled mcell/libs headers were exposed via a global -isystem; keep that
 # as a SYSTEM usage requirement so consumers' warnings stay quiet.
