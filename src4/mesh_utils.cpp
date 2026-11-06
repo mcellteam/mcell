@@ -80,7 +80,7 @@ void get_mesh(
         if (convert_units) {
           pt = pt * Vec3(world->config.length_unit);
         }
-        it = mesh_index.emplace(w.vertex_indices[i], (int)points.size()).first;
+        it = mesh_index.emplace(w.vertex_indices[i], static_cast<int>(points.size())).first;
         points.push_back({pt.x, pt.y, pt.z});
       }
       t[i] = it->second;

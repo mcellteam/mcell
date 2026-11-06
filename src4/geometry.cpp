@@ -853,7 +853,7 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
   triangles.reserve(walls_and_edges.size());
   for (const auto& it: walls_and_edges) {
     const Wall& w = p.get_wall(it.first);
-    const int first = (int)points.size();
+    const int first = static_cast<int>(points.size());
     for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
       const Vec3& v = p.get_wall_vertex(w, i);
       points.push_back({v.x, v.y, v.z});
