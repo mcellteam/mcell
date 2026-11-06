@@ -169,7 +169,7 @@ void ReleaseEvent::dump(const string ind) const {
   cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t]\n";
   cout << ind2 << "actual_release_time: \t\t" << actual_release_time << " [double]\n";
   cout << ind2 << "release_number_method: \t\t" << release_number_method_to_str(release_number_method) << " [ReleaseNumberMethod]\n";
-  cout << ind2 << "release_number: \t\t" << release_number << " [uint]\n";
+  cout << ind2 << "release_number: \t\t" << release_number << " [int]\n";
   cout << ind2 << "concentration: \t\t" << concentration << " [double]\n";
   cout << ind2 << "orientation: \t\t" << orientation << " [double]\n";
   cout << ind2 << "release_shape: \t\t" << release_shape_to_str(release_shape) << " [ReleaseShape]\n";
@@ -506,7 +506,7 @@ static void check_max_release_count(double num_to_release, const std::string& na
 }
 
 
-uint ReleaseEvent::calculate_number_to_release() {
+int ReleaseEvent::calculate_number_to_release() {
 
   switch (release_number_method) {
     case ReleaseNumberMethod::CONST_NUM:
@@ -550,7 +550,7 @@ uint ReleaseEvent::calculate_number_to_release() {
         double num_to_release =
             N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3.0) + 0.5;
         check_max_release_count(num_to_release, release_site_name);
-        return (uint)num_to_release;
+        return static_cast<int>(num_to_release);
       }
       break;
 
@@ -563,7 +563,7 @@ uint ReleaseEvent::calculate_number_to_release() {
         assert(concentration != FLT_INVALID);
         double num_to_release = concentration * est_sites_avail / world->config.grid_density;
         check_max_release_count(num_to_release, release_site_name);
-        return (uint)num_to_release;
+        return static_cast<int>(num_to_release);
       }
       break;
 

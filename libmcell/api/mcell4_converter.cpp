@@ -1357,14 +1357,20 @@ MCell::ReleaseEvent* MCell4Converter::convert_single_release_event(
 
   // release_number_method
   if (is_set(r->number_to_release)) {
-    if (r->number_to_release > (double)UINT32_MAX) {
+    // stored as int (negative numbers remove molecules)
+    if (r->number_to_release > static_cast<double>(INT32_MAX)) {
       throw ValueError(S("Value ") + to_string(r->number_to_release) + " for " +
           NAME_NUMBER_TO_RELEASE + " of a " + NAME_CLASS_RELEASE_SITE + " '" + r->name +
-          "' is too high, the maximum allowed is " + to_string(UINT32_MAX) + ".");
+          "' is too high, the maximum allowed is " + to_string(INT32_MAX) + ".");
+    }
+    if (r->number_to_release < -static_cast<double>(INT32_MAX)) {
+      throw ValueError(S("Value ") + to_string(r->number_to_release) + " for " +
+          NAME_NUMBER_TO_RELEASE + " of a " + NAME_CLASS_RELEASE_SITE + " '" + r->name +
+          "' is too low, the minimum allowed is -" + to_string(INT32_MAX) + ".");
     }
 
     rel_event->release_number_method = ReleaseNumberMethod::CONST_NUM;
-    rel_event->release_number = r->number_to_release;
+    rel_event->release_number = static_cast<int>(r->number_to_release);
   }
   else if (is_set(r->density)) {
     rel_event->release_number_method = ReleaseNumberMethod::DENSITY_NUM;

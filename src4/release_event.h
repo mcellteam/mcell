@@ -85,7 +85,7 @@ public:
     release_site_name(NAME_INVALID),
     species_id(SPECIES_ID_INVALID),
     release_number_method(ReleaseNumberMethod::INVALID),
-    release_number(UINT_INVALID),
+    release_number(INT_INVALID),
     concentration(FLT_INVALID),
     orientation(ORIENTATION_NONE),
     release_shape(ReleaseShape::UNDEFINED),
@@ -154,7 +154,9 @@ public:
   species_id_t species_id;
 
   ReleaseNumberMethod release_number_method; // specifies what does the release_number mean
-  uint release_number; // number of molecules to release
+  // number of molecules to release, negative to remove molecules; signed, because
+  // converting a negative double to an unsigned type is undefined (on ARM64 it gives 0)
+  int release_number;
   double concentration; // or density for surface releases
 
   orientation_t orientation;
@@ -219,7 +221,7 @@ private:
   // may end with error
   void report_release_failure(const std::string& msg);
 
-  uint calculate_number_to_release();
+  int calculate_number_to_release();
 
   int randomly_remove_molecules(
       Partition& p, const MoleculeIdsVector& mol_ids_in_region, int number_to_remove);

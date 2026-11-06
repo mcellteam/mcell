@@ -227,7 +227,7 @@ void check_release(
   const bool by_concentration = release.release_number_method == ReleaseNumberMethod::CONCENTRATION_NUM;
   const bool uses_volume = by_concentration && root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT;
   const bool removes =
-      (release.release_number_method == ReleaseNumberMethod::CONST_NUM && (int)release.release_number < 0) ||
+      (release.release_number_method == ReleaseNumberMethod::CONST_NUM && release.release_number < 0) ||
       (by_concentration && release.concentration < 0);
   const char* site = release.release_site_name.c_str();
 

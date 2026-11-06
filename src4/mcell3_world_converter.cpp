@@ -1489,7 +1489,8 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
 
         rel_event->orientation = rel_site->orientation;
-        rel_event->release_number = rel_site->release_number;
+        CHECK_PROPERTY(rel_site->release_number >= -static_cast<double>(INT32_MAX) && rel_site->release_number <= static_cast<double>(INT32_MAX));
+        rel_event->release_number = static_cast<int>(rel_site->release_number);
         rel_event->concentration = rel_site->concentration;
 
         if (rel_site->diameter != nullptr) {
