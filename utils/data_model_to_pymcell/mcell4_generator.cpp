@@ -904,7 +904,9 @@ void MCell4Generator::generate_counts(
     bool must_be_in_python = false;
 
     bool rxn_not_mol;
-    bool molecules_not_species;
+    // set by process_single_count_term for MDLString outputs; "Molecule" outputs count
+    // species, as PythonGenerator::generate_count_terms_for_expression does
+    bool molecules_not_species = false;
     bool single_term;
     string what_to_count;
     string where_to_count; // empty for WORLD
