@@ -586,7 +586,7 @@ endif()
 # Windows-only / optional variants are skipped cleanly.
 foreach(_t IN ITEMS
     mcell_geometry mcell4 libmcell libmcell_dummy mcell mcell4_so
-    data_model_to_pymcell bng_analyzer
+    data_model_to_pymcell bng_analyzer mesh_utils_test
     libbng parser_tester_libbng nauty
     NFsim_static NFsim_static_fpic NFsim NFsim_EXE
     nfsim_c nfsim_c_static)

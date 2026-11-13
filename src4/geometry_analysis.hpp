@@ -85,6 +85,24 @@ struct InsideOutParts {
 // either
 InsideOutParts find_inside_out_parts(const Mesh& mesh);
 
+struct PartFacing {
+  double signed_volume = 0.0; // of the part's triangles, for a closed, consistently oriented part
+  bool judged = false;        // see judge_parts
+  bool wrong = false;         // judged, and facing the wrong way
+};
+
+// which way each part of a mesh faces, by the rule of find_inside_out_parts.
+// part_of[t] is the part of triangle t, from 0 to closed.size() - 1; closed[p]:
+// every edge of part p has exactly two of its triangles; consistent[p]: they
+// also run along each edge in opposite directions. A part is judged when it is
+// closed and consistently oriented, its signed volume (volume_and_area) is
+// large enough for its sign to be certain, and for each other closed part whose
+// bounding box contains its own, one of its points lies strictly inside or
+// outside that part
+std::vector<PartFacing> judge_parts(
+    const std::vector<Point>& points, const std::vector<Triangle>& triangles,
+    const std::vector<int>& part_of, const std::vector<char>& closed, const std::vector<char>& consistent);
+
 struct VolumeArea {
   double volume;
   double area;

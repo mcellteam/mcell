@@ -39,11 +39,13 @@ set(SRC4_SOURCE_FILES
     bngl_exporter.cpp
 )
 
-# The geometry analysis that replaced VTK. It depends on nothing else in MCell,
-# so tools such as data_model_to_pymcell can link it alone.
+# The geometry analysis that replaced VTK, and the mesh table and checks that
+# work from vertex indices. They depend on nothing else in MCell, so tools such
+# as data_model_to_pymcell and mesh_utils_test can link them alone.
 set(GEOMETRY_SOURCE_FILES
     predicates.cpp
     geometry_analysis.cpp
+    mesh_table.cpp
 )
 
 # The geometry code that replaced VTK is written for C++23, while the rest

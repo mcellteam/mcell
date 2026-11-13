@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.25...4.3)
 SET(BUILD_UTILS_DIR ${CMAKE_BINARY_DIR}/utils)
 
 add_subdirectory(bng_analyzer)
+add_subdirectory(mesh_utils_test)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bng_analyzer_py/bng_analysis_example.py ${BUILD_UTILS_DIR}/bng_analysis_example.py COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bng_analyzer_py/viz_reader.py ${BUILD_UTILS_DIR}/viz_reader.py COPYONLY)

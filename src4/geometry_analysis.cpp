@@ -1058,75 +1058,99 @@ InsideOutParts find_inside_out_parts(const Mesh& mesh) {
       }
     }
   }
+  // numbered in the order of their first triangles
   std::vector<int> component_of(n), component_of_root(n, -1);
-  std::vector<std::vector<Triangle>> components; // in the order of their first triangles
+  int nc = 0;
   for (int t = 0; t < n; t++) {
     const int r = find(t);
     if (component_of_root[r] < 0) {
-      component_of_root[r] = static_cast<int>(components.size());
-      components.emplace_back();
+      component_of_root[r] = nc++;
     }
     component_of[t] = component_of_root[r];
-    components[component_of[t]].push_back(mesh.triangles[t]);
   }
-  const int nc = static_cast<int>(components.size());
 
-  // closed: every edge has exactly two triangles; judged: also consistently
-  // oriented, and later with a certain sign of the volume and a known depth
-  std::vector<char> closed(nc, 1), judged(nc, 1);
+  // closed: every edge has exactly two triangles; consistent: they also run
+  // along it in opposite directions
+  std::vector<char> closed(nc, 1), consistent(nc, 1);
   for_each_edge(uses, [&](std::size_t first, std::size_t last) {
     const int c = component_of[uses[first].triangle];
     if (last - first != 2) {
       closed[c] = 0;
-      judged[c] = 0;
     }
     else if (uses[first].forward == uses[first + 1].forward) {
-      judged[c] = 0;
+      consistent[c] = 0;
     }
   });
 
-  std::vector<double> volume(nc, 0.0);
+  const std::vector<PartFacing> facing = judge_parts(mesh.points, mesh.triangles, component_of, closed, consistent);
   for (int c = 0; c < nc; c++) {
-    if (!judged[c]) {
-      continue;
-    }
-    volume[c] = volume_and_area(mesh.points, components[c]).volume;
-    const double bound = static_cast<double>(components[c].size() + 16) * 0x1p-52 *
-        volume_magnitude(mesh.points, components[c]);
-    if (!(std::abs(volume[c]) > bound)) {
-      judged[c] = 0; // flat: the sign is not certain
+    if (facing[c].wrong) {
+      res.components++;
+      res.signed_volume += facing[c].signed_volume;
     }
   }
+  return res;
+}
 
-  // depth: how many of the other closed components enclose a component; one
-  // point of it decides unless it lies on the other surface, then the next one
-  std::vector<int> depth(nc, 0);
-  if (nc > 1) {
-    std::vector<Mesh> meshes(nc);
-    std::vector<std::unique_ptr<Solid>> solids(nc);
-    for (int c = 0; c < nc; c++) {
-      meshes[c] = sub_mesh(mesh.points, components[c]);
-      if (closed[c]) {
-        solids[c] = std::make_unique<Solid>(meshes[c]);
-      }
+std::vector<PartFacing> judge_parts(
+    const std::vector<Point>& points, const std::vector<Triangle>& triangles,
+    const std::vector<int>& part_of, const std::vector<char>& closed, const std::vector<char>& consistent) {
+
+  const int np = static_cast<int>(closed.size());
+  std::vector<PartFacing> res(np);
+  std::vector<std::vector<Triangle>> parts(np); // the triangles of each part, in order
+  for (std::size_t t = 0; t < triangles.size(); t++) {
+    parts[part_of[t]].push_back(triangles[t]);
+  }
+
+  // judged so far: closed, consistently oriented, and with a certain sign of
+  // the volume (a flat part has none)
+  std::vector<char> judged(np, 0);
+  for (int c = 0; c < np; c++) {
+    if (!closed[c] || !consistent[c]) {
+      continue;
     }
-    for (int c = 0; c < nc; c++) {
+    res[c].signed_volume = volume_and_area(points, parts[c]).volume;
+    const double bound = static_cast<double>(parts[c].size() + 16) * 0x1p-52 *
+        volume_magnitude(points, parts[c]);
+    judged[c] = std::abs(res[c].signed_volume) > bound;
+  }
+
+  // depth: how many of the other closed parts enclose a part; one point of it
+  // decides unless it lies on the other surface, then the next one. The
+  // sub-meshes and solids are made when first needed.
+  std::vector<int> depth(np, 0);
+  if (np > 1) {
+    std::vector<std::unique_ptr<Mesh>> meshes(np);
+    std::vector<std::unique_ptr<Solid>> solids(np);
+    const auto mesh_of = [&](int c) -> const Mesh& {
+      if (!meshes[c]) {
+        meshes[c] = std::make_unique<Mesh>(sub_mesh(points, parts[c]));
+      }
+      return *meshes[c];
+    };
+    for (int c = 0; c < np; c++) {
       if (!judged[c]) {
         continue;
       }
-      for (int k = 0; k < nc && judged[c]; k++) {
-        if (k == c || !solids[k]) {
+      for (int k = 0; k < np && judged[c]; k++) {
+        if (k == c || !closed[k]) {
           continue;
         }
+        const Mesh& mc = mesh_of(c);
+        const Mesh& mk = mesh_of(k);
         bool box_inside = true;
         for (int i = 0; i < 3; i++) {
-          box_inside = box_inside && meshes[k].lo[i] <= meshes[c].lo[i] && meshes[c].hi[i] <= meshes[k].hi[i];
+          box_inside = box_inside && mk.lo[i] <= mc.lo[i] && mc.hi[i] <= mk.hi[i];
         }
         if (!box_inside) {
           continue;
         }
+        if (!solids[k]) {
+          solids[k] = std::make_unique<Solid>(mk);
+        }
         Side side = Side::Undecided;
-        for (const Point& p : meshes[c].points) {
+        for (const Point& p : mc.points) {
           side = point_in_solid(*solids[k], p);
           if (side == Side::Inside || side == Side::Outside) {
             break;
@@ -1136,18 +1160,16 @@ InsideOutParts find_inside_out_parts(const Mesh& mesh) {
           depth[c]++;
         }
         else if (side != Side::Outside) {
-          judged[c] = 0; // every point of the component lies on the other surface
+          judged[c] = 0; // every point of the part lies on the other surface
         }
       }
     }
   }
 
   // outward (positive) at an even depth, inward (a cavity) at an odd one
-  for (int c = 0; c < nc; c++) {
-    if (judged[c] && (volume[c] > 0) != (depth[c] % 2 == 0)) {
-      res.components++;
-      res.signed_volume += volume[c];
-    }
+  for (int c = 0; c < np; c++) {
+    res[c].judged = judged[c];
+    res[c].wrong = judged[c] && (res[c].signed_volume > 0) != (depth[c] % 2 == 0);
   }
   return res;
 }
