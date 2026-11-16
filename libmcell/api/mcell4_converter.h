@@ -84,6 +84,8 @@ private:
   void get_geometry_bounding_box(Vec3& llf, Vec3& urb);
   void convert_simulation_setup();
 
+  void check_geometry_objects();
+
   void convert_elementary_molecule_types();
   void convert_species();
 

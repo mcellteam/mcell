@@ -61,6 +61,7 @@ private:
   bool convert_region(Partition& p, const region* r, region_index_t& region_index);
   bool convert_polygonal_object(const geom_object* o, const std::string& instantiate_name);
   bool convert_geometry_meta_object_recursively(volume* s, geom_object* meta_inst);
+  void check_polygonal_objects(volume* s);
   bool convert_geometry_objects(volume* s);
   bool convert_species(volume* s);
   void create_clamp_release_event(

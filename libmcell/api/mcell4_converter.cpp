@@ -9,6 +9,7 @@
  *
 ******************************************************************************/
 
+#include <algorithm>
 #include <sstream>
 #include <iomanip>
 
@@ -25,7 +26,6 @@
 #include "mcell_structs_shared.h"
 #include "custom_function_call_event.h"
 #include "mesh_utils.hpp"
-#include "geometry_analysis.hpp"
 
 
 #include "bng/bng.h"
@@ -66,6 +66,9 @@ void MCell4Converter::convert_before_init() {
   assert(world != nullptr);
 
   convert_simulation_setup();
+
+  // before anything uses the meshes; needs the seed and the length unit
+  check_geometry_objects();
 
   convert_compartments();
 
@@ -183,6 +186,10 @@ void MCell4Converter::get_geometry_bounding_box(Vec3& llf, Vec3& urb) {
   for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
     // go through all vertices
     for (auto& vert: o->vertex_list) {
+      if (vert.size() != 3) {
+        // check_geometry_objects, which runs next, stops the run on it
+        continue;
+      }
       Vec3 v(vert);
 
       if (v.x < llf.x) {
@@ -892,6 +899,42 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
 }
 
 
+// Checks the mesh of every geometry object as the model gives it, its walls
+// connected only through their vertex indices, before anything uses the meshes.
+// Writes the geometry report and prints one line per object and problem, then
+// stops once if any object has errors (MeshUtils::GeometryReport).
+void MCell4Converter::check_geometry_objects() {
+  MeshUtils::GeometryReport report(world->config.get_geometry_report_file_name(), world->config.length_unit);
+
+  for (const std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
+    // the vertices in internal units, exactly as convert_geometry_objects adds
+    // them; only when every vertex has three coordinates
+    std::vector<MeshUtils::Point> points;
+    const bool three_coordinates = std::all_of(o->vertex_list.begin(), o->vertex_list.end(),
+        [](const std::vector<double>& v) { return v.size() == 3; });
+    if (three_coordinates) {
+      points.reserve(o->vertex_list.size());
+      for (size_t i = 0; i < o->vertex_list.size(); i++) {
+        const Vec3 v = o->get_vertex_in_internal_units(i, world->config.rcp_length_unit);
+        points.push_back({v.x, v.y, v.z});
+      }
+    }
+
+    std::vector<MeshUtils::SurfaceRegionWalls> regions;
+    for (const std::shared_ptr<SurfaceRegion>& sr: o->surface_regions) {
+      regions.push_back({sr->name, sr->wall_indices});
+    }
+
+    report.add(o->name, MeshUtils::check_lists(o->vertex_list, o->wall_list, points, regions));
+  }
+
+  const std::string stop = report.finish();
+  if (!stop.empty()) {
+    throw ValueError(stop);
+  }
+}
+
+
 void MCell4Converter::convert_geometry_objects() {
   MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL); // only partition 0 is supported for now
 
@@ -926,18 +969,11 @@ void MCell4Converter::convert_geometry_objects() {
       o->vertex_indices.push_back(vi);
     }
 
-    // walls (validity of indices is checked in API::GeometryObject::check_semantics)
+    // walls (their indices were checked in check_geometry_objects)
     o->first_wall_index = p.get_walls().size();
     for (size_t i = 0; i < o->wall_list.size(); i++) {
       wall_index_t wi = convert_wall_and_add_to_geom_object(*o, i, p, obj);
       o->wall_indices.push_back(wi);
-    }
-
-    // an edge shared by more than two walls is not allowed in models that use the API
-    // (MDL models are not checked here); edges are matched by exact vertex coordinates,
-    // as in the checks of counted objects and compartments
-    if (GeometryAnalysis::has_non_manifold_edge(MeshUtils::get_clean_mesh(world, obj))) {
-      throw ValueError("Non-manifold mesh is not allowed, error for " + o->name + ".");
     }
 
     // initialize edges

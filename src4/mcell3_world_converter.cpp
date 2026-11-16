@@ -19,6 +19,7 @@
 #include "logging.h"
 #include "mcell_structs.h" // need all defines
 #include "mcell3_world_converter.h"
+#include "mesh_utils.hpp"
 
 #include "world.h"
 #include "release_event.h"
@@ -393,7 +394,7 @@ bool MCell3WorldConverter::convert_geometry_meta_object_recursively(volume* s, g
       CHECK(convert_polygonal_object(curr_obj, instantiate_name));
     }
     else if (curr_obj->object_type == META_OBJ) {
-      convert_geometry_meta_object_recursively(s, curr_obj);
+      CHECK(convert_geometry_meta_object_recursively(s, curr_obj));
     }
     else if (curr_obj->object_type == REL_SITE_OBJ) {
       // ignored
@@ -412,15 +413,79 @@ bool MCell3WorldConverter::convert_geometry_meta_object_recursively(volume* s, g
 }
 
 
+// the checks of a polygonal object's mesh, from the walls MCell3 parsed
+static MeshUtils::MeshCheck check_polygonal_object(const geom_object* o, const double length_unit) {
+  const polygon_object* pop = static_cast<const polygon_object*>(o->contents);
+
+  // one MCell4 vertex per MCell3 vertex, in order (convert_polygonal_object).
+  // MCell3 has applied the instance's transformations and freed the file's
+  // coordinates, so the report gives these, in microns
+  std::vector<MeshUtils::Point> points;
+  std::vector<MeshUtils::Point> coordinates;
+  points.reserve(o->n_verts);
+  coordinates.reserve(o->n_verts);
+  for (int i = 0; i < o->n_verts; i++) {
+    const vector3& v = *o->vertices[i];
+    points.push_back({v.x, v.y, v.z});
+    coordinates.push_back({v.x * length_unit, v.y * length_unit, v.z * length_unit});
+  }
+
+  // every wall of the file; MCell3 marks those it removed
+  std::vector<MeshUtils::WallVertices> walls;
+  std::vector<char> removed;
+  walls.reserve(pop->n_walls);
+  removed.reserve(pop->n_walls);
+  for (int i = 0; i < pop->n_walls; i++) {
+    const int* vi = pop->element[i].vertex_index;
+    walls.push_back({vi[0], vi[1], vi[2]});
+    removed.push_back(pop->side_removed != nullptr && get_bit(pop->side_removed, i) != 0);
+  }
+  return MeshUtils::check_parsed_walls(points, walls, removed, coordinates);
+}
+
+
+// the polygonal objects under a meta object, in the order
+// convert_geometry_meta_object_recursively converts them
+static void check_polygonal_objects_recursively(
+    const geom_object* meta, const double length_unit, MeshUtils::GeometryReport& report) {
+  for (const geom_object* o = meta->first_child; o != nullptr; o = o->next) {
+    if (o->object_type == POLY_OBJ) {
+      report.add(get_sym_name(o->sym), check_polygonal_object(o, length_unit));
+    }
+    else if (o->object_type == META_OBJ) {
+      check_polygonal_objects_recursively(o, length_unit, report);
+    }
+  }
+}
+
+
+// Checks the mesh of every polygonal object from the walls MCell3 parsed, connected
+// only through their vertex indices, before any wall is converted or linked.
+// Writes the geometry report and prints one line per object and problem, then
+// stops once if any object has errors (MeshUtils::GeometryReport).
+void MCell3WorldConverter::check_polygonal_objects(volume* s) {
+  MeshUtils::GeometryReport report(world->config.get_geometry_report_file_name(), world->config.length_unit);
+  for (const geom_object* inst = s->root_instance->first_child; inst != nullptr; inst = inst->next) {
+    check_polygonal_objects_recursively(inst, world->config.length_unit, report);
+  }
+  const std::string stop = report.finish();
+  if (!stop.empty()) {
+    mcell_error("%s", stop.c_str());
+  }
+}
+
+
 bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   geom_object* root_instance = s->root_instance;
   CHECK_PROPERTY(check_meta_object(root_instance, "WORLD_INSTANCE"));
   CHECK_PROPERTY(root_instance->next == nullptr);
 
+  check_polygonal_objects(s);
+
   for (geom_object* instantiate_obj = root_instance->first_child; instantiate_obj != nullptr; instantiate_obj = instantiate_obj->next) {
     CHECK_PROPERTY(check_meta_object(instantiate_obj));
-    convert_geometry_meta_object_recursively(s, instantiate_obj);
+    CHECK(convert_geometry_meta_object_recursively(s, instantiate_obj));
   } // for each scene/INSTANTIATE section
 
   // check that our reinit function works correctly
@@ -463,6 +528,9 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
   // create objects for each wall
   for (int i = 0; i < o->n_walls; i++) {
     wall* w = o->wall_p[i];
+    if (w == nullptr) {
+      continue; // removed by REMOVE_ELEMENTS, see convert_polygonal_object
+    }
 
     // which partition?
     partition_id_t partition_id = world->get_partition_index(*w->vert[0]);
@@ -673,7 +741,12 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
     new_region.species_id = SPECIES_ID_INVALID;
   }
 
-  CHECK_PROPERTY(r->region_has_all_elements || r->bbox == nullptr); // so far it can be set only to all-encopasing region
+  // r->bbox and r->region_has_all_elements - ignored, MCell4 doesn't use them.
+  // MCell3 makes a bounding box for every region it checks for closure: the
+  // first region of each object (src/dyngeom.c:1751-1758, which takes it for ALL,
+  // although the order of an object's regions flips with each instantiation),
+  // and the closed regions of volume releases and counts; so any region may
+  // have one
   // CHECK_PROPERTY(r->area == 0);  // ignored for now
   // CHECK_PROPERTY(r->volume == 0);  // ignored for now
   // CHECK_PROPERTY(r->flags == 0); // ignored for now
@@ -744,9 +817,18 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   CHECK_PROPERTY(o->object_type == POLY_OBJ);
   CHECK_PROPERTY(o->contents != nullptr); // ignored for now, not sure what is contained
 
-  CHECK_PROPERTY(o->n_walls == o->n_walls_actual); // ignored
   CHECK_PROPERTY(o->walls == nullptr); // this is null for some reason
   CHECK_PROPERTY(o->wall_p != nullptr);
+  // MCell3 leaves out the walls of REMOVE_ELEMENTS (wall_p[i] is null), and so
+  // does MCell4; MCell3 drops zero-area walls the same way, but
+  // check_polygonal_objects stopped the run on those
+  int n_walls_present = 0;
+  for (int i = 0; i < o->n_walls; i++) {
+    if (o->wall_p[i] != nullptr) {
+      n_walls_present++;
+    }
+  }
+  CHECK_PROPERTY(n_walls_present == o->n_walls_actual);
 
   // --- regions ---
   uint reg_cnt = 0;
@@ -778,6 +860,9 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   // world geometry
 
   for (int i = 0; i < o->n_walls; i++) {
+    if (o->wall_p[i] == nullptr) {
+      continue; // removed by REMOVE_ELEMENTS
+    }
     // uses precomputed map vector_ptr_to_vertex_index_map to transform vertices
     // also uses mcell3_region_to_mcell4_index mapping to set that it belongs to a given region
     CHECK(convert_wall_and_update_regions(o->wall_p[i], obj, o->regions));

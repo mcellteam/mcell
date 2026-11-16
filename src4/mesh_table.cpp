@@ -95,6 +95,73 @@ void write_counted_ids(
   out << ')';
 }
 
+// the file's ids of checked walls (MeshCheck::file_wall_ids)
+std::vector<mesh_index_t> file_walls(const MeshCheck& check, const std::vector<mesh_index_t>& walls) {
+  if (check.file_wall_ids.empty()) {
+    return walls;
+  }
+  std::vector<mesh_index_t> res;
+  res.reserve(walls.size());
+  for (const mesh_index_t w : walls) {
+    res.push_back(check.file_wall_ids[w]);
+  }
+  return res;
+}
+
+mesh_index_t file_wall(const MeshCheck& check, const mesh_index_t w) {
+  return check.file_wall_ids.empty() ? w : check.file_wall_ids[w];
+}
+
+// pass 0 of wall w: out of range, or else a vertex used twice
+void check_wall_indices(
+    const std::size_t n_vertices, const WallVertices& v, const mesh_index_t w, IndexProblems& res) {
+  const bool in_range = std::all_of(v.begin(), v.end(), [n_vertices](const int i) {
+    return i >= 0 && static_cast<std::size_t>(i) < n_vertices;
+  });
+  if (!in_range) {
+    res.out_of_range.push_back(w);
+  }
+  else if (v[0] == v[1] || v[1] == v[2] || v[2] == v[0]) {
+    res.repeated_vertex.push_back(w);
+  }
+}
+
+// the items of a list that don't hold exactly three values, ascending
+template <class T>
+std::vector<mesh_index_t> find_malformed(const std::vector<std::vector<T>>& items) {
+  std::vector<mesh_index_t> res;
+  for (std::size_t i = 0; i < items.size(); i++) {
+    if (items[i].size() != 3) {
+      res.push_back(static_cast<mesh_index_t>(i));
+    }
+  }
+  return res;
+}
+
+// the surface regions with wall indices out of range, each such index once, in
+// the region's order
+std::vector<SurfaceRegionWalls> find_bad_regions(
+    const std::size_t n_walls, const std::vector<SurfaceRegionWalls>& regions) {
+  std::vector<SurfaceRegionWalls> res;
+  for (const SurfaceRegionWalls& r : regions) {
+    SurfaceRegionWalls bad{r.name, {}};
+    for (const int w : r.walls) {
+      const bool out_of_range = w < 0 || static_cast<std::size_t>(w) >= n_walls;
+      if (out_of_range && std::find(bad.walls.begin(), bad.walls.end(), w) == bad.walls.end()) {
+        bad.walls.push_back(w);
+      }
+    }
+    if (!bad.walls.empty()) {
+      res.push_back(std::move(bad));
+    }
+  }
+  return res;
+}
+
+bool too_large(const std::size_t n_vertices, const std::size_t n_walls) {
+  return n_vertices >= MESH_INDEX_NONE || n_walls >= MESH_INDEX_NONE / 3;
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -102,21 +169,12 @@ void write_counted_ids(
 
 IndexProblems check_indices(const std::size_t n_vertices, const std::vector<WallVertices>& walls) {
   IndexProblems res;
-  if (n_vertices >= MESH_INDEX_NONE || walls.size() >= MESH_INDEX_NONE / 3) {
+  if (too_large(n_vertices, walls.size())) {
     res.too_large = true;
     return res;
   }
   for (std::size_t w = 0; w < walls.size(); w++) {
-    const WallVertices& v = walls[w];
-    const bool in_range = std::all_of(v.begin(), v.end(), [n_vertices](const int i) {
-      return i >= 0 && static_cast<std::size_t>(i) < n_vertices;
-    });
-    if (!in_range) {
-      res.out_of_range.push_back(static_cast<mesh_index_t>(w));
-    }
-    else if (v[0] == v[1] || v[1] == v[2] || v[2] == v[0]) {
-      res.repeated_vertex.push_back(static_cast<mesh_index_t>(w));
-    }
+    check_wall_indices(n_vertices, walls[w], static_cast<mesh_index_t>(w), res);
   }
   return res;
 }
@@ -499,9 +557,21 @@ std::size_t MeshCheck::wrong_facing_shells() const {
 }
 
 bool MeshCheck::has_errors() const {
-  return !indices.empty() || !duplicate_walls.empty() || !zero_area_walls.empty() ||
+  return !indices.empty() || !bad_regions.empty() || !duplicate_walls.empty() || !zero_area_walls.empty() ||
       (table_built && !non_manifold.empty()) || !inconsistent_edges.empty();
 }
+
+namespace {
+
+// the groups of equal coordinates, and where each group is
+void fill_equal_coordinates(const std::vector<Point>& coordinates, MeshCheck& c) {
+  c.equal_coordinates = find_equal_coordinates(coordinates);
+  for (const std::vector<mesh_index_t>& g : c.equal_coordinates) {
+    c.equal_coordinates_at.push_back(coordinates[g[0]]);
+  }
+}
+
+} // namespace
 
 MeshCheck check_mesh(
     const std::vector<Point>& points, const std::vector<WallVertices>& walls,
@@ -510,7 +580,7 @@ MeshCheck check_mesh(
   MeshCheck c;
   c.n_vertices = points.size();
   c.n_walls = walls.size();
-  c.equal_coordinates = find_equal_coordinates(coordinates);
+  fill_equal_coordinates(coordinates, c);
 
   // pass 0; without valid indices there is no table
   c.indices = check_indices(points.size(), walls);
@@ -588,9 +658,95 @@ MeshCheck check_mesh(
   return c;
 }
 
+MeshCheck check_lists(
+    const std::vector<std::vector<double>>& vertex_list, const std::vector<std::vector<int>>& wall_list,
+    const std::vector<Point>& points, const std::vector<SurfaceRegionWalls>& regions) {
+
+  if (too_large(vertex_list.size(), wall_list.size())) {
+    MeshCheck c;
+    c.n_vertices = vertex_list.size();
+    c.n_walls = wall_list.size();
+    c.indices.too_large = true;
+    return c;
+  }
+
+  const std::vector<mesh_index_t> malformed_vertices = find_malformed(vertex_list);
+  const std::vector<mesh_index_t> malformed_walls = find_malformed(wall_list);
+  std::vector<Point> coordinates;
+  if (malformed_vertices.empty()) {
+    coordinates.reserve(vertex_list.size());
+    for (const std::vector<double>& v : vertex_list) {
+      coordinates.push_back({v[0], v[1], v[2]});
+    }
+  }
+
+  MeshCheck c;
+  if (malformed_vertices.empty() && malformed_walls.empty()) {
+    std::vector<WallVertices> walls;
+    walls.reserve(wall_list.size());
+    for (const std::vector<int>& w : wall_list) {
+      walls.push_back({w[0], w[1], w[2]});
+    }
+    c = check_mesh(points, walls, coordinates);
+  }
+  else {
+    // no mesh: pass 0 of the walls that have three indices, and equal coordinates
+    c.n_vertices = vertex_list.size();
+    c.n_walls = wall_list.size();
+    c.indices.malformed_vertices = malformed_vertices;
+    c.indices.malformed_walls = malformed_walls;
+    for (std::size_t w = 0; w < wall_list.size(); w++) {
+      const std::vector<int>& v = wall_list[w];
+      if (v.size() == 3) {
+        check_wall_indices(vertex_list.size(), {v[0], v[1], v[2]}, static_cast<mesh_index_t>(w), c.indices);
+      }
+    }
+    if (malformed_vertices.empty()) {
+      fill_equal_coordinates(coordinates, c);
+    }
+  }
+  c.bad_regions = find_bad_regions(wall_list.size(), regions);
+  return c;
+}
+
+MeshCheck check_parsed_walls(
+    const std::vector<Point>& points, const std::vector<WallVertices>& file_walls,
+    const std::vector<char>& removed, const std::vector<Point>& coordinates) {
+
+  if (too_large(points.size(), file_walls.size())) {
+    return check_mesh(points, file_walls, coordinates);
+  }
+
+  std::vector<WallVertices> walls;
+  std::vector<mesh_index_t> file_ids, left_out;
+  walls.reserve(file_walls.size());
+  file_ids.reserve(file_walls.size());
+  for (std::size_t w = 0; w < file_walls.size(); w++) {
+    const WallVertices& v = file_walls[w];
+    if (w < removed.size() && removed[w] != 0) {
+      // MCell3 measured and dropped it only if it has three valid indices
+      const bool in_range = std::all_of(v.begin(), v.end(), [&points](const int i) {
+        return i >= 0 && static_cast<std::size_t>(i) < points.size();
+      });
+      if (!in_range || !is_zero_area(wall_area(points[v[0]], points[v[1]], points[v[2]]))) {
+        left_out.push_back(static_cast<mesh_index_t>(w));
+        continue;
+      }
+    }
+    walls.push_back(v);
+    file_ids.push_back(static_cast<mesh_index_t>(w));
+  }
+
+  MeshCheck c = check_mesh(points, walls, coordinates);
+  if (!left_out.empty()) {
+    c.file_wall_ids = std::move(file_ids);
+    c.removed_walls = std::move(left_out);
+  }
+  return c;
+}
+
 void write_report_block(
-    std::ostream& out, const std::string& name, const MeshCheck& check,
-    const std::vector<Point>& coordinates, const double length_unit) {
+    std::ostream& out, const std::string& name, const MeshCheck& check, const double length_unit) {
 
   const double area_unit = length_unit * length_unit;
   const double volume_unit = length_unit * length_unit * length_unit;
@@ -601,43 +757,68 @@ void write_report_block(
     out << ", " << counted(check.table.n_edges(), "edge", "edges");
   }
   out << '\n';
+  if (!check.removed_walls.empty()) {
+    out << "  Removed by REMOVE_ELEMENTS:";
+    write_counted_ids(out, check.removed_walls, "wall", "walls");
+    out << '\n';
+  }
 
   // pass 0
   if (check.indices.too_large) {
     out << "  Too many vertices or walls to check\n";
   }
+  if (!check.indices.malformed_vertices.empty()) {
+    out << "  Vertices that don't have three coordinates:";
+    write_counted_ids(out, check.indices.malformed_vertices, "vertex", "vertices");
+    out << '\n';
+  }
+  if (!check.indices.malformed_walls.empty()) {
+    out << "  Walls that don't have three vertex indices:";
+    write_counted_ids(out, file_walls(check, check.indices.malformed_walls), "wall", "walls");
+    out << '\n';
+  }
   if (!check.indices.out_of_range.empty()) {
     out << "  Walls with a vertex index out of range:";
-    write_counted_ids(out, check.indices.out_of_range, "wall", "walls");
+    write_counted_ids(out, file_walls(check, check.indices.out_of_range), "wall", "walls");
     out << '\n';
   }
   if (!check.indices.repeated_vertex.empty()) {
     out << "  Walls that use a vertex twice:";
-    write_counted_ids(out, check.indices.repeated_vertex, "wall", "walls");
+    write_counted_ids(out, file_walls(check, check.indices.repeated_vertex), "wall", "walls");
     out << '\n';
+  }
+  if (!check.bad_regions.empty()) {
+    out << "  Surface regions with a wall index out of range: " << check.bad_regions.size() << '\n';
+    for (const SurfaceRegionWalls& r : check.bad_regions) {
+      out << "    region " << r.name << ": " << (r.walls.size() == 1 ? "wall index" : "wall indices");
+      for (const int w : r.walls) {
+        out << ' ' << w;
+      }
+      out << '\n';
+    }
   }
   if (!check.duplicate_walls.empty()) {
     out << "  Walls with the same three vertices: " << counted(check.duplicate_walls.size(), "group", "groups") << '\n';
     for (const std::vector<mesh_index_t>& g : check.duplicate_walls) {
       out << "    walls";
-      write_ids(out, g);
+      write_ids(out, file_walls(check, g));
       out << '\n';
     }
   }
 
   if (!check.zero_area_walls.empty()) {
     out << "  Zero-area walls:";
-    write_counted_ids(out, check.zero_area_walls, "wall", "walls");
+    write_counted_ids(out, file_walls(check, check.zero_area_walls), "wall", "walls");
     out << '\n';
   }
 
   if (!check.equal_coordinates.empty()) {
     out << "  Vertices with equal coordinates: "
         << counted(check.equal_coordinates.size(), "group", "groups") << '\n';
-    for (const std::vector<mesh_index_t>& g : check.equal_coordinates) {
-      const Point& p = coordinates[g[0]];
+    for (std::size_t g = 0; g < check.equal_coordinates.size(); g++) {
+      const Point& p = check.equal_coordinates_at[g];
       out << "    vertices";
-      write_ids(out, g);
+      write_ids(out, check.equal_coordinates[g]);
       out << " at (" << GeometryAnalysis::number_to_string(p[0]) << ", "
           << GeometryAnalysis::number_to_string(p[1]) << ", "
           << GeometryAnalysis::number_to_string(p[2]) << ")\n";
@@ -658,7 +839,7 @@ void write_report_block(
       out << "    edges with 3 or more walls: " << check.non_manifold_edges.size() << '\n';
       for (const EdgeWalls& e : check.non_manifold_edges) {
         out << "      edge " << e.lo << '-' << e.hi << ": walls";
-        write_ids(out, e.walls);
+        write_ids(out, file_walls(check, e.walls));
         out << '\n';
       }
     }
@@ -677,7 +858,8 @@ void write_report_block(
   else {
     out << "  Consistently oriented: False\n";
     for (const EdgeWalls& e : check.inconsistent_edges) {
-      out << "    walls " << e.walls[0] << " and " << e.walls[1] << ", edge " << e.lo << '-' << e.hi << '\n';
+      out << "    walls " << file_wall(check, e.walls[0]) << " and " << file_wall(check, e.walls[1]) << ", edge "
+          << e.lo << '-' << e.hi << '\n';
     }
   }
 
@@ -705,11 +887,104 @@ void write_report_block(
     for (std::size_t s = 0; s < check.shell_facts.size(); s++) {
       const ShellFacts& f = check.shell_facts[s];
       if (f.wrong_facing) {
-        out << "    shell " << s << ": " << counted(f.walls, "wall", "walls") << " from wall " << f.first_wall
-            << ", signed volume " << format_number(f.signed_volume * volume_unit) << " um^3\n";
+        out << "    shell " << s << ": " << counted(f.walls, "wall", "walls") << " from wall "
+            << file_wall(check, f.first_wall) << ", signed volume " << format_number(f.signed_volume * volume_unit)
+            << " um^3\n";
       }
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// the terminal lines
+
+std::vector<ProblemLine> problem_lines(const MeshCheck& check) {
+  std::vector<ProblemLine> res;
+
+  // errors
+  std::vector<std::string> parts;
+  const IndexProblems& ip = check.indices;
+  if (ip.too_large) {
+    parts.push_back("too many vertices or walls to check");
+  }
+  if (!ip.malformed_vertices.empty()) {
+    parts.push_back(counted(ip.malformed_vertices.size(), "vertex that doesn't have three coordinates",
+                            "vertices that don't have three coordinates"));
+  }
+  if (!ip.malformed_walls.empty()) {
+    parts.push_back(counted(ip.malformed_walls.size(), "wall that doesn't have three vertex indices",
+                            "walls that don't have three vertex indices"));
+  }
+  if (!ip.out_of_range.empty()) {
+    parts.push_back(counted(ip.out_of_range.size(), "wall with a vertex index out of range",
+                            "walls with a vertex index out of range"));
+  }
+  if (!ip.repeated_vertex.empty()) {
+    parts.push_back(counted(ip.repeated_vertex.size(), "wall that uses a vertex twice",
+                            "walls that use a vertex twice"));
+  }
+  if (!check.bad_regions.empty()) {
+    parts.push_back(counted(check.bad_regions.size(), "surface region with a wall index out of range",
+                            "surface regions with a wall index out of range"));
+  }
+  if (!parts.empty()) {
+    std::string text = parts[0];
+    for (std::size_t i = 1; i < parts.size(); i++) {
+      text += ", " + parts[i];
+    }
+    res.push_back({true, "MESH_INVALID_INDICES", text});
+  }
+  if (!check.duplicate_walls.empty()) {
+    res.push_back({true, "MESH_DUPLICATE_WALLS",
+                   counted(check.duplicate_walls.size(), "group of walls with the same three vertices",
+                           "groups of walls with the same three vertices")});
+  }
+  if (!check.zero_area_walls.empty()) {
+    res.push_back({true, "MESH_ZERO_AREA_WALLS",
+                   counted(check.zero_area_walls.size(), "wall with zero area", "walls with zero area")});
+  }
+  if (check.table_built && !check.non_manifold.empty()) {
+    const std::string vertices =
+        counted(check.non_manifold.vertices().size(), "non-manifold vertex", "non-manifold vertices");
+    if (!check.non_manifold_edges.empty()) {
+      res.push_back({true, "MESH_NOT_MANIFOLD",
+                     counted(check.non_manifold_edges.size(), "edge with 3 or more walls",
+                             "edges with 3 or more walls") + ", " + vertices});
+    }
+    else {
+      res.push_back({true, "MESH_NOT_MANIFOLD", vertices + ", where groups of walls touch only at a vertex"});
+    }
+  }
+  if (!check.inconsistent_edges.empty()) {
+    const std::size_t n = check.inconsistent_edges.size();
+    res.push_back({true, "MESH_INCONSISTENT_ORIENTATION",
+                   n == 1 ? "1 pair of walls runs along its shared edge in the same direction"
+                          : std::to_string(n) + " pairs of walls run along their shared edge in the same direction"});
+  }
+
+  // warnings
+  if (!check.equal_coordinates.empty()) {
+    res.push_back({false, "MESH_DUPLICATE_VERTICES",
+                   counted(check.equal_coordinates.size(), "group of vertices with equal coordinates",
+                           "groups of vertices with equal coordinates")});
+  }
+  if (check.watertight_checked && check.boundary_edges != 0) {
+    res.push_back({false, "MESH_NOT_WATERTIGHT", counted(check.boundary_edges, "boundary edge", "boundary edges")});
+  }
+  return res;
+}
+
+std::string format_problem_line(const ProblemLine& line, const std::string& object, const std::string& report) {
+  return std::string(line.error ? "Error: [" : "Warning: [") + line.code + "] " + object + ": " + line.text +
+      "; see " + report;
+}
+
+std::string stop_message(const std::vector<std::string>& objects, const std::string& report) {
+  std::string res = counted(objects.size(), "geometry object has errors", "geometry objects have errors") + ":";
+  for (std::size_t i = 0; i < objects.size(); i++) {
+    res += (i == 0 ? " " : ", ") + objects[i];
+  }
+  return res + "; see " + report;
 }
 
 } // namespace MeshUtils

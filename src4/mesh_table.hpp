@@ -30,7 +30,9 @@
 // as index arrays, with the same numbering. The checks, in the order an object
 // is checked:
 //   pass 0         indices out of range, a wall that uses a vertex twice, walls
-//                  with the same three vertices
+//                  with the same three vertices; for the Python API's lists also
+//                  vertices and walls without three values, and surface-region
+//                  wall indices out of range
 //   zero area      walls whose area MCell's Wall code takes as zero
 //   equal coordinates  vertices with exactly the same coordinates (0.0 equals
 //                  -0.0); not an error, since connectivity comes from indices
@@ -44,8 +46,10 @@
 //                  each watertight shell, and the shells that face the wrong way
 //
 // Part of the geometry library, which depends on nothing else in MCell, so that
-// the test program mesh_utils_test can link it alone. MeshUtils
-// (mesh_utils.hpp) runs the checks on a model's geometry objects.
+// the test program mesh_utils_test can link it alone. The converters run the
+// checks on a model's geometry objects, check_lists for the Python API and
+// check_parsed_walls for MDL, and MeshUtils::GeometryReport (mesh_utils.hpp)
+// writes the report and the terminal lines.
 //
 // This header is valid C++17 so that the rest of MCell can include it; the
 // implementation is C++23.
@@ -77,13 +81,18 @@ struct IndexProblems {
   // more vertices, or more than a third as many walls, as mesh_index_t can
   // number; nothing else is checked then
   bool too_large = false;
+  // vertices without three coordinates and walls without three vertex indices,
+  // ascending; only the Python API's lists can hold them (check_lists)
+  std::vector<mesh_index_t> malformed_vertices;
+  std::vector<mesh_index_t> malformed_walls;
   // walls with an index below 0 or not below the number of vertices, ascending
   std::vector<mesh_index_t> out_of_range;
   // walls that use one vertex twice, ascending
   std::vector<mesh_index_t> repeated_vertex;
 
   bool empty() const {
-    return !too_large && out_of_range.empty() && repeated_vertex.empty();
+    return !too_large && malformed_vertices.empty() && malformed_walls.empty() && out_of_range.empty() &&
+        repeated_vertex.empty();
   }
 };
 
@@ -231,18 +240,36 @@ struct EdgeWalls {
   std::vector<mesh_index_t> walls;
 };
 
+// a surface region's wall indices: as the model gives them, or those out of range
+struct SurfaceRegionWalls {
+  std::string name;
+  std::vector<int> walls;
+};
+
 struct MeshCheck {
   std::size_t n_vertices = 0;
-  std::size_t n_walls = 0;
+  std::size_t n_walls = 0; // the walls checked
+
+  // MDL's REMOVE_ELEMENTS: the walls are numbered as in the file, which has
+  // more walls than were checked. The file's id of each checked wall, and the
+  // file's ids of the walls left out; both empty when no wall was left out
+  std::vector<mesh_index_t> file_wall_ids;
+  std::vector<mesh_index_t> removed_walls;
 
   IndexProblems indices;
+  // surface regions with wall indices out of range: each such index once, in
+  // the order the region gives them; they don't stop the other checks
+  std::vector<SurfaceRegionWalls> bad_regions;
   // the rest needs the table, built only if indices.empty()
   bool table_built = false;
   MeshTable table;
 
   std::vector<std::vector<mesh_index_t>> duplicate_walls;
   std::vector<mesh_index_t> zero_area_walls;
-  std::vector<std::vector<mesh_index_t>> equal_coordinates; // checked whatever the indices
+  // checked whatever the indices, unless a vertex doesn't have three
+  // coordinates; the coordinates of each group, as given
+  std::vector<std::vector<mesh_index_t>> equal_coordinates;
+  std::vector<Point> equal_coordinates_at;
 
   NonManifold non_manifold;
   std::vector<EdgeWalls> non_manifold_edges; // the walls of non_manifold.edges
@@ -269,7 +296,7 @@ struct MeshCheck {
     return watertight_checked && boundary_edges == 0;
   }
   std::size_t wrong_facing_shells() const;
-  // pass 0, zero area, 1.1 or 1.2 failed
+  // pass 0 (bad regions included), zero area, 1.1 or 1.2 failed
   bool has_errors() const;
 };
 
@@ -281,13 +308,54 @@ MeshCheck check_mesh(
     const std::vector<Point>& points, const std::vector<WallVertices>& walls,
     const std::vector<Point>& coordinates);
 
+// checks an object of the Python API from its lists as given: vertex_list in
+// microns, wall_list, and the wall indices of its surface regions. Their items
+// may hold any number of values; with a vertex that doesn't have three
+// coordinates or a wall that doesn't have three vertex indices there is no mesh
+// to check, so only pass 0 runs, and equal coordinates when every vertex has
+// three. points: vertex_list in internal units, as MCell converts it, read only
+// when every vertex has three coordinates
+MeshCheck check_lists(
+    const std::vector<std::vector<double>>& vertex_list, const std::vector<std::vector<int>>& wall_list,
+    const std::vector<Point>& points, const std::vector<SurfaceRegionWalls>& regions);
+
+// checks an MDL object from the walls MCell3 parsed (polygon_object::element).
+// removed: the walls MCell3 removed (polygon_object::side_removed), both those of
+// REMOVE_ELEMENTS and the zero-area walls it dropped; only the area tells them
+// apart. A removed wall with zero area is checked, so that it is reported; the
+// others are taken as REMOVE_ELEMENTS and left out, and the report gives the
+// file's wall ids
+MeshCheck check_parsed_walls(
+    const std::vector<Point>& points, const std::vector<WallVertices>& file_walls,
+    const std::vector<char>& removed, const std::vector<Point>& coordinates);
+
 // writes the object's block of the geometry report, which starts with
-// "Object <name>:"; every list of ids gives its count and says what the ids are.
-// Areas and volumes are converted with length_unit (microns per internal unit),
-// coordinates are written as given
+// "Object <name>:"; every list of ids gives its count and says what the ids are,
+// and walls have the file's ids. Areas and volumes are converted with
+// length_unit (microns per internal unit), coordinates are written as given
 void write_report_block(
-    std::ostream& out, const std::string& name, const MeshCheck& check,
-    const std::vector<Point>& coordinates, double length_unit);
+    std::ostream& out, const std::string& name, const MeshCheck& check, double length_unit);
+
+// ---------------------------------------------------------------------------
+// the terminal lines
+
+// a problem of one object, as its terminal line gives it
+struct ProblemLine {
+  bool error = true; // false: a warning, after which the run goes on
+  std::string code;  // e.g. MESH_ZERO_AREA_WALLS
+  std::string text;  // e.g. "1 wall with zero area"
+};
+
+// the object's problems in the order of its report block, errors first. Shells
+// that face the wrong way have no line; the report lists them
+std::vector<ProblemLine> problem_lines(const MeshCheck& check);
+
+// "Error: [<code>] <object>: <text>; see <report>", or "Warning: ..."
+std::string format_problem_line(const ProblemLine& line, const std::string& object, const std::string& report);
+
+// the one stop once every object is checked, e.g. "2 geometry objects have
+// errors: Scene.fin, Scene.flipped; see reports/geometry_report_00001.txt"
+std::string stop_message(const std::vector<std::string>& objects, const std::string& report);
 
 } // namespace MeshUtils
 } // namespace MCell

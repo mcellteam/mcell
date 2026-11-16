@@ -42,6 +42,11 @@ void SimulationConfig::initialize_run_report_file() {
 }
 
 
+std::string SimulationConfig::get_geometry_report_file_name() const {
+  return std::string(BNG::REPORT_DIR) + BNG::PATH_SEPARATOR + GEOMETRY_REPORT_PREFIX + seed_as_str() + BNG::REPORT_EXT;
+}
+
+
 void SimulationConfig::init_subpartition_edge_length() {
   release_assert(partition_edge_length > 0);
 

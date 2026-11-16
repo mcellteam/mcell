@@ -15,6 +15,7 @@
 #include "defines.h"
 
 const char* const RUN_REPORT_PREFIX = "run_report_";
+const char* const GEOMETRY_REPORT_PREFIX = "geometry_report_";
 
 namespace MCell {
 
@@ -127,6 +128,9 @@ public:
 
   std::string get_run_report_file_name() const;
   void initialize_run_report_file();
+
+  // reports/geometry_report_<seed>.txt, see MeshUtils::GeometryReport
+  std::string get_geometry_report_file_name() const;
 
 private:
   void init_subpartition_edge_length();

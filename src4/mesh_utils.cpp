@@ -11,19 +11,17 @@
 
 // Built as C++23 (see src4/CMakeLists.txt).
 //
-// The mesh checks. Each problem found gives one warning line
+// The geometry report (GeometryReport), whose lines come from the checks of
+// each mesh (mesh_table.hpp), and the checks of how a model uses its meshes.
+// Each problem these find gives one warning line
 //   Warning: [CODE] <object name>: <text>
 // which scripts can parse with ^Warning: \[([A-Z_]+)\] (\S+): (.*)$. The name is
 // the geometry object's name as MCell has it (Scene.box for MDL). After a
 // warning the run continues. The cases:
 //
-//   MESH_DUPLICATE_VERTICES        every object: two or more of the vertices
-//                                  that its walls use have exactly the same
-//                                  coordinates
-//   MESH_INCONSISTENT_ORIENTATION  counted objects, compartments, and objects
-//                                  whose volume a release by concentration
-//                                  uses: two walls run along their shared edge
-//                                  in the same direction
+//   MESH_INCONSISTENT_ORIENTATION  objects whose volume a release by
+//                                  concentration uses: two walls run along
+//                                  their shared edge in the same direction
 //   MESH_INSIDE_OUT                counted objects and compartments: a part
 //                                  faces the wrong way (see
 //                                  GeometryAnalysis::find_inside_out_parts); a
@@ -34,11 +32,10 @@
 //                                  wall
 //
 // Edges are matched by exact coordinates, as everywhere in GeometryAnalysis.
-// Objects with an edge of three or more walls don't reach these checks in the
-// Python API, which rejects them. MDL models are checked by MCell3 first: it
-// stops on counted objects and release regions that are open or inconsistently
-// oriented, so for MDL only MESH_DUPLICATE_VERTICES and MESH_INSIDE_OUT can
-// appear.
+// These checks run only when the checks of each mesh, which take edges from
+// the vertex indices, found no errors. MDL models are checked by MCell3 first:
+// it stops on counted objects and release regions that are open or
+// inconsistently oriented, so for MDL only MESH_INSIDE_OUT can appear.
 
 #include "mesh_utils.hpp"
 
@@ -49,6 +46,7 @@
 
 #include "logging.h"
 
+#include "bng/bng_config.h"
 #include "world.h"
 #include "partition.h"
 #include "geometry.h"
@@ -57,6 +55,42 @@
 
 namespace MCell {
 namespace MeshUtils {
+
+GeometryReport::GeometryReport(const std::string& file_name_, const double length_unit_)
+  : file_name(file_name_), length_unit(length_unit_) {
+  // the header; makes the directory if needed
+  BNG::initialize_report_file(file_name, "Geometry");
+  out.open(file_name, std::ios::out | std::ios::app);
+}
+
+
+void GeometryReport::add(const std::string& object_name, const MeshCheck& check) {
+  if (out.is_open()) {
+    write_report_block(out, object_name, check, length_unit);
+  }
+  for (const ProblemLine& line: problem_lines(check)) {
+    (line.error ? error_lines : warning_lines).push_back(format_problem_line(line, object_name, file_name));
+  }
+  if (check.has_errors()) {
+    objects_with_errors.push_back(object_name);
+  }
+}
+
+
+std::string GeometryReport::finish() {
+  out.close();
+  for (const std::string& line: error_lines) {
+    mcell_error_raw("%s\n", line.c_str());
+  }
+  for (const std::string& line: warning_lines) {
+    mcell_error_raw("%s\n", line.c_str());
+  }
+  if (objects_with_errors.empty()) {
+    return "";
+  }
+  return stop_message(objects_with_errors, file_name);
+}
+
 
 void get_mesh(
     const World* world, const GeometryObject& obj, const bool convert_units,
@@ -121,28 +155,17 @@ void warn_inconsistent_orientation(World* world, const GeometryObject& obj) {
 
 
 void check_geometry_object(World* world, const GeometryObject& obj) {
-  std::vector<GeometryAnalysis::Point> points;
-  std::vector<GeometryAnalysis::Triangle> triangles;
-  get_mesh(world, obj, false, points, triangles);
-
-  if (GeometryAnalysis::count_duplicate_points(points) != 0) {
-    mcell_warn(
-        "[MESH_DUPLICATE_VERTICES] %s: Two or more vertices have exactly the same coordinates; MCell joins "
-        "walls by coordinates, so it treats such vertices as one vertex.",
-        obj.name.c_str());
-  }
-
   if (!obj.is_counted_volume_or_compartment()) {
     return;
   }
 
   // closed and without an edge of three or more walls: initialize_counted_volumes
-  // stopped the run otherwise
+  // stopped the run otherwise; consistently oriented by its indices: the checks
+  // of the mesh stopped it otherwise
+  std::vector<GeometryAnalysis::Point> points;
+  std::vector<GeometryAnalysis::Triangle> triangles;
+  get_mesh(world, obj, false, points, triangles);
   const GeometryAnalysis::Mesh mesh = GeometryAnalysis::clean_mesh(points, triangles);
-  if (GeometryAnalysis::count_inconsistent_edges(mesh) != 0) {
-    warn_inconsistent_orientation(world, obj);
-  }
-
   const GeometryAnalysis::InsideOutParts parts = GeometryAnalysis::find_inside_out_parts(mesh);
   if (parts.components == 0) {
     return;

@@ -20,9 +20,15 @@
 //       the table and the checks that need only the walls, on the 131 meshes of
 //       possible_implementation/check_edge_table_proto.py; the expected results
 //       are those of coboundary.py, SciPy and NumPy (see the files' headers)
-//   reports/<name>.mesh, <name>.report
-//       check_mesh and write_report_block on small meshes with coordinates, one
-//       per error or warning; the expected report blocks are written by hand
+//   reports/<name>.mesh, <name>.report, <name>.lines
+//       the checks of an object as the converters run them (check_lists for the
+//       Python API, check_parsed_walls for MDL), its report block
+//       (write_report_block) and its terminal lines (problem_lines), on small
+//       meshes with coordinates, one per error or warning; the expected blocks
+//       and lines are written by hand
+//
+// The singular and plural form of every terminal line, and the message of the
+// one stop, are checked against texts written here.
 //
 // It prints one line per difference and a summary, and exits with 0 when
 // everything agrees, 1 otherwise. It reads only the files given and runs nothing
@@ -134,11 +140,33 @@ WallsFile read_walls_file(const fs::path& path) {
   return res;
 }
 
+// an object as a model gives it: the lines of vertices and walls may hold any
+// number of values, as the Python API's lists may; then optional lines
+//   region <name> <wall indices>   a surface region (the Python API)
+//   removed <wall ids>             the object is MDL's, as MCell3 parsed it, and
+//                                  these are the walls MCell3 removed
 struct MeshFile {
   double length_unit = 1.0;
-  std::vector<Point> coordinates; // as given, in microns
-  std::vector<WallVertices> walls;
+  std::vector<std::vector<double>> vertex_list; // in microns
+  std::vector<std::vector<int>> wall_list;
+  std::vector<SurfaceRegionWalls> regions;
+  bool parsed = false; // a "removed" line was given
+  std::vector<char> removed;
 };
+
+template <class T>
+std::vector<T> values_of(const std::string& line) {
+  std::istringstream s(line);
+  std::vector<T> res;
+  T x;
+  while (s >> x) {
+    res.push_back(x);
+  }
+  if (!s.eof()) {
+    throw std::runtime_error("bad line: " + line);
+  }
+  return res;
+}
 
 MeshFile read_mesh_file(const fs::path& path) {
   const std::vector<std::string> lines = data_lines(path);
@@ -153,14 +181,38 @@ MeshFile read_mesh_file(const fs::path& path) {
   }
   const std::size_t nv = read_count(lines, at++, "vertices");
   for (std::size_t v = 0; v < nv; v++) {
-    std::istringstream s(lines.at(at++));
-    Point p;
-    if (!(s >> p[0] >> p[1] >> p[2])) {
-      throw std::runtime_error("bad vertex line: " + lines.at(at - 1));
-    }
-    res.coordinates.push_back(p);
+    res.vertex_list.push_back(values_of<double>(lines.at(at++)));
   }
-  read_walls(lines, at, res.walls);
+  const std::size_t nw = read_count(lines, at++, "walls");
+  for (std::size_t w = 0; w < nw; w++) {
+    res.wall_list.push_back(values_of<int>(lines.at(at++)));
+  }
+  for (; at < lines.size(); at++) {
+    std::istringstream s(lines[at]);
+    std::string key;
+    s >> key;
+    std::string rest;
+    std::getline(s, rest);
+    if (key == "region") {
+      std::istringstream r(rest);
+      SurfaceRegionWalls region;
+      r >> region.name;
+      std::string indices;
+      std::getline(r, indices);
+      region.walls = values_of<int>(indices);
+      res.regions.push_back(region);
+    }
+    else if (key == "removed") {
+      res.parsed = true;
+      res.removed.assign(res.wall_list.size(), 0);
+      for (const int w : values_of<int>(rest)) {
+        res.removed.at(static_cast<std::size_t>(w)) = 1;
+      }
+    }
+    else {
+      throw std::runtime_error("unknown line in " + path.string() + ": " + lines[at]);
+    }
+  }
   return res;
 }
 
@@ -371,22 +423,69 @@ std::string read_text(const fs::path& path) {
   return s.str();
 }
 
-void check_report(const std::string& name, const MeshFile& m, const std::string& expected) {
+const char* const REPORT = "reports/geometry_report_00001.txt";
+
+std::string terminal_lines(const MeshCheck& check, const std::string& name) {
+  std::string res;
+  for (const ProblemLine& line : problem_lines(check)) {
+    res += format_problem_line(line, name, REPORT) + '\n';
+  }
+  return res;
+}
+
+void check_report(
+    const std::string& name, const MeshFile& m, const std::string& expected_block,
+    const std::string& expected_lines) {
   const std::string where = "reports/" + name;
 
   // internal units, as the API converts vertex_list (vertex * rcp_length_unit)
   const double rcp_length_unit = 1.0 / m.length_unit;
-  std::vector<Point> points;
-  for (const Point& p : m.coordinates) {
-    points.push_back({p[0] * rcp_length_unit, p[1] * rcp_length_unit, p[2] * rcp_length_unit});
+  const bool three_coordinates = std::all_of(m.vertex_list.begin(), m.vertex_list.end(),
+      [](const std::vector<double>& v) { return v.size() == 3; });
+  std::vector<Point> coordinates, points;
+  if (three_coordinates) {
+    for (const std::vector<double>& v : m.vertex_list) {
+      coordinates.push_back({v[0], v[1], v[2]});
+      points.push_back({v[0] * rcp_length_unit, v[1] * rcp_length_unit, v[2] * rcp_length_unit});
+    }
   }
-  const MeshCheck check = check_mesh(points, m.walls, m.coordinates);
-  std::ostringstream out;
-  write_report_block(out, name, check, m.coordinates, m.length_unit);
 
+  // the checks as the converters run them; walls: the walls checked
+  MeshCheck check;
+  std::vector<WallVertices> walls;
+  if (m.parsed) {
+    // MDL: MCell3 parsed every wall as three indices
+    std::vector<WallVertices> file_walls;
+    for (const std::vector<int>& w : m.wall_list) {
+      file_walls.push_back({w.at(0), w.at(1), w.at(2)});
+    }
+    check = check_parsed_walls(points, file_walls, m.removed, coordinates);
+    for (std::size_t w = 0; w < file_walls.size(); w++) {
+      if (check.file_wall_ids.empty() ||
+          std::find(check.file_wall_ids.begin(), check.file_wall_ids.end(), w) != check.file_wall_ids.end()) {
+        walls.push_back(file_walls[w]);
+      }
+    }
+  }
+  else {
+    check = check_lists(m.vertex_list, m.wall_list, points, m.regions);
+    if (check.table_built) {
+      for (const std::vector<int>& w : m.wall_list) {
+        walls.push_back({w[0], w[1], w[2]});
+      }
+    }
+  }
+
+  std::ostringstream out;
+  write_report_block(out, name, check, m.length_unit);
   n_checks++;
-  if (out.str() != expected) {
-    fail(where, "the report block differs; expected:\n" + expected + "got:\n" + out.str());
+  if (out.str() != expected_block) {
+    fail(where, "the report block differs; expected:\n" + expected_block + "got:\n" + out.str());
+  }
+  const std::string lines = terminal_lines(check, name);
+  n_checks++;
+  if (lines != expected_lines) {
+    fail(where, "the terminal lines differ; expected:\n" + expected_lines + "got:\n" + lines);
   }
 
   if (!check.watertight_checked) {
@@ -395,7 +494,7 @@ void check_report(const std::string& name, const MeshFile& m, const std::string&
   // the object's area is the sum of the walls' areas in order, with the bits of
   // Wall::initialize_wall_constants
   double area = 0.0;
-  for (const WallVertices& w : m.walls) {
+  for (const WallVertices& w : walls) {
     area += wall_area(points[w[0]], points[w[1]], points[w[2]]);
   }
   expect_true(where, "the area is the sum of wall_area over the walls", area == check.area);
@@ -404,7 +503,7 @@ void check_report(const std::string& name, const MeshFile& m, const std::string&
   // finds when no coordinates are equal (it merges equal ones)
   if (check.equal_coordinates.empty()) {
     const GeometryAnalysis::InsideOutParts parts =
-        GeometryAnalysis::find_inside_out_parts(GeometryAnalysis::clean_mesh(points, m.walls));
+        GeometryAnalysis::find_inside_out_parts(GeometryAnalysis::clean_mesh(points, walls));
     double volume = 0.0;
     for (const ShellFacts& f : check.shell_facts) {
       if (f.wrong_facing) {
@@ -432,6 +531,112 @@ void check_area_functions() {
   expect_true(where, "collinear points have area 0", wall_area({0, 0, 0}, {1, 1, 1}, {2, 2, 2}) == 0.0);
 }
 
+// ---------------------------------------------------------------------------
+// the singular and plural form of every terminal line, and the one stop
+
+void expect_lines(const std::string& what, const MeshCheck& check, const std::vector<std::string>& texts) {
+  std::string want;
+  for (const std::string& t : texts) {
+    want += t + "; see " + REPORT + '\n';
+  }
+  const std::string got = terminal_lines(check, "x");
+  n_checks++;
+  if (got != want) {
+    fail("terminal lines", what + ": expected:\n" + want + "got:\n" + got);
+  }
+}
+
+void check_line_texts() {
+  // pass 0, in the order of the report, with one of each and with two
+  MeshCheck one;
+  one.indices.malformed_vertices = {2};
+  one.indices.malformed_walls = {1};
+  one.indices.out_of_range = {3};
+  one.indices.repeated_vertex = {4};
+  one.bad_regions = {{"r", {9}}};
+  expect_lines("pass 0, one of each", one,
+      {"Error: [MESH_INVALID_INDICES] x: 1 vertex that doesn't have three coordinates, "
+       "1 wall that doesn't have three vertex indices, 1 wall with a vertex index out of range, "
+       "1 wall that uses a vertex twice, 1 surface region with a wall index out of range"});
+
+  MeshCheck two;
+  two.indices.malformed_vertices = {2, 5};
+  two.indices.malformed_walls = {1, 6};
+  two.indices.out_of_range = {3, 7};
+  two.indices.repeated_vertex = {4, 8};
+  two.bad_regions = {{"r", {9}}, {"s", {-1}}};
+  expect_lines("pass 0, two of each", two,
+      {"Error: [MESH_INVALID_INDICES] x: 2 vertices that don't have three coordinates, "
+       "2 walls that don't have three vertex indices, 2 walls with a vertex index out of range, "
+       "2 walls that use a vertex twice, 2 surface regions with a wall index out of range"});
+
+  MeshCheck large;
+  large.indices.too_large = true;
+  expect_lines("too large", large, {"Error: [MESH_INVALID_INDICES] x: too many vertices or walls to check"});
+
+  // the other errors, then the warnings
+  MeshCheck c1;
+  c1.table_built = true;
+  c1.duplicate_walls = {{0, 1}};
+  c1.zero_area_walls = {2};
+  c1.non_manifold.bowtie_vertices = {0};
+  c1.inconsistent_edges = {{0, 1, {0, 1}}};
+  c1.equal_coordinates = {{0, 3}};
+  c1.watertight_checked = true;
+  c1.boundary_edges = 1;
+  expect_lines("one of each", c1,
+      {"Error: [MESH_DUPLICATE_WALLS] x: 1 group of walls with the same three vertices",
+       "Error: [MESH_ZERO_AREA_WALLS] x: 1 wall with zero area",
+       "Error: [MESH_NOT_MANIFOLD] x: 1 non-manifold vertex, where groups of walls touch only at a vertex",
+       "Error: [MESH_INCONSISTENT_ORIENTATION] x: 1 pair of walls runs along its shared edge in the same direction",
+       "Warning: [MESH_DUPLICATE_VERTICES] x: 1 group of vertices with equal coordinates",
+       "Warning: [MESH_NOT_WATERTIGHT] x: 1 boundary edge"});
+
+  MeshCheck c2;
+  c2.table_built = true;
+  c2.duplicate_walls = {{0, 1}, {2, 3}};
+  c2.zero_area_walls = {2, 4};
+  c2.non_manifold.bowtie_vertices = {0};
+  c2.non_manifold.pinched_vertices = {5};
+  c2.inconsistent_edges = {{0, 1, {0, 1}}, {1, 2, {1, 2}}, {2, 3, {2, 3}}};
+  c2.equal_coordinates = {{0, 3}, {1, 4}};
+  c2.watertight_checked = true;
+  c2.boundary_edges = 4;
+  expect_lines("more of each", c2,
+      {"Error: [MESH_DUPLICATE_WALLS] x: 2 groups of walls with the same three vertices",
+       "Error: [MESH_ZERO_AREA_WALLS] x: 2 walls with zero area",
+       "Error: [MESH_NOT_MANIFOLD] x: 2 non-manifold vertices, where groups of walls touch only at a vertex",
+       "Error: [MESH_INCONSISTENT_ORIENTATION] x: 3 pairs of walls run along their shared edge in the same direction",
+       "Warning: [MESH_DUPLICATE_VERTICES] x: 2 groups of vertices with equal coordinates",
+       "Warning: [MESH_NOT_WATERTIGHT] x: 4 boundary edges"});
+
+  // non-manifold edges: their ends are non-manifold vertices too
+  MeshCheck e1;
+  e1.table_built = true;
+  e1.non_manifold.edges = {0};
+  e1.non_manifold.edge_vertices = {0, 1};
+  e1.non_manifold_edges = {{0, 1, {0, 1, 2}}};
+  expect_lines("one edge", e1,
+      {"Error: [MESH_NOT_MANIFOLD] x: 1 edge with 3 or more walls, 2 non-manifold vertices"});
+  MeshCheck e2 = e1;
+  e2.non_manifold.edges = {0, 4};
+  e2.non_manifold.edge_vertices = {0, 1, 2, 3};
+  e2.non_manifold_edges = {{0, 1, {0, 1, 2}}, {2, 3, {3, 4, 5}}};
+  expect_lines("two edges", e2,
+      {"Error: [MESH_NOT_MANIFOLD] x: 2 edges with 3 or more walls, 4 non-manifold vertices"});
+
+  // the stop
+  n_checks++;
+  if (stop_message({"Scene.fin"}, REPORT) != std::string("1 geometry object has errors: Scene.fin; see ") + REPORT) {
+    fail("stop", "one object: got " + stop_message({"Scene.fin"}, REPORT));
+  }
+  n_checks++;
+  if (stop_message({"Scene.fin", "Scene.flipped"}, REPORT) !=
+      std::string("2 geometry objects have errors: Scene.fin, Scene.flipped; see ") + REPORT) {
+    fail("stop", "two objects: got " + stop_message({"Scene.fin", "Scene.flipped"}, REPORT));
+  }
+}
+
 std::vector<fs::path> files_with(const fs::path& dir, const std::string& extension) {
   std::vector<fs::path> res;
   for (const fs::directory_entry& e : fs::directory_iterator(dir)) {
@@ -453,6 +658,7 @@ int main(int argc, char** argv) {
   const fs::path dir = argv[1];
   try {
     check_area_functions();
+    check_line_texts();
 
     const std::vector<fs::path> walls_files = files_with(dir / "connectivity", ".walls");
     for (const fs::path& p : walls_files) {
@@ -463,7 +669,8 @@ int main(int argc, char** argv) {
     const std::vector<fs::path> mesh_files = files_with(dir / "reports", ".mesh");
     for (const fs::path& p : mesh_files) {
       const std::string name = p.stem().string();
-      check_report(name, read_mesh_file(p), read_text(p.parent_path() / (name + ".report")));
+      check_report(name, read_mesh_file(p), read_text(p.parent_path() / (name + ".report")),
+                   read_text(p.parent_path() / (name + ".lines")));
     }
 
     if (walls_files.empty() || mesh_files.empty()) {
