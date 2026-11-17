@@ -445,15 +445,18 @@ static MeshUtils::MeshCheck check_polygonal_object(const geom_object* o, const d
 
 
 // the polygonal objects under a meta object, in the order
-// convert_geometry_meta_object_recursively converts them
+// convert_geometry_meta_object_recursively converts them; keeps each check
 static void check_polygonal_objects_recursively(
-    const geom_object* meta, const double length_unit, MeshUtils::GeometryReport& report) {
+    const geom_object* meta, const double length_unit, MeshUtils::GeometryReport& report,
+    std::map<const geom_object*, MeshUtils::MeshCheck>& checks) {
   for (const geom_object* o = meta->first_child; o != nullptr; o = o->next) {
     if (o->object_type == POLY_OBJ) {
-      report.add(get_sym_name(o->sym), check_polygonal_object(o, length_unit));
+      MeshUtils::MeshCheck check = check_polygonal_object(o, length_unit);
+      report.add(get_sym_name(o->sym), check);
+      checks[o] = std::move(check);
     }
     else if (o->object_type == META_OBJ) {
-      check_polygonal_objects_recursively(o, length_unit, report);
+      check_polygonal_objects_recursively(o, length_unit, report, checks);
     }
   }
 }
@@ -466,7 +469,7 @@ static void check_polygonal_objects_recursively(
 void MCell3WorldConverter::check_polygonal_objects(volume* s) {
   MeshUtils::GeometryReport report(world->config.get_geometry_report_file_name(), world->config.length_unit);
   for (const geom_object* inst = s->root_instance->first_child; inst != nullptr; inst = inst->next) {
-    check_polygonal_objects_recursively(inst, world->config.length_unit, report);
+    check_polygonal_objects_recursively(inst, world->config.length_unit, report, mesh_checks);
   }
   const std::string stop = report.finish();
   if (!stop.empty()) {
@@ -488,18 +491,7 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
     CHECK(convert_geometry_meta_object_recursively(s, instantiate_obj));
   } // for each scene/INSTANTIATE section
 
-  // check that our reinit function works correctly
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-
-#ifdef DEBUG_EXTRA_CHECKS
-  for (wall_index_t i = 0; i < p.get_wall_count(); i++) {
-    Wall& w = p.get_wall(i);
-    for (edge_index_t k = 0; k < EDGES_IN_TRIANGLE; k++) {
-      Edge& e = w.edges[k];
-      e.debug_check_values_are_uptodate(p);
-    }
-  }
-#endif
 
   for (GeometryObject& obj: p.get_geometry_objects()) {
     obj.initialize_is_fully_transparent(p);
@@ -584,58 +576,10 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
     wall.vertex_indices[i] = vert_pindex.second;
   }
 
-  wall.uv_vert1_u = w->uv_vert1_u;
-  wall.uv_vert2 = w->uv_vert2;
-  wall.area = w->area;
-  wall.normal = w->normal;
-  wall.unit_u = w->unit_u;
-  wall.unit_v = w->unit_v;
-  wall.distance_to_origin = w->d;
-  wall.wall_constants_initialized = true;
-
-  for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
-    edge* e = w->edges[i];
-    assert(e != nullptr);
-
-    Edge& edge = wall.edges[i];
-
-    if (e->forward != nullptr) {
-      edge.forward_index = get_mcell4_wall_index(e->forward).second;
-    }
-    else {
-      edge.forward_index = WALL_INDEX_INVALID;
-    }
-    if (e->backward != nullptr) {
-      edge.backward_index = get_mcell4_wall_index(e->backward).second;
-    }
-    else {
-      edge.backward_index = WALL_INDEX_INVALID;
-    }
-    edge.set_translate(e->translate);
-    edge.set_cos_theta(e->cos_theta);
-    edge.set_sin_theta(e->sin_theta);
-
-    // e->edge_num_used_for_init is valid only if both fwd and backw walls are present
-    if (e->forward != nullptr && e->backward != nullptr) {
-      edge.edge_num_used_for_init = e->edge_num_used_for_init; // added only for mcell4
-    }
-    else {
-      edge.edge_num_used_for_init = EDGE_INDEX_INVALID;
-    }
-  }
-
-  for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
-    if (w->nb_walls[i] != nullptr) {
-#ifndef NDEBUG
-      PartitionWallIndexPair pindex = get_mcell4_wall_index(w->nb_walls[i]);
-      assert(pindex.first == wall_pindex.first && "Neighbors must be in the same partition for now");
-#endif
-      wall.nb_walls[i] = get_mcell4_wall_index(w->nb_walls[i]).second;
-    }
-    else {
-      wall.nb_walls[i] = WALL_INDEX_INVALID;
-    }
-  }
+  // MCell4 computes the wall's constants from its vertices, as for the API;
+  // the neighbours and edges come from the object's MeshTable once all its
+  // walls exist (convert_polygonal_object)
+  wall.initialize_wall_constants(p);
 
   // CHECK_PROPERTY(w->grid == nullptr); // don't care, we will create grid if needed
 
@@ -679,21 +623,10 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
         region_species_from_mcell3.insert(mcell4_reg.species_id);
       }
 
-      // which of our walls are region edges?
-      set<edge_index_t> edge_indices;
-      if (reg->boundaries != nullptr) {
-        for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
-          edge* e = w->edges[i];
-          uint keyhash = (unsigned int)(intptr_t)(e);
-          void* key = (void *)(e);
-          if (pointer_hash_lookup(reg->boundaries, key, keyhash)) {
-            edge_indices.insert(i);
-          }
-        }
-      }
-
+      // the region's borders come from the object's MeshTable
+      // (convert_polygonal_object)
       assert(mcell4_reg.walls_and_edges.count(wall.index) == 0);
-      mcell4_reg.walls_and_edges[wall.index] = edge_indices;
+      mcell4_reg.add_wall_to_walls_and_edges(wall.index);
     }
   }
 
@@ -731,8 +664,10 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   // struct geom_object *parent; // ignored
   CHECK_PROPERTY(r->element_list_head == nullptr); // should be used only at parse time
 
-  // r->membership - Each bit indicates whether the corresponding wall is in the region */
-  // and r->boundaries - edges of region are handled in convert_wall_and_update_regions
+  // r->membership - Each bit indicates whether the corresponding wall is in the region,
+  // read in convert_wall_and_update_regions
+  // r->boundaries - ignored, MCell4 gives every region its borders from the
+  // object's MeshTable (convert_polygonal_object)
 
   if (r->surf_class != nullptr) {
     new_region.species_id = get_mcell4_species_id(r->surf_class->species_id);
@@ -879,6 +814,25 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
     }
   }
   release_assert(obj.encompassing_region_id != REGION_ID_INVALID);
+
+  // the object's MeshTable, from check_polygonal_objects. Its wall j is the
+  // j-th wall MCell3 kept, and MCell4 created the walls in the same order
+  auto check_it = mesh_checks.find(o);
+  release_assert(check_it != mesh_checks.end() && check_it->second.table_built);
+  const MeshUtils::MeshCheck& check = check_it->second;
+  CHECK_PROPERTY(check.table.n_walls() == obj.wall_indices.size());
+  for (size_t j = 0; j < obj.wall_indices.size(); j++) {
+    const size_t file_wall = check.file_wall_ids.empty() ? j : check.file_wall_ids[j];
+    CHECK_PROPERTY(p.get_wall(obj.wall_indices[j]).side == file_wall);
+  }
+
+  // link the walls and give every region its borders, by the same rule as for
+  // the API
+  obj.link_walls(p, check.table);
+  for (region_index_t ri: obj.regions) {
+    p.get_region(ri).init_border_edges(obj, check.table);
+  }
+  mesh_checks.erase(check_it);
 
 
   // --- back to object ---

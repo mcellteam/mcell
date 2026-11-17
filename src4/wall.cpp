@@ -147,7 +147,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
   wb.dump(p, "", true);
 #endif
 
-  // edge_num_used_for_init is set in surface_net when object is initialized
+  // edge_num_used_for_init is set in GeometryObject::link_walls when the object is initialized
   edge_index_t i = edge_num_used_for_init;
   assert(i < VERTICES_IN_TRIANGLE);
   edge_index_t j = i + 1;

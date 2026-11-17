@@ -31,6 +31,9 @@ namespace MCell {
 class Partition;
 class World;
 class RegionExprNode;
+namespace MeshUtils {
+struct MeshTable;
+}
 
 const char* const REGION_ALL_SUFFIX_W_COMMA = ",ALL";
 
@@ -130,7 +133,11 @@ public:
     return is_used_in_mol_rxn_counts || represents_compartment();
   }
 
-  void initialize_neighboring_walls_and_their_edges(Partition& p);
+  // Links the walls across their shared edges from the object's MeshTable, in
+  // which wall j is wall_indices[j]: the neighbour across each side and the
+  // edge's change of frame. A side on a boundary edge keeps no neighbour and an
+  // uninitialized edge. The walls' constants must be set.
+  void link_walls(Partition& p, const MeshUtils::MeshTable& table) const;
 
   void set_is_used_in_mol_rxn_counts(const bool value = true) {
     is_used_in_mol_rxn_counts = value;
@@ -338,9 +345,13 @@ public:
   // for regions that encompass the whole geometry object ([ALL])
   void init_from_whole_geom_object(const GeometryObject& obj);
 
-  // for regions that represent a surface region ([xxx])
-  // walls must be already set
-  void init_surface_region_edges(const Partition& p);
+  // The region's borders, from the MeshTable of its object: side k of a wall in
+  // the region is a border when its edge has exactly one wall in the region,
+  // that is, when the edge is a boundary edge of the mesh or the wall across it
+  // is not in the region. The same rule for every region, ALL included; a
+  // region has no borders only when no edge of it has a wall outside it, as the
+  // whole of a watertight mesh. The region's walls must be set.
+  void init_border_edges(const GeometryObject& obj, const MeshUtils::MeshTable& table);
 
   void add_wall_to_walls_and_edges(const wall_index_t wi, const bool incl_edges = false) {
     walls_and_edges.insert(std::make_pair(wi, std::set<edge_index_t>()));

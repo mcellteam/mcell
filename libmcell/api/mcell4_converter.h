@@ -12,9 +12,11 @@
 #ifndef LIBMCELL_API_MCELL4_CONVERTER_H_
 #define LIBMCELL_API_MCELL4_CONVERTER_H_
 
+#include <map>
 #include <vector>
 #include "defines.h"
 #include "mol_or_rxn_count_event.h"
+#include "mesh_table.hpp"
 #include "api/bng_converter.h"
 
 namespace BNG {
@@ -114,7 +116,7 @@ private:
   MCell::region_index_t convert_surface_region(
       MCell::Partition& p,
       API::SurfaceRegion& surface_region, API::GeometryObject& o,
-      MCell::GeometryObject& obj
+      MCell::GeometryObject& obj, const MeshUtils::MeshTable& table
   );
   void convert_geometry_objects();
 
@@ -162,6 +164,11 @@ private:
   Model* model;
   World* world;
   BNGConverter bng_converter;
+
+  // the checks of each geometry object, with its MeshTable, from
+  // check_geometry_objects until convert_geometry_objects has linked the
+  // object's walls and set its regions' borders
+  std::map<const API::GeometryObject*, MeshUtils::MeshCheck> mesh_checks;
 };
 
 } // namespace API

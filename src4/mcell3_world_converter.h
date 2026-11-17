@@ -17,6 +17,7 @@
 #include "mcell_structs_shared.h"
 
 #include "world.h"
+#include "mesh_table.hpp"
 #include <map>
 
 struct volume; // MCell3
@@ -146,6 +147,11 @@ private:
   std::map<const region*, PartitionRegionIndexPair> region_ptr_to_region_index_map;
 
   std::vector<ClampReleaseEvent*> concentration_clamps;
+
+  // the checks of each polygonal object, with its MeshTable, from
+  // check_polygonal_objects until convert_polygonal_object has linked the
+  // object's walls and set its regions' borders
+  std::map<const geom_object*, MeshUtils::MeshCheck> mesh_checks;
 };
 
 

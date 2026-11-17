@@ -862,7 +862,7 @@ void MCell4Converter::convert_concentration_clamp_release(
 MCell::region_index_t MCell4Converter::convert_surface_region(
     MCell::Partition& p,
     API::SurfaceRegion& surface_region, API::GeometryObject& o,
-    MCell::GeometryObject& obj) {
+    MCell::GeometryObject& obj, const MeshUtils::MeshTable& table) {
 
   MCell::Region reg;
   reg.name = obj.name + "," + surface_region.name;
@@ -890,7 +890,7 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
     );
   }
 
-  reg.init_surface_region_edges(p);
+  reg.init_border_edges(obj, table);
 
   reg.id = world->get_next_region_id();
   surface_region.region_id = reg.id;
@@ -925,7 +925,9 @@ void MCell4Converter::check_geometry_objects() {
       regions.push_back({sr->name, sr->wall_indices});
     }
 
-    report.add(o->name, MeshUtils::check_lists(o->vertex_list, o->wall_list, points, regions));
+    MeshUtils::MeshCheck check = MeshUtils::check_lists(o->vertex_list, o->wall_list, points, regions);
+    report.add(o->name, check);
+    mesh_checks[o.get()] = std::move(check);
   }
 
   const std::string stop = report.finish();
@@ -976,13 +978,17 @@ void MCell4Converter::convert_geometry_objects() {
       o->wall_indices.push_back(wi);
     }
 
-    // initialize edges
-    obj.initialize_neighboring_walls_and_their_edges(p);
+    // link the walls from the object's MeshTable, kept since check_geometry_objects
+    auto check_it = mesh_checks.find(o.get());
+    release_assert(check_it != mesh_checks.end() && check_it->second.table_built);
+    const MeshUtils::MeshTable& table = check_it->second.table;
+    obj.link_walls(p, table);
 
     vector<region_index_t> region_indices;
     // region "ALL"
     MCell::Region reg_all;
     reg_all.init_from_whole_geom_object(obj);
+    reg_all.init_border_edges(obj, table);
     reg_all.id = world->get_next_region_id();
 
     // TODO: move surf class handling code to a function and share with convert_surface_region
@@ -1013,7 +1019,7 @@ void MCell4Converter::convert_geometry_objects() {
     // (maybe change this in the mcell3 converter)
     for (int k = (int)o->surface_regions.size() - 1; k >= 0; k--) {
       std::shared_ptr<SurfaceRegion> surface_region = o->surface_regions[k];
-      region_index_t ri = convert_surface_region(p, *surface_region, *o, obj);
+      region_index_t ri = convert_surface_region(p, *surface_region, *o, obj, table);
       region_indices.push_back(ri);
 
       // also set colors if they were specified
@@ -1037,6 +1043,9 @@ void MCell4Converter::convert_geometry_objects() {
         }
       }
     }
+
+    // the object's walls are linked and its regions have their borders
+    mesh_checks.erase(check_it);
 
     // set MCell:GeometryObject compartment ids
     if (o->is_bngl_compartment) {

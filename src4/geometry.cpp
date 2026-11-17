@@ -30,334 +30,58 @@
 #include "collision_utils.inl"
 #include "dump_state.h"
 #include "geometry_analysis.hpp"
+#include "mesh_table.hpp"
 
 using namespace std;
 
 namespace MCell {
 
-/***************************************************************************
-compatible_edges:
-  In: array of pointers to walls
-      index of first wall
-      index of edge in first wall
-      index of second wall
-      index of edge in second wall
-      indices may be -1
-  Out: 1 if the edge joins the two walls
-       0 if not (i.e. the wall doesn't contain the edge or the edge is
-       traversed in the same direction in each or the two walls are
-       actually the same wall)
-***************************************************************************/
-static int compatible_edges(
-    const Partition& p,
-    const vector<wall_index_t>& faces, int wA, int eA, int wB, int eB) {
-
-  const Vec3 *vA0, *vA1, *vA2, *vB0, *vB1, *vB2;
-
-  const Wall& wall_a = p.get_wall(faces[wA]);
-  const Wall& wall_b = p.get_wall(faces[wB]);
-
-  if ((wA < 0) || (eA < 0) || (wB < 0) || (eB < 0))
-    return 0;
-
-  vA0 = &p.get_wall_vertex(wall_a, eA);
-  if (eA == 2) {
-    vA1 = &p.get_wall_vertex(wall_a, 0);
-  }
-  else {
-    vA1 = &p.get_wall_vertex(wall_a, eA + 1);
-  }
-
-  if (eA == 0) {
-    vA2 = &p.get_wall_vertex(wall_a, 2);
-  }
-  else {
-    vA2 = &p.get_wall_vertex(wall_a, eA - 1);
-  }
-
-  vB0 = &p.get_wall_vertex(wall_b, eB);
-  if (eB == 2) {
-    vB1 = &p.get_wall_vertex(wall_b, 0);
-  }
-  else {
-    vB1 = &p.get_wall_vertex(wall_b, eB + 1);
-  }
-
-  if (eB == 0) {
-    vB2 = &p.get_wall_vertex(wall_b, 2);
-  }
-  else {
-    vB2 = &p.get_wall_vertex(wall_b, eB - 1);
-  }
-
-  return ((vA0 == vB1 && vA1 == vB0 && vA2 != vB2) ||
-          (vA0->x == vB1->x && vA0->y == vB1->y && vA0->z == vB1->z &&
-           vA1->x == vB0->x && vA1->y == vB0->y && vA1->z == vB0->z &&
-           !(vA2->x == vB2->x && vA2->y == vB2->y && vA2->z == vB2->z)));
+// the wall of the object's MeshTable that is the object's wall wi: table wall
+// j is wall_indices[j], and the converters create an object's walls one after
+// another (GeometryObject::link_walls checks it)
+static MeshUtils::mesh_index_t get_table_wall_index(const GeometryObject& obj, const wall_index_t wi) {
+  assert(!obj.wall_indices.empty());
+  const wall_index_t j = wi - obj.wall_indices[0];
+  release_assert(j < obj.wall_indices.size() && obj.wall_indices[j] == wi);
+  return static_cast<MeshUtils::mesh_index_t>(j);
 }
 
 
-/*****************************************************************************
- have_common_region checks if wall1 and wall2 located on the (same) object
- are part of a common region or not
-******************************************************************************/
-static bool have_common_region(
-    const Partition& p, const GeometryObject& obj, wall_index_t wall1, wall_index_t wall2) {
-
-  const Wall& w1 = p.get_wall(obj.wall_indices[wall1]);
-  const Wall& w2 = p.get_wall(obj.wall_indices[wall2]);
-
-  for (region_index_t index: w1.regions) {
-    if (w2.regions.count(index) == 1) {
-      return true;
-    }
-  }
-  return false;
-}
-
-
-/***************************************************************************
-refine_edge_pairs:
-  In: the head of a linked list of shared edges
-      array of pointers to walls
-  Out: No return value.  The best-matching pair of edges percolates up
-       to be first in the list.  "Best-matching" means that the edge
-       is traversed in different directions by each face, and that the
-       normals of the two faces are as divergent as possible.
-***************************************************************************/
-static void refine_edge_pairs(
-    const Partition& p, const GeometryObject& obj, poly_edge *pe, const vector<wall_index_t>& faces) {
-
-#define TSWAP(x, y) temp = (x); (x) = (y); (y) = temp
-
-  int temp;
-
-  pos_t best_align = 2;
-  bool share_region = false;
-  poly_edge* best_p1 = pe;
-  poly_edge* best_p2 = pe;
-  int best_n1 = 1;
-  int best_n2 = 2;
-
-  poly_edge* p1 = pe;
-  int n1 = 1;
-  while (p1 != NULL && p1->n >= n1) {
-    int wA, eA;
-    if (n1 == 1) {
-      wA = p1->face[0];
-      eA = p1->edge[0];
-    }
-    else {
-      wA = p1->face[1];
-      eA = p1->edge[1];
-    }
-
-    poly_edge* p2;
-    int n2;
-    if (n1 == 1) {
-      n2 = n1 + 1;
-      p2 = p1;
-    }
-    else {
-      n2 = 1;
-      p2 = p1->next;
-    }
-
-    while (p2 != NULL && p2->n >= n2) {
-      int wB, eB;
-      if (n2 == 1) {
-        wB = p2->face[0];
-        eB = p2->edge[0];
-      } else {
-        wB = p2->face[1];
-        eB = p2->edge[1];
-      }
-
-      // as soon as we hit an incompatible edge we can break out of the p2 loop
-      // and continue scanning the next p1
-      if (compatible_edges(p, faces, wA, eA, wB, eB)) {
-        const Wall& wall_a = p.get_wall(wA);
-        const Wall& wall_b = p.get_wall(wB);
-        assert(wall_a.wall_constants_initialized);
-        assert(wall_b.wall_constants_initialized);
-
-        pos_t align = dot(wall_a.normal, wall_b.normal);
-
-        // as soon as two walls have a common region we only consider walls who
-        // share (any) region. We need to reset the best_align to make sure we
-        // don't pick any wall that don't share a region discovered previously
-        bool common_region = have_common_region(p, obj, wA, wB);
-        if (common_region) {
-          if (!share_region) {
-            best_align = 2;
-          }
-          share_region = true;
-        }
-
-        if (common_region || !share_region) {
-          if (align < best_align) {
-            best_p1 = p1;
-            best_p2 = p2;
-            best_n1 = n1;
-            best_n2 = n2;
-            best_align = align;
-          }
-        }
-      }
-      else {
-        break;
-      }
-
-      if (n2 == 1) {
-        n2++;
-      }
-      else {
-        p2 = p2->next;
-        n2 = 1;
-      }
-    }
-
-    if (n1 == 1) {
-      n1++;
-    }
-    else {
-      p1 = p1->next;
-      n1 = 1;
-    }
+void GeometryObject::link_walls(Partition& p, const MeshUtils::MeshTable& table) const {
+  release_assert(table.n_walls() == wall_indices.size());
+  for (size_t j = 0; j < wall_indices.size(); j++) {
+    release_assert(wall_indices[j] == wall_indices[0] + j && "An object's walls must be created one after another");
   }
 
-  /* swap best match into top spot */
-  if (best_align > 1) {
-    return; /* No good pairs. */
-  }
-
-  TSWAP(best_p1->face[best_n1-1], pe->face[0]);
-  TSWAP(best_p1->edge[best_n1-1], pe->edge[0]);
-  TSWAP(best_p2->face[best_n2-1], pe->face[1]);
-  TSWAP(best_p2->edge[best_n2-1], pe->edge[1]);
-
-#undef TSWAP
-}
-
-
-/***************************************************************************
-surface_net:
-  In: array of pointers to walls
-      integer length of array
-  Out: -1 if the surface is a manifold, 0 if it is not, 1 on malloc failure
-       Walls end up connected across their edges.
-  Note: Two edges must have their vertices listed in opposite order (i.e.
-        connect two faces pointing the same way) to be linked.  If more than
-        two faces share the same edge and can be linked, the faces with
-        normals closest to each other will be linked.  We do not assume that
-        the object is connected.  All pieces must be a manifold, however,
-        for the entire object to be a manifold.  (That is, there must not
-        be any free edges anywhere.)  It is possible to build weird, twisty
-        self-intersecting things.  The behavior of these things during a
-        simulation is not guaranteed to be well-defined.
-***************************************************************************/
-static int surface_net(Partition& p, GeometryObject& obj) {
-
-  uint nfaces = obj.wall_indices.size();
-  vector<wall_index_t> facelist = obj.wall_indices;
-
-  Edge *e;
-  int is_closed = 1;
-
-  struct edge_hashtable eht;
-  int nkeys = (3 * nfaces) / 2;
-  if (ehtable_init(&eht, nkeys))
-    return 1;
-
-  for (uint face_index = 0; face_index < nfaces; face_index++) {
-
-    Wall& w = p.get_wall(facelist[face_index]);
-
-    int k;
-    int nedge = 3;
-
-    for (int j = 0; j < nedge; j++) {
-
-      if (j + 1 < nedge)
-        k = j + 1;
-      else
-        k = 0;
-
-      poly_edge pe;
-      const Vec3& vert_j = p.get_wall_vertex(w, j);
-      pe.v1x = vert_j.x;
-      pe.v1y = vert_j.y;
-      pe.v1z = vert_j.z;
-      const Vec3& vert_k = p.get_wall_vertex(w, k);
-      pe.v2x = vert_k.x;
-      pe.v2y = vert_k.y;
-      pe.v2z = vert_k.z;
-      pe.face[0] = face_index;
-      pe.edge[0] = j;
-
-      if (ehtable_add(&eht, &pe))
-        return 1;
+  // an edge with two walls joins the wall of its first entry, the forward wall,
+  // with the wall of its second entry, the backward wall; entries are in the
+  // order of the model's walls, so the first wall that uses the edge is the
+  // forward one, as when walls were linked by coordinates. A boundary edge, the
+  // only other kind once the checks have passed, keeps no neighbour and the
+  // uninitialized edge
+  for (MeshUtils::mesh_index_t e = 0; e < table.n_edges(); e++) {
+    if (table.wall_count[e] != 2) {
+      continue;
     }
+    const MeshUtils::mesh_index_t entry0 = table.entry0[e];
+    const MeshUtils::mesh_index_t entry1 = table.entry1[e];
+    const edge_index_t side0 = entry0 % EDGES_IN_TRIANGLE;
+    const edge_index_t side1 = entry1 % EDGES_IN_TRIANGLE;
+    Wall& w0 = p.get_wall(wall_indices[entry0 / EDGES_IN_TRIANGLE]);
+    Wall& w1 = p.get_wall(wall_indices[entry1 / EDGES_IN_TRIANGLE]);
+    assert(w0.wall_constants_initialized && w1.wall_constants_initialized);
+
+    w0.nb_walls[side0] = w1.index;
+    w1.nb_walls[side1] = w0.index;
+
+    Edge edge;
+    edge.forward_index = w0.index;
+    edge.backward_index = w1.index;
+    edge.edge_num_used_for_init = side0;
+    edge.reinit_edge_constants(p);
+    w0.edges[side0] = edge;
+    w1.edges[side1] = edge;
   }
-
-  for (int i = 0; i < nkeys; i++) {
-    poly_edge *pep = (eht.data + i);
-#ifdef DEBUG_GEOM_OBJ_INITIALIZATION
-    dump_poly_edge(i, pep);
-#endif
-    while (pep != NULL) {
-      if (pep->n > 2) {
-        refine_edge_pairs(p, obj, pep, facelist);
-      }
-      if (pep->n >= 2) {
-        if (pep->face[0] != -1 && pep->face[1] != -1) {
-          if (compatible_edges(p, facelist, pep->face[0], pep->edge[0], pep->face[1], pep->edge[1])) {
-
-            Wall& face0 = p.get_wall(facelist[pep->face[0]]);
-            Wall& face1 = p.get_wall(facelist[pep->face[1]]);
-
-            assert(pep->face[0] < (int)facelist.size());
-            assert(pep->face[1] < (int)facelist.size());
-            face0.nb_walls[pep->edge[0]] = facelist[pep->face[1]];
-            face1.nb_walls[pep->edge[1]] = facelist[pep->face[0]];
-
-            Edge e;
-            e.forward_index = facelist[pep->face[0]];
-            e.backward_index = facelist[pep->face[1]];
-            e.edge_num_used_for_init = pep->edge[0];
-
-            assert(face0.wall_constants_initialized);
-            assert(face1.wall_constants_initialized);
-            e.reinit_edge_constants(p);
-
-            face0.edges[pep->edge[0]] = e;
-            face1.edges[pep->edge[1]] = e;
-          }
-
-        }
-        else {
-          is_closed = 0;
-        }
-      }
-      else if (pep->n == 1) {
-        is_closed = 0;
-        Edge e;
-
-        e.forward_index = facelist[pep->face[0]];
-        e.backward_index = WALL_INDEX_INVALID;
-        /* Don't call reinit_edge_constants unless both edges are set */
-      }
-      pep = pep->next;
-    }
-  }
-
-  ehtable_kill(&eht);
-  return -is_closed; /* We use 1 to indicate malloc failure so return 0/-1 */
-}
-
-
-void GeometryObject::initialize_neighboring_walls_and_their_edges(Partition& p) {
-  surface_net(p, *this);
 }
 
 
@@ -803,26 +527,18 @@ void Region::init_from_whole_geom_object(const GeometryObject& obj) {
 }
 
 
-void Region::init_surface_region_edges(const Partition& p) {
-  assert(!walls_and_edges.empty());
+void Region::init_border_edges(const GeometryObject& obj, const MeshUtils::MeshTable& table) {
+  assert(geometry_object_id == obj.id);
 
-  // must be run after edge must be initializaion,
-  // however, not all edges need to be initialized
-  for (auto& it: walls_and_edges) {
-    const Wall& w = p.get_wall(it.first);
-    for (edge_index_t ei = 0; ei < EDGES_IN_TRIANGLE; ei++) {
-      const Edge& edge = w.edges[ei];
-      // uninitialized edges are considered to be bordering
-      if (!edge.is_initialized()) {
-        it.second.insert(ei);
-      }
-      else {
-        // is one of the forward or backward walls in our region?
-        // if not, then the edge is on the border of this region
-        if (walls_and_edges.count(edge.forward_index) == 0 ||
-            walls_and_edges.count(edge.backward_index) == 0) {
-          it.second.insert(ei);
-        }
+  for (auto& [wi, border_sides]: walls_and_edges) {
+    const MeshUtils::mesh_index_t j = get_table_wall_index(obj, wi);
+    for (edge_index_t k = 0; k < EDGES_IN_TRIANGLE; k++) {
+      // the entry across the side when its edge has two walls; on a boundary
+      // edge there is none
+      const MeshUtils::mesh_index_t across = table.neighbor(j * EDGES_IN_TRIANGLE + k);
+      if (across == MeshUtils::MESH_INDEX_NONE ||
+          walls_and_edges.count(obj.wall_indices[across / EDGES_IN_TRIANGLE]) == 0) {
+        border_sides.insert(k);
       }
     }
   }
