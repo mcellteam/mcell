@@ -36,6 +36,20 @@ using namespace std;
 namespace MCell {
 namespace RxnUtils {
 
+// ---------------------------------- surface classes at region borders ----------------------------------
+
+// Whether a surface-class rule absorbs a surface molecule at a region border:
+// ABSORPTIVE (type AbsorbRegionBorder), or a standard rule of the same shape,
+// such as ABSORPTIVE for ALL_MOLECULES. The shape check alone,
+// is_absorb_region_border_type_incl_all_molecules (bimolecular, with a surface
+// class, without products), also matches TRANSPARENT and REFLECTIVE rules,
+// which have no products either; a TRANSPARENT rule lets the surface molecule
+// pass, as on MCell3 (src/diffuse.c:564-571). The types are checked first.
+static inline bool is_absorptive_at_region_border(const BNG::RxnClass* rxn_class) {
+  return !rxn_class->is_transparent_type() && !rxn_class->is_reflect_type() &&
+      rxn_class->is_absorb_region_border_type_incl_all_molecules();
+}
+
 // ---------------------------------- bimolecular reactions ----------------------------------
 
 

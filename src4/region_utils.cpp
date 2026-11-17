@@ -29,7 +29,7 @@ namespace RegionUtils {
 static bool is_any_rxn_reflect_or_absorb_region_border(const BNG::RxnClassesVector& rxns) {
   for (const BNG::RxnClass* rxn_class: rxns) {
     if (rxn_class->is_reflect_type() ||
-        rxn_class->is_absorb_region_border_type_incl_all_molecules()) {
+        RxnUtils::is_absorptive_at_region_border(rxn_class)) {
       return true;
     }
   }

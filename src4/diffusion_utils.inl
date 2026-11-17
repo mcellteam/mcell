@@ -618,8 +618,9 @@ static void reflect_absorb_check_wall(
       reflect_now = true;
       break;
     }
-    else if (rxn_class->is_absorb_region_border_type_incl_all_molecules()) {
-      // check for ABSORPTIVE border including a special case ALL_MOLECULES + surf class -> 0
+    else if (RxnUtils::is_absorptive_at_region_border(rxn_class)) {
+      // check for ABSORPTIVE border including a special case ALL_MOLECULES + surf class -> 0;
+      // a TRANSPARENT border lets the molecule pass
       absorb_now_rxn_class = rxn_class;
       break;
     }
