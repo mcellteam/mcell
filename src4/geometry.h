@@ -13,6 +13,7 @@
 #ifndef SRC4_GEOMETRY_H_
 #define SRC4_GEOMETRY_H_
 
+#include <memory>
 #include <vector>
 #include <set>
 
@@ -21,6 +22,7 @@
 #include "simulation_config.h"
 #include "dyn_vertex_structs.h"
 #include "wall.h"
+#include "mesh_table.hpp"
 
 namespace Json {
 class Value;
@@ -31,9 +33,6 @@ namespace MCell {
 class Partition;
 class World;
 class RegionExprNode;
-namespace MeshUtils {
-struct MeshTable;
-}
 
 const char* const REGION_ALL_SUFFIX_W_COMMA = ",ALL";
 
@@ -75,7 +74,11 @@ public:
       is_fully_transparent(false),
       has_overlapped_walls(false),
       default_color(DEFAULT_COLOR),
-      is_used_in_mol_rxn_counts(false)
+      first_vertex_index(VERTEX_INDEX_INVALID),
+      is_used_in_mol_rxn_counts(false),
+      coordinate_facts_current(false),
+      current_area(0),
+      current_signed_volume(0)
     {
   }
 
@@ -124,6 +127,59 @@ public:
   // if wall index is not present in this map the wall's color is the default_color
   std::map<wall_index_t, rgba_t> wall_specific_colors;
 
+  // The checks of the object's mesh as the model gives it
+  // (MeshUtils::check_lists or check_parsed_walls), kept for the whole run: the
+  // MeshTable, in which wall j is wall_indices[j] and vertex v is the
+  // partition's vertex first_vertex_index + v, the flags (manifold,
+  // consistently oriented, watertight) and the shells. The converter that
+  // creates the object sets it with set_mesh_check once the walls are linked.
+  std::shared_ptr<const MeshUtils::MeshCheck> mesh_check;
+
+  // the partition's index of the object's vertex 0; the converters add an
+  // object's vertices one after another
+  vertex_index_t first_vertex_index;
+
+  void set_mesh_check(std::shared_ptr<const MeshUtils::MeshCheck> check);
+
+  const MeshUtils::MeshCheck& get_mesh_check() const {
+    release_assert(mesh_check != nullptr && mesh_check->table_built);
+    return *mesh_check;
+  }
+
+  // the object's vertex that is the partition's vertex vi
+  MeshUtils::mesh_index_t get_object_vertex_index(const vertex_index_t vi) const;
+
+  // the MeshTable's wall that is the object's wall wi (the partition's index):
+  // table wall j is wall_indices[j]
+  MeshUtils::mesh_index_t get_table_wall_index(const wall_index_t wi) const;
+
+  // the side k' of the wall across side k of the object's wall wi, where the
+  // two walls share the edge, from the MeshTable; EDGE_INDEX_INVALID when the
+  // edge has no second wall
+  edge_index_t get_neighbor_side(const wall_index_t wi, const edge_index_t k) const;
+
+  // The area and the signed volume of the object's walls, in internal units;
+  // the volume is 0 unless the mesh is watertight. Until a vertex of the object
+  // moves they are the values of the checks; after a move they are recomputed
+  // at the next call from the current vertices, with the same function
+  // (GeometryAnalysis::volume_and_area) over the same walls in the same order.
+  double get_area(const Partition& p) const;
+  double get_signed_volume(const Partition& p) const;
+
+  // called by Geometry::update_moved_walls when a vertex of the object moves
+  void set_coordinates_changed() {
+    coordinate_facts_current = false;
+  }
+
+  // the walls that use the partition's vertex vi, ascending, as indices into
+  // wall_indices; the lists are built from the MeshTable on first use
+  MeshUtils::IndexRange get_walls_of_vertex(const vertex_index_t vi) const;
+
+  // the vertices that share an edge with the partition's vertex vi (its
+  // 1-ring), as the object's vertex indices (add first_vertex_index), in the
+  // order of the MeshTable's edges; the lists are built on first use
+  MeshUtils::IndexRange get_neighbors_of_vertex(const vertex_index_t vi) const;
+
   bool represents_compartment() const {
     return vol_compartment_id != BNG::COMPARTMENT_ID_NONE;
   }
@@ -143,15 +199,9 @@ public:
     is_used_in_mol_rxn_counts = value;
   }
 
-  // returns indices of all vertices in this object that are connected through an edge
-  // uses caching because initial discovery is expensive
-  const std::set<vertex_index_t>& get_connected_vertices(
-      const Partition& p, const vertex_index_t vi);
-
-  // returns wall index for a pair of vertex indices
-  // uses caching because initial discovery is expensive
-  wall_index_t get_wall_for_vertex_pair(
-      const Partition& p, const vertex_index_t vi1, const vertex_index_t vi2);
+  // the first wall, in the order of wall_indices, that has both of the
+  // partition's vertices vi1 and vi2; WALL_INDEX_INVALID if there is none
+  wall_index_t get_wall_for_vertex_pair(const vertex_index_t vi1, const vertex_index_t vi2) const;
 
   // checks all walls and their regions and if all are only transparent to all molecules,
   // sets member is_fully_transparent to true
@@ -182,12 +232,15 @@ private:
   // whether crossing this objects' walls should be taken into account
   bool is_used_in_mol_rxn_counts;
 
-  // cache with information on which vertices are connected through edges,
-  // used in dynamic geometry collision detection
-  std::map<vertex_index_t, std::set<vertex_index_t>> connected_vertices_cache;
+  // what get_area and get_signed_volume return; recomputed when not current
+  mutable bool coordinate_facts_current;
+  mutable double current_area;
+  mutable double current_signed_volume;
+  void update_coordinate_facts(const Partition& p) const;
 
-  // cache with information on which vertex pairs belong to which walls
-  std::map<UnorderedPair<vertex_index_t>, wall_index_t> vertex_pair_to_wall_cache;
+  // the lists per vertex, built from the MeshTable on first use
+  mutable std::shared_ptr<const MeshUtils::VertexLists> walls_of_vertices;
+  mutable std::shared_ptr<const MeshUtils::VertexLists> neighbors_of_vertices;
 };
 
 typedef std::map<subpart_index_t, small_vector<wall_index_t>> WallsPerSubpartMap;
@@ -387,8 +440,6 @@ typedef std::vector<GeometryObject> GeometryObjectVector;
 
 // several utility functions related to geometry
 namespace Geometry {
-
-double compute_geometry_object_area(const Partition& p, const GeometryObject& obj);
 
 // used when creating release event
 bool compute_region_expr_bounding_box(

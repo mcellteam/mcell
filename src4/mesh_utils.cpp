@@ -22,26 +22,26 @@
 //   MESH_INCONSISTENT_ORIENTATION  objects whose volume a release by
 //                                  concentration uses: two walls run along
 //                                  their shared edge in the same direction
-//   MESH_INSIDE_OUT                counted objects and compartments: a part
+//   MESH_INSIDE_OUT                counted objects and compartments: a shell
 //                                  faces the wrong way (see
-//                                  GeometryAnalysis::find_inside_out_parts); a
-//                                  release by concentration into an object
-//                                  whose signed volume is negative
+//                                  GeometryAnalysis::judge_parts); a release
+//                                  by concentration into an object whose
+//                                  signed volume is negative
 //   REGION_NOT_CLOSED              a release of volume molecules into a region
 //                                  with an object that has an edge of only one
 //                                  wall
 //
-// Edges are matched by exact coordinates, as everywhere in GeometryAnalysis.
-// These checks run only when the checks of each mesh, which take edges from
-// the vertex indices, found no errors. MDL models are checked by MCell3 first:
-// it stops on counted objects and release regions that are open or
-// inconsistently oriented, so for MDL only MESH_INSIDE_OUT can appear.
+// The facts come from each object's checks (GeometryObject::get_mesh_check),
+// whose edges come from the vertex indices; the signed volume is recomputed
+// after vertex moves. These checks run only when the checks of each mesh found
+// no errors, so a mesh here is manifold and consistently oriented. For MDL
+// models, MCell3's initialization also stops counted objects and release
+// regions that are open or inconsistently oriented by its own rules first.
 
 #include "mesh_utils.hpp"
 
 #include <algorithm>
 #include <cassert>
-#include <map>
 #include <unordered_map>
 
 #include "logging.h"
@@ -124,6 +124,16 @@ void get_mesh(
 }
 
 
+GeometryAnalysis::Mesh get_unmerged_mesh(
+    const World* world, const GeometryObject& obj, const bool convert_units) {
+
+  std::vector<GeometryAnalysis::Point> points;
+  std::vector<GeometryAnalysis::Triangle> triangles;
+  get_mesh(world, obj, convert_units, points, triangles);
+  return GeometryAnalysis::unmerged_mesh(points, triangles);
+}
+
+
 GeometryAnalysis::Mesh get_clean_mesh(
     const World* world, const GeometryObject& obj, const bool convert_units) {
 
@@ -159,15 +169,18 @@ void check_geometry_object(World* world, const GeometryObject& obj) {
     return;
   }
 
-  // closed and without an edge of three or more walls: initialize_counted_volumes
-  // stopped the run otherwise; consistently oriented by its indices: the checks
-  // of the mesh stopped it otherwise
-  std::vector<GeometryAnalysis::Point> points;
-  std::vector<GeometryAnalysis::Triangle> triangles;
-  get_mesh(world, obj, false, points, triangles);
-  const GeometryAnalysis::Mesh mesh = GeometryAnalysis::clean_mesh(points, triangles);
-  const GeometryAnalysis::InsideOutParts parts = GeometryAnalysis::find_inside_out_parts(mesh);
-  if (parts.components == 0) {
+  // watertight: initialize_counted_volumes stopped the run otherwise. The
+  // shells that face the wrong way, and their signed volumes, from the object's
+  // checks at initialization
+  std::size_t shells = 0;
+  double signed_volume = 0.0;
+  for (const ShellFacts& f: obj.get_mesh_check().shell_facts) {
+    if (f.wrong_facing) {
+      shells++;
+      signed_volume += f.signed_volume;
+    }
+  }
+  if (shells == 0) {
     return;
   }
   if (obj.counted_volume_index_outside == COUNTED_VOLUME_INDEX_INTERSECTS) {
@@ -176,44 +189,14 @@ void check_geometry_object(World* world, const GeometryObject& obj) {
     // (CollisionUtils::update_counted_volume_id_when_crossing_wall)
     mcell_warn(
         "[MESH_INSIDE_OUT] %s: the walls' normals point into the object (signed volume %g um^3).",
-        obj.name.c_str(), to_um3(world, parts.signed_volume));
+        obj.name.c_str(), to_um3(world, signed_volume));
   }
   else {
     mcell_warn(
         "[MESH_INSIDE_OUT] %s: the walls' normals point into the object (signed volume %g um^3), so molecules "
         "that enter it are taken as leaving and molecules that leave as entering.",
-        obj.name.c_str(), to_um3(world, parts.signed_volume));
+        obj.name.c_str(), to_um3(world, signed_volume));
   }
-}
-
-
-// what the release checks need to know about an object's mesh
-struct RegionFacts {
-  bool watertight;  // no edge of only one wall
-  bool consistent;  // no two walls run along their shared edge in the same direction
-  double volume;    // signed, as Region::initialize_volume_info_if_needed computes it
-};
-
-// one object's facts, computed once per cache; releases often share objects
-// (in mdl/3640, 20 release sites use the same four objects of 369k walls)
-const RegionFacts& get_region_facts(
-    const World* world, const GeometryObject& obj, std::map<geometry_object_id_t, RegionFacts>& cache) {
-
-  const auto it = cache.find(obj.id);
-  if (it != cache.end()) {
-    return it->second;
-  }
-  std::vector<GeometryAnalysis::Point> points;
-  std::vector<GeometryAnalysis::Triangle> triangles;
-  get_mesh(world, obj, false, points, triangles);
-  const GeometryAnalysis::Mesh mesh = GeometryAnalysis::clean_mesh(points, triangles);
-  // the volume that a release by concentration uses: Region computes it with the
-  // same function from the same walls in the same order
-  const RegionFacts facts{
-      GeometryAnalysis::is_watertight(mesh),
-      GeometryAnalysis::count_inconsistent_edges(mesh) == 0,
-      GeometryAnalysis::volume_and_area(points, triangles).volume};
-  return cache.emplace(obj.id, facts).first->second;
 }
 
 
@@ -232,8 +215,7 @@ void collect_objects(const RegionExprNode* node, std::vector<geometry_object_id_
   collect_objects(node->right, ids);
 }
 
-void check_release(
-    World* world, const ReleaseEvent& release, std::map<geometry_object_id_t, RegionFacts>& cache) {
+void check_release(World* world, const ReleaseEvent& release) {
   if (release.release_shape != ReleaseShape::REGION || release.region_expr.root == nullptr ||
       world->get_all_species().get(release.species_id).is_surf()) {
     return; // not a release of volume molecules into a region
@@ -260,9 +242,9 @@ void check_release(
       continue;
     }
     const GeometryObject& obj = p.get_geometry_object_by_id(id);
-    const RegionFacts& facts = get_region_facts(world, obj, cache);
+    const MeshCheck& check = obj.get_mesh_check();
 
-    if (!facts.watertight) {
+    if (!check.watertight()) {
       if (uses_volume) {
         mcell_warn(
             "[REGION_NOT_CLOSED] %s: release site %s computes its number of molecules from this object's volume "
@@ -282,14 +264,20 @@ void check_release(
     if (!uses_volume) {
       continue;
     }
-    if (!facts.consistent) {
+    if (!check.consistently_oriented()) {
       warn_inconsistent_orientation(world, obj);
     }
-    else if (facts.volume < 0) {
-      mcell_warn(
-          "[MESH_INSIDE_OUT] %s: the walls' normals point into the object (signed volume %g um^3), so release "
-          "site %s computes a negative number of molecules from its volume.",
-          obj.name.c_str(), to_um3(world, facts.volume), site);
+    else {
+      // the object's signed volume; until a vertex move it is the volume a
+      // release by concentration uses, which Region computes with the same
+      // function from the same walls in the same order
+      const double volume = obj.get_signed_volume(p);
+      if (volume < 0) {
+        mcell_warn(
+            "[MESH_INSIDE_OUT] %s: the walls' normals point into the object (signed volume %g um^3), so release "
+            "site %s computes a negative number of molecules from its volume.",
+            obj.name.c_str(), to_um3(world, volume), site);
+      }
     }
   }
 }
@@ -298,8 +286,7 @@ void check_release(
 
 
 void check_release_regions(World* world, const ReleaseEvent& release) {
-  std::map<geometry_object_id_t, RegionFacts> cache;
-  check_release(world, release, cache);
+  check_release(world, release);
 }
 
 
@@ -311,11 +298,10 @@ void check_meshes(World* world) {
 
   std::vector<BaseEvent*> releases;
   world->scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_RELEASE, releases);
-  std::map<geometry_object_id_t, RegionFacts> cache;
   for (const BaseEvent* event: releases) {
     const ReleaseEvent* release = dynamic_cast<const ReleaseEvent*>(event);
     assert(release != nullptr);
-    check_release(world, *release, cache);
+    check_release(world, *release);
   }
 }
 

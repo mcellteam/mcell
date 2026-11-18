@@ -408,6 +408,23 @@ void check_connectivity(const std::string& name, const WallsFile& m, const Expec
         want_neighbors[v];
   }
   expect_true(where, "the walls and the 1-ring of each vertex", lists_ok);
+
+  // the same lists with each wall's vertices taken from the table, which the
+  // simulation keeps without the walls; one vertex's list through of()
+  bool entries_ok = true;
+  for (mesh_index_t w = 0; entries_ok && w < walls.size(); w++) {
+    for (mesh_index_t k = 0; k < 3; k++) {
+      entries_ok = entries_ok && t.vertex(3 * w + k) == static_cast<mesh_index_t>(walls[w][k]);
+    }
+  }
+  expect_true(where, "the vertex where each entry starts", entries_ok);
+  const VertexLists vt = walls_of_vertices(t);
+  bool from_table_ok = vt.begin == vw.begin && vt.items == vw.items;
+  for (std::size_t v = 0; from_table_ok && v < m.n_vertices; v++) {
+    const IndexRange r = vt.of(static_cast<mesh_index_t>(v));
+    from_table_ok = std::vector<mesh_index_t>(r.begin(), r.end()) == want_walls[v] && r.size() == want_walls[v].size();
+  }
+  expect_true(where, "the walls of each vertex from the table alone", from_table_ok);
 }
 
 // ---------------------------------------------------------------------------

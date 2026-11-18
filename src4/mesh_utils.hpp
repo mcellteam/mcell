@@ -77,6 +77,11 @@ void get_mesh(
     const World* world, const GeometryObject& obj, const bool convert_units,
     std::vector<GeometryAnalysis::Point>& points, std::vector<GeometryAnalysis::Triangle>& triangles);
 
+// the same mesh as given, nothing merged (GeometryAnalysis::unmerged_mesh), with
+// its bounding box
+GeometryAnalysis::Mesh get_unmerged_mesh(
+    const World* world, const GeometryObject& obj, const bool convert_units = false);
+
 // the same mesh, cleaned (vertices with equal coordinates merged)
 GeometryAnalysis::Mesh get_clean_mesh(
     const World* world, const GeometryObject& obj, const bool convert_units = false);

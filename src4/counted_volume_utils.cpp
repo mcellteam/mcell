@@ -53,19 +53,21 @@ static bool prepare_counted_object_solids(const World* world, GeomObjectInfoVect
   for (GeomObjectInfo& obj_info: counted_objects) {
 
     const GeometryObject& obj = obj_info.get_geometry_object(world);
-    GeometryAnalysis::Mesh mesh = MeshUtils::get_clean_mesh(world, obj);
 
-    // an edge shared by more than two walls is reported before an edge of only one wall
-    if (GeometryAnalysis::has_non_manifold_edge(mesh)) {
+    // the object's flags, from its vertex indices; the checks of the meshes
+    // stopped the run on a mesh that isn't manifold or consistently oriented,
+    // so here only watertight can fail
+    const MeshUtils::MeshCheck& check = obj.get_mesh_check();
+    if (!check.manifold()) {
       mcell_error_nodie("Non-manifold mesh is not allowed, error for %s.", obj.name.c_str());
       res = false;
     }
-    else if (!GeometryAnalysis::is_watertight(mesh)) {
+    else if (!check.watertight()) {
       mcell_error_nodie("Counting inside an open surface is not possible, error for %s.", obj.name.c_str());
       res = false;
     }
     else {
-      obj_info.solid = make_shared<const GeometryAnalysis::Solid>(std::move(mesh));
+      obj_info.solid = make_shared<const GeometryAnalysis::Solid>(MeshUtils::get_unmerged_mesh(world, obj));
     }
   }
 
@@ -357,18 +359,16 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
 
 
 // auxiliary function to compute volume, not related to counted volumes,
-// returns FLT_INVALID if the object is not closed
+// returns FLT_INVALID if the object is not watertight
 double get_geometry_object_volume(const World* world, const GeometryObject& obj) {
-  vector<GeometryAnalysis::Point> points;
-  vector<GeometryAnalysis::Triangle> triangles;
-  MeshUtils::get_mesh(world, obj, false, points, triangles);
-  if (!GeometryAnalysis::is_closed(GeometryAnalysis::clean_mesh(points, triangles))) {
+  if (!obj.get_mesh_check().watertight()) {
     return FLT_INVALID;
   }
 
-  // the volume of the object's region, which releases by concentration use:
+  // the object's signed volume, recomputed after vertex moves; until a move it
+  // is the volume of the object's region, which releases by concentration use:
   // the same function on the same walls in the same order
-  return GeometryAnalysis::volume_and_area(points, triangles).volume;
+  return obj.get_signed_volume(world->get_partition(PARTITION_ID_INITIAL));
 }
 
 

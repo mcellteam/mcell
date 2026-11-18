@@ -589,12 +589,10 @@ static tile_index_t move_strip_down(const Grid& grid, tile_index_t index) {
 find_shared_vertices_corner_tile_parent_wall:
    In: Surface grid
        Index of the tile on that grid
-       3-member array of indices (in the global array "walls_using_vertex"
-            of parent wall vertices that are shared with other walls
-            (return value)
-   Out: Returns 3-member array of the indices of parent wall vertices
-        in the global "world->walls_using_vertex" array
-        that are shared with other neighbor walls.
+       3-member array of the partition's indices of parent wall vertices
+            that are shared with other walls (return value)
+   Out: Returns 3-member array of the partition's indices of parent wall
+        vertices that are shared with other neighbor walls.
         If the wall vertex is not shared the corresponding value
         in the return array is not set.
    Note: Used only for corner tiles.  Here some of the tile vertices

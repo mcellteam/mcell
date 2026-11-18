@@ -672,17 +672,6 @@ public:
     return index;
   }
 
-  vertex_index_t add_or_find_geometry_vertex(const Vec3 pos) {
-    // using exact comparison
-    auto it = std::find(geometry_vertices.begin(), geometry_vertices.end(), pos);
-    if (it == geometry_vertices.end()) {
-      return add_geometry_vertex(pos);
-    }
-    else {
-      return it - geometry_vertices.begin();
-    }
-  }
-
   uint get_geometry_vertex_count() const {
     return geometry_vertices.size();
   }
@@ -904,12 +893,6 @@ public:
     return &w.grid;
   }
 
-  const std::vector<wall_index_t>& get_walls_using_vertex(const vertex_index_t vertex_index) const {
-    assert(vertex_index != VERTEX_INDEX_INVALID);
-    assert(vertex_index < walls_using_vertex_mapping.size());
-    return walls_using_vertex_mapping[vertex_index];
-  }
-
   BNG::compartment_id_t get_compartment_id_for_counted_volume(
       const counted_volume_index_t counted_volume_index);
 
@@ -968,14 +951,6 @@ private:
   void update_walls_per_subpart(
       const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert
   );
-
-  // automatically enlarges walls_using_vertex array
-  void add_wall_using_vertex_mapping(vertex_index_t vertex_index, wall_index_t wall_index) {
-    if (vertex_index >= walls_using_vertex_mapping.size()) {
-      walls_using_vertex_mapping.resize(vertex_index + 1);
-    }
-    walls_using_vertex_mapping[vertex_index].push_back(wall_index);
-  }
 
   void initialize_waypoint(
       const IVec3& waypoint_index,
@@ -1159,9 +1134,6 @@ private:
   std::vector<WallCollisionRejectionData> wall_collision_rejection_data;
 
   std::vector<Region> regions;
-
-  // indexed by vertex_index_t
-  std::vector< std::vector<wall_index_t>> walls_using_vertex_mapping;
 
   // indexed by subpartition index, contains a container wall indices (wall_index_t)
   std::vector< WallsInSubpart > walls_per_subpart;

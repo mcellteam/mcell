@@ -69,8 +69,7 @@ static bool walls_share_full_edge(const Partition& p, const Wall& w1, const Wall
 find_nbr_walls_shared_one_vertex:
    In: the origin wall
        array with information about which vertices of the origin wall
-          are shared with neighbor wall (they are indices in the
-          global "world->walls_using_vertex" array).
+          are shared with neighbor wall (the partition's vertex indices).
    Out: linked list of the neighbor walls that have only one common
         vertex with the origin wall (not edge-to-edge walls, but
         vertex-to-vertex walls).
@@ -83,12 +82,14 @@ static void find_nbr_walls_shared_one_vertex(
     WallIndicesVector& neighboring_walls
 )
 {
+  // the walls that use a vertex, ascending, from the MeshTable of the object;
+  // walls that share a vertex belong to the same object
+  const GeometryObject& obj = p.get_geometry_object(origin_wall.object_index);
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
     if (shared_verts[i] != VERTEX_INDEX_INVALID) {
 
-      const std::vector<wall_index_t>& wall_indices = p.get_walls_using_vertex(shared_verts[i]);
-      for (wall_index_t wi: wall_indices) {
-        const Wall& w = p.get_wall(wi);
+      for (const MeshUtils::mesh_index_t j: obj.get_walls_of_vertex(shared_verts[i])) {
+        const Wall& w = p.get_wall(obj.wall_indices[j]);
 
         if (w.id == origin_wall.id) {
           // we do not care about current wall
@@ -102,174 +103,6 @@ static void find_nbr_walls_shared_one_vertex(
     }
   }
 }
-
-#if 0 // unused for now
-/***************************************************************************
-wall_contains_both_vertices:
-  In: wall
-      two vertices
-  Out: Returns 1 if the wall contains both vertices above, and 0 otherwise.
-
-  Different from MCell3 implementation, we are just comparing vertex indices,
-  this is used for neighboring edge detection and we assume that the
-  neighbor is in the same mesh, therefore the vertices must have the same
-  index.
-
-***************************************************************************/
-static bool wall_contains_both_vertices(
-    const Wall& w, const vertex_index_t vert_A, const vertex_index_t vert_B) {
-
-  assert(vert_A != vert_B && "Vertices must be different");
-
-  uint count = 0;
-
-  for (uint i = 0; i < 3; i++) {
-    vertex_index_t vi = w.vertex_indices[i];
-
-    if (vi == vert_A || vi == vert_B) {
-      count++;
-    }
-  }
-
-  return count == 2;
-}
-#endif
-
-/***********************************************************************
-find_shared_vertices_for_neighbor_walls:
-   In: original wall
-       neighbor wall
-       index of the neighbor wall vertex that is
-           shared with original wall (return value)
-       index of the neighbor wall vertex that is
-           shared with original wall (return value)
-   Out: neighbor wall shared vertices indices are set up.
-***********************************************************************/
-static void find_shared_vertices_for_neighbor_walls(const Wall& orig_wall,
-                                             const Wall& nb_wall,
-                                             int& shared_vert_1,
-                                             int& shared_vert_2) {
-
-  shared_vert_1 = -1;
-  shared_vert_2 = -1;
-
-  if (nb_wall.vertex_indices[0] == orig_wall.vertex_indices[0] ||
-      nb_wall.vertex_indices[0] == orig_wall.vertex_indices[1] ||
-      nb_wall.vertex_indices[0] == orig_wall.vertex_indices[2]) {
-    shared_vert_1 = 0;
-  }
-
-  if (nb_wall.vertex_indices[1] == orig_wall.vertex_indices[0] ||
-      nb_wall.vertex_indices[1] == orig_wall.vertex_indices[1] ||
-      nb_wall.vertex_indices[1] == orig_wall.vertex_indices[2]) {
-    if (shared_vert_1 < 0) {
-      shared_vert_1 = 1;
-    }
-    else {
-      shared_vert_2 = 1;
-    }
-  }
-
-  if (nb_wall.vertex_indices[2] == orig_wall.vertex_indices[0] ||
-      nb_wall.vertex_indices[2] == orig_wall.vertex_indices[1] ||
-      nb_wall.vertex_indices[2] == orig_wall.vertex_indices[2]) {
-    if (shared_vert_1 < 0) {
-      shared_vert_1 = 2;
-    }
-    else {
-      shared_vert_2 = 2;
-    }
-  }
-
-  assert(shared_vert_1 != -1);
-  assert(shared_vert_2 != -1);
-}
-
-/*************************************************************************
-find_shared_edge_index_of_neighbor_wall:
-  In: original wall
-      neighbor wall
-  Out: index of the shared edge in the coordinate system of neighbor wall.
-
-**************************************************************************/
-static edge_index_t find_shared_edge_index_of_neighbor_wall(
-    const Wall& orig_wall,
-    const Wall& nbr_wall) {
-  edge_index_t nbr_edge_ind;
-  int shared_vert_ind_1, shared_vert_ind_2;
-
-  find_shared_vertices_for_neighbor_walls(
-      orig_wall, nbr_wall, shared_vert_ind_1, shared_vert_ind_2);
-
-  if ((shared_vert_ind_1 + shared_vert_ind_2) == 1) {
-    nbr_edge_ind = EDGE_INDEX_0;
-  }
-  else if ((shared_vert_ind_1 + shared_vert_ind_2) == 2) {
-    nbr_edge_ind = EDGE_INDEX_2;
-  }
-  else if ((shared_vert_ind_1 + shared_vert_ind_2) == 3) {
-    nbr_edge_ind = EDGE_INDEX_1;
-  }
-  else {
-    assert(false);
-    nbr_edge_ind = EDGE_INDEX_INVALID;
-  }
-
-  return nbr_edge_ind;
-}
-
-#if 0
-/****************************************************************************
-find_neighbor_wall_and_edge:
-  In: orig_wall: wall
-      orig_edge_ind: wall edge index (in the coordinate system of "wall")
-      nbr_wall: neighbor wall (return value)
-      nbr_edge_ind: index of the edge in the coordinate system of "neighbor
-                    wall" that is shared with "wall" and coincides with the
-                    edge with "wall edge index" (return value)
-
-****************************************************************************/
-static void find_neighbor_wall_and_edge(
-    const Partition& p,
-    const Wall& orig_wall, const edge_index_t orig_edge_index,
-    wall_index_t& nbr_wall_index, edge_index_t& nbr_edge_index) {
-
-  struct wall *w;
-  vertex_index_t vert_A, vert_B;
-
-  switch (orig_edge_index) {
-  case EDGE_INDEX_0:
-    vert_A = orig_wall.vertex_indices[0];
-    vert_B = orig_wall.vertex_indices[1];
-    break;
-  case EDGE_INDEX_1:
-    vert_A = orig_wall.vertex_indices[1];
-    vert_B = orig_wall.vertex_indices[2];
-    break;
-  case EDGE_INDEX_2:
-    vert_A = orig_wall.vertex_indices[2];
-    vert_B = orig_wall.vertex_indices[0];
-    break;
-  default:
-    assert(false && "Invalid edge index");
-  }
-
-  for (uint i = 0; i < 3; i++) {
-    wall_index_t wi = orig_wall.nb_walls[i];
-    if (wi == WALL_INDEX_INVALID) {
-      continue;
-    }
-    const Wall& w = p.get_wall(wi);
-    // NOTE: wall_contains_both_vertices and find_shared_edge_index_of_neighbor_wall can be probably optimized
-    // into a single call
-    if (wall_contains_both_vertices(w, vert_A, vert_B)) {
-      nbr_wall_index = wi;
-      nbr_edge_index = find_shared_edge_index_of_neighbor_wall(orig_wall, w);
-      return;
-    }
-  }
-}
-#endif // unused for now
 
 
 /***********************************************************************

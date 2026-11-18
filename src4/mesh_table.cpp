@@ -455,6 +455,22 @@ VertexLists walls_of_vertices(const MeshTable& table, const std::vector<WallVert
   return res;
 }
 
+VertexLists walls_of_vertices(const MeshTable& table) {
+  VertexLists res;
+  const std::size_t n_vert = table.n_vertices();
+  res.begin.assign(n_vert + 1, 0);
+  for (std::size_t v = 0; v < n_vert; v++) {
+    res.begin[v + 1] = res.begin[v] + table.walls_per_vertex[v];
+  }
+  res.items.resize(res.begin[n_vert]);
+  std::vector<mesh_index_t> next(res.begin.begin(), res.begin.end() - 1);
+  const mesh_index_t n_entries = static_cast<mesh_index_t>(table.edge_of.size());
+  for (mesh_index_t i = 0; i < n_entries; i++) {
+    res.items[next[table.vertex(i)]++] = i / 3;
+  }
+  return res;
+}
+
 VertexLists neighbors_of_vertices(const MeshTable& table) {
   VertexLists res;
   const std::size_t n_vert = table.n_vertices();

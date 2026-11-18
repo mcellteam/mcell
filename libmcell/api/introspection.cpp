@@ -180,7 +180,9 @@ std::vector<double> Introspection::get_vertex_unit_normal(std::shared_ptr<Geomet
 
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
-  const std::vector<wall_index_t>& walls = p.get_walls_using_vertex(object->get_partition_vertex_index(vertex_index));
+  // the walls that use the vertex, ascending, from the object's MeshTable
+  const MCell::GeometryObject& obj = p.get_geometry_object_by_id(object->geometry_object_id);
+  const MCell::MeshUtils::IndexRange walls = obj.get_walls_of_vertex(object->get_partition_vertex_index(vertex_index));
 
   if (walls.empty()) {
     throw RuntimeError("Internal error: there are no walls that use vertex with index " +
@@ -188,8 +190,8 @@ std::vector<double> Introspection::get_vertex_unit_normal(std::shared_ptr<Geomet
   }
 
   Vec3 normals_sum = Vec3(0);
-  for (wall_index_t wi: walls) {
-    const MCell::Wall& w = p.get_wall(wi);
+  for (const MCell::MeshUtils::mesh_index_t j: walls) {
+    const MCell::Wall& w = p.get_wall(obj.wall_indices[j]);
     // wall normals are already unit vectors so we can just sum them
     normals_sum = normals_sum + w.normal;
   }

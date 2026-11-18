@@ -135,6 +135,12 @@ struct MeshTable {
     }
     return entry0[e] == i ? entry1[e] : entry0[e];
   }
+
+  // the vertex where entry i starts: vertex i % 3 of wall i / 3
+  mesh_index_t vertex(const mesh_index_t i) const {
+    const mesh_index_t e = edge_of[i];
+    return sign_of[i] > 0 ? lo[e] : hi[e];
+  }
 };
 
 // builds the table (passes 0-2); the walls must have passed check_indices
@@ -189,15 +195,44 @@ struct Shells {
 
 Shells find_shells(const MeshTable& table);
 
+// the items of one vertex's list
+struct IndexRange {
+  const mesh_index_t* first = nullptr;
+  const mesh_index_t* last = nullptr;
+
+  const mesh_index_t* begin() const {
+    return first;
+  }
+  const mesh_index_t* end() const {
+    return last;
+  }
+  std::size_t size() const {
+    return static_cast<std::size_t>(last - first);
+  }
+  bool empty() const {
+    return first == last;
+  }
+  mesh_index_t operator[](const std::size_t i) const {
+    return first[i];
+  }
+};
+
 // a list per vertex: the items of vertex v are items[begin[v]] up to, not
 // including, items[begin[v + 1]]
 struct VertexLists {
   std::vector<mesh_index_t> begin;
   std::vector<mesh_index_t> items;
+
+  IndexRange of(const mesh_index_t v) const {
+    return {items.data() + begin[v], items.data() + begin[v + 1]};
+  }
 };
 
 // the walls that use each vertex, ascending
 VertexLists walls_of_vertices(const MeshTable& table, const std::vector<WallVertices>& walls);
+
+// the same, with each wall's vertices taken from the table (MeshTable::vertex)
+VertexLists walls_of_vertices(const MeshTable& table);
 
 // the 1-ring of each vertex: the other ends of its edges, in the order of the edges
 VertexLists neighbors_of_vertices(const MeshTable& table);

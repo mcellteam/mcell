@@ -18,6 +18,7 @@
 #include "counted_volume_utils.h"
 #include "geometry_object.h"
 #include "geometry_analysis.hpp"
+#include "mesh_table.hpp"
 
 using namespace std;
 
@@ -27,18 +28,31 @@ using namespace CountedVolumeUtils;
 
 namespace API {
 
-// note: similar code is in MeshUtils::get_clean_mesh but uses different input data
+// note: similar code is in MeshUtils::get_unmerged_mesh but uses different input data
 static void convert_compartment_objects_to_geom_object_infos(
     const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
     const double rcp_length_unit,
+    const std::map<const API::GeometryObject*, MeshUtils::MeshCheck>& checks,
     GeomObjectInfoVector& compartment_infos) {
 
   for (const auto& obj_ptr: compartment_objects) {
     const API::GeometryObject& obj = *obj_ptr;
 
-    // the mesh in internal units, with the coordinates the simulation will use
-    // (the geometry objects are converted later), cleaned (vertices with equal
-    // coordinates merged)
+    // the object's flags, from its vertex indices (MeshUtils::check_lists). The
+    // checks stopped the run on a mesh that isn't manifold or consistently
+    // oriented, so here only watertight can fail
+    const auto check_it = checks.find(&obj);
+    release_assert(check_it != checks.end());
+    const MeshUtils::MeshCheck& check = check_it->second;
+    if (!check.manifold()) {
+      throw RuntimeError("Non-manifold mesh is not allowed, error for " + obj.name + ".");
+    }
+    if (!check.watertight()) {
+      throw RuntimeError("Compartment object must be closed, error for " + obj.name + ".");
+    }
+
+    // the mesh as given, in internal units, with the coordinates the simulation
+    // will use (the geometry objects are converted later); nothing is merged
     vector<GeometryAnalysis::Point> points;
     points.reserve(obj.vertex_list.size());
     for (size_t i = 0; i < obj.vertex_list.size(); i++) {
@@ -52,18 +66,9 @@ static void convert_compartment_objects_to_geom_object_infos(
       assert(w.size() == VERTICES_IN_TRIANGLE);
       triangles.push_back({w[0], w[1], w[2]});
     }
-    GeometryAnalysis::Mesh mesh = GeometryAnalysis::clean_mesh(points, triangles);
-
-    // an edge shared by more than two walls is reported before an edge of only one wall
-    if (GeometryAnalysis::has_non_manifold_edge(mesh)) {
-      throw RuntimeError("Non-manifold mesh is not allowed, error for " + obj.name + ".");
-    }
-    if (!GeometryAnalysis::is_watertight(mesh)) {
-      throw RuntimeError("Compartment object must be closed, error for " + obj.name + ".");
-    }
 
     GeomObjectInfo obj_info(obj.name);
-    obj_info.solid = make_shared<const GeometryAnalysis::Solid>(std::move(mesh));
+    obj_info.solid = make_shared<const GeometryAnalysis::Solid>(GeometryAnalysis::unmerged_mesh(points, triangles));
     compartment_infos.push_back(obj_info);
   }
 }
@@ -84,10 +89,11 @@ static std::shared_ptr<API::GeometryObject> get_obj_by_name(
 
 void set_parent_and_children_compartments(
     std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
-    const double rcp_length_unit) {
+    const double rcp_length_unit,
+    const std::map<const API::GeometryObject*, MeshUtils::MeshCheck>& checks) {
 
   GeomObjectInfoVector compartment_infos;
-  convert_compartment_objects_to_geom_object_infos(compartment_objects, rcp_length_unit, compartment_infos);
+  convert_compartment_objects_to_geom_object_infos(compartment_objects, rcp_length_unit, checks, compartment_infos);
 
   // get information on what objects are contained within each other
   // e.g. CP -> {EC} - CP is contained in EC, mapping contains all compartments, not just the direct parent

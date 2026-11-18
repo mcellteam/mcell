@@ -12,10 +12,11 @@
 #ifndef SRC4_GEOMETRY_ANALYSIS_HPP_
 #define SRC4_GEOMETRY_ANALYSIS_HPP_
 
-// Analysis of closed triangle meshes: cleaning, closedness, volume and area,
-// containment of one mesh in another, and OBJ export. It replaced MCell's use
-// of VTK. Decisions (is a mesh closed, do two meshes touch, is a point inside)
-// are exact: every sign comes from Shewchuk's predicates. Volume and area
+// Analysis of closed triangle meshes: cleaning, volume and area, the parts
+// that face the wrong way, containment of one mesh in another, and OBJ export.
+// It replaced MCell's use of VTK. Whether a mesh is closed comes from its
+// vertex indices (mesh_table.hpp). Decisions (do two meshes touch, is a point
+// inside) are exact: every sign comes from Shewchuk's predicates. Volume and area
 // follow MCell's Region and Wall code expression by expression
 // (volume_and_area). Like the predicates, the
 // decisions are exact as long as no intermediate product underflows or
@@ -49,26 +50,11 @@ struct Mesh {
 // triangles that use a point twice are dropped (VTK turned those into lines)
 Mesh clean_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles);
 
-// every edge belongs to exactly two triangles
-// (vtkSelectEnclosedPoints::IsSurfaceClosed)
-bool is_closed(const Mesh& mesh);
-
-// no edge belongs to only one triangle; edges with three or more triangles are
-// allowed (vtkFeatureEdges, boundary edges only)
-bool is_watertight(const Mesh& mesh);
-
-// some edge belongs to three or more triangles (a non-manifold edge); a mesh
-// is closed when it is watertight and has no such edge
-bool has_non_manifold_edge(const Mesh& mesh);
-
-// the number of edges of exactly two triangles that both run along the edge in
-// the same direction, so that their normals point to different sides of the
-// surface; edges of one or of three or more triangles are not counted
-std::size_t count_inconsistent_edges(const Mesh& mesh);
-
-// the number of points equal to an earlier point of the list (0.0 equals -0.0,
-// as in clean_mesh)
-std::size_t count_duplicate_points(const std::vector<Point>& points);
+// the triangles as given, with their points numbered in the order the triangles
+// first use them, as clean_mesh numbers them, but nothing is merged or dropped:
+// points with equal coordinates stay apart, and every triangle is kept; unused
+// points are left out
+Mesh unmerged_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles);
 
 struct InsideOutParts {
   std::size_t components = 0; // connected components that face the wrong way

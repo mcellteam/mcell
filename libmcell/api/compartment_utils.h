@@ -20,15 +20,23 @@
 #include <memory>
 
 namespace MCell {
+
+namespace MeshUtils {
+struct MeshCheck;
+}
+
 namespace API {
 
 class GeometryObject;
 
 // rcp_length_unit converts the vertices to internal units as the simulation
-// does, so that the hierarchy is computed from the coordinates MCell simulates
+// does, so that the hierarchy is computed from the coordinates MCell simulates;
+// checks: the checks of each object's mesh as the model gives it
+// (MCell4Converter::check_geometry_objects)
 void set_parent_and_children_compartments(
     std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects,
-    const double rcp_length_unit);
+    const double rcp_length_unit,
+    const std::map<const API::GeometryObject*, MeshUtils::MeshCheck>& checks);
 
 // used also from data model converter
 static void get_compartment_names(const std::string& bngl_string, std::vector<std::string>& compartments) {

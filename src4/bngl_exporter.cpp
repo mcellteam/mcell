@@ -102,7 +102,7 @@ std::string BNGLExporter::export_to_bngl(
     }
 
     single_object_volume = volume_internal_units * pow(world->config.length_unit, 3);
-    single_object_area = Geometry::compute_geometry_object_area(p, obj) * pow(world->config.length_unit, 2);
+    single_object_area = obj.get_area(p) * pow(world->config.length_unit, 2);
   }
 
   stringstream parameters;
@@ -214,7 +214,7 @@ std::string BNGLExporter::set_compartment_volumes_and_areas() {
       comp.set_volume(volume);
     }
     else {
-      double area = Geometry::compute_geometry_object_area(p, *obj) * pow(world->config.length_unit, 2);
+      double area = obj->get_area(p) * pow(world->config.length_unit, 2);
       comp.set_area(area);
     }
   }

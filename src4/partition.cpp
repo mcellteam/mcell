@@ -92,10 +92,6 @@ void Partition::finalize_walls() {
   for (Wall& w: walls) {
     wall_index_t wall_index = w.index;
 
-    for (vertex_index_t vi: w.vertex_indices) {
-      add_wall_using_vertex_mapping(vi, wall_index);
-    }
-
     w.present_in_subparts.clear();
 
     // also insert this triangle into walls per subpartition
@@ -243,11 +239,13 @@ void Partition::apply_vertex_moves_per_object(
     }
     moved_vertices_set.insert(vertex_move_info->vertex_index);
 
-    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info->vertex_index);
+    // the walls that use the vertex, ascending, from the object's MeshTable
+    const GeometryObject& obj = get_geometry_object_by_id(vertex_move_info->geometry_object_id);
+    const MeshUtils::IndexRange vertex_walls = obj.get_walls_of_vertex(vertex_move_info->vertex_index);
 
     // first check whether we can move all walls belonging to the vertex
-    for (wall_index_t wall_index: wall_indices) {
-      if (!get_wall(wall_index).is_movable) {
+    for (const MeshUtils::mesh_index_t j: vertex_walls) {
+      if (!get_wall(obj.wall_indices[j]).is_movable) {
         // we must not move this vertex
         vertex_move_info->vertex_walls_are_movable = false;
         break;
@@ -256,7 +254,8 @@ void Partition::apply_vertex_moves_per_object(
 
     // if the move is applicable, create mapping in walls_with_their_moves
     if (vertex_move_info->vertex_walls_are_movable) {
-      for (wall_index_t wall_index: wall_indices) {
+      for (const MeshUtils::mesh_index_t j: vertex_walls) {
+        const wall_index_t wall_index = obj.wall_indices[j];
         // remember mapping wall_index -> moves
         auto it = walls_with_their_moves.find(wall_index);
         if (it == walls_with_their_moves.end()) {
@@ -496,11 +495,11 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
   for (VertexMoveInfo* vertex_move_info: vertex_moves) {
     assert(vertex_move_info->partition_id == id);
 
-    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info->vertex_index);
+    // the walls that use the vertex, ascending, from the object's MeshTable
+    const GeometryObject& obj = get_geometry_object_by_id(vertex_move_info->geometry_object_id);
+    const MeshUtils::IndexRange vertex_walls = obj.get_walls_of_vertex(vertex_move_info->vertex_index);
     Vec3& displacement = vertex_move_info->displacement;
-    // check that object id is consistent
-    assert(!wall_indices.empty());
-    assert(get_wall(wall_indices[0]).object_id == vertex_move_info->geometry_object_id);
+    assert(!vertex_walls.empty());
 
     const Vec3& pos = get_geometry_vertex(vertex_move_info->vertex_index);
     map<geometry_object_index_t, uint> num_crossed_walls_per_object_ignored;
@@ -557,11 +556,11 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
 
         // and remember collisions for each of the walls that are moved by this single vertex
         const Wall& hit_wall = get_wall(closest_hit_wall_index);
-        for (wall_index_t wi: wall_indices) {
+        for (const MeshUtils::mesh_index_t j: vertex_walls) {
           colliding_walls.insert(
               GeometryObjectWallUnorderedPair(
                   vertex_move_info->geometry_object_id,
-                  wi,
+                  obj.wall_indices[j],
                   hit_wall.object_id,
                   hit_wall.index
               )
@@ -579,10 +578,18 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
 
   // next, we must check all edges used by this vertex - they must not cross a different object
   for (VertexMoveInfo* vertex_move_info: vertex_moves) {
-    GeometryObject& obj = get_geometry_object_by_id(vertex_move_info->geometry_object_id);
+    const GeometryObject& obj = get_geometry_object_by_id(vertex_move_info->geometry_object_id);
 
-    // get all vertices that share edge with the moved vertex
-    const set<vertex_index_t>& connected_vertices = obj.get_connected_vertices(*this, vertex_move_info->vertex_index);
+    // all vertices that share an edge with the moved vertex (its 1-ring), from
+    // the object's MeshTable. Sorted only to keep the order of the code before
+    // the table: the loop below stops at the first crossing, so the order
+    // decides which wall-wall hit is reported. Step 17 tests every edge and
+    // removes this sort
+    std::vector<vertex_index_t> connected_vertices;
+    for (const MeshUtils::mesh_index_t u: obj.get_neighbors_of_vertex(vertex_move_info->vertex_index)) {
+      connected_vertices.push_back(obj.first_vertex_index + u);
+    }
+    std::sort(connected_vertices.begin(), connected_vertices.end());
 
     Vec3 start = get_new_vertex_position(
         get_geometry_vertex(vertex_move_info->vertex_index),
@@ -618,7 +625,7 @@ void Partition::clamp_vertex_moves_to_wall_wall_collisions(
 
           // which wall of the moved object collided?
           wall_index_t wi = obj.get_wall_for_vertex_pair(
-              *this, vertex_move_info->vertex_index, connected_vertex_index);
+              vertex_move_info->vertex_index, connected_vertex_index);
           assert(wi != WALL_INDEX_INVALID);
 
           // choose the first colliding wall from the hit object

@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "geometry_analysis.hpp"
+#include "mesh_table.hpp"
 
 #include "include/datamodel_defines.h"
 #include "generator_utils.h"
@@ -45,14 +46,27 @@ void compute_volume_and_area(Json::Value& model_object, double& volume, double& 
     Value& element = element_connections[i];
     triangles.push_back({element[0].asInt(), element[1].asInt(), element[2].asInt()});
   }
-  // closed as everywhere in MCell: every edge in exactly two triangles once
-  // vertices with equal coordinates are merged; a non-manifold edge is
-  // reported before an edge of only one triangle
-  const GeometryAnalysis::Mesh mesh = GeometryAnalysis::clean_mesh(points, triangles);
-  if (GeometryAnalysis::has_non_manifold_edge(mesh)) {
+  // the checks of MCell's converters on the mesh as given: walls are joined
+  // only through their vertex indices, nothing is merged
+  const MeshUtils::MeshCheck check = MeshUtils::check_mesh(points, triangles, points);
+  if (!check.indices.out_of_range.empty()) {
+    // the first index out of range, with the text this function gave before
+    for (const int i: triangles[check.indices.out_of_range[0]]) {
+      if (i < 0 || static_cast<std::size_t>(i) >= points.size()) {
+        throw ConversionError("Triangle point index " + std::to_string(i) + " is out of range.");
+      }
+    }
+  }
+  if (!check.table_built) {
+    // a wall that uses a vertex twice, or too many vertices or walls to check
+    throw ConversionError("Geometry object " + name + " has invalid vertex indices, could not compute volume.");
+  }
+  // non-manifold edges and vertices are reported before edges of only one wall;
+  // the orientation is not checked here, as before
+  if (!check.manifold()) {
     throw ConversionError("Non-manifold mesh is not allowed, error for " + name + ".");
   }
-  if (!GeometryAnalysis::is_watertight(mesh)) {
+  if (!MeshUtils::find_boundary_edges(check.table).empty()) {
     throw ConversionError("Geometry object " + name + " is not watertight, could not compute volume.");
   }
 

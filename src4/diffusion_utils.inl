@@ -672,6 +672,7 @@ reflect_absorb_outside_in:
       boundary_pos: the uv coordinates where we hit
       target_wall: the wall we hit
       this_wall: the wall that we are on
+      edge_index_that_was_hit: the side of this_wall that the molecule crossed
       reflect_now: should the sm reflect
       absorb_now: should the sm be absorbed
       this_wall_edge_region_border:
@@ -683,12 +684,16 @@ static void reflect_absorb_outside_in(
     const Molecule& sm,
     const Wall& target_wall,
     const Wall& this_wall,
+    const edge_index_t edge_index_that_was_hit,
     bool& reflect_now,
     BNG::RxnClass*& absorb_now_rxn_class) {
   absorb_now_rxn_class = nullptr;
 
-  /* index of the shared edge in the coordinate system of target wall */
-  edge_index_t target_edge_index = WallUtils::find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
+  /* index of the shared edge in the coordinate system of target wall, from the
+     object's MeshTable */
+  const edge_index_t target_edge_index =
+      p.get_geometry_object(this_wall.object_index).get_neighbor_side(this_wall.index, edge_index_that_was_hit);
+  assert(target_edge_index != EDGE_INDEX_INVALID && this_wall.nb_walls[edge_index_that_was_hit] == target_wall.index);
 
   if (WallUtils::is_wall_edge_region_border(p, target_wall, target_edge_index, true)) {
     reflect_absorb_check_wall(p, sm, target_wall, reflect_now, absorb_now_rxn_class);

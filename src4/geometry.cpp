@@ -36,14 +36,24 @@ using namespace std;
 
 namespace MCell {
 
-// the wall of the object's MeshTable that is the object's wall wi: table wall
-// j is wall_indices[j], and the converters create an object's walls one after
-// another (GeometryObject::link_walls checks it)
-static MeshUtils::mesh_index_t get_table_wall_index(const GeometryObject& obj, const wall_index_t wi) {
-  assert(!obj.wall_indices.empty());
-  const wall_index_t j = wi - obj.wall_indices[0];
-  release_assert(j < obj.wall_indices.size() && obj.wall_indices[j] == wi);
+// the converters create an object's walls one after another
+// (GeometryObject::link_walls checks it)
+MeshUtils::mesh_index_t GeometryObject::get_table_wall_index(const wall_index_t wi) const {
+  assert(!wall_indices.empty());
+  const wall_index_t j = wi - wall_indices[0];
+  release_assert(j < wall_indices.size() && wall_indices[j] == wi);
   return static_cast<MeshUtils::mesh_index_t>(j);
+}
+
+
+edge_index_t GeometryObject::get_neighbor_side(const wall_index_t wi, const edge_index_t k) const {
+  assert(k < EDGES_IN_TRIANGLE);
+  const MeshUtils::mesh_index_t across =
+      get_mesh_check().table.neighbor(get_table_wall_index(wi) * EDGES_IN_TRIANGLE + k);
+  if (across == MeshUtils::MESH_INDEX_NONE) {
+    return EDGE_INDEX_INVALID;
+  }
+  return across % EDGES_IN_TRIANGLE;
 }
 
 
@@ -85,68 +95,100 @@ void GeometryObject::link_walls(Partition& p, const MeshUtils::MeshTable& table)
 }
 
 
-// returns indices of all vertices in this object that are connected through an edge
-const std::set<vertex_index_t>& GeometryObject::get_connected_vertices(
-    const Partition& p, const vertex_index_t vi) {
+wall_index_t GeometryObject::get_wall_for_vertex_pair(const vertex_index_t vi1, const vertex_index_t vi2) const {
+  assert(vi1 != vi2);
 
-  // check cache first
-  auto it = connected_vertices_cache.find(vi);
-  if (it != connected_vertices_cache.end()) {
-    return it->second;
-  }
-
-  // create a new entry
-  set<vertex_index_t>& connected_vertices = connected_vertices_cache[vi];
-
-  for (wall_index_t wi: wall_indices) {
-    const Wall& w = p.get_wall(wi);
-
-    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-      if (w.vertex_indices[i] == vi) {
-        // add all other vertices
-        for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
-          if (w.vertex_indices[k] != vi) {
-            connected_vertices.insert(w.vertex_indices[k]);
-          }
-        }
-        break;
+  // the walls of vi1 are ascending, so the first one with vi2 is the first in
+  // wall order
+  const MeshUtils::MeshTable& table = get_mesh_check().table;
+  const MeshUtils::mesh_index_t v2 = get_object_vertex_index(vi2);
+  for (const MeshUtils::mesh_index_t j: get_walls_of_vertex(vi1)) {
+    for (MeshUtils::mesh_index_t k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+      if (table.vertex(j * VERTICES_IN_TRIANGLE + k) == v2) {
+        return wall_indices[j];
       }
     }
   }
-
-  return connected_vertices;
+  return WALL_INDEX_INVALID;
 }
 
 
-wall_index_t GeometryObject::get_wall_for_vertex_pair(
-    const Partition& p, const vertex_index_t vi1, const vertex_index_t vi2) {
+void GeometryObject::set_mesh_check(std::shared_ptr<const MeshUtils::MeshCheck> check) {
+  release_assert(check != nullptr && check->table_built);
+  release_assert(check->table.n_walls() == wall_indices.size());
+  mesh_check = std::move(check);
+  // the checks computed them from the vertices as the converter added them
+  current_area = mesh_check->area;
+  current_signed_volume = mesh_check->signed_volume;
+  coordinate_facts_current = true;
+}
 
-  assert(vi1 != vi2);
 
-  // check cache first
-  UnorderedPair<vertex_index_t> vp(vi1, vi2);
-  auto it = vertex_pair_to_wall_cache.find(vp);
-  if (it != vertex_pair_to_wall_cache.end()) {
-    return it->second;
+MeshUtils::mesh_index_t GeometryObject::get_object_vertex_index(const vertex_index_t vi) const {
+  release_assert(
+      first_vertex_index != VERTEX_INDEX_INVALID && vi >= first_vertex_index &&
+      vi - first_vertex_index < get_mesh_check().n_vertices);
+  return static_cast<MeshUtils::mesh_index_t>(vi - first_vertex_index);
+}
+
+
+// as MeshUtils::check_mesh computes them: every vertex of the object in order,
+// and the walls in order with their vertices from the MeshTable
+void GeometryObject::update_coordinate_facts(const Partition& p) const {
+  const MeshUtils::MeshCheck& check = get_mesh_check();
+
+  vector<GeometryAnalysis::Point> points(check.n_vertices);
+  for (size_t v = 0; v < check.n_vertices; v++) {
+    const Vec3& pos = p.get_geometry_vertex(first_vertex_index + v);
+    points[v] = {pos.x, pos.y, pos.z};
+  }
+  vector<GeometryAnalysis::Triangle> triangles(wall_indices.size());
+  for (size_t j = 0; j < wall_indices.size(); j++) {
+    for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+      triangles[j][k] = static_cast<int>(check.table.vertex(static_cast<MeshUtils::mesh_index_t>(3 * j + k)));
+    }
   }
 
-  // create a new entry
-  for (wall_index_t wi: wall_indices) {
-    const Wall& w = p.get_wall(wi);
+  const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area(points, triangles);
+  current_area = va.area;
+  current_signed_volume = check.watertight() ? va.volume : 0.0;
+  coordinate_facts_current = true;
+}
 
-    uint cnt = 0;
-    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-      if (w.vertex_indices[i] == vi1 || w.vertex_indices[i] == vi2) {
-        cnt++;
-      }
-    }
-    if (cnt == 2) {
-      vertex_pair_to_wall_cache[vp] = w.index;
-      return w.index;
-    }
+
+double GeometryObject::get_area(const Partition& p) const {
+  if (!coordinate_facts_current) {
+    update_coordinate_facts(p);
   }
+  return current_area;
+}
 
-  return WALL_INDEX_INVALID;
+
+double GeometryObject::get_signed_volume(const Partition& p) const {
+  if (!coordinate_facts_current) {
+    update_coordinate_facts(p);
+  }
+  return current_signed_volume;
+}
+
+
+MeshUtils::IndexRange GeometryObject::get_walls_of_vertex(const vertex_index_t vi) const {
+  const MeshUtils::mesh_index_t v = get_object_vertex_index(vi);
+  if (walls_of_vertices == nullptr) {
+    walls_of_vertices = make_shared<const MeshUtils::VertexLists>(
+        MeshUtils::walls_of_vertices(get_mesh_check().table));
+  }
+  return walls_of_vertices->of(v);
+}
+
+
+MeshUtils::IndexRange GeometryObject::get_neighbors_of_vertex(const vertex_index_t vi) const {
+  const MeshUtils::mesh_index_t v = get_object_vertex_index(vi);
+  if (neighbors_of_vertices == nullptr) {
+    neighbors_of_vertices = make_shared<const MeshUtils::VertexLists>(
+        MeshUtils::neighbors_of_vertices(get_mesh_check().table));
+  }
+  return neighbors_of_vertices->of(v);
 }
 
 
@@ -531,7 +573,7 @@ void Region::init_border_edges(const GeometryObject& obj, const MeshUtils::MeshT
   assert(geometry_object_id == obj.id);
 
   for (auto& [wi, border_sides]: walls_and_edges) {
-    const MeshUtils::mesh_index_t j = get_table_wall_index(obj, wi);
+    const MeshUtils::mesh_index_t j = obj.get_table_wall_index(wi);
     for (edge_index_t k = 0; k < EDGES_IN_TRIANGLE; k++) {
       // the entry across the side when its edge has two walls; on a boundary
       // edge there is none
@@ -845,16 +887,6 @@ void Region::to_data_model(const Partition& p, Json::Value& modify_surface_regio
 
 namespace Geometry {
 
-double compute_geometry_object_area(const Partition& p, const GeometryObject& obj) {
-  double res = 0;
-  for (wall_index_t wi: obj.wall_indices) {
-    res += p.get_wall(wi).area;
-  }
-
-  return res;
-}
-
-
 /***************************************************************************
 eval_rel_region_bbox:
   In: release expression for a 3D region release
@@ -969,6 +1001,9 @@ void update_moved_walls(
       mcell_log("Error: Crossing partitions is not supported yet.\n");
       exit(1);
     }
+
+    // the object's area and volume are recomputed when next asked for
+    p.get_geometry_object_by_id(move_info->geometry_object_id).set_coordinates_changed();
   }
 
   // update walls

@@ -776,6 +776,7 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   // vector_ptr_to_vertex_index_map is a 'global' map for the whole conversion process
   // one of the reasons to not to copy vertex coordinates is that they are shared among triangles of an object
   // and when we move one vertex of the object, we transform all the triangles (walls) that use it
+  const vertex_index_t first_vertex_index = p.get_geometry_vertex_count();
   for (int i = 0; i < o->n_verts; i++) {
     // insert vertex into the right partition and returns partition index and vertex index
     vertex_index_t new_vertex_index = p.add_geometry_vertex(*o->vertices[i]);
@@ -824,6 +825,9 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   for (region_index_t ri: obj.regions) {
     p.get_region(ri).init_border_edges(obj, check.table);
   }
+  // the object keeps its checks for the run
+  obj.first_vertex_index = first_vertex_index;
+  obj.set_mesh_check(make_shared<const MeshUtils::MeshCheck>(std::move(check_it->second)));
   mesh_checks.erase(check_it);
 
 

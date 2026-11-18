@@ -1018,7 +1018,10 @@ void MCell4Converter::convert_geometry_objects() {
       }
     }
 
-    // the object's walls are linked and its regions have their borders
+    // the object's walls are linked and its regions have their borders; the
+    // object keeps its checks for the run
+    obj.first_vertex_index = o->first_vertex_index;
+    obj.set_mesh_check(make_shared<const MeshUtils::MeshCheck>(std::move(check_it->second)));
     mesh_checks.erase(check_it);
 
     // set MCell:GeometryObject compartment ids
@@ -1094,7 +1097,7 @@ void MCell4Converter::convert_compartments() {
 
   // set hierarchy of compartments, from the vertices in internal units
   // (rcp_length_unit was set by convert_simulation_setup)
-  set_parent_and_children_compartments(compartment_objects, world->config.rcp_length_unit);
+  set_parent_and_children_compartments(compartment_objects, world->config.rcp_length_unit, mesh_checks);
 
   for (std::shared_ptr<API::GeometryObject>& o: compartment_objects) {
 

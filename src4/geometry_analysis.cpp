@@ -24,7 +24,6 @@
 #include <numeric>
 #include <stdexcept>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
 #include "predicates.hpp"
@@ -441,38 +440,6 @@ struct PointKeyHash {
     return static_cast<std::size_t>(h ^ (h >> 31));
   }
 };
-
-// undirected edges, one entry per use, sorted
-std::vector<std::uint64_t> sorted_edges(const Mesh& mesh) {
-  std::vector<std::uint64_t> edges;
-  edges.reserve(mesh.triangles.size() * 3);
-  for (const Triangle& t : mesh.triangles) {
-    for (int i = 0; i < 3; i++) {
-      const std::uint32_t u = t[i], v = t[(i + 1) % 3];
-      const auto [a, b] = std::minmax(u, v);
-      edges.push_back((std::uint64_t{a} << 32) | b);
-    }
-  }
-  std::ranges::sort(edges);
-  return edges;
-}
-
-// true when the predicate holds for the number of uses of every edge
-template<typename UsesOk>
-bool all_edge_uses(const Mesh& mesh, UsesOk uses_ok) {
-  const std::vector<std::uint64_t> edges = sorted_edges(mesh);
-  for (std::size_t i = 0; i < edges.size();) {
-    std::size_t j = i;
-    while (j < edges.size() && edges[j] == edges[i]) {
-      j++;
-    }
-    if (!uses_ok(j - i)) {
-      return false;
-    }
-    i = j;
-  }
-  return true;
-}
 
 // one use of an undirected edge by a triangle; forward: the triangle runs
 // along the edge from its lower to its higher point index
@@ -955,6 +922,19 @@ const Mesh& Solid::mesh() const {
 // ---------------------------------------------------------------------------
 // public functions
 
+// the bounding box of the mesh's points, zeros for an empty mesh
+static void set_bounding_box(Mesh& mesh) {
+  if (!mesh.points.empty()) {
+    mesh.lo = mesh.hi = mesh.points[0];
+    for (const Point& p : mesh.points) {
+      for (int k = 0; k < 3; k++) {
+        mesh.lo[k] = std::min(mesh.lo[k], p[k]);
+        mesh.hi[k] = std::max(mesh.hi[k], p[k]);
+      }
+    }
+  }
+}
+
 Mesh clean_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
   Mesh res;
   std::vector<int> new_index(points.size(), -1);
@@ -985,51 +965,33 @@ Mesh clean_mesh(const std::vector<Point>& points, const std::vector<Triangle>& t
     }
   }
 
-  if (!res.points.empty()) {
-    res.lo = res.hi = res.points[0];
-    for (const Point& p : res.points) {
-      for (int k = 0; k < 3; k++) {
-        res.lo[k] = std::min(res.lo[k], p[k]);
-        res.hi[k] = std::max(res.hi[k], p[k]);
-      }
-    }
-  }
+  set_bounding_box(res);
   return res;
 }
 
-bool is_closed(const Mesh& mesh) {
-  return all_edge_uses(mesh, [](std::size_t uses) { return uses == 2; });
-}
+Mesh unmerged_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
+  Mesh res;
+  std::vector<int> new_index(points.size(), -1);
+  res.triangles.reserve(triangles.size());
 
-bool is_watertight(const Mesh& mesh) {
-  return all_edge_uses(mesh, [](std::size_t uses) { return uses != 1; });
-}
-
-bool has_non_manifold_edge(const Mesh& mesh) {
-  return !all_edge_uses(mesh, [](std::size_t uses) { return uses <= 2; });
-}
-
-std::size_t count_inconsistent_edges(const Mesh& mesh) {
-  const std::vector<EdgeUse> uses = edge_uses(mesh);
-  std::size_t count = 0;
-  for_each_edge(uses, [&](std::size_t first, std::size_t last) {
-    if (last - first == 2 && uses[first].forward == uses[first + 1].forward) {
-      count++;
+  for (const Triangle& t : triangles) {
+    Triangle ids;
+    for (int i = 0; i < 3; i++) {
+      if (t[i] < 0 || static_cast<std::size_t>(t[i]) >= points.size()) {
+        throw std::out_of_range("Triangle point index " + std::to_string(t[i]) + " is out of range.");
+      }
+      int& id = new_index[t[i]];
+      if (id < 0) {
+        id = static_cast<int>(res.points.size());
+        res.points.push_back(points[t[i]]);
+      }
+      ids[i] = id;
     }
-  });
-  return count;
-}
-
-std::size_t count_duplicate_points(const std::vector<Point>& points) {
-  std::unordered_set<PointKey, PointKeyHash> seen;
-  seen.reserve(points.size() * 2 + 1);
-  std::size_t count = 0;
-  for (const Point& p : points) {
-    if (!seen.insert(PointKey{key_bits(p[0]), key_bits(p[1]), key_bits(p[2])}).second) {
-      count++;
-    }
+    res.triangles.push_back(ids);
   }
-  return count;
+
+  set_bounding_box(res);
+  return res;
 }
 
 InsideOutParts find_inside_out_parts(const Mesh& mesh) {

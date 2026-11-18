@@ -1668,7 +1668,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
           const Wall& target_wall = p.get_wall(target_wall_index);
           DiffusionUtils::reflect_absorb_outside_in(
-              p, sm, target_wall, *this_wall,
+              p, sm, target_wall, *this_wall, edge_index_that_was_hit,
               reflect_now, absorb_now_rxn_class
           );
 
