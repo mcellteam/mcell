@@ -808,54 +808,38 @@ void MCell4Converter::convert_initial_surface_releases(
 }
 
 
-void MCell4Converter::convert_concentration_clamp_release(
-    const partition_id_t partition_id, const API::SurfaceClass& surface_class, const MCell::Region& mcell_region) {
+// the model's concentration and flux clamps of volume molecules; MCell4 builds
+// their events from the regions that carry the clamps' surface classes, as for
+// MDL files (create_clamp_release_events)
+void MCell4Converter::convert_clamps() {
+  std::vector<ClampSpec> clamps;
+  for (const std::shared_ptr<API::SurfaceClass>& sc: model->surface_classes) {
+    if (!sc->is_clamp()) {
+      continue;
+    }
+    release_assert(sc->properties.empty() && "TODO");
+    assert(world->bng_engine.get_all_species().get(sc->species_id).is_reactive_surface());
 
-  release_assert(surface_class.properties.empty() && "TODO");
-
-  ClampReleaseEvent* clamp_event = new ClampReleaseEvent(world);
-  
-  if (surface_class.type == SurfacePropertyType::CONCENTRATION_CLAMP) {
-    clamp_event->type = ClampType::CONCENTRATION;
-  }
-  else if (surface_class.type == SurfacePropertyType::FLUX_CLAMP) {
-    clamp_event->type = ClampType::FLUX;
-  }
-  else {
-    assert(false);
-  }
-
-  // run each timestep
-  clamp_event->event_time = 0;
-  clamp_event->periodicity_interval = 1;
-
-  // which species to clamp
-  clamp_event->species_id = get_species_id_for_complex(
-      *surface_class.affected_complex_pattern,
-      S(NAME_CLASS_SURFACE_CLASS) + ", attribute " + NAME_AFFECTED_COMPLEX_PATTERN,
-      false);
-
-  // on which side
-  clamp_event->orientation =
-      convert_api_orientation(surface_class.affected_complex_pattern->orientation, true, true);
-
-  assert(world->bng_engine.get_all_species().get(surface_class.species_id).is_reactive_surface());
-  clamp_event->surf_class_species_id = surface_class.species_id;
-
-  clamp_event->concentration = surface_class.concentration;
-
-  // walls where to release
-  assert(!mcell_region.walls_and_edges.empty() && "Must be initialized");
-  // we are inserting the walls ordered by their wall index
-  for (const auto& pair_wi_edges: mcell_region.walls_and_edges) {
-    clamp_event->cumm_area_and_pwall_index_pairs.push_back(
-        CummAreaPWallIndexPair(0, PartitionWallIndexPair(partition_id, pair_wi_edges.first)));
+    ClampSpec clamp;
+    clamp.type = (sc->type == SurfacePropertyType::CONCENTRATION_CLAMP) ? ClampType::CONCENTRATION : ClampType::FLUX;
+    clamp.surf_class_species_id = sc->species_id;
+    clamp.species_id = get_species_id_for_complex(
+        *sc->affected_complex_pattern,
+        S(NAME_CLASS_SURFACE_CLASS) + ", attribute " + NAME_AFFECTED_COMPLEX_PATTERN,
+        false);
+    clamp.orientation = convert_api_orientation(sc->affected_complex_pattern->orientation, true, true);
+    clamp.concentration = sc->concentration;
+    clamps.push_back(clamp);
   }
 
-  clamp_event->update_cumm_areas_and_scaling();
-
-  // and schedule
-  world->scheduler.schedule_event(clamp_event);
+  const std::vector<std::string> errors = create_clamp_release_events(world, clamps);
+  if (!errors.empty()) {
+    std::string text;
+    for (const std::string& line: errors) {
+      text += (text.empty() ? "" : "\n") + line;
+    }
+    throw ValueError(text);
+  }
 }
 
 
@@ -877,11 +861,6 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
   if (is_set(surface_region.surface_class)) {
     assert(surface_region.surface_class->species_id != SPECIES_ID_INVALID);
     reg.species_id = surface_region.surface_class->species_id;
-
-    // define releases for concentration clamp
-    if (surface_region.surface_class->is_clamp()) {
-      convert_concentration_clamp_release(p.id, *surface_region.surface_class, reg);
-    }
   }
   if (is_set(surface_region.initial_surface_releases)) {
     convert_initial_surface_releases(
@@ -998,11 +977,6 @@ void MCell4Converter::convert_geometry_objects() {
             " but this surface class was not added to the model. To add it, use method Model.add_surface_class or Subsystem.add_surface_class.");
       }
       reg_all.species_id = o->surface_class->species_id;
-
-      // define releases for concentration clamp
-      if (o->surface_class->is_clamp()) {
-        convert_concentration_clamp_release(p.id, *o->surface_class, reg_all);
-      }
     }
     if (is_set(o->initial_surface_releases)) {
       convert_initial_surface_releases(o->initial_surface_releases, reg_all.initial_region_molecules);
@@ -1061,6 +1035,8 @@ void MCell4Converter::convert_geometry_objects() {
       }
     }
   }
+
+  convert_clamps();
 
   for (MCell::GeometryObject& obj: p.get_geometry_objects()) {
     obj.initialize_is_fully_transparent(p);

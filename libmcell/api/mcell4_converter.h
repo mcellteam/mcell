@@ -110,8 +110,7 @@ private:
       std::vector<MCell::InitialSurfaceReleases>& mcell_releases
   );
 
-  void convert_concentration_clamp_release(
-      const partition_id_t partition_id, const API::SurfaceClass& surface_class, const MCell::Region& mcell_region);
+  void convert_clamps();
 
   MCell::region_index_t convert_surface_region(
       MCell::Partition& p,

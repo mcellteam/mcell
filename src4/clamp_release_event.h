@@ -13,6 +13,7 @@
 #ifndef SRC4_CLAMP_RELEASE_EVENT_H_
 #define SRC4_CLAMP_RELEASE_EVENT_H_
 
+#include <string>
 #include <vector>
 
 #include "base_event.h"
@@ -69,6 +70,32 @@ public:
 private:
   World* world;
 };
+
+
+// A concentration or flux clamp of a volume molecule, as the model defines it:
+// the surface class that carries it, the molecule, the side and the
+// concentration. Both converters describe the model's clamps this way.
+struct ClampSpec {
+  ClampType type = ClampType::INVALID;
+  species_id_t surf_class_species_id = SPECIES_ID_INVALID;
+  species_id_t species_id = SPECIES_ID_INVALID;
+  orientation_t orientation = ORIENTATION_NONE;
+  double concentration = 0;
+};
+
+// Creates and schedules one ClampReleaseEvent per clamp, ordered by surface
+// class name, then molecule name, then side (the same order for MDL files and
+// Python API models, whatever order the converter gives), over every wall that carries the clamp's surface class through one of its
+// regions, each wall once and in wall order (no wall when no region carries
+// the class). Used by the converters of MDL files and of Python API models
+// alike, once all geometry objects exist.
+// First checks that no wall is clamped more than once for the same volume
+// molecule on the same side: by one surface class through two or more regions,
+// or by two clamps. If one is, creates nothing and returns one line per object
+// and molecule, without "Error: ", e.g. "[CLAMP_ON_WALL_TWICE] Scene.box1: 2
+// walls are clamped more than once for the volume molecule V (surface class
+// clamp_sc through the regions ALL and top)".
+std::vector<std::string> create_clamp_release_events(World* world, const std::vector<ClampSpec>& clamps_as_given);
 
 } // namespace mcell
 

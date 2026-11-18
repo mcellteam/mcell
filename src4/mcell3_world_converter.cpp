@@ -126,7 +126,7 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_viz_output_events(s));
   CHECK(convert_mol_or_rxn_count_events(s));
 
-  update_and_schedule_concentration_clamps();
+  create_clamp_events();
 
   return true;
 }
@@ -636,14 +636,6 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
     CHECK_PROPERTY(sl->surf_class != nullptr);
     species_id_t surf_class_species_id = get_mcell4_species_id(sl->surf_class->species_id);
     wall_species_from_mcell3.insert(surf_class_species_id);
-
-    // set concentration clamp walls (note: this might be a bit slow
-    for (ClampReleaseEvent* clamp: concentration_clamps) {
-      if (clamp->surf_class_species_id == surf_class_species_id) {
-        // cummulative area is updated when the clamp events are scheduled at the end of conversion
-        clamp->cumm_area_and_pwall_index_pairs.push_back(CummAreaPWallIndexPair(0, wall_pindex));
-      }
-    }
   }
   CHECK_PROPERTY(wall_species_from_mcell3 == region_species_from_mcell3);
 
@@ -1069,45 +1061,43 @@ static bool get_variable_rates(const t_func* prob_t, small_vector<small_vector<B
 }
 
 
-void MCell3WorldConverter::create_clamp_release_event(
+// a concentration or flux clamp of a volume molecule, as the model defines it
+// in a surface class; MCell4 builds its event once the geometry exists
+void MCell3WorldConverter::add_clamp(
     const pathway* current_pathway, const RxnRule& rxn, const std::vector<species_id_t>& reactant_species_ids) {
 
-  ClampReleaseEvent* clamp_event = new ClampReleaseEvent(world);
+  ClampSpec clamp;
 
   if ((current_pathway->flags & PATHW_CLAMP_CONC) != 0) {
-    clamp_event->type = ClampType::CONCENTRATION;
+    clamp.type = ClampType::CONCENTRATION;
   }
   else if ((current_pathway->flags & PATHW_CLAMP_FLUX) != 0) {
-    clamp_event->type = ClampType::FLUX;
+    clamp.type = ClampType::FLUX;
   }
   else {
     assert(false);
   }
 
-  // run each timestep
-  clamp_event->event_time = 0;
-  clamp_event->periodicity_interval = 1;
-
   // which species to clamp
   assert(!world->bng_engine.get_all_species().get(reactant_species_ids[0]).is_reactive_surface());
-  clamp_event->species_id = reactant_species_ids[0];
+  clamp.species_id = reactant_species_ids[0];
 
   assert(world->bng_engine.get_all_species().get(reactant_species_ids[1]).is_reactive_surface());
-  clamp_event->surf_class_species_id = reactant_species_ids[1];
+  clamp.surf_class_species_id = reactant_species_ids[1];
 
   // on which side
   if (rxn.reactants[0].get_orientation() == 0 || rxn.reactants[1].get_orientation() == 0) {
-    clamp_event->orientation = 0;
+    clamp.orientation = 0;
   }
   else {
-    clamp_event->orientation =
+    clamp.orientation =
         (rxn.reactants[0].get_orientation() == rxn.reactants[1].get_orientation()) ? ORIENTATION_UP : ORIENTATION_DOWN;
   }
 
   // use the rxn rate for concentration and the rxn that destroys molecules will happen always
-  clamp_event->concentration = current_pathway->clamp_concentration;
+  clamp.concentration = current_pathway->clamp_concentration;
 
-  concentration_clamps.push_back(clamp_event);
+  clamps.push_back(clamp);
 }
 
 
@@ -1236,7 +1226,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       if ((current_pathway->flags & PATHW_CLAMP_FLUX) != 0) {
         // the rxn is in the form of: a + sc -> null
         rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_FLUX_CLAMP);
-        create_clamp_release_event(current_pathway, rxn, reactant_species_ids);
+        add_clamp(current_pathway, rxn, reactant_species_ids);
         rxn.base_rate_constant = DBL_GIGANTIC;
       }
     }
@@ -1267,7 +1257,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         // the rxn is in the form of: a + sc -> null
         rxn.set_flag(BNG::RXN_FLAG_CREATED_FOR_CONCENTRATION_CLAMP);
 
-        create_clamp_release_event(current_pathway, rxn, reactant_species_ids);
+        add_clamp(current_pathway, rxn, reactant_species_ids);
         rxn.base_rate_constant = DBL_GIGANTIC;
       }
     }
@@ -1444,21 +1434,10 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           // CHECK_PROPERTY(region_data->in_release == nullptr); // ignored
 
           if (rel_site->region_data->cum_area_list != nullptr) {
-            // surface molecules release onto region
-
-            release_region_data* region_data = rel_site->region_data;
-            for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
-
-              wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
-
-              PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
-
-              rel_event->cumm_area_and_pwall_index_pairs.push_back(
-                  CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
-              );
-            }
-
-            // also remember the expression, although the cum_area_and_pwall_index_pairs is what is currently used
+            // surface molecules release onto region; MCell4 takes the walls and
+            // their cumulative areas from the region expression below, as for
+            // Python API models (initialize_walls_for_release), not from
+            // MCell3's region_data->cum_area_list
             CHECK_PROPERTY(region_data->expression != nullptr);
             rel_event->region_expr.root = create_release_region_terms_recursively(region_data->expression, *rel_event, species.is_vol());
           }
@@ -1472,11 +1451,15 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             CHECK_PROPERTY(region_data->owners == 0);
             // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
 
-            rel_event->region_llf = region_data->llf;
-            rel_event->region_urb = region_data->urb;
-
             CHECK_PROPERTY(region_data->expression != nullptr);
             rel_event->region_expr.root = create_release_region_terms_recursively(region_data->expression, *rel_event, species.is_vol());
+
+            // the region's bounding box, computed by MCell4 from the region
+            // expression as for Python API models
+            // (MCell4Converter::convert_rel_site_region_expr), not MCell3's
+            // region_data->llf and urb
+            CHECK(Geometry::compute_region_expr_bounding_box(
+                world, rel_event->region_expr.root, rel_event->region_llf, rel_event->region_urb));
           }
         }
         else if (rel_site->release_shape == SHAPE_LIST) {
@@ -1522,6 +1505,13 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             assert(false);
         }
 
+        // the walls of a release onto a region (surface molecules) and their
+        // cumulative areas, computed by MCell4 from the region expression as for
+        // Python API models; nothing for volume molecules released by number
+        // or concentration
+        if (rel_event->release_shape == ReleaseShape::REGION) {
+          CHECK(rel_event->initialize_walls_for_release());
+        }
 
         CHECK_PROPERTY(rel_event->release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
         CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
@@ -1976,10 +1966,15 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
 }
 
 
-void MCell3WorldConverter::update_and_schedule_concentration_clamps() {
-  for (ClampReleaseEvent* clamp: concentration_clamps) {
-    clamp->update_cumm_areas_and_scaling();
-    world->scheduler.schedule_event(clamp);
+// the events of the model's clamps, built by MCell4 from the regions that
+// carry the clamps' surface classes, as for Python API models
+void MCell3WorldConverter::create_clamp_events() {
+  const std::vector<std::string> errors = create_clamp_release_events(world, clamps);
+  if (!errors.empty()) {
+    for (size_t i = 0; i + 1 < errors.size(); i++) {
+      mcell_error_raw("Error: %s\n", errors[i].c_str());
+    }
+    mcell_error("%s", errors.back().c_str());
   }
 }
 

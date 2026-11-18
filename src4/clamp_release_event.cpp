@@ -17,7 +17,10 @@
 #include "mcell_structs_shared.h"
 #include "logging.h"
 
+#include <algorithm>
 #include <iostream>
+#include <map>
+#include <set>
 
 #include "defines.h"
 #include "world.h"
@@ -235,6 +238,154 @@ void ClampReleaseEvent::step() {
   }
 }
 
+
+// the part of a region's name after the object's name, e.g. "top" for
+// "Scene.box1,top"
+static std::string region_name_in_object(const std::string& name) {
+  const size_t comma = name.rfind(',');
+  return (comma == std::string::npos) ? name : name.substr(comma + 1);
+}
+
+// "a", "a and b", "a, b and c"
+static std::string join_with_and(const std::vector<std::string>& items) {
+  std::string res;
+  for (size_t i = 0; i < items.size(); i++) {
+    if (i != 0) {
+      res += (i + 1 == items.size()) ? " and " : ", ";
+    }
+    res += items[i];
+  }
+  return res;
+}
+
+// a clamp on one side of a wall and a clamp on another act on the same side
+// when the sides are equal or either clamps both sides
+static bool clamp_sides_meet(const orientation_t a, const orientation_t b) {
+  return a == b || a == ORIENTATION_NONE || b == ORIENTATION_NONE;
+}
+
+
+std::vector<std::string> create_clamp_release_events(World* world, const std::vector<ClampSpec>& clamps_as_given) {
+  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  const std::vector<Region>& regions = p.get_regions();
+  const BNG::SpeciesContainer& all_species = world->get_all_species();
+
+  // one order for MDL files and Python API models alike, whatever order the
+  // converter gives: by surface class name, then molecule name, then side. It
+  // is the order of the events, and so of their random numbers
+  std::vector<ClampSpec> clamps = clamps_as_given;
+  std::stable_sort(clamps.begin(), clamps.end(),
+      [&all_species](const ClampSpec& a, const ClampSpec& b) {
+        const std::string& class_a = all_species.get(a.surf_class_species_id).name;
+        const std::string& class_b = all_species.get(b.surf_class_species_id).name;
+        if (class_a != class_b) {
+          return class_a < class_b;
+        }
+        const std::string& molecule_a = all_species.get(a.species_id).name;
+        const std::string& molecule_b = all_species.get(b.species_id).name;
+        if (molecule_a != molecule_b) {
+          return molecule_a < molecule_b;
+        }
+        return a.orientation < b.orientation;
+      });
+
+  // each clamp brought to a wall by a region of the clamp's surface class,
+  // for every wall, in wall order
+  struct Application {
+    size_t clamp;
+    region_index_t region;
+  };
+  std::map<wall_index_t, std::vector<Application>> applications_of_wall;
+  for (size_t c = 0; c < clamps.size(); c++) {
+    for (region_index_t ri = 0; ri < regions.size(); ri++) {
+      if (regions[ri].species_id != clamps[c].surf_class_species_id) {
+        continue;
+      }
+      for (const auto& wall_and_edges: regions[ri].walls_and_edges) {
+        applications_of_wall[wall_and_edges.first].push_back(Application{c, ri});
+      }
+    }
+  }
+
+  // walls clamped more than once for the same volume molecule on the same
+  // side, by object and molecule: the walls and, per clamp, the regions that
+  // bring it to them
+  struct Twice {
+    std::set<wall_index_t> walls;
+    std::map<size_t, std::set<region_index_t>> regions_of_clamp;
+  };
+  std::map<std::pair<geometry_object_index_t, species_id_t>, Twice> clamped_twice;
+  for (const auto& wall_and_applications: applications_of_wall) {
+    const wall_index_t wi = wall_and_applications.first;
+    const std::vector<Application>& apps = wall_and_applications.second;
+    for (size_t i = 0; i < apps.size(); i++) {
+      for (size_t j = i + 1; j < apps.size(); j++) {
+        const ClampSpec& a = clamps[apps[i].clamp];
+        const ClampSpec& b = clamps[apps[j].clamp];
+        if (a.species_id != b.species_id || !clamp_sides_meet(a.orientation, b.orientation)) {
+          continue;
+        }
+        Twice& twice = clamped_twice[std::make_pair(p.get_wall(wi).object_index, a.species_id)];
+        twice.walls.insert(wi);
+        twice.regions_of_clamp[apps[i].clamp].insert(apps[i].region);
+        twice.regions_of_clamp[apps[j].clamp].insert(apps[j].region);
+      }
+    }
+  }
+
+  if (!clamped_twice.empty()) {
+    std::vector<std::string> lines;
+    for (const auto& key_and_twice: clamped_twice) {
+      const Twice& twice = key_and_twice.second;
+      // the clamps in their order, the regions by name
+      std::vector<std::string> by_class;
+      for (const auto& clamp_and_regions: twice.regions_of_clamp) {
+        std::set<std::string> names;
+        for (const region_index_t ri: clamp_and_regions.second) {
+          names.insert(region_name_in_object(regions[ri].name));
+        }
+        const std::vector<std::string> region_names(names.begin(), names.end());
+        by_class.push_back(
+            all_species.get(clamps[clamp_and_regions.first].surf_class_species_id).name +
+            " through the region" + (region_names.size() == 1 ? " " : "s ") + join_with_and(region_names));
+      }
+      const size_t n = twice.walls.size();
+      lines.push_back(
+          "[CLAMP_ON_WALL_TWICE] " + p.get_geometry_object(key_and_twice.first.first).name + ": " +
+          std::to_string(n) + (n == 1 ? " wall is" : " walls are") +
+          " clamped more than once for the volume molecule " +
+          all_species.get(key_and_twice.first.second).name + " (surface class" +
+          (by_class.size() == 1 ? " " : "es ") + join_with_and(by_class) + ")");
+    }
+    return lines;
+  }
+
+  // one event per clamp, over every wall that carries its surface class
+  for (size_t c = 0; c < clamps.size(); c++) {
+    ClampReleaseEvent* clamp_event = new ClampReleaseEvent(world);
+    clamp_event->type = clamps[c].type;
+    clamp_event->species_id = clamps[c].species_id;
+    clamp_event->surf_class_species_id = clamps[c].surf_class_species_id;
+    clamp_event->orientation = clamps[c].orientation;
+    clamp_event->concentration = clamps[c].concentration;
+
+    // run each timestep
+    clamp_event->event_time = 0;
+    clamp_event->periodicity_interval = 1;
+
+    for (const auto& wall_and_applications: applications_of_wall) {
+      for (const Application& app: wall_and_applications.second) {
+        if (app.clamp == c) {
+          clamp_event->cumm_area_and_pwall_index_pairs.push_back(
+              CummAreaPWallIndexPair(0, PartitionWallIndexPair(PARTITION_ID_INITIAL, wall_and_applications.first)));
+          break;
+        }
+      }
+    }
+    clamp_event->update_cumm_areas_and_scaling();
+    world->scheduler.schedule_event(clamp_event);
+  }
+  return std::vector<std::string>();
+}
+
 } // namespace mcell
-
-

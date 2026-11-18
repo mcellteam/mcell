@@ -18,6 +18,7 @@
 
 #include "world.h"
 #include "mesh_table.hpp"
+#include "clamp_release_event.h"
 #include <map>
 
 struct volume; // MCell3
@@ -65,7 +66,7 @@ private:
   void check_polygonal_objects(volume* s);
   bool convert_geometry_objects(volume* s);
   bool convert_species(volume* s);
-  void create_clamp_release_event(
+  void add_clamp(
       const pathway* current_pathway, const BNG::RxnRule& rxn, const std::vector<species_id_t>& reactant_species_ids);
   bool convert_single_reaction(const rxn *rx);
   bool convert_rxns(volume* s);
@@ -76,7 +77,7 @@ private:
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);
   bool convert_mol_or_rxn_count_events(volume* s);
-  void update_and_schedule_concentration_clamps();
+  void create_clamp_events();
 
 public:
   // contained world object
@@ -146,7 +147,9 @@ private:
   // use only through add_mcell4_region_index_mapping, get_mcell4_region_index
   std::map<const region*, PartitionRegionIndexPair> region_ptr_to_region_index_map;
 
-  std::vector<ClampReleaseEvent*> concentration_clamps;
+  // the model's concentration and flux clamps of volume molecules, from its
+  // reactions; MCell4 builds their events (create_clamp_events)
+  std::vector<ClampSpec> clamps;
 
   // the checks of each polygonal object, with its MeshTable, from
   // check_polygonal_objects until convert_polygonal_object has linked the
