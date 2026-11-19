@@ -1138,10 +1138,10 @@ std::vector<PartFacing> judge_parts(
 
 VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
   // the arithmetic follows MCell expression by expression, so that the results
-  // are bit-identical to the simulation's: Region::compute_bounding_box, the
-  // tetrahedral volume of Region::initialize_volume_info_if_needed (its
-  // reference point is the center of the bounding box), and the wall area of
-  // Wall::precompute_wall_constants with glm's cross product
+  // are bit-identical to the simulation's: the bounding box as in
+  // Region::compute_bounding_box, whose center is the reference point of the
+  // tetrahedral volume, and the wall area of Wall::precompute_wall_constants with
+  // glm's cross product
   if (triangles.empty()) {
     return {0.0, 0.0};
   }

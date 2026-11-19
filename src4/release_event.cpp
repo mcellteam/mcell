@@ -494,6 +494,25 @@ bool ReleaseEvent::initialize_walls_for_release() {
 }
 
 
+void ReleaseEvent::update_region_data_after_vertex_moves() {
+  assert(release_shape == ReleaseShape::REGION);
+
+  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  if (region_data_vertex_moves_count == p.get_vertex_moves_count()) {
+    return;
+  }
+
+  // the box from which volume molecules get their positions, and the walls'
+  // cumulative areas by which surface molecules are counted and placed
+  bool ok = Geometry::compute_region_expr_bounding_box(world, region_expr.root, region_llf, region_urb);
+  release_assert(ok);
+  ok = initialize_walls_for_release();
+  release_assert(ok);
+
+  region_data_vertex_moves_count = p.get_vertex_moves_count();
+}
+
+
 static void check_max_release_count(double num_to_release, const std::string& name) {
   long long num = (long long)num_to_release;
   if (num < 0 || num > (long long)INT_MAX) {
@@ -828,10 +847,10 @@ uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   double vol = 0.0;
   if (region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
+    // the object's signed volume, recomputed after its vertices move; it is 0
+    // unless the object is watertight
     const GeometryObject& go = p.get_geometry_object_by_id(region_expr.root->geometry_object_id);
-    Region& r = p.get_region_by_id(go.encompassing_region_id);
-    r.initialize_volume_info_if_needed(p);
-    vol = r.get_volume();
+    vol = go.get_signed_volume(p);
     exact_number = true;
   }
   else if (region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION) {
@@ -1262,6 +1281,7 @@ void ReleaseEvent::step() {
 
   int num_released = 0;
   if (release_shape == ReleaseShape::REGION) {
+    update_region_data_after_vertex_moves();
     int number = calculate_number_to_release();
     const BNG::Species& species = world->get_all_species().get(species_id);
     if (species.is_surf()) {

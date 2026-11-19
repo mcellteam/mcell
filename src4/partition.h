@@ -912,6 +912,18 @@ public:
       const IVec3& waypoint_index, const bool reinitialize = true
   );
 
+  // How many times vertices of this partition have moved: Geometry::update_moved_walls
+  // increments it once for each batch of moves. Data computed from the walls'
+  // positions remember the count they were computed for and are computed again when
+  // it has changed (the box and the wall areas of a release).
+  uint64_t get_vertex_moves_count() const {
+    return vertex_moves_count;
+  }
+
+  void increment_vertex_moves_count() {
+    vertex_moves_count++;
+  }
+
   WallSharedData* create_wall_shared_data() {
     WallSharedData* res = new WallSharedData;
     wall_shared_data.insert(res);
@@ -1160,6 +1172,9 @@ private:
 
   // bidirectional map -> each pair is added twice
   std::map<molecule_id_t, molecule_id_t> paired_molecules;
+
+  // see get_vertex_moves_count
+  uint64_t vertex_moves_count = 0;
 
   // ---------------------------------- shared simulation configuration -------------------
 public:

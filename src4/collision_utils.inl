@@ -1491,7 +1491,7 @@ static bool is_point_inside_region_no_waypoints(
   // cast ray along the whole partition
   Vec3 move(POS_EPS, POS_EPS, p.config.partition_edge_length);
 
-  reg.initialize_volume_info_if_needed(p);
+  reg.initialize_bounding_box_if_needed(p);
 
   // the destination we are checking is one of the bounding box corners
   // moved by a bit further from the center
@@ -1562,7 +1562,13 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
   bool wall_found = false;
   const Waypoint* waypoint = nullptr;
 
-  if (p.config.has_intersecting_counted_objects) {
+  // a waypoint's counted volume is computed at initialization and not after
+  // vertex moves, so once vertices have moved the counted volume is always
+  // computed from the walls' current positions
+  const bool use_waypoints =
+      p.config.has_intersecting_counted_objects && p.get_vertex_moves_count() == 0;
+
+  if (use_waypoints) {
 
     // subpartition origin point
     IVec3 index3d;
@@ -1605,7 +1611,7 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
     }
   } // check with
 
-  if (p.config.has_intersecting_counted_objects && !wall_found) {
+  if (use_waypoints && !wall_found) {
     assert(waypoint != nullptr);
     // nothing is obstructing,
     // we can simply copy counted volume index from the waypoint

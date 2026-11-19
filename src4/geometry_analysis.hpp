@@ -94,13 +94,13 @@ struct VolumeArea {
   double area;
 };
 
-// signed volume and surface area as MCell's simulation computes them: the
-// volume sums the signed volumes of the tetrahedra that join each triangle to
-// the center of the triangles' bounding box
-// (Region::initialize_volume_info_if_needed), so it is negative when the
-// triangles face inward; the area sums 0.5 |(b - a) x (c - a)| over the
-// triangles (Wall::precompute_wall_constants); the triangles are used as given
-// and in order, without cleaning or reorientation
+// signed volume and surface area as MCell's simulation computes them, and the
+// function it uses for the objects' areas and volumes (GeometryObject::get_area,
+// get_signed_volume): the volume sums the signed volumes of the tetrahedra that
+// join each triangle to the center of the triangles' bounding box, so it is
+// negative when the triangles face inward; the area sums 0.5 |(b - a) x (c - a)|
+// over the triangles (Wall::precompute_wall_constants); the triangles are used as
+// given and in order, without cleaning or reorientation
 VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles);
 
 // closed triangles a and b share at least one point, exactly

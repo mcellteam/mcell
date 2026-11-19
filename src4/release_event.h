@@ -107,7 +107,8 @@ public:
     current_train_from_0(0),
     current_release_in_train_from_0(0),
     world(world_),
-    running_diffuse_event_to_update(nullptr) {
+    running_diffuse_event_to_update(nullptr),
+    region_data_vertex_moves_count(0) {
   }
 
   void step() override;
@@ -215,8 +216,20 @@ private:
   // molecules to be released
   DiffuseReactEvent* running_diffuse_event_to_update;
 
+  // the partition's vertex moves count (Partition::get_vertex_moves_count) for
+  // which region_llf, region_urb and cumm_area_and_pwall_index_pairs were
+  // computed; 0 as the converters compute them at initialization, before any
+  // move (a release that Model.release_molecules makes after moves computes them
+  // once more at its first release, with the same result)
+  uint64_t region_data_vertex_moves_count;
+
 private:
   bool skip_due_to_release_probability();
+
+  // for releases into or onto regions: computes region_llf, region_urb and
+  // cumm_area_and_pwall_index_pairs again from the walls' current positions when
+  // vertices have moved since they were computed
+  void update_region_data_after_vertex_moves();
 
   // may end with error
   void report_release_failure(const std::string& msg);

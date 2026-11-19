@@ -297,9 +297,8 @@ public:
   Region()
     : id(REGION_ID_INVALID), index(REGION_INDEX_INVALID), species_id(SPECIES_ID_INVALID),
       geometry_object_id(GEOMETRY_OBJECT_ID_INVALID), name(""),
-      volume_info_initialized(false),
-      walls_per_subpart_initialized(false), region_waypoints_initialized(false),
-      volume(FLT_INVALID)
+      bounding_box_initialized(false),
+      walls_per_subpart_initialized(false), region_waypoints_initialized(false)
       {
   }
 
@@ -329,13 +328,15 @@ public:
   std::vector<InitialSurfaceReleases> initial_region_molecules;
 
 private:
-  bool volume_info_initialized;
+  // the box, the walls per subpartition and the waypoints are computed from the
+  // walls' positions at their first use, and again after a vertex of the region's
+  // object moves (set_coordinates_changed)
+  bool bounding_box_initialized;
   bool walls_per_subpart_initialized;
   bool region_waypoints_initialized;
 
   Vec3 bounding_box_llf;
   Vec3 bounding_box_urb;
-  pos_t volume;
 
   WallsPerSubpartMap walls_per_subpart;
 
@@ -344,22 +345,26 @@ private:
   std::set<IVec3> waypoints_in_this_region;
 public:
 
-  void initialize_volume_info_if_needed(const Partition& p);
+  void initialize_bounding_box_if_needed(const Partition& p);
 
   void compute_bounding_box(const Partition& p, Vec3& llf, Vec3& urb);
 
-  pos_t get_volume() const {
-    assert(volume_info_initialized);
-    return volume;
+  // called by Geometry::update_moved_walls when a vertex of the region's object
+  // moves; the box, the walls per subpartition and the waypoints are computed
+  // again at their next use
+  void set_coordinates_changed() {
+    bounding_box_initialized = false;
+    walls_per_subpart_initialized = false;
+    region_waypoints_initialized = false;
   }
 
   const Vec3& get_bounding_box_llf() const {
-    assert(volume_info_initialized);
+    assert(bounding_box_initialized);
     return bounding_box_llf;
   }
 
   const Vec3& get_bounding_box_urb() const {
-    assert(volume_info_initialized);
+    assert(bounding_box_initialized);
     return bounding_box_urb;
   }
 

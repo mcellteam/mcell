@@ -587,11 +587,11 @@ void Region::init_border_edges(const GeometryObject& obj, const MeshUtils::MeshT
 }
 
 
-// the region's bounding box and its signed volume, negative when the walls face
-// inward; MeshUtils::check_meshes warns when the region of a release is not
-// closed, and when a release by concentration would use a negative volume
-void Region::initialize_volume_info_if_needed(const Partition& p) {
-  if (volume_info_initialized) {
+// the region's bounding box, from the walls' current positions; releases by
+// concentration take the volume of the region's object from the object
+// (GeometryObject::get_signed_volume)
+void Region::initialize_bounding_box_if_needed(const Partition& p) {
+  if (bounding_box_initialized) {
     return;
   }
 
@@ -599,34 +599,9 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
     mcell_internal_error("Region '%s' has NULL wall array!", name.c_str());
   }
 
-  // initialize bounding box
   compute_bounding_box(p, bounding_box_llf, bounding_box_urb);
 
-  perf() << "Computing volume of region " << name << "\n";
-
-  // the walls in the order of their indices, each with its own three vertices
-  vector<GeometryAnalysis::Point> points;
-  vector<GeometryAnalysis::Triangle> triangles;
-  points.reserve(walls_and_edges.size() * VERTICES_IN_TRIANGLE);
-  triangles.reserve(walls_and_edges.size());
-  for (const auto& it: walls_and_edges) {
-    const Wall& w = p.get_wall(it.first);
-    const int first = static_cast<int>(points.size());
-    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-      const Vec3& v = p.get_wall_vertex(w, i);
-      points.push_back({v.x, v.y, v.z});
-    }
-    triangles.push_back({first, first + 1, first + 2});
-  }
-
-  // signed volumes of the tetrahedra between the walls and the center of the
-  // region's bounding box; the same function computes the volumes MCell
-  // reports (BNGL export, data model conversion)
-  volume = GeometryAnalysis::volume_and_area(points, triangles).volume;
-
-  perf() << "  - volume computed\n";
-
-  volume_info_initialized = true;
+  bounding_box_initialized = true;
 }
 
 
@@ -637,10 +612,11 @@ void Region::initialize_wall_subpart_mapping_if_needed(const Partition& p) {
 
   perf() << "Preparing wall subpart mapping for region " << name << "\n";
 
-  // first initialize region wall subpart mapping
+  // first initialize region wall subpart mapping, from the subpartitions the walls
+  // are in now (Partition::apply_vertex_moves updates them for moved walls, and a
+  // move of the region's object drops this mapping, Region::set_coordinates_changed)
   walls_per_subpart.clear();
 
-  // FIXME: update when a wall of this region is moved
   for (const auto& wall_and_edges_pair: walls_and_edges) {
     const Wall& w = p.get_wall(wall_and_edges_pair.first);
 
@@ -777,7 +753,7 @@ void Region::initialize_region_waypoints_if_needed(Partition& p) {
 
 bool Region::is_point_inside(Partition& p, const Vec3& pos) {
 
-  initialize_volume_info_if_needed(p);
+  initialize_bounding_box_if_needed(p);
   initialize_wall_subpart_mapping_if_needed(p);
   initialize_region_waypoints_if_needed(p);
 
@@ -989,6 +965,7 @@ void update_moved_walls(
 ) {
 
   // move all vertices
+  std::set<geometry_object_id_t> moved_objects;
   for (const VertexMoveInfo* move_info: scheduled_vertex_moves) {
     // ignore moves where walls are fixed
     if (!move_info->vertex_walls_are_movable) {
@@ -1004,6 +981,22 @@ void update_moved_walls(
 
     // the object's area and volume are recomputed when next asked for
     p.get_geometry_object_by_id(move_info->geometry_object_id).set_coordinates_changed();
+    moved_objects.insert(move_info->geometry_object_id);
+  }
+
+  if (!moved_objects.empty()) {
+    // releases compare this count with the one their box and wall areas were
+    // computed for (ReleaseEvent::update_region_data_after_vertex_moves)
+    p.increment_vertex_moves_count();
+
+    // the regions of the moved objects compute their box, walls per subpartition
+    // and waypoints again at their next use
+    for (region_index_t ri = 0; ri < p.get_regions().size(); ri++) {
+      Region& reg = p.get_region(ri);
+      if (moved_objects.count(reg.geometry_object_id) != 0) {
+        reg.set_coordinates_changed();
+      }
+    }
   }
 
   // update walls
