@@ -113,6 +113,10 @@ void MCell4Converter::convert_before_init() {
 
   convert_viz_output_events();
 
+  // how the model uses its geometry objects, now that its releases and counts
+  // are converted
+  check_usage();
+
   // beside of the event checking for check ctrl-c, it is a periodic event for each
   // iteration so, in the following call, where time maybe be moved time for scheduler
   // when a checkpoint is resumed, we always end up at the starting iteration and do not skip it
@@ -1081,6 +1085,32 @@ void MCell4Converter::check_surface_compartment_name_collision(const std::string
 }
 
 
+void MCell4Converter::check_compartments_watertight(
+    const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects) {
+
+  // whether a compartment faces outward is checked with the other uses, in
+  // check_usage
+  MeshUtils::UsageErrors errors(world->config.get_geometry_report_file_name());
+  for (const std::shared_ptr<API::GeometryObject>& o: compartment_objects) {
+    const auto it = mesh_checks.find(o.get());
+    release_assert(it != mesh_checks.end());
+    errors.add(o->name, it->second, MeshUtils::USE_COMPARTMENT, "");
+  }
+  const std::string stop = errors.finish();
+  if (!stop.empty()) {
+    throw ValueError(stop);
+  }
+}
+
+
+void MCell4Converter::check_usage() {
+  const std::string stop = MeshUtils::check_usage(world);
+  if (!stop.empty()) {
+    throw ValueError(stop);
+  }
+}
+
+
 void MCell4Converter::convert_compartments() {
   // we determine the hierarchy of compartments here since all
   // we have are geometry objects
@@ -1094,6 +1124,9 @@ void MCell4Converter::convert_compartments() {
       compartment_objects.push_back(o);
     }
   }
+
+  // the tree needs watertight compartments
+  check_compartments_watertight(compartment_objects);
 
   // set hierarchy of compartments, from the vertices in internal units
   // (rcp_length_unit was set by convert_simulation_setup)
@@ -1297,12 +1330,10 @@ void MCell4Converter::convert_rel_site_region_expr(API::ReleaseSite& rel_site, M
   }
 
 
-  // also set llf and urb
-  // TODO: this does not check anything yet
+  // also set llf and urb; whether the region's objects are watertight is a
+  // usage error (MeshUtils::check_usage)
   bool ok = Geometry::compute_region_expr_bounding_box(world, rel_event->region_expr.root, rel_event->region_llf, rel_event->region_urb);
-  if (!ok) {
-    throw RuntimeError("Region for releases specified by " + rel_event->region_expr.root->to_string(world) + " is not closed.");
-  }
+  release_assert(ok);
 }
 
 

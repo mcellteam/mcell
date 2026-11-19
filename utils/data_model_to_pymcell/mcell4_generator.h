@@ -34,6 +34,10 @@ public:
 private:
   void reset();
 
+  // stops the conversion on a geometry object that the data model marks as
+  // dynamic, whose moves MCell4 can't make
+  void check_dynamic_objects();
+
   std::string get_module_name(const std::string file_suffix);
   std::string make_import(const std::string file_suffix);
 

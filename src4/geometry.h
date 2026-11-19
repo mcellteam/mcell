@@ -199,6 +199,13 @@ public:
     is_used_in_mol_rxn_counts = value;
   }
 
+  // true if the model counts inside this object (volume molecules or their
+  // reactions), for the usage errors; whether crossing its walls changes a
+  // molecule's counted volume is is_counted_volume_or_compartment
+  bool is_counted_inside() const {
+    return is_used_in_mol_rxn_counts;
+  }
+
   // the first wall, in the order of wall_indices, that has both of the
   // partition's vertices vi1 and vi2; WALL_INDEX_INVALID if there is none
   wall_index_t get_wall_for_vertex_pair(const vertex_index_t vi1, const vertex_index_t vi2) const;

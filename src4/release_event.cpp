@@ -513,9 +513,17 @@ void ReleaseEvent::update_region_data_after_vertex_moves() {
 }
 
 
-static void check_max_release_count(double num_to_release, const std::string& name) {
-  long long num = (long long)num_to_release;
-  if (num < 0 || num > (long long)INT_MAX) {
+// stops the run when the number to release is above INT_MAX, or negative when
+// negative_removes is false. A negative number removes molecules where the
+// release can do so, as on MCell3's engine, which stops only numbers above
+// INT_MAX (test_max_release in src/vol_util.c, release_onto_regions in
+// src/wall_util.c): a release of volume molecules into a region by
+// concentration (release_inside_regions), and of surface molecules onto a
+// region by density (release_onto_regions)
+static void check_max_release_count(double num_to_release, const std::string& name, const bool negative_removes = false) {
+  const long long num = static_cast<long long>(num_to_release);
+  const long long max = static_cast<long long>(INT_MAX);
+  if ((negative_removes ? num < -max : num < 0) || num > max) {
     mcell_error(
         "Release site '%s' tries to release more than INT_MAX (2147483647) molecules, "
         "the unit for concentration-based release into volume is M/l (molar) and "
@@ -581,7 +589,9 @@ int ReleaseEvent::calculate_number_to_release() {
 
         assert(concentration != FLT_INVALID);
         double num_to_release = concentration * est_sites_avail / world->config.grid_density;
-        check_max_release_count(num_to_release, release_site_name);
+        // a negative density gives the number of surface molecules to remove
+        // (release_onto_regions), truncated toward zero as on MCell3's engine
+        check_max_release_count(num_to_release, release_site_name, true);
         return static_cast<int>(num_to_release);
       }
       break;
@@ -834,21 +844,24 @@ bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const V
 
 /*
  * num_vol_mols_from_conc computes the number of volume molecules to be
- * released within a closed object. There are two cases:
- * - for a single closed object we know the exact volume and can thus compute
+ * released within a watertight object, or removed from it when the
+ * concentration is negative. There are two cases:
+ * - for a single watertight object we know the exact volume and can thus compute
  *   the exact number of molecules required and release them by setting
  *   exactNumber to true.
- * - for a release object consisting of a boolean expression of closed objects
+ * - for a release object consisting of a boolean expression of watertight objects
  *   we are currently not able to compute the volume exactly. Instead we compute
  *   the number of molecules in the bounding box and then release an approximate
  *   number by setting exactNumber to false.
  */
-uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
+int ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   double vol = 0.0;
   if (region_expr.root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT) {
-    // the object's signed volume, recomputed after its vertices move; it is 0
-    // unless the object is watertight
+    // the object's signed volume, recomputed after its vertices move; the
+    // converters and Model.release_molecules stop on an object that is
+    // non-watertight or has a shell facing the wrong way
+    // (MeshUtils::check_usage)
     const GeometryObject& go = p.get_geometry_object_by_id(region_expr.root->geometry_object_id);
     vol = go.get_signed_volume(p);
     exact_number = true;
@@ -868,8 +881,10 @@ uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   double num_to_release =
       N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3) + 0.5;
 
-  check_max_release_count(num_to_release, release_site_name);
-  return num_to_release;
+  // a negative concentration gives the number of molecules to remove, truncated
+  // toward zero as on MCell3's engine
+  check_max_release_count(num_to_release, release_site_name, true);
+  return static_cast<int>(num_to_release);
 }
 
 

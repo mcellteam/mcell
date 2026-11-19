@@ -868,11 +868,11 @@ eval_rel_region_bbox:
   In: release expression for a 3D region release
       place to store LLF corner of the bounding box for the release
       place to store URB corner
-  Out: true on success, false on failure.  Bounding box is set based on release
-       expression (based boolean intersection of bounding boxes for each
-       region).  The function reports failure if any region is unclosed.
+  Out: true. Bounding box is set based on release expression (based boolean
+       intersection of bounding boxes for each region). Whether the objects
+       of a release of volume molecules are watertight is a usage error,
+       checked by MeshUtils::check_usage.
 ***************************************************************************/
-// TODO: not checking whether object is closed - use some library for that
 bool compute_region_expr_bounding_box(
     World* world, const RegionExprNode* expr,
     Vec3& llf, Vec3& urb

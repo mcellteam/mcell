@@ -995,12 +995,26 @@ std::string format_problem_line(const ProblemLine& line, const std::string& obje
       "; see " + report;
 }
 
-std::string stop_message(const std::vector<std::string>& objects, const std::string& report) {
-  std::string res = counted(objects.size(), "geometry object has errors", "geometry objects have errors") + ":";
+namespace {
+
+// "<count> <what>: a, b; see <report>"
+std::string objects_and_report(
+    const std::vector<std::string>& objects, const char* one, const char* many, const std::string& report) {
+  std::string res = counted(objects.size(), one, many) + ":";
   for (std::size_t i = 0; i < objects.size(); i++) {
     res += (i == 0 ? " " : ", ") + objects[i];
   }
   return res + "; see " + report;
+}
+
+} // namespace
+
+std::string stop_message(const std::vector<std::string>& objects, const std::string& report) {
+  return objects_and_report(objects, "geometry object has errors", "geometry objects have errors", report);
+}
+
+std::string usage_stop_message(const std::vector<std::string>& objects, const std::string& report) {
+  return objects_and_report(objects, "geometry object has usage errors", "geometry objects have usage errors", report);
 }
 
 } // namespace MeshUtils

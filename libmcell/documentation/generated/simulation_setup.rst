@@ -165,7 +165,7 @@ check_overlapped_walls: bool
 ----------------------------
 
   | Enables check for overlapped walls. Overlapping walls can cause issues during 
-  | simulation such as a molecule escaping closed geometry when it hits two walls 
+  | simulation such as a molecule escaping watertight geometry when it hits two walls 
   | that overlap.
   | - default argument value in constructor: True
 

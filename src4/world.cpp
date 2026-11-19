@@ -269,10 +269,9 @@ void World::init_simulation(const double start_time) {
 
   init_fpu();
 
+  // the converters stopped the run on counted objects that aren't watertight
+  // (MeshUtils::check_usage)
   init_counted_volumes();
-
-  // warnings about the meshes of geometry objects and release regions
-  MeshUtils::check_meshes(this);
 
   cout <<
       "Partition contains " <<  config.num_subparts_per_partition_edge << "^3 subpartitions, " <<

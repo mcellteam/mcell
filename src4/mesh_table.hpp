@@ -392,6 +392,11 @@ std::string format_problem_line(const ProblemLine& line, const std::string& obje
 // errors: Scene.fin, Scene.flipped; see reports/geometry_report_00001.txt"
 std::string stop_message(const std::vector<std::string>& objects, const std::string& report);
 
+// the one stop after the usage errors (MeshUtils::UsageErrors), e.g. "2
+// geometry objects have usage errors: Scene.box, CP; see
+// reports/geometry_report_00001.txt"
+std::string usage_stop_message(const std::vector<std::string>& objects, const std::string& report);
+
 } // namespace MeshUtils
 } // namespace MCell
 

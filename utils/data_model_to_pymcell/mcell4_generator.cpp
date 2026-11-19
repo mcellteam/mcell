@@ -55,6 +55,41 @@ void MCell4Generator::reset() {
 
 // the aim is to generate as much of output as possible,
 // therefore we are using exceptions
+void MCell4Generator::check_dynamic_objects() {
+  // CellBlender's dynamic geometry: the objects whose model_objects entry has
+  // "dynamic": true change their shape during the run, which only MCell3's
+  // engine does (from the MDL files CellBlender exports for it); the Python
+  // API moves vertices with Model.add_vertex_move instead
+  if (!data.mcell.isMember(KEY_MODEL_OBJECTS)) {
+    return;
+  }
+  Value& model_objects = get_node(data.mcell, KEY_MODEL_OBJECTS);
+  if (!model_objects.isMember(KEY_MODEL_OBJECT_LIST)) {
+    return;
+  }
+  Value& model_object_list = get_node(model_objects, KEY_MODEL_OBJECT_LIST);
+  vector<string> names;
+  for (Value::ArrayIndex i = 0; i < model_object_list.size(); i++) {
+    Value& model_object = model_object_list[i];
+    if (model_object.isMember(KEY_DYNAMIC) && model_object[KEY_DYNAMIC].asBool()) {
+      names.push_back(model_object[KEY_NAME].asString());
+    }
+  }
+  if (names.empty()) {
+    return;
+  }
+
+  string list;
+  for (size_t i = 0; i < names.size(); i++) {
+    list += (i == 0 ? "" : ", ") + names[i];
+  }
+  throw ConversionError(
+      "Error: " + string(names.size() == 1 ? "geometry object " : "geometry objects ") + list +
+      (names.size() == 1 ? " is" : " are") + " dynamic, which MCell4 doesn't support; run this model on "
+      "MCell3's engine, or move vertices through the Python API (Model.add_vertex_move).");
+}
+
+
 bool MCell4Generator::generate(const SharedGenData& opts) {
   reset();
 
@@ -73,6 +108,12 @@ bool MCell4Generator::generate(const SharedGenData& opts) {
   file.close();
 
   data.mcell = get_node(KEY_ROOT, root, KEY_MCELL);
+
+  // nothing is written for a model that MCell4 can't run as given
+  CHECK(check_dynamic_objects(), failed);
+  if (failed) {
+    return false;
+  }
 
   // create generators
   if (data.bng_mode) {

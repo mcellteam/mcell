@@ -120,7 +120,14 @@ private:
   void convert_geometry_objects();
 
   void check_surface_compartment_name_collision(const std::string& surface_compartment_name);
+  // the usage errors of compartments that aren't watertight, before their tree
+  // is built; raises one ValueError after the lines
+  void check_compartments_watertight(const std::vector<std::shared_ptr<API::GeometryObject>>& compartment_objects);
   void convert_compartments();
+
+  // the usage errors of the converted model (MeshUtils::check_usage); raises one
+  // ValueError after the lines
+  void check_usage();
 
   MCell::RegionExprNode* convert_region_expr_recursively(
       const std::shared_ptr<API::Region>& region,

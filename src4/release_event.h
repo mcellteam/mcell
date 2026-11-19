@@ -247,7 +247,7 @@ private:
   bool is_point_inside_region_expr_recursively(
       Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node
   );
-  uint num_vol_mols_from_conc(bool &exact_number);
+  int num_vol_mols_from_conc(bool &exact_number);
   int vacuum_inside_regions(int number_to_remove);
   void release_inside_regions(int& computed_release_number);
 

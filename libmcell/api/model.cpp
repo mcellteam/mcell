@@ -230,8 +230,13 @@ void Model::release_molecules(std::shared_ptr<ReleaseSite> release_site) {
   MCell::ReleaseEvent* rel_event = converter.convert_single_release_event(release_site);
   assert(rel_event != nullptr);
 
-  // warnings about the meshes of its region, as for the releases checked at initialization
-  MCell::MeshUtils::check_release_regions(world, *rel_event);
+  // the usage errors of its region, as for the releases checked at
+  // initialization; with one, nothing is released
+  const std::string stop = MCell::MeshUtils::check_release_usage(world, *rel_event);
+  if (!stop.empty()) {
+    delete rel_event;
+    throw ValueError(stop);
+  }
 
   // TODO: we must improve handling of cases when the release is in the future
   rel_event->event_time = release_site->release_time / world->config.time_unit;

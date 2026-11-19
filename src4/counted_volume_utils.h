@@ -109,7 +109,7 @@ const GeomObjectInfo* get_direct_parent_info(
 
 
 // auxiliary function to compute volume, not related to counted volumes,
-// returns FLT_INVALID if the object is not closed
+// returns FLT_INVALID if the object is not watertight
 double get_geometry_object_volume(const World* world, const GeometryObject& obj);
 
 void export_geometry_objects_to_obj(

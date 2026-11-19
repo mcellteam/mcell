@@ -45,33 +45,19 @@ const GeometryObject& GeomObjectInfo::get_geometry_object(const World* world) co
 }
 
 
-// checks the mesh of every counted object and prepares it for the containment
-// tests; reports every object that can't be counted in and then returns false
-static bool prepare_counted_object_solids(const World* world, GeomObjectInfoVector& counted_objects) {
-  bool res = true;
-
+// prepares the mesh of every counted object for the containment tests
+static void prepare_counted_object_solids(const World* world, GeomObjectInfoVector& counted_objects) {
   for (GeomObjectInfo& obj_info: counted_objects) {
 
     const GeometryObject& obj = obj_info.get_geometry_object(world);
 
-    // the object's flags, from its vertex indices; the checks of the meshes
+    // the object's flags, from its vertex indices: the checks of the meshes
     // stopped the run on a mesh that isn't manifold or consistently oriented,
-    // so here only watertight can fail
-    const MeshUtils::MeshCheck& check = obj.get_mesh_check();
-    if (!check.manifold()) {
-      mcell_error_nodie("Non-manifold mesh is not allowed, error for %s.", obj.name.c_str());
-      res = false;
-    }
-    else if (!check.watertight()) {
-      mcell_error_nodie("Counting inside an open surface is not possible, error for %s.", obj.name.c_str());
-      res = false;
-    }
-    else {
-      obj_info.solid = make_shared<const GeometryAnalysis::Solid>(MeshUtils::get_unmerged_mesh(world, obj));
-    }
+    // and the converters on a counted object or compartment that isn't
+    // watertight (MeshUtils::check_usage)
+    release_assert(obj.get_mesh_check().watertight());
+    obj_info.solid = make_shared<const GeometryAnalysis::Solid>(MeshUtils::get_unmerged_mesh(world, obj));
   }
-
-  return res;
 }
 
 
@@ -332,10 +318,8 @@ bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_obj
     }
   }
 
-  // check the meshes and prepare them for the containment tests
-  if (!prepare_counted_object_solids(world, counted_objects)) {
-    return false;
-  }
+  // prepare the meshes for the containment tests
+  prepare_counted_object_solids(world, counted_objects);
 
   // holds mapping that tells in which geometry objects is a given object contained
   ContainmentMap contained_in_mapping;

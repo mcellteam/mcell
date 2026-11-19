@@ -255,10 +255,6 @@ public:
 
   rng_state rng; // single state for the random number generator
 
-  // meshes and release regions that MeshUtils has checked, so that each warning
-  // is printed once
-  MeshUtils::CheckedMeshes checked_meshes;
-
 private:
   PartitionVector partitions;
 

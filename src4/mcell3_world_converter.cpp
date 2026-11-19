@@ -101,6 +101,15 @@ void MCell3WorldConverter::reset() {
 
 bool MCell3WorldConverter::convert(volume* s) {
 
+  // MCell3's parser schedules the geometry changes of DYNAMIC_GEOMETRY
+  // (schedule_dynamic_geometry, src/init.c), which only MCell3's engine makes;
+  // MCell4 would keep the first geometry
+  if (s->dynamic_geometry_head != nullptr) {
+    mcell_error(
+        "MCell4 doesn't support DYNAMIC_GEOMETRY; run this model on MCell3's engine (without -mcell4), "
+        "or move vertices through the Python API (Model.add_vertex_move).");
+  }
+
   world = new World(callbacks);
 
   CHECK(convert_simulation_setup(s));
@@ -127,6 +136,13 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_mol_or_rxn_count_events(s));
 
   create_clamp_events();
+
+  // how the model uses its geometry objects, now that its releases and counts
+  // are converted
+  const std::string usage_stop = MeshUtils::check_usage(world);
+  if (!usage_stop.empty()) {
+    mcell_error("%s", usage_stop.c_str());
+  }
 
   return true;
 }
@@ -312,10 +328,6 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   );
 
   world->config.randomize_smol_pos = s->randomize_smol_pos; // set in MDL using negated value of CENTER_MOLECULES_ON_GRID
-
-  CHECK_PROPERTY(s->dynamic_geometry_molecule_placement == 0
-      && "DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE is not supported yet"
-  );
 
   world->config.use_expanded_list = s->use_expanded_list;
   // check is done in MCell3 initialization code

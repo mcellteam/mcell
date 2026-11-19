@@ -14,17 +14,15 @@
 
 // MCell's side of the mesh analysis: the geometry report, the meshes of
 // geometry objects for GeometryAnalysis, and the checks of how a model uses its
-// meshes, which print warnings that scripts can parse. The checks of each mesh
-// are in mesh_table.hpp; the algorithms on plain meshes are in
+// meshes (the usage errors), whose lines scripts can parse. The checks of each
+// mesh are in mesh_table.hpp; the algorithms on plain meshes are in
 // GeometryAnalysis; counted volumes are in CountedVolumeUtils.
 //
 // This header is valid C++17 so that the rest of MCell can include it; the
 // implementation is C++23.
 
 #include <fstream>
-#include <set>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "defines.h"
@@ -86,25 +84,58 @@ GeometryAnalysis::Mesh get_unmerged_mesh(
 GeometryAnalysis::Mesh get_clean_mesh(
     const World* world, const GeometryObject& obj, const bool convert_units = false);
 
-// what the checks have already looked at, so that each warning is printed
-// once; World holds it
-struct CheckedMeshes {
-  // objects whose orientation was checked
-  std::set<geometry_object_id_t> orientation;
-  // release sites and the objects of their regions
-  std::set<std::pair<std::string, geometry_object_id_t>> release_regions;
+// The usage errors of a model: uses of geometry objects that their meshes don't
+// allow. Every such use concerns volume molecules, which have an inside only in
+// a watertight object, and which find that inside from the way its walls face
+// only when no shell faces the wrong way (MeshCheck::wrong_facing_shells). One
+// line per object and use, e.g.
+//   Error: [REGION_NOT_WATERTIGHT] Scene.box: the model counts inside this object, but it is non-watertight (4 boundary edges); see reports/geometry_report_00001.txt
+//   Error: [MESH_INSIDE_OUT] Scene.box: the model counts inside this object, but 1 shell faces the wrong way; see reports/geometry_report_00001.txt
+// finish prints every line, then the caller stops the run once with the message
+// finish returns (usage_stop_message), which names every object with a usage
+// error. The geometry report itself has no usage lines; the lines name it for
+// the boundary edges and the shells.
+class UsageErrors {
+public:
+  explicit UsageErrors(const std::string& report_file_name);
+
+  // keeps the line of one use of the object if its mesh doesn't allow it.
+  // use: what the model does with the object, e.g. USE_COUNTED, as the line of
+  // a non-watertight object says it. facing_use: for a use that also needs the
+  // object to face outward, what the line of a shell facing the wrong way says
+  // the model does (for a release by concentration, which computes its number
+  // from the object's signed volume, "<use> by concentration"); "" when the
+  // facing doesn't matter
+  void add(const std::string& object_name, const MeshCheck& check, const std::string& use,
+      const std::string& facing_use);
+
+  // prints the lines to MCell's error stream; returns the message of the stop,
+  // or "" when there is no usage error
+  std::string finish() const;
+
+private:
+  std::string report_file_name;
+  std::vector<std::string> lines;
+  std::vector<std::string> objects; // in the order of their first line
 };
 
-// checks how counted objects, compartments and the regions of all scheduled
-// releases use their meshes, and prints one warning line for each problem found:
-//   Warning: [CODE] <object name>: <text>
-// The codes and the cases are listed in mesh_utils.cpp. The run continues.
-// Must be called after the counted volumes are initialized.
-void check_meshes(World* world);
+// the uses that aren't releases, as the lines name them
+extern const char* const USE_COUNTED;     // "the model counts inside this object"
+extern const char* const USE_COMPARTMENT; // "this object is a compartment"
 
-// the checks of the regions of one release, e.g. of one made after the
-// initialization
-void check_release_regions(World* world, const ReleaseEvent& release);
+// checks how the model uses its geometry objects: the counted objects (volume
+// molecules and their reactions counted inside), the compartments, and the
+// regions of every scheduled release of volume molecules. The objects come in
+// the partition's order, which is the report's; for each, its counts, its
+// compartment and then its releases in the scheduler's order. Prints the lines;
+// returns the stop, or "" when every use is allowed. The converters call it once
+// the releases and counts are converted; they stopped the run on mesh errors
+// before, so every mesh here is manifold and consistently oriented.
+std::string check_usage(World* world);
+
+// the same for the region of one release, e.g. one that Model.release_molecules
+// makes after the initialization
+std::string check_release_usage(World* world, const ReleaseEvent& release);
 
 } // namespace MeshUtils
 } // namespace MCell

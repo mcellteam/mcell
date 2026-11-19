@@ -12,31 +12,34 @@
 // Built as C++23 (see src4/CMakeLists.txt).
 //
 // The geometry report (GeometryReport), whose lines come from the checks of
-// each mesh (mesh_table.hpp), and the checks of how a model uses its meshes.
-// Each problem these find gives one warning line
-//   Warning: [CODE] <object name>: <text>
-// which scripts can parse with ^Warning: \[([A-Z_]+)\] (\S+): (.*)$. The name is
-// the geometry object's name as MCell has it (Scene.box for MDL). After a
-// warning the run continues. The cases:
+// each mesh (mesh_table.hpp), and the usage errors (UsageErrors): the uses of
+// geometry objects that their meshes don't allow. Each usage error gives one
+// line
+//   Error: [CODE] <object name>: <use>, but <problem>; see <report>
+// which scripts can parse with ^Error: \[([A-Z_]+)\] (\S+): (.*)$. The name is
+// the geometry object's name as MCell has it (Scene.box for MDL). Every use
+// concerns volume molecules; surface molecules are released onto walls and
+// counted on walls, which needs no inside. The cases:
 //
-//   MESH_INCONSISTENT_ORIENTATION  objects whose volume a release by
-//                                  concentration uses: two walls run along
-//                                  their shared edge in the same direction
-//   MESH_INSIDE_OUT                counted objects and compartments: a shell
-//                                  faces the wrong way (see
-//                                  GeometryAnalysis::judge_parts); a release
-//                                  by concentration into an object whose
-//                                  signed volume is negative
-//   REGION_NOT_CLOSED              a release of volume molecules into a region
-//                                  with an object that has an edge of only one
-//                                  wall
+//   REGION_NOT_WATERTIGHT  the object is non-watertight (an edge of only one
+//                          wall), and the model counts inside it, or it is a
+//                          compartment, or a release of volume molecules
+//                          places them inside it (or removes them from inside
+//                          it) with the inside test (parity)
+//   MESH_INSIDE_OUT        a shell of the object faces the wrong way (see
+//                          GeometryAnalysis::judge_parts), and the model counts
+//                          inside it (a molecule that crosses a wall takes the
+//                          side the wall faces), or it is a compartment, or a
+//                          release of volume molecules by concentration into
+//                          the object alone computes its number from the
+//                          object's signed volume
 //
 // The facts come from each object's checks (GeometryObject::get_mesh_check),
-// whose edges come from the vertex indices; the signed volume is recomputed
-// after vertex moves. These checks run only when the checks of each mesh found
-// no errors, so a mesh here is manifold and consistently oriented. For MDL
-// models, MCell3's initialization also stops counted objects and release
-// regions that are open or inconsistently oriented by its own rules first.
+// whose edges come from the vertex indices. The converters check the uses once
+// the releases and counts are converted, after they stopped the run on mesh
+// errors, so a mesh here is manifold and consistently oriented. For MDL files,
+// MCell3's initialization also stops counted objects and release regions that
+// are open by its own rules first (it joins walls by their coordinates).
 
 #include "mesh_utils.hpp"
 
@@ -145,60 +148,58 @@ GeometryAnalysis::Mesh get_clean_mesh(
 }
 
 
-namespace {
+const char* const USE_COUNTED = "the model counts inside this object";
+const char* const USE_COMPARTMENT = "this object is a compartment";
 
-double to_um3(const World* world, const double volume) {
-  const double l = world->config.length_unit;
-  return volume * l * l * l;
+
+UsageErrors::UsageErrors(const std::string& report_file_name_)
+  : report_file_name(report_file_name_) {
 }
 
 
-// the orientation warning, printed once per object
-void warn_inconsistent_orientation(World* world, const GeometryObject& obj) {
-  if (world->checked_meshes.orientation.insert(obj.id).second) {
-    mcell_warn(
-        "[MESH_INCONSISTENT_ORIENTATION] %s: One or more pairs of adjacent walls traverse(s) their shared "
-        "edge(s) in the same direction, so their normals point to different sides of the surface.",
-        obj.name.c_str());
-  }
-}
+void UsageErrors::add(
+    const std::string& object_name, const MeshCheck& check, const std::string& use, const std::string& facing_use) {
 
+  // the checks of the meshes stopped the run on a mesh that isn't manifold or
+  // consistently oriented, so the watertight check ran
+  assert(check.watertight_checked);
 
-void check_geometry_object(World* world, const GeometryObject& obj) {
-  if (!obj.is_counted_volume_or_compartment()) {
-    return;
+  ProblemLine line;
+  if (!check.watertight()) {
+    const std::size_t n = check.boundary_edges;
+    line.code = "REGION_NOT_WATERTIGHT";
+    line.text = use + ", but it is non-watertight (" + std::to_string(n) +
+        (n == 1 ? " boundary edge)" : " boundary edges)");
   }
-
-  // watertight: initialize_counted_volumes stopped the run otherwise. The
-  // shells that face the wrong way, and their signed volumes, from the object's
-  // checks at initialization
-  std::size_t shells = 0;
-  double signed_volume = 0.0;
-  for (const ShellFacts& f: obj.get_mesh_check().shell_facts) {
-    if (f.wrong_facing) {
-      shells++;
-      signed_volume += f.signed_volume;
-    }
-  }
-  if (shells == 0) {
-    return;
-  }
-  if (obj.counted_volume_index_outside == COUNTED_VOLUME_INDEX_INTERSECTS) {
-    // a molecule that crosses one of its walls gets its counted volume from its
-    // position, not from the side of the wall it hits
-    // (CollisionUtils::update_counted_volume_id_when_crossing_wall)
-    mcell_warn(
-        "[MESH_INSIDE_OUT] %s: the walls' normals point into the object (signed volume %g um^3).",
-        obj.name.c_str(), to_um3(world, signed_volume));
+  else if (!facing_use.empty() && check.wrong_facing_shells() != 0) {
+    const std::size_t n = check.wrong_facing_shells();
+    line.code = "MESH_INSIDE_OUT";
+    line.text = facing_use + ", but " + std::to_string(n) + (n == 1 ? " shell faces" : " shells face") +
+        " the wrong way";
   }
   else {
-    mcell_warn(
-        "[MESH_INSIDE_OUT] %s: the walls' normals point into the object (signed volume %g um^3), so molecules "
-        "that enter it are taken as leaving and molecules that leave as entering.",
-        obj.name.c_str(), to_um3(world, signed_volume));
+    return;
+  }
+
+  lines.push_back(format_problem_line(line, object_name, report_file_name));
+  if (std::find(objects.begin(), objects.end(), object_name) == objects.end()) {
+    objects.push_back(object_name);
   }
 }
 
+
+std::string UsageErrors::finish() const {
+  for (const std::string& line: lines) {
+    mcell_error_raw("%s\n", line.c_str());
+  }
+  if (objects.empty()) {
+    return "";
+  }
+  return usage_stop_message(objects, report_file_name);
+}
+
+
+namespace {
 
 // the objects of a region expression, each once, in the order they appear
 void collect_objects(const RegionExprNode* node, std::vector<geometry_object_id_t>& ids) {
@@ -215,94 +216,93 @@ void collect_objects(const RegionExprNode* node, std::vector<geometry_object_id_
   collect_objects(node->right, ids);
 }
 
-void check_release(World* world, const ReleaseEvent& release) {
+
+// what a release of volume molecules does with the objects of its region, in
+// the words of its lines
+struct ReleaseUse {
+  std::vector<geometry_object_id_t> objects; // each once, in the order the region names them
+  std::string use;        // e.g. "release site rel releases volume molecules into this object"
+  std::string facing_use; // "<use> by concentration", or "" when the facing doesn't matter
+};
+
+
+// false when the release isn't one of volume molecules into a region
+bool get_release_use(const World* world, const ReleaseEvent& release, ReleaseUse& res) {
   if (release.release_shape != ReleaseShape::REGION || release.region_expr.root == nullptr ||
       world->get_all_species().get(release.species_id).is_surf()) {
-    return; // not a release of volume molecules into a region
+    return false;
   }
 
   const RegionExprNode* root = release.region_expr.root;
-  std::vector<geometry_object_id_t> ids;
-  collect_objects(root, ids);
+  res.objects.clear();
+  collect_objects(root, res.objects);
 
   // what the release does with its objects (ReleaseEvent::release_inside_regions):
-  // a release by concentration into one object computes its number of molecules
-  // from the object's volume; every release places its molecules with an inside
-  // test, or removes molecules with one when its number is negative
+  // it places its molecules with the inside test of each object, or removes
+  // molecules with it when its number is negative; a release by concentration
+  // into one object also computes its number from the object's signed volume,
+  // so it needs the object to face outward too
   const bool by_concentration = release.release_number_method == ReleaseNumberMethod::CONCENTRATION_NUM;
-  const bool uses_volume = by_concentration && root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT;
   const bool removes =
       (release.release_number_method == ReleaseNumberMethod::CONST_NUM && release.release_number < 0) ||
       (by_concentration && release.concentration < 0);
-  const char* site = release.release_site_name.c_str();
-
-  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  for (const geometry_object_id_t id: ids) {
-    if (!world->checked_meshes.release_regions.insert({release.release_site_name, id}).second) {
-      continue;
-    }
-    const GeometryObject& obj = p.get_geometry_object_by_id(id);
-    const MeshCheck& check = obj.get_mesh_check();
-
-    if (!check.watertight()) {
-      if (uses_volume) {
-        mcell_warn(
-            "[REGION_NOT_CLOSED] %s: release site %s computes its number of molecules from this object's volume "
-            "and places them inside it, but the object is not closed, so neither its volume nor its inside has "
-            "a meaning.",
-            obj.name.c_str(), site);
-      }
-      else {
-        mcell_warn(
-            "[REGION_NOT_CLOSED] %s: release site %s %s molecules inside this object, but the object is not "
-            "closed, so \"inside\" has no meaning.",
-            obj.name.c_str(), site, removes ? "removes" : "places");
-      }
-      continue;
-    }
-
-    if (!uses_volume) {
-      continue;
-    }
-    if (!check.consistently_oriented()) {
-      warn_inconsistent_orientation(world, obj);
-    }
-    else {
-      // the object's signed volume; until a vertex move it is the volume a
-      // release by concentration uses, which Region computes with the same
-      // function from the same walls in the same order
-      const double volume = obj.get_signed_volume(p);
-      if (volume < 0) {
-        mcell_warn(
-            "[MESH_INSIDE_OUT] %s: the walls' normals point into the object (signed volume %g um^3), so release "
-            "site %s computes a negative number of molecules from its volume.",
-            obj.name.c_str(), to_um3(world, volume), site);
-      }
-    }
-  }
+  res.use = "release site " + release.release_site_name +
+      (removes ? " removes volume molecules from this object" : " releases volume molecules into this object");
+  const bool uses_volume = by_concentration && root->op == RegionExprOperator::LEAF_GEOMETRY_OBJECT;
+  res.facing_use = uses_volume ? res.use + " by concentration" : "";
+  return true;
 }
 
 } // namespace
 
 
-void check_release_regions(World* world, const ReleaseEvent& release) {
-  check_release(world, release);
+std::string check_usage(World* world) {
+  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+
+  // the releases of volume molecules into a region, in the scheduler's order
+  std::vector<BaseEvent*> events;
+  world->scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_RELEASE, events);
+  std::vector<ReleaseUse> releases;
+  for (const BaseEvent* event: events) {
+    const ReleaseEvent* release = dynamic_cast<const ReleaseEvent*>(event);
+    assert(release != nullptr);
+    ReleaseUse use;
+    if (get_release_use(world, *release, use)) {
+      releases.push_back(std::move(use));
+    }
+  }
+
+  // each object's uses: its counts, its compartment, then its releases
+  UsageErrors errors(world->config.get_geometry_report_file_name());
+  for (const GeometryObject& obj: p.get_geometry_objects()) {
+    const MeshCheck& check = obj.get_mesh_check();
+    if (obj.is_counted_inside()) {
+      errors.add(obj.name, check, USE_COUNTED, USE_COUNTED);
+    }
+    if (obj.represents_compartment()) {
+      errors.add(obj.name, check, USE_COMPARTMENT, USE_COMPARTMENT);
+    }
+    for (const ReleaseUse& release: releases) {
+      if (std::find(release.objects.begin(), release.objects.end(), obj.id) != release.objects.end()) {
+        errors.add(obj.name, check, release.use, release.facing_use);
+      }
+    }
+  }
+  return errors.finish();
 }
 
 
-void check_meshes(World* world) {
-  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  for (const GeometryObject& obj: p.get_geometry_objects()) {
-    check_geometry_object(world, obj);
+std::string check_release_usage(World* world, const ReleaseEvent& release) {
+  UsageErrors errors(world->config.get_geometry_report_file_name());
+  ReleaseUse use;
+  if (get_release_use(world, release, use)) {
+    const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+    for (const geometry_object_id_t id: use.objects) {
+      const GeometryObject& obj = p.get_geometry_object_by_id(id);
+      errors.add(obj.name, obj.get_mesh_check(), use.use, use.facing_use);
+    }
   }
-
-  std::vector<BaseEvent*> releases;
-  world->scheduler.get_all_events_with_type_index(EVENT_TYPE_INDEX_RELEASE, releases);
-  for (const BaseEvent* event: releases) {
-    const ReleaseEvent* release = dynamic_cast<const ReleaseEvent*>(event);
-    assert(release != nullptr);
-    check_release(world, *release);
-  }
+  return errors.finish();
 }
 
 } // namespace MeshUtils

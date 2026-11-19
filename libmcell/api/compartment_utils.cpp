@@ -38,18 +38,13 @@ static void convert_compartment_objects_to_geom_object_infos(
   for (const auto& obj_ptr: compartment_objects) {
     const API::GeometryObject& obj = *obj_ptr;
 
-    // the object's flags, from its vertex indices (MeshUtils::check_lists). The
+    // the object's flags, from its vertex indices (MeshUtils::check_lists): the
     // checks stopped the run on a mesh that isn't manifold or consistently
-    // oriented, so here only watertight can fail
+    // oriented, and MCell4Converter::check_compartments_watertight on a
+    // compartment that isn't watertight
     const auto check_it = checks.find(&obj);
     release_assert(check_it != checks.end());
-    const MeshUtils::MeshCheck& check = check_it->second;
-    if (!check.manifold()) {
-      throw RuntimeError("Non-manifold mesh is not allowed, error for " + obj.name + ".");
-    }
-    if (!check.watertight()) {
-      throw RuntimeError("Compartment object must be closed, error for " + obj.name + ".");
-    }
+    release_assert(check_it->second.watertight());
 
     // the mesh as given, in internal units, with the coordinates the simulation
     // will use (the geometry objects are converted later); nothing is merged
