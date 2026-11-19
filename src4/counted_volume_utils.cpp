@@ -359,11 +359,22 @@ double get_geometry_object_volume(const World* world, const GeometryObject& obj)
 void export_geometry_objects_to_obj(
     const World* world, const GeometryObjectVector& objs, const std::string& file_prefix) {
 
-  // one object per geometry object, named by it, in microns; the material of
+  // one object per geometry object, named by it, with its mesh as given: every
+  // vertex in the model's order at its current position, in microns, and the
+  // walls in the model's order with the model's vertex indices; the material of
   // each is white with 25% transparency (note: same as DEFAULT_COLOR)
+  const Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   vector<GeometryAnalysis::NamedMesh> meshes;
   for (const GeometryObject& o: objs) {
-    meshes.push_back({o.name, MeshUtils::get_clean_mesh(world, o, true)});
+    GeometryAnalysis::NamedMesh m;
+    m.name = o.name;
+    o.get_mesh_as_given(p, m.points, m.triangles);
+    for (GeometryAnalysis::Point& pt: m.points) {
+      for (double& c: pt) {
+        c *= world->config.length_unit;
+      }
+    }
+    meshes.push_back(std::move(m));
   }
 
   if (!GeometryAnalysis::write_obj(file_prefix, meshes)) {

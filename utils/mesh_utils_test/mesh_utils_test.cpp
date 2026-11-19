@@ -517,19 +517,17 @@ void check_report(
   expect_true(where, "the area is the sum of wall_area over the walls", area == check.area);
 
   // the shells that face the wrong way are the parts find_inside_out_parts
-  // finds when no coordinates are equal (it merges equal ones)
-  if (check.equal_coordinates.empty()) {
-    const GeometryAnalysis::InsideOutParts parts =
-        GeometryAnalysis::find_inside_out_parts(GeometryAnalysis::clean_mesh(points, walls));
-    double volume = 0.0;
-    for (const ShellFacts& f : check.shell_facts) {
-      if (f.wrong_facing) {
-        volume += f.signed_volume;
-      }
+  // finds in the mesh as given (nothing merged)
+  const GeometryAnalysis::InsideOutParts parts =
+      GeometryAnalysis::find_inside_out_parts(GeometryAnalysis::unmerged_mesh(points, walls));
+  double volume = 0.0;
+  for (const ShellFacts& f : check.shell_facts) {
+    if (f.wrong_facing) {
+      volume += f.signed_volume;
     }
-    expect_true(where, "find_inside_out_parts agrees on the shells that face the wrong way",
-                parts.components == check.wrong_facing_shells() && parts.signed_volume == volume);
   }
+  expect_true(where, "find_inside_out_parts agrees on the shells that face the wrong way",
+              parts.components == check.wrong_facing_shells() && parts.signed_volume == volume);
 }
 
 // ---------------------------------------------------------------------------

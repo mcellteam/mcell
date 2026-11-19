@@ -132,26 +132,36 @@ MeshUtils::mesh_index_t GeometryObject::get_object_vertex_index(const vertex_ind
 }
 
 
-// as MeshUtils::check_mesh computes them: every vertex of the object in order,
-// and the walls in order with their vertices from the MeshTable
-void GeometryObject::update_coordinate_facts(const Partition& p) const {
+void GeometryObject::get_mesh_as_given(
+    const Partition& p,
+    vector<GeometryAnalysis::Point>& points, vector<GeometryAnalysis::Triangle>& triangles) const {
+
   const MeshUtils::MeshCheck& check = get_mesh_check();
 
-  vector<GeometryAnalysis::Point> points(check.n_vertices);
+  points.resize(check.n_vertices);
   for (size_t v = 0; v < check.n_vertices; v++) {
     const Vec3& pos = p.get_geometry_vertex(first_vertex_index + v);
     points[v] = {pos.x, pos.y, pos.z};
   }
-  vector<GeometryAnalysis::Triangle> triangles(wall_indices.size());
+  triangles.resize(wall_indices.size());
   for (size_t j = 0; j < wall_indices.size(); j++) {
     for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
       triangles[j][k] = static_cast<int>(check.table.vertex(static_cast<MeshUtils::mesh_index_t>(3 * j + k)));
     }
   }
+}
+
+
+// as MeshUtils::check_mesh computes them: every vertex of the object in order,
+// and the walls in order with their vertices from the MeshTable
+void GeometryObject::update_coordinate_facts(const Partition& p) const {
+  vector<GeometryAnalysis::Point> points;
+  vector<GeometryAnalysis::Triangle> triangles;
+  get_mesh_as_given(p, points, triangles);
 
   const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area(points, triangles);
   current_area = va.area;
-  current_signed_volume = check.watertight() ? va.volume : 0.0;
+  current_signed_volume = get_mesh_check().watertight() ? va.volume : 0.0;
   coordinate_facts_current = true;
 }
 

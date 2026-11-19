@@ -15,7 +15,6 @@
 #include "geometry_analysis.hpp"
 
 #include <algorithm>
-#include <bit>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -419,27 +418,7 @@ bool gd_triangles_intersect(const Point& p1, const Point& q1, const Point& r1,
 }
 
 // ---------------------------------------------------------------------------
-// cleaning, edges, orientation
-
-// exact equality of points as a hash key; vtkMergePoints compares with ==, so
-// 0.0 and -0.0 are the same point
-struct PointKey {
-  std::uint64_t x, y, z;
-  bool operator==(const PointKey&) const = default;
-};
-
-std::uint64_t key_bits(double d) {
-  return std::bit_cast<std::uint64_t>(d == 0.0 ? 0.0 : d);
-}
-
-struct PointKeyHash {
-  std::size_t operator()(const PointKey& k) const {
-    std::uint64_t h = k.x * 0x9E3779B97F4A7C15ull;
-    h ^= k.y + 0x632BE59BD9B4E019ull + (h << 6) + (h >> 2);
-    h ^= k.z + 0x94D049BB133111EBull + (h << 6) + (h >> 2);
-    return static_cast<std::size_t>(h ^ (h >> 31));
-  }
-};
+// edges, orientation
 
 // one use of an undirected edge by a triangle; forward: the triangle runs
 // along the edge from its lower to its higher point index
@@ -935,40 +914,6 @@ static void set_bounding_box(Mesh& mesh) {
   }
 }
 
-Mesh clean_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
-  Mesh res;
-  std::vector<int> new_index(points.size(), -1);
-  std::unordered_map<PointKey, int, PointKeyHash> unique;
-  unique.reserve(points.size() * 2 + 1);
-  res.triangles.reserve(triangles.size());
-
-  for (const Triangle& t : triangles) {
-    Triangle ids;
-    for (int i = 0; i < 3; i++) {
-      if (t[i] < 0 || static_cast<std::size_t>(t[i]) >= points.size()) {
-        throw std::out_of_range("Triangle point index " + std::to_string(t[i]) + " is out of range.");
-      }
-      int& id = new_index[t[i]];
-      if (id < 0) {
-        const Point& p = points[t[i]];
-        const auto [it, inserted] = unique.emplace(
-            PointKey{key_bits(p[0]), key_bits(p[1]), key_bits(p[2])}, static_cast<int>(res.points.size()));
-        if (inserted) {
-          res.points.push_back(p);
-        }
-        id = it->second;
-      }
-      ids[i] = id;
-    }
-    if (ids[0] != ids[1] && ids[1] != ids[2] && ids[2] != ids[0]) {
-      res.triangles.push_back(ids);
-    }
-  }
-
-  set_bounding_box(res);
-  return res;
-}
-
 Mesh unmerged_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
   Mesh res;
   std::vector<int> new_index(points.size(), -1);
@@ -1314,22 +1259,22 @@ bool write_obj(const std::string& file_prefix, const std::vector<NamedMesh>& mes
   const std::size_t slash = mtl_path.find_last_of(separators);
   const std::string mtl_name = (slash == std::string::npos) ? mtl_path : mtl_path.substr(slash + 1);
 
-  obj << "#  wavefront obj file written by the visualization toolkit\n\n";
+  obj << "# Wavefront OBJ file written by MCell\n\n";
   obj << "mtllib " << mtl_name << "\n\n";
-  mtl << "# wavefront mtl file written by the visualization toolkit\n\n";
+  mtl << "# Wavefront MTL file written by MCell\n\n";
   int id_start = 1;
   for (const NamedMesh& m : meshes) {
     mtl << "newmtl mtl_" << m.name << "\n"
         << "Ka 0 0 0\nKd 1 1 1\nKs 0 0 0\nNs 1\nTr 0.25\nd 0.25\nillum 3\n";
     obj << "\no " << m.name << "\n";
-    for (const Point& p : m.mesh.points) {
+    for (const Point& p : m.points) {
       obj << "v " << number_to_string(p[0]) << " " << number_to_string(p[1]) << " " << number_to_string(p[2]) << "\n";
     }
     obj << "\nusemtl mtl_" << m.name << "\n";
-    for (const Triangle& t : m.mesh.triangles) {
+    for (const Triangle& t : m.triangles) {
       obj << "f " << t[0] + id_start << " " << t[1] + id_start << " " << t[2] + id_start << " \n";
     }
-    id_start += static_cast<int>(m.mesh.points.size());
+    id_start += static_cast<int>(m.points.size());
   }
   obj.close();
   mtl.close();

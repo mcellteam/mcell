@@ -243,6 +243,8 @@ export_geometry (output_files_prefix: str=None)
 
 
   | Exports model geometry as Wavefront OBJ format. 
+  | Each geometry object is written as given: every vertex of its vertex_list, in that order,
+  | at its current position (after vertex moves) in um, and its walls in the order of its wall_list.
   | Must be called after model initialization.
   | Does not export material colors (yet).
 

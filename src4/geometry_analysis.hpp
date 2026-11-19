@@ -12,9 +12,9 @@
 #ifndef SRC4_GEOMETRY_ANALYSIS_HPP_
 #define SRC4_GEOMETRY_ANALYSIS_HPP_
 
-// Analysis of closed triangle meshes: cleaning, volume and area, the parts
-// that face the wrong way, containment of one mesh in another, and OBJ export.
-// It replaced MCell's use of VTK. Whether a mesh is closed comes from its
+// Analysis of triangle meshes: volume and area, the parts that face the wrong
+// way, containment of one mesh in another, and OBJ export. It replaced MCell's
+// use of VTK. Whether a mesh is watertight comes from its
 // vertex indices (mesh_table.hpp). Decisions (do two meshes touch, is a point
 // inside) are exact: every sign comes from Shewchuk's predicates. Volume and area
 // follow MCell's Region and Wall code expression by expression
@@ -44,16 +44,9 @@ struct Mesh {
   Point lo{}, hi{}; // bounding box of the points, zeros for an empty mesh
 };
 
-// cleans triangles the way vtkTriangleFilter + vtkCleanPolyData (tolerance 0)
-// did: exactly equal points are merged (0.0 equals -0.0), points are numbered
-// in the order the triangles first use them, unused points are dropped, and
-// triangles that use a point twice are dropped (VTK turned those into lines)
-Mesh clean_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles);
-
 // the triangles as given, with their points numbered in the order the triangles
-// first use them, as clean_mesh numbers them, but nothing is merged or dropped:
-// points with equal coordinates stay apart, and every triangle is kept; unused
-// points are left out
+// first use them; nothing is merged or dropped: points with equal coordinates
+// stay apart, and every triangle is kept; unused points are left out
 Mesh unmerged_mesh(const std::vector<Point>& points, const std::vector<Triangle>& triangles);
 
 struct InsideOutParts {
@@ -147,14 +140,18 @@ private:
 // vtkNumberToString (decimal for exponents -6 to 20, e.g. 1e+21, 1e-07)
 std::string number_to_string(double value);
 
+// one object of an OBJ file: its name, its points and its triangles
 struct NamedMesh {
   std::string name;
-  Mesh mesh;
+  std::vector<Point> points;
+  std::vector<Triangle> triangles; // indices into points
 };
 
-// writes <file_prefix>.obj and <file_prefix>.mtl with the same bytes as
-// MCell's patched vtkOBJExporter: one named object per mesh, each with a white
-// material of opacity 0.25; returns false if a file can't be written
+// writes <file_prefix>.obj and <file_prefix>.mtl in the layout of MCell's
+// patched vtkOBJExporter, which wrote them before: one named object per mesh,
+// with its points and triangles in order, each with a white material of
+// opacity 0.25; the first line of each file names MCell. Returns false if a
+// file can't be written
 bool write_obj(const std::string& file_prefix, const std::vector<NamedMesh>& meshes);
 
 } // namespace GeometryAnalysis

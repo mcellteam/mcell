@@ -166,6 +166,15 @@ public:
   double get_area(const Partition& p) const;
   double get_signed_volume(const Partition& p) const;
 
+  // The object's mesh as the model gives it, in internal units: every vertex of
+  // the object in order, also one that no wall uses (vertex v is the partition's
+  // vertex first_vertex_index + v), at its current position, and the walls in
+  // order with their vertices from the MeshTable, so with the vertex indices of
+  // the model. The area, the signed volume and the OBJ export come from it.
+  void get_mesh_as_given(
+      const Partition& p,
+      std::vector<GeometryAnalysis::Point>& points, std::vector<GeometryAnalysis::Triangle>& triangles) const;
+
   // called by Geometry::update_moved_walls when a vertex of the object moves
   void set_coordinates_changed() {
     coordinate_facts_current = false;

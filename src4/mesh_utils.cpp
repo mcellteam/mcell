@@ -137,17 +137,6 @@ GeometryAnalysis::Mesh get_unmerged_mesh(
 }
 
 
-GeometryAnalysis::Mesh get_clean_mesh(
-    const World* world, const GeometryObject& obj, const bool convert_units) {
-
-  // the cleaned mesh depends only on the order of the walls
-  std::vector<GeometryAnalysis::Point> points;
-  std::vector<GeometryAnalysis::Triangle> triangles;
-  get_mesh(world, obj, convert_units, points, triangles);
-  return GeometryAnalysis::clean_mesh(points, triangles);
-}
-
-
 const char* const USE_COUNTED = "the model counts inside this object";
 const char* const USE_COMPARTMENT = "this object is a compartment";
 
