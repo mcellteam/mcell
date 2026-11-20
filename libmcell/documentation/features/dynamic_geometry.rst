@@ -26,10 +26,12 @@ Geometry Introspection
 
 This subsection lists several methods used for introspecting geometry state:
 
-* :ref:`Model.get_vertex <Model__get_vertex>` - Returns coordinates of a vertex as Vec3.
+* :ref:`Model.get_vertex <Model__get_vertex>` - Returns coordinates of a vertex as List[float].
 * :ref:`Model.get_wall <Model__get_wall>` - Returns information about a wall belonging to a given object. 
 * :ref:`Model.get_vertex_unit_normal <Model__get_vertex_unit_normal>` - Returns sum of all wall normals that use this vertex normalized to a unit vector of length 1um. This represents the unit vector pointing outwards from the vertex.
 * :ref:`Model.get_wall_unit_normal <Model__get_wall_unit_normal>` - Returns wall normal of length 1um.
+* :ref:`Model.get_object_area <Model__get_object_area>` - Returns the area of an object in um^2, at the current positions of its walls (after vertex moves).
+* :ref:`Model.get_object_volume <Model__get_object_volume>` - Returns the signed volume of an object in um^3, at the current positions of its vertices (after vertex moves); raises a ValueError when the object is non-watertight.
 
 
 Geometry Modifications

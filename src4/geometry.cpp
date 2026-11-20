@@ -159,9 +159,16 @@ void GeometryObject::update_coordinate_facts(const Partition& p) const {
   vector<GeometryAnalysis::Triangle> triangles;
   get_mesh_as_given(p, points, triangles);
 
-  const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area(points, triangles);
-  current_area = va.area;
-  current_signed_volume = get_mesh_check().watertight() ? va.volume : 0.0;
+  // a signed volume only when the object is watertight
+  if (get_mesh_check().watertight()) {
+    const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area(points, triangles);
+    current_area = va.area;
+    current_signed_volume = va.volume;
+  }
+  else {
+    current_area = GeometryAnalysis::surface_area(points, triangles);
+    current_signed_volume.reset();
+  }
   coordinate_facts_current = true;
 }
 
@@ -174,7 +181,7 @@ double GeometryObject::get_area(const Partition& p) const {
 }
 
 
-double GeometryObject::get_signed_volume(const Partition& p) const {
+std::optional<double> GeometryObject::get_signed_volume(const Partition& p) const {
   if (!coordinate_facts_current) {
     update_coordinate_facts(p);
   }

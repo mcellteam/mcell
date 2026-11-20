@@ -58,6 +58,7 @@
 #include <cstdint>
 #include <iosfwd>
 #include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -265,7 +266,9 @@ struct ShellFacts {
   mesh_index_t first_wall = 0;
   double area = 0.0;          // internal units squared
   bool watertight = false;    // no edge of the shell has only one wall
-  double signed_volume = 0.0; // internal units cubed; 0 unless watertight
+  // internal units cubed; computed only when the shell is watertight, since
+  // otherwise the sum of the tetrahedra depends on the reference point
+  std::optional<double> signed_volume;
   bool facing_judged = false; // see GeometryAnalysis::judge_parts
   bool wrong_facing = false;
 };
@@ -319,7 +322,8 @@ struct MeshCheck {
   Shells shells;
   std::vector<ShellFacts> shell_facts;
   double area = 0.0;          // of all walls, internal units squared
-  double signed_volume = 0.0; // of all walls when watertight, internal units cubed
+  // of all walls, internal units cubed; computed only when watertight
+  std::optional<double> signed_volume;
 
   bool manifold() const {
     return table_built && non_manifold.empty();

@@ -523,7 +523,7 @@ void check_report(
   double volume = 0.0;
   for (const ShellFacts& f : check.shell_facts) {
     if (f.wrong_facing) {
-      volume += f.signed_volume;
+      volume += f.signed_volume.value();
     }
   }
   expect_true(where, "find_inside_out_parts agrees on the shells that face the wrong way",

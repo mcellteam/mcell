@@ -109,7 +109,7 @@ Wall:
     type: bool
     default: true
     doc: | 
-       If True, whis wall can be moved through Model.apply_vertex_moves,
+       If True, this wall can be moved through Model.apply_vertex_moves,
        if False, wall moves are ignored. 
        Can be set during simulation.
     
@@ -153,8 +153,8 @@ Introspection:
   
   - name: get_molecule
     doc: |
-       Returns a information on a molecule from the simulated environment, 
-       None if the molecule does not exist.
+       Returns information on a molecule from the simulated environment.
+       Raises a RuntimeError if the molecule does not exist.
     examples: tests/pymcell4_positive/1900_molecule_introspection/model.py
     return_type: Molecule*
     params: 
@@ -182,7 +182,7 @@ Introspection:
       type: GeometryObject*
     - name: vertex_index
       type: int 
-      doc: This is the index of the vertex in the geometry object's walls (wall_list).
+      doc: This is the index of the vertex in the geometry object's vertex_list.
       
   - name: get_wall
     doc: Returns information about a wall belonging to a given object.
@@ -221,7 +221,36 @@ Introspection:
       doc: Geometry object whose wall's normal to retrieve.
     - name: wall_index
       type: int 
-      doc: This is the index of the vertex in the geometry object's walls (wall_list).
+      doc: This is the index of the wall in the geometry object's walls (wall_list).
+
+  - name: get_object_area
+    doc: |
+       Returns the area of the object in um^2: the sum of the areas of its walls,
+       at their current positions (after vertex moves).
+       The model must be initialized.
+    examples: tests/pymcell4_positive/1350_get_object_area_volume/model.py
+    return_type: float
+    params:
+    - name: object
+      type: GeometryObject*
+      doc: Geometry object whose area to retrieve.
+
+  - name: get_object_volume
+    doc: |
+       Returns the signed volume of the object in um^3, at the current positions of its
+       vertices (after vertex moves).
+       It is positive when the walls face outward (right-hand rule) and negative for an
+       inside-out object. For an object of several shells it is the sum of their signed
+       volumes, so a cavity is subtracted.
+       Raises a ValueError when the object is non-watertight, that is, when one of its
+       edges belongs to only one wall.
+       The model must be initialized.
+    examples: tests/pymcell4_positive/1350_get_object_area_volume/model.py
+    return_type: float
+    params:
+    - name: object
+      type: GeometryObject*
+      doc: Geometry object whose volume to retrieve.
           
           
   # --- display/export manipulation ---
@@ -234,17 +263,17 @@ Introspection:
       doc: Geometry object whose wall's color to retrieve.
     - name: wall_index
       type: int 
-      doc: This is the index of the vertex in the geometry object's walls (wall_list).
+      doc: This is the index of the wall in the geometry object's walls (wall_list).
     
   - name: set_wall_color
     doc: Sets color of a wall.
     params:
     - name: object
       type: GeometryObject*
-      doc: Geometry object whose wall's color to retrieve.
+      doc: Geometry object whose wall's color to set.
     - name: wall_index
       type: int 
-      doc: This is the index of the vertex in the geometry object's walls (wall_list).
+      doc: This is the index of the wall in the geometry object's walls (wall_list).
     - name: color
       type: Color*
       doc: Color to be set.

@@ -14,6 +14,7 @@
 #define SRC4_GEOMETRY_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 #include <set>
 
@@ -77,8 +78,7 @@ public:
       first_vertex_index(VERTEX_INDEX_INVALID),
       is_used_in_mol_rxn_counts(false),
       coordinate_facts_current(false),
-      current_area(0),
-      current_signed_volume(0)
+      current_area(0)
     {
   }
 
@@ -158,13 +158,16 @@ public:
   // edge has no second wall
   edge_index_t get_neighbor_side(const wall_index_t wi, const edge_index_t k) const;
 
-  // The area and the signed volume of the object's walls, in internal units;
-  // the volume is 0 unless the mesh is watertight. Until a vertex of the object
-  // moves they are the values of the checks; after a move they are recomputed
-  // at the next call from the current vertices, with the same function
-  // (GeometryAnalysis::volume_and_area) over the same walls in the same order.
+  // The area and the signed volume of the object's walls, in internal units.
+  // The volume is computed only when the mesh is watertight, and is empty
+  // otherwise: for a non-watertight mesh the sum of the tetrahedra depends on
+  // the reference point and is no volume. Until a vertex of the object moves
+  // they are the values of the checks; after a move they are recomputed at the
+  // next call from the current vertices, with the same functions
+  // (GeometryAnalysis::volume_and_area, surface_area) over the same walls in the
+  // same order.
   double get_area(const Partition& p) const;
-  double get_signed_volume(const Partition& p) const;
+  std::optional<double> get_signed_volume(const Partition& p) const;
 
   // The object's mesh as the model gives it, in internal units: every vertex of
   // the object in order, also one that no wall uses (vertex v is the partition's
@@ -251,7 +254,7 @@ private:
   // what get_area and get_signed_volume return; recomputed when not current
   mutable bool coordinate_facts_current;
   mutable double current_area;
-  mutable double current_signed_volume;
+  mutable std::optional<double> current_signed_volume;
   void update_coordinate_facts(const Partition& p) const;
 
   // the lists per vertex, built from the MeshTable on first use

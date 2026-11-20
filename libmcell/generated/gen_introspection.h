@@ -49,6 +49,8 @@ public:
   virtual std::shared_ptr<Wall> get_wall(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
   virtual std::vector<double> get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) = 0;
   virtual std::vector<double> get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
+  virtual double get_object_area(std::shared_ptr<GeometryObject> object) = 0;
+  virtual double get_object_volume(std::shared_ptr<GeometryObject> object) = 0;
   virtual std::shared_ptr<Color> get_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index) = 0;
   virtual void set_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index, std::shared_ptr<Color> color) = 0;
 }; // GenIntrospection

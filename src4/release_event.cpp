@@ -863,7 +863,9 @@ int ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
     // non-watertight or has a shell facing the wrong way
     // (MeshUtils::check_usage)
     const GeometryObject& go = p.get_geometry_object_by_id(region_expr.root->geometry_object_id);
-    vol = go.get_signed_volume(p);
+    const std::optional<double> signed_volume = go.get_signed_volume(p);
+    release_assert(signed_volume.has_value());
+    vol = *signed_volume;
     exact_number = true;
   }
   else if (region_expr.root->op == RegionExprOperator::LEAF_SURFACE_REGION) {

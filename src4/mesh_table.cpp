@@ -658,19 +658,31 @@ MeshCheck check_mesh(
       points, walls, part_of, closed, std::vector<char>(n_shells, 1));
   for (std::size_t s = 0; s < n_shells; s++) {
     ShellFacts& f = c.shell_facts[s];
-    const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area(points, shell_walls[s]);
     f.walls = shell_walls[s].size();
-    f.area = va.area;
     f.watertight = closed[s];
-    f.signed_volume = closed[s] ? va.volume : 0.0;
+    // a signed volume only for a watertight shell
+    if (closed[s]) {
+      const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area(points, shell_walls[s]);
+      f.area = va.area;
+      f.signed_volume = va.volume;
+    }
+    else {
+      f.area = GeometryAnalysis::surface_area(points, shell_walls[s]);
+    }
     f.facing_judged = facing[s].judged;
     f.wrong_facing = facing[s].wrong;
   }
 
-  // the whole object, as Region computes its volume and area
-  const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area(points, walls);
-  c.area = va.area;
-  c.signed_volume = c.watertight() ? va.volume : 0.0;
+  // the whole object, as Region computes its volume and area; a signed volume
+  // only when the object is watertight
+  if (c.watertight()) {
+    const GeometryAnalysis::VolumeArea va = GeometryAnalysis::volume_and_area(points, walls);
+    c.area = va.area;
+    c.signed_volume = va.volume;
+  }
+  else {
+    c.area = GeometryAnalysis::surface_area(points, walls);
+  }
   return c;
 }
 
@@ -894,7 +906,7 @@ void write_report_block(
   // shells
   out << "  Shells: " << check.shells.count << ", area " << format_number(check.area * area_unit) << " um^2";
   if (check.watertight()) {
-    out << ", signed volume " << format_number(check.signed_volume * volume_unit) << " um^3";
+    out << ", signed volume " << format_number(check.signed_volume.value() * volume_unit) << " um^3";
   }
   out << '\n';
   const std::size_t wrong = check.wrong_facing_shells();
@@ -904,7 +916,7 @@ void write_report_block(
       const ShellFacts& f = check.shell_facts[s];
       if (f.wrong_facing) {
         out << "    shell " << s << ": " << counted(f.walls, "wall", "walls") << " from wall "
-            << file_wall(check, f.first_wall) << ", signed volume " << format_number(f.signed_volume * volume_unit)
+            << file_wall(check, f.first_wall) << ", signed volume " << format_number(f.signed_volume.value() * volume_unit)
             << " um^3\n";
       }
     }

@@ -352,7 +352,7 @@ double get_geometry_object_volume(const World* world, const GeometryObject& obj)
   // the object's signed volume, recomputed after vertex moves; until a move it
   // is the volume of the object's region, which releases by concentration use:
   // the same function on the same walls in the same order
-  return obj.get_signed_volume(world->get_partition(PARTITION_ID_INITIAL));
+  return obj.get_signed_volume(world->get_partition(PARTITION_ID_INITIAL)).value();
 }
 
 

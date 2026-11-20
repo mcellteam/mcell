@@ -1081,6 +1081,17 @@ std::vector<PartFacing> judge_parts(
   return res;
 }
 
+// the area of triangle a, b, c: half the length of (b - a) x (c - a), as
+// Wall::precompute_wall_constants computes a wall's area with glm's cross product
+static double triangle_area(const Point& a, const Point& b, const Point& c) {
+  const double ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+  const double vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+  const double nx = uy * vz - vy * uz;
+  const double ny = uz * vx - vz * ux;
+  const double nz = ux * vy - vx * uy;
+  return 0.5 * std::sqrt(nx * nx + ny * ny + nz * nz);
+}
+
 VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
   // the arithmetic follows MCell expression by expression, so that the results
   // are bit-identical to the simulation's: the bounding box as in
@@ -1123,15 +1134,17 @@ VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<T
         (a[1] - d[1]) * (b[0] - d[0]) * (c[2] - d[2]) +
         (a[0] - d[0]) * (b[1] - d[1]) * (c[2] - d[2]));
 
-    // area: half the length of (b - a) x (c - a)
-    const double ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
-    const double vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
-    const double nx = uy * vz - vy * uz;
-    const double ny = uz * vx - vz * ux;
-    const double nz = ux * vy - vx * uy;
-    area += 0.5 * std::sqrt(nx * nx + ny * ny + nz * nz);
+    area += triangle_area(a, b, c);
   }
   return {volume, area};
+}
+
+double surface_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles) {
+  double area = 0.0;
+  for (const Triangle& t : triangles) {
+    area += triangle_area(points[t[0]], points[t[1]], points[t[2]]);
+  }
+  return area;
 }
 
 bool triangles_intersect(

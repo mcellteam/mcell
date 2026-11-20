@@ -681,6 +681,18 @@ class Introspection():
         ) -> 'List[float]':
         pass
 
+    def get_object_area(
+            self,
+            object : GeometryObject
+        ) -> 'float':
+        pass
+
+    def get_object_volume(
+            self,
+            object : GeometryObject
+        ) -> 'float':
+        pass
+
     def get_wall_color(
             self,
             object : GeometryObject,
@@ -1058,6 +1070,18 @@ class Model():
             object : GeometryObject,
             wall_index : int
         ) -> 'List[float]':
+        pass
+
+    def get_object_area(
+            self,
+            object : GeometryObject
+        ) -> 'float':
+        pass
+
+    def get_object_volume(
+            self,
+            object : GeometryObject
+        ) -> 'float':
         pass
 
     def get_wall_color(

@@ -146,6 +146,8 @@ std::string Introspection::get_species_name(const int species_id) {
 
 
 std::vector<double> Introspection::get_vertex(std::shared_ptr<GeometryObject> object, const int vertex_index) {
+  object_is_set_and_initialized(object);
+
   const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   return
       Vec3(
@@ -209,6 +211,47 @@ std::vector<double> Introspection::get_wall_unit_normal(std::shared_ptr<Geometry
   // the value is is already normalized
   assert(cmp_eq(len3(w.normal), (pos_t)1));
   return w.normal.to_vec();
+}
+
+
+double Introspection::get_object_area(std::shared_ptr<GeometryObject> object) {
+  object_is_set_and_initialized(object);
+
+  // the area of the object's walls, kept with the checks of its mesh and
+  // recomputed after its vertices move
+  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  const MCell::GeometryObject& obj = p.get_geometry_object_by_id(object->geometry_object_id);
+  const double length_unit = world->config.length_unit;
+  return obj.get_area(p) * length_unit * length_unit;
+}
+
+
+double Introspection::get_object_volume(std::shared_ptr<GeometryObject> object) {
+  object_is_set_and_initialized(object);
+
+  const MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  const MCell::GeometryObject& obj = p.get_geometry_object_by_id(object->geometry_object_id);
+
+  // the checks stopped the run on a mesh that isn't manifold or consistently
+  // oriented, so the watertight check ran; it depends only on the vertex
+  // indices, so vertex moves don't change it
+  const MCell::MeshUtils::MeshCheck& check = obj.get_mesh_check();
+  release_assert(check.watertight_checked);
+  if (!check.watertight()) {
+    const size_t n = check.boundary_edges;
+    throw ValueError(
+        "Geometry object " + object->name + " is non-watertight (" + to_string(n) +
+        (n == 1 ? " boundary edge" : " boundary edges") + "), so it has no volume; see " +
+        world->config.get_geometry_report_file_name());
+  }
+
+  // the signed volume, summed over the object's shells, kept with the checks
+  // and recomputed after its vertices move; computed only for a watertight
+  // object
+  const std::optional<double> signed_volume = obj.get_signed_volume(p);
+  release_assert(signed_volume.has_value());
+  const double length_unit = world->config.length_unit;
+  return *signed_volume * length_unit * length_unit * length_unit;
 }
 
 

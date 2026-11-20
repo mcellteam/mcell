@@ -93,8 +93,14 @@ struct VolumeArea {
 // join each triangle to the center of the triangles' bounding box, so it is
 // negative when the triangles face inward; the area sums 0.5 |(b - a) x (c - a)|
 // over the triangles (Wall::precompute_wall_constants); the triangles are used as
-// given and in order, without cleaning or reorientation
+// given and in order, without cleaning or reorientation.
+// Only for watertight triangles: otherwise the sum of the tetrahedra depends on
+// the reference point and is no volume, so it is not computed (surface_area)
 VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles);
+
+// the area of volume_and_area alone, the same terms in the same order, so with
+// the same bits; for triangles that aren't watertight
+double surface_area(const std::vector<Point>& points, const std::vector<Triangle>& triangles);
 
 // closed triangles a and b share at least one point, exactly
 bool triangles_intersect(

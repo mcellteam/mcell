@@ -34,8 +34,8 @@ get_molecule (id: int) -> Molecule
 ----------------------------------
 
 
-  | Returns a information on a molecule from the simulated environment, 
-  | None if the molecule does not exist.
+  | Returns information on a molecule from the simulated environment.
+  | Raises a RuntimeError if the molecule does not exist.
 
 * | id: int
   | Unique id of the molecule to be retrieved.
@@ -67,7 +67,7 @@ get_vertex (object: GeometryObject, vertex_index: int) -> List[float]
 
 * | object: GeometryObject
 * | vertex_index: int
-  | This is the index of the vertex in the geometry object's walls (wall_list).
+  | This is the index of the vertex in the geometry object's vertex_list.
 
   | Example: `1340_get_vertex/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1340_get_vertex/model.py>`_ 
 
@@ -120,9 +120,46 @@ get_wall_unit_normal (object: GeometryObject, wall_index: int) -> List[float]
   | Geometry object whose wall's normal to retrieve.
 
 * | wall_index: int
-  | This is the index of the vertex in the geometry object's walls (wall_list).
+  | This is the index of the wall in the geometry object's walls (wall_list).
 
   | Example: `1310_get_wall_unit_normal/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1310_get_wall_unit_normal/model.py>`_ 
+
+
+.. _Introspection__get_object_area:
+
+get_object_area (object: GeometryObject) -> float
+-------------------------------------------------
+
+
+  | Returns the area of the object in um^2: the sum of the areas of its walls,
+  | at their current positions (after vertex moves).
+  | The model must be initialized.
+
+* | object: GeometryObject
+  | Geometry object whose area to retrieve.
+
+  | Example: `1350_get_object_area_volume/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1350_get_object_area_volume/model.py>`_ 
+
+
+.. _Introspection__get_object_volume:
+
+get_object_volume (object: GeometryObject) -> float
+---------------------------------------------------
+
+
+  | Returns the signed volume of the object in um^3, at the current positions of its
+  | vertices (after vertex moves).
+  | It is positive when the walls face outward (right-hand rule) and negative for an
+  | inside-out object. For an object of several shells it is the sum of their signed
+  | volumes, so a cavity is subtracted.
+  | Raises a ValueError when the object is non-watertight, that is, when one of its
+  | edges belongs to only one wall.
+  | The model must be initialized.
+
+* | object: GeometryObject
+  | Geometry object whose volume to retrieve.
+
+  | Example: `1350_get_object_area_volume/model.py <https://github.com/mcellteam/mcell_tests/blob/master/tests/pymcell4_positive/1350_get_object_area_volume/model.py>`_ 
 
 
 .. _Introspection__get_wall_color:
@@ -137,7 +174,7 @@ get_wall_color (object: GeometryObject, wall_index: int) -> Color
   | Geometry object whose wall's color to retrieve.
 
 * | wall_index: int
-  | This is the index of the vertex in the geometry object's walls (wall_list).
+  | This is the index of the wall in the geometry object's walls (wall_list).
 
 
 .. _Introspection__set_wall_color:
@@ -149,10 +186,10 @@ set_wall_color (object: GeometryObject, wall_index: int, color: Color)
   | Sets color of a wall.
 
 * | object: GeometryObject
-  | Geometry object whose wall's color to retrieve.
+  | Geometry object whose wall's color to set.
 
 * | wall_index: int
-  | This is the index of the vertex in the geometry object's walls (wall_list).
+  | This is the index of the wall in the geometry object's walls (wall_list).
 
 * | color: Color
   | Color to be set.
@@ -320,7 +357,7 @@ unit_normal: List[float]
 is_movable: bool
 ----------------
 
-  | If True, whis wall can be moved through Model.apply_vertex_moves,
+  | If True, this wall can be moved through Model.apply_vertex_moves,
   | if False, wall moves are ignored. 
   | Can be set during simulation.
   | - default argument value in constructor: True

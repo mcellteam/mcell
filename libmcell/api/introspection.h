@@ -49,6 +49,9 @@ public:
   std::vector<double> get_vertex_unit_normal(std::shared_ptr<GeometryObject> object, const int vertex_index) override;
   std::vector<double> get_wall_unit_normal(std::shared_ptr<GeometryObject> object, const int wall_index) override;
 
+  double get_object_area(std::shared_ptr<GeometryObject> object) override;
+  double get_object_volume(std::shared_ptr<GeometryObject> object) override;
+
   std::shared_ptr<Color> get_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index) override;
   void set_wall_color(std::shared_ptr<GeometryObject> object, const int wall_index, std::shared_ptr<Color> color) override;
 
