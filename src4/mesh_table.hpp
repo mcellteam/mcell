@@ -254,6 +254,10 @@ bool is_zero_area(double area);
 std::vector<mesh_index_t> find_zero_area_walls(
     const std::vector<Point>& points, const std::vector<WallVertices>& walls);
 
+// the orphaned vertices, which no wall of the table uses, ascending. An edge
+// can't be orphaned: the table makes each edge from a side of a wall
+std::vector<mesh_index_t> find_orphaned_vertices(const MeshTable& table);
+
 // groups of vertices whose coordinates are exactly equal (0.0 equals -0.0): each
 // group ascending, the groups in the order of their first vertices
 std::vector<std::vector<mesh_index_t>> find_equal_coordinates(const std::vector<Point>& points);
@@ -302,6 +306,9 @@ struct MeshCheck {
   bool table_built = false;
   MeshTable table;
 
+  // vertices that no checked wall uses; with MDL's REMOVE_ELEMENTS also those
+  // that only removed walls use. An error that doesn't stop the other checks
+  std::vector<mesh_index_t> orphaned_vertices;
   std::vector<std::vector<mesh_index_t>> duplicate_walls;
   std::vector<mesh_index_t> zero_area_walls;
   // checked whatever the indices, unless a vertex doesn't have three
@@ -335,7 +342,8 @@ struct MeshCheck {
     return watertight_checked && boundary_edges == 0;
   }
   std::size_t wrong_facing_shells() const;
-  // pass 0 (bad regions included), zero area, 1.1 or 1.2 failed
+  // pass 0 (bad regions included), orphaned vertices, walls with the same three
+  // vertices, zero area, 1.1 or 1.2 failed
   bool has_errors() const;
 };
 

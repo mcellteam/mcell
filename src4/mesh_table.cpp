@@ -532,6 +532,16 @@ std::vector<mesh_index_t> find_zero_area_walls(
   return res;
 }
 
+std::vector<mesh_index_t> find_orphaned_vertices(const MeshTable& table) {
+  std::vector<mesh_index_t> res;
+  for (mesh_index_t v = 0; v < table.n_vertices(); v++) {
+    if (table.walls_per_vertex[v] == 0) {
+      res.push_back(v);
+    }
+  }
+  return res;
+}
+
 std::vector<std::vector<mesh_index_t>> find_equal_coordinates(const std::vector<Point>& points) {
   using Key = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t>;
   std::vector<std::pair<Key, mesh_index_t>> keyed;
@@ -573,7 +583,8 @@ std::size_t MeshCheck::wrong_facing_shells() const {
 }
 
 bool MeshCheck::has_errors() const {
-  return !indices.empty() || !bad_regions.empty() || !duplicate_walls.empty() || !zero_area_walls.empty() ||
+  return !indices.empty() || !bad_regions.empty() || !orphaned_vertices.empty() || !duplicate_walls.empty() ||
+      !zero_area_walls.empty() ||
       (table_built && !non_manifold.empty()) || !inconsistent_edges.empty();
 }
 
@@ -606,6 +617,7 @@ MeshCheck check_mesh(
   c.zero_area_walls = find_zero_area_walls(points, walls);
   c.table = build_mesh_table(points.size(), walls);
   c.table_built = true;
+  c.orphaned_vertices = find_orphaned_vertices(c.table);
   c.duplicate_walls = find_duplicate_walls(c.table, walls);
 
   // 1.1
@@ -825,6 +837,11 @@ void write_report_block(
       out << '\n';
     }
   }
+  if (!check.orphaned_vertices.empty()) {
+    out << "  Orphaned vertices (used by no wall):";
+    write_counted_ids(out, check.orphaned_vertices, "vertex", "vertices");
+    out << '\n';
+  }
   if (!check.duplicate_walls.empty()) {
     out << "  Walls with the same three vertices: " << counted(check.duplicate_walls.size(), "group", "groups") << '\n';
     for (const std::vector<mesh_index_t>& g : check.duplicate_walls) {
@@ -961,6 +978,11 @@ std::vector<ProblemLine> problem_lines(const MeshCheck& check) {
       text += ", " + parts[i];
     }
     res.push_back({true, "MESH_INVALID_INDICES", text});
+  }
+  if (!check.orphaned_vertices.empty()) {
+    res.push_back({true, "MESH_ORPHANED_VERTICES",
+                   counted(check.orphaned_vertices.size(), "orphaned vertex", "orphaned vertices") +
+                       ", used by no wall"});
   }
   if (!check.duplicate_walls.empty()) {
     res.push_back({true, "MESH_DUPLICATE_WALLS",

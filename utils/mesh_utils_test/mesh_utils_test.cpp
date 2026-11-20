@@ -332,6 +332,15 @@ void check_connectivity(const std::string& name, const WallsFile& m, const Expec
   expect_equal(where, "walls_per_vertex", t.walls_per_vertex, walls_per_vertex);
   expect_equal(where, "edges_per_vertex", t.edges_per_vertex, edges_per_vertex);
 
+  // the orphaned vertices, which no wall uses
+  std::vector<long long> orphaned;
+  for (std::size_t v = 0; v < walls_per_vertex.size(); v++) {
+    if (walls_per_vertex[v] == 0) {
+      orphaned.push_back(static_cast<long long>(v));
+    }
+  }
+  expect_equal(where, "orphaned vertices", find_orphaned_vertices(t), orphaned);
+
   // the neighbor across each side: the other entry of an edge of two walls
   bool neighbors_ok = true;
   for (mesh_index_t i = 0; i < n_entries; i++) {
@@ -592,6 +601,7 @@ void check_line_texts() {
   // the other errors, then the warnings
   MeshCheck c1;
   c1.table_built = true;
+  c1.orphaned_vertices = {8};
   c1.duplicate_walls = {{0, 1}};
   c1.zero_area_walls = {2};
   c1.non_manifold.bowtie_vertices = {0};
@@ -600,7 +610,8 @@ void check_line_texts() {
   c1.watertight_checked = true;
   c1.boundary_edges = 1;
   expect_lines("one of each", c1,
-      {"Error: [MESH_DUPLICATE_WALLS] x: 1 group of walls with the same three vertices",
+      {"Error: [MESH_ORPHANED_VERTICES] x: 1 orphaned vertex, used by no wall",
+       "Error: [MESH_DUPLICATE_WALLS] x: 1 group of walls with the same three vertices",
        "Error: [MESH_ZERO_AREA_WALLS] x: 1 wall with zero area",
        "Error: [MESH_NOT_MANIFOLD] x: 1 non-manifold vertex, where groups of walls touch only at a vertex",
        "Error: [MESH_INCONSISTENT_ORIENTATION] x: 1 pair of walls runs along its shared edge in the same direction",
@@ -609,6 +620,7 @@ void check_line_texts() {
 
   MeshCheck c2;
   c2.table_built = true;
+  c2.orphaned_vertices = {8, 9};
   c2.duplicate_walls = {{0, 1}, {2, 3}};
   c2.zero_area_walls = {2, 4};
   c2.non_manifold.bowtie_vertices = {0};
@@ -618,7 +630,8 @@ void check_line_texts() {
   c2.watertight_checked = true;
   c2.boundary_edges = 4;
   expect_lines("more of each", c2,
-      {"Error: [MESH_DUPLICATE_WALLS] x: 2 groups of walls with the same three vertices",
+      {"Error: [MESH_ORPHANED_VERTICES] x: 2 orphaned vertices, used by no wall",
+       "Error: [MESH_DUPLICATE_WALLS] x: 2 groups of walls with the same three vertices",
        "Error: [MESH_ZERO_AREA_WALLS] x: 2 walls with zero area",
        "Error: [MESH_NOT_MANIFOLD] x: 2 non-manifold vertices, where groups of walls touch only at a vertex",
        "Error: [MESH_INCONSISTENT_ORIENTATION] x: 3 pairs of walls run along their shared edge in the same direction",
