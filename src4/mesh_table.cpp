@@ -764,11 +764,12 @@ MeshCheck check_parsed_walls(
   for (std::size_t w = 0; w < file_walls.size(); w++) {
     const WallVertices& v = file_walls[w];
     if (w < removed.size() && removed[w] != 0) {
-      // MCell3 measured and dropped it only if it has three valid indices
+      // a removed wall with an index out of range is checked too, so that pass 0
+      // reports it: no wall may have one, removed or not
       const bool in_range = std::all_of(v.begin(), v.end(), [&points](const int i) {
         return i >= 0 && static_cast<std::size_t>(i) < points.size();
       });
-      if (!in_range || !is_zero_area(wall_area(points[v[0]], points[v[1]], points[v[2]]))) {
+      if (in_range && !is_zero_area(wall_area(points[v[0]], points[v[1]], points[v[2]]))) {
         left_out.push_back(static_cast<mesh_index_t>(w));
         continue;
       }

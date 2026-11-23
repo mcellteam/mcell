@@ -12,6 +12,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
+#include <algorithm>
 #include <set>
 
 #include "bng/bng.h"
@@ -487,6 +488,73 @@ void MCell3WorldConverter::check_polygonal_objects(volume* s) {
   if (!stop.empty()) {
     mcell_error("%s", stop.c_str());
   }
+}
+
+
+// pass 0 of a polygonal object as MCell3's parser stored it, before MCell3's
+// initialization: every wall of the file, also those that REMOVE_ELEMENTS
+// removes, with the file's ids
+static MeshUtils::MeshCheck check_parsed_vertex_indices(const geom_object* o) {
+  const polygon_object* pop = static_cast<const polygon_object*>(o->contents);
+  std::vector<MeshUtils::WallVertices> walls;
+  walls.reserve(pop->n_walls);
+  for (int i = 0; i < pop->n_walls; i++) {
+    const int* vi = pop->element[i].vertex_index;
+    walls.push_back({vi[0], vi[1], vi[2]});
+  }
+  MeshUtils::MeshCheck check;
+  check.n_vertices = static_cast<std::size_t>(pop->n_verts);
+  check.n_walls = walls.size();
+  check.indices = MeshUtils::check_indices(check.n_vertices, walls);
+  return check;
+}
+
+
+// the polygonal objects under a meta object with their names, in the order of
+// check_polygonal_objects_recursively
+static void check_parsed_vertex_indices_recursively(
+    const geom_object* meta, std::vector<std::pair<std::string, MeshUtils::MeshCheck>>& checks) {
+  for (const geom_object* o = meta->first_child; o != nullptr; o = o->next) {
+    if (o->object_type == POLY_OBJ) {
+      checks.emplace_back(get_sym_name(o->sym), check_parsed_vertex_indices(o));
+    }
+    else if (o->object_type == META_OBJ) {
+      check_parsed_vertex_indices_recursively(o, checks);
+    }
+  }
+}
+
+
+void MCell3WorldConverter::check_vertex_indices_before_mcell3_init(volume* s) {
+  std::vector<std::pair<std::string, MeshUtils::MeshCheck>> checks;
+  for (const geom_object* inst = s->root_instance->first_child; inst != nullptr; inst = inst->next) {
+    check_parsed_vertex_indices_recursively(inst, checks);
+  }
+
+  // an index out of range would make MCell3's initialization read outside the
+  // object's vertices (instance_polygon_object, src/init.c); MCell3 skips a
+  // removed wall there, but no index may be out of range in any wall
+  const bool out_of_range = std::any_of(checks.begin(), checks.end(), [](const auto& c) {
+    return c.second.indices.too_large || !c.second.indices.out_of_range.empty();
+  });
+  if (!out_of_range) {
+    return;
+  }
+
+  // the report with a block for each object with an index problem, and its
+  // lines. MCell3's initialization sets the length unit, which only the
+  // report's areas and volumes use; blocks without a MeshTable have none
+  SimulationConfig config;
+  config.initial_seed = s->seed_seq;
+  MeshUtils::GeometryReport report(config.get_geometry_report_file_name(), 1.0);
+  for (const auto& [name, check] : checks) {
+    if (!check.indices.empty()) {
+      report.add(name, check);
+    }
+  }
+  const std::string stop = report.finish();
+  release_assert(!stop.empty());
+  mcell_error("%s", stop.c_str());
 }
 
 

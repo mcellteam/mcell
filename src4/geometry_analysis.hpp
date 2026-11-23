@@ -92,7 +92,7 @@ struct VolumeArea {
 // get_signed_volume): the volume sums the signed volumes of the tetrahedra that
 // join each triangle to the center of the triangles' bounding box, so it is
 // negative when the triangles face inward; the area sums 0.5 |(b - a) x (c - a)|
-// over the triangles (Wall::precompute_wall_constants); the triangles are used as
+// over the triangles (Wall::initialize_wall_constants); the triangles are used as
 // given and in order, without cleaning or reorientation.
 // Only for watertight triangles: otherwise the sum of the tetrahedra depends on
 // the reference point and is no volume, so it is not computed (surface_area)

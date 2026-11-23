@@ -68,6 +68,12 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(parse_input(state),
                     "An error occured during parsing of the mdl file.");
 
+  // MCell4's MDL path: MCell4 checks the walls' vertex indices before MCell3's
+  // initialization reads the vertices through them, and stops on one out of range
+  if (state->use_mcell4 || state->mdl2datamodel4) {
+    mcell4_check_vertex_indices(state);
+  }
+
   // full checkpoint read must be done after full initialization,
   // however some values from it are already needed earlier
   CHECKED_CALL_EXIT(

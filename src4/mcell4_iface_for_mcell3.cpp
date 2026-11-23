@@ -17,6 +17,11 @@
 MCell::MCell3WorldConverter g_converter;
 
 
+void mcell4_check_vertex_indices(volume* s) {
+  MCell::MCell3WorldConverter::check_vertex_indices_before_mcell3_init(s);
+}
+
+
 bool mcell4_convert_mcell3_volume(volume* s) {
   return g_converter.convert(s);
 }

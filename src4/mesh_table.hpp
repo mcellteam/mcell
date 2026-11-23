@@ -369,9 +369,9 @@ MeshCheck check_lists(
 // checks an MDL object from the walls MCell3 parsed (polygon_object::element).
 // removed: the walls MCell3 removed (polygon_object::side_removed), both those of
 // REMOVE_ELEMENTS and the zero-area walls it dropped; only the area tells them
-// apart. A removed wall with zero area is checked, so that it is reported; the
-// others are taken as REMOVE_ELEMENTS and left out, and the report gives the
-// file's wall ids
+// apart. A removed wall with zero area is checked, so that it is reported, and so
+// is one with a vertex index out of range, which pass 0 reports; the others are
+// taken as REMOVE_ELEMENTS and left out, and the report gives the file's wall ids
 MeshCheck check_parsed_walls(
     const std::vector<Point>& points, const std::vector<WallVertices>& file_walls,
     const std::vector<char>& removed, const std::vector<Point>& coordinates);

@@ -86,7 +86,7 @@ private:
   void check_wall_index(const int wall_index) const {
     if (wall_index < 0 || wall_index >= (int)wall_list.size()) {
       throw RuntimeError(
-          "Vertex index " + std::to_string(wall_index) + " is out of range for " + NAME_VERTEX_LIST + " of " + name + ".");
+          "Wall index " + std::to_string(wall_index) + " is out of range for " + NAME_WALL_LIST + " of " + name + ".");
     }
   }
 

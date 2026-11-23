@@ -49,18 +49,13 @@ void GeometryObject::check_semantics() const {
     }
   }
 
+  // the vertex indices, and those of the lists changed through setters, are
+  // checked at Model.initialize() (MCell4Converter::check_geometry_objects)
   for (auto& e: wall_list) {
     if (e.size() != 3) {
       throw ValueError(
           S("Each item in the '") + NAME_WALL_LIST + "' argument must be a triplet of integers, error for " +
           vec_nonptr_to_str(e) + ".");
-      for (int vertex_index: e) {
-        if (vertex_index < 0 || vertex_index >= (int)vertex_list.size()) {
-          throw ValueError(
-              S("Vertex index the '") + NAME_WALL_LIST + "' is out of range, error for " +
-              std::to_string(vertex_index));
-        }
-      }
     }
   }
 

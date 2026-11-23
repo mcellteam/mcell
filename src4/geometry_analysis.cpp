@@ -1082,7 +1082,7 @@ std::vector<PartFacing> judge_parts(
 }
 
 // the area of triangle a, b, c: half the length of (b - a) x (c - a), as
-// Wall::precompute_wall_constants computes a wall's area with glm's cross product
+// Wall::initialize_wall_constants computes a wall's area with glm's cross product
 static double triangle_area(const Point& a, const Point& b, const Point& c) {
   const double ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
   const double vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
@@ -1096,7 +1096,7 @@ VolumeArea volume_and_area(const std::vector<Point>& points, const std::vector<T
   // the arithmetic follows MCell expression by expression, so that the results
   // are bit-identical to the simulation's: the bounding box as in
   // Region::compute_bounding_box, whose center is the reference point of the
-  // tetrahedral volume, and the wall area of Wall::precompute_wall_constants with
+  // tetrahedral volume, and the wall area of Wall::initialize_wall_constants with
   // glm's cross product
   if (triangles.empty()) {
     return {0.0, 0.0};

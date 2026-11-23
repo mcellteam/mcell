@@ -355,10 +355,8 @@ void Model::add_vertex_move(
 
   object->check_is_initialized();
 
-  release_assert(
-      object->first_vertex_index + vertex_index <
-      world->get_partition(PARTITION_ID_INITIAL).get_geometry_vertex_count()
-  );
+  // a RuntimeError for an index below 0 or not below the object's vertex count
+  const vertex_index_t partition_vertex_index = object->get_partition_vertex_index(vertex_index);
 
   if (displacement.size() != 3) {
     throw ValueError(S("Argument ") + NAME_DISPLACEMENT + " must be a list of exactly three floats.");
@@ -369,7 +367,7 @@ void Model::add_vertex_move(
       VertexMoveInfo(
           PARTITION_ID_INITIAL,
           object->geometry_object_id,
-          object->get_partition_vertex_index(vertex_index),
+          partition_vertex_index,
           disp_vec * Vec3(world->config.rcp_length_unit) // convert to internal units
       )
   );

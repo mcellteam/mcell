@@ -14,6 +14,10 @@
 
 #include "mcell_structs_shared.h"
 
+// MCell4's MDL path, after MCell3's parser and before MCell3's initialization:
+// stops the run on a wall's vertex index out of range
+// (MCell3WorldConverter::check_vertex_indices_before_mcell3_init)
+void mcell4_check_vertex_indices(struct volume* s);
 bool mcell4_convert_mcell3_volume(struct volume* s);
 bool mcell4_run_simulation(const bool dump_initial_state, const bool dump_with_geometry = false);
 void mcell4_convert_to_data_model(const bool only_for_viz);

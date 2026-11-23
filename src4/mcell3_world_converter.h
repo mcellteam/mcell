@@ -48,6 +48,16 @@ public:
 
   void reset();
 
+  // MCell4's MDL path (mcell -mcell4, -mdl2datamodel4), after MCell3's parser
+  // and before MCell3's initialization, which reads each wall's vertices
+  // through its indices: checks the vertex indices of every wall of every
+  // instantiated polygonal object, also of the walls that REMOVE_ELEMENTS
+  // removes. If an index is below 0 or not below the object's vertex count,
+  // writes the geometry report with a block for each object with an index
+  // problem, prints their lines and stops the run (exit code 1). Otherwise it
+  // writes nothing, and convert checks every object as before.
+  static void check_vertex_indices_before_mcell3_init(volume* s);
+
   bool convert(volume* s);
 
 private:
